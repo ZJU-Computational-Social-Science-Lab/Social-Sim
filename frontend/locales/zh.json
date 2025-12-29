@@ -1,0 +1,272 @@
+{
+  "common": {
+    "loading": "加载中…",
+    "hide": "隐藏",
+    "show": "显示",
+    "yes": "是",
+    "no": "否",
+    "none": "（无）"
+  },
+  "brand": "SocialSim4",
+  "nav": {
+    "dashboard": "仪表盘",
+    "new": "新建",
+    "saved": "已保存",
+    "settings": "设置",
+    "docs": "文档",
+    "admin": "管理后台",
+    "login": "登录",
+    "register": "注册",
+    "signout": "退出"
+  },
+  "landing": {
+    "headline": "设计、运行并探索由大语言模型驱动的社会模拟。",
+    "sub": "协调多个智能体、分叉时间线，并通过为实验团队打造的界面分享实时结果。",
+    "learn": "了解更多：{{name}}。",
+    "ctaNew": "开始你的第一次模拟",
+    "ctaResume": "继续你的工作"
+  },
+  "dashboard": {
+    "title": "仪表盘",
+    "subtitle": "从上次的进度继续，或开启新的模拟。",
+    "new": "新建模拟",
+    "resume": "继续模拟",
+    "quick": "快速开始",
+    "launchWizard": "启动向导",
+    "providers": "连接服务提供商",
+    "providersHint": "添加 OpenAI、Azure 或自定义端点，并在模拟中复用。",
+    "manageProviders": "管理提供商",
+    "providerRequired": "你需要先配置提供商才能运行仿真。",
+    "recent": "最近的模拟",
+    "viewAll": "查看全部",
+    "loading": "正在加载模拟…",
+    "error": "无法加载模拟。",
+    "empty": "还没有模拟，创建一个开始吧。",
+    "status": "状态",
+    "created": "创建时间",
+    "sceneType": "场景类型"
+  },
+  "saved": {
+    "title": "已保存的模拟",
+    "resume": "继续",
+    "copy": "复制",
+    "delete": "删除",
+    "type": "类型",
+    "confirmDelete": "删除该模拟？",
+    "loading": "加载中…",
+    "error": "无法加载模拟。"
+  },
+  "settings": {
+    "title": "设置",
+    "tabs": {
+      "profile": "个人信息",
+      "security": "安全",
+      "providers": "提供商",
+      "llmProviders": "LLM提供商",
+      "searchProviders": "搜索提供商"
+    },
+    "profile": {
+      "email": "邮箱",
+      "username": "用户名",
+      "fullName": "姓名",
+      "organization": "组织"
+    },
+    "security": {
+      "signoutAll": "退出所有会话",
+      "placeholder": "这里将展示双因素认证和密码重置流程。"
+    },
+    "providers": {
+      "title": "提供商集成",
+      "add": "新增提供商",
+      "llmTab": "LLM 提供商",
+      "searchTab": "搜索提供商",
+      "setSearchProvider": "配置搜索提供商",
+      "searchTitle": "搜索提供商",
+      "fields": {
+        "label": "名称",
+        "provider": "提供商",
+        "model": "模型",
+        "baseUrl": "Base URL",
+        "apiKey": "API 密钥"
+      },
+      "save": "保存提供商",
+      "test": "测试连接",
+      "makeActive": "设为当前",
+      "current": "当前提供商：{{name}}",
+      "activeTag": "当前",
+      "testOk": "连接已验证",
+      "testFail": "测试失败",
+      "createFailed": "新增提供商失败。",
+      "deleteActiveConfirm": "该提供商当前正在使用，确认要删除吗？",
+      "hasKey": "是否保存密钥",
+      "neverTested": "从未测试",
+      "loading": "加载中…",
+      "error": "无法加载提供商。",
+      "none": "还没有添加任何提供商。"
+    }
+  },
+  "wizard": {
+    "title": "模拟向导",
+    "selectScene": "选择场景",
+    "configureScene": "配置场景",
+    "defineAgents": "定义智能体",
+    "review": "检查并启动",
+    "continue": "继续",
+    "back": "返回",
+    "noExtraConfig": "该场景无需额外配置。",
+    "events": "初始事件",
+    "sceneSpecific": "场景配置",
+    "addEvent": "添加事件",
+    "selectPrompt": "请先选择场景。",
+    "name": "名称",
+    "profile": "简介",
+    "addAgent": "添加智能体",
+    "deleteAgent": "删除智能体",
+    "start": "启动模拟",
+    "createFailed": "创建模拟失败。",
+    "config": "配置",
+    "agents": "智能体",
+    "scene": "场景",
+    "noProfile": "无简介",
+    "loadingScenes": "正在加载场景…",
+    "fetchScenesError": "无法获取场景。",
+    "basicActions": "基础动作",
+    "allowedActions": "可选动作",
+    "emotionEnabled": "启用情绪功能",
+    "emotionHint": "开启后，智能体每回合会输出情绪更新。"
+  },
+  "auth": {
+    "login": {
+      "welcome": "欢迎回来",
+      "email": "邮箱",
+      "password": "密码",
+      "signin": "登录",
+      "noAccount": "还没有账号？",
+      "create": "去注册",
+      "invalid": "账号或密码错误"
+    },
+    "register": {
+      "title": "创建你的工作空间",
+      "organization": "组织",
+      "email": "邮箱",
+      "username": "用户名",
+      "fullName": "姓名",
+      "phone": "手机号",
+      "password": "密码",
+      "submit": "创建账户",
+      "success": "注册成功，请查收邮件。",
+      "failed": "注册失败",
+      "invalidPhone": "手机号格式不正确，请使用国际格式，如 +8613712345678（8–15 位数字）",
+      "invalidPhoneTitle": "使用国际格式：+国家码+号码（8–15 位数字）",
+      "have": "已经注册？",
+      "signin": "去登录"
+    }
+  },
+  "sim": {
+    "tree": "模拟树",
+    "events": "事件",
+    "agents": "智能体",
+    "selectedNode": "选中节点",
+    "nodes": "节点",
+    "edges": "边",
+    "running": "运行中",
+    "turnsAt": "该节点回合数",
+    "frontier": "运行前沿叶子",
+    "parallel": "并行推进",
+    "chain": "链式推进",
+    "broadcast": "发布公告",
+    "apply": "应用",
+    "deleteSubtree": "删除子树",
+    "delete": "删除",
+    "run": "运行",
+    "autoScroll": "自动滚动",
+    "refreshMeta": "刷新元信息",
+    "refreshNode": "刷新节点",
+    "saveSnapshot": "保存快照",
+    "saving": "保存中…",
+    "invalidId": "无效的模拟 ID。",
+    "noEvents": "暂无事件。",
+    "noAgentMsgs": "暂无智能体消息。",
+    "noAgents": "没有智能体",
+    "eventTag": "事件",
+    "actionTag": "动作",
+    "messageTag": "发言",
+    "dealTag": "发牌",
+    "bottom": "底牌",
+    "status": "状态",
+    "syncing": "同步中…",
+    "agentStatus": {
+      "title": "智能体状态",
+      "emotion": "情绪",
+      "plan": "计划",
+      "goals": "目标",
+      "milestones": "里程碑",
+      "strategy": "策略",
+      "notes": "备注",
+      "priority": "优先级"
+    }
+  },
+  "admin": {
+    "title": "管理后台",
+    "noAccess": "你没有访问权限。",
+    "common": {
+      "from": "起始",
+      "to": "结束",
+      "sort": "排序",
+      "active": "启用",
+      "disabled": "停用",
+      "fetchError": "获取数据失败。",
+      "all": "全部"
+    },
+    "users": {
+      "title": "用户列表",
+      "name": "姓名/昵称",
+      "organization": "组织",
+      "sort": {
+        "nameAsc": "姓名 ↑",
+        "nameDesc": "姓名 ↓",
+        "orgAsc": "组织 ↑",
+        "orgDesc": "组织 ↓",
+        "createdAsc": "注册时间 ↑",
+        "createdDesc": "注册时间 ↓"
+      },
+      "columns": {
+        "name": "姓名",
+        "email": "邮箱",
+        "organization": "组织",
+        "created": "注册时间",
+        "status": "状态",
+        "role": "角色"
+      }
+    },
+    "sims": {
+      "title": "仿真列表",
+      "username": "用户名",
+      "scene": "仿真类型",
+      "sort": {
+        "usernameAsc": "用户名 ↑",
+        "usernameDesc": "用户名 ↓",
+        "sceneAsc": "类型 ↑",
+        "sceneDesc": "类型 ↓",
+        "createdAsc": "创建时间 ↑",
+        "createdDesc": "创建时间 ↓"
+      },
+      "columns": {
+        "user": "用户",
+        "name": "名称",
+        "scene": "类型",
+        "created": "创建时间"
+      }
+    },
+    "stats": {
+      "title": "统计概览",
+      "period": "时间粒度",
+      "day": "按日",
+      "week": "按周",
+      "month": "按月",
+      "simRuns": "仿真运行次数",
+      "userVisits": "用户访问",
+      "userSignups": "用户注册"
+    }
+  }
+}

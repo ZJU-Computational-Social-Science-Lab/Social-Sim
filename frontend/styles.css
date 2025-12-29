@@ -1,0 +1,849 @@
+* {
+  box-sizing: border-box;
+}
+
+/* Global font contract */
+:root {
+  --font-sans: "Cantarell", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+html {
+  font-family: var(--font-sans);
+}
+
+:root.theme-dark {
+  --bg: #0f172a;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --border: rgba(148, 163, 184, 0.22);
+  --panel: rgba(15, 23, 42, 0.72);
+  --card: rgba(30, 41, 59, 0.78);
+  --overlay-bg: rgba(15, 23, 42, 0.72);
+  --overlay-blur: 10px;
+  --link: #38bdf8;
+  --accent-a: #38bdf8;
+  --accent-b: #6366f1;
+  --danger-a: #f87171;
+  /* rose-400 */
+  --danger-b: #ef4444;
+  /* red-500 */
+}
+
+:root.theme-light {
+  --bg: #f8fafc;
+  --text: #0f172a;
+  --muted: #475569;
+  --border: rgba(15, 23, 42, 0.12);
+  --panel: rgba(255, 255, 255, 0.9);
+  --card: rgba(255, 255, 255, 0.96);
+  --overlay-bg: rgba(255, 255, 255, 0.72);
+  --overlay-blur: 10px;
+  --link: #2563eb;
+  --accent-a: #0ea5e9;
+  --accent-b: #6366f1;
+  --danger-a: #ef4444;
+  /* red-500 */
+  --danger-b: #dc2626;
+  /* red-600 */
+}
+
+/* Control sizing tokens */
+:root {
+  --control-sm: 30px;
+}
+
+body {
+  margin: 0;
+  font-family: inherit;
+  background: var(--bg);
+  color: var(--text);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Ensure form controls and interactive elements inherit the site font */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.app-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Legacy header (kept for page-specific headings) */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+}
+
+.app-main {
+  flex: 1;
+  padding: 1rem;
+  min-height: 0;
+  /* allow children to define scroll areas */
+  overflow: hidden;
+  /* avoid page-level scrollbars for compact layouts */
+}
+
+.app-main.compact {
+  padding: 0.75rem;
+}
+
+.card-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.button {
+  border: none;
+  border-radius: 10px;
+  padding: 0.5rem 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+  color: #fff;
+  transition: transform 0.2s ease;
+  font-family: "Cantarell", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.95rem;
+}
+
+.button:hover {
+  transform: translateY(-2px);
+}
+
+/* Button variants */
+.button.small {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.9rem;
+}
+
+.button-ghost {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+}
+
+:root.theme-dark .button-ghost {
+  background: rgba(148, 163, 184, 0.12);
+}
+
+:root.theme-light .button-ghost {
+  background: rgba(15, 23, 42, 0.12);
+}
+
+.button-danger {
+  background: linear-gradient(135deg, var(--danger-a), var(--danger-b));
+  color: #fff;
+}
+
+/* Small input variant */
+.input.small,
+input.small,
+select.small,
+textarea.small {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.9rem;
+  height: var(--control-sm);
+}
+
+/* Subtitle style */
+.panel-subtitle {
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Denser UI for simulation panels */
+.compact-panel {
+  font-size: 0.88rem;
+}
+
+.compact-panel .panel-title {
+  font-size: 0.95rem;
+}
+
+.compact-panel .card {
+  padding: 0.6rem;
+}
+
+.compact-panel .button {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.compact-panel .input {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.three-column-grid {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr) 320px;
+  gap: 1.5rem;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tab-layout {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 1.5rem;
+}
+
+.tab-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tab-button {
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  background: var(--card);
+  color: var(--muted);
+  cursor: pointer;
+  font-family: "Cantarell", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 600;
+}
+
+.tab-button.active {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(99, 102, 241, 0.25));
+  color: var(--text);
+}
+
+/* Docs sidebar items */
+.doc-nav-item {
+  display: block;
+  text-decoration: none;
+}
+
+.doc-nav-item:hover {
+  background: rgba(148, 163, 184, 0.12);
+}
+
+/* -------- MDX / Markdown content styling -------- */
+.doc-body {
+  line-height: 1.75;
+}
+
+.doc-body h1,
+.doc-body h2,
+.doc-body h3,
+.doc-body h4,
+.doc-body h5,
+.doc-body h6 {
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 1.25rem 0 0.75rem;
+}
+
+.doc-body h1 {
+  font-size: 1.75rem;
+}
+
+.doc-body h2 {
+  font-size: 1.4rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.25rem;
+}
+
+.doc-body h3 {
+  font-size: 1.15rem;
+}
+
+.doc-body p {
+  margin: 0.75rem 0;
+}
+
+.doc-body a {
+  color: var(--link);
+  text-decoration: underline;
+}
+
+.doc-body a:hover {
+  opacity: 0.9;
+}
+
+.doc-body ul,
+.doc-body ol {
+  margin: 0.5rem 0 0.75rem 1.25rem;
+}
+
+.doc-body li {
+  margin: 0.25rem 0;
+}
+
+.doc-body blockquote {
+  margin: 0.9rem 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--accent-b);
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--text);
+}
+
+.doc-body code {
+  background: rgba(148, 163, 184, 0.18);
+  padding: 0.1rem 0.35rem;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.9em;
+}
+
+.doc-body pre {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  overflow: auto;
+  margin: 0.9rem 0;
+}
+
+:root.theme-light .doc-body pre {
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.doc-body pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.code-copy-button {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.code-block-wrapper:hover .code-copy-button {
+  opacity: 1;
+}
+
+.doc-body hr {
+  border: none;
+  height: 1px;
+  background: var(--border);
+  margin: 1rem 0;
+}
+
+.doc-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 0.95rem;
+}
+
+.doc-body th,
+.doc-body td {
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+}
+
+.doc-body th {
+  background: rgba(148, 163, 184, 0.14);
+}
+
+:root.theme-dark .doc-body th {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.doc-body img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+.doc-body kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  background: rgba(148, 163, 184, 0.18);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  padding: 0.05rem 0.35rem;
+  font-size: 0.85em;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Link styling honoring theme */
+.link {
+  color: var(--link);
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+/* Inputs */
+.input,
+input[type="text"],
+input[type="password"],
+input[type="number"],
+input[type="email"],
+textarea,
+select {
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  font-family: "Cantarell", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.95rem;
+}
+
+/* Enhanced select styling */
+select.select,
+.select select {
+  /* support wrapper+native select pattern */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: var(--card);
+  background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%2394a3b8' d='M5.5 7.5l4.5 5 4.5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  background-size: 14px 14px;
+  padding-right: 2rem;
+  border: 1px solid var(--border);
+}
+
+select.select:focus {
+  outline: none;
+  border-color: var(--link);
+}
+
+/* Small size variant */
+select.select.small {
+  padding: 0.35rem 2rem 0.35rem 0.5rem;
+  font-size: 0.9rem;
+}
+
+textarea {
+  resize: vertical;
+}
+
+/* Placeholder text should match Cantarell */
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.9;
+  font-family: "Cantarell", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* Unified navigation bar */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(6px);
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-brand {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.nav-links {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.nav-link {
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  color: var(--muted);
+}
+
+.nav-link.active,
+.nav-link:hover {
+  color: var(--text);
+  background: rgba(148, 163, 184, 0.15);
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.icon-button {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: var(--muted);
+}
+
+/* Square icon-only button variant */
+.icon-button.square {
+  width: var(--control-sm);
+  height: var(--control-sm);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-button.square svg {
+  width: 16px;
+  height: 16px;
+}
+
+.text-button {
+  border: none;
+  background: transparent;
+  color: var(--link);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  font: inherit;
+}
+
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-username {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.lang-switch {
+  position: relative;
+}
+
+.lang-button {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.25rem 0.5rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* .menu removed; dropdowns are rendered via portal as .select-dropdown */
+
+.menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  padding: 0.2rem 0.32rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.menu-item:hover,
+.menu-item.active {
+  background: rgba(148, 163, 184, 0.18);
+}
+
+/* FancySelect trigger + options */
+.fancy-select-trigger {
+  cursor: pointer;
+}
+
+:root.theme-dark .fancy-select-trigger:hover {
+  background: rgba(148, 163, 184, 0.12);
+}
+
+:root.theme-light .fancy-select-trigger:hover {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.select-dropdown {
+  /* Frosted dropdown menu */
+  background: var(--overlay-bg);
+  backdrop-filter: blur(var(--overlay-blur));
+  -webkit-backdrop-filter: blur(var(--overlay-blur));
+  padding: 5px;
+  /* slightly relaxed */
+  z-index: 1000;
+  /* above navbar */
+  font: inherit;
+  /* match trigger font if wrapped in context */
+}
+
+.select-option {
+  background: transparent;
+  font: inherit;
+}
+
+.select-option.active {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+:root.theme-dark .select-option:hover {
+  background: rgba(148, 163, 184, 0.18);
+}
+
+:root.theme-light .select-option:hover {
+  background: rgba(15, 23, 42, 0.08);
+}
+
+/* Pretty checkboxes */
+.checkbox {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+}
+
+.checkbox:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
+}
+
+.checkbox:checked {
+  border-color: var(--accent-b);
+  background: var(--accent-b);
+}
+
+.checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: 2px solid #fff;
+  border-top: 0;
+  border-left: 0;
+  transform: rotate(45deg);
+}
+
+/* Small warning badge icon */
+.badge-warning {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--danger-a), var(--danger-b));
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.8rem;
+  margin-right: 0.35rem;
+}
+
+/* Resizable column handle */
+.resizer {
+  width: 2px;
+  cursor: col-resize;
+  background: var(--border);
+}
+
+/* Theme-aware scrollbars for scrollable panels */
+.scroll-panel {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) transparent;
+}
+
+.scroll-panel::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.scroll-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-panel::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+/* Small inline spinner for icon-only buttons */
+@keyframes spin360 {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent-b);
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin360 0.8s linear infinite;
+}
+
+:root.theme-dark .scroll-panel::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.35);
+}
+
+:root.theme-light .scroll-panel::-webkit-scrollbar-thumb {
+  background-color: rgba(15, 23, 42, 0.2);
+}
+
+/* React Flow theming */
+/* React Flow theming */
+.react-flow__minimap {
+  background: var(--panel) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.react-flow__controls {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.react-flow__controls .react-flow__controls-button {
+  background: var(--panel) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+}
+
+.react-flow__controls .react-flow__controls-button:hover {
+  filter: brightness(1.05);
+}
+
+.react-flow__controls .react-flow__controls-button svg * {
+  fill: var(--text) !important;
+  stroke: var(--text) !important;
+}
+
+.rf-controls {
+  background: transparent !important;
+}
+
+.doc-body pre[class*="language-"],
+.doc-body code[class*="language-"] {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.92em;
+}
+
+/* Prism token colors (theme-aware but simple) */
+.doc-body .token.comment,
+.doc-body .token.prolog,
+.doc-body .token.doctype,
+.doc-body .token.cdata {
+  color: #94a3b8;
+}
+
+.doc-body .token.punctuation {
+  color: var(--muted);
+}
+
+.doc-body .token.selector,
+.doc-body .token.tag {
+  color: #f472b6;
+}
+
+.doc-body .token.property,
+.doc-body .token.boolean,
+.doc-body .token.number,
+.doc-body .token.constant,
+.doc-body .token.symbol {
+  color: #f59e0b;
+}
+
+.doc-body .token.attr-name,
+.doc-body .token.string,
+.doc-body .token.char,
+.doc-body .token.builtin,
+.doc-body .token.inserted {
+  color: #22c55e;
+}
+
+.doc-body .token.operator,
+.doc-body .token.entity,
+.doc-body .token.url {
+  color: #a78bfa;
+}
+
+.doc-body .token.atrule,
+.doc-body .token.keyword {
+  color: #38bdf8;
+}
+
+.doc-body .token.function,
+.doc-body .token.class-name {
+  color: #fb7185;
+}
+
+.doc-body .token.regex,
+.doc-body .token.important,
+.doc-body .token.variable {
+  color: #f97316;
+}
+
+.doc-body .token.deleted {
+  color: #ef4444;
+}

@@ -1,0 +1,360 @@
+// frontend/pages/SimulationPage.tsx
+import React from "react";
+import { Link } from "react-router-dom";
+import { SimTree } from "../components/SimTree";
+import { Sidebar } from "../components/Sidebar";
+import { LogViewer } from "../components/LogViewer";
+import { ComparisonView } from "../components/ComparisonView";
+import { SimulationWizard } from "../components/SimulationWizard";
+import { HelpModal } from "../components/HelpModal";
+import { AnalyticsPanel } from "../components/AnalyticsPanel";
+import { ExportModal } from "../components/ExportModal";
+import { ExperimentDesignModal } from "../components/ExperimentDesignModal";
+import { TimeSettingsModal } from "../components/TimeSettingsModal";
+import { TemplateSaveModal } from "../components/TemplateSaveModal";
+import { NetworkEditorModal } from "../components/NetworkEditorModal";
+import { ReportModal } from "../components/ReportModal";
+import { GuideAssistant } from "../components/GuideAssistant";
+import { ToastContainer } from "../components/Toast";
+import { useSimulationStore } from "../store";
+import { useAuthStore } from "../store/auth";
+import {
+  Play,
+  SkipForward,
+  Plus,
+  Settings,
+  GitFork,
+  BarChart2,
+  Download,
+  Loader2,
+  Split,
+  Beaker,
+  Clock,
+  Save,
+  Network,
+  FileText,
+  Plug,
+  Zap,
+  LogOut,
+} from "lucide-react";
+
+// ---------------- Header ----------------
+
+const Header: React.FC = () => {
+  const currentSim = useSimulationStore((state) => state.currentSimulation);
+  const toggleWizard = useSimulationStore((state) => state.toggleWizard);
+  const engineConfig = useSimulationStore((state) => state.engineConfig);
+  const setEngineMode = useSimulationStore((state) => state.setEngineMode);
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.clearSession);
+
+  const toggleEngine = () => {
+    setEngineMode(
+      engineConfig.mode === "standalone" ? "connected" : "standalone"
+    );
+  };
+
+  return (
+    <header className="h-14 bg-white border-b flex items-center justify-between px-4 shrink-0 z-20">
+      <div className="flex items-center gap-4">
+        <Link to="/dashboard" className="flex items-center gap-2 text-brand-600 font-bold text-lg tracking-tight hover:opacity-80">
+          <div className="w-8 h-8 bg-brand-600 text-white rounded-lg flex items-center justify-center">
+            S4
+          </div>
+          <span>
+            SocialSim
+            <span className="text-slate-400 font-light">Next</span>
+          </span>
+        </Link>
+        
+        {/* 导航链接 */}
+        <nav className="flex items-center gap-1 ml-4">
+          <Link to="/dashboard" className="px-3 py-1.5 text-sm text-slate-600 hover:text-brand-600 hover:bg-slate-100 rounded">
+            仪表盘
+          </Link>
+          <Link to="/simulations/saved" className="px-3 py-1.5 text-sm text-slate-600 hover:text-brand-600 hover:bg-slate-100 rounded">
+            已保存
+          </Link>
+          <Link to="/settings" className="px-3 py-1.5 text-sm text-slate-600 hover:text-brand-600 hover:bg-slate-100 rounded">
+            设置
+          </Link>
+        </nav>
+        
+        <div className="h-6 w-px bg-slate-200 mx-2"></div>
+        <div>
+          <h1 className="text-sm font-bold text-slate-800">
+            {currentSim?.name || "未选择仿真"}
+          </h1>
+          <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">
+            {currentSim?.id}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        {/* Integration Mode Switcher */}
+        <button
+          onClick={toggleEngine}
+          className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-full transition-all border ${
+            engineConfig.mode === "connected"
+              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+              : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
+          }`}
+          title={
+            engineConfig.mode === "connected"
+              ? `Connected to ${engineConfig.endpoint}`
+              : "Running in Browser (Gemini Standalone)"
+          }
+        >
+          {engineConfig.mode === "connected" ? (
+            <Zap size={14} className="fill-emerald-500 text-emerald-500" />
+          ) : (
+            <Plug size={14} />
+          )}
+          {engineConfig.mode === "connected"
+            ? "SocialSim4 Engine"
+            : "Standalone Mode"}
+        </button>
+
+        <div className="h-4 w-px bg-slate-200 mx-2"></div>
+
+        <button
+          onClick={() => toggleWizard(true)}
+          className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
+        >
+          <Plus size={14} /> 新建仿真
+        </button>
+        <Link to="/settings" className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md">
+          <Settings size={18} />
+        </Link>
+        
+        <div className="h-4 w-px bg-slate-200 mx-2"></div>
+        
+        {/* 用户信息 */}
+        <span className="text-sm text-slate-600">{user?.email}</span>
+        <button
+          onClick={logout}
+          className="flex items-center gap-1 px-2 py-1.5 text-xs text-slate-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+          title="退出登录"
+        >
+          <LogOut size={14} />
+        </button>
+      </div>
+    </header>
+  );
+};
+
+// ---------------- Toolbar ----------------
+
+const Toolbar: React.FC = () => {
+  const toggleAnalytics = useSimulationStore((state) => state.toggleAnalytics);
+  const toggleExport = useSimulationStore((state) => state.toggleExport);
+  const toggleExperimentDesigner = useSimulationStore(
+    (state) => state.toggleExperimentDesigner
+  );
+  const toggleTimeSettings = useSimulationStore(
+    (state) => state.toggleTimeSettings
+  );
+  const toggleSaveTemplate = useSimulationStore(
+    (state) => state.toggleSaveTemplate
+  );
+  const toggleNetworkEditor = useSimulationStore(
+    (state) => state.toggleNetworkEditor
+  );
+  const toggleReportModal = useSimulationStore(
+    (state) => state.toggleReportModal
+  );
+
+  const advanceSimulation = useSimulationStore(
+    (state) => state.advanceSimulation
+  );
+  const branchSimulation = useSimulationStore((state) => state.branchSimulation);
+  const isGenerating = useSimulationStore((state) => state.isGenerating);
+
+  const isCompareMode = useSimulationStore((state) => state.isCompareMode);
+  const toggleCompareMode = useSimulationStore(
+    (state) => state.toggleCompareMode
+  );
+  const setCompareTarget = useSimulationStore(
+    (state) => state.setCompareTarget
+  );
+
+  const currentSim = useSimulationStore((state) => state.currentSimulation);
+
+  const handleToggleCompare = () => {
+    if (isCompareMode) {
+      toggleCompareMode(false);
+      setCompareTarget(null);
+    } else {
+      toggleCompareMode(true);
+    }
+  };
+
+  return (
+    <div className="h-12 bg-white border-b flex items-center px-4 gap-4 shrink-0 justify-between">
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 border-r pr-4">
+          <button
+            onClick={() => advanceSimulation()}
+            disabled={isGenerating || isCompareMode}
+            className={`flex items-center gap-2 px-4 py-1.5 text-xs font-bold rounded shadow-sm transition-all active:scale-95 ${
+              isGenerating
+                ? "bg-slate-300 text-white cursor-wait"
+                : isCompareMode
+                ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                : "bg-brand-600 hover:bg-brand-700 text-white"
+            }`}
+          >
+            {isGenerating ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Play size={14} fill="currentColor" />
+            )}
+            {isGenerating ? "推演中..." : "推进节点"}
+          </button>
+          <button
+            onClick={branchSimulation}
+            disabled={isGenerating || isCompareMode}
+            className={`flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 hover:border-brand-300 text-slate-700 text-xs font-medium rounded shadow-sm hover:bg-slate-50 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            <GitFork size={14} />
+            创建分支
+          </button>
+        </div>
+
+        {/* Experiment Designer */}
+        <button
+          onClick={() => toggleExperimentDesigner(true)}
+          disabled={isCompareMode}
+          className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 text-xs font-bold rounded shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Beaker size={14} />
+          设计对照实验
+        </button>
+
+        {/* Comparison Toggle */}
+        <button
+          onClick={handleToggleCompare}
+          className={`flex items-center gap-2 px-3 py-1.5 border rounded text-xs font-medium transition-all ${
+            isCompareMode
+              ? "bg-amber-50 text-amber-700 border-amber-300 shadow-sm ring-1 ring-amber-200"
+              : "bg-white text-slate-600 border-slate-200 hover:text-brand-600 hover:border-brand-300"
+          }`}
+        >
+          <Split
+            size={14}
+            className={isCompareMode ? "text-amber-600" : ""}
+          />
+          {isCompareMode ? "退出对比模式" : "对比模式 (Diff)"}
+        </button>
+      </div>
+
+      {/* Right Tools */}
+      <div className="flex items-center gap-2">
+        {/* Network Editor */}
+        <button
+          onClick={() => toggleNetworkEditor(true)}
+          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+          title="社交网络拓扑"
+        >
+          <Network size={14} />
+        </button>
+
+        {/* Time Settings */}
+        <button
+          onClick={() => toggleTimeSettings(true)}
+          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+          title="调整时间流速"
+        >
+          <Clock size={14} />
+          {currentSim
+            ? `${currentSim.timeConfig.step} ${currentSim.timeConfig.unit}/R`
+            : "时间"}
+        </button>
+
+        {/* Save Template */}
+        <button
+          onClick={() => toggleSaveTemplate(true)}
+          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+          title="保存为模板"
+        >
+          <Save size={14} />
+        </button>
+
+        <div className="h-4 w-px bg-slate-300 mx-1"></div>
+
+        {/* Automated Report */}
+        <button
+          onClick={() => toggleReportModal(true)}
+          className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white border border-indigo-700 hover:bg-indigo-700 text-xs font-bold rounded shadow-sm transition-all"
+        >
+          <FileText size={14} />
+          分析报告
+        </button>
+
+        <button
+          onClick={() => toggleExport(true)}
+          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+        >
+          <Download size={14} />
+          导出
+        </button>
+        <button
+          onClick={() => toggleAnalytics(true)}
+          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+        >
+          <BarChart2 size={14} />
+          统计
+        </button>
+      </div>
+
+      {/* Modals */}
+      <SimulationWizard />
+      <HelpModal />
+      <AnalyticsPanel />
+      <ExportModal />
+      <ExperimentDesignModal />
+      <TimeSettingsModal />
+      <TemplateSaveModal />
+      <NetworkEditorModal />
+      <ReportModal />
+      <GuideAssistant />
+      <ToastContainer />
+    </div>
+  );
+};
+
+// ---------------- 页面主组件：SimulationPage ----------------
+
+const SimulationPage: React.FC = () => {
+  const isCompareMode = useSimulationStore((state) => state.isCompareMode);
+
+  return (
+    <div className="flex flex-col h-screen bg-slate-50">
+      <Header />
+      <Toolbar />
+
+      <div className="flex-1 flex overflow-hidden p-3 gap-3">
+        {/* Left: SimTree */}
+        <div className="w-1/4 min-w-[300px] flex flex-col transition-all duration-300">
+          <SimTree />
+        </div>
+
+        {/* Center: Main Content Switcher */}
+        <div className="flex-1 min-w-[400px] flex flex-col transition-all duration-300">
+          {isCompareMode ? <ComparisonView /> : <LogViewer />}
+        </div>
+
+        {/* Right: Agents / Host */}
+        {!isCompareMode && (
+          <div className="w-80 shrink-0 flex flex-col">
+            <Sidebar />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default SimulationPage;
+export { SimulationPage };

@@ -1,0 +1,272 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "hide": "Hide",
+    "show": "Show",
+    "yes": "Yes",
+    "no": "No",
+    "none": "(none)"
+  },
+  "brand": "SocialSim4",
+  "nav": {
+    "dashboard": "Dashboard",
+    "new": "New",
+    "saved": "Saved",
+    "settings": "Settings",
+    "docs": "Docs",
+    "admin": "Admin",
+    "login": "Login",
+    "register": "Register",
+    "signout": "Sign out"
+  },
+  "landing": {
+    "headline": "Design, run, and explore social simulations driven by large language models.",
+    "sub": "Coordinate agents, branch timelines, and share live results with an interface built for experimentation teams.",
+    "learn": "Learn more about {{name}}.",
+    "ctaNew": "Launch your first simulation",
+    "ctaResume": "Resume your work"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Pick up where you left off or launch something new.",
+    "new": "New simulation",
+    "resume": "Resume saved",
+    "quick": "Quick start",
+    "launchWizard": "Launch wizard",
+    "providers": "Connect providers",
+    "providersHint": "Add your OpenAI, Azure, or custom endpoints once and reuse them across simulations.",
+    "manageProviders": "Manage providers",
+    "providerRequired": "You need to configure a provider before running simulations.",
+    "recent": "Recent simulations",
+    "viewAll": "View all",
+    "loading": "Loading simulations…",
+    "error": "Unable to load simulations.",
+    "empty": "No simulations yet. Create one to get started.",
+    "status": "Status",
+    "created": "Created",
+    "sceneType": "Scene type"
+  },
+  "saved": {
+    "title": "Saved simulations",
+    "resume": "Resume",
+    "copy": "Copy",
+    "delete": "Delete",
+    "type": "Type",
+    "confirmDelete": "Delete this simulation?",
+    "loading": "Loading…",
+    "error": "Unable to load simulations."
+  },
+  "settings": {
+    "title": "Settings",
+    "tabs": {
+      "profile": "Profile",
+      "security": "Security",
+      "providers": "Providers",
+      "llmProviders": "LLM providers",
+      "searchProviders": "Search providers"
+    },
+    "profile": {
+      "email": "Email",
+      "username": "Username",
+      "fullName": "Full name",
+      "organization": "Organization"
+    },
+    "security": {
+      "signoutAll": "Sign out of all sessions",
+      "placeholder": "Two-factor authentication and password reset flows will appear here."
+    },
+    "providers": {
+      "title": "Provider integrations",
+      "add": "Add provider",
+      "llmTab": "LLM providers",
+      "searchTab": "Search providers",
+      "setSearchProvider": "Configure Search Provider",
+      "searchTitle": "Search provider",
+      "fields": {
+        "label": "Label",
+        "provider": "Provider",
+        "model": "Model",
+        "baseUrl": "Base URL",
+        "apiKey": "API key"
+      },
+      "save": "Save provider",
+      "test": "Test connectivity",
+      "makeActive": "Use",
+      "current": "Current provider: {{name}}",
+      "activeTag": "Active",
+      "testOk": "Connectivity verified",
+      "testFail": "Test failed",
+      "createFailed": "Failed to add provider.",
+      "deleteActiveConfirm": "This provider is currently active. Delete anyway?",
+      "hasKey": "Key stored",
+      "neverTested": "never tested",
+      "loading": "Loading…",
+      "error": "Unable to load providers.",
+      "none": "No providers added yet."
+    }
+  },
+  "wizard": {
+    "title": "Simulation wizard",
+    "selectScene": "Select scene",
+    "configureScene": "Configure scene",
+    "defineAgents": "Define agents",
+    "review": "Review",
+    "continue": "Continue",
+    "back": "Back",
+    "noExtraConfig": "This scene has no additional configuration.",
+    "events": "Initial events",
+    "sceneSpecific": "Scene configuration",
+    "addEvent": "Add event",
+    "selectPrompt": "Select a scene first.",
+    "name": "Name",
+    "profile": "Profile",
+    "addAgent": "Add agent",
+    "deleteAgent": "Delete agent",
+    "start": "Start simulation",
+    "createFailed": "Failed to create simulation.",
+    "config": "Configuration",
+    "agents": "Agents",
+    "scene": "Scene",
+    "noProfile": "No profile",
+    "loadingScenes": "Loading scenes…",
+    "fetchScenesError": "Unable to fetch scenes.",
+    "basicActions": "Basic actions",
+    "allowedActions": "Allowed actions",
+    "emotionEnabled": "Enable emotion tracking",
+    "emotionHint": "When enabled, agents emit emotion updates each turn."
+  },
+  "auth": {
+    "login": {
+      "welcome": "Welcome back",
+      "email": "Email",
+      "password": "Password",
+      "signin": "Sign in",
+      "noAccount": "No account yet?",
+      "create": "Create one",
+      "invalid": "Invalid credentials"
+    },
+    "register": {
+      "title": "Create your workspace",
+      "organization": "Organization",
+      "email": "Email",
+      "username": "Username",
+      "fullName": "Full name",
+      "phone": "Phone number",
+      "password": "Password",
+      "submit": "Create account",
+      "success": "Registration successful. Check your email.",
+      "failed": "Registration failed",
+      "invalidPhone": "Invalid phone number format. Use +123456789 (8–15 digits).",
+      "invalidPhoneTitle": "Use E.164 format: +123456789 (8–15 digits)",
+      "have": "Already registered?",
+      "signin": "Sign in"
+    }
+  },
+  "sim": {
+    "tree": "Simulation tree",
+    "events": "Events",
+    "agents": "Agents",
+    "selectedNode": "Selected node",
+    "nodes": "Nodes",
+    "edges": "Edges",
+    "running": "Running",
+    "turnsAt": "Turns at node",
+    "frontier": "Run frontier leaves",
+    "parallel": "Parallel advance",
+    "chain": "Advance chain",
+    "broadcast": "Broadcast announcement",
+    "apply": "Apply",
+    "deleteSubtree": "Delete subtree",
+    "delete": "Delete",
+    "run": "Run",
+    "autoScroll": "Auto-scroll",
+    "refreshMeta": "Refresh metadata",
+    "refreshNode": "Refresh node",
+    "saveSnapshot": "Save snapshot",
+    "saving": "Saving…",
+    "invalidId": "Invalid simulation ID.",
+    "noEvents": "No events yet.",
+    "noAgentMsgs": "No agent messages yet.",
+    "noAgents": "No agents",
+    "eventTag": "Event",
+    "actionTag": "Action",
+    "messageTag": "Message",
+    "dealTag": "Deal",
+    "bottom": "Bottom",
+    "status": "Status",
+    "syncing": "Syncing…",
+    "agentStatus": {
+      "title": "Agent status",
+      "emotion": "Emotion",
+      "plan": "Plan",
+      "goals": "Goals",
+      "milestones": "Milestones",
+      "strategy": "Strategy",
+      "notes": "Notes",
+      "priority": "priority"
+    }
+  },
+  "admin": {
+    "title": "Admin Console",
+    "noAccess": "You do not have permission to view this page.",
+    "common": {
+      "from": "From",
+      "to": "To",
+      "sort": "Sort",
+      "active": "Active",
+      "disabled": "Disabled",
+      "fetchError": "Failed to fetch data.",
+      "all": "All"
+    },
+    "users": {
+      "title": "Users",
+      "name": "Name",
+      "organization": "Organization",
+      "sort": {
+        "nameAsc": "Name ↑",
+        "nameDesc": "Name ↓",
+        "orgAsc": "Org ↑",
+        "orgDesc": "Org ↓",
+        "createdAsc": "Created ↑",
+        "createdDesc": "Created ↓"
+      },
+      "columns": {
+        "name": "Name",
+        "email": "Email",
+        "organization": "Organization",
+        "created": "Created at",
+        "status": "Status",
+        "role": "Role"
+      }
+    },
+    "sims": {
+      "title": "Simulations",
+      "username": "Username",
+      "scene": "Scene type",
+      "sort": {
+        "usernameAsc": "Username ↑",
+        "usernameDesc": "Username ↓",
+        "sceneAsc": "Scene ↑",
+        "sceneDesc": "Scene ↓",
+        "createdAsc": "Created ↑",
+        "createdDesc": "Created ↓"
+      },
+      "columns": {
+        "user": "User",
+        "name": "Name",
+        "scene": "Scene",
+        "created": "Created at"
+      }
+    },
+    "stats": {
+      "title": "Statistics",
+      "period": "Period",
+      "day": "Daily",
+      "week": "Weekly",
+      "month": "Monthly",
+      "simRuns": "Simulation runs",
+      "userVisits": "User visits",
+      "userSignups": "User signups"
+    }
+  }
+}
