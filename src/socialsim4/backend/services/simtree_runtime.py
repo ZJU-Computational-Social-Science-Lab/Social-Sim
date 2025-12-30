@@ -30,7 +30,9 @@ def _quiet_logger(event_type: str, data: dict) -> None:
 
 
 def _build_tree_for_scene(scene_type: str, clients: dict | None = None) -> SimTree:
-    scene_cls = SCENE_MAP.get(scene_type)
+    # Normalize scene_type to registry keys (allow aliases like 'village' -> 'village_scene')
+    scene_key = scene_type if scene_type in SCENE_MAP else f"{scene_type}_scene"
+    scene_cls = SCENE_MAP.get(scene_key)
     if scene_cls is None:
         raise ValueError(f"Unsupported scene type: {scene_type}")
     active = clients or make_clients_from_env()
@@ -96,7 +98,9 @@ def _apply_agent_config(simulator, agent_config: dict | None):
 
 def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
     scene_type = sim_record.scene_type
-    scene_cls = SCENE_MAP.get(scene_type)
+    # Normalize scene_type to registry keys (allow aliases like 'village' -> 'village_scene')
+    scene_key = scene_type if scene_type in SCENE_MAP else f"{scene_type}_scene"
+    scene_cls = SCENE_MAP.get(scene_key)
     if scene_cls is None:
         raise ValueError(f"Unsupported scene type: {scene_type}")
 
@@ -104,16 +108,18 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
     name = getattr(sim_record, "name", scene_type)
 
     # Build scene via constructor based on type
-    if scene_type in {"simple_chat_scene", "emotional_conflict_scene"}:
+    # Use normalized scene_key for matching below
+    if scene_key in {"simple_chat_scene", "emotional_conflict_scene"}:
         # Use generalized initial events; constructor initial can be empty
         scene = scene_cls(name, "")
-    elif scene_type == "council_scene":
+    elif scene_key == "council_scene":
         draft = str(cfg.get("draft_text") or "")
         scene = scene_cls(name, "")
-    elif scene_type == "village_scene":
+    elif scene_key == "village_scene":
         from socialsim4.core.scenes.village_scene import GameMap
 
-        map_data = cfg.get("map")
+        # 如果未提供 map 配置，则使用 GameMap 的默认空地图
+        map_data = cfg.get("map") or {}
         game_map = GameMap.deserialize(map_data)
         movement_cost = int(cfg.get("movement_cost", 1))
         chat_range = int(cfg.get("chat_range", 5))
@@ -126,18 +132,23 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
             chat_range=chat_range,
             print_map_each_turn=print_map_each_turn,
         )
-    elif scene_type == "landlord_scene":
+    elif scene_key == "landlord_scene":
         num_decks = int(cfg.get("num_decks", 1))
         seed = cfg.get("seed")
         seed_int = int(seed) if seed is not None else None
         scene = scene_cls(name, "New game: Dou Dizhu.", seed=seed_int, num_decks=num_decks)
-    elif scene_type == "werewolf_scene":
+    elif scene_key == "werewolf_scene":
         initial = str(cfg.get("initial_event") or "Welcome to Werewolf.")
         role_map = cfg.get("role_map") or None
         moderator_names = cfg.get("moderator_names") or None
         scene = scene_cls(name, initial, role_map=role_map, moderator_names=moderator_names)
     else:
         scene = scene_cls(name, str(cfg.get("initial_event") or ""))
+
+    # 存储社交网络拓扑到场景状态中（如果配置了的话）
+    social_network = cfg.get("social_network") or {}
+    if social_network:
+        scene.state["social_network"] = social_network
 
     # Build agents from agent_config
     items = (getattr(sim_record, "agent_config", {}) or {}).get("agents") or []
@@ -148,7 +159,8 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         profile = str(cfg_agent.get("profile") or "")
         selected = [str(a) for a in (cfg_agent.get("action_space") or [])]
         # scene common actions from registry (fallback to scene introspection)
-        reg = SCENE_ACTIONS.get(scene_type)
+        # Use normalized scene_key so short names (e.g., 'village') map correctly.
+        reg = SCENE_ACTIONS.get(scene_key, {})
         basic_names = list(reg.get("basic", []))
 
         seen = set()
@@ -165,6 +177,8 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
                     "style": "",
                     "initial_instruction": "",
                     "role_prompt": "",
+                    # 强制使用简体中文输出：由 Agent.system_prompt 的 Language Policy 约束
+                    "language": "Simplified Chinese",
                     "action_space": merged_names,
                     "properties": {"emotion_enabled": emotion_enabled},
                 }

@@ -34,6 +34,9 @@ class Simulation(TimestampMixin, Base):
     logs: Mapped[list["SimulationLog"]] = relationship(
         back_populates="simulation", cascade="all, delete-orphan"
     )
+    sync_logs: Mapped[list["SimulationSyncLog"]] = relationship(
+        back_populates="simulation", cascade="all, delete-orphan"
+    )
     tree_nodes: Mapped[list["SimTreeNode"]] = relationship(
         back_populates="simulation", cascade="all, delete-orphan"
     )
@@ -86,3 +89,19 @@ class SimulationLog(TimestampMixin, Base):
     payload: Mapped[dict] = mapped_column(JsonType)
 
     simulation: Mapped[Simulation] = relationship(back_populates="logs")
+
+
+class SimulationSyncLog(TimestampMixin, Base):
+    __tablename__ = "simulation_sync_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    simulation_id: Mapped[str | None] = mapped_column(
+        String(16), ForeignKey("simulations.id", ondelete="CASCADE"), index=True, nullable=True
+    )
+    user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    task_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="queued")
+    message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    details: Mapped[dict] = mapped_column(JsonType, default=list)
+
+    simulation: Mapped[Simulation] = relationship(back_populates="sync_logs")

@@ -63,7 +63,7 @@ export interface MemoryItem {
 export interface LogEntry {
   id: string;
   nodeId: string;
-  type: 'SYSTEM' | 'AGENT_ACTION' | 'AGENT_SAY' | 'ENVIRONMENT' | 'HOST_INTERVENTION';
+  type: 'SYSTEM' | 'AGENT_ACTION' | 'AGENT_SAY' | 'ENVIRONMENT' | 'HOST_INTERVENTION' | 'AGENT_METADATA';
   agentId?: string;
   content: string;
   imageUrl?: string; // #24 Multimodal Content

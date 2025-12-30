@@ -76,7 +76,10 @@ def create_app() -> Litestar:
             return _spa_response()
 
         spa_router = Router(path="/", route_handlers=[home_page, spa_fallback])
-        route_handlers.extend([assets_router, spa_router])
+        # Also serve the SPA under legacy path `/css/socialsim` so links/bookmarks
+        # like `/css/socialsim/login` continue to work.
+        spa_router_css = Router(path="/css/socialsim", route_handlers=[home_page, spa_fallback])
+        route_handlers.extend([assets_router, spa_router, spa_router_css])
 
     base_router = Router(path=settings.backend_root_path, route_handlers=route_handlers)
 
