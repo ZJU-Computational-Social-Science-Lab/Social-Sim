@@ -1676,9 +1676,9 @@ export const useSimulationStore = create<AppState>((set, get) => ({
               name: a.name,
               role: a.role || '',
               avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
-              profile: '',
+              profile: a.profile || '',
               llmConfig: { provider: 'mock', model: 'default' },
-              properties: {},
+              properties: a.properties || {},
               history: {},
               memory: (a.short_memory || []).map((m: any, j: number) => ({
                 id: `m-${idx}-${j}`,

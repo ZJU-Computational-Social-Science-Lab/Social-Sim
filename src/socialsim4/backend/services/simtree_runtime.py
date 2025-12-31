@@ -71,14 +71,6 @@ def _apply_agent_config(simulator, agent_config: dict | None):
         profile = str(cfg.get("profile") or "").strip()
         if profile:
             agent.user_profile = profile
-        # Apply initial properties if provided (merge into existing properties)
-        try:
-            provided_props = cfg.get("properties") or {}
-            if isinstance(provided_props, dict):
-                # merge keys from provided props into agent.properties
-                agent.properties.update(provided_props)
-        except Exception:
-            logger.exception("failed to apply agent properties from agent_config")
     # Rebuild agents mapping to reflect renames
     simulator.agents = {a.name: a for a in agents_list}
     # Now apply actions (scene common + selected) per agent
@@ -166,6 +158,9 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         aname = str(cfg_agent.get("name") or "").strip() or "Agent"
         profile = str(cfg_agent.get("profile") or "")
         selected = [str(a) for a in (cfg_agent.get("action_space") or [])]
+        props = dict(cfg_agent.get("properties") or {})
+        if "emotion_enabled" not in props:
+            props["emotion_enabled"] = emotion_enabled
         # scene common actions from registry (fallback to scene introspection)
         # Use normalized scene_key so short names (e.g., 'village') map correctly.
         reg = SCENE_ACTIONS.get(scene_key, {})
@@ -188,7 +183,7 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
                     # 强制使用简体中文输出：由 Agent.system_prompt 的 Language Policy 约束
                     "language": "Simplified Chinese",
                     "action_space": merged_names,
-                    "properties": {"emotion_enabled": emotion_enabled},
+                    "properties": props,
                 }
             )
         )
@@ -249,11 +244,6 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         max_steps_per_turn=3 if scene_type == "landlord_scene" else 5,
         emotion_enabled=emotion_enabled,
     )
-    # Apply any agent_config (names, profiles, properties, action_space) provided
-    try:
-        _apply_agent_config(sim, getattr(sim_record, "agent_config", None))
-    except Exception:
-        logger.exception("failed to apply agent_config to simulator")
     # Broadcast configured initial events as public events
     for text in cfg.get("initial_events") or []:
         if isinstance(text, str) and text.strip():

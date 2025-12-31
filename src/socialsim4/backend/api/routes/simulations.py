@@ -36,8 +36,6 @@ from ...schemas.simulation import (
 )
 from ...services.simtree_runtime import SIM_TREE_REGISTRY, SimTreeRecord
 from ...services.simulations import generate_simulation_id, generate_simulation_name
-from ...services.sync_tasks import run_sync_task
-from ...models.simulation import SimulationSyncLog
 
 
 logger = logging.getLogger(__name__)
@@ -65,43 +63,31 @@ async def _get_tree_record(
     )
     items = result.scalars().all()
     active = [p for p in items if (p.config or {}).get("active")]
+    if len(active) != 1:
+        raise RuntimeError("Active LLM provider not selected")
+    provider = active[0]
+    dialect = (provider.provider or "").lower()
+    if dialect not in {"openai", "gemini", "mock"}:
+        raise RuntimeError("Invalid LLM provider dialect")
+    if dialect != "mock" and not provider.api_key:
+        raise RuntimeError("LLM API key required")
+    if not provider.model:
+        raise RuntimeError("LLM model required")
 
-    llm_client = None
-    # If a single active provider is configured, attempt to create an LLM client.
-    if len(active) == 1:
-        provider = active[0]
-        dialect = (provider.provider or "").lower()
-        if dialect not in {"openai", "gemini", "mock"}:
-            raise RuntimeError("Invalid LLM provider dialect")
-        if dialect != "mock" and not provider.api_key:
-            raise RuntimeError("LLM API key required")
-        if not provider.model:
-            raise RuntimeError("LLM model required")
+    cfg = LLMConfig(
+        dialect=dialect,
+        api_key=provider.api_key or "",
+        model=provider.model,
+        base_url=provider.base_url,
+        temperature=0.7,
+        top_p=1.0,
+        frequency_penalty=0.0,
+        presence_penalty=0.0,
+        max_tokens=1024,
+    )
+    llm_client = create_llm_client(cfg)
 
-        cfg = LLMConfig(
-            dialect=dialect,
-            api_key=provider.api_key or "",
-            model=provider.model,
-            base_url=provider.base_url,
-            temperature=0.7,
-            top_p=1.0,
-            frequency_penalty=0.0,
-            presence_penalty=0.0,
-            max_tokens=1024,
-        )
-        llm_client = create_llm_client(cfg)
-    else:
-        # No active LLM provider selected: inject a lightweight mock LLM client
-        # so simulations that call the chat client don't crash. Keep a warning
-        # to inform operators that real LLM calls will be mocked.
-        logger.warning(
-            "No active LLM provider for user %s; injecting mock chat client",
-            user_id,
-        )
-        mock_cfg = LLMConfig(dialect="mock", api_key="", model="mock")
-        llm_client = create_llm_client(mock_cfg)
-
-    # 搜索 Provider (always try to construct a search client; it's optional)
+    # 搜索 Provider
     result_s = await session.execute(
         select(SearchProviderConfig).where(SearchProviderConfig.user_id == user_id)
     )
@@ -116,12 +102,7 @@ async def _get_tree_record(
             params=sprov.config or {},
         )
     search_client = create_search_client(s_cfg)
-
-    clients = {}
-    if llm_client is not None:
-        clients.update({"chat": llm_client, "default": llm_client})
-    clients["search"] = search_client
-
+    clients = {"chat": llm_client, "default": llm_client, "search": search_client}
     return await SIM_TREE_REGISTRY.get_or_create_from_sim(sim, clients)
 
 
@@ -299,12 +280,8 @@ async def create_snapshot(
             meta={},
         )
         session.add(snapshot)
-        # Persist snapshot and also store the serialized tree as the simulation's latest_state
-        sim.latest_state = tree_state
-        session.add(sim)
         await session.commit()
         await session.refresh(snapshot)
-        await session.refresh(sim)
         return SnapshotBase.model_validate(snapshot)
 
 
@@ -384,13 +361,6 @@ async def resume_simulation(
             record.running.clear()
             record.tree = new_tree
 
-            # Persist latest_state after resume
-            try:
-                sim.latest_state = new_tree.serialize()
-                session.add(sim)
-            except Exception:
-                logger.exception("failed to prepare latest_state after resume")
-
         sim.status = "running"
         sim.updated_at = datetime.now(timezone.utc)
         await session.commit()
@@ -420,65 +390,6 @@ async def copy_simulation(request: Request, simulation_id: str) -> SimulationBas
         return SimulationBase.model_validate(new_sim)
 
 
-    @post("/{simulation_id:str}/sync", status_code=202)
-    async def enqueue_sync(request: Request, simulation_id: str, data: dict | None = None) -> dict:
-        """Enqueue a background sync task to create/update a simulation and record sync history.
-
-        Request body should include the full payload to create/update the simulation (scene_config, agent_config, social_network, etc.).
-        Returns the created sync_log id and task id (if Celery available).
-        """
-        token = extract_bearer_token(request)
-        async with get_session() as session:
-            current_user = await resolve_current_user(session, token)
-
-            # create a SimulationSyncLog row with queued status
-            sync_log = SimulationSyncLog(simulation_id=simulation_id.upper() if simulation_id else None, user_id=current_user.id if current_user else None, status='queued', details=[])
-            session.add(sync_log)
-            await session.commit()
-            await session.refresh(sync_log)
-
-            # enqueue Celery task if available
-            try:
-                task = run_sync_task.delay(simulation_id, current_user.id if current_user else None, data or {}, sync_log.id)
-                # write task id to log
-                sync_log.task_id = str(task.id)
-                await session.commit()
-                return {"sync_log_id": sync_log.id, "task_id": str(task.id)}
-            except Exception:
-                # fall back to synchronous run if Celery not available
-                try:
-                    res = run_sync_task(simulation_id, current_user.id if current_user else None, data or {}, sync_log.id)
-                    return {"sync_log_id": sync_log.id, "task_id": None, "result": res}
-                except Exception as e:
-                    raise
-
-
-    @get("/{simulation_id:str}/sync/{sync_log_id:int}")
-    async def get_sync_log(request: Request, simulation_id: str, sync_log_id: int) -> dict:
-        token = extract_bearer_token(request)
-        async with get_session() as session:
-            current_user = await resolve_current_user(session, token)
-            sync_log = await session.get(SimulationSyncLog, sync_log_id)
-            if sync_log is None:
-                raise HTTPException(status_code=404, detail="Sync log not found")
-            # simple permission: ensure the sync_log belongs to a simulation owned by current_user
-            if sync_log.simulation_id:
-                sim = await session.get(Simulation, sync_log.simulation_id)
-                if sim and sim.owner_id != (current_user.id if current_user else None):
-                    raise HTTPException(status_code=403, detail="Forbidden")
-            return {
-                "id": sync_log.id,
-                "simulation_id": sync_log.simulation_id,
-                "user_id": sync_log.user_id,
-                "task_id": sync_log.task_id,
-                "status": sync_log.status,
-                "message": sync_log.message,
-                "details": sync_log.details,
-                "created_at": sync_log.created_at.isoformat() if sync_log.created_at else None,
-                "updated_at": sync_log.updated_at.isoformat() if sync_log.updated_at else None,
-            }
-
-
 # -------------------------------------------------------------------
 # SimTree HTTP 接口（✅ 改成不再依赖当前登录用户，直接按 simulation_id + owner_id）
 # -------------------------------------------------------------------
@@ -497,7 +408,7 @@ async def simulation_tree_graph(request: Request, simulation_id: str) -> dict:
             if node.get("depth") is not None
         }
         nodes = [
-            {"id": int(node["id"]), "depth": int(node["depth"]), "meta": node.get("meta", {})}
+            {"id": int(node["id"]), "depth": int(node["depth"])}
             for node in tree.nodes.values()
             if node.get("depth") is not None
         ]
@@ -539,7 +450,7 @@ async def simulation_tree_advance_frontier(
     data: SimulationTreeAdvanceFrontierPayload,
 ) -> dict:
     async with get_session() as session:
-        sim, record = await _get_simulation_and_tree_any(session, simulation_id)
+        _, record = await _get_simulation_and_tree_any(session, simulation_id)
         tree = record.tree
         parents = tree.frontier(True) if data.only_max_depth else tree.leaves()
         turns = int(data.turns)
@@ -577,13 +488,6 @@ async def simulation_tree_advance_frontier(
             if cid in record.running:
                 record.running.remove(cid)
             _broadcast(record, {"type": "run_finish", "data": {"node": int(cid)}})
-        # Persist latest serialized tree so UI can recover after restart
-        try:
-            sim.latest_state = tree.serialize()
-            session.add(sim)
-            await session.commit()
-        except Exception:
-            logger.exception("failed to persist latest_state after advance_frontier")
         return {"children": [int(c) for c in produced]}
 
 
@@ -594,7 +498,7 @@ async def simulation_tree_advance_multi(
     data: SimulationTreeAdvanceMultiPayload,
 ) -> dict:
     async with get_session() as session:
-        sim, record = await _get_simulation_and_tree_any(session, simulation_id)
+        _, record = await _get_simulation_and_tree_any(session, simulation_id)
         tree = record.tree
         parent = int(data.parent)
         count = int(data.count)
@@ -634,13 +538,6 @@ async def simulation_tree_advance_multi(
             if cid in record.running:
                 record.running.remove(cid)
             _broadcast(record, {"type": "run_finish", "data": {"node": int(cid)}})
-        # Persist latest tree state
-        try:
-            sim.latest_state = tree.serialize()
-            session.add(sim)
-            await session.commit()
-        except Exception:
-            logger.exception("failed to persist latest_state after advance_multi")
         return {"children": [int(c) for c in result_children]}
 
 
@@ -651,7 +548,7 @@ async def simulation_tree_advance_chain(
     data: SimulationTreeAdvanceChainPayload,
 ) -> dict:
     async with get_session() as session:
-        sim, record = await _get_simulation_and_tree_any(session, simulation_id)
+        _, record = await _get_simulation_and_tree_any(session, simulation_id)
         tree = record.tree
         parent = int(data.parent)
         steps = max(1, int(data.turns))
@@ -684,13 +581,6 @@ async def simulation_tree_advance_chain(
                 record.running.remove(cid)
             _broadcast(record, {"type": "run_finish", "data": {"node": int(cid)}})
             last = cid
-        # Persist latest tree state after chain
-        try:
-            sim.latest_state = tree.serialize()
-            session.add(sim)
-            await session.commit()
-        except Exception:
-            logger.exception("failed to persist latest_state after advance_chain")
         return {"child": int(last)}
 
 
@@ -701,7 +591,7 @@ async def simulation_tree_branch(
     data: SimulationTreeBranchPayload,
 ) -> dict:
     async with get_session() as session:
-        sim, record = await _get_simulation_and_tree_any(session, simulation_id)
+        _, record = await _get_simulation_and_tree_any(session, simulation_id)
         tree = record.tree
         cid = tree.branch(int(data.parent), [dict(op) for op in data.ops])
         node = tree.nodes[cid]
@@ -718,13 +608,6 @@ async def simulation_tree_branch(
                 },
             },
         )
-        # Persist latest tree state after branch
-        try:
-            sim.latest_state = tree.serialize()
-            session.add(sim)
-            await session.commit()
-        except Exception:
-            logger.exception("failed to persist latest_state after branch")
         return {"child": int(cid)}
 
 
@@ -735,15 +618,9 @@ async def simulation_tree_delete_subtree(
     node_id: int,
 ) -> None:
     async with get_session() as session:
-        sim, record = await _get_simulation_and_tree_any(session, simulation_id)
+        _, record = await _get_simulation_and_tree_any(session, simulation_id)
         record.tree.delete_subtree(int(node_id))
         _broadcast(record, {"type": "deleted", "data": {"node": int(node_id)}})
-        try:
-            sim.latest_state = record.tree.serialize()
-            session.add(sim)
-            await session.commit()
-        except Exception:
-            logger.exception("failed to persist latest_state after delete_subtree")
 
 
 @get("/{simulation_id:str}/tree/sim/{node_id:int}/events")
@@ -763,7 +640,7 @@ async def simulation_tree_state(
     request: Request, simulation_id: str, node_id: int
 ) -> dict:
     async with get_session() as session:
-        sim, record = await _get_simulation_and_tree_any(session, simulation_id)
+        _, record = await _get_simulation_and_tree_any(session, simulation_id)
         node = record.tree.nodes.get(int(node_id))
         if node is None:
             raise HTTPException(status_code=404, detail="Tree node not found")
@@ -773,155 +650,15 @@ async def simulation_tree_state(
             agents.append(
                 {
                     "name": name,
+                    "profile": agent.user_profile,
                     "role": agent.properties.get("role"),
+                    "properties": dict(agent.properties),
                     "emotion": agent.emotion,
                     "plan_state": agent.plan_state,
                     "short_memory": agent.short_memory.get_all(),
                 }
             )
-        # If the live simulator has no agents (legacy saved sims), try falling back
-        # to the Simulation.latest_state persisted by sync/import tasks.
-        if not agents:
-            logger.debug(
-                "simulation_tree_state: simulator has 0 agents for sim=%s node=%s, attempting fallback",
-                getattr(sim, "id", None),
-                node_id,
-            )
-            latest = getattr(sim, "latest_state", None)
-            if isinstance(latest, dict):
-                # If latest_state is a full serialized tree, find the matching node
-                nodes = latest.get("nodes") or []
-                try:
-                    for n in nodes:
-                        if int(n.get("id") or -1) == int(node_id):
-                            sim_snap = n.get("sim") or {}
-                            latest_agents = sim_snap.get("agents")
-                            if latest_agents:
-                                # latest_agents may be a dict (name -> agent_data) or list
-                                if isinstance(latest_agents, dict):
-                                    out_agents = []
-                                    for aname, adata in latest_agents.items():
-                                        out_agents.append(
-                                            {
-                                                "name": adata.get("name", aname),
-                                                "role": adata.get("properties", {}).get("role") or adata.get("role"),
-                                                "emotion": adata.get("emotion"),
-                                                "plan_state": adata.get("plan_state"),
-                                                "short_memory": adata.get("short_memory", []),
-                                            }
-                                        )
-                                elif isinstance(latest_agents, list):
-                                    out_agents = []
-                                    for adata in latest_agents:
-                                        out_agents.append(
-                                            {
-                                                "name": adata.get("name"),
-                                                "role": adata.get("role") or adata.get("properties", {}).get("role"),
-                                                "emotion": adata.get("emotion"),
-                                                "plan_state": adata.get("plan_state"),
-                                                "short_memory": adata.get("short_memory", []),
-                                            }
-                                        )
-                                else:
-                                    out_agents = []
-
-                                logger.debug(
-                                    "simulation_tree_state: using latest_state agents for sim=%s node=%s (count=%s)",
-                                    sim.id,
-                                    node_id,
-                                    len(out_agents),
-                                )
-                                return {"turns": sim_snap.get("turns", 0), "agents": out_agents}
-                except Exception:
-                    logger.exception("failed to extract agents from simulation.latest_state")
-                # Otherwise, maybe latest_state directly stores agents
-                latest_agents = latest.get("agents") or None
-                if latest_agents:
-                    logger.debug(
-                        "simulation_tree_state: using latest_state.agents for sim=%s node=%s (count=%s)",
-                        sim.id,
-                        node_id,
-                        len(latest_agents),
-                    )
-                    return {"turns": latest.get("turns", 0), "agents": latest_agents}
         return {"turns": simulator.turns, "agents": agents}
-
-
-# Temporary debug endpoint: return node debug snapshot (agents properties + ops)
-@get("/{simulation_id:str}/tree/node/{node_id:int}/debug")
-async def simulation_tree_node_debug(request: Request, simulation_id: str, node_id: int) -> dict:
-    """Debug: return the node's ops and serialized agents properties for quick inspection.
-
-    This endpoint is intended for local debugging only and may be removed later.
-    """
-    async with get_session() as session:
-        # Use sim owner to build clients and ensure tree record exists
-        sim, record = await _get_simulation_and_tree_any(session, simulation_id)
-        node = record.tree.nodes.get(int(node_id))
-        if node is None:
-            raise HTTPException(status_code=404, detail="Tree node not found")
-
-        sim_obj = node.get("sim")
-        # Serialize agents' properties
-        agents_props = {}
-        if sim_obj:
-            for name, ag in sim_obj.agents.items():
-                try:
-                    agents_props[name] = {
-                        "properties": dict(getattr(ag, "properties", {})),
-                        "plan_state": getattr(ag, "plan_state", None),
-                        "emotion": getattr(ag, "emotion", None),
-                        "short_memory_len": getattr(ag, "short_memory", None).count() if hasattr(getattr(ag, "short_memory", None), "count") else None,
-                    }
-                except Exception:
-                    agents_props[name] = {"error": "failed to read agent properties"}
-
-        return {
-            "node": int(node_id),
-            "ops": node.get("ops", []),
-            "meta": node.get("meta", {}),
-            "agents": agents_props,
-        }
-
-
-# Rehydrate: attempt to rebuild an in-memory SimTree from the Simulation record
-# using the registered scene/agent config and return the serialized tree.
-# This helps clients recover when the in-memory registry has no record
-# (e.g. after server restart) and the persisted latest_state is missing
-# or incompatible. Permission is same as other tree endpoints (by sim id).
-@get("/{simulation_id:str}/rehydrate")
-async def simulation_rehydrate(request: Request, simulation_id: str) -> dict:
-    async with get_session() as session:
-        # Load simulation record (no token required; we use sim.owner to build clients)
-        sim = await session.get(Simulation, simulation_id.upper())
-        if sim is None:
-            raise HTTPException(status_code=404, detail="Simulation not found")
-
-        # Remove any existing in-memory record so we force a fresh build
-        try:
-            SIM_TREE_REGISTRY.remove(sim.id)
-        except Exception:
-            logger.exception("failed to remove existing simtree record during rehydrate")
-
-        # Build a new record (this will create clients based on the sim owner provider config)
-        try:
-            record = await _get_tree_record(sim, session, sim.owner_id)
-        except Exception:
-            logger.exception("failed to build simtree record during rehydrate for sim=%s", sim.id)
-            raise HTTPException(status_code=500, detail="failed to rehydrate simulation")
-
-        tree = record.tree
-
-        # persist the serialized tree as latest_state to help future recoveries
-        try:
-            sim.latest_state = tree.serialize()
-            session.add(sim)
-            await session.commit()
-            await session.refresh(sim)
-        except Exception:
-            logger.exception("failed to persist latest_state after rehydrate for sim=%s", sim.id)
-
-        return tree.serialize()
 
 
 # -------------------------------------------------------------------
@@ -931,25 +668,7 @@ async def simulation_rehydrate(request: Request, simulation_id: str) -> dict:
 
 @websocket("/{simulation_id:str}/tree/events")
 async def simulation_tree_events_ws(socket: WebSocket, simulation_id: str) -> None:
-    # Accept token from query param, Authorization header, or cookie (dev-friendly fallback)
     token = socket.query_params.get("token")
-    if not token:
-        # try Authorization header
-        auth_header = None
-        try:
-            auth_header = socket.headers.get("authorization") or socket.headers.get("Authorization")
-        except Exception:
-            auth_header = None
-        if auth_header and isinstance(auth_header, str) and auth_header.lower().startswith("bearer "):
-            token = auth_header.split(" ", 1)[1].strip()
-
-    if not token:
-        # try cookie fallback (name used by frontend)
-        try:
-            token = socket.cookies.get("socialsim4.access")
-        except Exception:
-            token = None
-
     async with get_session() as session:
         user = await _resolve_user_from_token(token or "", session)
         if user is None:
