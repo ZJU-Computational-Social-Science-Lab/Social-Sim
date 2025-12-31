@@ -478,7 +478,9 @@ async def simulation_tree_advance_frontier(
         async def _run(parent_id: int) -> tuple[int, int, bool]:
             child_id = allocations[parent_id]
             simulator = tree.nodes[child_id]["sim"]
-            await asyncio.to_thread(simulator.run, max_turns=turns)
+            # Ensure one advance step covers all agents once
+            total_turns = max(1, turns) * max(1, len(simulator.agents))
+            await asyncio.to_thread(simulator.run, max_turns=total_turns)
             return parent_id, child_id, False
 
         results = await asyncio.gather(*[_run(pid) for pid in parents])
@@ -528,7 +530,8 @@ async def simulation_tree_advance_multi(
 
         async def _run(child_id: int) -> tuple[int, bool]:
             simulator = tree.nodes[child_id]["sim"]
-            await asyncio.to_thread(simulator.run, max_turns=turns)
+            total_turns = max(1, turns) * max(1, len(simulator.agents))
+            await asyncio.to_thread(simulator.run, max_turns=total_turns)
             return child_id, False
 
         finished = await asyncio.gather(*[_run(cid) for cid in children])
@@ -575,7 +578,8 @@ async def simulation_tree_advance_chain(
             await asyncio.sleep(0)
 
             simulator = tree.nodes[cid]["sim"]
-            await asyncio.to_thread(simulator.run, max_turns=1)
+            total_turns = 1 * max(1, len(simulator.agents))
+            await asyncio.to_thread(simulator.run, max_turns=total_turns)
 
             if cid in record.running:
                 record.running.remove(cid)
