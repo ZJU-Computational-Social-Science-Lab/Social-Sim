@@ -553,26 +553,62 @@ Current time: {hours}:{mins:02d} ({time_of_day})
 """
 
     def deliver_message(self, event, sender: Agent, simulator: Simulator):
-        """Limit chat delivery to agents within chat_range (Manhattan distance)."""
+        """Limit chat delivery to agents within chat_range (Manhattan distance).
+        If social_network is configured, also apply social network filtering.
+        """
         time = self.state.get("time")
         formatted = event.to_string(time)
         # Ensure sender also retains their own speech in memory
         sender.add_env_feedback(formatted)
         sxy = sender.properties.get("map_xy")
-        recipients = []
+        
+        # 先应用距离限制
+        distance_recipients = []
         for a in simulator.agents.values():
             if a.name == sender.name:
                 continue
             axy = a.properties.get("map_xy")
             if not sxy or not axy:
-                # Fallback: if coords missing, deliver as default
-                a.add_env_feedback(formatted)
-                recipients.append(a.name)
+                # Fallback: if coords missing, include in distance_recipients
+                distance_recipients.append(a.name)
                 continue
             dist = abs(sxy[0] - axy[0]) + abs(sxy[1] - axy[1])
             if dist <= self.chat_range:
-                a.add_env_feedback(formatted)
-                recipients.append(a.name)
+                distance_recipients.append(a.name)
+        
+        # 如果配置了社交网络，再应用社交网络过滤
+        social_network = self.state.get("social_network")
+        if social_network and isinstance(social_network, dict) and len(social_network) > 0:
+            # 获取社交网络中的连接
+            sender_connections = social_network.get(sender.name, [])
+            if not isinstance(sender_connections, list):
+                sender_connections = []
+            # 取交集：既在距离内，又在社交网络中
+            recipients = [
+                name for name in distance_recipients
+                if name in sender_connections and name in simulator.agents
+            ]
+        else:
+            # 没有配置社交网络，只使用距离限制
+            recipients = distance_recipients
+        
+        # 向接收者发送消息
+        for agent_name in recipients:
+            agent = simulator.agents.get(agent_name)
+            if agent:
+                agent.add_env_feedback(formatted)
+        
+        # 记录事件
+        simulator.emit_event_later(
+            "system_broadcast",
+            {
+                "time": time,
+                "type": event.__class__.__name__,
+                "sender": sender.name,
+                "recipients": recipients,
+                "text": event.to_string(),
+            },
+        )
 
     # ----- Unified serialization hooks -----
     def serialize_config(self) -> dict:

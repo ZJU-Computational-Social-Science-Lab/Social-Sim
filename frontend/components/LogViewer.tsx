@@ -16,7 +16,7 @@ const formatLogTime = (dateStr: string) => {
   });
 };
 
-const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: string }> = ({ entry, mode, nodeWorldTime }) => {
+const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: string; agents?: any[] }> = ({ entry, mode, nodeWorldTime, agents = [] }) => {
   const [isImageExpanded, setIsImageExpanded] = useState(false);
 
   const getBorderColor = () => {
@@ -24,6 +24,7 @@ const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: strin
       case 'SYSTEM': return 'border-l-slate-400';
       case 'AGENT_SAY': return 'border-l-blue-500';
       case 'AGENT_ACTION': return 'border-l-amber-500';
+      case 'AGENT_METADATA': return 'border-l-purple-400';
       case 'ENVIRONMENT': return 'border-l-emerald-500';
       default: return 'border-l-slate-200';
     }
@@ -34,16 +35,24 @@ const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: strin
       case 'SYSTEM': return 'bg-slate-100 text-slate-600';
       case 'AGENT_SAY': return 'bg-blue-50 text-blue-600';
       case 'AGENT_ACTION': return 'bg-amber-50 text-amber-600';
+      case 'AGENT_METADATA': return 'bg-purple-50 text-purple-600';
       case 'ENVIRONMENT': return 'bg-emerald-50 text-emerald-600';
       default: return 'bg-slate-100 text-slate-500';
     }
   };
 
-  const translateType = (type: string) => {
+  const translateType = (type: string, agentId?: string) => {
     switch(type) {
       case 'SYSTEM': return '系统';
       case 'AGENT_SAY': return '对话';
       case 'AGENT_ACTION': return '行动';
+      case 'AGENT_METADATA': 
+        // 对于 AGENT_METADATA，显示 Agent 名字而不是"系统"
+        if (agentId && agents.length > 0) {
+          const agent = agents.find(a => a.id === agentId);
+          return agent ? agent.name : '智能体';
+        }
+        return '智能体';
       case 'ENVIRONMENT': return '环境';
       default: return type;
     }
@@ -90,10 +99,13 @@ const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: strin
       <div className={`py-2 px-4 border-b hover:bg-slate-50 text-sm flex gap-4 ${entry.type === 'SYSTEM' ? 'bg-slate-50/50' : ''}`}>
         <span className="font-mono text-slate-400 text-xs w-24 shrink-0 whitespace-nowrap">{displayTime}</span>
         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase self-start whitespace-nowrap ${getBadgeColor()}`}>
-          {translateType(entry.type)}
+          {translateType(entry.type, entry.agentId)}
         </span>
         <div className="flex-1">
-          {entry.agentId && <span className="font-bold text-slate-700 mr-2">{entry.agentId}:</span>}
+          {/* 对于 AGENT_METADATA，不重复显示 agentId，因为已经在标签中显示了 */}
+          {entry.agentId && entry.type !== 'AGENT_METADATA' && (
+            <span className="font-bold text-slate-700 mr-2">{entry.agentId}:</span>
+          )}
           <span className="text-slate-600">{entry.content}</span>
           <ImageComponent />
         </div>
@@ -110,9 +122,12 @@ const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: strin
       <div className="flex justify-between items-start mb-2">
         <div className="flex items-center gap-2">
            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${getBadgeColor()}`}>
-            {translateType(entry.type)}
+            {translateType(entry.type, entry.agentId)}
           </span>
-          {entry.agentId && <span className="text-xs font-bold text-slate-800">{entry.agentId}</span>}
+          {/* 对于 AGENT_METADATA，不重复显示 agentId，因为已经在标签中显示了 */}
+          {entry.agentId && entry.type !== 'AGENT_METADATA' && (
+            <span className="text-xs font-bold text-slate-800">{entry.agentId}</span>
+          )}
         </div>
         <span className="text-[10px] font-mono text-slate-400">{displayTime}</span>
       </div>
@@ -281,6 +296,7 @@ export const LogViewer: React.FC = () => {
               <div className="flex flex-wrap gap-2">
                 {[
                   { id: 'SYSTEM', label: '系统' },
+                  { id: 'AGENT_METADATA', label: '智能体元数据' },
                   { id: 'AGENT_SAY', label: '对话' },
                   { id: 'AGENT_ACTION', label: '行动' },
                   { id: 'ENVIRONMENT', label: '环境' },
@@ -348,7 +364,7 @@ export const LogViewer: React.FC = () => {
              // Find corresponding node worldTime if available (optional enhancement)
              const node = nodes.find(n => n.id === log.nodeId);
              return (
-               <LogItem key={log.id} entry={log} mode={viewMode} nodeWorldTime={node?.worldTime} />
+               <LogItem key={log.id} entry={log} mode={viewMode} nodeWorldTime={node?.worldTime} agents={agents} />
              );
           })
         ) : (
