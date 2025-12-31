@@ -76,10 +76,9 @@ export async function httpGet<T>(
   token?: string,
 ): Promise<T> {
   const url = buildUrl(base, path);
-  const effectiveToken = token ?? useAuthStore.getState().accessToken ?? undefined;
   const res = await fetch(url, {
     method: "GET",
-    headers: effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : undefined,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     credentials: "include",
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
@@ -93,12 +92,11 @@ export async function httpPost<T>(
   token?: string,
 ): Promise<T> {
   const url = buildUrl(base, path);
-  const effectiveToken = token ?? useAuthStore.getState().accessToken ?? undefined;
   const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: body != null ? JSON.stringify(body) : undefined,
     credentials: "include",
@@ -113,10 +111,9 @@ export async function httpDelete<T>(
   token?: string,
 ): Promise<T> {
   const url = buildUrl(base, path);
-  const effectiveToken = token ?? useAuthStore.getState().accessToken ?? undefined;
   const res = await fetch(url, {
     method: "DELETE",
-    headers: effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : undefined,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     credentials: "include",
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);

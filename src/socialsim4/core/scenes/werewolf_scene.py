@@ -112,11 +112,7 @@ class WerewolfScene(Scene):
         phase = self.state.get("phase")
         time = self.state.get("time")
         formatted = event.to_string(time)
-        # Ensure sender also retains their own speech in memory
-        sender.add_env_feedback(formatted)
-        
-        # 先应用角色/阶段限制
-        role_recipients: List[str] = []
+        recipients: List[str] = []
         mod_sender = self.is_moderator(sender.name)
         sender_role = self._role(sender.name)
         for a in simulator.agents.values():
@@ -136,41 +132,9 @@ class WerewolfScene(Scene):
             else:
                 ok = self._is_alive(a.name) or self.is_moderator(a.name)
             if ok:
-                role_recipients.append(a.name)
-        
-        # 如果配置了社交网络，再应用社交网络过滤
-        social_network = self.state.get("social_network")
-        if social_network and isinstance(social_network, dict) and len(social_network) > 0:
-            # 获取社交网络中的连接
-            sender_connections = social_network.get(sender.name, [])
-            if not isinstance(sender_connections, list):
-                sender_connections = []
-            # 取交集：既满足角色限制，又在社交网络中
-            recipients = [
-                name for name in role_recipients
-                if name in sender_connections and name in simulator.agents
-            ]
-        else:
-            # 没有配置社交网络，只使用角色限制
-            recipients = role_recipients
-        
-        # 向接收者发送消息
-        for agent_name in recipients:
-            agent = simulator.agents.get(agent_name)
-            if agent:
-                agent.add_env_feedback(formatted)
-        
-        # 记录事件
-        simulator.emit_event_later(
-            "system_broadcast",
-            {
-                "time": time,
-                "type": event.__class__.__name__,
-                "sender": sender.name,
-                "recipients": recipients,
-                "text": event.to_string(),
-            },
-        )
+                a.add_env_feedback(formatted)
+                recipients.append(a.name)
+        sender.add_env_feedback(formatted)
 
     def pre_run(self, simulator: Simulator):
         roles_info_str = ", ".join(

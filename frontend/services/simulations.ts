@@ -30,12 +30,6 @@ export async function resumeSimulation(simulationId: string): Promise<any> {
   return data;
 }
 
-// Fetch a single simulation by id
-export async function getSimulation(simulationId: string): Promise<any> {
-  const { data } = await apiClient.get(`/simulations/${encodeURIComponent(simulationId)}`);
-  return data;
-}
-
 // 一般用于给仿真改名 / 保存状态之类
 export async function saveSimulation(
   simulationId: string,
@@ -45,27 +39,6 @@ export async function saveSimulation(
     `/simulations/${simulationId}/save`,
     payload
   );
-  return data;
-}
-
-// Update an existing simulation (patch)
-export async function updateSimulation(
-  simulationId: string,
-  payload: { name?: string; [key: string]: any } = {}
-): Promise<any> {
-  const { data } = await apiClient.patch(`/simulations/${encodeURIComponent(simulationId)}`, payload);
-  return data;
-}
-
-export async function enqueueSync(simulationId: string | null, payload: any): Promise<any> {
-  const id = simulationId ? encodeURIComponent(simulationId) : '';
-  const { data } = await apiClient.post(`/simulations/${id}/sync`, payload || {});
-  return data;
-}
-
-export async function getSyncLog(simulationId: string | null, syncLogId: number): Promise<any> {
-  const id = simulationId ? encodeURIComponent(simulationId) : '';
-  const { data } = await apiClient.get(`/simulations/${id}/sync/${syncLogId}`);
   return data;
 }
 

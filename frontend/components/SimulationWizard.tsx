@@ -35,7 +35,6 @@ export const SimulationWizard: React.FC = () => {
   const savedTemplates = useSimulationStore((state) => state.savedTemplates);
   const deleteTemplate = useSimulationStore((state) => state.deleteTemplate);
   const addNotification = useSimulationStore((state) => state.addNotification);
-  const isGeneratingGlobal = useSimulationStore((s) => s.isGenerating);
 
   // ⭐ provider 相关
   const llmProviders = useSimulationStore((s) => s.llmProviders);
@@ -833,15 +832,8 @@ export const SimulationWizard: React.FC = () => {
             <button
               onClick={handleFinish}
               className="px-6 py-2 text-sm bg-green-600 text-white font-medium hover:bg-green-700 rounded-lg shadow-sm"
-              disabled={isGeneratingGlobal}
             >
-              {isGeneratingGlobal ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 size={16} className="animate-spin" /> 保存中...
-                </span>
-              ) : (
-                '开始仿真'
-              )}
+              开始仿真
             </button>
           )}
         </div>
