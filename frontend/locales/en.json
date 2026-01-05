@@ -268,5 +268,48 @@
       "userVisits": "User visits",
       "userSignups": "User signups"
     }
+  },
+  "actions": {
+    "look_around": "Look around",
+    "move_to_location": "Move to location",
+    "send_message": "Send message",
+    "gather_resource": "Gather resources",
+    "rest": "Rest",
+    "yield": "Yield"
+  },
+  "simPage": {
+    "noSimulation": "No simulation selected",
+    "engineConnected": "SocialSim4 Engine",
+    "engineStandalone": "Standalone mode",
+    "newSimulation": "New simulation",
+    "advance": "Advance node",
+    "advancing": "Advancing…",
+    "branch": "Create branch",
+    "designExperiment": "Design experiment",
+    "compareMode": "Compare mode (Diff)",
+    "exitCompare": "Exit compare mode",
+    "network": "Network",
+    "time": "Time",
+    "syncBackend": "Sync to backend",
+    "report": "Report",
+    "export": "Export",
+    "analytics": "Analytics",
+    "provider": "Provider",
+    "selectProvider": "Select provider",
+    "noProvider": "No provider",
+    "yield": "Yielded the floor",
+    "actionLabel": "Action: {{actions}}",
+    "reasoningDone": "Reasoning complete",
+    "startedAction": "{{agent}} started action {{action}}",
+    "startedActionAnon": "Started action {{action}}",
+    "planUpdate": "Plan updated{{kind}}",
+    "agentError": "Agent \"{{agent}}\" error{{kind}}: {{detail}}",
+    "performedAction": "{{agent}} performed action {{action}}",
+    "performedActionAnon": "Performed action {{action}}",
+    "systemEvent": "System event",
+    "node": "Node {{id}}",
+    "initialNode": "Initial state",
+    "round": "System advanced to round {{round}}",
+    "timeLabel": "{{step}} {{unit}}/R"
   }
 }

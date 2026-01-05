@@ -22,6 +22,8 @@ import { useParams } from "react-router-dom";
 import { getSimulation as apiGetSimulation } from "../services/simulations";
 import { getTreeGraph, getSimEvents, getSimState, getRehydrate } from "../services/simulationTree";
 import { useAuthStore } from "../store/auth";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 import {
   Play,
   SkipForward,
@@ -50,9 +52,11 @@ const Header: React.FC = () => {
   const engineConfig = useSimulationStore((state) => state.engineConfig);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasRestored = useAuthStore((s) => s.hasRestored);
+  const loadProviders = useSimulationStore((state) => state.loadProviders);
   const setEngineMode = useSimulationStore((state) => state.setEngineMode);
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.clearSession);
+  const { t } = useTranslation();
 
   const toggleEngine = () => {
     setEngineMode(
@@ -76,20 +80,20 @@ const Header: React.FC = () => {
         {/* 导航链接 */}
         <nav className="flex items-center gap-1 ml-4">
           <Link to="/dashboard" className="px-3 py-1.5 text-sm text-slate-600 hover:text-brand-600 hover:bg-slate-100 rounded">
-            仪表盘
+            {t('nav.dashboard')}
           </Link>
           <Link to="/simulations/saved" className="px-3 py-1.5 text-sm text-slate-600 hover:text-brand-600 hover:bg-slate-100 rounded">
-            已保存
+            {t('nav.saved')}
           </Link>
           <Link to="/settings" className="px-3 py-1.5 text-sm text-slate-600 hover:text-brand-600 hover:bg-slate-100 rounded">
-            设置
+            {t('nav.settings')}
           </Link>
         </nav>
         
         <div className="h-6 w-px bg-slate-200 mx-2"></div>
         <div>
           <h1 className="text-sm font-bold text-slate-800">
-            {currentSim?.name || "未选择仿真"}
+            {currentSim?.name || t('simPage.noSimulation')}
           </h1>
           <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">
             {currentSim?.id}
@@ -128,12 +132,14 @@ const Header: React.FC = () => {
           onClick={() => toggleWizard(true)}
           className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
         >
-          <Plus size={14} /> 新建仿真
+          <Plus size={14} /> {t('simPage.newSimulation')}
         </button>
         <Link to="/settings" className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md">
           <Settings size={18} />
         </Link>
         
+        <div className="h-4 w-px bg-slate-200 mx-2"></div>
+        <LanguageSwitcher />
         <div className="h-4 w-px bg-slate-200 mx-2"></div>
         
         {/* 用户信息 */}
@@ -141,7 +147,7 @@ const Header: React.FC = () => {
         <button
           onClick={logout}
           className="flex items-center gap-1 px-2 py-1.5 text-xs text-slate-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-          title="退出登录"
+          title={t('nav.signout')}
         >
           <LogOut size={14} />
         </button>
@@ -153,6 +159,7 @@ const Header: React.FC = () => {
 // ---------------- Toolbar ----------------
 
 const Toolbar: React.FC = () => {
+  const { t } = useTranslation();
   const toggleAnalytics = useSimulationStore((state) => state.toggleAnalytics);
   const toggleExport = useSimulationStore((state) => state.toggleExport);
   const toggleExperimentDesigner = useSimulationStore(
@@ -171,6 +178,11 @@ const Toolbar: React.FC = () => {
     (state) => state.toggleReportModal
   );
 
+  const llmProviders = useSimulationStore((s) => s.llmProviders);
+  const selectedProviderId = useSimulationStore((s) => s.selectedProviderId);
+  const currentProviderId = useSimulationStore((s) => s.currentProviderId);
+  const setSelectedProvider = useSimulationStore((s) => s.setSelectedProvider);
+
   const advanceSimulation = useSimulationStore(
     (state) => state.advanceSimulation
   );
@@ -186,6 +198,7 @@ const Toolbar: React.FC = () => {
   );
 
   const currentSim = useSimulationStore((state) => state.currentSimulation);
+  const providerSelection = selectedProviderId ?? currentProviderId ?? null;
 
   const handleToggleCompare = () => {
     if (isCompareMode) {
@@ -216,7 +229,7 @@ const Toolbar: React.FC = () => {
             ) : (
               <Play size={14} fill="currentColor" />
             )}
-            {isGenerating ? "推演中..." : "推进节点"}
+            {isGenerating ? t('simPage.advancing') : t('simPage.advance')}
           </button>
           <button
             onClick={branchSimulation}
@@ -224,7 +237,7 @@ const Toolbar: React.FC = () => {
             className={`flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 hover:border-brand-300 text-slate-700 text-xs font-medium rounded shadow-sm hover:bg-slate-50 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             <GitFork size={14} />
-            创建分支
+            {t('simPage.branch')}
           </button>
         </div>
 
@@ -235,7 +248,7 @@ const Toolbar: React.FC = () => {
           className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 text-xs font-bold rounded shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Beaker size={14} />
-          设计对照实验
+          {t('simPage.designExperiment')}
         </button>
 
         {/* Comparison Toggle */}
@@ -251,7 +264,7 @@ const Toolbar: React.FC = () => {
             size={14}
             className={isCompareMode ? "text-amber-600" : ""}
           />
-          {isCompareMode ? "退出对比模式" : "对比模式 (Diff)"}
+          {isCompareMode ? t('simPage.exitCompare') : t('simPage.compareMode')}
         </button>
       </div>
 
@@ -274,9 +287,30 @@ const Toolbar: React.FC = () => {
         >
           <Clock size={14} />
           {currentSim && currentSim.timeConfig
-            ? `${currentSim.timeConfig.step ?? "-"} ${currentSim.timeConfig.unit ?? ""}/R`
-            : "时间"}
+            ? t('simPage.timeLabel', { step: currentSim.timeConfig.step ?? '-', unit: currentSim.timeConfig.unit ?? '' })
+            : t('simPage.time')}
         </button>
+
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 text-xs rounded shadow-sm transition-all">
+          <span className="text-slate-500">{t('simPage.provider')}</span>
+          <select
+            value={providerSelection ?? ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSelectedProvider(val ? Number(val) : null);
+            }}
+            className="border border-slate-200 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+          >
+            <option value="">
+              {t('simPage.selectProvider')}
+            </option>
+            {llmProviders.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name || p.provider} {p.model ? `(${p.model})` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
 
         {/* Save Template */}
         <button
@@ -291,7 +325,7 @@ const Toolbar: React.FC = () => {
           className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
           title="手动同步到后端"
         >
-          同步到后端
+          {t('simPage.syncBackend')}
         </button>
 
         <div className="h-4 w-px bg-slate-300 mx-1"></div>
@@ -302,7 +336,7 @@ const Toolbar: React.FC = () => {
           className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white border border-indigo-700 hover:bg-indigo-700 text-xs font-bold rounded shadow-sm transition-all"
         >
           <FileText size={14} />
-          分析报告
+          {t('simPage.report')}
         </button>
 
         <button
@@ -310,14 +344,14 @@ const Toolbar: React.FC = () => {
           className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
         >
           <Download size={14} />
-          导出
+          {t('simPage.export')}
         </button>
         <button
           onClick={() => toggleAnalytics(true)}
           className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
         >
           <BarChart2 size={14} />
-          统计
+          {t('simPage.analytics')}
         </button>
       </div>
 
@@ -388,6 +422,12 @@ const SimulationPage: React.FC = () => {
                 let agents2: any[] = [];
                 try {
                   const firstNode = nodesRaw2.find((n: any) => Number(n.id) === Number(nodes2[0]?.id));
+
+  React.useEffect(() => {
+    if (engineConfig.mode === 'connected' && hasRestored && isAuthenticated) {
+      loadProviders();
+    }
+  }, [engineConfig.mode, hasRestored, isAuthenticated, loadProviders]);
                   const simSnap2 = firstNode?.sim || {};
                   const latestAgents2 = simSnap2?.agents || re.agents || [];
                   if (Array.isArray(latestAgents2)) {

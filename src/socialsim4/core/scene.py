@@ -71,6 +71,9 @@ class Scene:
         If social_network is configured in scene.state, messages will only be
         delivered to connected agents.
         """
+        event.code = "scene_chat"
+        event.params = {"sender": sender.name, "message": event.message}
+
         # Ensure the sender also retains what they said in their own context
         formatted = event.to_string(self.state.get("time"))
         sender.add_env_feedback(formatted)
@@ -97,10 +100,18 @@ class Scene:
                     "sender": sender.name,
                     "recipients": recipients_list,
                     "text": event.to_string(),
+                    "code": event.code,
+                    "params": {"sender": sender.name, "message": event.message, "recipients": recipients_list},
                 },
             )
         else:
             # 没有配置社交网络，使用默认的全局广播
+            global_recipients = [a.name for a in simulator.agents.values() if a.name != sender.name]
+            event.params = {
+                "sender": sender.name,
+                "message": event.message,
+                "recipients": global_recipients,
+            }
             simulator.broadcast(event)
 
     def pre_run(self, simulator: Simulator):

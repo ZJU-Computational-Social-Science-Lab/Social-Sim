@@ -268,5 +268,48 @@
       "userVisits": "用户访问",
       "userSignups": "用户注册"
     }
+  },
+  "actions": {
+    "look_around": "环顾四周",
+    "move_to_location": "移动到位置",
+    "send_message": "发送消息",
+    "gather_resource": "采集资源",
+    "rest": "休息",
+    "yield": "结束本轮发言"
+  },
+  "simPage": {
+    "noSimulation": "未选择仿真",
+    "engineConnected": "SocialSim4 引擎",
+    "engineStandalone": "独立模式",
+    "newSimulation": "新建仿真",
+    "advance": "推进节点",
+    "advancing": "推演中…",
+    "branch": "创建分支",
+    "designExperiment": "设计对照实验",
+    "compareMode": "对比模式 (Diff)",
+    "exitCompare": "退出对比模式",
+    "network": "社交网络",
+    "time": "时间",
+    "syncBackend": "同步到后端",
+    "report": "分析报告",
+    "export": "导出",
+    "analytics": "统计",
+    "provider": "提供商",
+    "selectProvider": "选择提供商",
+    "noProvider": "暂无提供商",
+    "yield": "结束本轮发言",
+    "actionLabel": "动作: {{actions}}",
+    "reasoningDone": "完成推理",
+    "startedAction": "{{agent}} 开始执行动作 {{action}}",
+    "startedActionAnon": "开始执行动作 {{action}}",
+    "planUpdate": "更新计划{{kind}}",
+    "agentError": "智能体“{{agent}}”发生错误{{kind}}: {{detail}}",
+    "performedAction": "{{agent}} 执行了动作 {{action}}",
+    "performedActionAnon": "执行了动作 {{action}}",
+    "systemEvent": "系统事件",
+    "node": "节点 {{id}}",
+    "initialNode": "初始状态",
+    "round": "系统推进至第 {{round}} 回合",
+    "timeLabel": "{{step}} {{unit}}/R"
   }
 }

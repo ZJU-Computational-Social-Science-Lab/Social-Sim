@@ -16,6 +16,16 @@ from socialsim4.scenarios.basic import make_clients_from_env
 logger = logging.getLogger(__name__)
 
 
+def _normalize_language(value: str | None) -> str:
+    lang = str(value or "").strip()
+    return lang or "Simplified Chinese"
+
+
+def _is_english_language(lang: str) -> bool:
+    lower = lang.lower()
+    return lower.startswith("en") or "english" in lower
+
+
 class SimTreeRecord:
     def __init__(self, tree: SimTree):
         self.tree = tree
@@ -71,6 +81,9 @@ def _apply_agent_config(simulator, agent_config: dict | None):
         profile = str(cfg.get("profile") or "").strip()
         if profile:
             agent.user_profile = profile
+        language = str(cfg.get("language") or "").strip()
+        if language:
+            agent.language = language
     # Rebuild agents mapping to reflect renames
     simulator.agents = {a.name: a for a in agents_list}
     # Now apply actions (scene common + selected) per agent
@@ -107,6 +120,18 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
     cfg = getattr(sim_record, "scene_config", {}) or {}
     name = getattr(sim_record, "name", scene_type)
 
+    items = (getattr(sim_record, "agent_config", {}) or {}).get("agents") or []
+    first_language = None
+    for cfg_agent in items:
+        lang = str(cfg_agent.get("language") or "").strip()
+        if lang:
+            first_language = lang
+            break
+    preferred_language = _normalize_language(cfg.get("language") or first_language)
+
+    def _localized(en_text: str, zh_text: str) -> str:
+        return en_text if _is_english_language(preferred_language) else zh_text
+
     # Build scene via constructor based on type
     # Use normalized scene_key for matching below
     if scene_key in {"simple_chat_scene", "emotional_conflict_scene"}:
@@ -126,7 +151,7 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         print_map_each_turn = bool(cfg.get("print_map_each_turn", False))
         scene = scene_cls(
             name,
-            "Welcome to the village.",
+            _localized("Welcome to the village.", "欢迎来到村庄。"),
             game_map=game_map,
             movement_cost=movement_cost,
             chat_range=chat_range,
@@ -136,9 +161,15 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         num_decks = int(cfg.get("num_decks", 1))
         seed = cfg.get("seed")
         seed_int = int(seed) if seed is not None else None
-        scene = scene_cls(name, "New game: Dou Dizhu.", seed=seed_int, num_decks=num_decks)
+        scene = scene_cls(
+            name,
+            _localized("New game: Dou Dizhu.", "新一局斗地主开始。"),
+            seed=seed_int,
+            num_decks=num_decks,
+        )
     elif scene_key == "werewolf_scene":
-        initial = str(cfg.get("initial_event") or "Welcome to Werewolf.")
+        initial_cfg = str(cfg.get("initial_event") or "").strip()
+        initial = initial_cfg or _localized("Welcome to Werewolf.", "欢迎来到狼人游戏。")
         role_map = cfg.get("role_map") or None
         moderator_names = cfg.get("moderator_names") or None
         scene = scene_cls(name, initial, role_map=role_map, moderator_names=moderator_names)
@@ -150,8 +181,14 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
     if social_network:
         scene.state["social_network"] = social_network
 
+    if hasattr(scene, "initial_event") and isinstance(scene.initial_event, PublicEvent):
+        if not getattr(scene.initial_event, "code", None):
+            scene.initial_event.code = "initial_event"
+        if not getattr(scene.initial_event, "params", None):
+            content = getattr(scene.initial_event, "content", "")
+            scene.initial_event.params = {"content": content, "lang": preferred_language}
+
     # Build agents from agent_config
-    items = (getattr(sim_record, "agent_config", {}) or {}).get("agents") or []
     built_agents = []
     emotion_enabled = cfg["emotion_enabled"] if ("emotion_enabled" in cfg) else False
     for cfg_agent in items:
@@ -161,6 +198,7 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         props = dict(cfg_agent.get("properties") or {})
         if "emotion_enabled" not in props:
             props["emotion_enabled"] = emotion_enabled
+        language = _normalize_language(cfg_agent.get("language") or preferred_language)
         # scene common actions from registry (fallback to scene introspection)
         # Use normalized scene_key so short names (e.g., 'village') map correctly.
         reg = SCENE_ACTIONS.get(scene_key, {})
@@ -180,8 +218,7 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
                     "style": "",
                     "initial_instruction": "",
                     "role_prompt": "",
-                    # 强制使用简体中文输出：由 Agent.system_prompt 的 Language Policy 约束
-                    "language": "Simplified Chinese",
+                    "language": language,
                     "action_space": merged_names,
                     "properties": props,
                 }
@@ -247,16 +284,22 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
     # Broadcast configured initial events as public events
     for text in cfg.get("initial_events") or []:
         if isinstance(text, str) and text.strip():
-            sim.broadcast(PublicEvent(text))
+            ev = PublicEvent(text)
+            ev.code = "initial_event"
+            ev.params = {"content": text, "lang": preferred_language}
+            sim.broadcast(ev)
     # For council, include draft announcement as an initial event if provided
     if scene_type == "council_scene":
         draft = str(cfg.get("draft_text") or "").strip()
         if draft:
-            sim.broadcast(
-                PublicEvent(
-                    f"The chamber will now consider the following draft for debate and vote:\n{draft}"
-                )
-            )
+            text = _localized(
+                "The chamber will now consider the following draft for debate and vote:\n{draft}",
+                "议事厅将讨论并表决以下草案：\n{draft}",
+            ).format(draft=draft)
+            ev = PublicEvent(text)
+            ev.code = "council_draft"
+            ev.params = {"draft": draft, "lang": preferred_language}
+            sim.broadcast(ev)
     return SimTree.new(sim, sim.clients)
 
 

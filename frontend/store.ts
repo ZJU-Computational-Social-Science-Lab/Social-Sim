@@ -32,6 +32,8 @@ import {
   type Graph
 } from './services/simulationTree';
 
+import i18n from './i18n';
+
 // ✅ 新增：使用新前端的 client（和 providers.ts 一致）
 import { apiClient } from "./services/client";
 // ✅ 新增：从设置里的 providers API 读取 provider 列表
@@ -148,6 +150,10 @@ interface AppState {
 }
 
 // --- Helpers for Time Calculation #9 ---
+const isZh = () => (i18n.language || 'en').toLowerCase().startsWith('zh');
+const getLocale = () => (isZh() ? 'zh-CN' : 'en-US');
+const pickText = (en: string, zh: string) => (isZh() ? zh : en);
+
 const addTime = (dateStr: string, value: number, unit: TimeUnit): string => {
   const date = new Date(dateStr);
   switch (unit) {
@@ -175,7 +181,7 @@ const addTime = (dateStr: string, value: number, unit: TimeUnit): string => {
 
 const formatWorldTime = (isoString: string) => {
   const date = new Date(isoString);
-  return date.toLocaleString('zh-CN', {
+  return date.toLocaleString(getLocale(), {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -201,42 +207,55 @@ const mapGraphToNodes = (graph: Graph): SimNode[] => {
   if (root != null && !parentMap.has(root)) parentMap.set(root, null);
   const running = new Set(graph.running || []);
   const nowIso = new Date().toISOString();
+  const locale = getLocale();
   return graph.nodes.map((n) => {
     const pid = parentMap.has(n.id) ? parentMap.get(n.id)! : null;
     const isLeaf = !childrenSet.has(n.id);
     const meta = (n as any).meta || null;
+    const displayName = isZh() ? `节点 ${n.id}` : `Node ${n.id}`;
     return {
       id: String(n.id),
       display_id: String(n.id),
       parentId: pid == null ? null : String(pid),
-      name: `节点 ${n.id}`,
+      name: displayName,
       depth: n.depth,
       isLeaf,
       status: running.has(n.id) ? 'running' : 'completed',
-      timestamp: new Date().toLocaleTimeString(),
-      worldTime: nowIso
-      ,meta
+      timestamp: new Date().toLocaleTimeString(locale),
+      worldTime: nowIso,
+      meta
     };
   });
 };
 
 // ★ 后端事件 -> 前端 LogEntry 映射
-const ACTION_LABELS: Record<string, string> = {
-  look_around: '环顾四周',
-  move_to_location: '移动到位置',
-  send_message: '发送消息',
-  gather_resource: '采集资源',
-  rest: '休息',
-  yield: '结束本轮发言'
+const ACTION_LABELS: Record<'en' | 'zh', Record<string, string>> = {
+  en: {
+    look_around: 'Look around',
+    move_to_location: 'Move to location',
+    send_message: 'Send message',
+    rest: 'Rest',
+    yield: 'Yield'
+  },
+  zh: {
+    look_around: '环顾四周',
+    move_to_location: '移动到位置',
+    send_message: '发送消息',
+    gather_resource: '采集资源',
+    rest: '休息',
+    yield: '结束本轮发言'
+  }
 };
 
 const translateActionName = (name: string | undefined): string => {
-  if (!name) return '未知动作';
-  return ACTION_LABELS[name] || name;
+  if (!name) return pickText('Unknown action', '未知动作');
+  const lang = isZh() ? 'zh' : 'en';
+  return ACTION_LABELS[lang][name] || ACTION_LABELS.en[name] || name;
 };
 
 const normalizePlanMarkers = (text: string): string => {
   if (!text) return '';
+  if (!isZh()) return text;
   let t = text;
   t = t.replace(/\[CURRENT\]/g, '[当前]');
   t = t.replace(/\[Done\]/gi, '[已完成]');
@@ -247,6 +266,7 @@ const normalizePlanMarkers = (text: string): string => {
 // 翻译 Agent 思考内容中的常见英文短语
 const translateAgentContent = (text: string): string => {
   if (!text) return '';
+  if (!isZh()) return text;
   let t = text;
   
   // 角色相关
@@ -337,10 +357,26 @@ const translateAgentContent = (text: string): string => {
   return t;
 };
 
+// 去除 Action XML 及残留标签，防止日志里出现原始 XML 片段
+const stripActionXml = (raw: string): string => {
+  if (!raw) return '';
+  let t = raw;
+  // 删除完整的 <Action>...</Action> 块以及自闭合 Action
+  t = t.replace(/<Action[\s\S]*?<\/Action>/gi, '');
+  t = t.replace(/<Action[^>]*\/>/gi, '');
+  // 删除常见的多余 message 标签（LLM 输出异常时可能出现）
+  t = t.replace(/<\/?(message|messages|youshould_send_message)[^>]*>/gi, '');
+  // 删除残余的 XML 标签（保留纯文本）
+  t = t.replace(/<[^>]+>/g, '');
+  return t.trim();
+};
+
 const prettifyAssistantCtx = (content: string): string => {
   if (!content) return '';
-  const thoughtsMatch = content.match(/--- Thoughts ---\s*([\s\S]*?)\s*--- Plan ---/);
-  const planMatch = content.match(/--- Plan ---\s*([\s\S]*?)(?:\n--- Action ---|\n--- Plan Update ---|\n--- Emotion Update ---|\s*$)/);
+  const cleaned = stripActionXml(content);
+
+  const thoughtsMatch = cleaned.match(/--- Thoughts ---\s*([\s\S]*?)\s*--- Plan ---/);
+  const planMatch = cleaned.match(/--- Plan ---\s*([\s\S]*?)(?:\n--- Action ---|\n--- Plan Update ---|\n--- Emotion Update ---|\s*$)/);
 
   const rawThoughts = thoughtsMatch && thoughtsMatch[1] ? thoughtsMatch[1].trim() : '';
   const rawPlan = planMatch && planMatch[1] ? planMatch[1].trim() : '';
@@ -353,7 +389,7 @@ const prettifyAssistantCtx = (content: string): string => {
   const plan = translateAgentContent(normalizedPlan);
 
   if (!thoughts && !plan) {
-    const normalized = normalizePlanMarkers(content);
+    const normalized = normalizePlanMarkers(cleaned);
     return translateAgentContent(normalized);
   }
 
@@ -418,6 +454,20 @@ export const mapBackendEventsToLogs = (
 
     const evType = ev.type || ev.event_type;
     const data = ev.data || {};
+    const separator = isZh() ? '，' : ', ';
+    const labels = {
+      reasoningStep: (step: number) =>
+        pickText(`Starting step ${step} reasoning`, `开始第 ${step} 步推理`),
+      reasoningStart: pickText('Starting reasoning', '开始推理'),
+      reasoningDone: pickText('Reasoning complete', '完成推理'),
+      actionPrefix: pickText('Action', '动作'),
+      yieldTurn: pickText('Yielded the floor', '结束本轮发言'),
+      planUpdate: pickText('Plan updated', '更新计划'),
+      agentError: pickText('Agent error', '智能体发生错误'),
+      actionStart: pickText('Started action', '开始执行动作'),
+      actionEnd: pickText('performed action', '执行了动作'),
+      systemEvent: pickText('System event', '系统事件')
+    };
 
     // 智能体上下文增量
     if (evType === 'agent_ctx_delta') {
@@ -474,8 +524,8 @@ export const mapBackendEventsToLogs = (
       const agentId = agentName ? nameToId.get(agentName) : undefined;
       const step = data.step != null ? Number(data.step) : NaN;
       const label = Number.isFinite(step)
-        ? `开始第 ${step} 步推理`
-        : `开始推理`;
+        ? labels.reasoningStep(step)
+        : labels.reasoningStart;
       return { 
         ...base, 
         type: 'AGENT_METADATA', 
@@ -501,25 +551,25 @@ export const mapBackendEventsToLogs = (
         .join(' / ');
       const labelParts: string[] = [];
       if (Number.isFinite(step)) {
-        labelParts.push(`第 ${step} 步结束`);
+        labelParts.push(pickText(`Step ${step} finished`, `第 ${step} 步结束`));
       }
 
       // 如果唯一动作是 yield，则用中文说明结束发言，忽略英文 summary
       const isPureYield = rawNames.length === 1 && rawNames[0] === 'yield';
       if (!isPureYield && actionNames) {
-        labelParts.push(`动作: ${actionNames}`);
+        labelParts.push(`${labels.actionPrefix}: ${actionNames}`);
       }
 
       const label = labelParts.length 
-        ? labelParts.join('，')
-        : '完成推理';
+        ? labelParts.join(separator)
+        : labels.reasoningDone;
 
       if (isPureYield) {
         return {
           ...base,
           type: 'AGENT_METADATA',
           agentId,
-          content: '结束本轮发言'
+          content: labels.yieldTurn
         };
       }
 
@@ -545,7 +595,7 @@ export const mapBackendEventsToLogs = (
           ...base,
           type: 'AGENT_METADATA',
           agentId,
-          content: '结束本轮发言'
+          content: labels.yieldTurn
         };
       }
 
@@ -559,8 +609,8 @@ export const mapBackendEventsToLogs = (
         type: 'AGENT_ACTION',
         agentId,
         content: agentName
-          ? `${agentName} 开始执行动作 ${actionName}`
-          : `开始执行动作 ${actionName}`
+          ? `${agentName} ${labels.actionStart} ${actionName}`
+          : `${labels.actionStart} ${actionName}`
       };
     }
 
@@ -572,7 +622,7 @@ export const mapBackendEventsToLogs = (
       const agentName: string = data.agent || '';
       const agentId = agentName ? nameToId.get(agentName) : undefined;
       const kind: string = data.kind || '';
-      const label = `更新计划` + (kind ? `（${kind}）` : '');
+      const label = labels.planUpdate + (kind ? pickText(` (${kind})`, `（${kind}）`) : '');
       return { 
         ...base, 
         type: 'AGENT_METADATA', 
@@ -588,10 +638,14 @@ export const mapBackendEventsToLogs = (
       const errText: string = String(
         data.error || data.message || ''
       ).slice(0, 400);
+      const agentLabel = agentName || pickText('Unknown', '未知');
+      const baseLabel = isZh()
+        ? `智能体「${agentLabel}」发生错误`
+        : `Agent "${agentLabel}" error`;
       const label =
-        `智能体「${agentName || '未知'}」发生错误` +
-        (kind ? `（${kind}）` : '') +
-        (errText ? `：${errText}` : '');
+        baseLabel +
+        (kind ? pickText(` (${kind})`, `（${kind}）`) : '') +
+        (errText ? pickText(`: ${errText}`, `：${errText}`) : '');
       return { ...base, type: 'SYSTEM', content: label };
     }
 
@@ -645,10 +699,11 @@ export const mapBackendEventsToLogs = (
         return null as any;
       }
 
-      // 为避免英文 summary 混入，这里不使用后端提供的 summary/message，只用中文模板
+      // 为避免英文 summary 混入，这里不使用后端提供的 summary/message，只用模板
+      const readableAction = translateActionName(actionName);
       const label = actorName
-        ? `${actorName} 执行了动作 ${translateActionName(actionName)}`
-        : `执行了动作 ${translateActionName(actionName)}`;
+        ? `${actorName} ${labels.actionEnd} ${readableAction}`
+        : `${pickText('Performed action', '执行了动作')} ${readableAction}`;
 
       return {
         ...base,
@@ -659,7 +714,7 @@ export const mapBackendEventsToLogs = (
     }
 
     // 其它类型，作为 SYSTEM 的简短描述展示
-    const text = data.text || data.message || evType || '系统事件';
+    const text = data.text || data.message || evType || labels.systemEvent;
     return { ...base, type: 'SYSTEM', content: text };
   }).filter((entry): entry is LogEntry => entry !== null);
 };
@@ -673,11 +728,11 @@ const generateNodes = (): SimNode[] => {
       id: 'root',
       display_id: '0',
       parentId: null,
-      name: '初始状态',
+      name: pickText('Initial state', '初始状态'),
       depth: 0,
       isLeaf: true,
       status: 'completed',
-      timestamp: '10:00',
+      timestamp: new Date().toLocaleTimeString(getLocale()),
       worldTime: startTime
     }
   ];
@@ -853,10 +908,15 @@ const generateLogs = (): LogEntry[] =>
         i % 4 === 1 || i % 4 === 2 ? (i % 2 === 0 ? 'a1' : 'a2') : undefined,
       content:
         i % 4 === 0
-          ? `系统推进至第 ${
-              nodeId === 'root' ? 0 : nodeId === 'n1' ? 1 : 2
-            } 回合`
-          : '进行了一次交互。',
+          ? pickText(
+              `System advanced to round ${
+                nodeId === 'root' ? 0 : nodeId === 'n1' ? 1 : 2
+              }`,
+              `系统推进至第 ${
+                nodeId === 'root' ? 0 : nodeId === 'n1' ? 1 : 2
+              } 回合`
+            )
+          : pickText('An interaction occurred.', '进行了一次交互。'),
       timestamp: `2025-03-10 10:${10 + i}`
     };
   });
@@ -967,7 +1027,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     try {
       const providers = await listProviders();
       const current =
-        providers.find((p) => p.is_active || p.is_default) || providers[0];
+        providers.find((p) => p.is_active || p.is_default) || null;
 
       set({
         llmProviders: providers,
@@ -1332,10 +1392,10 @@ export const useSimulationStore = create<AppState>((set, get) => ({
           } else {
             set({ isWizardOpen: false });
           }
-          get().addNotification('success', `仿真 "${newSim.name}" 创建成功`);
+          get().addNotification('success', pickText(`Simulation "${newSim.name}" created`, `仿真 "${newSim.name}" 创建成功`));
         } catch (e) {
           console.error(e);
-          get().addNotification('error', '后端创建仿真失败');
+          get().addNotification('error', pickText('Failed to create simulation via backend', '后端创建仿真失败'));
         }
       })();
       return;
@@ -1443,7 +1503,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
               simulations: s.simulations.map(sim => sim === newSim ? { ...sim, id: saved.id } : sim),
               currentSimulation: { ...s.currentSimulation!, id: saved.id }
             } as any));
-            get().addNotification('success', '已自动保存至后端');
+            get().addNotification('success', pickText('Auto-saved to backend', '已自动保存至后端'));
           }
         } catch (e) {
           console.warn('自动保存仿真到后端失败', e);
@@ -1461,7 +1521,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
         currentSimulation: { ...state.currentSimulation, timeConfig: config }
       };
     });
-    get().addNotification('info', '时间配置已更新');
+    get().addNotification('info', pickText('Time configuration updated', '时间配置已更新'));
   },
 
   updateSocialNetwork: (network) => {
@@ -1471,7 +1531,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
          currentSimulation: { ...state.currentSimulation, socialNetwork: network }
        };
      });
-     get().addNotification('success', '社交网络拓扑已更新');
+     get().addNotification('success', pickText('Network graph updated', '社交网络拓扑已更新'));
   },
 
   saveTemplate: (name, description) => {
@@ -1719,9 +1779,13 @@ export const useSimulationStore = create<AppState>((set, get) => ({
             
             set(prev => {
               const existingKeys = new Set(prev.rawEvents.map(getEventKey));
+              const batchKeys = new Set<string>();
               const newEvents = eventsArray.filter(ev => {
                 const key = getEventKey(ev);
-                return !existingKeys.has(key);
+                if (existingKeys.has(key)) return false;
+                if (batchKeys.has(key)) return false; // 去重同一批里的重复事件
+                batchKeys.add(key);
+                return true;
               });
               
               const logsMapped: LogEntry[] = mapBackendEventsToLogs(
@@ -1770,38 +1834,17 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       };
 
       const recentLogs = state.logs.slice(-10);
-      let generatedEvents: any[] = [];
-      let isMock = false;
 
-      // 本地 Gemini 推理暂未启用，直接使用 Mock 占位事件
-      isMock = true;
-      generatedEvents = state.agents.map((agent) => ({
-        type: Math.random() > 0.5 ? 'AGENT_SAY' : 'AGENT_ACTION',
-        agentName: agent.name,
-        content: `Mock action in ${formatWorldTime(nextWorldTime)}...`
-      }));
-
+      // 本地模式：不再生成 Mock 行为日志，避免误导。仅记录时间推进。
       const newLogs: LogEntry[] = [
         {
           id: `sys-${Date.now()}`,
           nodeId: newNodeId,
           round: newDepth,
           type: 'SYSTEM',
-          content: `时间推进至: ${formatWorldTime(nextWorldTime)} (Round ${newDepth})`,
+          content: `时间推进至: ${formatWorldTime(nextWorldTime)} (Round ${newDepth})` + '（离线模式，未执行真实动作）',
           timestamp: newNode.timestamp
-        },
-        ...generatedEvents.map((evt, i) => {
-          const agent = state.agents.find(a => a.name === evt.agentName);
-          return {
-            id: `gen-${Date.now()}-${i}`,
-            nodeId: newNodeId,
-            round: newDepth,
-            type: evt.type as any,
-            agentId: agent ? agent.id : undefined,
-            content: evt.content,
-            timestamp: newNode.timestamp
-          };
-        })
+        }
       ];
 
       const updatedAgents = state.agents.map(agent => {

@@ -112,6 +112,12 @@ class WerewolfScene(Scene):
         phase = self.state.get("phase")
         time = self.state.get("time")
         formatted = event.to_string(time)
+        event.code = "scene_chat"
+        event.params = {
+            "sender": sender.name,
+            "message": event.message,
+            "recipients": [],
+        }
         # Ensure sender also retains their own speech in memory
         sender.add_env_feedback(formatted)
         
@@ -169,16 +175,45 @@ class WerewolfScene(Scene):
                 "sender": sender.name,
                 "recipients": recipients,
                 "text": event.to_string(),
+                "code": event.code,
+                "params": {"sender": sender.name, "message": event.message, "recipients": recipients},
             },
         )
 
     def pre_run(self, simulator: Simulator):
-        roles_info_str = ", ".join(
-            f"{name} is {role}" for name, role in self.state.get("roles", {}).items()
-        )
+        def _is_english_language(lang: str | None) -> bool:
+            lower = str(lang or "").lower()
+            return lower.startswith("en") or "english" in lower
+
+        preferred_lang = None
+        for agent in simulator.agents.values():
+            if agent.language:
+                preferred_lang = agent.language
+                break
+
+        roles = self.state.get("roles", {})
+        if _is_english_language(preferred_lang):
+            roles_info_str = ", ".join(f"{name} is {role}" for name, role in roles.items())
+            hint = (
+                f"You are the Moderator. Players: {', '.join(simulator.agents.keys())}. "
+                f"Roles: {roles_info_str}."
+            )
+        else:
+            roles_info_str = "，".join(f"{name} 是 {role}" for name, role in roles.items())
+            hint = (
+                f"你是主持人。玩家：{ '，'.join(simulator.agents.keys()) }。"
+                f"角色：{roles_info_str}。"
+            )
+
         for name in self.moderator_names:
-            hint = f"You are the Moderator. Players: {', '.join(simulator.agents.keys())}. Roles: {roles_info_str}."
-            simulator.broadcast(PublicEvent(hint, prefix="System"), receivers=[name])
+            ev = PublicEvent(hint, prefix="System")
+            ev.code = "moderator_hint"
+            ev.params = {
+                "players": list(simulator.agents.keys()),
+                "roles": roles,
+                "lang": preferred_lang,
+            }
+            simulator.broadcast(ev, receivers=[name])
 
     def post_turn(self, agent: Agent, simulator: Simulator):
         super().post_turn(agent, simulator)

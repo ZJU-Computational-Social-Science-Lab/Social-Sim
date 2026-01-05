@@ -558,6 +558,12 @@ Current time: {hours}:{mins:02d} ({time_of_day})
         """
         time = self.state.get("time")
         formatted = event.to_string(time)
+        event.code = "scene_chat"
+        event.params = {
+            "sender": sender.name,
+            "message": event.message,
+            "recipients": [],
+        }
         # Ensure sender also retains their own speech in memory
         sender.add_env_feedback(formatted)
         sxy = sender.properties.get("map_xy")
@@ -607,6 +613,8 @@ Current time: {hours}:{mins:02d} ({time_of_day})
                 "sender": sender.name,
                 "recipients": recipients,
                 "text": event.to_string(),
+                "code": event.code,
+                "params": {"sender": sender.name, "message": event.message, "recipients": recipients},
             },
         )
 
