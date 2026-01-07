@@ -58,7 +58,7 @@ export default defineConfig(({ mode }) => {
       port,
       proxy: {
         "/api": {
-          // 需要讲localhost 换成IPV4地址，否则无法后端监听，注册一直失败
+          // 需要将localhost 换成IPV4地址，否则无法后端监听，注册一直失败
           target: `127.0.0.1:${backendPort}`,
           changeOrigin: true,
         },
