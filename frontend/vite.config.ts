@@ -58,7 +58,7 @@ export default defineConfig(({ mode }) => {
       port,
       proxy: {
         "/api": {
-          target: `http://localhost:${backendPort}`,
+           target: `127.0.01:${backendPort}`,
           changeOrigin: true,
         },
       },
