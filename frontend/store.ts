@@ -481,14 +481,14 @@ export const mapBackendEventsToLogs = (
 
       // 环境/状态反馈：做简单的中文翻译（保持为 SYSTEM，因为这是环境反馈）
       if (role === 'user') {
-        // 检查是否是广播消息（包含 [Message] 或 [消息]），如果是则跳过
+        // 检查是否是广播消息或公共事件，如果是则跳过
         // 因为 system_broadcast 事件会统一显示消息内容，避免重复
         const isBroadcastMessage = /\[(Message|消息)\]\s*[^:]+:/.test(raw);
-        if (isBroadcastMessage) {
+        const isPublicEvent = /Public Event:|公共事件[:：]/.test(raw);
+        if (isBroadcastMessage || isPublicEvent) {
           // 返回 null 标记，后续会被过滤掉
-          return null as any;
+            return null as any;
         }
-        
         const text = translateEnvText(raw);
         return {
           ...base,
@@ -1027,7 +1027,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     try {
       const providers = await listProviders();
       const current =
-        providers.find((p) => p.is_active || p.is_default) || null;
+        providers.find((p) => p.is_active || p.is_default) || providers[0] || null;
 
       set({
         llmProviders: providers,
