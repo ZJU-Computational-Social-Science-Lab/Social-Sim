@@ -112,7 +112,17 @@ class WerewolfScene(Scene):
         phase = self.state.get("phase")
         time = self.state.get("time")
         formatted = event.to_string(time)
-        recipients: List[str] = []
+        event.code = "scene_chat"
+        event.params = {
+            "sender": sender.name,
+            "message": event.message,
+            "recipients": [],
+        }
+        # Ensure sender also retains their own speech in memory
+        sender.add_env_feedback(formatted)
+        
+        # 先应用角色/阶段限制
+        role_recipients: List[str] = []
         mod_sender = self.is_moderator(sender.name)
         sender_role = self._role(sender.name)
         for a in simulator.agents.values():
@@ -132,17 +142,78 @@ class WerewolfScene(Scene):
             else:
                 ok = self._is_alive(a.name) or self.is_moderator(a.name)
             if ok:
-                a.add_env_feedback(formatted)
-                recipients.append(a.name)
-        sender.add_env_feedback(formatted)
+                role_recipients.append(a.name)
+        
+        # 如果配置了社交网络，再应用社交网络过滤
+        social_network = self.state.get("social_network")
+        if social_network and isinstance(social_network, dict) and len(social_network) > 0:
+            # 获取社交网络中的连接
+            sender_connections = social_network.get(sender.name, [])
+            if not isinstance(sender_connections, list):
+                sender_connections = []
+            # 取交集：既满足角色限制，又在社交网络中
+            recipients = [
+                name for name in role_recipients
+                if name in sender_connections and name in simulator.agents
+            ]
+        else:
+            # 没有配置社交网络，只使用角色限制
+            recipients = role_recipients
+        
+        # 向接收者发送消息
+        for agent_name in recipients:
+            agent = simulator.agents.get(agent_name)
+            if agent:
+                agent.add_env_feedback(formatted)
+        
+        # 记录事件
+        simulator.emit_event_later(
+            "system_broadcast",
+            {
+                "time": time,
+                "type": event.__class__.__name__,
+                "sender": sender.name,
+                "recipients": recipients,
+                "text": event.to_string(),
+                "code": event.code,
+                "params": {"sender": sender.name, "message": event.message, "recipients": recipients},
+            },
+        )
 
     def pre_run(self, simulator: Simulator):
-        roles_info_str = ", ".join(
-            f"{name} is {role}" for name, role in self.state.get("roles", {}).items()
-        )
+        def _is_english_language(lang: str | None) -> bool:
+            lower = str(lang or "").lower()
+            return lower.startswith("en") or "english" in lower
+
+        preferred_lang = None
+        for agent in simulator.agents.values():
+            if agent.language:
+                preferred_lang = agent.language
+                break
+
+        roles = self.state.get("roles", {})
+        if _is_english_language(preferred_lang):
+            roles_info_str = ", ".join(f"{name} is {role}" for name, role in roles.items())
+            hint = (
+                f"You are the Moderator. Players: {', '.join(simulator.agents.keys())}. "
+                f"Roles: {roles_info_str}."
+            )
+        else:
+            roles_info_str = "，".join(f"{name} 是 {role}" for name, role in roles.items())
+            hint = (
+                f"你是主持人。玩家：{ '，'.join(simulator.agents.keys()) }。"
+                f"角色：{roles_info_str}。"
+            )
+
         for name in self.moderator_names:
-            hint = f"You are the Moderator. Players: {', '.join(simulator.agents.keys())}. Roles: {roles_info_str}."
-            simulator.broadcast(PublicEvent(hint, prefix="System"), receivers=[name])
+            ev = PublicEvent(hint, prefix="System")
+            ev.code = "moderator_hint"
+            ev.params = {
+                "players": list(simulator.agents.keys()),
+                "roles": roles,
+                "lang": preferred_lang,
+            }
+            simulator.broadcast(ev, receivers=[name])
 
     def post_turn(self, agent: Agent, simulator: Simulator):
         super().post_turn(agent, simulator)

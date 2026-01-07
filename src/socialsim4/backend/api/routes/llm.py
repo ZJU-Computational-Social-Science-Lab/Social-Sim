@@ -131,25 +131,41 @@ async def generate_agents(
         raw_text = llm.chat(messages)
 
         import json
+        import re
+
+        # 清理 LLM 输出：去除 markdown 代码块标记
+        cleaned_text = raw_text.strip()
+        # 去除 ```json 和 ``` 标记
+        cleaned_text = re.sub(r'^```json\s*', '', cleaned_text, flags=re.MULTILINE)
+        cleaned_text = re.sub(r'^```\s*', '', cleaned_text, flags=re.MULTILINE)
+        cleaned_text = re.sub(r'```\s*$', '', cleaned_text, flags=re.MULTILINE)
+        cleaned_text = cleaned_text.strip()
 
         try:
-            parsed = json.loads(raw_text)
-        except Exception:
+            parsed = json.loads(cleaned_text)
+        except Exception as e:
             # LLM 没按要求返回 JSON 时的兜底，前端依然能跑
             parsed = [
                 {
                     "name": f"Agent {i+1}",
                     "role": "角色",
-                    "profile": f"占位角色，原始输出无法解析为 JSON：{raw_text[:50]}...",
+                    "profile": f"占位角色，原始输出无法解析为 JSON：{raw_text[:50]}... (错误: {str(e)})",
                     "properties": {},
                 }
                 for i in range(data.count)
             ]
 
+        # 处理不同的返回格式
         if isinstance(parsed, dict) and "agents" in parsed:
             items = parsed["agents"]
-        else:
+        elif isinstance(parsed, list):
             items = parsed
+        else:
+            # 如果解析出来不是列表也不是包含 agents 的字典，创建占位角色
+            items = []
+
+        if not isinstance(items, list):
+            items = []
 
         agents: List[GeneratedAgent] = []
         for i, a in enumerate(items):

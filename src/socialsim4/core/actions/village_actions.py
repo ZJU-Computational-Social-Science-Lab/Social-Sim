@@ -4,6 +4,15 @@ from socialsim4.core.scene import Scene
 from socialsim4.core.simulator import Simulator
 
 
+def _is_english_language(lang: str | None) -> bool:
+    lower = str(lang or "").lower()
+    return lower.startswith("en") or "english" in lower
+
+
+def _localized(agent: Agent, en_text: str, zh_text: str) -> str:
+    return en_text if _is_english_language(getattr(agent, "language", "")) else zh_text
+
+
 class MoveToLocationAction(Action):
     NAME = "move_to_location"
     DESC = "Move to a named location or coordinates."
@@ -22,27 +31,29 @@ class MoveToLocationAction(Action):
         if target_location:
             loc = scene.game_map.get_location(target_location)
             if not loc:
-                agent.add_env_feedback(f"Location '{target_location}' does not exist.")
-                return False, {"error": "unknown_location", "location": target_location}, f"{agent.name} move failed", {}, False
+                agent.add_env_feedback(
+                    _localized(agent, f"Location '{target_location}' does not exist.", f"地点 '{target_location}' 不存在。")
+                )
+                return False, {"error": "unknown_location", "location": target_location}, _localized(agent, f"{agent.name} move failed", f"{agent.name} 移动失败"), {}, False
             target_xy = [loc.x, loc.y]
         else:
             tx, ty = action_data["x"], action_data["y"]
             if tx is None or ty is None:
                 agent.add_env_feedback(
-                    "Provide a target 'location' or coordinates 'x' and 'y'."
+                    _localized(agent, "Provide a target 'location' or coordinates 'x' and 'y'.", "请提供目标地点，或提供坐标 x 和 y。")
                 )
-                return False, {"error": "missing_target"}, f"{agent.name} move failed", {}, False
+                return False, {"error": "missing_target"}, _localized(agent, f"{agent.name} move failed", f"{agent.name} 移动失败"), {}, False
             target_xy = [int(tx), int(ty)]
 
         if start_xy[0] == target_xy[0] and start_xy[1] == target_xy[1]:
-            agent.add_env_feedback("You are already at the target.")
-            return False, {"error": "already_there", "to": target_xy}, f"{agent.name} move skipped", {}, False
+            agent.add_env_feedback(_localized(agent, "You are already at the target.", "你已经在目标位置。"))
+            return False, {"error": "already_there", "to": target_xy}, _localized(agent, f"{agent.name} move failed", f"{agent.name} 移动失败"), {}, False
 
         # Pathfinding
         path = scene.game_map.find_path(tuple(start_xy), tuple(target_xy))
         if not path:
-            agent.add_env_feedback("No reachable path; possibly blocked by obstacles.")
-            return False, {"error": "no_path", "to": target_xy}, f"{agent.name} move failed", {}, False
+            agent.add_env_feedback(_localized(agent, "No reachable path; possibly blocked by obstacles.", "没有可达路径，可能被障碍阻挡。"))
+            return False, {"error": "no_path", "to": target_xy}, _localized(agent, f"{agent.name} move failed", f"{agent.name} 移动失败"), {}, False
 
         # Compute energy cost: sum of tile movement_cost entering each tile, scaled
         base_cost = scene.game_map.path_cost(path)
@@ -50,9 +61,13 @@ class MoveToLocationAction(Action):
 
         if agent.properties["energy"] < energy_cost:
             agent.add_env_feedback(
-                f"Not enough energy. Moving to {tuple(target_xy)} costs {energy_cost}, you have {agent.properties['energy']}."
+                _localized(
+                    agent,
+                    f"Not enough energy. Moving to {tuple(target_xy)} costs {energy_cost}, you have {agent.properties['energy']}.",
+                    f"能量不足。移动到 {tuple(target_xy)} 需要 {energy_cost}，当前剩余 {agent.properties['energy']}。",
+                )
             )
-            return False, {"error": "low_energy", "required": energy_cost, "have": agent.properties["energy"]}, f"{agent.name} move failed", {}, False
+            return False, {"error": "low_energy", "required": energy_cost, "have": agent.properties["energy"]}, _localized(agent, f"{agent.name} move failed", f"{agent.name} 移动失败"), {}, False
 
         # Update location occupancy (named POIs)
         prev_loc = scene.game_map.get_location_at(start_xy[0], start_xy[1])
@@ -76,7 +91,9 @@ class MoveToLocationAction(Action):
             if new_loc
             else scene.game_map.get_tile(*target_xy).terrain
         )
-        agent.add_env_feedback(f"You arrived at {tuple(target_xy)}. {desc}")
+        agent.add_env_feedback(
+            _localized(agent, f"You arrived at {tuple(target_xy)}. {desc}", f"你已到达 {tuple(target_xy)}。{desc}")
+        )
 
         # Nearby agents at destination
         nearby = []
@@ -89,11 +106,13 @@ class MoveToLocationAction(Action):
                 if dist <= scene.chat_range:
                     nearby.append(f"{other.name} (distance {dist})")
         if nearby:
-            agent.add_env_feedback("Nearby agents: " + ", ".join(nearby))
+            agent.add_env_feedback(
+                _localized(agent, "Nearby agents: " + ", ".join(nearby), "附近的智能体：" + "，".join(nearby))
+            )
 
         # No logging here; central processing can consume result/summary
         result = {"from": start_xy, "to": target_xy, "energy_cost": energy_cost, "path": path}
-        summary = f"{agent.name} moved to {tuple(target_xy)} (energy {energy_cost})"
+        summary = _localized(agent, f"{agent.name} moved to {tuple(target_xy)} (energy {energy_cost})", f"{agent.name} 移动到 {tuple(target_xy)}（能量消耗 {energy_cost}）")
         return True, result, summary, {}, False
 
 
@@ -124,24 +143,36 @@ class LookAroundAction(Action):
             else tile.terrain
         )
 
-        info = [f"You are at ({xy[0]},{xy[1]}): {here_desc}"]
+        info = [
+            _localized(
+                agent,
+                f"You are at ({xy[0]},{xy[1]}): {here_desc}",
+                f"你在 ({xy[0]},{xy[1]})：{here_desc}",
+            )
+        ]
 
         # Resources on current tile
         if tile.resources:
             resources = ", ".join([f"{k}({v})" for k, v in tile.resources.items()])
-            info.append(f"Resources here: {resources}")
+            info.append(_localized(agent, f"Resources here: {resources}", f"这里的资源：{resources}"))
 
         # Nearby named locations
         nearby_locations = scene.game_map.get_nearby_locations(
             xy[0], xy[1], radius=radius
         )
         if nearby_locations:
-            info.append("Nearby locations:")
+            info.append(_localized(agent, "Nearby locations:", "附近地点："))
             for loc in nearby_locations[:8]:
                 dist = abs(loc.x - xy[0]) + abs(loc.y - xy[1])
                 if dist == 0:
                     continue
-                info.append(f"  - {loc.name} (distance: {dist}) - {loc.description}")
+                info.append(
+                    _localized(
+                        agent,
+                        f"  - {loc.name} (distance: {dist}) - {loc.description}",
+                        f"  - {loc.name}（距离 {dist}）- {loc.description}",
+                    )
+                )
 
         # Nearby agents
         nearby_agents = []
@@ -157,14 +188,17 @@ class LookAroundAction(Action):
         if nearby_agents:
             nearby_agents.sort(key=lambda x: x[0])
             agents_str = ", ".join(
-                [f"{name}({dist})" for dist, name in nearby_agents[:10]]
+                [
+                    _localized(agent, f"{name}({dist})", f"{name}(距离 {dist})")
+                    for dist, name in nearby_agents[:10]
+                ]
             )
-            info.append(f"Nearby agents: {agents_str}")
+            info.append(_localized(agent, f"Nearby agents: {agents_str}", f"附近的智能体：{agents_str}"))
 
         agent.add_env_feedback("\n".join(info))
         # No logging here; central processing can consume result/summary
         result = {"radius": radius}
-        summary = f"{agent.name} looked around (r={radius})"
+        summary = _localized(agent, f"{agent.name} looked around (r={radius})", f"{agent.name} 环顾四周（半径 {radius}）")
         return True, result, summary, {}, False
 
 
@@ -187,8 +221,8 @@ class GatherResourceAction(Action):
             if loc:
                 xy = [loc.x, loc.y]
         if not xy:
-            agent.add_env_feedback("Current position unknown; cannot gather.")
-            return False, {"error": "unknown_position"}, f"{agent.name} gather failed", {}, False
+            agent.add_env_feedback(_localized(agent, "Current position unknown; cannot gather.", "当前位置未知，无法采集。"))
+            return False, {"error": "unknown_position"}, _localized(agent, f"{agent.name} gather failed", f"{agent.name} 采集失败"), {}, False
 
         tile = scene.game_map.get_tile(xy[0], xy[1])
         available = 0
@@ -203,13 +237,13 @@ class GatherResourceAction(Action):
                 source = "location"
 
         if available <= 0:
-            agent.add_env_feedback(f"No {resource_type} to gather here.")
-            return False, {"error": "not_available", "resource": resource_type}, f"{agent.name} gather failed", {}, False
+            agent.add_env_feedback(_localized(agent, f"No {resource_type} to gather here.", f"这里没有可采集的 {resource_type}。"))
+            return False, {"error": "not_available", "resource": resource_type}, _localized(agent, f"{agent.name} gather failed", f"{agent.name} 采集失败"), {}, False
 
         actual_amount = max(0, min(amount, available))
         if actual_amount == 0:
-            agent.add_env_feedback(f"{resource_type} is depleted.")
-            return False, {"error": "depleted", "resource": resource_type}, f"{agent.name} gather failed", {}, False
+            agent.add_env_feedback(_localized(agent, f"{resource_type} is depleted.", f"{resource_type} 已耗尽。"))
+            return False, {"error": "depleted", "resource": resource_type}, _localized(agent, f"{agent.name} gather failed", f"{agent.name} 采集失败"), {}, False
 
         # 执行收集
         if source == "tile":
@@ -222,11 +256,15 @@ class GatherResourceAction(Action):
         )
 
         agent.add_env_feedback(
-            f"You gathered {actual_amount} {resource_type}. Inventory: {agent.properties['inventory']}"
+            _localized(
+                agent,
+                f"You gathered {actual_amount} {resource_type}. Inventory: {agent.properties['inventory']}",
+                f"你采集了 {actual_amount} {resource_type}。物品栏：{agent.properties['inventory']}",
+            )
         )
         # No logging here; central processing can consume result/summary
         result = {"resource": resource_type, "amount": actual_amount, "source": source, "position": xy}
-        summary = f"{agent.name} gathered {actual_amount} {resource_type}"
+        summary = _localized(agent, f"{agent.name} gathered {actual_amount} {resource_type}", f"{agent.name} 采集了 {actual_amount} {resource_type}")
         return True, result, summary, {}, False
 
 
@@ -244,15 +282,21 @@ class RestAction(Action):
         # Resting in a building is more effective
         if current_location and current_location.location_type == "building":
             energy_gain = 30
-            agent.add_env_feedback(f"You rest comfortably in {current_location.name}.")
+            agent.add_env_feedback(
+                _localized(agent, f"You rest comfortably in {current_location.name}.", f"你在 {current_location.name} 里舒适地休息。")
+            )
         else:
             energy_gain = 15
             agent.add_env_feedback(
-                f"You take a short rest at {current_location.name if current_location else 'this spot'}."
+                _localized(
+                    agent,
+                    f"You take a short rest at {current_location.name if current_location else 'this spot' }.",
+                    f"你在 {current_location.name if current_location else '这里'} 稍作休息。",
+                )
             )
 
         agent.properties["energy"] = min(100, agent.properties["energy"] + energy_gain)
         # No logging here; central processing can consume result/summary
         result = {"energy_gain": energy_gain, "new_energy": agent.properties["energy"]}
-        summary = f"{agent.name} rested (+{energy_gain} energy)"
+        summary = _localized(agent, f"{agent.name} rested (+{energy_gain} energy)", f"{agent.name} 休息了（能量 +{energy_gain}）")
         return True, result, summary, {}, False

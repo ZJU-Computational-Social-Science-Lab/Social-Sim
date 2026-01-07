@@ -166,6 +166,7 @@ Planning guidelines:
 - Current Focus: the single step you are executing now. Align Action with this.
 - Strategy: a brief approach for achieving the goals over time.
 - Prefer continuity: preserve unaffected goals/milestones; make the smallest coherent change when adapting to new information. State what stays the same.
+- Avoid repeating the same action, message, or summary across turns. If nothing new advances the plan, yield instead of restating.
 
 Turn Flow:
 - Output exactly one Thoughts/Plan/Action block per response.
