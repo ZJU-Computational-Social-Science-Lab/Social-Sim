@@ -105,22 +105,23 @@ async def generate_agents(
         llm = create_llm_client(cfg)
 
         system_prompt = (
-            "你是一个社会模拟平台的角色生成助手。"
-            "根据用户提供的场景描述，生成一组角色配置，返回 JSON 格式。"
-            "只输出 JSON，不要解释文字。"
-            "每个角色包含字段：name, role, profile, properties。"
+            "You are an agent generator for a social simulation platform. "
+            "Generate a list of diverse agents based on the user's scenario description. "
+            "IMPORTANT: Return ONLY a valid JSON array, no markdown, no explanation, no code blocks. "
+            "Each agent must have: name (string), role (string), profile (string), properties (object)."
         )
 
         user_prompt = (
-            f"请根据以下场景描述，生成 {data.count} 个多样化的角色：\n\n"
+            f"Generate exactly {data.count} diverse agents for this scenario:\n\n"
             f"{data.description}\n\n"
-            "要求：\n"
-            "1. 角色之间身份、立场、性格要有差异。\n"
-            "2. 直接返回 JSON 数组，例如：\n"
-            "[\n"
-            "  {\"name\": \"张三\", \"role\": \"村长\", \"profile\": \"...\", \"properties\": {\"信任值\": 70}},\n"
-            "  {\"name\": \"李四\", \"role\": \"商人\", \"profile\": \"...\", \"properties\": {\"信任值\": 45}}\n"
-            "]"
+             "Requirements:\n"
+            "1. Each agent should have different identity, stance, and personality\n"
+            "2. Return ONLY a JSON array in this exact format:\n"
+            '[\n'
+            '  {"name": "Zhang San", "role": "Village Chief", "profile": "60-year-old respected leader...", "properties": {"trust": 70}},\n'
+            '  {"name": "Li Si", "role": "Merchant", "profile": "45-year-old shrewd businessman...", "properties": {"trust": 45}}\n'
+            ']\n\n'
+            "OUTPUT ONLY THE JSON ARRAY, NO OTHER TEXT:"
         )
 
         messages = [
@@ -129,27 +130,44 @@ async def generate_agents(
         ]
 
         raw_text = llm.chat(messages)
-
+   # 打印原始输出用于调试
+        print(f"[DEBUG] LLM raw output (first 500 chars): {raw_text[:500]}")
+        
         import json
         import re
-
+        
         # 清理 LLM 输出：去除 markdown 代码块标记
         cleaned_text = raw_text.strip()
-        # 去除 ```json 和 ``` 标记
-        cleaned_text = re.sub(r'^```json\s*', '', cleaned_text, flags=re.MULTILINE)
-        cleaned_text = re.sub(r'^```\s*', '', cleaned_text, flags=re.MULTILINE)
-        cleaned_text = re.sub(r'```\s*$', '', cleaned_text, flags=re.MULTILINE)
-        cleaned_text = cleaned_text.strip()
+
+        # 移除markdown代码块标记
+        if cleaned_text.startswith("```"):
+            # 匹配 ```json 或 ``` 开头的代码块
+            match = re.search(r'```(?:json)?\s*\n(.*?)\n```', cleaned_text, re.DOTALL)
+            if match:
+                cleaned_text = match.group(1).strip()
+            else:
+                # 简单移除```标记
+                cleaned_text = re.sub(r'^```(?:json)?|```$', '', cleaned_text, flags=re.MULTILINE).strip()
+        
+        # 尝试找到第一个[或{
+        json_start = min(
+            (cleaned_text.find('[') if '[' in cleaned_text else len(cleaned_text)),
+            (cleaned_text.find('{') if '{' in cleaned_text else len(cleaned_text))
+        )
+        if json_start < len(cleaned_text):
+            cleaned_text = cleaned_text[json_start:]
 
         try:
             parsed = json.loads(cleaned_text)
         except Exception as e:
+            print(f"[ERROR] JSON parse failed: {e}")
+            print(f"[ERROR] Cleaned text (first 300 chars): {cleaned_text[:300]}")
             # LLM 没按要求返回 JSON 时的兜底，前端依然能跑
             parsed = [
                 {
                     "name": f"Agent {i+1}",
                     "role": "角色",
-                    "profile": f"占位角色，原始输出无法解析为 JSON：{raw_text[:50]}... (错误: {str(e)})",
+                     "profile": f"LLM返回格式错误。原始输出: {raw_text[:100]}...",
                     "properties": {},
                 }
                 for i in range(data.count)
