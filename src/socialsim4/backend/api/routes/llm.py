@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from typing import Any, List, Optional
-
+import logging
+logger = logging.getLogger(__name__)
 from litestar import Router, post
 from litestar.connection import Request
 from pydantic import BaseModel, Field
@@ -114,7 +115,7 @@ async def generate_agents(
         user_prompt = (
             f"Generate exactly {data.count} diverse agents for this scenario:\n\n"
             f"{data.description}\n\n"
-             "Requirements:\n"
+            "Requirements:\n"
             "1. Each agent should have different identity, stance, and personality\n"
             "2. Return ONLY a JSON array in this exact format:\n"
             '[\n'
@@ -131,7 +132,7 @@ async def generate_agents(
 
         raw_text = llm.chat(messages)
    # 打印原始输出用于调试
-        print(f"[DEBUG] LLM raw output (first 500 chars): {raw_text[:500]}")
+        logger.debug(f"LLM raw output (first 500 chars): {raw_text[:500]}")
         
         import json
         import re
@@ -160,14 +161,14 @@ async def generate_agents(
         try:
             parsed = json.loads(cleaned_text)
         except Exception as e:
-            print(f"[ERROR] JSON parse failed: {e}")
-            print(f"[ERROR] Cleaned text (first 300 chars): {cleaned_text[:300]}")
+            logger.error(f"JSON parse failed: {e}")
+            logger.error(f"Cleaned text (first 300 chars): {cleaned_text[:300]}")
             # LLM 没按要求返回 JSON 时的兜底，前端依然能跑
             parsed = [
                 {
                     "name": f"Agent {i+1}",
                     "role": "角色",
-                     "profile": f"LLM返回格式错误。原始输出: {raw_text[:100]}...",
+                    "profile": f"LLM返回格式错误。原始输出: {raw_text[:100]}...",
                     "properties": {},
                 }
                 for i in range(data.count)
