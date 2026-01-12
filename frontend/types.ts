@@ -88,10 +88,12 @@ export type SocialNetwork = Record<string, string[]>;
 export interface SimulationReport {
   id: string;
   generatedAt: string;
+  refinedByLLM?: boolean;
   summary: string;
   keyEvents: { round: number; description: string }[];
   agentAnalysis: { agentName: string; analysis: string }[];
   suggestions: string[];
+  roundStats?: { round: number; actions: number; errors: number; broadcasts: number }[];
 }
 
 // #20 Template System
