@@ -25,9 +25,14 @@ export const TimeSettingsModal: React.FC = () => {
 
   useEffect(() => {
     if (currentSim && isOpen) {
-      setStep(currentSim.timeConfig.step);
-      setUnit(currentSim.timeConfig.unit);
-      setBaseTime(new Date(currentSim.timeConfig.baseTime).toISOString().slice(0, 16));
+      const tc = currentSim.timeConfig || { baseTime: new Date().toISOString(), step: 1, unit: 'hour' };
+      setStep(tc.step ?? 1);
+      setUnit(tc.unit ?? 'hour');
+      try {
+        setBaseTime(new Date(tc.baseTime).toISOString().slice(0, 16));
+      } catch (e) {
+        setBaseTime(new Date().toISOString().slice(0, 16));
+      }
     }
   }, [currentSim, isOpen]);
 

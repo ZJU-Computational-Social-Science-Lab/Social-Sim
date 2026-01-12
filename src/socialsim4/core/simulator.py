@@ -136,16 +136,20 @@ class Simulator:
                 recipients.append(agent.name)
 
         # Timeline: keep minimal
-        self.emit_event_later(
-            "system_broadcast",
-            {
-                "time": time,
-                "type": event.__class__.__name__,
-                "sender": sender,
-                "recipients": recipients,
-                "text": event.to_string(),
-            },
-        )
+        payload = {
+            "time": time,
+            "type": event.__class__.__name__,
+            "sender": sender,
+            "recipients": recipients,
+            "text": event.to_string(),
+        }
+        code = getattr(event, "code", None)
+        if code is not None:
+            payload["code"] = code
+        params = getattr(event, "params", None)
+        if params is not None:
+            payload["params"] = params
+        self.emit_event_later("system_broadcast", payload)
 
     # Clear serialization with deep-copy semantics
     def serialize(self):

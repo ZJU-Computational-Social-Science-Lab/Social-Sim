@@ -303,6 +303,7 @@ class SimTree:
             "ops": [],
             "sim": sim_copy,
             "logs": child_logs,
+            "meta": {},
         }
 
         self._attach_log_handler(nid, sim_copy, child_logs)
@@ -400,6 +401,7 @@ class SimTree:
                     "ops": node.get("ops", []),
                     "sim": sim.serialize(),
                     "logs": list(node.get("logs", [])),
+                    "meta": node.get("meta", {}),
                 }
             )
         return {
@@ -440,6 +442,7 @@ class SimTree:
                 "ops": ops,
                 "sim": sim,
                 "logs": logs,
+                "meta": item.get("meta", {}),
             }
             tree.nodes[nid] = node
             if parent is not None:
@@ -497,10 +500,16 @@ class SimTree:
                 ag = sim.agents[op["name"]]
                 ag.plan_state = op["plan_state"]
             elif name == "agent_props_patch":
+                # Apply property updates to the cloned simulator's agent
                 ag = sim.agents[op["name"]]
                 updates = op["updates"]
                 for k, v in updates.items():
                     ag.properties[k] = v
+                try:
+                    logger.debug("SimTree.branch applied agent_props_patch", extra={"parent": parent_id, "child": cid, "agent": op.get("name"), "updates": updates})
+                except Exception:
+                    # best-effort logging; do not fail branch on logging error
+                    logger.exception("failed to log agent_props_patch application")
             elif name == "scene_state_patch":
                 updates = op["updates"]
                 for k, v in updates.items():

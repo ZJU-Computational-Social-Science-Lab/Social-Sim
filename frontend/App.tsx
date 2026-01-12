@@ -30,6 +30,7 @@ const DocsPage = lazy(() =>
 
 // 新前端的仿真主界面（你已经把原来的 App 改名为 SimulationPage.tsx，并 default export）
 import SimulationPage from "./pages/SimulationPage";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const App: React.FC = () => {
   return (
@@ -89,7 +90,9 @@ const App: React.FC = () => {
           path="/simulations/new/*"
           element={
             <RequireAuth>
-              <SimulationPage />
+              <ErrorBoundary>
+                <SimulationPage />
+              </ErrorBoundary>
             </RequireAuth>
           }
         />
@@ -107,7 +110,9 @@ const App: React.FC = () => {
           path="/simulations/:id"
           element={
             <RequireAuth>
-              <SimulationPage />
+              <ErrorBoundary>
+                <SimulationPage />
+              </ErrorBoundary>
             </RequireAuth>
           }
         />

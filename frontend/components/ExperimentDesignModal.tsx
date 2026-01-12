@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSimulationStore } from '../store';
 import { X, Beaker, Plus, Trash2, Zap, UserCog, Settings, ArrowRight } from 'lucide-react';
 import { ExperimentVariant, Intervention } from '../types';
+import { connectNodeEvents } from '../services/simulationTree';
 
 export const ExperimentDesignModal: React.FC = () => {
   const isOpen = useSimulationStore(state => state.isExperimentDesignerOpen);
@@ -11,6 +12,8 @@ export const ExperimentDesignModal: React.FC = () => {
   const selectedNodeId = useSimulationStore(state => state.selectedNodeId);
   const nodes = useSimulationStore(state => state.nodes);
   const agents = useSimulationStore(state => state.agents);
+  const engineConfig = useSimulationStore(state => state.engineConfig);
+  const currentSimulation = useSimulationStore(state => state.currentSimulation);
 
   const baseNode = nodes.find(n => n.id === selectedNodeId);
 
@@ -18,6 +21,63 @@ export const ExperimentDesignModal: React.FC = () => {
   const [variants, setVariants] = useState<ExperimentVariant[]>([
     { id: 'v1', name: '实验组 A', description: '', interventions: [] }
   ]);
+
+  // live per-node logs: nodeId (string) -> array of log entries
+  const [nodeLogs, setNodeLogs] = useState<Record<string, any[]>>({});
+  // active sockets to allow cleanup
+  const [nodeSockets, setNodeSockets] = useState<Record<string, WebSocket | null>>({});
+
+  useEffect(() => {
+    if (!isOpen) {
+      // cleanup sockets when modal closed
+      Object.values(nodeSockets).forEach((s) => {
+        try {
+          s?.close();
+        } catch (e) {
+          // ignore
+        }
+      });
+      setNodeSockets({});
+      setNodeLogs({});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  // Establish node-level WS subscriptions for mapped variant nodes
+  useEffect(() => {
+    if (!isOpen) return;
+    const endpoint = (window as any).__engine_endpoint__ || '';
+    const token = (window as any).__engine_token__ || '';
+
+    variants.forEach((variant) => {
+      const nodeByMeta = nodes.find(n => (n as any).meta && (n as any).meta.variant_id && n.parentId === baseNode.id && n.name.includes(variant.name));
+      const nodeByName = nodes.find(n => n.name === `${experimentName}: ${variant.name}`);
+      const node = nodeByMeta || nodeByName;
+      const nid = node ? node.id : null;
+      if (!nid) return;
+      if (nodeSockets[String(nid)]) return; // already connected
+
+      try {
+        const ws = connectNodeEvents((engineConfig.endpoint || ''), (currentSimulation?.id || ''), Number(nid), (engineConfig as any).token, (ev: any) => {
+          setNodeLogs((prev) => {
+            const cur = { ...(prev || {}) };
+            cur[String(nid)] = [...(cur[String(nid)] || []), ev];
+            // keep bounded
+            if (cur[String(nid)].length > 500) cur[String(nid)] = cur[String(nid)].slice(-500);
+            return cur;
+          });
+        });
+        setNodeSockets((s) => ({ ...(s || {}), [String(nid)]: ws }));
+      } catch (e) {
+        // ignore connection errors; WS fallback via graph refresh will update logs
+      }
+    });
+
+    return () => {
+      // cleanup on variants/nodes change; keep sockets open while modal open
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, nodes, variants, baseNode?.id]);
 
   if (!isOpen || !baseNode) return null;
 
@@ -85,7 +145,48 @@ export const ExperimentDesignModal: React.FC = () => {
       alert("请输入实验名称");
       return;
     }
-    runExperiment(baseNode.id, experimentName, variants);
+    // Build ops for each variant based on interventions
+    const variantsWithOps = variants.map((v) => {
+      const ops: any[] = [];
+      (v.interventions || []).forEach((iv) => {
+        if (iv.type === 'AGENT_PROPERTY' && iv.targetId) {
+          // parse description as JSON updates or key=value pairs
+          let updates: any = {};
+          try {
+            const parsed = JSON.parse(iv.description || '{}');
+            if (parsed && typeof parsed === 'object' && parsed.updates) {
+              updates = parsed.updates;
+            } else if (parsed && typeof parsed === 'object') {
+              updates = parsed;
+            }
+          } catch {
+            // fallback parse key=value,comma separated
+            String(iv.description || '')
+              .split(',')
+              .map((s) => s.trim())
+              .forEach((pair) => {
+                const [k, ...rest] = pair.split('=');
+                if (!k) return;
+                const valStr = rest.join('=').trim();
+                const num = Number(valStr);
+                updates[k.trim()] = Number.isNaN(num) ? valStr : num;
+              });
+          }
+
+          const target = agents.find((a) => a.id === iv.targetId);
+          const name = target ? target.name : iv.targetId;
+          ops.push({ op: 'agent_props_patch', name, updates });
+        } else if (iv.type === 'INSTRUCTION') {
+          // broadcast instruction as public event
+          ops.push({ op: 'public_broadcast', text: iv.description || '' });
+        } else if (iv.type === 'ENVIRONMENT') {
+          ops.push({ op: 'public_broadcast', text: iv.description || '' });
+        }
+      });
+      return { ...v, ops };
+    });
+
+    runExperiment(baseNode.id, experimentName, variantsWithOps);
     toggle(false);
     // Reset state
     setExperimentName('');
@@ -154,12 +255,54 @@ export const ExperimentDesignModal: React.FC = () => {
                 {variants.map((variant, index) => (
                   <div key={variant.id} className="bg-white border rounded-xl shadow-sm overflow-hidden group hover:shadow-md transition-shadow">
                     <div className="px-4 py-3 border-b bg-white flex justify-between items-center">
-                      <input 
-                        type="text" 
-                        value={variant.name}
-                        onChange={(e) => handleUpdateVariant(variant.id, 'name', e.target.value)}
-                        className="font-bold text-slate-800 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-500 outline-none px-1"
-                      />
+                      <div className="flex items-center gap-3">
+                        <input 
+                          type="text" 
+                          value={variant.name}
+                          onChange={(e) => handleUpdateVariant(variant.id, 'name', e.target.value)}
+                          className="font-bold text-slate-800 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-500 outline-none px-1"
+                        />
+                        {/* Status badge: try to find corresponding node in tree by name */}
+                        {(() => {
+                          // Prefer meta-based mapping when available (experiment/variant ids),
+                          // otherwise fall back to name-based matching for compatibility.
+                          const nodeByMeta = nodes.find(n => (n as any).meta && (n as any).meta.variant_id && n.parentId === baseNode.id && n.name.includes(variant.name));
+                          const nodeByName = nodes.find(n => n.name === `${experimentName}: ${variant.name}`);
+                          const node = nodeByMeta || nodeByName;
+                          const st = node ? node.status : 'pending';
+                          const color = st === 'running' ? 'text-amber-600' : st === 'completed' || st === 'completed' ? 'text-green-600' : 'text-slate-400';
+                          return (
+                            <span className={`text-xs font-medium ${color} bg-slate-100 px-2 py-0.5 rounded`}>{st}</span>
+                          );
+                        })()}
+
+                        {(() => {
+                          // Show a compact live log preview if we have a mapped node id
+                          const nodeByMeta = nodes.find(n => (n as any).meta && (n as any).meta.variant_id && n.parentId === baseNode.id && n.name.includes(variant.name));
+                          const nodeByName = nodes.find(n => n.name === `${experimentName}: ${variant.name}`);
+                          const node = nodeByMeta || nodeByName;
+                          const nid = node ? node.id : null;
+                          if (!nid) return null;
+                          const logs = nodeLogs[String(nid)] || [];
+                          return (
+                            <div className="mt-2 text-xs text-slate-500">
+                              <div className="flex items-center gap-2">
+                                <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
+                                <span>实时日志预览（最近 {Math.min(5, logs.length)} 条）</span>
+                              </div>
+                              <div className="mt-2 bg-slate-50 border rounded p-2 text-[11px] h-20 overflow-auto">
+                                {logs.slice(-5).map((l: any, i: number) => (
+                                  <div key={i} className="py-0.5 border-b border-slate-100">
+                                    <div className="font-mono text-[11px] text-slate-600">{String(l.type || l.event_type || 'evt')}</div>
+                                    <div className="text-slate-700">{String((l.data && (l.data.action || l.data.message || JSON.stringify(l.data))) || l.data || '')}</div>
+                                  </div>
+                                ))}
+                                {logs.length === 0 && <div className="text-slate-400">暂无日志</div>}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
                       <button onClick={() => handleRemoveVariant(variant.id)} className="text-slate-300 hover:text-red-500 transition-colors">
                         <Trash2 size={16} />
                       </button>

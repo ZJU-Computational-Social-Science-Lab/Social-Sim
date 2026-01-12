@@ -3,13 +3,17 @@ import React, { useState } from 'react';
 import { useSimulationStore } from '../store';
 import { X, Download, FileJson, FileSpreadsheet, Database, Users } from 'lucide-react';
 import Papa from 'papaparse';
+import { mapBackendEventsToLogs } from '../store';
 
 export const ExportModal: React.FC = () => {
   const isOpen = useSimulationStore(state => state.isExportOpen);
   const toggle = useSimulationStore(state => state.toggleExport);
   const logs = useSimulationStore(state => state.logs);
+  const rawEvents = useSimulationStore(state => state.rawEvents);
   const agents = useSimulationStore(state => state.agents);
   const currentSim = useSimulationStore(state => state.currentSimulation);
+  const nodes = useSimulationStore(state => state.nodes);
+  const selectedNodeId = useSimulationStore(state => state.selectedNodeId);
 
   const [format, setFormat] = useState<'json' | 'csv'>('json');
   const [scope, setScope] = useState<'all_logs' | 'agent_data'>('all_logs');
@@ -30,7 +34,28 @@ export const ExportModal: React.FC = () => {
       let dataToExport: any[] | object = [];
       
       if (scope === 'all_logs') {
-        dataToExport = logs;
+        // 导出时使用原始事件重新映射，包含所有元数据事件
+        if (rawEvents.length > 0) {
+          // 按节点分组处理事件（如果事件包含节点信息）
+          // 否则使用当前选中节点的信息作为默认值
+          const currentNode = nodes.find(n => n.id === selectedNodeId);
+          const defaultNodeId = currentNode?.id || selectedNodeId || 'unknown';
+          const defaultRound = currentNode?.depth || 0;
+          
+          // 重新映射所有事件，包含所有元数据
+          // 注意：如果事件本身包含节点信息，可以从事件中提取
+          const allLogs = mapBackendEventsToLogs(
+            rawEvents,
+            defaultNodeId,
+            defaultRound,
+            agents,
+            true // 导出时包含所有元数据
+          );
+          dataToExport = allLogs;
+        } else {
+          // 如果没有原始事件（standalone 模式），使用当前过滤后的日志
+          dataToExport = logs;
+        }
       } else {
         dataToExport = agents;
       }

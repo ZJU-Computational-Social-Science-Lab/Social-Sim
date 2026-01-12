@@ -37,16 +37,82 @@ class Scene:
                 return success, result, summary, meta, bool(pass_control)
         return False, {}, None, {}, False
 
+    def _get_recipients_by_social_network(
+        self, sender: Agent, simulator: Simulator
+    ) -> list[str]:
+        """
+        根据社交网络拓扑获取消息接收者列表。
+        如果未配置社交网络，返回所有Agent（全局广播的默认行为）。
+        如果配置了社交网络，只返回与发送者连接的Agent。
+        """
+        social_network = self.state.get("social_network")
+        if not social_network or not isinstance(social_network, dict):
+            # 没有配置社交网络，返回所有Agent（全局广播）
+            return [a.name for a in simulator.agents.values() if a.name != sender.name]
+
+        # 获取发送者的连接列表
+        sender_connections = social_network.get(sender.name, [])
+        if not isinstance(sender_connections, list):
+            sender_connections = []
+
+        # 只返回在连接列表中的Agent，且确实存在于simulator中
+        recipients = []
+        for agent_name in sender_connections:
+            if agent_name in simulator.agents and agent_name != sender.name:
+                recipients.append(agent_name)
+
+        return recipients
+
     def deliver_message(self, event, sender: Agent, simulator: Simulator):
         """Deliver a chat message event. Default behavior is global broadcast
         to all agents except the sender. Scenes can override to restrict scope
         (e.g., proximity-based chat in map scenes).
+
+        If social_network is configured in scene.state, messages will only be
+        delivered to connected agents.
         """
+        event.code = "scene_chat"
+        event.params = {"sender": sender.name, "message": event.message}
+
         # Ensure the sender also retains what they said in their own context
         formatted = event.to_string(self.state.get("time"))
         sender.add_env_feedback(formatted)
-        # Broadcast to everyone else and record the event
-        simulator.broadcast(event)
+
+        # 检查是否配置了社交网络
+        social_network = self.state.get("social_network")
+        if social_network and isinstance(social_network, dict) and len(social_network) > 0:
+            # 使用社交网络过滤接收者
+            recipients = self._get_recipients_by_social_network(sender, simulator)
+            # 直接向接收者发送消息
+            for agent_name in recipients:
+                agent = simulator.agents.get(agent_name)
+                if agent:
+                    agent.add_env_feedback(formatted)
+
+            # 记录事件（使用broadcast但只记录，不实际发送）
+            time = self.state.get("time")
+            recipients_list = recipients
+            simulator.emit_event_later(
+                "system_broadcast",
+                {
+                    "time": time,
+                    "type": event.__class__.__name__,
+                    "sender": sender.name,
+                    "recipients": recipients_list,
+                    "text": event.to_string(),
+                    "code": event.code,
+                    "params": {"sender": sender.name, "message": event.message, "recipients": recipients_list},
+                },
+            )
+        else:
+            # 没有配置社交网络，使用默认的全局广播
+            global_recipients = [a.name for a in simulator.agents.values() if a.name != sender.name]
+            event.params = {
+                "sender": sender.name,
+                "message": event.message,
+                "recipients": global_recipients,
+            }
+            simulator.broadcast(event)
 
     def pre_run(self, simulator: Simulator):
         pass

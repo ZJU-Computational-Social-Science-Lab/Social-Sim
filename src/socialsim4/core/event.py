@@ -32,6 +32,8 @@ class PublicEvent(Event):
     def __init__(self, content, prefix="Public Event"):
         self.content = content
         self.prefix = prefix
+        self.code = "public_event"
+        self.params = {"content": content, "prefix": prefix}
 
     def to_string(self, time=None):
         time_str = _fmt_time_prefix(time)

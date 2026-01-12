@@ -50,11 +50,28 @@ export const SimTree: React.FC = () => {
 
     const g = svg.append('g');
 
-    // Hierarchy
-    const root = d3.stratify<SimNode>()
-      .id(d => d.id)
-      .parentId(d => d.parentId)
-      (nodes);
+// Hierarchy
+// Filter out nodes with parentIds that don't exist (orphaned/pending experiment nodes)
+const nodeIds = new Set(nodes.map(n => n.id));
+const validNodes = nodes.filter(n => {
+  // Root node (no parent) is always valid
+  if (!n.parentId) return true;
+  // Node with existing parent is valid
+  if (nodeIds.has(n.parentId)) return true;
+  // Skip orphaned nodes (likely pending experiment placeholders)
+  console.warn(`Filtering orphaned node: ${n.id} (parent ${n.parentId} not found)`);
+  return false;
+});
+
+// Handle edge case where no valid nodes exist
+if (validNodes.length === 0) {
+  return;
+}
+
+const root = d3.stratify<SimNode>()
+  .id(d => d.id)
+  .parentId(d => d.parentId)
+  (validNodes);
 
     // Use nodeSize for dynamic sizing instead of fixed box
     // [vertical_spacing, horizontal_spacing]

@@ -71,3 +71,7 @@ export async function getSimEvents(base: string, id: string, node: number, token
 export async function getSimState(base: string, id: string, node: number, token?: string): Promise<any> {
   return await httpGet<any>(base, `/simulations/${id}/tree/sim/${node}/state`, token);
 }
+
+export async function getRehydrate(base: string, id: string, token?: string): Promise<any> {
+  return await httpGet<any>(base, `/simulations/${id}/rehydrate`, token);
+}
