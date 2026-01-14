@@ -1,9 +1,10 @@
 # src/socialsim4/backend/api/routes/llm.py
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 import logging
 logger = logging.getLogger(__name__)
+
 from litestar import Router, post
 from litestar.connection import Request
 from pydantic import BaseModel, Field
@@ -14,18 +15,50 @@ from ...core.database import get_session
 from ...dependencies import extract_bearer_token, resolve_current_user
 from ...models.user import ProviderConfig
 
-# 👇 关键：这里需要上升 3 层到 socialsim4，然后再进入 core
-from ....core.llm import create_llm_client
+# 🔑 Import from core.llm (4 levels up to socialsim4, then into core)
+from ....core.llm import (
+    create_llm_client,
+    generate_agents_with_archetypes,  # ← AgentTorch integration
+)
 from ....core.llm_config import LLMConfig
 
+
+# =============================================================================
+# Request/Response Models
+# =============================================================================
+
 class GenerateAgentsRequest(BaseModel):
+    """Request model for simple description-based agent generation."""
     count: int = Field(5, ge=1, le=50)
     description: str
-    # 前端 generateAgentsWithAI 里传的 provider_id
+    provider_id: Optional[int] = None
+
+
+class DemographicDimension(BaseModel):
+    """A demographic dimension with categories (e.g., Age: [18-30, 31-50, 51+])."""
+    name: str
+    categories: List[str]
+
+
+class TraitConfig(BaseModel):
+    """Configuration for a trait with min/max bounds."""
+    name: str
+    min: int = 0
+    max: int = 100
+
+
+class GenerateAgentsDemographicsRequest(BaseModel):
+    """Request model for demographic-based agent generation using AgentTorch."""
+    total_agents: int = Field(10, ge=1, le=200)
+    demographics: List[DemographicDimension]
+    archetype_probabilities: Dict[str, float] = {}
+    traits: List[TraitConfig] = []
+    language: str = "zh"  # Default to Chinese
     provider_id: Optional[int] = None
 
 
 class GeneratedAgent(BaseModel):
+    """Response model for a generated agent."""
     id: Optional[str] = None
     name: str
     role: Optional[str] = None
@@ -36,12 +69,22 @@ class GeneratedAgent(BaseModel):
     history: dict[str, Any] = {}
     memory: list[Any] = []
     knowledgeBase: list[Any] = []
+
+
+# =============================================================================
+# Helper Functions
+# =============================================================================
+
 async def _select_provider(
     session: AsyncSession,
     user_id: int,
     provider_id: Optional[int],
 ) -> ProviderConfig:
-    # 优先用前端传入的 provider_id
+    """
+    Select an LLM provider for the user.
+    Priority: provider_id from request > active provider > any provider
+    """
+    # Priority: use provider_id from frontend if specified
     if provider_id is not None:
         result = await session.execute(
             select(ProviderConfig).where(
@@ -53,7 +96,7 @@ async def _select_provider(
         if provider is None:
             raise RuntimeError("指定的 LLM 提供商不存在或不属于当前用户")
     else:
-        # 否则找 config.active 的那个；都没标 active 就随便挑一个
+        # Otherwise find active provider or fallback to first available
         result = await session.execute(
             select(ProviderConfig).where(ProviderConfig.user_id == user_id)
         )
@@ -73,6 +116,12 @@ async def _select_provider(
         raise RuntimeError("LLM model required")
 
     return provider
+
+
+# =============================================================================
+# Endpoints
+# =============================================================================
+
 @post("/generate_agents")
 async def generate_agents(
     request: Request,
@@ -80,8 +129,9 @@ async def generate_agents(
 ) -> List[GeneratedAgent]:
     """
     POST /llm/generate_agents
-
-    前端的 generateAgentsWithAI() 就是调的这个接口。
+    
+    Simple description-based agent generation.
+    Frontend's generateAgentsWithAI() calls this endpoint.
     """
     token = extract_bearer_token(request)
 
@@ -131,26 +181,27 @@ async def generate_agents(
         ]
 
         raw_text = llm.chat(messages)
-   # 打印原始输出用于调试
+        
+        # Print raw output for debugging
         logger.debug(f"LLM raw output (first 500 chars): {raw_text[:500]}")
         
         import json
         import re
         
-        # 清理 LLM 输出：去除 markdown 代码块标记
+        # Clean LLM output: remove markdown code block markers
         cleaned_text = raw_text.strip()
 
-        # 移除markdown代码块标记
+        # Remove markdown code block markers
         if cleaned_text.startswith("```"):
-            # 匹配 ```json 或 ``` 开头的代码块
+            # Match ```json or ``` with content
             match = re.search(r'```(?:json)?\s*\n(.*?)\n```', cleaned_text, re.DOTALL)
             if match:
                 cleaned_text = match.group(1).strip()
             else:
-                # 简单移除```标记
+                # Simple removal of ``` markers
                 cleaned_text = re.sub(r'^```(?:json)?|```$', '', cleaned_text, flags=re.MULTILINE).strip()
         
-        # 尝试找到第一个[或{
+        # Try to find first [ or {
         json_start = min(
             (cleaned_text.find('[') if '[' in cleaned_text else len(cleaned_text)),
             (cleaned_text.find('{') if '{' in cleaned_text else len(cleaned_text))
@@ -163,7 +214,7 @@ async def generate_agents(
         except Exception as e:
             logger.error(f"JSON parse failed: {e}")
             logger.error(f"Cleaned text (first 300 chars): {cleaned_text[:300]}")
-            # LLM 没按要求返回 JSON 时的兜底，前端依然能跑
+            # Fallback when LLM doesn't return proper JSON
             parsed = [
                 {
                     "name": f"Agent {i+1}",
@@ -174,13 +225,12 @@ async def generate_agents(
                 for i in range(data.count)
             ]
 
-        # 处理不同的返回格式
+        # Handle different return formats
         if isinstance(parsed, dict) and "agents" in parsed:
             items = parsed["agents"]
         elif isinstance(parsed, list):
             items = parsed
         else:
-            # 如果解析出来不是列表也不是包含 agents 的字典，创建占位角色
             items = []
 
         if not isinstance(items, list):
@@ -205,7 +255,7 @@ async def generate_agents(
                 )
             )
 
-        # 如果模型返回的不足 count 个，简单补齐
+        # Fill to requested count if model returned fewer
         while len(agents) < data.count:
             idx = len(agents)
             agents.append(
@@ -219,8 +269,122 @@ async def generate_agents(
             )
 
         return agents
-# 暴露 /llm 前缀的 Router
+
+
+@post("/generate_agents_demographics")
+async def generate_agents_demographics(
+    request: Request,
+    data: GenerateAgentsDemographicsRequest,
+) -> List[GeneratedAgent]:
+    """
+    POST /llm/generate_agents_demographics
+    
+    Demographic-based agent generation using AgentTorch framework.
+    Frontend's generateAgentsWithDemographics() calls this endpoint.
+    
+    Process:
+    1. Generate archetypes from demographic cross-product
+    2. For each archetype, ONE LLM call to get description, roles, and trait distributions
+    3. Generate agents with Gaussian-sampled traits
+    4. Return agents with demographic properties
+    """
+    token = extract_bearer_token(request)
+
+    async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
+
+        provider = await _select_provider(
+            session, current_user.id, data.provider_id
+        )
+
+        cfg = LLMConfig(
+            dialect=(provider.provider or "").lower(),
+            api_key=provider.api_key or "",
+            model=provider.model,
+            base_url=provider.base_url,
+            temperature=0.7,
+            top_p=1.0,
+            frequency_penalty=0.0,
+            presence_penalty=0.0,
+            max_tokens=1024,
+        )
+        llm = create_llm_client(cfg)
+
+        # Default traits if none provided
+        if not data.traits:
+            data.traits = [
+                TraitConfig(name="信任度", min=0, max=100),
+                TraitConfig(name="同理心", min=0, max=100),
+                TraitConfig(name="果断性", min=0, max=100)
+            ]
+
+        # Convert Pydantic models to dicts for llm.py function
+        demographics_dicts = [
+            {"name": d.name, "categories": d.categories} 
+            for d in data.demographics
+        ]
+        
+        traits_dicts = [
+            {"name": t.name, "min": t.min, "max": t.max} 
+            for t in data.traits
+        ]
+
+        # 🎯 Call the integrated AgentTorch function from llm.py
+        try:
+            agents_data = generate_agents_with_archetypes(
+                total_agents=data.total_agents,
+                demographics=demographics_dicts,
+                archetype_probabilities=data.archetype_probabilities,
+                traits=traits_dicts,
+                llm_client=llm,
+                language=data.language
+            )
+        except Exception as e:
+            logger.error(f"AgentTorch generation failed: {e}")
+            # Fallback: create simple agents
+            agents_data = []
+            for i in range(data.total_agents):
+                agents_data.append({
+                    "id": f"agent_{i+1}",
+                    "name": f"Agent {i+1}",
+                    "role": "角色",
+                    "profile": f"生成失败的备用智能体 {i+1}",
+                    "properties": {},
+                    "history": {},
+                    "memory": [],
+                    "knowledgeBase": []
+                })
+
+        # Convert to GeneratedAgent response models
+        agents: List[GeneratedAgent] = []
+        for agent_dict in agents_data:
+            agents.append(
+                GeneratedAgent(
+                    id=agent_dict.get("id"),
+                    name=agent_dict.get("name", "Agent"),
+                    role=agent_dict.get("role"),
+                    profile=agent_dict.get("profile", ""),
+                    provider=provider.provider or "backend",
+                    model=provider.model or "default",
+                    properties=agent_dict.get("properties", {}),
+                    history=agent_dict.get("history", {}),
+                    memory=agent_dict.get("memory", []),
+                    knowledgeBase=agent_dict.get("knowledgeBase", []),
+                )
+            )
+
+        logger.info(f"Generated {len(agents)} agents using demographic modeling")
+        return agents
+
+
+# =============================================================================
+# Router
+# =============================================================================
+
 router = Router(
     path="/llm",
-    route_handlers=[generate_agents],
+    route_handlers=[
+        generate_agents,               # Simple generation
+        generate_agents_demographics,  # AgentTorch demographic generation
+    ],
 )

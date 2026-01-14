@@ -964,6 +964,53 @@ export const generateAgentsWithAI = async (
   }));
 };
 
+// AgentTorch Integration: Demographic-based agent generation
+export async function generateAgentsWithDemographics(
+  totalAgents: number,
+  demographics: { name: string; categories: string[] }[],
+  archetypeProbabilities: Record<string, number>,
+  traits: { name: string; min: number; max: number }[],
+  providerId?: string | number
+): Promise<Agent[]> {
+  const body = {
+    total_agents: totalAgents,
+    demographics,
+    archetype_probabilities: archetypeProbabilities,
+    traits,
+    language: 'zh',  // Can be made dynamic based on i18n.language
+    provider_id: providerId != null ? Number(providerId) : undefined
+  };
+
+  const res = await apiClient.post("/llm/generate_agents_demographics", body);
+  
+  const rawAgents: any[] = Array.isArray(res.data)
+    ? res.data
+    : Array.isArray(res.data?.agents)
+    ? res.data.agents
+    : [];
+
+  return rawAgents.map((a: any, index: number) => ({
+    id: a.id || `gen_${Date.now()}_${index}`,
+    name: a.name,
+    role: a.role || "角色",
+    avatarUrl:
+      a.avatarUrl ||
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(
+        a.name || `agent_${index}`
+      )}`,
+    profile: a.profile || "暂无描述",
+    llmConfig: {
+      provider: a.provider || "backend",
+      model: a.model || "default"
+    },
+    properties: a.properties || {},
+    history: a.history || {},
+    memory: a.memory || [],
+    knowledgeBase: a.knowledgeBase || []
+  }));
+}
+
+
 
 // #12 Helper for Environment Suggestions
 export const fetchEnvironmentSuggestions = async (

@@ -1,10 +1,14 @@
 import os
 import re
 import time
+import random
+import math
+import json
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutTimeout
 from threading import BoundedSemaphore
 from copy import deepcopy
+from typing import List, Dict, Any, Optional
 
 import google.generativeai as genai
 from openai import OpenAI
@@ -38,11 +42,11 @@ class LLMClient:
             max_concurrent = 1
         self._sem = BoundedSemaphore(max_concurrent)
 
-    # ----------- 新增：用于“强隔离模式”的 clone 方法 -----------
+    # ----------- 新增：用于"强隔离模式"的 clone 方法 -----------
     def clone(self) -> "LLMClient":
         """
-        为 LLMClientPool 的“强隔离模式”提供支持：创建一个
-        “功能等价但完全独立”的 LLMClient 实例。
+        为 LLMClientPool 的"强隔离模式"提供支持：创建一个
+        "功能等价但完全独立"的 LLMClient 实例。
 
         - provider 使用 deepcopy，避免后续修改互相影响；
         - 底层 OpenAI/Gemini/Mock 客户端重新初始化（新连接）；
@@ -52,7 +56,7 @@ class LLMClient:
         # 1. 深拷贝 provider 配置
         cloned_provider = deepcopy(self.provider)
 
-        # 2. 构造一个“空壳”实例（绕过 __init__，手动赋值）
+        # 2. 构造一个"空壳"实例（绕过 __init__，手动赋值）
         cloned = LLMClient.__new__(LLMClient)
         cloned.provider = cloned_provider
 
@@ -256,52 +260,36 @@ def create_llm_client(provider: LLMConfig) -> LLMClient:
 
 
 class _MockModel:
-    """Deterministic local stub for offline testing.
-    Produces valid Thoughts/Plan/Action and optional Plan Update, with simple heuristics.
-    """
+    """Deterministic local stub for offline testing."""
 
     def __init__(self):
         self.agent_calls = {}
 
     def chat(self, messages):
-        # Extract system content (single string)
         sys_text = next((m["content"] for m in messages if m["role"] == "system"), "")
-
-        # Identify agent name
         m = re.search(r"You are\s+([^\n\.]+)", sys_text)
         agent_name = m.group(1).strip() if m else "Agent"
         self.agent_calls[agent_name] = self.agent_calls.get(agent_name, 0) + 1
         call_n = self.agent_calls[agent_name]
-
         sys_lower = sys_text.lower()
 
-        # Pick scene by keywords in system prompt
         if "grid-based virtual village" in sys_lower:
             scene = "map"
         elif "vote" in sys_lower or "voting" in sys_lower:
             scene = "council"
         elif "you are living in a virtual village" in sys_lower:
             scene = "village"
+        elif "werewolf" in sys_lower:
+            scene = "werewolf"
+        elif "dou dizhu" in sys_lower or "landlord" in sys_lower:
+            scene = "landlord"
         else:
-            # Detect scenes by keyword
-            if "werewolf" in sys_lower:
-                scene = "werewolf"
-            elif (
-                "dou dizhu" in sys_lower
-                or "landlord" in sys_lower
-                or "landlord_scene" in sys_lower
-            ):
-                scene = "landlord"
-            else:
-                scene = "chat"
+            scene = "chat"
 
         if scene == "council":
             if agent_name.lower() == "host":
                 if call_n == 1:
-                    action = {
-                        "action": "send_message",
-                        "message": "Good morning, council.",
-                    }
+                    action = {"action": "send_message", "message": "Good morning, council."}
                     thought = "Open the session briefly."
                     plan = "1. Greet. [CURRENT]"
                 else:
@@ -310,10 +298,7 @@ class _MockModel:
                     plan = "1. Yield. [CURRENT]"
             else:
                 if call_n == 1:
-                    action = {
-                        "action": "send_message",
-                        "message": "I support moving forward.",
-                    }
+                    action = {"action": "send_message", "message": "I support moving forward."}
                     thought = "Make a brief opening remark."
                     plan = "1. Remark. [CURRENT]"
                 else:
@@ -523,3 +508,271 @@ def action_to_xml(a):
         return f'<Action name="{name}" />'
     parts = "".join([f"<{k}>{a[k]}</{k}>" for k in params])
     return f'<Action name="{name}">{parts}</Action>'
+
+
+# =============================================================================
+# AgentTorch Integration: Archetype-Based Agent Generation
+# =============================================================================
+
+def generate_archetypes_from_demographics(demographics: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Generate all archetype combinations from demographics.
+    
+    Args:
+        demographics: List of {"name": str, "categories": List[str]}
+    
+    Returns:
+        List of archetypes: [{"id", "attributes", "label", "probability"}, ...]
+    """
+    if not demographics:
+        return []
+    
+    # Start with first demographic
+    combinations = [{demographics[0]["name"]: cat} for cat in demographics[0]["categories"]]
+    
+    # Cross-product with remaining demographics
+    for demo in demographics[1:]:
+        new_combinations = []
+        for combo in combinations:
+            for cat in demo["categories"]:
+                new_combo = dict(combo)
+                new_combo[demo["name"]] = cat
+                new_combinations.append(new_combo)
+        combinations = new_combinations
+    
+    # Create archetype objects
+    equal_prob = 1.0 / len(combinations) if combinations else 0
+    archetypes = []
+    for i, attrs in enumerate(combinations):
+        label = " | ".join(f"{k}: {v}" for k, v in attrs.items())
+        archetypes.append({
+            "id": f"arch_{i}",
+            "attributes": attrs,
+            "label": label,
+            "probability": equal_prob
+        })
+    
+    return archetypes
+
+
+def add_gaussian_noise(value: float, std_dev: float, min_val: float = 0, max_val: float = 100) -> int:
+    """Add Gaussian noise to a value and clamp to min/max range."""
+    u1 = random.random() or 0.0001
+    u2 = random.random()
+    z = math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
+    noisy = value + z * std_dev
+    return int(round(max(min_val, min(max_val, noisy))))
+
+
+def generate_archetype_template(
+    archetype: Dict[str, Any], 
+    traits: List[Dict[str, Any]],
+    llm_client: LLMClient,
+    language: str = "en"
+) -> Dict[str, Any]:
+    """
+    Make ONE LLM call to get a complete archetype template including:
+    - Rich description
+    - List of suitable roles
+    - Mean and std for each trait
+    
+    Args:
+        archetype: The archetype with attributes
+        traits: List of {"name": str, "min": int, "max": int}
+        llm_client: LLM client for API calls
+        language: "en" or "zh" for prompt language
+    
+    Returns:
+        {"description": str, "roles": List[str], "traits": {name: {"mean": int, "std": int}}}
+    """
+    attrs_str = ", ".join(f"{k}: {v}" for k, v in archetype["attributes"].items())
+    
+    # Build traits specification for prompt
+    traits_spec = ", ".join([f'"{t["name"]}": {{"mean": <{t["min"]}-{t["max"]}>, "std": <5-20>}}' for t in traits])
+    
+    if language == "zh":
+        prompt = f"""为具有以下人口特征的模拟智能体创建角色模板: {attrs_str}
+
+返回一个JSON对象，包含:
+1. "description": 2-3句描述该人口群体典型性格、背景和行为的文字
+2. "roles": 一个包含5-8个适合该群体的具体角色/职业的数组
+3. "traits": 每个特征的分布参数 {{{traits_spec}}}
+
+只返回有效的JSON，不要其他文字。"""
+    else:
+        prompt = f"""Create a character template for simulated agents with these demographics: {attrs_str}
+
+Return a JSON object with:
+1. "description": A 2-3 sentence description of typical personality, background, and behaviors
+2. "roles": An array of 5-8 specific roles/occupations suitable for this demographic
+3. "traits": Distribution parameters for each trait {{{traits_spec}}}
+
+Return ONLY valid JSON, no other text."""
+
+    messages = [
+        {"role": "system", "content": "You are creating agent profiles for a simulation. Return only valid JSON."},
+        {"role": "user", "content": prompt}
+    ]
+    
+    try:
+        response = llm_client.chat(messages)
+        # Try to parse JSON from response
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        if json_match:
+            parsed = json.loads(json_match.group())
+            
+            # Build trait distributions with validation
+            trait_distributions = {}
+            for trait in traits:
+                trait_data = parsed.get("traits", {}).get(trait["name"], {})
+                midpoint = (trait["min"] + trait["max"]) / 2
+                mean = trait_data.get("mean", midpoint)
+                std = trait_data.get("std", 10)
+                
+                # Clamp to valid ranges
+                mean = max(trait["min"], min(trait["max"], mean))
+                std = max(5, min(20, std))
+                
+                trait_distributions[trait["name"]] = {"mean": mean, "std": std}
+            
+            return {
+                "description": parsed.get("description", f"A person characterized by {attrs_str}."),
+                "roles": parsed.get("roles", ["Citizen", "Worker", "Resident"]) if isinstance(parsed.get("roles"), list) else ["Citizen", "Worker", "Resident"],
+                "traits": trait_distributions
+            }
+    except Exception as e:
+        print(f"[generate_archetype_template] LLM call failed: {e}")
+    
+    # Fallback template
+    fallback_traits = {}
+    for trait in traits:
+        midpoint = (trait["min"] + trait["max"]) / 2
+        fallback_traits[trait["name"]] = {"mean": midpoint, "std": 10}
+    
+    return {
+        "description": f"A member of the {attrs_str} demographic group.",
+        "roles": ["Citizen", "Worker", "Resident", "Member", "Participant"],
+        "traits": fallback_traits
+    }
+
+
+def generate_agents_with_archetypes(
+    total_agents: int,
+    demographics: List[Dict[str, Any]],
+    archetype_probabilities: Optional[Dict[str, float]],
+    traits: List[Dict[str, Any]],
+    llm_client: LLMClient,
+    language: str = "en"
+) -> List[Dict[str, Any]]:
+    """
+    Generate agents based on demographics and archetype probabilities.
+    
+    Process: ONE archetype at a time, ONE LLM call per archetype.
+    The LLM generates: description, roles, trait distributions (mean/std).
+    For each agent: randomly assign role, apply Gaussian noise to traits.
+    
+    Args:
+        total_agents: Total number of agents to generate
+        demographics: List of {"name": str, "categories": List[str]}
+        archetype_probabilities: Dict of archetype_id -> probability (0-1)
+        traits: List of {"name": str, "min": int, "max": int}
+        llm_client: LLM client for generating descriptions
+        language: "en" or "zh" for prompt language
+    
+    Returns:
+        List of agent dicts
+    """
+    # Default traits if none provided
+    if not traits:
+        traits = [
+            {"name": "Trust", "min": 0, "max": 100},
+            {"name": "Empathy", "min": 0, "max": 100},
+            {"name": "Assertiveness", "min": 0, "max": 100}
+        ]
+    
+    # Step 1: Generate archetypes
+    archetypes = generate_archetypes_from_demographics(demographics)
+    if not archetypes:
+        return []
+    
+    # Step 2: Apply custom probabilities
+    if archetype_probabilities:
+        for arch in archetypes:
+            if arch["id"] in archetype_probabilities:
+                arch["probability"] = archetype_probabilities[arch["id"]]
+    
+    # Step 3: Calculate agent counts per archetype
+    total_prob = sum(a["probability"] for a in archetypes) or 1.0
+    counts = {}
+    remaining = total_agents
+    
+    for i, arch in enumerate(archetypes):
+        if i == len(archetypes) - 1:
+            counts[arch["id"]] = remaining
+        else:
+            normalized_prob = arch["probability"] / total_prob
+            count = int(round(total_agents * normalized_prob))
+            count = min(count, remaining)
+            counts[arch["id"]] = count
+            remaining -= count
+    
+    # Step 4: Generate agents - ONE ARCHETYPE AT A TIME
+    agents = []
+    global_index = 0
+    
+    for arch in archetypes:
+        count = counts.get(arch["id"], 0)
+        if count == 0:
+            continue
+        
+        # ONE LLM call per archetype to get template with roles and trait distributions
+        template = generate_archetype_template(arch, traits, llm_client, language)
+        
+        # Create agents with random role and Gaussian noise on traits
+        for i in range(count):
+            agent_num = global_index + 1
+            name = f"Agent {agent_num}"
+            
+            # Randomly assign a role from LLM-generated list
+            role = random.choice(template["roles"]) if template["roles"] else "Citizen"
+            
+            # Generate trait values with Gaussian noise using LLM-provided mean/std
+            properties = {
+                "archetype_id": arch["id"],
+                "archetype_label": arch["label"],
+                **arch["attributes"]
+            }
+            
+            for trait in traits:
+                trait_dist = template["traits"].get(trait["name"], {"mean": 50, "std": 10})
+                value = add_gaussian_noise(
+                    trait_dist["mean"], 
+                    trait_dist["std"],
+                    trait["min"],
+                    trait["max"]
+                )
+                properties[trait["name"]] = value
+            
+            # Build profile with role included
+            base_desc = template["description"]
+            if role.lower() not in base_desc.lower():
+                profile = f"{base_desc} As a {role}."
+            else:
+                profile = base_desc
+            
+            agent = {
+                "id": f"agent_{agent_num}",
+                "name": name,
+                "role": role,
+                "avatarUrl": f"https://api.dicebear.com/7.x/avataaars/svg?seed=agent{agent_num}",
+                "profile": profile,
+                "properties": properties,
+                "history": {},
+                "memory": [],
+                "knowledgeBase": []
+            }
+            
+            agents.append(agent)
+            global_index += 1
+    
+    return agents
