@@ -155,24 +155,12 @@ async def generate_agents(
         )
         llm = create_llm_client(cfg)
 
-        system_prompt = (
-            "You are an agent generator for a social simulation platform. "
-            "Generate a list of diverse agents based on the user's scenario description. "
-            "IMPORTANT: Return ONLY a valid JSON array, no markdown, no explanation, no code blocks. "
-            "Each agent must have: name (string), role (string), profile (string), properties (object)."
-        )
+        system_prompt = "Generate agents for social simulation. Return ONLY valid JSON array."
 
         user_prompt = (
-            f"Generate exactly {data.count} diverse agents for this scenario:\n\n"
-            f"{data.description}\n\n"
-            "Requirements:\n"
-            "1. Each agent should have different identity, stance, and personality\n"
-            "2. Return ONLY a JSON array in this exact format:\n"
-            '[\n'
-            '  {"name": "Zhang San", "role": "Village Chief", "profile": "60-year-old respected leader...", "properties": {"trust": 70}},\n'
-            '  {"name": "Li Si", "role": "Merchant", "profile": "45-year-old shrewd businessman...", "properties": {"trust": 45}}\n'
-            ']\n\n'
-            "OUTPUT ONLY THE JSON ARRAY, NO OTHER TEXT:"
+            f"Generate {data.count} agents for: {data.description}\n\n"
+            "Return JSON: [{\"name\": str, \"role\": str, \"profile\": str, \"properties\": {}}]\n"
+            "NO markdown, NO text, ONLY JSON array:"
         )
 
         messages = [
@@ -214,57 +202,45 @@ async def generate_agents(
         except Exception as e:
             logger.error(f"JSON parse failed: {e}")
             logger.error(f"Cleaned text (first 300 chars): {cleaned_text[:300]}")
-            # Fallback when LLM doesn't return proper JSON
-            parsed = [
-                {
-                    "name": f"Agent {i+1}",
-                    "role": "角色",
-                    "profile": f"LLM返回格式错误。原始输出: {raw_text[:100]}...",
-                    "properties": {},
-                }
-                for i in range(data.count)
-            ]
+            raise RuntimeError(f"LLM returned invalid JSON: {e}")
 
-        # Handle different return formats
+        # Validate response is a list
         if isinstance(parsed, dict) and "agents" in parsed:
             items = parsed["agents"]
         elif isinstance(parsed, list):
             items = parsed
         else:
-            items = []
+            raise RuntimeError("LLM response must be a JSON array")
 
         if not isinstance(items, list):
-            items = []
+            raise RuntimeError("LLM response must be a JSON array")
+
+        if len(items) != data.count:
+            raise RuntimeError(f"Expected {data.count} agents, got {len(items)}")
 
         agents: List[GeneratedAgent] = []
         for i, a in enumerate(items):
             if not isinstance(a, dict):
-                continue
+                raise RuntimeError(f"Agent {i} is not a valid object")
+            if not a.get("name"):
+                raise RuntimeError(f"Agent {i} missing required field: name")
+            if not a.get("role"):
+                raise RuntimeError(f"Agent {i} missing required field: role")
+            if not a.get("profile"):
+                raise RuntimeError(f"Agent {i} missing required field: profile")
+
             agents.append(
                 GeneratedAgent(
                     id=a.get("id") or None,
-                    name=a.get("name") or f"Agent {i+1}",
-                    role=a.get("role"),
-                    profile=a.get("profile"),
+                    name=a["name"],
+                    role=a["role"],
+                    profile=a["profile"],
                     provider=provider.provider or "backend",
                     model=provider.model or "default",
                     properties=a.get("properties") or {},
                     history=a.get("history") or {},
                     memory=a.get("memory") or [],
                     knowledgeBase=a.get("knowledgeBase") or [],
-                )
-            )
-
-        # Fill to requested count if model returned fewer
-        while len(agents) < data.count:
-            idx = len(agents)
-            agents.append(
-                GeneratedAgent(
-                    name=f"Agent {idx+1}",
-                    role="角色",
-                    profile=data.description,
-                    provider=provider.provider or "backend",
-                    model=provider.model or "default",
                 )
             )
 
@@ -310,13 +286,9 @@ async def generate_agents_demographics(
         )
         llm = create_llm_client(cfg)
 
-        # Default traits if none provided
+        # Traits are required
         if not data.traits:
-            data.traits = [
-                TraitConfig(name="信任度", min=0, max=100),
-                TraitConfig(name="同理心", min=0, max=100),
-                TraitConfig(name="果断性", min=0, max=100)
-            ]
+            raise RuntimeError("Traits are required for demographic generation")
 
         # Convert Pydantic models to dicts for llm.py function
         demographics_dicts = [
@@ -330,30 +302,14 @@ async def generate_agents_demographics(
         ]
 
         # 🎯 Call the integrated AgentTorch function from llm.py
-        try:
-            agents_data = generate_agents_with_archetypes(
-                total_agents=data.total_agents,
-                demographics=demographics_dicts,
-                archetype_probabilities=data.archetype_probabilities,
-                traits=traits_dicts,
-                llm_client=llm,
-                language=data.language
-            )
-        except Exception as e:
-            logger.error(f"AgentTorch generation failed: {e}")
-            # Fallback: create simple agents
-            agents_data = []
-            for i in range(data.total_agents):
-                agents_data.append({
-                    "id": f"agent_{i+1}",
-                    "name": f"Agent {i+1}",
-                    "role": "角色",
-                    "profile": f"生成失败的备用智能体 {i+1}",
-                    "properties": {},
-                    "history": {},
-                    "memory": [],
-                    "knowledgeBase": []
-                })
+        agents_data = generate_agents_with_archetypes(
+            total_agents=data.total_agents,
+            demographics=demographics_dicts,
+            archetype_probabilities=data.archetype_probabilities,
+            traits=traits_dicts,
+            llm_client=llm,
+            language=data.language
+        )
 
         # Convert to GeneratedAgent response models
         agents: List[GeneratedAgent] = []

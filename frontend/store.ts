@@ -970,6 +970,7 @@ export async function generateAgentsWithDemographics(
   demographics: { name: string; categories: string[] }[],
   archetypeProbabilities: Record<string, number>,
   traits: { name: string; min: number; max: number }[],
+  language: string,
   providerId?: string | number
 ): Promise<Agent[]> {
   const body = {
@@ -977,7 +978,7 @@ export async function generateAgentsWithDemographics(
     demographics,
     archetype_probabilities: archetypeProbabilities,
     traits,
-    language: 'zh',  // Can be made dynamic based on i18n.language
+    language: language,
     provider_id: providerId != null ? Number(providerId) : undefined
   };
 

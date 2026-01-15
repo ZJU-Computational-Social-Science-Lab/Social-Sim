@@ -131,14 +131,14 @@ export const SimulationWizard: React.FC = () => {
   // Demographic-based generation fields (AgentTorch)
   const [useDemographics, setUseDemographics] = useState(false);
   const [demographics, setDemographics] = useState<Demographic[]>([
-    { id: generateId(), name: '年龄组', categories: ['18-30', '31-50', '51+'] },
-    { id: generateId(), name: '地区', categories: ['城市', '郊区', '农村'] }
+    { id: generateId(), name: 'Age', categories: ['18-30', '31-50', '51+'] },
+    { id: generateId(), name: 'Location', categories: ['Urban', 'Suburban', 'Rural'] }
   ]);
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
   const [traits, setTraits] = useState<TraitConfig[]>([
-    { id: generateId(), name: '信任度', min: 0, max: 100 },
-    { id: generateId(), name: '同理心', min: 0, max: 100 },
-    { id: generateId(), name: '果断性', min: 0, max: 100 }
+    { id: generateId(), name: 'Trust', min: 0, max: 100 },
+    { id: generateId(), name: 'Empathy', min: 0, max: 100 },
+    { id: generateId(), name: 'Assertiveness', min: 0, max: 100 }
   ]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -240,14 +240,14 @@ export const SimulationWizard: React.FC = () => {
 
     setUseDemographics(false);
     setDemographics([
-      { id: generateId(), name: '年龄组', categories: ['18-30', '31-50', '51+'] },
-      { id: generateId(), name: '地区', categories: ['城市', '郊区', '农村'] }
+      { id: generateId(), name: 'Age', categories: ['18-30', '31-50', '51+'] },
+      { id: generateId(), name: 'Location', categories: ['Urban', 'Suburban', 'Rural'] }
     ]);
     setArchetypes([]);
     setTraits([
-      { id: generateId(), name: '信任度', min: 0, max: 100 },
-      { id: generateId(), name: '同理心', min: 0, max: 100 },
-      { id: generateId(), name: '果断性', min: 0, max: 100 }
+      { id: generateId(), name: 'Trust', min: 0, max: 100 },
+      { id: generateId(), name: 'Empathy', min: 0, max: 100 },
+      { id: generateId(), name: 'Assertiveness', min: 0, max: 100 }
     ]);
     
     toggleWizard(false);
@@ -333,7 +333,7 @@ export const SimulationWizard: React.FC = () => {
           demographicsData,
           archetypeProbabilities,
           traitsData,
-          'zh',
+          'en',
           selectedProviderId ?? undefined
         );
       } else {
@@ -379,7 +379,7 @@ export const SimulationWizard: React.FC = () => {
   const handleAddDemographic = () => {
     setDemographics([
       ...demographics,
-      { id: generateId(), name: `维度 ${demographics.length + 1}`, categories: ['A', 'B', 'C'] }
+      { id: generateId(), name: `Dimension ${demographics.length + 1}`, categories: ['A', 'B', 'C'] }
     ]);
   };
 
@@ -394,9 +394,9 @@ export const SimulationWizard: React.FC = () => {
   };
 
   const handleAddCategory = (demoId: string) => {
-    setDemographics(demographics.map(d => 
-      d.id === demoId 
-        ? { ...d, categories: [...d.categories, `类别 ${d.categories.length + 1}`] }
+    setDemographics(demographics.map(d =>
+      d.id === demoId
+        ? { ...d, categories: [...d.categories, `Category ${d.categories.length + 1}`] }
         : d
     ));
   };
@@ -425,7 +425,7 @@ export const SimulationWizard: React.FC = () => {
 
   // Trait management handlers
   const handleAddTrait = () => {
-    setTraits([...traits, { id: generateId(), name: `特质 ${traits.length + 1}`, min: 0, max: 100 }]);
+    setTraits([...traits, { id: generateId(), name: `Trait ${traits.length + 1}`, min: 0, max: 100 }]);
   };
 
   const handleRemoveTrait = (id: string) => {
@@ -800,8 +800,8 @@ export const SimulationWizard: React.FC = () => {
                       className="w-4 h-4 text-purple-600 rounded"
                     />
                     <label htmlFor="useDemographics" className="flex-1">
-                      <span className="text-sm font-bold text-slate-800">使用人口统计学生成</span>
-                      <p className="text-xs text-slate-600">定义人口维度和原型，用于大规模生成</p>
+                      <span className="text-sm font-bold text-slate-800">Use Demographic Generation</span>
+                      <p className="text-xs text-slate-600">Define demographics and archetypes for large-scale generation</p>
                     </label>
                   </div>
 
@@ -809,7 +809,7 @@ export const SimulationWizard: React.FC = () => {
                   <div className="bg-purple-50 border border-purple-100 p-4 rounded-lg">
                     <div className="flex items-center gap-4">
                       <div className="w-32">
-                        <label className="block text-xs font-bold text-slate-700 mb-2">智能体数量</label>
+                        <label className="block text-xs font-bold text-slate-700 mb-2">Agent Count</label>
                         <input
                           type="number"
                           min="1"
@@ -819,15 +819,15 @@ export const SimulationWizard: React.FC = () => {
                           className="w-full px-3 py-2 border border-purple-200 rounded text-sm focus:ring-purple-500"
                         />
                       </div>
-                      
+
                       {!useDemographics && (
                         <div className="flex-1">
-                          <label className="block text-xs font-bold text-slate-700 mb-2">群体描述</label>
+                          <label className="block text-xs font-bold text-slate-700 mb-2">Population Description</label>
                           <textarea
                             value={genDesc}
                             onChange={(e) => setGenDesc(e.target.value)}
                             className="w-full px-3 py-2 border border-purple-200 rounded text-sm focus:ring-purple-500 h-20 resize-none"
-                            placeholder="描述群体组成，如：'一个小镇，5位居民：2位保守派农民、2位激进派学生、1位中立教师。'"
+                            placeholder="Describe population: 'A small town with 5 residents: 2 conservative farmers, 2 activist students, 1 neutral teacher.'"
                           />
                         </div>
                       )}
@@ -840,9 +840,9 @@ export const SimulationWizard: React.FC = () => {
                       {/* Traits */}
                       <div>
                         <div className="flex justify-between items-center mb-2">
-                          <h4 className="text-sm font-bold text-slate-800">特质配置</h4>
+                          <h4 className="text-sm font-bold text-slate-800">Trait Configuration</h4>
                           <button onClick={handleAddTrait} className="text-xs text-purple-600 hover:text-purple-700 flex items-center gap-1 font-medium">
-                            <Plus size={12} /> 添加特质
+                            <Plus size={12} /> Add Trait
                           </button>
                         </div>
                         <div className="space-y-2">
@@ -852,7 +852,7 @@ export const SimulationWizard: React.FC = () => {
                                 value={trait.name}
                                 onChange={(e) => handleUpdateTrait(trait.id, 'name', e.target.value)}
                                 className="flex-1 px-2 py-1.5 text-sm border rounded text-slate-800"
-                                placeholder="特质名称"
+                                placeholder="Trait name"
                               />
                               <input
                                 type="number"
@@ -880,9 +880,9 @@ export const SimulationWizard: React.FC = () => {
                       {/* Demographics */}
                       <div>
                         <div className="flex justify-between items-center mb-2">
-                          <h4 className="text-sm font-bold text-slate-800">人口维度</h4>
+                          <h4 className="text-sm font-bold text-slate-800">Demographics</h4>
                           <button onClick={handleAddDemographic} className="text-xs text-purple-600 hover:text-purple-700 flex items-center gap-1 font-medium">
-                            <Plus size={12} /> 添加维度
+                            <Plus size={12} /> Add Dimension
                           </button>
                         </div>
                         <div className="space-y-3">
@@ -893,7 +893,7 @@ export const SimulationWizard: React.FC = () => {
                                   value={demo.name}
                                   onChange={(e) => handleUpdateDemographicName(demo.id, e.target.value)}
                                   className="flex-1 px-2 py-1.5 text-sm border rounded font-medium text-slate-800"
-                                  placeholder="维度名称"
+                                  placeholder="Dimension name"
                                 />
                                 {demographics.length > 1 && (
                                   <button onClick={() => handleRemoveDemographic(demo.id)} className="p-1 text-red-400 hover:text-red-600">
@@ -932,9 +932,9 @@ export const SimulationWizard: React.FC = () => {
                       {archetypes.length > 0 && (
                         <div>
                           <div className="flex justify-between items-center mb-2">
-                            <h4 className="text-sm font-bold text-slate-800">原型 ({archetypes.length})</h4>
+                            <h4 className="text-sm font-bold text-slate-800">Archetypes ({archetypes.length})</h4>
                             <button onClick={handleNormalizeProbabilities} className="text-xs text-purple-600 hover:text-purple-700 font-medium">
-                              归一化
+                              Normalize
                             </button>
                           </div>
                           <div className="max-h-[280px] overflow-y-auto space-y-2 border rounded p-2 bg-slate-50">
@@ -947,13 +947,13 @@ export const SimulationWizard: React.FC = () => {
                                     </span>
                                   ))}
                                 </div>
-                                
+
                                 <p className="text-xs text-slate-500 mb-2 italic">
-                                  特质分布(μ, σ)将由LLM为此人口统计确定
+                                  Trait distributions (μ, σ) determined by LLM
                                 </p>
-                                
+
                                 <div className="flex items-center gap-2">
-                                  <span className="text-xs text-slate-600">概率:</span>
+                                  <span className="text-xs text-slate-600">Probability:</span>
                                   <input
                                     type="number"
                                     min="0"
@@ -964,7 +964,7 @@ export const SimulationWizard: React.FC = () => {
                                     className="w-20 px-2 py-1 text-sm border rounded text-center text-slate-800"
                                   />
                                   <span className="text-xs text-slate-500">
-                                    (~{Math.max(1, Math.round(genCount * arch.probability))} 个智能体)
+                                    (~{Math.max(1, Math.round(genCount * arch.probability))} agents)
                                   </span>
                                 </div>
                               </div>
@@ -984,12 +984,12 @@ export const SimulationWizard: React.FC = () => {
                     {isGenerating ? (
                       <>
                         <Loader2 className="animate-spin" size={16} />
-                        生成中...
+                        Generating...
                       </>
                     ) : (
                       <>
                         <Sparkles size={16} />
-                        {useDemographics ? `生成 ${genCount} 个智能体（基于人口统计学）` : `生成 ${genCount} 个智能体（基于描述）`}
+                        {useDemographics ? `Generate ${genCount} Agents (Demographics)` : `Generate ${genCount} Agents (Description)`}
                       </>
                     )}
                   </button>
@@ -1005,7 +1005,7 @@ export const SimulationWizard: React.FC = () => {
                   {customAgents.length > 0 && (
                     <div className="border rounded-lg p-4 bg-green-50">
                       <h4 className="text-sm font-bold text-slate-800 mb-2">
-                        已生成 {customAgents.length} 个智能体
+                        Generated {customAgents.length} agents
                       </h4>
                       <div className="max-h-32 overflow-y-auto space-y-1">
                         {customAgents.slice(0, 5).map((a) => (
@@ -1017,7 +1017,7 @@ export const SimulationWizard: React.FC = () => {
                         ))}
                         {customAgents.length > 5 && (
                           <div className="text-xs text-slate-400 italic">
-                            ... 还有 {customAgents.length - 5} 个
+                            ... {customAgents.length - 5} more
                           </div>
                         )}
                       </div>

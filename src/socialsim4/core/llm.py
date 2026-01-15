@@ -570,89 +570,89 @@ def generate_archetype_template(
     llm_client: LLMClient,
     language: str = "en"
 ) -> Dict[str, Any]:
-    """
-    Make ONE LLM call to get a complete archetype template including:
-    - Rich description
-    - List of suitable roles
-    - Mean and std for each trait
-    
-    Args:
-        archetype: The archetype with attributes
-        traits: List of {"name": str, "min": int, "max": int}
-        llm_client: LLM client for API calls
-        language: "en" or "zh" for prompt language
-    
-    Returns:
-        {"description": str, "roles": List[str], "traits": {name: {"mean": int, "std": int}}}
-    """
     attrs_str = ", ".join(f"{k}: {v}" for k, v in archetype["attributes"].items())
-    
+
     # Build traits specification for prompt
-    traits_spec = ", ".join([f'"{t["name"]}": {{"mean": <{t["min"]}-{t["max"]}>, "std": <5-20>}}' for t in traits])
-    
+    traits_spec = ", ".join([f'"{t["name"]}": {{"mean": {t["min"]}-{t["max"]}, "std": 5-20}}' for t in traits])
+
     if language == "zh":
-        prompt = f"""为具有以下人口特征的模拟智能体创建角色模板: {attrs_str}
+        prompt = f"""为此人口创建角色模板: {attrs_str}
 
-返回一个JSON对象，包含:
-1. "description": 2-3句描述该人口群体典型性格、背景和行为的文字
-2. "roles": 一个包含5-8个适合该群体的具体角色/职业的数组
-3. "traits": 每个特征的分布参数 {{{traits_spec}}}
+返回JSON:
+- "description": 1句人物描述
+- "roles": 5个具体职业名称
+- "traits": {{{traits_spec}}}
 
-只返回有效的JSON，不要其他文字。"""
+仅输出JSON，无其他文字。"""
     else:
-        prompt = f"""Create a character template for simulated agents with these demographics: {attrs_str}
+        prompt = f"""Create agent template for: {attrs_str}
 
-Return a JSON object with:
-1. "description": A 2-3 sentence description of typical personality, background, and behaviors
-2. "roles": An array of 5-8 specific roles/occupations suitable for this demographic
-3. "traits": Distribution parameters for each trait {{{traits_spec}}}
+Return JSON:
+- "description": 1 sentence bio
+- "roles": 5 specific job titles
+- "traits": {{{traits_spec}}}
 
-Return ONLY valid JSON, no other text."""
+JSON only, no other text."""
 
     messages = [
-        {"role": "system", "content": "You are creating agent profiles for a simulation. Return only valid JSON."},
+        {"role": "system", "content": "Return only valid JSON."},
         {"role": "user", "content": prompt}
     ]
     
-    try:
-        response = llm_client.chat(messages)
-        # Try to parse JSON from response
-        json_match = re.search(r'\{[\s\S]*\}', response)
-        if json_match:
-            parsed = json.loads(json_match.group())
-            
-            # Build trait distributions with validation
-            trait_distributions = {}
-            for trait in traits:
-                trait_data = parsed.get("traits", {}).get(trait["name"], {})
-                midpoint = (trait["min"] + trait["max"]) / 2
-                mean = trait_data.get("mean", midpoint)
-                std = trait_data.get("std", 10)
-                
-                # Clamp to valid ranges
-                mean = max(trait["min"], min(trait["max"], mean))
-                std = max(5, min(20, std))
-                
-                trait_distributions[trait["name"]] = {"mean": mean, "std": std}
-            
-            return {
-                "description": parsed.get("description", f"A person characterized by {attrs_str}."),
-                "roles": parsed.get("roles", ["Citizen", "Worker", "Resident"]) if isinstance(parsed.get("roles"), list) else ["Citizen", "Worker", "Resident"],
-                "traits": trait_distributions
-            }
-    except Exception as e:
-        print(f"[generate_archetype_template] LLM call failed: {e}")
-    
-    # Fallback template
-    fallback_traits = {}
+    response = llm_client.chat(messages)
+
+    # DEBUG
+    print(f"\n{'='*60}")
+    print(f"[DEBUG] Archetype: {attrs_str}")
+    print(f"[DEBUG] LLM Response: {response}")
+    print(f"{'='*60}\n")
+
+    # Strip markdown code blocks if present
+    cleaned = response.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r'^```(?:json)?\s*', '', cleaned)
+        cleaned = re.sub(r'\s*```$', '', cleaned)
+
+    # Try to parse JSON from response
+    json_match = re.search(r'\{[\s\S]*\}', cleaned)
+    if not json_match:
+        raise RuntimeError(f"No JSON found in LLM response for archetype {attrs_str}")
+
+    parsed = json.loads(json_match.group())
+
+    # Validate required fields
+    if "description" not in parsed or not isinstance(parsed["description"], str):
+        raise RuntimeError(f"Missing or invalid 'description' for archetype {attrs_str}")
+    if "roles" not in parsed or not isinstance(parsed["roles"], list) or len(parsed["roles"]) == 0:
+        raise RuntimeError(f"Missing or invalid 'roles' for archetype {attrs_str}")
+    if "traits" not in parsed or not isinstance(parsed["traits"], dict):
+        raise RuntimeError(f"Missing or invalid 'traits' for archetype {attrs_str}")
+
+    # Validate roles are strings
+    for i, r in enumerate(parsed["roles"]):
+        if not isinstance(r, str):
+            raise RuntimeError(f"Role {i} must be a string, got {type(r).__name__} for archetype {attrs_str}")
+
+    # Build trait distributions with validation
+    trait_distributions = {}
     for trait in traits:
-        midpoint = (trait["min"] + trait["max"]) / 2
-        fallback_traits[trait["name"]] = {"mean": midpoint, "std": 10}
-    
+        trait_data = parsed["traits"].get(trait["name"])
+        if not trait_data or "mean" not in trait_data or "std" not in trait_data:
+            raise RuntimeError(f"Missing trait distribution for '{trait['name']}' in archetype {attrs_str}")
+
+        mean = trait_data["mean"]
+        std = trait_data["std"]
+
+        # Clamp to valid ranges
+        mean = max(trait["min"], min(trait["max"], mean))
+        std = max(5, min(20, std))
+
+        trait_distributions[trait["name"]] = {"mean": mean, "std": std}
+
     return {
-        "description": f"A member of the {attrs_str} demographic group.",
-        "roles": ["Citizen", "Worker", "Resident", "Member", "Participant"],
-        "traits": fallback_traits
+        "description": parsed["description"],
+        "roles": parsed["roles"],
+        "traits": trait_distributions
     }
 
 
@@ -666,29 +666,10 @@ def generate_agents_with_archetypes(
 ) -> List[Dict[str, Any]]:
     """
     Generate agents based on demographics and archetype probabilities.
-    
-    Process: ONE archetype at a time, ONE LLM call per archetype.
-    The LLM generates: description, roles, trait distributions (mean/std).
-    For each agent: randomly assign role, apply Gaussian noise to traits.
-    
-    Args:
-        total_agents: Total number of agents to generate
-        demographics: List of {"name": str, "categories": List[str]}
-        archetype_probabilities: Dict of archetype_id -> probability (0-1)
-        traits: List of {"name": str, "min": int, "max": int}
-        llm_client: LLM client for generating descriptions
-        language: "en" or "zh" for prompt language
-    
-    Returns:
-        List of agent dicts
     """
-    # Default traits if none provided
+    # Validate inputs
     if not traits:
-        traits = [
-            {"name": "Trust", "min": 0, "max": 100},
-            {"name": "Empathy", "min": 0, "max": 100},
-            {"name": "Assertiveness", "min": 0, "max": 100}
-        ]
+        raise ValueError("Traits are required for agent generation")
     
     # Step 1: Generate archetypes
     archetypes = generate_archetypes_from_demographics(demographics)
@@ -753,12 +734,8 @@ def generate_agents_with_archetypes(
                 )
                 properties[trait["name"]] = value
             
-            # Build profile with role included
-            base_desc = template["description"]
-            if role.lower() not in base_desc.lower():
-                profile = f"{base_desc} As a {role}."
-            else:
-                profile = base_desc
+            # Profile is just the description (role stored separately)
+            profile = template["description"]
             
             agent = {
                 "id": f"agent_{agent_num}",
