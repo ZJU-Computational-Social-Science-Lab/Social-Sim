@@ -566,31 +566,27 @@ def add_gaussian_noise(value: float, std_dev: float, min_val: float = 0, max_val
 
 def generate_archetype_template(
     archetype: Dict[str, Any], 
-    traits: List[Dict[str, Any]],
     llm_client: LLMClient,
     language: str = "en"
 ) -> Dict[str, Any]:
+    """
+    Make ONE LLM call to get description and roles only.
+    Traits are now user-specified, not LLM-generated.
+    """
     attrs_str = ", ".join(f"{k}: {v}" for k, v in archetype["attributes"].items())
-
-    # Build traits specification for prompt
-    traits_spec = ", ".join([f'"{t["name"]}": {{"mean": {t["min"]}-{t["max"]}, "std": 5-20}}' for t in traits])
 
     if language == "zh":
         prompt = f"""为此人口创建角色模板: {attrs_str}
 
-返回JSON:
-- "description": 1句人物描述
-- "roles": 5个具体职业名称
-- "traits": {{{traits_spec}}}
+返回这个格式的JSON:
+{{"description": "一句人物描述", "roles": ["职业1", "职业2", "职业3", "职业4", "职业5"]}}
 
 仅输出JSON，无其他文字。"""
     else:
         prompt = f"""Create agent template for: {attrs_str}
 
-Return JSON:
-- "description": 1 sentence bio
-- "roles": 5 specific job titles
-- "traits": {{{traits_spec}}}
+Return JSON in this exact format:
+{{"description": "one sentence bio", "roles": ["Job Title 1", "Job Title 2", "Job Title 3", "Job Title 4", "Job Title 5"]}}
 
 JSON only, no other text."""
 
@@ -625,34 +621,15 @@ JSON only, no other text."""
         raise RuntimeError(f"Missing or invalid 'description' for archetype {attrs_str}")
     if "roles" not in parsed or not isinstance(parsed["roles"], list) or len(parsed["roles"]) == 0:
         raise RuntimeError(f"Missing or invalid 'roles' for archetype {attrs_str}")
-    if "traits" not in parsed or not isinstance(parsed["traits"], dict):
-        raise RuntimeError(f"Missing or invalid 'traits' for archetype {attrs_str}")
 
     # Validate roles are strings
     for i, r in enumerate(parsed["roles"]):
         if not isinstance(r, str):
             raise RuntimeError(f"Role {i} must be a string, got {type(r).__name__} for archetype {attrs_str}")
 
-    # Build trait distributions with validation
-    trait_distributions = {}
-    for trait in traits:
-        trait_data = parsed["traits"].get(trait["name"])
-        if not trait_data or "mean" not in trait_data or "std" not in trait_data:
-            raise RuntimeError(f"Missing trait distribution for '{trait['name']}' in archetype {attrs_str}")
-
-        mean = trait_data["mean"]
-        std = trait_data["std"]
-
-        # Clamp to valid ranges
-        mean = max(trait["min"], min(trait["max"], mean))
-        std = max(5, min(20, std))
-
-        trait_distributions[trait["name"]] = {"mean": mean, "std": std}
-
     return {
         "description": parsed["description"],
-        "roles": parsed["roles"],
-        "traits": trait_distributions
+        "roles": parsed["roles"]
     }
 
 
@@ -666,10 +643,16 @@ def generate_agents_with_archetypes(
 ) -> List[Dict[str, Any]]:
     """
     Generate agents based on demographics and archetype probabilities.
+    Traits use user-specified mean/std directly.
     """
     # Validate inputs
     if not traits:
         raise ValueError("Traits are required for agent generation")
+    
+    # Validate trait format
+    for trait in traits:
+        if "mean" not in trait or "std" not in trait:
+            raise ValueError(f"Trait '{trait.get('name', 'unknown')}' must have 'mean' and 'std'")
     
     # Step 1: Generate archetypes
     archetypes = generate_archetypes_from_demographics(demographics)
@@ -706,8 +689,8 @@ def generate_agents_with_archetypes(
         if count == 0:
             continue
         
-        # ONE LLM call per archetype to get template with roles and trait distributions
-        template = generate_archetype_template(arch, traits, llm_client, language)
+        # ONE LLM call per archetype to get description and roles only
+        template = generate_archetype_template(arch, llm_client, language)
         
         # Create agents with random role and Gaussian noise on traits
         for i in range(count):
@@ -717,7 +700,7 @@ def generate_agents_with_archetypes(
             # Randomly assign a role from LLM-generated list
             role = random.choice(template["roles"]) if template["roles"] else "Citizen"
             
-            # Generate trait values with Gaussian noise using LLM-provided mean/std
+            # Generate trait values with Gaussian noise using USER-SPECIFIED mean/std
             properties = {
                 "archetype_id": arch["id"],
                 "archetype_label": arch["label"],
@@ -725,16 +708,15 @@ def generate_agents_with_archetypes(
             }
             
             for trait in traits:
-                trait_dist = template["traits"].get(trait["name"], {"mean": 50, "std": 10})
                 value = add_gaussian_noise(
-                    trait_dist["mean"], 
-                    trait_dist["std"],
-                    trait["min"],
-                    trait["max"]
+                    trait["mean"], 
+                    trait["std"],
+                    0,    # min clamp
+                    100   # max clamp (or make configurable)
                 )
                 properties[trait["name"]] = value
             
-            # Profile is just the description (role stored separately)
+            # Profile is just the description
             profile = template["description"]
             
             agent = {

@@ -53,8 +53,8 @@ interface Archetype {
 interface TraitConfig {
   id: string;
   name: string;
-  min: number;
-  max: number;
+  mean: number;
+  std: number;
 }
 
 // Helper to generate unique IDs
@@ -136,9 +136,9 @@ export const SimulationWizard: React.FC = () => {
   ]);
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
   const [traits, setTraits] = useState<TraitConfig[]>([
-    { id: generateId(), name: 'Trust', min: 0, max: 100 },
-    { id: generateId(), name: 'Empathy', min: 0, max: 100 },
-    { id: generateId(), name: 'Assertiveness', min: 0, max: 100 }
+    { id: generateId(), name: 'Trust', mean: 50, std: 15 },
+    { id: generateId(), name: 'Empathy', mean: 50, std: 15 },
+    { id: generateId(), name: 'Assertiveness', mean: 50, std: 15 }
   ]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -245,9 +245,9 @@ export const SimulationWizard: React.FC = () => {
     ]);
     setArchetypes([]);
     setTraits([
-      { id: generateId(), name: 'Trust', min: 0, max: 100 },
-      { id: generateId(), name: 'Empathy', min: 0, max: 100 },
-      { id: generateId(), name: 'Assertiveness', min: 0, max: 100 }
+      { id: generateId(), name: 'Trust', mean: 50, std: 15 },
+      { id: generateId(), name: 'Empathy', mean: 50, std: 15 },
+      { id: generateId(), name: 'Assertiveness', mean: 50, std: 15 }
     ]);
     
     toggleWizard(false);
@@ -319,8 +319,8 @@ export const SimulationWizard: React.FC = () => {
         
         const traitsData = traits.map(t => ({
           name: t.name,
-          min: t.min,
-          max: t.max
+          min: t.mean,
+          max: t.std
         }));
         
         const archetypeProbabilities: Record<string, number> = {};
@@ -425,7 +425,7 @@ export const SimulationWizard: React.FC = () => {
 
   // Trait management handlers
   const handleAddTrait = () => {
-    setTraits([...traits, { id: generateId(), name: `Trait ${traits.length + 1}`, min: 0, max: 100 }]);
+    setTraits([...traits, { id: generateId(), name: `Trait ${traits.length + 1}`, mean: 50, std: 15 }]);
   };
 
   const handleRemoveTrait = (id: string) => {
@@ -847,33 +847,36 @@ export const SimulationWizard: React.FC = () => {
                         </div>
                         <div className="space-y-2">
                           {traits.map((trait) => (
-                            <div key={trait.id} className="flex items-center gap-2">
-                              <input
-                                value={trait.name}
-                                onChange={(e) => handleUpdateTrait(trait.id, 'name', e.target.value)}
-                                className="flex-1 px-2 py-1.5 text-sm border rounded text-slate-800"
-                                placeholder="Trait name"
-                              />
-                              <input
-                                type="number"
-                                value={trait.min}
-                                onChange={(e) => handleUpdateTrait(trait.id, 'min', Number(e.target.value))}
-                                className="w-20 px-2 py-1.5 text-sm border rounded text-center text-slate-800"
-                              />
-                              <span className="text-sm text-slate-600">-</span>
-                              <input
-                                type="number"
-                                value={trait.max}
-                                onChange={(e) => handleUpdateTrait(trait.id, 'max', Number(e.target.value))}
-                                className="w-20 px-2 py-1.5 text-sm border rounded text-center text-slate-800"
-                              />
-                              {traits.length > 1 && (
-                                <button onClick={() => handleRemoveTrait(trait.id)} className="p-1 text-red-400 hover:text-red-600">
-                                  <Minus size={14} />
-                                </button>
-                              )}
-                            </div>
-                          ))}
+  <div key={trait.id} className="flex items-center gap-2">
+    <input
+      value={trait.name}
+      onChange={(e) => handleUpdateTrait(trait.id, 'name', e.target.value)}
+      className="flex-1 px-2 py-1.5 text-sm border rounded text-slate-800"
+      placeholder="Trait name"
+    />
+    <span className="text-xs text-slate-500">μ</span>
+    <input
+      type="number"
+      value={trait.mean}
+      onChange={(e) => handleUpdateTrait(trait.id, 'mean', parseInt(e.target.value) || 50)}
+      className="w-16 px-2 py-1.5 text-sm border rounded text-center text-slate-800"
+      title="Mean"
+    />
+    <span className="text-xs text-slate-500">σ</span>
+    <input
+      type="number"
+      value={trait.std}
+      onChange={(e) => handleUpdateTrait(trait.id, 'std', parseInt(e.target.value) || 15)}
+      className="w-16 px-2 py-1.5 text-sm border rounded text-center text-slate-800"
+      title="Standard Deviation"
+    />
+    {traits.length > 1 && (
+      <button onClick={() => handleRemoveTrait(trait.id)} className="p-1 text-red-400 hover:text-red-600">
+        <X size={14} />
+      </button>
+    )}
+  </div>
+))}
                         </div>
                       </div>
 

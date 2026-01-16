@@ -43,8 +43,8 @@ class DemographicDimension(BaseModel):
 class TraitConfig(BaseModel):
     """Configuration for a trait with min/max bounds."""
     name: str
-    min: int = 0
-    max: int = 100
+    mean: int = 50
+    std: int = 15
 
 
 class GenerateAgentsDemographicsRequest(BaseModel):
@@ -297,7 +297,7 @@ async def generate_agents_demographics(
         ]
         
         traits_dicts = [
-            {"name": t.name, "min": t.min, "max": t.max} 
+            {"name": t.name, "mean": t.mean, "std": t.std} 
             for t in data.traits
         ]
 
