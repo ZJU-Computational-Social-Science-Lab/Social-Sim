@@ -21,7 +21,7 @@ import {
 } from './types';
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { createSimulation as createSimulationApi, getSimulation as getSimulationApi } from './services/simulations';
+import { createSimulation as createSimulationApi, getSimulation as getSimulationApi, updateSimulation as updateSimulationApi } from './services/simulations';
 import {
   getTreeGraph,
   treeAdvanceChain,
@@ -97,6 +97,7 @@ interface AppState {
   isSaveTemplateOpen: boolean; // #20
   isNetworkEditorOpen: boolean; // #22
   isReportModalOpen: boolean; // #14
+  globalKnowledgeOpen: boolean; // Global knowledge panel
   isGenerating: boolean;
   isGeneratingReport: boolean; // #14
 
@@ -132,6 +133,7 @@ interface AppState {
   toggleSaveTemplate: (isOpen: boolean) => void; // #20
   toggleNetworkEditor: (isOpen: boolean) => void; // #22
   toggleReportModal: (isOpen: boolean) => void; // #14
+  setGlobalKnowledgeOpen: (isOpen: boolean) => void; // Global knowledge panel
 
   // Host Actions #16
   injectLog: (type: LogEntry['type'], content: string, imageUrl?: string) => void; // #24 Updated signature
@@ -1097,6 +1099,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   isSaveTemplateOpen: false,
   isNetworkEditorOpen: false,
   isReportModalOpen: false,
+  globalKnowledgeOpen: false,
   isGenerating: false,
   isGeneratingReport: false,
 
@@ -1651,6 +1654,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   toggleSaveTemplate: (isOpen) => set({ isSaveTemplateOpen: isOpen }),
   toggleNetworkEditor: (isOpen) => set({ isNetworkEditorOpen: isOpen }),
   toggleReportModal: (isOpen) => set({ isReportModalOpen: isOpen }),
+  setGlobalKnowledgeOpen: (isOpen) => set({ globalKnowledgeOpen: isOpen }),
 
   injectLog: (type, content, imageUrl) => set(state => {
     if (!state.selectedNodeId) return {};
@@ -1682,17 +1686,65 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   },
 
   addKnowledgeToAgent: (agentId, item) => {
-    set(state => ({
-      agents: state.agents.map(a => a.id === agentId ? { ...a, knowledgeBase: [...a.knowledgeBase, item] } : a)
-    }));
+    const state = get();
+    console.log('[KB-DEBUG] addKnowledgeToAgent called:', { agentId, item, simId: state.currentSimulation?.id, mode: state.engineConfig.mode });
+    // Update local state
+    const updatedAgents = state.agents.map(a => a.id === agentId ? { ...a, knowledgeBase: [...a.knowledgeBase, item] } : a);
+    set({ agents: updatedAgents });
     get().addNotification('success', '知识库条目已添加');
+    // Sync to backend if we have a current simulation
+    if (state.currentSimulation && state.engineConfig.mode === 'connected') {
+      const agentConfig = {
+        agents: updatedAgents.map(a => ({
+          name: a.name,
+          profile: a.profile,
+          role: (a as any).role,
+          avatarUrl: (a as any).avatarUrl,
+          llmConfig: (a as any).llmConfig,
+          properties: (a as any).properties || {},
+          history: (a as any).history || {},
+          memory: (a as any).memory || [],
+          knowledgeBase: a.knowledgeBase || [],
+          action_space: Array.isArray((a as any).action_space) ? (a as any).action_space : ['send_message']
+        }))
+      };
+      console.log('[KB-DEBUG] Syncing to backend - agentConfig:', JSON.stringify(agentConfig, null, 2));
+      updateSimulationApi(state.currentSimulation.id, { agent_config: agentConfig })
+        .then(() => console.log('[KB-DEBUG] Backend sync SUCCESS'))
+        .catch(err => {
+          console.error('[KB-DEBUG] Backend sync FAILED:', err);
+        });
+    } else {
+      console.log('[KB-DEBUG] NOT syncing to backend - no simulation or not connected mode');
+    }
   },
 
   removeKnowledgeFromAgent: (agentId, itemId) => {
-    set(state => ({
-      agents: state.agents.map(a => a.id === agentId ? { ...a, knowledgeBase: a.knowledgeBase.filter(i => i.id !== itemId) } : a)
-    }));
+    const state = get();
+    // Update local state
+    const updatedAgents = state.agents.map(a => a.id === agentId ? { ...a, knowledgeBase: a.knowledgeBase.filter(i => i.id !== itemId) } : a);
+    set({ agents: updatedAgents });
     get().addNotification('success', '知识库条目已移除');
+    // Sync to backend if we have a current simulation
+    if (state.currentSimulation && state.engineConfig.mode === 'connected') {
+      const agentConfig = {
+        agents: updatedAgents.map(a => ({
+          name: a.name,
+          profile: a.profile,
+          role: (a as any).role,
+          avatarUrl: (a as any).avatarUrl,
+          llmConfig: (a as any).llmConfig,
+          properties: (a as any).properties || {},
+          history: (a as any).history || {},
+          memory: (a as any).memory || [],
+          knowledgeBase: a.knowledgeBase || [],
+          action_space: Array.isArray((a as any).action_space) ? (a as any).action_space : ['send_message']
+        }))
+      };
+      updateSimulationApi(state.currentSimulation.id, { agent_config: agentConfig }).catch(err => {
+        console.error('Failed to sync knowledge to backend:', err);
+      });
+    }
   },
 
   advanceSimulation: async () => {
@@ -1729,6 +1781,9 @@ export const useSimulationStore = create<AppState>((set, get) => ({
               getSimState(base, simId, res.child, token)
             ]);
 
+            console.log('[KB-DEBUG] advanceSimulation: Received simState from backend');
+            console.log('[KB-DEBUG] simState.agents:', JSON.stringify(simState?.agents?.map((a: any) => ({ name: a.name, knowledgeBase: a.knowledgeBase })), null, 2));
+
             const turnVal = Number(simState?.turns ?? 0) || 0;
 
             const agentsMapped: Agent[] = (simState?.agents || []).map((a: any, idx: number) => ({
@@ -1747,8 +1802,10 @@ export const useSimulationStore = create<AppState>((set, get) => ({
                 type: (String(m.role ?? '') === 'assistant' || String(m.role ?? '') === 'user') ? 'dialogue' : 'observation',
                 timestamp: new Date().toISOString()
               })),
-              knowledgeBase: []
+              knowledgeBase: a.knowledgeBase || []
             }));
+
+            console.log('[KB-DEBUG] advanceSimulation: Mapped agents:', agentsMapped.map(a => ({ name: a.name, kbCount: a.knowledgeBase.length })));
 
             const eventsArray = Array.isArray(events) ? events : [];
             

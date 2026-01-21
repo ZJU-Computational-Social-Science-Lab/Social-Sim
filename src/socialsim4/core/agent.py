@@ -47,6 +47,17 @@ class Agent:
             "notes": "",
         }
 
+        # ---- Knowledge Base (RAG) ----
+        # List of knowledge items: [{id, title, type, content, enabled, timestamp}, ...]
+        self.knowledge_base = list(kwargs.get("knowledge_base", []) or [])
+
+        # ---- Documents (Embedded RAG) ----
+        # Dict of documents with embeddings: {doc_id: {id, filename, chunks, embeddings, ...}}
+        self.documents = dict(kwargs.get("documents", {}) or {})
+
+        # Reference to global knowledge (set by simulator/scene when available)
+        self._global_knowledge = None
+
         # ---- NEW: LLM 错误计数 & 掉线标记 ----
         # 连续 LLM 相关错误计数（调用失败 / 解析失败）
         self.consecutive_llm_errors = 0
@@ -116,6 +127,30 @@ Internal Notes:
             examples_block = f"Here are some examples:\n{scene.get_examples()}"
 
         emotion_prompt = f"Your current emotion is {self.emotion}." if self.emotion_enabled else ""
+
+        # Build knowledge base context
+        knowledge_block = ""
+        enabled_kb = self.get_enabled_knowledge()
+        if enabled_kb:
+            kb_count = len(enabled_kb)
+            kb_preview = []
+            for i, item in enumerate(enabled_kb[:5], 1):  # Show first 5 items as preview
+                title = item.get("title", "Untitled")
+                content_preview = str(item.get("content", ""))[:80]
+                if len(str(item.get("content", ""))) > 80:
+                    content_preview += "..."
+                kb_preview.append(f"  [{i}] {title}: {content_preview}")
+            kb_list = "\n".join(kb_preview)
+            if kb_count > 5:
+                kb_list += f"\n  ... and {kb_count - 5} more items"
+            knowledge_block = f"""
+Knowledge Base:
+You have a personal knowledge base with {kb_count} item(s) containing information you can reference:
+{kb_list}
+
+Use the query_knowledge action to search for specific information when needed. The knowledge base contains facts and information that you should use to inform your responses when relevant.
+"""
+
         base = f"""
 You are {self.name}.
 You speak in a {self.style} style.
@@ -124,7 +159,7 @@ You speak in a {self.style} style.
 {self.user_profile}
 
 {self.role_prompt}
-
+{knowledge_block}
 {plan_state_block}
 
 Language Policy:
@@ -644,11 +679,183 @@ History:
         """Deprecated: use add_env_feedback(). Kept for compatibility."""
         return self.add_env_feedback(content)
 
+    # ---- Knowledge Base (RAG) methods ----
+    def add_knowledge(self, item: dict) -> None:
+        """Add a knowledge item to the agent's knowledge base."""
+        self.knowledge_base.append(item)
+
+    def remove_knowledge(self, item_id: str) -> bool:
+        """Remove a knowledge item by ID. Returns True if found and removed."""
+        before_len = len(self.knowledge_base)
+        self.knowledge_base = [k for k in self.knowledge_base if k.get("id") != item_id]
+        return len(self.knowledge_base) < before_len
+
+    def get_enabled_knowledge(self) -> list:
+        """Get all enabled knowledge items."""
+        return [k for k in self.knowledge_base if k.get("enabled", True)]
+
+    def query_knowledge(self, query: str, max_results: int = 3) -> list:
+        """
+        Simple keyword-based retrieval from the knowledge base.
+        Returns top matching knowledge items based on keyword overlap.
+        """
+        if not query or not self.knowledge_base:
+            return []
+
+        query_lower = query.lower()
+        query_words = set(query_lower.split())
+
+        scored = []
+        for item in self.get_enabled_knowledge():
+            title = str(item.get("title", "")).lower()
+            content = str(item.get("content", "")).lower()
+            combined = f"{title} {content}"
+
+            # Simple scoring: count matching words + boost for title matches
+            combined_words = set(combined.split())
+            title_words = set(title.split())
+
+            word_matches = len(query_words & combined_words)
+            title_matches = len(query_words & title_words)
+
+            # Also check for substring matches
+            substring_score = 0
+            for qw in query_words:
+                if qw in combined:
+                    substring_score += 1
+                if qw in title:
+                    substring_score += 2  # Boost title substring matches
+
+            score = word_matches + (title_matches * 2) + substring_score
+
+            if score > 0:
+                scored.append((score, item))
+
+        # Sort by score descending, return top results
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [item for score, item in scored[:max_results]]
+
+    def get_knowledge_context(self, query: str = "", max_items: int = 5) -> str:
+        """
+        Get formatted knowledge context to inject into prompts.
+        If query is provided, retrieves relevant items. Otherwise returns all enabled items.
+        """
+        if query:
+            items = self.query_knowledge(query, max_items)
+        else:
+            items = self.get_enabled_knowledge()[:max_items]
+
+        if not items:
+            return ""
+
+        lines = ["Your Knowledge Base:"]
+        for i, item in enumerate(items, 1):
+            title = item.get("title", "Untitled")
+            content = item.get("content", "")
+            lines.append(f"[{i}] {title}: {content}")
+
+        return "\n".join(lines)
+
+    # ---- Document RAG methods ----
+    def set_global_knowledge(self, global_knowledge: dict) -> None:
+        """Set reference to global knowledge base for composite retrieval."""
+        self._global_knowledge = global_knowledge
+
+    def retrieve_from_documents(self, query_embedding: list, top_k: int = 5) -> list:
+        """
+        Retrieve relevant chunks from agent's private documents using embeddings.
+        Returns list of results sorted by similarity.
+        """
+        from socialsim4.backend.services.documents import cosine_similarity
+
+        results = []
+        for doc_id, doc in self.documents.items():
+            embeddings = doc.get("embeddings", {})
+            chunks = {c["chunk_id"]: c for c in doc.get("chunks", [])}
+
+            for chunk_id, embedding in embeddings.items():
+                similarity = cosine_similarity(query_embedding, embedding)
+                chunk_data = chunks.get(chunk_id, {})
+
+                results.append({
+                    "source": "private",
+                    "doc_id": doc_id,
+                    "chunk_id": chunk_id,
+                    "filename": doc.get("filename", ""),
+                    "text": chunk_data.get("text", ""),
+                    "similarity": similarity,
+                })
+
+        results.sort(key=lambda x: x["similarity"], reverse=True)
+        return results[:top_k]
+
+    def composite_rag_retrieve(self, query: str, llm_client, top_k: int = 5) -> list:
+        """
+        Composite RAG retrieval merging private documents and global knowledge.
+        Returns top_k results sorted by similarity.
+        """
+        from socialsim4.backend.services.documents import (
+            retrieve_from_global_knowledge,
+            cosine_similarity,
+        )
+
+        all_results = []
+
+        # Generate query embedding
+        query_embedding = llm_client.embedding(query)
+
+        # Retrieve from private documents
+        if self.documents:
+            private_results = self.retrieve_from_documents(query_embedding, top_k * 2)
+            all_results.extend(private_results)
+
+        # Retrieve from global knowledge
+        if self._global_knowledge:
+            global_results = retrieve_from_global_knowledge(
+                query_embedding,
+                self._global_knowledge,
+                top_k * 2,
+            )
+            all_results.extend(global_results)
+
+        # Sort by similarity, with private prioritized on tie
+        all_results.sort(
+            key=lambda x: (x["similarity"] + (0.001 if x["source"] == "private" else 0)),
+            reverse=True
+        )
+
+        return all_results[:top_k]
+
+    def get_rag_context(self, query: str, llm_client, top_k: int = 5) -> str:
+        """
+        Get formatted RAG context from documents to inject into prompts.
+        Combines results from private documents and global knowledge.
+        """
+        # Only do embedding-based retrieval if we have documents or global knowledge
+        if not self.documents and not self._global_knowledge:
+            return ""
+
+        results = self.composite_rag_retrieve(query, llm_client, top_k)
+
+        if not results:
+            return ""
+
+        context_parts = []
+        for i, result in enumerate(results, 1):
+            source_label = "Personal knowledge" if result["source"] == "private" else "Shared knowledge"
+            filename = result.get("filename", "")
+            source_info = f" (from {filename})" if filename else ""
+            context_parts.append(f"[{i}] {source_label}{source_info}:\n{result['text']}")
+
+        return "\n\nRelevant Context:\n" + "\n\n".join(context_parts)
+
     def serialize(self):
         # Deep-copy dict/list fields to avoid sharing across snapshots
         mem = [{"role": m.get("role"), "content": m.get("content")} for m in self.short_memory.get_all()]
         props = json.loads(json.dumps(self.properties))
         plan = json.loads(json.dumps(self.plan_state))
+        kb = json.loads(json.dumps(self.knowledge_base))
+        docs = json.loads(json.dumps(self.documents))
         return {
             "name": self.name,
             "user_profile": self.user_profile,
@@ -664,13 +871,16 @@ History:
             "plan_state": plan,
             "emotion": self.emotion,
             "emotion_enabled": self.emotion_enabled,
-            # ---- NEW: LLM 错误状态序列化 ----
+            # ---- Knowledge Base (RAG) ----
+            "knowledge_base": kb,
+            # ---- Documents (Embedded RAG) ----
+            "documents": docs,
+            # ---- LLM 错误状态序列化 ----
             "consecutive_llm_errors": int(getattr(self, "consecutive_llm_errors", 0)),
             "is_offline": bool(getattr(self, "is_offline", False)),
             "max_consecutive_llm_errors": int(
                 getattr(self, "max_consecutive_llm_errors", 3)
             ),
-            # ---- NEW END ----
         }
 
     @classmethod
@@ -730,13 +940,27 @@ History:
             )
         )
 
-        # ---- NEW: 恢复 LLM 错误状态 ----
+        # ---- Knowledge Base (RAG) ----
+        # Restore from top-level data or use what was passed through props
+        kb_data = data.get("knowledge_base", [])
+        print(f"[KB-DEBUG] Agent.deserialize '{agent.name}': kb_data has {len(kb_data)} items")
+        if kb_data:
+            agent.knowledge_base = json.loads(json.dumps(kb_data))
+            print(f"[KB-DEBUG] Agent.deserialize '{agent.name}': after copy, knowledge_base has {len(agent.knowledge_base)} items")
+            for i, item in enumerate(agent.knowledge_base):
+                print(f"[KB-DEBUG]   KB[{i}]: id={item.get('id')}, title='{item.get('title', '')[:40]}', enabled={item.get('enabled')}")
+
+        # ---- Documents (Embedded RAG) ----
+        docs_data = data.get("documents", {})
+        if docs_data:
+            agent.documents = json.loads(json.dumps(docs_data))
+            print(f"[KB-DEBUG] Agent.deserialize '{agent.name}': documents has {len(agent.documents)} items")
+
+        # ---- 恢复 LLM 错误状态 ----
         agent.consecutive_llm_errors = data.get("consecutive_llm_errors", 0)
         agent.is_offline = data.get("is_offline", False)
         agent.max_consecutive_llm_errors = data.get(
             "max_consecutive_llm_errors", 3
         )
-        # ---- NEW END ----
 
         return agent
-

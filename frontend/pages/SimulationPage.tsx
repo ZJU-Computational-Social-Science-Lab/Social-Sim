@@ -1,4 +1,5 @@
 // frontend/pages/SimulationPage.tsx
+// frontend/pages/SimulationPage.tsx
 import React from "react";
 import { Link } from "react-router-dom";
 import { SimTree } from "../components/SimTree";
@@ -15,6 +16,7 @@ import { TimeSettingsModal } from "../components/TimeSettingsModal";
 import { TemplateSaveModal } from "../components/TemplateSaveModal";
 import { NetworkEditorModal } from "../components/NetworkEditorModal";
 import { ReportModal } from "../components/ReportModal";
+import { GlobalKnowledgePanel } from "../components/GlobalKnowledgePanel";
 import { GuideAssistant } from "../components/GuideAssistant";
 import { ToastContainer } from "../components/Toast";
 import { useSimulationStore } from "../store";
@@ -42,6 +44,7 @@ import {
   Plug,
   Zap,
   LogOut,
+  Globe,
 } from "lucide-react";
 
 // ---------------- Header ----------------
@@ -177,6 +180,9 @@ const Toolbar: React.FC = () => {
   const toggleReportModal = useSimulationStore(
     (state) => state.toggleReportModal
   );
+  const setGlobalKnowledgeOpen = useSimulationStore(
+    (state) => state.setGlobalKnowledgeOpen
+  );
 
   const llmProviders = useSimulationStore((s) => s.llmProviders);
   const selectedProviderId = useSimulationStore((s) => s.selectedProviderId);
@@ -279,6 +285,15 @@ const Toolbar: React.FC = () => {
           <Network size={14} />
         </button>
 
+        {/* Global Knowledge */}
+        <button
+          onClick={() => setGlobalKnowledgeOpen(true)}
+          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+          title="全局知识库"
+        >
+          <Globe size={14} />
+        </button>
+
         {/* Time Settings */}
         <button
           onClick={() => toggleTimeSettings(true)}
@@ -365,6 +380,7 @@ const Toolbar: React.FC = () => {
       <TemplateSaveModal />
       <NetworkEditorModal />
       <ReportModal />
+      <GlobalKnowledgePanel />
       <GuideAssistant />
       <ToastContainer />
     </div>
@@ -441,7 +457,7 @@ const SimulationPage: React.FC = () => {
                       properties: a.properties || {},
                       history: {},
                       memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                      knowledgeBase: []
+                      knowledgeBase: a.knowledgeBase || []
                     }));
                   } else if (latestAgents2 && typeof latestAgents2 === 'object') {
                     agents2 = Object.keys(latestAgents2).map((k: string, idx: number) => {
@@ -456,7 +472,7 @@ const SimulationPage: React.FC = () => {
                         properties: a.properties || {},
                         history: {},
                         memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                        knowledgeBase: []
+                        knowledgeBase: a.knowledgeBase || []
                       };
                     });
                   }
@@ -529,7 +545,7 @@ const SimulationPage: React.FC = () => {
                 properties: {},
                 history: {},
                 memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simState?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                knowledgeBase: []
+                knowledgeBase: a.knowledgeBase || []
               }));
 
               useSimulationStore.setState({
@@ -582,7 +598,7 @@ const SimulationPage: React.FC = () => {
                       properties: a.properties || {},
                       history: {},
                       memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                      knowledgeBase: []
+                      knowledgeBase: a.knowledgeBase || []
                     }));
                   } else {
                     // dict mapping
@@ -598,7 +614,7 @@ const SimulationPage: React.FC = () => {
                         properties: a.properties || {},
                         history: {},
                         memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                        knowledgeBase: []
+                        knowledgeBase: a.knowledgeBase || []
                       };
                     });
                   }
@@ -640,7 +656,7 @@ const SimulationPage: React.FC = () => {
                           properties: a.properties || {},
                           history: {},
                           memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                          knowledgeBase: []
+                          knowledgeBase: a.knowledgeBase || []
                         }));
                       } else if (latestAgents2 && typeof latestAgents2 === 'object') {
                         agents2 = Object.keys(latestAgents2).map((k: string, idx: number) => {
@@ -655,7 +671,7 @@ const SimulationPage: React.FC = () => {
                             properties: a.properties || {},
                             history: {},
                             memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                            knowledgeBase: []
+                            knowledgeBase: a.knowledgeBase || []
                           };
                         });
                       }

@@ -24,6 +24,7 @@ from .actions.village_actions import (
     RestAction,
 )
 from .actions.web_actions import ViewPageAction, WebSearchAction
+from .actions.rag_actions import QueryKnowledgeAction, ListKnowledgeAction
 from .actions.werewolf_actions import (
     CloseVotingAction,
     InspectAction,
@@ -60,6 +61,9 @@ ACTION_SPACE_MAP = {
     # Web actions
     "web_search": WebSearchAction(),
     "view_page": ViewPageAction(),
+    # RAG actions (knowledge base)
+    "query_knowledge": QueryKnowledgeAction(),
+    "list_knowledge": ListKnowledgeAction(),
     # Moderation actions
     "schedule_order": ScheduleOrderAction(),
     # Werewolf actions
@@ -97,19 +101,19 @@ ORDERING_MAP = _ORDERING_MAP
 SCENE_ACTIONS: dict[str, dict[str, list[str]]] = {
     "simple_chat_scene": {
         "basic": ["send_message", "yield"],
-        "allowed": ["web_search", "view_page"],
+        "allowed": ["web_search", "view_page", "query_knowledge", "list_knowledge"],
     },
     "emotional_conflict_scene": {
         "basic": ["send_message", "yield"],
-        "allowed": ["web_search", "view_page"],
+        "allowed": ["web_search", "view_page", "query_knowledge", "list_knowledge"],
     },
     "council_scene": {
         "basic": ["send_message", "voting_status", "yield"],
-        "allowed": ["start_voting", "finish_meeting", "request_brief", "vote", "web_search", "view_page"],
+        "allowed": ["start_voting", "finish_meeting", "request_brief", "vote", "web_search", "view_page", "query_knowledge", "list_knowledge"],
     },
     "village_scene": {
         "basic": ["talk_to", "move_to_location", "look_around", "gather_resource", "rest", "yield"],
-        "allowed": [],
+        "allowed": ["query_knowledge", "list_knowledge"],
     },
     "werewolf_scene": {
         "basic": ["speak", "vote_lynch", "yield"],

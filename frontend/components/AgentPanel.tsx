@@ -1,20 +1,144 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useSimulationStore } from '../store';
-import { User, Brain, Activity, ChevronDown, ChevronRight, Bot, BookOpen, Plus, FileText, Trash2 } from 'lucide-react';
+import { User, Brain, Activity, ChevronDown, ChevronRight, Bot, BookOpen, Plus, FileText, Trash2, Upload, File, Loader2 } from 'lucide-react';
 import { Agent, KnowledgeItem } from '../types';
+import { uploadAgentDocument, listAgentDocuments, deleteAgentDocument, DocumentInfo } from '../services/simulations';
 
 const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   const [isMemoryOpen, setIsMemoryOpen] = useState(true);
   const [isPropsOpen, setIsPropsOpen] = useState(false);
   const [isKBOpen, setIsKBOpen] = useState(false); // #23
-  
+  const [isDocsOpen, setIsDocsOpen] = useState(false); // Documents section
+
   const addKnowledgeToAgent = useSimulationStore(state => state.addKnowledgeToAgent);
   const removeKnowledgeFromAgent = useSimulationStore(state => state.removeKnowledgeFromAgent);
-  
+  const simulationId = useSimulationStore(state => state.currentSimulation?.id);
+  const selectedNodeId = useSimulationStore(state => state.selectedNodeId);
+
   const [newKbTitle, setNewKbTitle] = useState('');
   const [newKbContent, setNewKbContent] = useState('');
   const [isAddingKB, setIsAddingKB] = useState(false);
+
+  // Document upload state
+  const [documents, setDocuments] = useState<DocumentInfo[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load documents when docs section is opened
+  const loadDocuments = useCallback(async () => {
+    if (!simulationId) return;
+    try {
+      // Pass selectedNodeId to fetch documents from the correct tree node
+      const docs = await listAgentDocuments(simulationId, agent.name, selectedNodeId ?? undefined);
+      setDocuments(docs);
+    } catch (err) {
+      console.error('Failed to load documents:', err);
+    }
+  }, [simulationId, agent.name, selectedNodeId]);
+
+  // Auto-load documents when node changes to keep count accurate
+  useEffect(() => {
+    if (simulationId) {
+      loadDocuments();
+    }
+  }, [simulationId, selectedNodeId, agent.name, loadDocuments]);
+
+  const handleDocsToggle = () => {
+    const newState = !isDocsOpen;
+    setIsDocsOpen(newState);
+    if (newState) {
+      loadDocuments();
+    }
+  };
+
+  // Handle file upload
+  const handleFileUpload = async (file: File) => {
+    if (!simulationId) {
+      setUploadError('No simulation ID');
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['.pdf', '.txt', '.docx', '.md'];
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!allowedTypes.includes(ext)) {
+      setUploadError(`Invalid file type. Allowed: ${allowedTypes.join(', ')}`);
+      return;
+    }
+
+    // Validate file size (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('File too large. Max size: 10MB');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      console.log(`INFO: Upload started - agent=${agent.name}, file=${file.name}`);
+      const result = await uploadAgentDocument(simulationId, agent.name, file);
+      console.log(`INFO: Upload complete - doc_id=${result.doc_id}, chunks=${result.chunks_count}`);
+      loadDocuments(); // Refresh the list
+    } catch (err: any) {
+      console.error('ERROR: Upload failed -', err);
+      setUploadError(err.message || 'Upload failed');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Handle delete document
+  const handleDeleteDocument = async (docId: string) => {
+    if (!simulationId) return;
+    try {
+      await deleteAgentDocument(simulationId, agent.name, docId);
+      loadDocuments();
+    } catch (err) {
+      console.error('Failed to delete document:', err);
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFileUpload(files[0]);
+    }
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleFileUpload(files[0]);
+    }
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   // Helper to color code models
   const getModelBadgeStyle = (provider: string) => {
@@ -131,14 +255,14 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
 
              {isAddingKB ? (
                 <div className="bg-white border border-brand-200 rounded p-2 text-xs space-y-2">
-                   <input 
-                     type="text" 
+                   <input
+                     type="text"
                      placeholder="标题 (如: 乡村公约)"
-                     value={newKbTitle} 
+                     value={newKbTitle}
                      onChange={(e) => setNewKbTitle(e.target.value)}
                      className="w-full p-1 border rounded outline-none focus:ring-1 focus:ring-brand-500"
                    />
-                   <textarea 
+                   <textarea
                      placeholder="知识内容..."
                      value={newKbContent}
                      onChange={(e) => setNewKbContent(e.target.value)}
@@ -150,13 +274,104 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                    </div>
                 </div>
              ) : (
-                <button 
+                <button
                    onClick={() => setIsAddingKB(true)}
                    className="w-full py-1.5 border border-dashed border-slate-300 text-slate-500 hover:border-brand-500 hover:text-brand-600 rounded text-xs flex items-center justify-center gap-1 transition-colors"
                 >
                    <Plus size={12} /> 添加知识条目
                 </button>
              )}
+          </div>
+        )}
+      </div>
+
+      {/* Documents Section (Embedded RAG) */}
+      <div className="p-0 border-t">
+        <button
+          onClick={handleDocsToggle}
+          className="w-full flex items-center justify-between px-4 py-2 bg-slate-50 hover:bg-slate-100 transition-colors"
+        >
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+            <Upload size={14} />
+            <span>文档知识库 ({documents.length})</span>
+          </div>
+          {isDocsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </button>
+
+        {isDocsOpen && (
+          <div className="p-4 bg-slate-50/50 space-y-3">
+            {/* Upload area */}
+            <div
+              className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+                isDragging
+                  ? 'border-brand-500 bg-brand-50'
+                  : 'border-slate-300 hover:border-brand-400'
+              } ${isUploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => !isUploading && fileInputRef.current?.click()}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.txt,.docx,.md"
+                onChange={handleFileInput}
+                className="hidden"
+                disabled={isUploading}
+              />
+              {isUploading ? (
+                <div className="flex items-center justify-center gap-2 text-slate-500">
+                  <Loader2 size={16} className="animate-spin" />
+                  <span className="text-xs">上传中...</span>
+                </div>
+              ) : (
+                <>
+                  <Upload size={20} className="mx-auto text-slate-400 mb-2" />
+                  <p className="text-xs text-slate-500">
+                    拖放文件或点击上传
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    支持: PDF, TXT, DOCX, MD (最大 10MB)
+                  </p>
+                </>
+              )}
+            </div>
+
+            {/* Error message */}
+            {uploadError && (
+              <div className="bg-red-50 border border-red-200 rounded p-2 text-xs text-red-600">
+                {uploadError}
+              </div>
+            )}
+
+            {/* Uploaded documents list */}
+            {documents.length === 0 && !isUploading && (
+              <div className="text-center py-2 text-slate-400 text-xs italic">
+                暂无上传文档
+              </div>
+            )}
+
+            {documents.map(doc => (
+              <div key={doc.id} className="bg-white border rounded p-2 text-xs relative group">
+                <div className="flex items-center gap-2 font-bold text-slate-700 mb-1">
+                  <File size={12} className="text-blue-500" />
+                  <span className="truncate flex-1">{doc.filename}</span>
+                  <span className="text-slate-400 font-normal">{formatFileSize(doc.file_size)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-400">
+                  <span>{doc.chunks_count} 个文本块</span>
+                  <span>·</span>
+                  <span>{new Date(doc.uploaded_at).toLocaleDateString()}</span>
+                </div>
+                <button
+                  onClick={() => handleDeleteDocument(doc.id)}
+                  className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </div>
