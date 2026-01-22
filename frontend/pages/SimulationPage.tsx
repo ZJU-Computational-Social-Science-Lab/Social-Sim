@@ -17,7 +17,7 @@ import { NetworkEditorModal } from "../components/NetworkEditorModal";
 import { ReportModal } from "../components/ReportModal";
 import { GuideAssistant } from "../components/GuideAssistant";
 import { ToastContainer } from "../components/Toast";
-import { useSimulationStore } from "../store";
+import { useSimulationStore, mapBackendEventsToLogs } from "../store";
 import { useParams } from "react-router-dom";
 import { getSimulation as apiGetSimulation } from "../services/simulations";
 import { getTreeGraph, getSimEvents, getSimState, getRehydrate } from "../services/simulationTree";
@@ -406,6 +406,13 @@ const SimulationPage: React.FC = () => {
   const engineConfig = useSimulationStore((state) => state.engineConfig);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasRestored = useAuthStore((s) => s.hasRestored);
+  const loadProviders = useSimulationStore((state) => state.loadProviders);
+
+  React.useEffect(() => {
+    if (engineConfig.mode === 'connected' && hasRestored && isAuthenticated) {
+      loadProviders();
+    }
+  }, [engineConfig.mode, hasRestored, isAuthenticated, loadProviders]);
 
   React.useEffect(() => {
     (async () => {
@@ -420,6 +427,30 @@ const SimulationPage: React.FC = () => {
         return;
       }
       try {
+          const mapAgent = (a: any, idx: number, turnVal: number) => {
+            const props = a?.properties || {};
+            const role = a?.role || props.role || props.title || props.position || '';
+            const profile = a?.profile || a?.user_profile || a?.userProfile || props.profile || props.description || '';
+            return {
+              id: `a-${idx}-${a?.name || 'agent'}`,
+              name: a?.name || `Agent ${idx + 1}`,
+              role,
+              avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a?.name || String(idx))}`,
+              profile,
+              llmConfig: { provider: 'mock', model: 'default' },
+              properties: props,
+              history: {},
+              memory: (a?.short_memory || []).map((m: any, j: number) => ({
+                id: `m-${idx}-${j}`,
+                round: turnVal,
+                content: String(m?.content ?? ''),
+                type: 'dialogue',
+                timestamp: new Date().toISOString(),
+              })),
+              knowledgeBase: [],
+            } as Agent;
+          };
+
           const token = (engineConfig as any).token as string | undefined;
           let sim: any | null = null;
           try {
@@ -448,44 +479,16 @@ const SimulationPage: React.FC = () => {
                 let agents2: any[] = [];
                 try {
                   const firstNode = nodesRaw2.find((n: any) => Number(n.id) === Number(nodes2[0]?.id));
-
-  React.useEffect(() => {
-    if (engineConfig.mode === 'connected' && hasRestored && isAuthenticated) {
-      loadProviders();
-    }
-  }, [engineConfig.mode, hasRestored, isAuthenticated, loadProviders]);
                   const simSnap2 = firstNode?.sim || {};
                   const latestAgents2 = simSnap2?.agents || re.agents || [];
-                  if (Array.isArray(latestAgents2)) {
-                    agents2 = latestAgents2.map((a: any, idx: number) => ({
-                      id: `a-${idx}-${a.name}`,
-                      name: a.name,
-                      role: a.role || (a.properties || {}).role || '',
-                      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
-                      profile: '',
-                      llmConfig: { provider: 'mock', model: 'default' },
-                      properties: a.properties || {},
-                      history: {},
-                      memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                      knowledgeBase: []
-                    }));
-                  } else if (latestAgents2 && typeof latestAgents2 === 'object') {
-                    agents2 = Object.keys(latestAgents2).map((k: string, idx: number) => {
-                      const a = (latestAgents2 as any)[k] || {};
-                      return {
-                        id: `a-${idx}-${a.name || k}`,
-                        name: a.name || k,
-                        role: a.role || (a.properties || {}).role || '',
-                        avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || k)}`,
-                        profile: '',
-                        llmConfig: { provider: 'mock', model: 'default' },
-                        properties: a.properties || {},
-                        history: {},
-                        memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                        knowledgeBase: []
-                      };
-                    });
-                  }
+                       if (Array.isArray(latestAgents2)) {
+                         agents2 = latestAgents2.map((a: any, idx: number) => mapAgent(a, idx, Number(simSnap2?.turns || 0)));
+                       } else if (latestAgents2 && typeof latestAgents2 === 'object') {
+                         agents2 = Object.keys(latestAgents2).map((k: string, idx: number) => {
+                           const a = (latestAgents2 as any)[k] || {};
+                           return mapAgent({ ...a, name: a.name || k }, idx, Number(simSnap2?.turns || 0));
+                         });
+                       }
                 } catch (e) {
                   console.warn('rehydrate parsing failed', e);
                 }
@@ -508,12 +511,83 @@ const SimulationPage: React.FC = () => {
           }
           if (!sim) return;
 
+          // Try rehydrate snapshot first to restore full nodes/agents/events
+          try {
+            const re = await getRehydrate(engineConfig.endpoint, sim.id, token).catch(() => null);
+            if (re && typeof re === 'object') {
+              const nodesRaw = (re.nodes || []) as any[];
+              if (nodesRaw.length > 0) {
+                const nodes = nodesRaw.map((n: any) => ({
+                  id: String(n.id),
+                  display_id: String(n.id),
+                  parentId: n.parent == null ? null : String(n.parent),
+                  name: `节点 ${n.id}`,
+                  depth: n.depth,
+                  isLeaf: (n.depth || 0) === (Math.max(...(nodesRaw.map((x: any) => x.depth || 0))) || 0),
+                  status: 'completed',
+                  timestamp: new Date().toLocaleTimeString(),
+                  worldTime: new Date().toISOString(),
+                  meta: n.meta || {}
+                }));
+
+                let agents: any[] = [];
+                const firstNode = nodesRaw.find((n: any) => Number(n.id) === Number(nodes[0]?.id));
+                const simSnap = firstNode?.sim || {};
+                const latestAgents = simSnap?.agents || re.agents || [];
+                if (Array.isArray(latestAgents)) {
+                  agents = latestAgents.map((a: any, idx: number) => mapAgent(a, idx, Number(simSnap?.turns || re.turns || 0)));
+                } else if (latestAgents && typeof latestAgents === 'object') {
+                  agents = Object.keys(latestAgents).map((k: string, idx: number) => {
+                    const a = (latestAgents as any)[k] || {};
+                    return mapAgent({ ...a, name: a.name || k }, idx, Number(simSnap?.turns || re.turns || 0));
+                  });
+                }
+
+                const turnVal = Number(simSnap?.turns || re.turns || 0);
+                const eventsRe = (() => {
+                  const direct = Array.isArray((re as any).events)
+                    ? (re as any).events
+                    : Array.isArray((re as any).sim_events)
+                      ? (re as any).sim_events
+                      : [];
+                  const fromNodes: any[] = [];
+                  nodesRaw.forEach((n: any) => {
+                    if (Array.isArray(n?.logs)) {
+                      fromNodes.push(...n.logs);
+                    }
+                  });
+                  return (direct && direct.length > 0) ? direct : fromNodes;
+                })();
+                const logsMapped = mapBackendEventsToLogs(eventsRe, nodes[0]?.id ?? '0', turnVal, agents, false).filter(Boolean) as any[];
+
+                useSimulationStore.setState({
+                  currentSimulation: sim,
+                  nodes,
+                  selectedNodeId: nodes[0]?.id ?? null,
+                  agents,
+                  logs: logsMapped,
+                  rawEvents: eventsRe
+                } as any);
+                return;
+              }
+            }
+          } catch (e) {
+            console.warn('rehydrate primary load failed, will continue', e);
+          }
+
           // If backend connected mode is available, prefer live graph/state/events
           if (engineConfig.mode === 'connected') {
             try {
               const graph = await getTreeGraph(engineConfig.endpoint, sim.id, token).catch(() => null);
-              const simState = await getSimState(engineConfig.endpoint, sim.id, token).catch(() => null);
-              const events = await getSimEvents(engineConfig.endpoint, sim.id, graph?.root ?? null, token).catch(() => []);
+              const rootNodeId = graph?.root != null
+                ? Number(graph.root)
+                : (graph?.nodes && graph.nodes.length > 0 ? Number(graph.nodes[0].id) : null);
+              const simState = rootNodeId != null
+                ? await getSimState(engineConfig.endpoint, sim.id, rootNodeId, token).catch(() => null)
+                : null;
+              const events = rootNodeId != null
+                ? await getSimEvents(engineConfig.endpoint, sim.id, rootNodeId, token).catch(() => [])
+                : [];
 
               const mapGraphToNodes = (graph: any) => {
                 const parentMap = new Map<number, number | null>();
@@ -544,26 +618,41 @@ const SimulationPage: React.FC = () => {
               };
 
               const nodes = graph ? mapGraphToNodes(graph) : [];
+              if (!nodes || nodes.length <= 1) {
+                throw new Error('graph missing descendant nodes, will fallback');
+              }
 
-              const agents = (simState?.agents || []).map((a: any, idx: number) => ({
-                id: `a-${idx}-${a.name}`,
-                name: a.name,
-                role: a.role || '',
-                avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
-                profile: '',
-                llmConfig: { provider: 'mock', model: 'default' },
-                properties: {},
-                history: {},
-                memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simState?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                knowledgeBase: []
-              }));
+              const turnVal = Number(simState?.turns || 0);
+              const agents = (simState?.agents || []).map((a: any, idx: number) => mapAgent(a, idx, turnVal));
+              const nodeIdForLogs = rootNodeId != null ? String(rootNodeId) : nodes[0]?.id ?? '0';
+
+              // If live events are empty, try to pull persisted events from simulation snapshot or node logs
+              const persistedEvents = Array.isArray((sim as any).latest_state?.events)
+                ? (sim as any).latest_state.events
+                : Array.isArray((sim as any).latest_state?.sim_events)
+                  ? (sim as any).latest_state.sim_events
+                  : [];
+              const persistedNodeLogs: any[] = [];
+              const latestNodes = (sim as any).latest_state?.nodes;
+              if (Array.isArray(latestNodes)) {
+                latestNodes.forEach((n: any) => {
+                  if (Array.isArray(n?.logs)) persistedNodeLogs.push(...n.logs);
+                });
+              }
+              const eventsForLogs = (events && events.length > 0)
+                ? events
+                : (persistedEvents && persistedEvents.length > 0)
+                  ? persistedEvents
+                  : persistedNodeLogs;
+              const logsMapped = mapBackendEventsToLogs(eventsForLogs || [], nodeIdForLogs, turnVal, agents, false).filter(Boolean) as any[];
 
               useSimulationStore.setState({
                 currentSimulation: sim,
                 nodes,
                 selectedNodeId: graph && graph.root != null ? String(graph.root) : nodes[0]?.id ?? null,
                 agents: agents,
-                rawEvents: events || []
+                logs: logsMapped,
+                rawEvents: eventsForLogs || []
               } as any);
               return;
             } catch (e) {
@@ -596,40 +685,33 @@ const SimulationPage: React.FC = () => {
                 const matched = nodesRaw.find((n: any) => Number(n.id) === Number(nodes[0]?.id));
                 const simSnap = matched?.sim || {};
                 const latestAgents = simSnap?.agents || latest.agents || [];
-                if (latestAgents && typeof latestAgents === 'object') {
-                  if (Array.isArray(latestAgents)) {
-                    agents = latestAgents.map((a: any, idx: number) => ({
-                      id: `a-${idx}-${a.name}`,
-                      name: a.name,
-                      role: a.role || (a.properties || {}).role || '',
-                      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
-                      profile: '',
-                      llmConfig: { provider: 'mock', model: 'default' },
-                      properties: a.properties || {},
-                      history: {},
-                      memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                      knowledgeBase: []
-                    }));
-                  } else {
-                    // dict mapping
-                    agents = Object.keys(latestAgents).map((k: string, idx: number) => {
-                      const a = (latestAgents as any)[k] || {};
-                      return {
-                        id: `a-${idx}-${a.name || k}`,
-                        name: a.name || k,
-                        role: a.role || (a.properties || {}).role || '',
-                        avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || k)}`,
-                        profile: '',
-                        llmConfig: { provider: 'mock', model: 'default' },
-                        properties: a.properties || {},
-                        history: {},
-                        memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                        knowledgeBase: []
-                      };
-                    });
-                  }
-                }
+                 if (latestAgents && typeof latestAgents === 'object') {
+                   if (Array.isArray(latestAgents)) {
+                     agents = latestAgents.map((a: any, idx: number) => mapAgent(a, idx, Number(simSnap?.turns || 0)));
+                   } else {
+                     agents = Object.keys(latestAgents).map((k: string, idx: number) => {
+                       const a = (latestAgents as any)[k] || {};
+                       return mapAgent({ ...a, name: a.name || k }, idx, Number(simSnap?.turns || 0));
+                     });
+                   }
+                 }
               }
+
+              const turnVal = (() => {
+                if (Array.isArray(nodesRaw)) {
+                  const matched = nodesRaw.find((n: any) => Number(n.id) === Number(nodes[0]?.id));
+                  return Number((matched?.sim || {}).turns || latest.turns || 0);
+                }
+                return Number(latest.turns || 0);
+              })();
+
+              const eventsFromLatest = Array.isArray((latest as any).events)
+                ? (latest as any).events
+                : Array.isArray((latest as any).sim_events)
+                  ? (latest as any).sim_events
+                  : [];
+              const nodeIdForLogs = nodes[0]?.id ?? '0';
+              const logsMapped = mapBackendEventsToLogs(eventsFromLatest, nodeIdForLogs, turnVal, agents, false).filter(Boolean) as any[];
 
               // If we have zero agents from persisted latest_state, try server-side rehydrate
               if (!agents || agents.length === 0) {
@@ -653,41 +735,33 @@ const SimulationPage: React.FC = () => {
                     let agents2: any[] = [];
                     try {
                       const firstNode = nodesRaw2.find((n: any) => Number(n.id) === Number(nodes2[0]?.id));
-                      const simSnap2 = firstNode?.sim || {};
-                      const latestAgents2 = simSnap2?.agents || re.agents || [];
-                      if (Array.isArray(latestAgents2)) {
-                        agents2 = latestAgents2.map((a: any, idx: number) => ({
-                          id: `a-${idx}-${a.name}`,
-                          name: a.name,
-                          role: a.role || (a.properties || {}).role || '',
-                          avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
-                          profile: '',
-                          llmConfig: { provider: 'mock', model: 'default' },
-                          properties: a.properties || {},
-                          history: {},
-                          memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                          knowledgeBase: []
-                        }));
-                      } else if (latestAgents2 && typeof latestAgents2 === 'object') {
-                        agents2 = Object.keys(latestAgents2).map((k: string, idx: number) => {
-                          const a = (latestAgents2 as any)[k] || {};
-                          return {
-                            id: `a-${idx}-${a.name || k}`,
-                            name: a.name || k,
-                            role: a.role || (a.properties || {}).role || '',
-                            avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || k)}`,
-                            profile: '',
-                            llmConfig: { provider: 'mock', model: 'default' },
-                            properties: a.properties || {},
-                            history: {},
-                            memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                            knowledgeBase: []
-                          };
+                      const simSnap = firstNode?.sim || {};
+                      const latestAgents = simSnap?.agents || re.agents || [];
+                      if (Array.isArray(latestAgents)) {
+                        agents2 = latestAgents.map((a: any, idx: number) => mapAgent(a, idx, Number(simSnap?.turns || 0)));
+                      } else if (latestAgents && typeof latestAgents === 'object') {
+                        agents2 = Object.keys(latestAgents).map((k: string, idx: number) => {
+                          const a = (latestAgents as any)[k] || {};
+                          return mapAgent({ ...a, name: a.name || k }, idx, Number(simSnap?.turns || 0));
                         });
                       }
                     } catch (e) {
                       console.warn('rehydrate parsing failed', e);
                     }
+
+                    const turnVal2 = (() => {
+                      if (Array.isArray(nodesRaw2)) {
+                        const matched = nodesRaw2.find((n: any) => Number(n.id) === Number(nodes2[0]?.id));
+                        return Number((matched?.sim || {}).turns || re.turns || 0);
+                      }
+                      return Number(re.turns || 0);
+                    })();
+                    const events2 = Array.isArray((re as any).events)
+                      ? (re as any).events
+                      : Array.isArray((re as any).sim_events)
+                        ? (re as any).sim_events
+                        : [];
+                    const logsMapped2 = mapBackendEventsToLogs(events2, nodes2[0]?.id ?? '0', turnVal2, agents2, false).filter(Boolean) as any[];
 
                     if (agents2 && agents2.length > 0) {
                       useSimulationStore.setState({
@@ -695,7 +769,8 @@ const SimulationPage: React.FC = () => {
                         nodes: nodes2,
                         selectedNodeId: nodes2[0]?.id ?? null,
                         agents: agents2,
-                        rawEvents: []
+                        logs: logsMapped2,
+                        rawEvents: events2
                       } as any);
                       return;
                     }
@@ -710,7 +785,8 @@ const SimulationPage: React.FC = () => {
                 nodes,
                 selectedNodeId: nodes[0]?.id ?? null,
                 agents: agents,
-                rawEvents: []
+                logs: logsMapped,
+                rawEvents: eventsFromLatest
               } as any);
               return;
             }

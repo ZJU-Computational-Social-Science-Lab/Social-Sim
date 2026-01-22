@@ -367,7 +367,12 @@ class SimTreeRegistry:
             record = self._records.get(key)
             if record is not None:
                 return record
-            tree = await asyncio.to_thread(_build_tree_for_sim, sim_record, clients)
+            # 如果存在持久化的 latest_state，优先用它反序列化以恢复节点/日志
+            persisted_state = getattr(sim_record, "latest_state", None)
+            if isinstance(persisted_state, dict) and persisted_state.get("nodes"):
+                tree = await asyncio.to_thread(SimTree.deserialize, persisted_state, clients or make_clients_from_env())
+            else:
+                tree = await asyncio.to_thread(_build_tree_for_sim, sim_record, clients)
             record = SimTreeRecord(tree)
             loop = asyncio.get_running_loop()
             tree.attach_event_loop(loop)

@@ -265,6 +265,7 @@ async def reset_simulation(request: Request, simulation_id: str) -> Message:
         # 清空日志与快照，移除运行态树
         await session.execute(sa_delete(SimulationLog).where(SimulationLog.simulation_id == sim.id))
         await session.execute(sa_delete(SimulationSnapshot).where(SimulationSnapshot.simulation_id == sim.id))
+        sim.latest_state = None
         await session.commit()
         SIM_TREE_REGISTRY.remove(sim.id)
 
@@ -301,6 +302,8 @@ async def create_snapshot(
             meta={},
         )
         session.add(snapshot)
+        # 同步更新 simulation.latest_state，方便重启后恢复
+        sim.latest_state = tree_state
         await session.commit()
         await session.refresh(snapshot)
         return SnapshotBase.model_validate(snapshot)
@@ -471,7 +474,7 @@ async def simulation_tree_advance_frontier(
     data: SimulationTreeAdvanceFrontierPayload,
 ) -> dict:
     async with get_session() as session:
-        _, record = await _get_simulation_and_tree_any(session, simulation_id)
+        sim, record = await _get_simulation_and_tree_any(session, simulation_id)
         tree = record.tree
         parents = tree.frontier(True) if data.only_max_depth else tree.leaves()
         turns = int(data.turns)
@@ -511,6 +514,9 @@ async def simulation_tree_advance_frontier(
             if cid in record.running:
                 record.running.remove(cid)
             _broadcast(record, {"type": "run_finish", "data": {"node": int(cid)}})
+        # 持久化最新树状态，便于重启后恢复
+        sim.latest_state = tree.serialize()
+        await session.commit()
         return {"children": [int(c) for c in produced]}
 
 
@@ -521,7 +527,7 @@ async def simulation_tree_advance_multi(
     data: SimulationTreeAdvanceMultiPayload,
 ) -> dict:
     async with get_session() as session:
-        _, record = await _get_simulation_and_tree_any(session, simulation_id)
+        sim, record = await _get_simulation_and_tree_any(session, simulation_id)
         tree = record.tree
         parent = int(data.parent)
         count = int(data.count)
@@ -562,6 +568,8 @@ async def simulation_tree_advance_multi(
             if cid in record.running:
                 record.running.remove(cid)
             _broadcast(record, {"type": "run_finish", "data": {"node": int(cid)}})
+        sim.latest_state = tree.serialize()
+        await session.commit()
         return {"children": [int(c) for c in result_children]}
 
 
@@ -572,7 +580,7 @@ async def simulation_tree_advance_chain(
     data: SimulationTreeAdvanceChainPayload,
 ) -> dict:
     async with get_session() as session:
-        _, record = await _get_simulation_and_tree_any(session, simulation_id)
+        sim, record = await _get_simulation_and_tree_any(session, simulation_id)
         tree = record.tree
         parent = int(data.parent)
         steps = max(1, int(data.turns))
@@ -606,6 +614,8 @@ async def simulation_tree_advance_chain(
                 record.running.remove(cid)
             _broadcast(record, {"type": "run_finish", "data": {"node": int(cid)}})
             last = cid
+        sim.latest_state = tree.serialize()
+        await session.commit()
         return {"child": int(last)}
 
 
@@ -616,7 +626,7 @@ async def simulation_tree_branch(
     data: SimulationTreeBranchPayload,
 ) -> dict:
     async with get_session() as session:
-        _, record = await _get_simulation_and_tree_any(session, simulation_id)
+        sim, record = await _get_simulation_and_tree_any(session, simulation_id)
         tree = record.tree
         cid = tree.branch(int(data.parent), [dict(op) for op in data.ops])
         node = tree.nodes[cid]
@@ -633,6 +643,8 @@ async def simulation_tree_branch(
                 },
             },
         )
+        sim.latest_state = tree.serialize()
+        await session.commit()
         return {"child": int(cid)}
 
 

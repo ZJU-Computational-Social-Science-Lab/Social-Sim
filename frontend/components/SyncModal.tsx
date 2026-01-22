@@ -28,6 +28,9 @@ export const SyncModal: React.FC = () => {
 
         <div className="p-4 flex-1 overflow-auto">
           <div className="text-sm text-slate-600 mb-3">同步日志：</div>
+          <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-3">
+            操作会将当前仿真覆盖保存到后端同名记录，不会再自动创建草稿，请确认后再执行。
+          </div>
           <div className="bg-slate-100 rounded p-3 h-64 overflow-auto font-mono text-xs">
             {(logs && logs.length) ? (
               logs.map((l, i) => (
@@ -71,7 +74,12 @@ export const SyncModal: React.FC = () => {
             className="px-3 py-2 rounded border text-sm"
           >下载日志</button>
           <button
-            onClick={() => { sync(); }}
+            onClick={() => {
+              if (isSyncing) return;
+              const ok = window.confirm('确认将当前仿真保存到后端？这会覆盖同名记录。');
+              if (!ok) return;
+              sync();
+            }}
             className={`px-4 py-2 rounded text-sm font-medium ${isSyncing ? 'bg-slate-300 text-slate-700 cursor-wait' : 'bg-brand-600 text-white hover:bg-brand-700'}`}
             disabled={isSyncing}
           >

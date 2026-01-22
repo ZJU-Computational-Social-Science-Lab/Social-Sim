@@ -1487,72 +1487,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     });
     get().addNotification('success', `仿真 "${name}" 创建成功`);
 
-    // 异步：如果用户已登录，尝试自动将本地仿真保存到后端
-    (async () => {
-      try {
-        const auth = useAuthStore.getState();
-        if (!auth?.isAuthenticated) return;
-        // 显示正在保存的 spinner
-        set({ isGenerating: true });
-
-        const endpoint = state.engineConfig.endpoint;
-        const token = (state.engineConfig as any).token as string | undefined;
-
-        // 构造后端所需的 payload，保持与 connected 分支一致
-        const mapSceneType: Record<string, string> = {
-          village: 'village_scene',
-          council: 'council_scene',
-          werewolf: 'werewolf_scene'
-        };
-        const backendSceneType = mapSceneType[template.sceneType] || template.sceneType;
-
-        const payload: any = {
-          scene_type: backendSceneType,
-          scene_config: {
-            time_scale: timeConfig || template.defaultTimeConfig || DEFAULT_TIME_CONFIG,
-            social_network: template.defaultNetwork || {}
-          },
-          agent_config: {
-            agents: (finalAgents || []).map((a) => ({
-              name: a.name,
-              profile: a.profile,
-              role: (a as any).role,
-              avatarUrl: (a as any).avatarUrl,
-              llmConfig: (a as any).llmConfig,
-              properties: (() => {
-                const props = { ...(a as any).properties };
-                if ((a as any).role && !props.role) props.role = (a as any).role;
-                return props;
-              })(),
-              history: (a as any).history || {},
-              memory: (a as any).memory || [],
-              knowledgeBase: (a as any).knowledgeBase || [],
-              action_space: Array.isArray((a as any).action_space) ? (a as any).action_space : ['send_message']
-            }))
-          },
-          llm_provider_id: state.selectedProviderId || state.currentProviderId || undefined,
-          name: name || undefined
-        };
-
-        // 使用已有的 API wrapper（createSimulation），兼容旧签名
-        try {
-          const { createSimulation } = await import('./services/simulations');
-          const saved = await createSimulation(endpoint, payload, token);
-          if (saved && saved.id) {
-            // 用后端 id 更新本地 simulation，确保后续 resume/list 能找到它
-            set((s) => ({
-              simulations: s.simulations.map(sim => sim === newSim ? { ...sim, id: saved.id } : sim),
-              currentSimulation: { ...s.currentSimulation!, id: saved.id }
-            } as any));
-            get().addNotification('success', pickText('Auto-saved to backend', '已自动保存至后端'));
-          }
-        } catch (e) {
-          console.warn('自动保存仿真到后端失败', e);
-        }
-      } finally {
-        set({ isGenerating: false });
-      }
-    })();
+    // 关闭自动保存：仅手动同步时写入后端，避免运行中产生草稿
   },
 
   updateTimeConfig: (config) => {
@@ -1603,6 +1538,16 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       set((s) => ({ syncLogs: [...s.syncLogs, '[ERROR] 未找到当前仿真'] } as any));
       return;
     }
+    if (state.engineConfig.mode !== 'connected') {
+      get().addNotification('error', '仅连接模式可保存到后端');
+      return;
+    }
+    const simId = state.currentSimulation.id || '';
+    const isLocalOnly = /^sim\d+/i.test(simId) || /^Simulation_\d+$/i.test(simId);
+    if (isLocalOnly) {
+      get().addNotification('error', '当前仿真尚未在后端创建，无法直接覆盖，请先在连接模式创建/加载后再保存');
+      return;
+    }
     set({ isSyncing: true, syncLogs: [] });
     const sim = state.currentSimulation;
     try {
@@ -1638,6 +1583,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       const syncLogId = res?.sync_log_id;
       const taskId = res?.task_id;
       set((s) => ({ syncLogs: [...s.syncLogs, `[OK] 后端已接收同步请求 (sync_log=${syncLogId}, task=${taskId})`] } as any));
+      get().addNotification('info', '已提交保存请求，后台处理中');
 
       // Poll for updates until finished/error or timeout
       const start = Date.now();
@@ -2521,62 +2467,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   useAuthStore.subscribe((s) => {
     const nowAuth = s.isAuthenticated;
     if (!lastAuthState && nowAuth) {
-      // user just logged in: attempt to sync local sims
-      (async () => {
-        try {
-          const state = useSimulationStore.getState();
-          const localSims = state.simulations.filter((sim) => typeof sim.id === 'string' && /^sim\d+/.test(sim.id));
-          if (!localSims.length) return;
-          setTimeout(async () => {
-            try {
-              const endpoint = state.engineConfig.endpoint;
-              const token = (state.engineConfig as any).token as string | undefined;
-              const { createSimulation } = await import('./services/simulations');
-              for (const sim of localSims) {
-                // build minimal payload from sim (we don't have full template here)
-                const payload: any = {
-                  scene_type: sim.templateId || 'village',
-                  scene_config: sim.timeConfig || {},
-                  social_network: sim.socialNetwork || {},
-                  agent_config: { agents: state.agents.map(a => ({
-                    name: a.name,
-                    profile: a.profile,
-                    role: (a as any).role,
-                    avatarUrl: (a as any).avatarUrl,
-                    llmConfig: (a as any).llmConfig,
-                    properties: (() => {
-                      const props = { ...(a as any).properties };
-                      if ((a as any).role && !props.role) props.role = (a as any).role;
-                      return props;
-                    })(),
-                    history: (a as any).history || {},
-                    memory: (a as any).memory || [],
-                    knowledgeBase: (a as any).knowledgeBase || [],
-                    action_space: Array.isArray((a as any).action_space) ? (a as any).action_space : ['send_message']
-                  }) )},
-                  name: sim.name
-                };
-                try {
-                  const saved = await createSimulation(endpoint, payload, token);
-                  if (saved && saved.id) {
-                    useSimulationStore.setState((s) => ({
-                      simulations: s.simulations.map(x => x === sim ? { ...x, id: saved.id } : x),
-                      currentSimulation: s.currentSimulation && s.currentSimulation.id === sim.id ? { ...s.currentSimulation, id: saved.id } : s.currentSimulation
-                    } as any));
-                    useSimulationStore.getState().addNotification('success', `本地仿真 "${sim.name}" 已同步到后端`);
-                  }
-                } catch (err) {
-                  console.warn('同步本地仿真到后端失败', err);
-                }
-              }
-            } catch (e) {
-              console.warn('同步本地仿真过程失败', e);
-            }
-          }, 400);
-        } catch (e) {
-          console.warn('同步本地仿真失败', e);
-        }
-      })();
+      // 关闭自动同步以避免误创建草稿，用户需手动点击“保存到后端”
     }
     lastAuthState = nowAuth;
   });
