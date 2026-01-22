@@ -17,6 +17,14 @@ export interface LLMConfig {
   model: string;
 }
 
+export interface UploadedAsset {
+  url: string;
+  filename: string;
+  size: number;
+  content_type: string;
+  extracted_text?: string | null;
+}
+
 // # Integration: Platform Connection Status
 export type EngineMode = 'standalone' | 'connected';
 
@@ -67,8 +75,19 @@ export interface LogEntry {
   agentId?: string;
   content: string;
   imageUrl?: string; // #24 Multimodal Content
+  audioUrl?: string;
+  videoUrl?: string;
   timestamp: string;
   round: number;
+}
+
+export interface InitialEventItem {
+  id: string;
+  title: string;
+  content: string;
+  imageUrl?: string;
+  audioUrl?: string;
+  videoUrl?: string;
 }
 
 // #9 Time Configuration

@@ -102,7 +102,17 @@
       "neverTested": "never tested",
       "loading": "Loading…",
       "error": "Unable to load providers.",
-      "none": "No providers added yet."
+      "none": "No providers added yet.",
+      "capabilities": {
+        "title": "Capabilities & cost guide",
+        "hint": "Pick models that match your workload: cheaper ones for agent turns, premium ones for summaries.",
+        "context": "Context",
+        "input": "Input",
+        "output": "Output",
+        "modalities": "Modalities",
+        "note": "Notes",
+        "disclaimer": "Prices are reference per 1M tokens (Dec 2024). Confirm current pricing with each provider."
+      }
     }
   },
   "wizard": {

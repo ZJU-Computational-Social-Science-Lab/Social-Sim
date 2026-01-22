@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useSimulationStore } from '../store';
 import { X, FileText, Sparkles, Loader2, Calendar, Lightbulb, Users, Target } from 'lucide-react';
 
@@ -9,9 +9,11 @@ export const ReportModal: React.FC = () => {
   const currentSim = useSimulationStore(state => state.currentSimulation);
   const isGenerating = useSimulationStore(state => state.isGeneratingReport);
   const generateReport = useSimulationStore(state => state.generateReport);
+   const [lightbox, setLightbox] = useState<string | null>(null);
 
   if (!isOpen || !currentSim) return null;
   const report = currentSim.report;
+   const logs = useSimulationStore(state => state.logs);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
@@ -117,6 +119,25 @@ export const ReportModal: React.FC = () => {
                        ))}
                     </div>
                  </section>
+
+                         {/* Thumbnails from logs */}
+                         <section className="bg-white rounded-xl shadow-sm border p-6">
+                              <div className="flex items-center gap-2 text-slate-600 mb-4 pb-2 border-b">
+                                  <FileText size={18} />
+                                  <h3 className="font-bold text-lg">多模态日志缩略图</h3>
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                 {logs.filter(l => l.imageUrl).slice(-12).map((l) => (
+                                    <div key={l.id} className="bg-slate-50 border rounded p-2">
+                                       <img src={l.imageUrl} alt="thumb" className="w-full h-24 object-cover rounded cursor-pointer" onClick={() => setLightbox(l.imageUrl!)} />
+                                       <p className="text-[11px] text-slate-500 mt-1 truncate">{l.content}</p>
+                                    </div>
+                                 ))}
+                                 {logs.filter(l => l.imageUrl).length === 0 && (
+                                    <p className="text-xs text-slate-400 col-span-full">暂无图片日志</p>
+                                 )}
+                              </div>
+                         </section>
               </div>
            )}
         </div>
@@ -135,6 +156,15 @@ export const ReportModal: React.FC = () => {
              </button>
           </div>
         )}
+
+            {lightbox && (
+               <div className="fixed inset-0 z-[120] bg-black/80 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
+                  <img src={lightbox} alt="full" className="max-w-full max-h-full rounded shadow-2xl" />
+                  <button className="absolute top-4 right-4 text-white" onClick={() => setLightbox(null)}>
+                     <X size={28} />
+                  </button>
+               </div>
+            )}
       </div>
     </div>
   );

@@ -13,7 +13,7 @@ from typing import Callable, Dict, List, NamedTuple
 from socialsim4.core.agent import Agent
 from socialsim4.core.event import PublicEvent
 from socialsim4.core.llm import create_llm_client
-from socialsim4.core.llm_config import LLMConfig
+from socialsim4.core.llm_config import LLMConfig, guess_supports_vision
 from socialsim4.core.ordering import ControlledOrdering, CycledOrdering, SequentialOrdering
 from socialsim4.core.scenes.council_scene import CouncilScene
 from socialsim4.core.scenes.landlord_scene import LandlordPokerScene
@@ -71,25 +71,27 @@ def make_clients_from_env() -> Dict[str, object]:
 
 def make_clients(settings: LLMSettings) -> Dict[str, object]:
     dialect = (settings.dialect or "").lower()
-    if dialect not in {"openai", "gemini", "mock"}:
+    if dialect not in {"openai", "gemini", "mock", "ollama"}:
         raise ValueError(f"Unsupported LLM dialect: {settings.dialect}")
 
     default_models = {
         "openai": "gpt-4o-mini",
         "gemini": "gemini-2.0-flash-exp",
         "mock": "mock",
+        "ollama": "llava:latest",
     }
 
     config = LLMConfig(
         dialect=dialect,
         api_key=settings.api_key or "",
         model=settings.model or default_models[dialect],
-        base_url=settings.base_url,
+        base_url=settings.base_url or ("http://127.0.0.1:11434" if dialect == "ollama" else None),
         temperature=settings.temperature or 0.7,
         top_p=settings.top_p or 1.0,
         frequency_penalty=settings.frequency_penalty or 0.0,
         presence_penalty=settings.presence_penalty or 0.0,
         max_tokens=settings.max_tokens or 1024,
+        supports_vision=guess_supports_vision(settings.model or default_models[dialect]),
     )
 
     client = create_llm_client(config)

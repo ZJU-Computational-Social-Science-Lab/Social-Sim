@@ -1,3 +1,4 @@
+import base64
 import os
 import re
 import time
@@ -6,8 +7,9 @@ from concurrent.futures import TimeoutError as FutTimeout
 from threading import BoundedSemaphore
 from copy import deepcopy
 
-import google.generativeai as genai
 from openai import OpenAI
+import google.generativeai as genai
+import httpx
 
 from .llm_config import LLMConfig
 
@@ -15,17 +17,6 @@ from .llm_config import LLMConfig
 class LLMClient:
     def __init__(self, provider: LLMConfig):
         self.provider = provider
-
-        # 根据 dialect 初始化底层 client
-        if provider.dialect == "openai":
-            self.client = OpenAI(api_key=provider.api_key, base_url=provider.base_url)
-        elif provider.dialect == "gemini":
-            genai.configure(api_key=provider.api_key)
-            self.client = genai.GenerativeModel(provider.model)
-        elif provider.dialect == "mock":
-            self.client = _MockModel()
-        else:
-            raise ValueError(f"Unknown LLM provider dialect: {provider.dialect}")
 
         # Timeout and retry settings (environment-driven defaults)
         self.timeout_s = float(os.getenv("LLM_TIMEOUT_S", "30"))
@@ -37,6 +28,20 @@ class LLMClient:
         if max_concurrent < 1:
             max_concurrent = 1
         self._sem = BoundedSemaphore(max_concurrent)
+
+        # 根据 dialect 初始化底层 client
+        if provider.dialect == "openai":
+            self.client = OpenAI(api_key=provider.api_key, base_url=provider.base_url)
+        elif provider.dialect == "gemini":
+            genai.configure(api_key=provider.api_key)
+            self.client = genai.GenerativeModel(provider.model)
+        elif provider.dialect == "mock":
+            self.client = _MockModel()
+        elif provider.dialect == "ollama":
+            base_url = provider.base_url or os.getenv("OLLAMA_BASE_URL") or "http://127.0.0.1:11434"
+            self.client = httpx.Client(base_url=base_url, timeout=self.timeout_s)
+        else:
+            raise ValueError(f"Unknown LLM provider dialect: {provider.dialect}")
 
     # ----------- 新增：用于“强隔离模式”的 clone 方法 -----------
     def clone(self) -> "LLMClient":
@@ -67,6 +72,9 @@ class LLMClient:
             cloned.client = genai.GenerativeModel(cloned_provider.model)
         elif cloned_provider.dialect == "mock":
             cloned.client = _MockModel()
+        elif cloned_provider.dialect == "ollama":
+            base_url = cloned_provider.base_url or os.getenv("OLLAMA_BASE_URL") or "http://127.0.0.1:11434"
+            cloned.client = httpx.Client(base_url=base_url, timeout=self.timeout_s)
         else:
             raise ValueError(f"Unknown LLM provider dialect: {cloned_provider.dialect}")
 
@@ -126,14 +134,123 @@ class LLMClient:
 
     # ----------- Chat API -----------
     def chat(self, messages):
+        # 统一规范消息：支持 text + images，并在不支持 vision 的模型上降级为带占位符的纯文本
+        supports_vision = bool(getattr(self.provider, "supports_vision", False))
+
+        def _safe_media_urls(urls):
+            safe = []
+            for url in urls or []:
+                if not isinstance(url, str):
+                    continue
+                if url.startswith("http://") or url.startswith("https://") or url.startswith("data:"):
+                    safe.append(url)
+            return safe
+
+        def _merge_with_placeholders(text, images, audio, video, include_image_placeholder):
+            parts = []
+            if text:
+                parts.append(text)
+            if include_image_placeholder and images:
+                parts.append("\n".join([f"[image: {u}]" for u in images]))
+            if audio:
+                parts.append("\n".join([f"[audio: {u}]" for u in audio]))
+            if video:
+                parts.append("\n".join([f"[video: {u}]" for u in video]))
+            return "\n".join([p for p in parts if p])
+
+        def _normalize_for_openai(msgs, allow_vision):
+            norm = []
+            for m in msgs:
+                role = m.get("role")
+                if role not in ("system", "user", "assistant"):
+                    continue
+                text = m.get("content") or ""
+                images = _safe_media_urls(m.get("images"))
+                audio = _safe_media_urls(m.get("audio"))
+                video = _safe_media_urls(m.get("video"))
+                if allow_vision and images:
+                    merged_text = _merge_with_placeholders(text, [], audio, video, include_image_placeholder=False)
+                    parts = []
+                    if merged_text:
+                        parts.append({"type": "text", "text": merged_text})
+                    for url in images:
+                        if not url:
+                            continue
+                        parts.append({"type": "image_url", "image_url": {"url": url}})
+                    norm.append({"role": role, "content": parts})
+                else:
+                    content = _merge_with_placeholders(text, images, audio, video, include_image_placeholder=True)
+                    norm.append({"role": role, "content": content})
+            return norm
+
+        def _normalize_for_gemini(msgs, allow_vision):
+            norm = []
+            for m in msgs:
+                role = m.get("role")
+                if role not in ("system", "user", "assistant"):
+                    continue
+                text = m.get("content") or ""
+                images = _safe_media_urls(m.get("images"))
+                audio = _safe_media_urls(m.get("audio"))
+                video = _safe_media_urls(m.get("video"))
+                if allow_vision and images:
+                    merged_text = _merge_with_placeholders(text, [], audio, video, include_image_placeholder=False)
+                    parts = []
+                    if merged_text:
+                        parts.append({"text": merged_text})
+                    for url in images:
+                        if not url:
+                            continue
+                        parts.append({"image_url": url})
+                    norm.append({"role": ("model" if role == "assistant" else "user"), "parts": parts})
+                else:
+                    merged = _merge_with_placeholders(text, images, audio, video, include_image_placeholder=True)
+                    norm.append({"role": ("model" if role == "assistant" else "user"), "parts": [{"text": merged}]})
+            return norm
+
+        def _normalize_for_mock(msgs):
+            norm = []
+            for m in msgs:
+                role = m.get("role")
+                if role not in ("system", "user", "assistant"):
+                    continue
+                text = m.get("content") or ""
+                images = _safe_media_urls(m.get("images"))
+                audio = _safe_media_urls(m.get("audio"))
+                video = _safe_media_urls(m.get("video"))
+                merged = _merge_with_placeholders(text, images, audio, video, include_image_placeholder=True)
+                norm.append({"role": role, "content": merged})
+            return norm
+
+        def _normalize_for_ollama(msgs, allow_vision):
+            norm = []
+            for m in msgs:
+                role = m.get("role")
+                if role not in ("system", "user", "assistant"):
+                    continue
+                text = m.get("content") or ""
+                images = _safe_media_urls(m.get("images"))
+                audio = _safe_media_urls(m.get("audio"))
+                video = _safe_media_urls(m.get("video"))
+                entry = {
+                    "role": role,
+                    "content": _merge_with_placeholders(
+                        text,
+                        [] if allow_vision else images,
+                        audio,
+                        video,
+                        include_image_placeholder=not allow_vision,
+                    ),
+                }
+                if allow_vision and images:
+                    entry["images"] = images
+                norm.append(entry)
+            return norm
+
         if self.provider.dialect == "openai":
 
             def _do():
-                msgs = [
-                    {"role": m["role"], "content": m["content"]}
-                    for m in messages
-                    if m["role"] in ("system", "user", "assistant")
-                ]
+                msgs = _normalize_for_openai(messages, supports_vision)
                 resp = self.client.chat.completions.create(
                     model=self.provider.model,
                     messages=msgs,
@@ -150,14 +267,7 @@ class LLMClient:
         if self.provider.dialect == "gemini":
 
             def _do():
-                contents = [
-                    {
-                        "role": ("model" if m["role"] == "assistant" else "user"),
-                        "parts": [{"text": m["content"]}],
-                    }
-                    for m in messages
-                    if m["role"] in ("system", "user", "assistant")
-                ]
+                contents = _normalize_for_gemini(messages, supports_vision)
                 resp = self.client.generate_content(
                     contents,
                     generation_config={
@@ -185,7 +295,47 @@ class LLMClient:
         if self.provider.dialect == "mock":
 
             def _do():
-                return self.client.chat(messages)
+                msgs = _normalize_for_mock(messages)
+                return self.client.chat(msgs)
+
+            return self._with_timeout_and_retry(_do)
+
+        if self.provider.dialect == "ollama":
+
+            def _encode_images(urls):
+                encoded = []
+                for url in urls or []:
+                    if url.startswith("data:"):
+                        parts = url.split(",", 1)
+                        if len(parts) == 2:
+                            encoded.append(parts[1])
+                        continue
+                    resp = self.client.get(url)
+                    resp.raise_for_status()
+                    encoded.append(base64.b64encode(resp.content).decode("utf-8"))
+                return encoded
+
+            def _do():
+                msgs = _normalize_for_ollama(messages, supports_vision)
+                for m in msgs:
+                    if supports_vision and m.get("images"):
+                        m["images"] = _encode_images(m.get("images"))
+                payload = {
+                    "model": self.provider.model,
+                    "messages": msgs,
+                    "stream": False,
+                    "options": {
+                        "temperature": self.provider.temperature,
+                        "top_p": self.provider.top_p,
+                        "num_predict": self.provider.max_tokens,
+                    },
+                }
+                resp = self.client.post("/api/chat", json=payload, timeout=self.timeout_s)
+                resp.raise_for_status()
+                data = resp.json()
+                message = data.get("message") or {}
+                content = message.get("content") or data.get("response") or ""
+                return str(content).strip()
 
             return self._with_timeout_and_retry(_do)
 
@@ -219,6 +369,26 @@ class LLMClient:
         if self.provider.dialect == "mock":
             return ""
 
+        if self.provider.dialect == "ollama":
+
+            def _do():
+                payload = {
+                    "model": self.provider.model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": self.provider.temperature,
+                        "top_p": self.provider.top_p,
+                        "num_predict": self.provider.max_tokens,
+                    },
+                }
+                resp = self.client.post("/api/generate", json=payload, timeout=self.timeout_s)
+                resp.raise_for_status()
+                data = resp.json()
+                return str(data.get("response") or "").strip()
+
+            return self._with_timeout_and_retry(_do)
+
         raise ValueError(f"Unknown LLM dialect: {self.provider.dialect}")
 
     # ----------- Embedding API -----------
@@ -247,6 +417,20 @@ class LLMClient:
 
         if self.provider.dialect == "mock":
             return []
+
+        if self.provider.dialect == "ollama":
+
+            def _do():
+                payload = {"model": self.provider.model, "prompt": text}
+                resp = self.client.post("/api/embeddings", json=payload, timeout=self.timeout_s)
+                resp.raise_for_status()
+                data = resp.json()
+                embedding = data.get("embedding")
+                if embedding is None:
+                    raise ValueError("Ollama did not return embedding")
+                return embedding
+
+            return self._with_timeout_and_retry(_do)
 
         raise ValueError(f"Unknown LLM dialect: {self.provider.dialect}")
 

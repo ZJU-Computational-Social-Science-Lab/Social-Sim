@@ -11,6 +11,41 @@ import { Link2Icon, TrashIcon, FilePlusIcon, StarIcon, StarFilledIcon, EyeOpenIc
 
 type Tab = "profile" | "security" | "providers_llm" | "providers_search";
 
+const capabilityRows = [
+  {
+    model: "gpt-4o-mini",
+    context: "128k",
+    input: "$0.15 / 1M",
+    output: "$0.60 / 1M",
+    modalities: "Text, Image",
+    note: "Good default for agent turns and bulk actions",
+  },
+  {
+    model: "gpt-4o",
+    context: "128k",
+    input: "$5.00 / 1M",
+    output: "$15.00 / 1M",
+    modalities: "Text, Image, Audio",
+    note: "Higher quality, handles multimodal logs",
+  },
+  {
+    model: "gemini-1.5-flash",
+    context: "1M",
+    input: "$0.35 / 1M",
+    output: "$1.05 / 1M",
+    modalities: "Text, Image, Audio",
+    note: "Fast with long context for synthesis",
+  },
+  {
+    model: "gemini-1.5-pro",
+    context: "2M",
+    input: "$3.50 / 1M",
+    output: "$10.50 / 1M",
+    modalities: "Text, Image, Audio",
+    note: "Best quality, use sparingly",
+  },
+];
+
 // Provider type comes from ../api/providers
 
 export function SettingsPage() {
@@ -343,6 +378,38 @@ export function SettingsPage() {
                 {createProvider.isPending ? <span className="spinner" aria-hidden /> : <FilePlusIcon />}
               </button>
             </form>
+
+            <div className="card" style={{ padding: '0.6rem 0.7rem', display: 'grid', gap: '0.4rem' }}>
+              <div className="panel-subtitle" style={{ margin: 0 }}>{t('settings.providers.capabilities.title')}</div>
+              <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>{t('settings.providers.capabilities.hint')}</div>
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                {capabilityRows.map((row) => (
+                  <div key={row.model} style={{ border: '1px solid var(--border)', borderRadius: '10px', padding: '0.6rem 0.7rem', background: 'rgba(255,255,255,0.02)', display: 'grid', gap: '0.35rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '0.6rem', flexWrap: 'wrap' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: '1rem' }}>{row.model}</div>
+                        <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>{t('settings.providers.capabilities.modalities')}: {row.modalities}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                        <span className="pill" style={{ background: 'rgba(37, 99, 235, 0.12)', color: '#1d4ed8', padding: '0.2rem 0.45rem', borderRadius: '999px', fontSize: '0.85rem' }}>
+                          {t('settings.providers.capabilities.context')}: {row.context}
+                        </span>
+                        <span className="pill" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#059669', padding: '0.2rem 0.45rem', borderRadius: '999px', fontSize: '0.85rem' }}>
+                          {t('settings.providers.capabilities.input')}: {row.input}
+                        </span>
+                        <span className="pill" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#b45309', padding: '0.2rem 0.45rem', borderRadius: '999px', fontSize: '0.85rem' }}>
+                          {t('settings.providers.capabilities.output')}: {row.output}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>
+                      {t('settings.providers.capabilities.note')}: {row.note}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{t('settings.providers.capabilities.disclaimer')}</div>
+            </div>
           </>
         )}
 

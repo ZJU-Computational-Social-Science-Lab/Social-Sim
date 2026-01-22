@@ -17,11 +17,12 @@ import {
   GuideMessage,
   GuideActionType,
   EngineConfig,
-  EngineMode
+  EngineMode,
+  InitialEventItem
 } from './types';
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { createSimulation as createSimulationApi, getSimulation as getSimulationApi } from './services/simulations';
+import { createSimulation as createSimulationApi, getSimulation as getSimulationApi, resetSimulation as resetSimulationApi, deleteSimulation as deleteSimulationApi } from './services/simulations';
 import {
   getTreeGraph,
   treeAdvanceChain,
@@ -43,6 +44,17 @@ import { useAuthStore } from './store/auth';
 // Module-scope WebSocket handle to avoid duplicate connections
 let _treeSocket: WebSocket | null = null;
 let _treeSocketRefreshTimer: number | null = null;
+
+const closeTreeSocket = () => {
+  if (_treeSocket) {
+    try { _treeSocket.close(); } catch (e) { /* ignore */ }
+    _treeSocket = null;
+  }
+  if (_treeSocketRefreshTimer) {
+    window.clearTimeout(_treeSocketRefreshTimer);
+    _treeSocketRefreshTimer = null;
+  }
+};
 
 interface AppState {
   // # Integration: Engine Config
@@ -113,11 +125,19 @@ interface AppState {
   saveTemplate: (name: string, description: string) => void; // #20
   deleteTemplate: (id: string) => void; // #20
 
+  exitSimulation: () => void;
+  resetSimulation: () => Promise<void>;
+  deleteSimulation: () => Promise<void>;
+
   // #22 Social Network
   updateSocialNetwork: (network: SocialNetwork) => void;
 
   // #14 Report
   generateReport: () => Promise<void>;
+
+  exitSimulation: () => void;
+  resetSimulation: () => Promise<void>;
+  deleteSimulation: () => Promise<void>;
 
   selectNode: (id: string) => void;
   setCompareTarget: (id: string | null) => void;
@@ -132,10 +152,16 @@ interface AppState {
   toggleSaveTemplate: (isOpen: boolean) => void; // #20
   toggleNetworkEditor: (isOpen: boolean) => void; // #22
   toggleReportModal: (isOpen: boolean) => void; // #14
+  toggleInitialEvents: (isOpen: boolean) => void;
+
+  initialEvents: InitialEventItem[];
+  isInitialEventsOpen: boolean;
 
   // Host Actions #16
-  injectLog: (type: LogEntry['type'], content: string, imageUrl?: string) => void; // #24 Updated signature
+  injectLog: (type: LogEntry['type'], content: string, imageUrl?: string, audioUrl?: string, videoUrl?: string) => void; // #24 Updated signature
+  addInitialEvent: (title: string, content: string, imageUrl?: string, audioUrl?: string, videoUrl?: string) => void;
   updateAgentProperty: (agentId: string, property: string, value: any) => void;
+  updateAgentProfile: (agentId: string, profile: string) => void;
 
   // #23 Knowledge Base Actions
   addKnowledgeToAgent: (agentId: string, item: KnowledgeItem) => void;
@@ -1332,7 +1358,14 @@ export const useSimulationStore = create<AppState>((set, get) => ({
             scene_type: backendSceneType,
             scene_config: {
               time_scale: finalTimeConfig,
-              social_network: template.defaultNetwork || {}
+              social_network: template.defaultNetwork || {},
+              initial_events: (state.initialEvents || []).map((ev) => ({
+                content: ev.content,
+                title: ev.title,
+                images: ev.imageUrl ? [ev.imageUrl] : [],
+                audio: ev.audioUrl ? [ev.audioUrl] : [],
+                video: ev.videoUrl ? [ev.videoUrl] : [],
+              })),
             },
             agent_config: {
               agents: (baseAgents || []).map((a) => ({
@@ -1341,7 +1374,11 @@ export const useSimulationStore = create<AppState>((set, get) => ({
                 role: (a as any).role,
                 avatarUrl: (a as any).avatarUrl,
                 llmConfig: (a as any).llmConfig,
-                properties: (a as any).properties || {},
+                properties: (() => {
+                  const props = { ...(a as any).properties };
+                  if ((a as any).role && !props.role) props.role = (a as any).role;
+                  return props;
+                })(),
                 history: (a as any).history || {},
                 memory: (a as any).memory || [],
                 knowledgeBase: (a as any).knowledgeBase || [],
@@ -1482,7 +1519,11 @@ export const useSimulationStore = create<AppState>((set, get) => ({
               role: (a as any).role,
               avatarUrl: (a as any).avatarUrl,
               llmConfig: (a as any).llmConfig,
-              properties: (a as any).properties || {},
+              properties: (() => {
+                const props = { ...(a as any).properties };
+                if ((a as any).role && !props.role) props.role = (a as any).role;
+                return props;
+              })(),
               history: (a as any).history || {},
               memory: (a as any).memory || [],
               knowledgeBase: (a as any).knowledgeBase || [],
@@ -1580,7 +1621,11 @@ export const useSimulationStore = create<AppState>((set, get) => ({
             role: (a as any).role,
             avatarUrl: (a as any).avatarUrl,
             llmConfig: (a as any).llmConfig,
-            properties: (a as any).properties || {},
+            properties: (() => {
+              const props = { ...(a as any).properties };
+              if ((a as any).role && !props.role) props.role = (a as any).role;
+              return props;
+            })(),
             history: (a as any).history || {},
             memory: (a as any).memory || [],
             knowledgeBase: (a as any).knowledgeBase || [],
@@ -1639,6 +1684,59 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     get().addNotification('error', '报告生成功能暂未启用');
   },
 
+  exitSimulation: () => {
+    closeTreeSocket();
+    set({
+      currentSimulation: null,
+      nodes: generateNodes(),
+      selectedNodeId: 'root',
+      logs: [],
+      rawEvents: [],
+      compareTargetNodeId: null,
+      isCompareMode: false,
+    });
+    get().addNotification('info', '已退出当前模拟');
+  },
+
+  resetSimulation: async () => {
+    const state = get();
+    if (!state.currentSimulation) return;
+    try {
+      if (state.engineConfig.mode === 'connected') {
+        const token = (state.engineConfig as any).token as string | undefined;
+        await resetSimulationApi(state.currentSimulation.id);
+        const graph = await getTreeGraph(state.engineConfig.endpoint, state.currentSimulation.id, token);
+        if (graph) {
+          const nodesMapped = mapGraphToNodes(graph);
+          set({ nodes: nodesMapped, selectedNodeId: graph.root != null ? String(graph.root) : null, logs: [], rawEvents: [] });
+        }
+      } else {
+        closeTreeSocket();
+        set({ nodes: generateNodes(), selectedNodeId: 'root', logs: [], rawEvents: [] });
+      }
+      get().addNotification('success', '模拟已重置');
+    } catch (e) {
+      console.error('resetSimulation failed', e);
+      get().addNotification('error', '重置模拟失败');
+    }
+  },
+
+  deleteSimulation: async () => {
+    const state = get();
+    if (!state.currentSimulation) return;
+    try {
+      if (state.engineConfig.mode === 'connected') {
+        await deleteSimulationApi(state.currentSimulation.id);
+      }
+      closeTreeSocket();
+      set({ currentSimulation: null, nodes: generateNodes(), selectedNodeId: 'root', logs: [], rawEvents: [], compareTargetNodeId: null, isCompareMode: false });
+      get().addNotification('success', '模拟已删除');
+    } catch (e) {
+      console.error('deleteSimulation failed', e);
+      get().addNotification('error', '删除模拟失败');
+    }
+  },
+
   selectNode: (id) => set({ selectedNodeId: id }),
   setCompareTarget: (id) => set({ compareTargetNodeId: id }),
   toggleCompareMode: (isOpen) => set({ isCompareMode: isOpen, comparisonSummary: null }),
@@ -1651,8 +1749,12 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   toggleSaveTemplate: (isOpen) => set({ isSaveTemplateOpen: isOpen }),
   toggleNetworkEditor: (isOpen) => set({ isNetworkEditorOpen: isOpen }),
   toggleReportModal: (isOpen) => set({ isReportModalOpen: isOpen }),
+    toggleInitialEvents: (isOpen) => set({ isInitialEventsOpen: isOpen }),
 
-  injectLog: (type, content, imageUrl) => set(state => {
+    initialEvents: [],
+    isInitialEventsOpen: false,
+
+  injectLog: (type, content, imageUrl, audioUrl, videoUrl) => set(state => {
     if (!state.selectedNodeId) return {};
     const log: LogEntry = {
       id: `host-${Date.now()}`,
@@ -1660,11 +1762,32 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       round: 0,
       type: type === 'SYSTEM' || type === 'ENVIRONMENT' ? type : 'HOST_INTERVENTION',
       content: content,
-      imageUrl: imageUrl,
+      imageUrl,
+      audioUrl,
+      videoUrl,
       timestamp: new Date().toISOString()
     };
     return { logs: [...state.logs, log] };
   }),
+
+    addInitialEvent: (title, content, imageUrl, audioUrl, videoUrl) => {
+      const id = `init-${Date.now()}`;
+      set(state => ({
+        initialEvents: [...(state.initialEvents || []), { id, title, content, imageUrl, audioUrl, videoUrl }],
+        logs: state.selectedNodeId ? [...state.logs, {
+          id,
+          nodeId: state.selectedNodeId,
+          round: 0,
+          type: 'ENVIRONMENT',
+          content: `[初始事件] ${title}\n${content}` + (audioUrl ? `\n[audio: ${audioUrl}]` : '') + (videoUrl ? `\n[video: ${videoUrl}]` : ''),
+          imageUrl,
+          audioUrl,
+          videoUrl,
+          timestamp: new Date().toISOString()
+        } as LogEntry] : state.logs,
+      }));
+      get().addNotification('success', '初始事件已保存');
+    },
 
   updateAgentProperty: (agentId, property, value) => {
     set(state => {
@@ -1679,6 +1802,15 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     const agentName = get().agents.find(a => a.id === agentId)?.name || agentId;
     get().injectLog('HOST_INTERVENTION', `Host 修改了 ${agentName} 的属性 [${property}] 为 ${value}`);
     get().addNotification('success', '智能体属性已更新');
+  },
+
+  updateAgentProfile: (agentId, profile) => {
+    set(state => ({
+      agents: state.agents.map(a => a.id === agentId ? { ...a, profile } : a)
+    }));
+    const agentName = get().agents.find(a => a.id === agentId)?.name || agentId;
+    get().injectLog('AGENT_METADATA', `${agentName} 的画像已更新`);
+    get().addNotification('success', '智能体画像已更新');
   },
 
   addKnowledgeToAgent: (agentId, item) => {
@@ -1731,24 +1863,29 @@ export const useSimulationStore = create<AppState>((set, get) => ({
 
             const turnVal = Number(simState?.turns ?? 0) || 0;
 
-            const agentsMapped: Agent[] = (simState?.agents || []).map((a: any, idx: number) => ({
-              id: `a-${idx}-${a.name}`,
-              name: a.name,
-              role: a.role || '',
-              avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
-              profile: a.profile || '',
-              llmConfig: { provider: 'mock', model: 'default' },
-              properties: a.properties || {},
-              history: {},
-              memory: (a.short_memory || []).map((m: any, j: number) => ({
-                id: `m-${idx}-${j}`,
-                round: turnVal,
-                content: String(m.content ?? ''),
-                type: (String(m.role ?? '') === 'assistant' || String(m.role ?? '') === 'user') ? 'dialogue' : 'observation',
-                timestamp: new Date().toISOString()
-              })),
-              knowledgeBase: []
-            }));
+            const agentsMapped: Agent[] = (simState?.agents || []).map((a: any, idx: number) => {
+              const existing = state.agents.find((ex) => ex.name === a.name);
+              const fallbackRole = a.properties && (a.properties.role || a.properties.title || a.properties.position);
+              const fallbackProfile = a.profile || a.user_profile || a.userProfile || (a.properties && (a.properties.profile || a.properties.description)) || existing?.profile || '';
+              return {
+                id: `a-${idx}-${a.name}`,
+                name: a.name,
+                role: a.role || fallbackRole || '',
+                avatarUrl: existing?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
+                profile: fallbackProfile,
+                llmConfig: existing?.llmConfig || { provider: 'mock', model: 'default' },
+                properties: a.properties || existing?.properties || {},
+                history: existing?.history || {},
+                memory: (a.short_memory || []).map((m: any, j: number) => ({
+                  id: `m-${idx}-${j}`,
+                  round: turnVal,
+                  content: String(m.content ?? ''),
+                  type: (String(m.role ?? '') === 'assistant' || String(m.role ?? '') === 'user') ? 'dialogue' : 'observation',
+                  timestamp: new Date().toISOString()
+                })),
+                knowledgeBase: existing?.knowledgeBase || []
+              };
+            });
 
             const eventsArray = Array.isArray(events) ? events : [];
             
@@ -1932,6 +2069,11 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   deleteNode: async () => {
     const state = get();
     if (!state.selectedNodeId) return;
+    const rootNode = state.nodes.find((n) => n.parentId === null);
+    if (rootNode && state.selectedNodeId === rootNode.id) {
+      get().addNotification('error', '不能删除根节点');
+      return;
+    }
     if (state.engineConfig.mode === 'connected' && state.currentSimulation) {
       try {
         const base = state.engineConfig.endpoint;
@@ -2402,7 +2544,11 @@ export const useSimulationStore = create<AppState>((set, get) => ({
                     role: (a as any).role,
                     avatarUrl: (a as any).avatarUrl,
                     llmConfig: (a as any).llmConfig,
-                    properties: (a as any).properties || {},
+                    properties: (() => {
+                      const props = { ...(a as any).properties };
+                      if ((a as any).role && !props.role) props.role = (a as any).role;
+                      return props;
+                    })(),
                     history: (a as any).history || {},
                     memory: (a as any).memory || [],
                     knowledgeBase: (a as any).knowledgeBase || [],

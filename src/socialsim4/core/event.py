@@ -29,11 +29,20 @@ class MessageEvent(Event):
 
 
 class PublicEvent(Event):
-    def __init__(self, content, prefix="Public Event"):
+    def __init__(self, content, prefix="Public Event", images=None, audio=None, video=None):
         self.content = content
         self.prefix = prefix
+        self.images = images or []
+        self.audio = audio or []
+        self.video = video or []
         self.code = "public_event"
-        self.params = {"content": content, "prefix": prefix}
+        self.params = {
+            "content": content,
+            "prefix": prefix,
+            "images": self.images,
+            "audio": self.audio,
+            "video": self.video,
+        }
 
     def to_string(self, time=None):
         time_str = _fmt_time_prefix(time)

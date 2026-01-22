@@ -42,6 +42,8 @@ import {
   Plug,
   Zap,
   LogOut,
+  RefreshCcw,
+  Trash2,
 } from "lucide-react";
 
 // ---------------- Header ----------------
@@ -50,6 +52,9 @@ const Header: React.FC = () => {
   const currentSim = useSimulationStore((state) => state.currentSimulation);
   const toggleWizard = useSimulationStore((state) => state.toggleWizard);
   const engineConfig = useSimulationStore((state) => state.engineConfig);
+  const resetSimulation = useSimulationStore((state) => state.resetSimulation);
+  const deleteSimulation = useSimulationStore((state) => state.deleteSimulation);
+  const exitSimulation = useSimulationStore((state) => state.exitSimulation);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasRestored = useAuthStore((s) => s.hasRestored);
   const loadProviders = useSimulationStore((state) => state.loadProviders);
@@ -133,6 +138,27 @@ const Header: React.FC = () => {
           className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
         >
           <Plus size={14} /> {t('simPage.newSimulation')}
+        </button>
+        <button
+          onClick={() => { if (window.confirm('重置将清空当前模拟的运行进程，确定吗？')) resetSimulation(); }}
+          className="flex items-center gap-1 px-3 py-1.5 text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-md transition-colors"
+          title="重置当前模拟"
+        >
+          <RefreshCcw size={14} /> 重置
+        </button>
+        <button
+          onClick={() => { if (window.confirm('删除后将无法恢复，确定删除当前模拟？')) deleteSimulation(); }}
+          className="flex items-center gap-1 px-3 py-1.5 text-xs text-red-700 bg-red-50 hover:bg-red-100 rounded-md transition-colors"
+          title="删除当前模拟"
+        >
+          <Trash2 size={14} /> 删除
+        </button>
+        <button
+          onClick={() => exitSimulation()}
+          className="flex items-center gap-1 px-3 py-1.5 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+          title="退出当前模拟"
+        >
+          <LogOut size={14} /> 退出
         </button>
         <Link to="/settings" className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md">
           <Settings size={18} />

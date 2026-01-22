@@ -196,6 +196,9 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         profile = str(cfg_agent.get("profile") or "")
         selected = [str(a) for a in (cfg_agent.get("action_space") or [])]
         props = dict(cfg_agent.get("properties") or {})
+        role_value = str(cfg_agent.get("role") or "").strip()
+        if role_value and "role" not in props:
+            props["role"] = role_value
         if "emotion_enabled" not in props:
             props["emotion_enabled"] = emotion_enabled
         language = _normalize_language(cfg_agent.get("language") or preferred_language)
@@ -281,12 +284,30 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         max_steps_per_turn=3 if scene_type == "landlord_scene" else 5,
         emotion_enabled=emotion_enabled,
     )
-    # Broadcast configured initial events as public events
-    for text in cfg.get("initial_events") or []:
-        if isinstance(text, str) and text.strip():
-            ev = PublicEvent(text)
+    def _normalize_initial_event(item):
+        if isinstance(item, str):
+            return {"content": item, "images": [], "audio": [], "video": []}
+        if isinstance(item, dict):
+            return {
+                "content": str(item.get("content") or ""),
+                "images": item.get("images") or [],
+                "audio": item.get("audio") or [],
+                "video": item.get("video") or [],
+            }
+        return {"content": str(item or ""), "images": [], "audio": [], "video": []}
+
+    # Broadcast configured initial events as public events (now supports media)
+    for raw in cfg.get("initial_events") or []:
+        ev_data = _normalize_initial_event(raw)
+        if ev_data["content"].strip() or ev_data["images"] or ev_data["audio"] or ev_data["video"]:
+            ev = PublicEvent(
+                ev_data["content"],
+                images=ev_data["images"],
+                audio=ev_data["audio"],
+                video=ev_data["video"],
+            )
             ev.code = "initial_event"
-            ev.params = {"content": text, "lang": preferred_language}
+            ev.params = {"content": ev_data["content"], "lang": preferred_language, "images": ev_data["images"], "audio": ev_data["audio"], "video": ev_data["video"]}
             sim.broadcast(ev)
     # For council, include draft announcement as an initial event if provided
     if scene_type == "council_scene":

@@ -1,20 +1,31 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSimulationStore } from '../store';
-import { User, Brain, Activity, ChevronDown, ChevronRight, Bot, BookOpen, Plus, FileText, Trash2 } from 'lucide-react';
+import { User, Brain, Activity, ChevronDown, ChevronRight, Bot, BookOpen, Plus, FileText, Trash2, Edit3, Save, X } from 'lucide-react';
 import { Agent, KnowledgeItem } from '../types';
+import { MultimodalInput } from './MultimodalInput';
+
+const extractMarkdownImages = (text: string): string[] => {
+  const matches = Array.from(text.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g));
+  return matches.map((m) => m[1]).filter(Boolean);
+};
 
 const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   const [isMemoryOpen, setIsMemoryOpen] = useState(true);
   const [isPropsOpen, setIsPropsOpen] = useState(false);
   const [isKBOpen, setIsKBOpen] = useState(false); // #23
+  const [isProfileEditing, setIsProfileEditing] = useState(false);
+  const [profileDraft, setProfileDraft] = useState(agent.profile);
   
   const addKnowledgeToAgent = useSimulationStore(state => state.addKnowledgeToAgent);
   const removeKnowledgeFromAgent = useSimulationStore(state => state.removeKnowledgeFromAgent);
+  const updateAgentProfile = useSimulationStore(state => state.updateAgentProfile);
+  const addNotification = useSimulationStore(state => state.addNotification);
   
   const [newKbTitle, setNewKbTitle] = useState('');
   const [newKbContent, setNewKbContent] = useState('');
   const [isAddingKB, setIsAddingKB] = useState(false);
+  const imageUrls = useMemo(() => extractMarkdownImages(newKbContent), [newKbContent]);
 
   // Helper to color code models
   const getModelBadgeStyle = (provider: string) => {
@@ -63,9 +74,52 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
           <span className="inline-block mt-1 px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full border border-slate-200">
             {agent.role}
           </span>
-          <p className="mt-2 text-xs text-slate-500 leading-relaxed">
-            {agent.profile}
-          </p>
+          {isProfileEditing ? (
+            <div className="space-y-2 mt-2">
+              <textarea
+                value={profileDraft}
+                onChange={(e) => setProfileDraft(e.target.value)}
+                className="w-full text-xs border rounded p-2 focus:ring-1 focus:ring-brand-500 outline-none min-h-[80px]"
+              />
+              <MultimodalInput
+                helperText="拖拽/上传图片将以 markdown 链接插入画像描述"
+                onInsert={(url) => setProfileDraft((prev) => `${prev}${prev ? '\n' : ''}![image](${url})`)}
+              />
+              <div className="flex gap-2">
+                <button
+                  className="flex-1 py-1.5 bg-brand-600 text-white rounded text-xs flex items-center justify-center gap-1"
+                  onClick={() => {
+                    updateAgentProfile(agent.id, profileDraft);
+                    setIsProfileEditing(false);
+                  }}
+                >
+                  <Save size={12} /> 保存画像
+                </button>
+                <button
+                  className="flex-1 py-1.5 bg-slate-200 text-slate-600 rounded text-xs flex items-center justify-center gap-1"
+                  onClick={() => {
+                    setProfileDraft(agent.profile);
+                    setIsProfileEditing(false);
+                  }}
+                >
+                  <X size={12} /> 取消
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-2 flex items-start gap-2">
+              <p className="text-xs text-slate-500 leading-relaxed flex-1 whitespace-pre-line">
+                {agent.profile}
+              </p>
+              <button
+                className="text-slate-400 hover:text-brand-600"
+                onClick={() => setIsProfileEditing(true)}
+                title="编辑画像"
+              >
+                <Edit3 size={14} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -144,6 +198,25 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                      onChange={(e) => setNewKbContent(e.target.value)}
                      className="w-full p-1 border rounded outline-none focus:ring-1 focus:ring-brand-500 h-16 resize-none"
                    />
+                   <div className="flex items-center justify-between text-[11px] text-slate-500">
+                     <span>支持插入 markdown 图片</span>
+                     <MultimodalInput
+                       helperText="拖拽或上传图片后自动插入 markdown 链接"
+                       onInsert={(url) => {
+                         setNewKbContent((prev) => `${prev}${prev ? '\n' : ''}![image](${url})`);
+                         addNotification('success', '图片已插入');
+                       }}
+                     />
+                   </div>
+                   {imageUrls.length > 0 && (
+                     <div className="flex flex-wrap gap-2 text-[10px] text-slate-500">
+                       {imageUrls.map((url) => (
+                         <div key={url} className="w-16 h-16 border rounded overflow-hidden bg-slate-50">
+                           <img src={url} alt="preview" className="w-full h-full object-cover" />
+                         </div>
+                       ))}
+                     </div>
+                   )}
                    <div className="flex gap-2">
                       <button onClick={handleAddKB} className="flex-1 py-1 bg-brand-600 text-white rounded hover:bg-brand-700">保存</button>
                       <button onClick={() => setIsAddingKB(false)} className="flex-1 py-1 bg-slate-200 text-slate-600 rounded hover:bg-slate-300">取消</button>

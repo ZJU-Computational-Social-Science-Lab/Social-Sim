@@ -94,6 +94,21 @@ const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: strin
     ) : null
   );
 
+  const MediaBadges = () => (
+    <div className="flex flex-wrap gap-2 mt-2 text-[11px] text-slate-500">
+      {entry.audioUrl && (
+        <a href={entry.audioUrl} target="_blank" rel="noreferrer" className="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200">
+          音频链接
+        </a>
+      )}
+      {entry.videoUrl && (
+        <a href={entry.videoUrl} target="_blank" rel="noreferrer" className="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200">
+          视频链接
+        </a>
+      )}
+    </div>
+  );
+
   if (mode === ViewMode.LIST) {
     return (
       <div className={`py-2 px-4 border-b hover:bg-slate-50 text-sm flex gap-4 ${entry.type === 'SYSTEM' ? 'bg-slate-50/50' : ''}`}>
@@ -108,6 +123,7 @@ const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: strin
           )}
           <span className="text-slate-600">{entry.content}</span>
           <ImageComponent />
+          <MediaBadges />
         </div>
       </div>
     );
@@ -133,6 +149,7 @@ const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: strin
       </div>
       <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{entry.content}</p>
       <ImageComponent />
+      <MediaBadges />
     </div>
   );
 };

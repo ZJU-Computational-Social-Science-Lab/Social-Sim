@@ -102,7 +102,17 @@
       "neverTested": "从未测试",
       "loading": "加载中…",
       "error": "无法加载提供商。",
-      "none": "还没有添加任何提供商。"
+      "none": "还没有添加任何提供商。",
+      "capabilities": {
+        "title": "能力与费用速查",
+        "hint": "按用途选模型：便宜的用于回合推理，昂贵的用于报告和总结。",
+        "context": "上下文",
+        "input": "输入",
+        "output": "输出",
+        "modalities": "模态",
+        "note": "备注",
+        "disclaimer": "费用为 2024 年 12 月参考价（每百万 tokens），请以官方定价为准。"
+      }
     }
   },
   "wizard": {
