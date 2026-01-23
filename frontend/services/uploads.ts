@@ -32,7 +32,6 @@ export async function uploadImage(
   formData.append("file", file);
 
   const response = await apiClient.post<UploadedAsset>("/uploads", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
     onUploadProgress: (evt) => {
       if (!opts.onProgress) return;
       const percent = evt.total ? Math.round((evt.loaded / evt.total) * 100) : 0;

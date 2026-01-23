@@ -84,7 +84,7 @@ export const MultimodalInput: React.FC<Props> = ({ label, helperText, onInsert, 
         canvas.toBlob(async (blob) => {
           if (!blob) return;
           const file = new File([blob], 'cropped.png', { type: 'image/png' });
-          if (file.size > MAX_BYTES) {
+          if (file.size > MEDIA_MAX_BYTES) {
             setError('裁剪后文件超过 5MB');
             return;
           }

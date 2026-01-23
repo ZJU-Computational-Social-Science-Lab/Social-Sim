@@ -4,11 +4,13 @@ import base64
 import re
 import shutil
 from pathlib import Path
+from typing import Annotated
 from uuid import uuid4
 
 from litestar import Router, post
 from litestar.connection import Request
 from litestar.datastructures import UploadFile
+from litestar.enums import RequestEncodingType
 from litestar.exceptions import HTTPException
 from litestar.params import Body
 
@@ -105,9 +107,9 @@ def _extract_doc_text(path: Path, content_type: str, enable_ocr: bool, ocr_lang:
 @post("/", tags=["uploads"])
 async def upload_image(
     request: Request,
-    file: UploadFile | None = Body(media_type="multipart/form-data", default=None),
-    data_url: str | None = Body(media_type="multipart/form-data", default=None),
-    ocr: bool | None = Body(media_type="multipart/form-data", default=None),
+    file: Annotated[UploadFile | None, Body(media_type=RequestEncodingType.MULTI_PART)] = None,
+    data_url: Annotated[str | None, Body(media_type=RequestEncodingType.MULTI_PART)] = None,
+    ocr: Annotated[bool | None, Body(media_type=RequestEncodingType.MULTI_PART)] = None,
 ) -> dict:
     token = extract_bearer_token(request)
     async with get_session() as session:
@@ -122,14 +124,21 @@ async def upload_image(
     # Pick storage root: local dir or cloud-mounted dir
     root_dir = Path(__file__).resolve().parents[5]
     if settings.upload_backend == "cloud":
-        if not settings.upload_cloud_base_url:
-            raise HTTPException(status_code=400, detail="upload_cloud_base_url required for cloud backend")
         upload_root = Path(settings.upload_cloud_dir or settings.upload_dir).resolve()
+        public_base = settings.upload_cloud_base_url or settings.upload_base_url
     else:
         upload_root = (root_dir / settings.upload_dir).resolve()
+        public_base = f"{settings.backend_root_path.rstrip('/')}{settings.upload_base_url}"
     upload_root.mkdir(parents=True, exist_ok=True)
 
-    # Resolve payload: file upload or data URL
+    # Resolve payload: file upload or data URL. Some Litestar versions don't bind UploadFile automatically; fallback to parsing form.
+    if file is None and data_url is None:
+        form = await request.form()
+        if file is None:
+            file = form.get("file")
+        if data_url is None:
+            raw = form.get("data_url")
+            data_url = raw if isinstance(raw, str) else None
     if file is None and data_url is None:
         raise HTTPException(status_code=400, detail="file or data_url required")
 
@@ -171,11 +180,7 @@ async def upload_image(
             dest.unlink(missing_ok=True)
             raise HTTPException(status_code=400, detail="Empty file")
 
-    if settings.upload_backend == "cloud":
-        base = settings.upload_cloud_base_url or settings.upload_base_url
-        public_url = f"{base.rstrip('/')}/{dest.name}"
-    else:
-        public_url = f"{settings.backend_root_path.rstrip('/')}{settings.upload_base_url}/{dest.name}"
+    public_url = f"{public_base.rstrip('/')}/{dest.name}"
 
     extracted_text = None
     use_ocr = bool(settings.upload_enable_ocr or ocr)
