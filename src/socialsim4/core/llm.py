@@ -6,7 +6,8 @@ from concurrent.futures import TimeoutError as FutTimeout
 from threading import BoundedSemaphore
 from copy import deepcopy
 
-import google.generativeai as genai
+import google.genai as genai
+from google.genai.types import Content, GenerateContentConfig, Part
 from openai import OpenAI
 
 from .llm_config import LLMConfig
@@ -21,7 +22,7 @@ class LLMClient:
             self.client = OpenAI(api_key=provider.api_key, base_url=provider.base_url)
         elif provider.dialect == "gemini":
             genai.configure(api_key=provider.api_key)
-            self.client = genai.GenerativeModel(provider.model)
+            self.client = genai.GenerativeModel(model_name=provider.model)
         elif provider.dialect == "mock":
             self.client = _MockModel()
         else:
@@ -64,7 +65,7 @@ class LLMClient:
             )
         elif cloned_provider.dialect == "gemini":
             genai.configure(api_key=cloned_provider.api_key)
-            cloned.client = genai.GenerativeModel(cloned_provider.model)
+            cloned.client = genai.GenerativeModel(model_name=cloned_provider.model)
         elif cloned_provider.dialect == "mock":
             cloned.client = _MockModel()
         else:
@@ -151,34 +152,32 @@ class LLMClient:
 
             def _do():
                 contents = [
-                    {
-                        "role": ("model" if m["role"] == "assistant" else "user"),
-                        "parts": [{"text": m["content"]}],
-                    }
+                    Content(
+                        role=("model" if m["role"] == "assistant" else "user"),
+                        parts=[Part(text=m["content"])],
+                    )
                     for m in messages
                     if m["role"] in ("system", "user", "assistant")
                 ]
                 resp = self.client.generate_content(
-                    contents,
-                    generation_config={
-                        "temperature": self.provider.temperature,
-                        "max_output_tokens": self.provider.max_tokens,
-                        "top_p": self.provider.top_p,
-                        "frequency_penalty": self.provider.frequency_penalty,
-                        "presence_penalty": self.provider.presence_penalty,
-                    },
+                    contents=contents,
+                    config=GenerateContentConfig(
+                        temperature=self.provider.temperature,
+                        max_output_tokens=self.provider.max_tokens,
+                        top_p=self.provider.top_p,
+                        frequency_penalty=self.provider.frequency_penalty,
+                        presence_penalty=self.provider.presence_penalty,
+                    ),
                 )
-                # Some responses may not populate resp.text; extract from candidates if present
-                text = ""
-                cands = getattr(resp, "candidates", None)
-                if cands:
-                    first = cands[0] if len(cands) > 0 else None
-                    if first is not None:
-                        content = getattr(first, "content", None)
-                        parts = getattr(content, "parts", None) if content is not None else None
+                if hasattr(resp, "text") and resp.text:
+                    return resp.text.strip()
+                if hasattr(resp, "candidates") and resp.candidates:
+                    cand = resp.candidates[0]
+                    if hasattr(cand, "content") and cand.content:
+                        parts = getattr(cand.content, "parts", [])
                         if parts:
-                            text = "".join([getattr(p, "text", "") for p in parts])
-                return text.strip()
+                            return "".join([getattr(p, "text", "") for p in parts]).strip()
+                return ""
 
             return self._with_timeout_and_retry(_do)
 
