@@ -17,9 +17,11 @@ export const MultimodalInput: React.FC<Props> = ({ label, helperText, onInsert, 
   const [status, setStatus] = useState<{ kind: 'idle' | 'error' | 'success'; message: string }>({ kind: 'idle', message: '' });
   const [progress, setProgress] = useState(0);
   const [cropUrl, setCropUrl] = useState<string | null>(null);
-  const [cropX, setCropX] = useState(0.5);
-  const [cropY, setCropY] = useState(0.5);
-  const [cropScale, setCropScale] = useState(1);
+  const [cropX, setCropX] = useState(0.5); // 左上角起点的水平比例
+  const [cropY, setCropY] = useState(0.5); // 左上角起点的垂直比例
+  const [cropScaleX, setCropScaleX] = useState(1);
+  const [cropScaleY, setCropScaleY] = useState(1);
+  const [cropMode, setCropMode] = useState<'square' | 'free'>('free');
   const [lastUploadedName, setLastUploadedName] = useState<string>('');
   const inputId = useId();
   const MEDIA_MAX_BYTES = 5 * 1024 * 1024;
@@ -61,7 +63,7 @@ export const MultimodalInput: React.FC<Props> = ({ label, helperText, onInsert, 
     }
   };
 
-  const handleCropToSquare = async () => {
+  const handleCrop = async () => {
     if (!previewUrl) return;
     try {
       const img = new Image();
@@ -71,16 +73,18 @@ export const MultimodalInput: React.FC<Props> = ({ label, helperText, onInsert, 
         img.onload = res;
         img.onerror = rej;
       });
-      const base = Math.min(img.naturalWidth, img.naturalHeight) / cropScale;
-      const sx = Math.max(0, Math.min(img.naturalWidth - base, cropX * img.naturalWidth - base / 2));
-      const sy = Math.max(0, Math.min(img.naturalHeight - base, cropY * img.naturalHeight - base / 2));
-      const size = base;
+      const cropW = Math.min(img.naturalWidth, Math.max(16, img.naturalWidth / cropScaleX));
+      const cropH = cropMode === 'square'
+        ? Math.min(img.naturalHeight, Math.max(16, img.naturalHeight / cropScaleX))
+        : Math.min(img.naturalHeight, Math.max(16, img.naturalHeight / cropScaleY));
+      const sx = Math.max(0, Math.min(img.naturalWidth - cropW, cropX * img.naturalWidth));
+      const sy = Math.max(0, Math.min(img.naturalHeight - cropH, cropY * img.naturalHeight));
       const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
+      canvas.width = cropW;
+      canvas.height = cropH;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.drawImage(img, sx, sy, size, size, 0, 0, size, size);
+        ctx.drawImage(img, sx, sy, cropW, cropH, 0, 0, cropW, cropH);
         canvas.toBlob(async (blob) => {
           if (!blob) return;
           const file = new File([blob], 'cropped.png', { type: 'image/png' });
@@ -154,7 +158,7 @@ export const MultimodalInput: React.FC<Props> = ({ label, helperText, onInsert, 
         )}
       </div>
       <div className="text-[11px] text-slate-400">
-        {helperText || (enableCrop ? '支持拖拽/点击上传，提供中心方形裁剪上传选项（仅图片）。' : '支持拖拽/点击上传。')}（图片/音频/视频 ≤ 5MB，PDF/Word ≤ 10MB，当前未做杀毒/内容安全，请只上传可信来源）
+        {helperText || (enableCrop ? '支持拖拽/点击上传，提供方形或自由裁剪上传（仅图片）。' : '支持拖拽/点击上传。')}（图片/音频/视频 ≤ 5MB，PDF/Word ≤ 10MB，当前未做杀毒/内容安全，请只上传可信来源）
       </div>
       {status.kind !== 'idle' && (
         <div className={`text-[11px] ${status.kind === 'error' ? 'text-red-500' : 'text-emerald-600'}`}>
@@ -167,35 +171,109 @@ export const MultimodalInput: React.FC<Props> = ({ label, helperText, onInsert, 
         </div>
       )}
       {previewUrl && (
-        <div className="relative w-full">
-          <img src={previewUrl} alt="preview" className="w-full max-h-40 object-cover rounded border" />
+        <div className="relative w-full border rounded bg-black/5 overflow-y-scroll overflow-x-hidden h-[320px] max-h-[60vh] pr-2">
+          <img src={previewUrl} alt="preview" className="w-full max-h-48 object-contain" />
+          {enableCrop && (
+            <div className="absolute inset-0 pointer-events-none">
+              {(() => {
+                const overlayW = Math.min(100, Math.max(5, 100 / cropScaleX));
+                const overlayH = cropMode === 'square'
+                  ? overlayW
+                  : Math.min(100, Math.max(5, 100 / cropScaleY));
+                const left = Math.min(100 - overlayW, Math.max(0, cropX * 100));
+                const top = Math.min(100 - overlayH, Math.max(0, cropY * 100));
+                return (
+                  <div
+                    className="absolute border-2 border-emerald-400/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.25)]"
+                    style={{ width: `${overlayW}%`, height: `${overlayH}%`, left: `${left}%`, top: `${top}%` }}
+                  />
+                );
+              })()}
+            </div>
+          )}
           <button
-            onClick={() => setPreviewUrl(null)}
-            className="absolute top-2 right-2 bg-white/80 rounded-full p-1 shadow text-slate-600 hover:text-red-500"
+            onClick={() => {
+              setPreviewUrl(null);
+              setCropUrl(null);
+              setLastUploadedName('');
+              setStatus({ kind: 'idle', message: '' });
+            }}
+            className="absolute top-2 right-2 bg-white/90 rounded-full p-1 shadow text-slate-600 hover:text-red-500"
           >
             <X size={14} />
           </button>
           {enableCrop && (
-            <div className="absolute bottom-2 right-2 flex gap-2 flex-col items-end bg-white/80 p-2 rounded">
-              <div className="flex gap-2 items-center text-[11px] text-slate-600">
-                <span>X</span>
-                <input type="range" min="0" max="1" step="0.01" value={cropX} onChange={(e) => setCropX(Number(e.target.value))} />
+            <div className="bg-white/90 backdrop-blur p-2 flex flex-wrap gap-3 items-center text-[11px] text-slate-700 sticky bottom-0">
+              <label className="flex items-center gap-1">X 起点<input type="range" min="0" max="1" step="0.01" value={cropX} onChange={(e) => setCropX(Number(e.target.value))} /></label>
+              <label className="flex items-center gap-1">Y 起点<input type="range" min="0" max="1" step="0.01" value={cropY} onChange={(e) => setCropY(Number(e.target.value))} /></label>
+              <label className="flex items-center gap-1">模式
+                <select
+                  className="border rounded px-1 py-0.5 text-[11px]"
+                  value={cropMode}
+                  onChange={(e) => {
+                    const mode = e.target.value as 'square' | 'free';
+                    setCropMode(mode);
+                    if (mode === 'square') {
+                      setCropScaleY(cropScaleX);
+                    }
+                  }}
+                >
+                  <option value="square">方形</option>
+                  <option value="free">自由</option>
+                </select>
+              </label>
+              <label className="flex items-center gap-1">宽缩放<input type="range" min="1" max="3" step="0.05" value={cropScaleX} onChange={(e) => {
+                const val = Number(e.target.value);
+                setCropScaleX(val);
+                if (cropMode === 'square') setCropScaleY(val);
+              }} /></label>
+              <label className="flex items-center gap-1">高缩放
+                <input
+                  type="range"
+                  min="1"
+                  max="3"
+                  step="0.05"
+                  value={cropScaleY}
+                  disabled={cropMode === 'square'}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setCropScaleY(val);
+                    if (cropMode === 'square') {
+                      setCropScaleX(val);
+                    }
+                  }}
+                />
+              </label>
+              <div className="flex items-center gap-2 ml-auto">
+                <div
+                  className="w-16 h-16 rounded border overflow-hidden bg-white"
+                  style={{
+                    backgroundImage: `url(${previewUrl})`,
+                    backgroundSize: `${100 * cropScaleX}% ${cropMode === 'square' ? 100 * cropScaleX : 100 * cropScaleY}%`,
+                    backgroundPosition: `${-cropX * (100 * cropScaleX - 100)}% ${-cropY * (100 * (cropMode === 'square' ? cropScaleX : cropScaleY) - 100)}%`,
+                    backgroundRepeat: 'no-repeat',
+                  }}
+                  title="裁剪预览"
+                />
+                <button
+                  onClick={handleCrop}
+                  disabled={isUploading}
+                  className="px-2 py-1 bg-white border rounded text-[11px] text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                >
+                  裁剪并重新上传
+                </button>
+                <button
+                  onClick={() => {
+                    setPreviewUrl(null);
+                    setCropUrl(null);
+                    setLastUploadedName('');
+                    setStatus({ kind: 'idle', message: '' });
+                  }}
+                  className="px-2 py-1 border border-red-200 text-red-600 rounded text-[11px] hover:bg-red-50"
+                >
+                  删除图片
+                </button>
               </div>
-              <div className="flex gap-2 items-center text-[11px] text-slate-600">
-                <span>Y</span>
-                <input type="range" min="0" max="1" step="0.01" value={cropY} onChange={(e) => setCropY(Number(e.target.value))} />
-              </div>
-              <div className="flex gap-2 items-center text-[11px] text-slate-600">
-                <span>缩放</span>
-                <input type="range" min="1" max="3" step="0.05" value={cropScale} onChange={(e) => setCropScale(Number(e.target.value))} />
-              </div>
-              <button
-                onClick={handleCropToSquare}
-                disabled={isUploading}
-                className="px-2 py-1 bg-white/90 border rounded text-[11px] text-slate-700 hover:bg-white disabled:opacity-60"
-              >
-                方形裁剪并重新上传
-              </button>
             </div>
           )}
         </div>

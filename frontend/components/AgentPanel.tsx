@@ -1,5 +1,15 @@
 
 import React, { useState, useMemo } from 'react';
+const renderProfileHtml = (text: string) => {
+  const escape = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const escaped = escape(text || '');
+  const withImages = escaped.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_m, alt, url) => {
+    const safeAlt = escape(alt || 'image');
+    const safeUrl = url.replace(/"/g, '&quot;');
+    return `<img src="${safeUrl}" alt="${safeAlt}" class="inline-block max-h-32 rounded border border-slate-200 mr-2 mb-2" />`;
+  });
+  return withImages.replace(/\n/g, '<br />');
+};
 import { useSimulationStore } from '../store';
 import { User, Brain, Activity, ChevronDown, ChevronRight, Bot, BookOpen, Plus, FileText, Trash2, Edit3, Save, X } from 'lucide-react';
 import { Agent, KnowledgeItem } from '../types';
@@ -108,9 +118,13 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
             </div>
           ) : (
             <div className="mt-2 flex items-start gap-2">
-              <p className="text-xs text-slate-500 leading-relaxed flex-1 whitespace-pre-line">
-                {agent.profile}
-              </p>
+              <div className="text-xs text-slate-500 leading-relaxed flex-1 markdown-body">
+                  <div
+                    className="text-xs text-slate-500 leading-relaxed flex-1 markdown-body"
+                    dangerouslySetInnerHTML={{ __html: renderProfileHtml(agent.profile) }}
+                  >
+                  </div>
+              </div>
               <button
                 className="text-slate-400 hover:text-brand-600"
                 onClick={() => setIsProfileEditing(true)}
