@@ -159,8 +159,8 @@ export const MultimodalInput: React.FC<Props> = ({
         </div>
       )}
       {previewUrl && (
-        <div className="relative w-full border rounded bg-black/5 overflow-y-scroll overflow-x-hidden h-[320px] max-h-[60vh] pr-2">
-          <img src={previewUrl} alt="preview" className="w-full max-h-48 object-contain" />
+        <div className="relative w-full border rounded bg-black/5 overflow-y-scroll overflow-x-hidden h-[400px] max-h-[60vh] pr-2">
+          <img src={previewUrl} alt="preview" className="w-full h-auto object-contain" />
           {enableCrop && (
             <div className="absolute inset-0 pointer-events-none">
               <div
