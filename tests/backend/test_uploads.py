@@ -228,3 +228,225 @@ async def test_upload_doc_respects_doc_limit(monkeypatch, tmp_path):
         await _handler()(None, dummy)
 
     assert exc.value.status_code == 413
+
+
+# New tests for file signature validation, rate limiting, and file management
+
+
+@pytest.mark.asyncio
+async def test_upload_rejects_invalid_file_signature(monkeypatch, tmp_path):
+    """Test that files with mismatched content-type and magic bytes are rejected."""
+    settings = SimpleNamespace(
+        upload_backend="local",
+        upload_max_mb=5,
+        upload_docs_max_mb=10,
+        upload_enable_ocr=False,
+        upload_ocr_lang=None,
+        upload_dir=str(tmp_path),
+        upload_base_url="/uploads",
+        backend_root_path="",
+    )
+    monkeypatch.setattr(uploads, "get_settings", lambda: settings)
+    _patch_auth(monkeypatch)
+
+    # PNG header but claimed to be JPEG
+    fake_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR" + b"\x00" * 20
+    dummy = _DummyFile("image/jpeg", "fake.jpg", [fake_png, b""])
+
+    with pytest.raises(HTTPException) as exc:
+        await _handler()(None, dummy)
+
+    assert exc.value.status_code == 400
+    assert "does not match declared type" in exc.value.detail
+
+
+@pytest.mark.asyncio
+async def test_upload_accepts_valid_file_signature(monkeypatch, tmp_path):
+    """Test that files with correct magic bytes are accepted."""
+    settings = SimpleNamespace(
+        upload_backend="local",
+        upload_max_mb=5,
+        upload_docs_max_mb=10,
+        upload_enable_ocr=False,
+        upload_ocr_lang=None,
+        upload_dir=str(tmp_path),
+        upload_base_url="/uploads",
+        backend_root_path="",
+    )
+    monkeypatch.setattr(uploads, "get_settings", lambda: settings)
+    _patch_auth(monkeypatch)
+
+    # Valid PNG header
+    valid_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR" + b"\x00" * 20
+    dummy = _DummyFile("image/png", "valid.png", [valid_png, b""])
+
+    result = await _handler()(None, dummy)
+
+    assert result["content_type"] == "image/png"
+    assert result["url"].endswith(".png")
+
+
+@pytest.mark.asyncio
+async def test_upload_enforces_rate_limit(monkeypatch, tmp_path):
+    """Test that rate limiting works after exceeding the limit."""
+    settings = SimpleNamespace(
+        upload_backend="local",
+        upload_max_mb=5,
+        upload_docs_max_mb=10,
+        upload_enable_ocr=False,
+        upload_ocr_lang=None,
+        upload_dir=str(tmp_path),
+        upload_base_url="/uploads",
+        backend_root_path="",
+    )
+    monkeypatch.setattr(uploads, "get_settings", lambda: settings)
+
+    # Mock user with ID
+    class MockUser:
+        id = "test_user_123"
+
+    async def _resolve_current_user_with_id(session, token):
+        return MockUser()
+
+    monkeypatch.setattr(uploads, "resolve_current_user", _resolve_current_user_with_id)
+    monkeypatch.setattr(uploads, "get_session", _dummy_session)
+    monkeypatch.setattr(uploads, "extract_bearer_token", lambda req: "token")
+
+    # Reset rate limiter
+    uploads._upload_rate_limit.clear()
+    uploads._RATE_LIMIT_REQUESTS = 3  # Lower limit for testing
+    uploads._RATE_LIMIT_WINDOW = 60
+
+    handler = _handler()
+
+    # First 3 requests should succeed
+    valid_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR" + b"\x00" * 20
+    for i in range(3):
+        dummy = _DummyFile("image/png", f"test{i}.png", [valid_png, b""])
+        result = await handler(None, dummy)
+        assert result["content_type"] == "image/png"
+
+    # 4th request should be rate limited
+    dummy = _DummyFile("image/png", "test4.png", [valid_png, b""])
+    with pytest.raises(HTTPException) as exc:
+        await handler(None, dummy)
+
+    assert exc.value.status_code == 429
+    assert "Rate limit exceeded" in exc.value.detail
+
+    # Reset rate limit to original value
+    uploads._RATE_LIMIT_REQUESTS = 10
+
+
+@pytest.mark.asyncio
+async def test_list_uploads_returns_file_metadata(monkeypatch, tmp_path):
+    """Test that list endpoint returns correct file metadata."""
+    settings = SimpleNamespace(
+        upload_backend="local",
+        upload_max_mb=5,
+        upload_docs_max_mb=10,
+        upload_enable_ocr=False,
+        upload_ocr_lang=None,
+        upload_dir=str(tmp_path),
+        upload_base_url="/uploads",
+        backend_root_path="",
+    )
+    monkeypatch.setattr(uploads, "get_settings", lambda: settings)
+    _patch_auth(monkeypatch)
+
+    # Create a test file
+    test_file = tmp_path / "test_upload.png"
+    test_file.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 100)
+
+    result = await uploads.list_uploads.fn(None)
+
+    assert isinstance(result, list)
+    # Should find at least the file we created
+    assert len(result) >= 1
+    file_entry = next((f for f in result if f["filename"] == "test_upload.png"), None)
+    assert file_entry is not None
+    assert file_entry["size"] == len(test_file.read_bytes())
+    assert file_entry["type"] == "png"
+
+
+@pytest.mark.asyncio
+async def test_delete_upload_removes_file(monkeypatch, tmp_path):
+    """Test that delete endpoint removes the file."""
+    settings = SimpleNamespace(
+        upload_backend="local",
+        upload_max_mb=5,
+        upload_docs_max_mb=10,
+        upload_enable_ocr=False,
+        upload_ocr_lang=None,
+        upload_dir=str(tmp_path),
+        upload_base_url="/uploads",
+        backend_root_path="",
+    )
+    monkeypatch.setattr(uploads, "get_settings", lambda: settings)
+    _patch_auth(monkeypatch)
+
+    # Create a test file with known UUID
+    file_id = "abc123test"
+    test_file = tmp_path / f"{file_id}.png"
+    test_file.write_bytes(b"test content")
+
+    # Delete the file
+    result = await uploads.delete_upload.fn(None, file_id)
+
+    assert result["deleted"] == 1
+    assert result["id"] == file_id
+    assert not test_file.exists()
+
+
+@pytest.mark.asyncio
+async def test_delete_upload_returns_404_for_missing_file(monkeypatch, tmp_path):
+    """Test that delete returns 404 for non-existent files."""
+    settings = SimpleNamespace(
+        upload_backend="local",
+        upload_max_mb=5,
+        upload_docs_max_mb=10,
+        upload_enable_ocr=False,
+        upload_ocr_lang=None,
+        upload_dir=str(tmp_path),
+        upload_base_url="/uploads",
+        backend_root_path="",
+    )
+    monkeypatch.setattr(uploads, "get_settings", lambda: settings)
+    _patch_auth(monkeypatch)
+
+    with pytest.raises(HTTPException) as exc:
+        await uploads.delete_upload.fn(None, "nonexistent")
+
+    assert exc.value.status_code == 404
+    assert "not found" in exc.value.detail
+
+
+# Tests for SSRF prevention in llm.py
+def test_validate_media_url_accepts_valid_urls():
+    """Test that valid URLs pass validation."""
+    from socialsim4.core.llm import validate_media_url
+
+    assert validate_media_url("https://example.com/image.jpg") == "valid"
+    assert validate_media_url("http://cdn.example.org/file.png") == "valid"
+    assert validate_media_url("data:image/png;base64,iVBORw0KG...") == "valid"
+
+
+def test_validate_media_url_rejects_private_networks():
+    """Test that private network URLs are rejected."""
+    from socialsim4.core.llm import validate_media_url
+
+    assert validate_media_url("http://127.0.0.1/image.jpg") == "private_network"
+    assert validate_media_url("http://localhost/file.png") == "private_network"
+    assert validate_media_url("http://10.0.0.1/image.jpg") == "private_network"
+    assert validate_media_url("http://192.168.1.1/image.jpg") == "private_network"
+    assert validate_media_url("http://172.16.0.1/image.jpg") == "private_network"
+    assert validate_media_url("http://169.254.169.254/image.jpg") == "private_network"  # AWS metadata
+
+
+def test_validate_media_url_rejects_invalid_schemes():
+    """Test that URLs with invalid schemes are rejected."""
+    from socialsim4.core.llm import validate_media_url
+
+    assert validate_media_url("file:///etc/passwd") == "invalid_scheme"
+    assert validate_media_url("ftp://example.com/file.jpg") == "invalid_scheme"
+    assert validate_media_url("javascript:alert(1)") == "invalid_scheme"

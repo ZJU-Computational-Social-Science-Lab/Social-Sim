@@ -15,6 +15,14 @@ const ALLOWED = [
   ...DOC_TYPES,
 ];
 
+export interface UploadedFile {
+  id: string;
+  filename: string;
+  size: number;
+  created: number;
+  type: string;
+}
+
 export async function uploadImage(
   file: File,
   opts: { onProgress?: (percent: number) => void } = {}
@@ -39,5 +47,20 @@ export async function uploadImage(
     },
   });
 
+  return response.data;
+}
+
+export async function listUploads(): Promise<UploadedFile[]> {
+  const response = await apiClient.get<UploadedFile[]>("/uploads");
+  return response.data;
+}
+
+export async function deleteUpload(fileId: string): Promise<{ deleted: number; id: string }> {
+  const response = await apiClient.delete<{ deleted: number; id: string }>(`/uploads/${fileId}`);
+  return response.data;
+}
+
+export async function findOrphans(): Promise<{ orphaned: string[]; total: number; note?: string }> {
+  const response = await apiClient.post<{ orphaned: string[]; total: number; note?: string }>("/uploads/cleanup", {});
   return response.data;
 }

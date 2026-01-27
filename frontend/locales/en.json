@@ -63,7 +63,8 @@
       "security": "Security",
       "providers": "Providers",
       "llmProviders": "LLM providers",
-      "searchProviders": "Search providers"
+      "searchProviders": "Search providers",
+      "files": "File Management"
     },
     "profile": {
       "email": "Email",
@@ -113,6 +114,30 @@
         "note": "Notes",
         "disclaimer": "Prices are reference per 1M tokens (Dec 2024). Confirm current pricing with each provider."
       }
+    },
+    "files": {
+      "title": "File Management",
+      "description": "Manage uploaded files used in simulations.",
+      "loading": "Loading files…",
+      "error": "Unable to load files.",
+      "empty": "No uploaded files.",
+      "table": {
+        "filename": "Filename",
+        "size": "Size",
+        "type": "Type",
+        "created": "Created",
+        "actions": "Actions"
+      },
+      "delete": "Delete",
+      "deleteConfirm": "Delete this file?",
+      "findOrphans": "Find Orphans",
+      "orphansFound": "Found {{count}} orphaned files",
+      "noOrphans": "No orphaned files found",
+      "deleteAllOrphans": "Delete All Orphans",
+      "deleteAllOrphansConfirm": "Delete all {{count}} orphaned files?",
+      "byte": "B",
+      "kb": "KB",
+      "mb": "GB"
     }
   },
   "wizard": {

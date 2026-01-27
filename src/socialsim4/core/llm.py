@@ -6,12 +6,79 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutTimeout
 from threading import BoundedSemaphore
 from copy import deepcopy
+from urllib.parse import urlparse
+from typing import Literal
 
 from openai import OpenAI
 import google.generativeai as genai
 import httpx
 
 from .llm_config import LLMConfig
+
+
+# SSRF prevention: allowed URL schemes for media content
+_ALLOWED_URL_SCHEMES = {"http", "https", "data"}
+
+# SSRF prevention: denylist of private/internal network patterns
+# These patterns prevent the vision model from accessing internal resources
+_PRIVATE_NETWORK_PATTERNS = (
+    r"127\.\d+\.\d+\.\d+",  # 127.0.0.0/8
+    r"10\.\d+\.\d+\.\d+",  # 10.0.0.0/8
+    r"172\.(1[6-9]|2\d|3[01])\.\d+\.\d+",  # 172.16.0.0/12
+    r"192\.168\.\d+\.\d+",  # 192.168.0.0/16
+    r"169\.254\.\d+\.\d+",  # 169.254.0.0/16 (link-local)
+    r"::1$",  # IPv6 localhost
+    r"fe80::",  # IPv6 link-local
+    r"fc00::",  # IPv6 unique local
+    r"localhost",  # localhost hostname
+    r"0\.0\.0\.0",  # 0.0.0.0
+)
+
+def _is_private_network_url(url: str) -> bool:
+    """Check if a URL points to a private/internal network (SSRF prevention)."""
+    if url.startswith("data:"):
+        return False  # data URLs are safe (embedded content)
+
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname or ""
+
+        # Check against private network patterns
+        for pattern in _PRIVATE_NETWORK_PATTERNS:
+            if re.search(pattern, hostname, re.IGNORECASE):
+                return True
+
+        # Block metadata addresses like <metadata> in cloud providers
+        if hostname in ("metadata", "169.254.169.254"):
+            return True
+
+        return False
+    except Exception:
+        # If URL parsing fails, treat as potentially unsafe
+        return True
+
+
+def validate_media_url(url: str) -> Literal["valid", "invalid_scheme", "private_network"]:
+    """
+    Validate a media URL for SSRF prevention.
+
+    Returns:
+        "valid": URL is safe to pass to vision models
+        "invalid_scheme": URL uses a disallowed scheme
+        "private_network": URL points to a private/internal network
+    """
+    if not isinstance(url, str):
+        return "invalid_scheme"
+
+    # Check scheme
+    if not any(url.startswith(f"{scheme}:") for scheme in _ALLOWED_URL_SCHEMES):
+        return "invalid_scheme"
+
+    # Check for private network addresses
+    if _is_private_network_url(url):
+        return "private_network"
+
+    return "valid"
 
 
 class LLMClient:
@@ -138,12 +205,17 @@ class LLMClient:
         supports_vision = bool(getattr(self.provider, "supports_vision", False))
 
         def _safe_media_urls(urls):
+            """Validate and filter media URLs for SSRF prevention."""
             safe = []
             for url in urls or []:
                 if not isinstance(url, str):
                     continue
-                if url.startswith("http://") or url.startswith("https://") or url.startswith("data:"):
+                validation = validate_media_url(url)
+                if validation == "valid":
                     safe.append(url)
+                else:
+                    # Log unsafe URL and skip it
+                    print(f"[LLMClient] Skipping unsafe media URL ({validation}): {url[:50]}...")
             return safe
 
         def _merge_with_placeholders(text, images, audio, video, include_image_placeholder):
@@ -310,7 +382,12 @@ class LLMClient:
                         if len(parts) == 2:
                             encoded.append(parts[1])
                         continue
-                    resp = self.client.get(url)
+                    # Validate URL before fetching (SSRF protection)
+                    validation = validate_media_url(url)
+                    if validation != "valid":
+                        print(f"[LLMClient] Skipping unsafe image URL ({validation}): {url[:50]}...")
+                        continue
+                    resp = self.client.get(url, timeout=10)
                     resp.raise_for_status()
                     encoded.append(base64.b64encode(resp.content).decode("utf-8"))
                 return encoded

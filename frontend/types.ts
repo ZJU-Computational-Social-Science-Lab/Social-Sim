@@ -75,6 +75,7 @@ export interface LogEntry {
   agentId?: string;
   content: string;
   imageUrl?: string; // #24 Multimodal Content
+  imageAlt?: string; // Alt text for accessibility
   audioUrl?: string;
   videoUrl?: string;
   timestamp: string;
@@ -86,6 +87,7 @@ export interface InitialEventItem {
   title: string;
   content: string;
   imageUrl?: string;
+  imageAlt?: string; // Alt text for accessibility
   audioUrl?: string;
   videoUrl?: string;
 }
