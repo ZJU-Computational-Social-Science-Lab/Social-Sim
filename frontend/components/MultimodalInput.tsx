@@ -32,6 +32,7 @@ export const MultimodalInput: React.FC<Props> = ({
   const [altText, setAltText] = useState('');
   const [progress, setProgress] = useState(0);
   const [lastUploadedName, setLastUploadedName] = useState<string>('');
+  const [imageError, setImageError] = useState(false);
   const inputId = useId();
 
   // Use the custom hook for cropping logic
@@ -70,9 +71,11 @@ export const MultimodalInput: React.FC<Props> = ({
     setIsUploading(true);
     setProgress(0);
     setStatus({ kind: 'idle', message: '' });
+    setImageError(false);
     try {
       const asset = await uploadImage(file, { onProgress: setProgress });
       const isImage = file.type.startsWith('image/');
+      console.log('Uploaded asset:', asset); // Debug
       setPreviewUrl(isImage ? asset.url : null);
       setLastUploadedName(file.name);
       onInsert(asset.url, altText || undefined);
@@ -159,8 +162,21 @@ export const MultimodalInput: React.FC<Props> = ({
         </div>
       )}
       {previewUrl && (
-        <div className="relative w-full border rounded bg-black/5 overflow-y-scroll overflow-x-hidden h-[400px] max-h-[60vh] pr-2">
-          <img src={previewUrl} alt="preview" className="w-full h-auto object-contain" />
+        <div className="relative w-full border rounded bg-black/5" style={{ minHeight: '300px' }}>
+          {imageError ? (
+            <div className="flex items-center justify-center h-[300px] text-red-500">
+              Image failed to load. URL: {previewUrl}
+            </div>
+          ) : (
+            <img
+              src={previewUrl}
+              alt="preview"
+              className="w-full rounded"
+              style={{ maxHeight: '400px', objectFit: 'contain' }}
+              onError={() => { console.error('Image load error:', previewUrl); setImageError(true); }}
+              onLoad={() => { console.log('Image loaded:', previewUrl); setImageError(false); }}
+            />
+          )}
           {enableCrop && (
             <div className="absolute inset-0 pointer-events-none">
               <div
