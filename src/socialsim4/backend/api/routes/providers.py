@@ -5,7 +5,7 @@ from litestar.connection import Request
 from sqlalchemy import select
 
 from socialsim4.core.llm import create_llm_client
-from socialsim4.core.llm_config import LLMConfig
+from socialsim4.core.llm_config import LLMConfig, guess_supports_vision
 
 from ...core.database import get_session
 from ...dependencies import extract_bearer_token, resolve_current_user
@@ -132,6 +132,7 @@ async def test_provider(request: Request, provider_id: int) -> Message:
             frequency_penalty=0.0,
             presence_penalty=0.0,
             max_tokens=64,
+            supports_vision=guess_supports_vision(provider.model),
         )
 
         provider.last_tested_at = datetime.now(timezone.utc)

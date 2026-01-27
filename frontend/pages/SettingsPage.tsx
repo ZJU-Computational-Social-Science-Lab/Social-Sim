@@ -3,18 +3,66 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { createProvider as apiCreateProvider, listProviders, testProvider as apiTestProvider, updateProvider, deleteProvider as apiDeleteProvider, activateProvider as apiActivateProvider, type Provider } from "../services/providers";
 import { listSearchProviders, createSearchProvider, updateSearchProvider, type SearchProvider } from "../services/searchProviders";
+import { listUploads, deleteUpload, findOrphans, type UploadedFile } from "../services/uploads";
 import { useAuthStore } from "../store/auth";
 import { useTranslation } from "react-i18next";
 import { TitleCard } from "../components/TitleCard";
 import { AppSelect } from "../components/AppSelect";
 import { Link2Icon, TrashIcon, FilePlusIcon, StarIcon, StarFilledIcon, EyeOpenIcon, EyeClosedIcon } from "@radix-ui/react-icons";
 
-type Tab = "profile" | "security" | "providers_llm" | "providers_search";
+type Tab = "profile" | "security" | "providers_llm" | "providers_search" | "files";
+
+const capabilityRows = [
+  {
+    model: "gpt-4o-mini",
+    context: "128k",
+    input: "$0.15 / 1M",
+    output: "$0.60 / 1M",
+    modalities: "Text, Image",
+    note: "Good default for agent turns and bulk actions",
+  },
+  {
+    model: "gpt-4o",
+    context: "128k",
+    input: "$5.00 / 1M",
+    output: "$15.00 / 1M",
+    modalities: "Text, Image, Audio",
+    note: "Higher quality, handles multimodal logs",
+  },
+  {
+    model: "gemini-1.5-flash",
+    context: "1M",
+    input: "$0.35 / 1M",
+    output: "$1.05 / 1M",
+    modalities: "Text, Image, Audio",
+    note: "Fast with long context for synthesis",
+  },
+  {
+    model: "gemini-1.5-pro",
+    context: "2M",
+    input: "$3.50 / 1M",
+    output: "$10.50 / 1M",
+    modalities: "Text, Image, Audio",
+    note: "Best quality, use sparingly",
+  },
+];
 
 // Provider type comes from ../api/providers
 
 export function SettingsPage() {
   const { t } = useTranslation();
+
+  // Format file size helper
+  const formatSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes}${t('settings.files.byte')}`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}${t('settings.files.kb')}`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)}${t('settings.files.mb')}`;
+  };
+
+  // Format date helper
+  const formatDate = (timestamp: number): string => {
+    return new Date(timestamp * 1000).toLocaleString();
+  };
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const user = useAuthStore((state) => state.user);
   const clearSession = useAuthStore((state) => state.clearSession);
@@ -34,6 +82,22 @@ export function SettingsPage() {
     enabled: activeTab === "providers_search",
     queryFn: () => listSearchProviders(),
   });
+
+  const filesQuery = useQuery({
+    queryKey: ["uploads"],
+    enabled: activeTab === "files",
+    queryFn: () => listUploads(),
+  });
+
+  const deleteFile = useMutation({
+    mutationFn: async (fileId: string) => deleteUpload(fileId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["uploads"] });
+    },
+  });
+
+  const [orphanResult, setOrphanResult] = useState<{ orphaned: string[]; total: number } | null>(null);
+  const [findingOrphans, setFindingOrphans] = useState(false);
 
   const searchProvider = useMemo(() => {
     const items = searchProvidersQuery.data || [];
@@ -343,6 +407,38 @@ export function SettingsPage() {
                 {createProvider.isPending ? <span className="spinner" aria-hidden /> : <FilePlusIcon />}
               </button>
             </form>
+
+            <div className="card" style={{ padding: '0.6rem 0.7rem', display: 'grid', gap: '0.4rem' }}>
+              <div className="panel-subtitle" style={{ margin: 0 }}>{t('settings.providers.capabilities.title')}</div>
+              <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>{t('settings.providers.capabilities.hint')}</div>
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                {capabilityRows.map((row) => (
+                  <div key={row.model} style={{ border: '1px solid var(--border)', borderRadius: '10px', padding: '0.6rem 0.7rem', background: 'rgba(255,255,255,0.02)', display: 'grid', gap: '0.35rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '0.6rem', flexWrap: 'wrap' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: '1rem' }}>{row.model}</div>
+                        <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>{t('settings.providers.capabilities.modalities')}: {row.modalities}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                        <span className="pill" style={{ background: 'rgba(37, 99, 235, 0.12)', color: '#1d4ed8', padding: '0.2rem 0.45rem', borderRadius: '999px', fontSize: '0.85rem' }}>
+                          {t('settings.providers.capabilities.context')}: {row.context}
+                        </span>
+                        <span className="pill" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#059669', padding: '0.2rem 0.45rem', borderRadius: '999px', fontSize: '0.85rem' }}>
+                          {t('settings.providers.capabilities.input')}: {row.input}
+                        </span>
+                        <span className="pill" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#b45309', padding: '0.2rem 0.45rem', borderRadius: '999px', fontSize: '0.85rem' }}>
+                          {t('settings.providers.capabilities.output')}: {row.output}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>
+                      {t('settings.providers.capabilities.note')}: {row.note}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{t('settings.providers.capabilities.disclaimer')}</div>
+            </div>
           </>
         )}
 
@@ -487,10 +583,101 @@ export function SettingsPage() {
             </div>
           </>)
         }
+
+        {/* File Management Tab */}
+        {activeTab === 'files' && (
+          <div className="card" style={{ padding: '0.6rem 0.7rem', display: 'grid', gap: '0.4rem' }}>
+            <div className="panel-subtitle" style={{ margin: 0 }}>{t('settings.files.title')}</div>
+            <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>{t('settings.files.description')}</div>
+
+            {filesQuery.isLoading && <div>{t('settings.files.loading')}</div>}
+            {filesQuery.error && <div style={{ color: "#f87171" }}>{t('settings.files.error')}</div>}
+
+            {filesQuery.data && filesQuery.data.length > 0 && (
+              <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '8px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                  <thead style={{ background: 'rgba(0,0,0,0.02)' }}>
+                    <tr>
+                      <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.filename')}</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.type')}</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.size')}</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.created')}</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'right', fontWeight: 600 }}>{t('settings.files.table.actions')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filesQuery.data.map((file) => (
+                      <tr key={file.id} style={{ borderTop: '1px solid var(--border)' }}>
+                        <td style={{ padding: '0.5rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span title={file.filename}>{file.filename}</span>
+                        </td>
+                        <td style={{ padding: '0.5rem' }}>
+                          <span style={{ textTransform: 'uppercase', fontSize: '0.75rem' }}>{file.type || '-'}</span>
+                        </td>
+                        <td style={{ padding: '0.5rem' }}>{formatSize(file.size)}</td>
+                        <td style={{ padding: '0.5rem', color: 'var(--muted)' }}>{formatDate(file.created)}</td>
+                        <td style={{ padding: '0.5rem', textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            className="icon-button square"
+                            title={t('settings.files.delete')}
+                            aria-label={t('settings.files.delete')}
+                            onClick={() => {
+                              if (window.confirm(t('settings.files.deleteConfirm'))) {
+                                deleteFile.mutate(file.id);
+                              }
+                            }}
+                            disabled={deleteFile.isPending}
+                            style={{ borderColor: 'var(--border)', color: '#ef4444' }}
+                          >
+                            <TrashIcon />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {filesQuery.data && filesQuery.data.length === 0 && (
+              <div style={{ color: "#94a3b8" }}>{t('settings.files.empty')}</div>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="button"
+                onClick={async () => {
+                  setFindingOrphans(true);
+                  try {
+                    const result = await findOrphans();
+                    setOrphanResult(result);
+                  } catch (err) {
+                    console.error(err);
+                  } finally {
+                    setFindingOrphans(false);
+                  }
+                }}
+                disabled={findingOrphans}
+              >
+                {findingOrphans ? '...' : t('settings.files.findOrphans')}
+              </button>
+
+              {orphanResult && (
+                <span style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
+                  {orphanResult.orphaned.length > 0
+                    ? t('settings.files.orphansFound', { count: orphanResult.orphaned.length })
+                    : t('settings.files.noOrphans')}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
     );
-  }, [activeTab, user, providerDraft, providersQuery, createProvider, testProvider, clearSession, keyVisible]);
+  }, [activeTab, user, providerDraft, providersQuery, createProvider, testProvider, clearSession, keyVisible, filesQuery, deleteFile, t, formatSize, formatDate, orphanResult, findingOrphans]);
 
   return (
     <div style={{ height: "100%", overflow: "auto" }}>
@@ -508,6 +695,9 @@ export function SettingsPage() {
           </button>
           <button type="button" className={`tab-button ${activeTab === "providers_search" ? "active" : ""}`} onClick={() => setActiveTab("providers_search")}>
             {t('settings.tabs.searchProviders') || t('settings.providers.searchTab')}
+          </button>
+          <button type="button" className={`tab-button ${activeTab === "files" ? "active" : ""}`} onClick={() => setActiveTab("files")}>
+            {t('settings.tabs.files')}
           </button>
         </nav>
         <section>{tabContent}</section>

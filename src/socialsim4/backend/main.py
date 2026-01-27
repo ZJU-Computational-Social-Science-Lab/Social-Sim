@@ -44,10 +44,19 @@ def create_app() -> Litestar:
     api_prefix = settings.api_prefix or "/api"
     api_routes = Router(path=api_prefix, route_handlers=[api_router])
 
-    route_handlers = [api_routes]
+    # Static uploads
+    root_dir = Path(__file__).resolve().parents[3]
+    upload_dir = (root_dir / settings.upload_dir).resolve()
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    upload_router = create_static_files_router(
+        path=settings.upload_base_url,
+        directories=[str(upload_dir)],
+        name="uploads",
+    )
+
+    route_handlers = [api_routes, upload_router]
 
     # 只在生产模式（有 dist 目录）时服务静态文件
-    root_dir = Path(__file__).resolve().parents[3]
     dist_dir = Path(settings.frontend_dist_path or root_dir / "frontend" / "dist").resolve()
     index_file = dist_dir / "index.html"
 
