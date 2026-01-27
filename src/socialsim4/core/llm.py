@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 from typing import Literal
 
 from openai import OpenAI
-import google.generativeai as genai
+import google.genai as genai
 import httpx
 
 from .llm_config import LLMConfig
@@ -101,7 +101,7 @@ class LLMClient:
             self.client = OpenAI(api_key=provider.api_key, base_url=provider.base_url)
         elif provider.dialect == "gemini":
             genai.configure(api_key=provider.api_key)
-            self.client = genai.GenerativeModel(provider.model)
+            self.client = genai.GenerativeModel(model_name=provider.model)
         elif provider.dialect == "mock":
             self.client = _MockModel()
         elif provider.dialect == "ollama":
