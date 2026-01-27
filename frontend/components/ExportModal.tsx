@@ -51,10 +51,10 @@ export const ExportModal: React.FC = () => {
             agents,
             true // 导出时包含所有元数据
           );
-          dataToExport = allLogs;
+          dataToExport = allLogs.map(l => ({ ...l, image_preview: l.imageUrl ? `![img](${l.imageUrl})` : '' }));
         } else {
           // 如果没有原始事件（standalone 模式），使用当前过滤后的日志
-          dataToExport = logs;
+          dataToExport = logs.map(l => ({ ...l, image_preview: l.imageUrl ? `![img](${l.imageUrl})` : '' }));
         }
       } else {
         dataToExport = agents;
@@ -68,7 +68,16 @@ export const ExportModal: React.FC = () => {
       } else {
         // CSV
         if (scope === 'all_logs') {
-          content = Papa.unparse(dataToExport as any[]);
+          const flat = (dataToExport as any[]).map(l => ({
+            timestamp: (l as any).timestamp,
+            nodeId: (l as any).nodeId,
+            type: (l as any).type,
+            agentId: (l as any).agentId,
+            content: (l as any).content,
+            imageUrl: (l as any).imageUrl,
+            image_preview: (l as any).image_preview,
+          }));
+          content = Papa.unparse(flat);
         } else {
           // For agents, flatten nested objects like properties/history if possible, 
           // or just export basic info for CSV to stay simple
@@ -76,6 +85,7 @@ export const ExportModal: React.FC = () => {
             id: a.id,
             name: a.name,
             role: a.role,
+            avatarUrl: a.avatarUrl,
             profile: a.profile,
             // Simple stringify for complex objects in CSV
             properties: JSON.stringify(a.properties),

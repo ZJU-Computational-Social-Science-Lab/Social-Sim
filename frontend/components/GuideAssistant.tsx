@@ -1,8 +1,14 @@
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useSimulationStore } from '../store';
 import { MessageSquare, X, Send, Sparkles, Loader2, ArrowRight } from 'lucide-react';
 import { GuideActionType } from '../types';
+import { uploadImage } from '../services/uploads';
+
+const extractMarkdownImages = (text: string): string[] => {
+   const matches = Array.from(text.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g));
+   return matches.map((m) => m[1]).filter(Boolean);
+};
 
 export const GuideAssistant: React.FC = () => {
   const isOpen = useSimulationStore(state => state.isGuideOpen);
@@ -17,13 +23,18 @@ export const GuideAssistant: React.FC = () => {
   const toggleExperimentDesigner = useSimulationStore(state => state.toggleExperimentDesigner);
   const toggleExport = useSimulationStore(state => state.toggleExport);
   const toggleAnalytics = useSimulationStore(state => state.toggleAnalytics);
+   const addNotification = useSimulationStore(state => state.addNotification);
   // Host Panel logic is part of Sidebar, we can't toggle it directly from store easily without a dedicated state, 
   // but we can assume user knows where it is or add a notification/hint. 
   // *Correction*: We can just highlight or guide user. 
   // However, for this implementation, let's focus on the toggleable modals.
 
   const [input, setInput] = useState('');
+   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+   const fileInputRef = useRef<HTMLInputElement>(null);
+
+   const imageUrls = useMemo(() => extractMarkdownImages(input), [input]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -36,6 +47,22 @@ export const GuideAssistant: React.FC = () => {
     sendGuideMessage(input);
     setInput('');
   };
+
+   const handleEmbedImage = async (file: File | null) => {
+      if (!file) return;
+      setIsUploadingImage(true);
+      try {
+         const asset = await uploadImage(file);
+         setInput((prev) => `${prev}${prev ? '\n' : ''}![image](${asset.url})`);
+         addNotification('success', '图片已上传并插入');
+      } catch (err) {
+         const message = err instanceof Error ? err.message : '上传失败';
+         addNotification('error', message);
+      } finally {
+         setIsUploadingImage(false);
+         if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -144,17 +171,43 @@ export const GuideAssistant: React.FC = () => {
                onChange={(e) => setInput(e.target.value)}
                onKeyDown={handleKeyPress}
                placeholder="你想了解什么功能..."
-               className="w-full pl-4 pr-10 py-3 bg-slate-100 border-transparent focus:bg-white focus:ring-2 focus:ring-indigo-500 rounded-xl text-sm outline-none transition-all"
+               className="w-full pl-4 pr-20 py-3 bg-slate-100 border-transparent focus:bg-white focus:ring-2 focus:ring-indigo-500 rounded-xl text-sm outline-none transition-all"
                autoFocus
             />
-            <button 
-               onClick={handleSend}
-               disabled={!input.trim() || isGuideLoading}
-               className="absolute right-2 top-2 p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:opacity-50 disabled:hover:bg-transparent"
-            >
-               <Send size={18} />
-            </button>
+            <div className="absolute right-2 top-2 flex items-center gap-1">
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleEmbedImage(e.target.files?.[0] ?? null)}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingImage}
+                className="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-lg disabled:opacity-50"
+                title="插入图片"
+              >
+                {isUploadingImage ? <Loader2 size={16} className="animate-spin" /> : <MessageSquare size={16} />}
+              </button>
+              <button 
+                 onClick={handleSend}
+                 disabled={!input.trim() || isGuideLoading}
+                 className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:opacity-50 disabled:hover:bg-transparent"
+              >
+                 <Send size={18} />
+              </button>
+            </div>
          </div>
+         {imageUrls.length > 0 && (
+           <div className="mt-2 flex flex-wrap gap-2">
+             {imageUrls.map((url) => (
+               <div key={url} className="w-14 h-14 border rounded overflow-hidden bg-slate-50">
+                 <img src={url} alt="preview" className="w-full h-full object-cover" />
+               </div>
+             ))}
+           </div>
+         )}
          <p className="text-[10px] text-center text-slate-400 mt-2">
             AI 可能会犯错。请核对重要信息。
          </p>

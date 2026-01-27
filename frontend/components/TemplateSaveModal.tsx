@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useSimulationStore } from '../store';
 import { X, Save, LayoutTemplate } from 'lucide-react';
+import { MultimodalInput } from './MultimodalInput';
 
 export const TemplateSaveModal: React.FC = () => {
   const isOpen = useSimulationStore(state => state.isSaveTemplateOpen);
@@ -12,6 +13,7 @@ export const TemplateSaveModal: React.FC = () => {
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const addNotification = useSimulationStore(state => state.addNotification);
 
   if (!isOpen) return null;
 
@@ -65,6 +67,15 @@ export const TemplateSaveModal: React.FC = () => {
               placeholder="描述此模板的适用场景或特殊配置..."
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-sm h-24 resize-none"
             />
+            <div className="mt-2">
+              <MultimodalInput
+                helperText="可选：上传图片并自动插入为 markdown 链接。当前不支持裁剪。"
+                onInsert={(url) => {
+                  setDescription((prev) => `${prev}${prev ? '\n' : ''}![image](${url})`);
+                  addNotification('success', '图片已插入描述');
+                }}
+              />
+            </div>
           </div>
         </div>
 

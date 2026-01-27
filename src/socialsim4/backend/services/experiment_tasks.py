@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from socialsim4.backend.services.simtree_runtime import SimTree
 from socialsim4.core.llm import create_llm_client
-from socialsim4.core.llm_config import LLMConfig
+from socialsim4.core.llm_config import LLMConfig, guess_supports_vision
 from socialsim4.backend.models.user import ProviderConfig, SearchProviderConfig
 from socialsim4.core.tools.web.search import create_search_client
 from socialsim4.core.search_config import SearchConfig
@@ -59,12 +59,13 @@ def run_experiment_task(self, simulation_id: str, exp_id: str, run_id: int, turn
                     dialect=dialect,
                     api_key=provider.api_key or "",
                     model=provider.model,
-                    base_url=provider.base_url,
+                    base_url=provider.base_url or ("http://127.0.0.1:11434" if dialect == "ollama" else None),
                     temperature=0.0,
                     top_p=1.0,
                     frequency_penalty=0.0,
                     presence_penalty=0.0,
                     max_tokens=1024,
+                    supports_vision=guess_supports_vision(provider.model),
                 )
                 llm_client = create_llm_client(cfg)
 

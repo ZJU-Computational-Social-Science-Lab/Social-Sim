@@ -136,3 +136,9 @@ stats.sh
 .DS_Store
 frontend/dist/
 frontend/node_modules/
+uploads/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp

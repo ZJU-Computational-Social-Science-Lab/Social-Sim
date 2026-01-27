@@ -6,11 +6,11 @@ from jose import JWTError, jwt
 from litestar import Router, delete, get, patch, post, websocket
 from litestar.connection import Request, WebSocket
 from litestar.exceptions import WebSocketDisconnect, HTTPException  # ✅ 新增 HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from socialsim4.core.llm import create_llm_client
-from socialsim4.core.llm_config import LLMConfig
+from socialsim4.core.llm_config import LLMConfig, guess_supports_vision
 from socialsim4.core.search_config import SearchConfig
 from socialsim4.core.simtree import SimTree
 from socialsim4.core.tools.web.search import create_search_client
@@ -64,26 +64,27 @@ async def _get_tree_record(
     items = result.scalars().all()
     active = [p for p in items if (p.config or {}).get("active")]
     if len(active) != 1:
-        raise RuntimeError("Active LLM provider not selected")
+        raise HTTPException(status_code=400, detail="LLM provider not configured (need exactly one active)")
     provider = active[0]
     dialect = (provider.provider or "").lower()
-    if dialect not in {"openai", "gemini", "mock"}:
-        raise RuntimeError("Invalid LLM provider dialect")
-    if dialect != "mock" and not provider.api_key:
-        raise RuntimeError("LLM API key required")
+    if dialect not in {"openai", "gemini", "mock", "ollama"}:
+        raise HTTPException(status_code=400, detail="Invalid LLM provider dialect")
+    if dialect in {"openai", "gemini"} and not provider.api_key:
+        raise HTTPException(status_code=400, detail="LLM API key required")
     if not provider.model:
-        raise RuntimeError("LLM model required")
+        raise HTTPException(status_code=400, detail="LLM model required")
 
     cfg = LLMConfig(
         dialect=dialect,
         api_key=provider.api_key or "",
         model=provider.model,
-        base_url=provider.base_url,
+        base_url=provider.base_url or ("http://127.0.0.1:11434" if dialect == "ollama" else None),
         temperature=0.7,
         top_p=1.0,
         frequency_penalty=0.0,
         presence_penalty=0.0,
         max_tokens=1024,
+        supports_vision=guess_supports_vision(provider.model),
     )
     llm_client = create_llm_client(cfg)
 
@@ -188,9 +189,9 @@ async def create_simulation(request: Request, data: SimulationCreate) -> Simulat
         if provider is None:
             raise RuntimeError("LLM provider not configured")
         dialect = (provider.provider or "").lower()
-        if dialect not in {"openai", "gemini", "mock"}:
+        if dialect not in {"openai", "gemini", "mock", "ollama"}:
             raise RuntimeError("Invalid LLM provider dialect")
-        if dialect != "mock" and not provider.api_key:
+        if dialect in {"openai", "gemini"} and not provider.api_key:
             raise RuntimeError("LLM API key required")
         if not provider.model:
             raise RuntimeError("LLM model required")
@@ -253,6 +254,27 @@ async def delete_simulation(request: Request, simulation_id: str) -> None:
         SIM_TREE_REGISTRY.remove(simulation_id)
 
 
+@post("/{simulation_id:str}/reset")
+async def reset_simulation(request: Request, simulation_id: str) -> Message:
+    """重新构建仿真树，清空日志/快照并返回成功消息。"""
+    token = extract_bearer_token(request)
+    async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
+        sim = await _get_simulation_for_owner(session, current_user.id, simulation_id)
+
+        # 清空日志与快照，移除运行态树
+        await session.execute(sa_delete(SimulationLog).where(SimulationLog.simulation_id == sim.id))
+        await session.execute(sa_delete(SimulationSnapshot).where(SimulationSnapshot.simulation_id == sim.id))
+        sim.latest_state = None
+        await session.commit()
+        SIM_TREE_REGISTRY.remove(sim.id)
+
+        # 重新创建树并登记
+        await _get_tree_record(sim, session, current_user.id)
+
+        return Message(message="Simulation reset and tree rebuilt")
+
+
 @post("/{simulation_id:str}/save", status_code=201)
 async def create_snapshot(
     request: Request, simulation_id: str, data: SnapshotCreate
@@ -280,6 +302,8 @@ async def create_snapshot(
             meta={},
         )
         session.add(snapshot)
+        # 同步更新 simulation.latest_state，方便重启后恢复
+        sim.latest_state = tree_state
         await session.commit()
         await session.refresh(snapshot)
         return SnapshotBase.model_validate(snapshot)
@@ -450,7 +474,7 @@ async def simulation_tree_advance_frontier(
     data: SimulationTreeAdvanceFrontierPayload,
 ) -> dict:
     async with get_session() as session:
-        _, record = await _get_simulation_and_tree_any(session, simulation_id)
+        sim, record = await _get_simulation_and_tree_any(session, simulation_id)
         tree = record.tree
         parents = tree.frontier(True) if data.only_max_depth else tree.leaves()
         turns = int(data.turns)
@@ -490,6 +514,9 @@ async def simulation_tree_advance_frontier(
             if cid in record.running:
                 record.running.remove(cid)
             _broadcast(record, {"type": "run_finish", "data": {"node": int(cid)}})
+        # 持久化最新树状态，便于重启后恢复
+        sim.latest_state = tree.serialize()
+        await session.commit()
         return {"children": [int(c) for c in produced]}
 
 
@@ -500,7 +527,7 @@ async def simulation_tree_advance_multi(
     data: SimulationTreeAdvanceMultiPayload,
 ) -> dict:
     async with get_session() as session:
-        _, record = await _get_simulation_and_tree_any(session, simulation_id)
+        sim, record = await _get_simulation_and_tree_any(session, simulation_id)
         tree = record.tree
         parent = int(data.parent)
         count = int(data.count)
@@ -541,6 +568,8 @@ async def simulation_tree_advance_multi(
             if cid in record.running:
                 record.running.remove(cid)
             _broadcast(record, {"type": "run_finish", "data": {"node": int(cid)}})
+        sim.latest_state = tree.serialize()
+        await session.commit()
         return {"children": [int(c) for c in result_children]}
 
 
@@ -551,7 +580,7 @@ async def simulation_tree_advance_chain(
     data: SimulationTreeAdvanceChainPayload,
 ) -> dict:
     async with get_session() as session:
-        _, record = await _get_simulation_and_tree_any(session, simulation_id)
+        sim, record = await _get_simulation_and_tree_any(session, simulation_id)
         tree = record.tree
         parent = int(data.parent)
         steps = max(1, int(data.turns))
@@ -585,6 +614,8 @@ async def simulation_tree_advance_chain(
                 record.running.remove(cid)
             _broadcast(record, {"type": "run_finish", "data": {"node": int(cid)}})
             last = cid
+        sim.latest_state = tree.serialize()
+        await session.commit()
         return {"child": int(last)}
 
 
@@ -595,7 +626,7 @@ async def simulation_tree_branch(
     data: SimulationTreeBranchPayload,
 ) -> dict:
     async with get_session() as session:
-        _, record = await _get_simulation_and_tree_any(session, simulation_id)
+        sim, record = await _get_simulation_and_tree_any(session, simulation_id)
         tree = record.tree
         cid = tree.branch(int(data.parent), [dict(op) for op in data.ops])
         node = tree.nodes[cid]
@@ -612,6 +643,8 @@ async def simulation_tree_branch(
                 },
             },
         )
+        sim.latest_state = tree.serialize()
+        await session.commit()
         return {"child": int(cid)}
 
 
@@ -651,12 +684,17 @@ async def simulation_tree_state(
         simulator = node["sim"]
         agents = []
         for name, agent in simulator.agents.items():
+            props = dict(agent.properties)
+            role = props.get("role") or getattr(agent, "role_prompt", "") or ""
+            if role and "role" not in props:
+                props["role"] = role
+            profile = agent.user_profile or props.get("profile") or props.get("description") or ""
             agents.append(
                 {
                     "name": name,
-                    "profile": agent.user_profile,
-                    "role": agent.properties.get("role"),
-                    "properties": dict(agent.properties),
+                    "profile": profile,
+                    "role": role,
+                    "properties": props,
                     "emotion": agent.emotion,
                     "plan_state": agent.plan_state,
                     "short_memory": agent.short_memory.get_all(),
@@ -778,6 +816,7 @@ router = Router(
         read_simulation,
         update_simulation,
         delete_simulation,
+        reset_simulation,
         create_snapshot,
         list_snapshots,
         list_logs,
