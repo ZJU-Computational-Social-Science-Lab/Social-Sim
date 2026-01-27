@@ -11,6 +11,8 @@ from typing import Annotated
 from uuid import uuid4
 
 from litestar import Router, post, get, delete
+from litestar.response import Response
+from litestar.status_codes import HTTP_200_OK
 from litestar.connection import Request
 from litestar.datastructures import UploadFile
 from litestar.enums import RequestEncodingType
@@ -341,7 +343,7 @@ async def list_uploads(request: Request) -> list[dict]:
     return sorted(files, key=lambda f: f["created"], reverse=True)
 
 
-@delete("/{file_id:str}", tags=["uploads"])
+@delete("/{file_id:str}", tags=["uploads"], status_code=HTTP_200_OK)
 async def delete_upload(request: Request, file_id: str) -> dict:
     """
     Delete a file by its UUID.

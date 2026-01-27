@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git rm:*)",
+      "Bash(git add:*)",
+      "Bash(\"C:/Users/justi/Documents/ZJU_Work/Social-Sim/venv/Scripts/python.exe\":*)"
+    ]
+  }
+}
