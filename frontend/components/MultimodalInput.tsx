@@ -76,7 +76,6 @@ export const MultimodalInput: React.FC<Props> = ({
       setPreviewUrl(isImage ? asset.url : null);
       setLastUploadedName(file.name);
       onInsert(asset.url, altText || undefined);
-      setCropUrl(null);
       setSuccess('上传成功');
     } catch (err) {
       console.error(err);
