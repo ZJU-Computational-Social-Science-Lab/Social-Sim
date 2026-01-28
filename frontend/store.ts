@@ -17,12 +17,11 @@ import {
   GuideMessage,
   GuideActionType,
   EngineConfig,
-  EngineMode,
-  InitialEventItem
+  EngineMode
 } from './types';
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { createSimulation as createSimulationApi, getSimulation as getSimulationApi, resetSimulation as resetSimulationApi, deleteSimulation as deleteSimulationApi } from './services/simulations';
+import { createSimulation as createSimulationApi, getSimulation as getSimulationApi } from './services/simulations';
 import {
   getTreeGraph,
   treeAdvanceChain,
@@ -44,17 +43,6 @@ import { useAuthStore } from './store/auth';
 // Module-scope WebSocket handle to avoid duplicate connections
 let _treeSocket: WebSocket | null = null;
 let _treeSocketRefreshTimer: number | null = null;
-
-const closeTreeSocket = () => {
-  if (_treeSocket) {
-    try { _treeSocket.close(); } catch (e) { /* ignore */ }
-    _treeSocket = null;
-  }
-  if (_treeSocketRefreshTimer) {
-    window.clearTimeout(_treeSocketRefreshTimer);
-    _treeSocketRefreshTimer = null;
-  }
-};
 
 interface AppState {
   // # Integration: Engine Config
@@ -125,19 +113,11 @@ interface AppState {
   saveTemplate: (name: string, description: string) => void; // #20
   deleteTemplate: (id: string) => void; // #20
 
-  exitSimulation: () => void;
-  resetSimulation: () => Promise<void>;
-  deleteSimulation: () => Promise<void>;
-
   // #22 Social Network
   updateSocialNetwork: (network: SocialNetwork) => void;
 
   // #14 Report
   generateReport: () => Promise<void>;
-
-  exitSimulation: () => void;
-  resetSimulation: () => Promise<void>;
-  deleteSimulation: () => Promise<void>;
 
   selectNode: (id: string) => void;
   setCompareTarget: (id: string | null) => void;
@@ -152,16 +132,10 @@ interface AppState {
   toggleSaveTemplate: (isOpen: boolean) => void; // #20
   toggleNetworkEditor: (isOpen: boolean) => void; // #22
   toggleReportModal: (isOpen: boolean) => void; // #14
-  toggleInitialEvents: (isOpen: boolean) => void;
-
-  initialEvents: InitialEventItem[];
-  isInitialEventsOpen: boolean;
 
   // Host Actions #16
-  injectLog: (type: LogEntry['type'], content: string, imageUrl?: string, audioUrl?: string, videoUrl?: string) => void; // #24 Updated signature
-  addInitialEvent: (title: string, content: string, imageUrl?: string, audioUrl?: string, videoUrl?: string) => void;
+  injectLog: (type: LogEntry['type'], content: string, imageUrl?: string) => void; // #24 Updated signature
   updateAgentProperty: (agentId: string, property: string, value: any) => void;
-  updateAgentProfile: (agentId: string, profile: string) => void;
 
   // #23 Knowledge Base Actions
   addKnowledgeToAgent: (agentId: string, item: KnowledgeItem) => void;
@@ -990,6 +964,54 @@ export const generateAgentsWithAI = async (
   }));
 };
 
+// AgentTorch Integration: Demographic-based agent generation
+export async function generateAgentsWithDemographics(
+  totalAgents: number,
+  demographics: { name: string; categories: string[] }[],
+  archetypeProbabilities: Record<string, number>,
+  traits: { name: string; mean: number; std: number }[],
+  language: string,
+  providerId?: string | number
+): Promise<Agent[]> {
+  const body = {
+    total_agents: totalAgents,
+    demographics,
+    archetype_probabilities: archetypeProbabilities,
+    traits,
+    language: language,
+    provider_id: providerId != null ? Number(providerId) : undefined
+  };
+
+  const res = await apiClient.post("/llm/generate_agents_demographics", body);
+  
+  const rawAgents: any[] = Array.isArray(res.data)
+    ? res.data
+    : Array.isArray(res.data?.agents)
+    ? res.data.agents
+    : [];
+
+  return rawAgents.map((a: any, index: number) => ({
+    id: a.id || `gen_${Date.now()}_${index}`,
+    name: a.name,
+    role: a.role || "角色",
+    avatarUrl:
+      a.avatarUrl ||
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(
+        a.name || `agent_${index}`
+      )}`,
+    profile: a.profile || "暂无描述",
+    llmConfig: {
+      provider: a.provider || "backend",
+      model: a.model || "default"
+    },
+    properties: a.properties || {},
+    history: a.history || {},
+    memory: a.memory || [],
+    knowledgeBase: a.knowledgeBase || []
+  }));
+}
+
+
 
 // #12 Helper for Environment Suggestions
 export const fetchEnvironmentSuggestions = async (
@@ -1358,14 +1380,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
             scene_type: backendSceneType,
             scene_config: {
               time_scale: finalTimeConfig,
-              social_network: template.defaultNetwork || {},
-              initial_events: (state.initialEvents || []).map((ev) => ({
-                content: ev.content,
-                title: ev.title,
-                images: ev.imageUrl ? [ev.imageUrl] : [],
-                audio: ev.audioUrl ? [ev.audioUrl] : [],
-                video: ev.videoUrl ? [ev.videoUrl] : [],
-              })),
+              social_network: template.defaultNetwork || {}
             },
             agent_config: {
               agents: (baseAgents || []).map((a) => ({
@@ -1374,11 +1389,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
                 role: (a as any).role,
                 avatarUrl: (a as any).avatarUrl,
                 llmConfig: (a as any).llmConfig,
-                properties: (() => {
-                  const props = { ...(a as any).properties };
-                  if ((a as any).role && !props.role) props.role = (a as any).role;
-                  return props;
-                })(),
+                properties: (a as any).properties || {},
                 history: (a as any).history || {},
                 memory: (a as any).memory || [],
                 knowledgeBase: (a as any).knowledgeBase || [],
@@ -1487,7 +1498,68 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     });
     get().addNotification('success', `仿真 "${name}" 创建成功`);
 
-    // 关闭自动保存：仅手动同步时写入后端，避免运行中产生草稿
+    // 异步：如果用户已登录，尝试自动将本地仿真保存到后端
+    (async () => {
+      try {
+        const auth = useAuthStore.getState();
+        if (!auth?.isAuthenticated) return;
+        // 显示正在保存的 spinner
+        set({ isGenerating: true });
+
+        const endpoint = state.engineConfig.endpoint;
+        const token = (state.engineConfig as any).token as string | undefined;
+
+        // 构造后端所需的 payload，保持与 connected 分支一致
+        const mapSceneType: Record<string, string> = {
+          village: 'village_scene',
+          council: 'council_scene',
+          werewolf: 'werewolf_scene'
+        };
+        const backendSceneType = mapSceneType[template.sceneType] || template.sceneType;
+
+        const payload: any = {
+          scene_type: backendSceneType,
+          scene_config: {
+            time_scale: timeConfig || template.defaultTimeConfig || DEFAULT_TIME_CONFIG,
+            social_network: template.defaultNetwork || {}
+          },
+          agent_config: {
+            agents: (finalAgents || []).map((a) => ({
+              name: a.name,
+              profile: a.profile,
+              role: (a as any).role,
+              avatarUrl: (a as any).avatarUrl,
+              llmConfig: (a as any).llmConfig,
+              properties: (a as any).properties || {},
+              history: (a as any).history || {},
+              memory: (a as any).memory || [],
+              knowledgeBase: (a as any).knowledgeBase || [],
+              action_space: Array.isArray((a as any).action_space) ? (a as any).action_space : ['send_message']
+            }))
+          },
+          llm_provider_id: state.selectedProviderId || state.currentProviderId || undefined,
+          name: name || undefined
+        };
+
+        // 使用已有的 API wrapper（createSimulation），兼容旧签名
+        try {
+          const { createSimulation } = await import('./services/simulations');
+          const saved = await createSimulation(endpoint, payload, token);
+          if (saved && saved.id) {
+            // 用后端 id 更新本地 simulation，确保后续 resume/list 能找到它
+            set((s) => ({
+              simulations: s.simulations.map(sim => sim === newSim ? { ...sim, id: saved.id } : sim),
+              currentSimulation: { ...s.currentSimulation!, id: saved.id }
+            } as any));
+            get().addNotification('success', pickText('Auto-saved to backend', '已自动保存至后端'));
+          }
+        } catch (e) {
+          console.warn('自动保存仿真到后端失败', e);
+        }
+      } finally {
+        set({ isGenerating: false });
+      }
+    })();
   },
 
   updateTimeConfig: (config) => {
@@ -1538,16 +1610,6 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       set((s) => ({ syncLogs: [...s.syncLogs, '[ERROR] 未找到当前仿真'] } as any));
       return;
     }
-    if (state.engineConfig.mode !== 'connected') {
-      get().addNotification('error', '仅连接模式可保存到后端');
-      return;
-    }
-    const simId = state.currentSimulation.id || '';
-    const isLocalOnly = /^sim\d+/i.test(simId) || /^Simulation_\d+$/i.test(simId);
-    if (isLocalOnly) {
-      get().addNotification('error', '当前仿真尚未在后端创建，无法直接覆盖，请先在连接模式创建/加载后再保存');
-      return;
-    }
     set({ isSyncing: true, syncLogs: [] });
     const sim = state.currentSimulation;
     try {
@@ -1566,11 +1628,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
             role: (a as any).role,
             avatarUrl: (a as any).avatarUrl,
             llmConfig: (a as any).llmConfig,
-            properties: (() => {
-              const props = { ...(a as any).properties };
-              if ((a as any).role && !props.role) props.role = (a as any).role;
-              return props;
-            })(),
+            properties: (a as any).properties || {},
             history: (a as any).history || {},
             memory: (a as any).memory || [],
             knowledgeBase: (a as any).knowledgeBase || [],
@@ -1583,7 +1641,6 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       const syncLogId = res?.sync_log_id;
       const taskId = res?.task_id;
       set((s) => ({ syncLogs: [...s.syncLogs, `[OK] 后端已接收同步请求 (sync_log=${syncLogId}, task=${taskId})`] } as any));
-      get().addNotification('info', '已提交保存请求，后台处理中');
 
       // Poll for updates until finished/error or timeout
       const start = Date.now();
@@ -1630,59 +1687,6 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     get().addNotification('error', '报告生成功能暂未启用');
   },
 
-  exitSimulation: () => {
-    closeTreeSocket();
-    set({
-      currentSimulation: null,
-      nodes: generateNodes(),
-      selectedNodeId: 'root',
-      logs: [],
-      rawEvents: [],
-      compareTargetNodeId: null,
-      isCompareMode: false,
-    });
-    get().addNotification('info', '已退出当前模拟');
-  },
-
-  resetSimulation: async () => {
-    const state = get();
-    if (!state.currentSimulation) return;
-    try {
-      if (state.engineConfig.mode === 'connected') {
-        const token = (state.engineConfig as any).token as string | undefined;
-        await resetSimulationApi(state.currentSimulation.id);
-        const graph = await getTreeGraph(state.engineConfig.endpoint, state.currentSimulation.id, token);
-        if (graph) {
-          const nodesMapped = mapGraphToNodes(graph);
-          set({ nodes: nodesMapped, selectedNodeId: graph.root != null ? String(graph.root) : null, logs: [], rawEvents: [] });
-        }
-      } else {
-        closeTreeSocket();
-        set({ nodes: generateNodes(), selectedNodeId: 'root', logs: [], rawEvents: [] });
-      }
-      get().addNotification('success', '模拟已重置');
-    } catch (e) {
-      console.error('resetSimulation failed', e);
-      get().addNotification('error', '重置模拟失败');
-    }
-  },
-
-  deleteSimulation: async () => {
-    const state = get();
-    if (!state.currentSimulation) return;
-    try {
-      if (state.engineConfig.mode === 'connected') {
-        await deleteSimulationApi(state.currentSimulation.id);
-      }
-      closeTreeSocket();
-      set({ currentSimulation: null, nodes: generateNodes(), selectedNodeId: 'root', logs: [], rawEvents: [], compareTargetNodeId: null, isCompareMode: false });
-      get().addNotification('success', '模拟已删除');
-    } catch (e) {
-      console.error('deleteSimulation failed', e);
-      get().addNotification('error', '删除模拟失败');
-    }
-  },
-
   selectNode: (id) => set({ selectedNodeId: id }),
   setCompareTarget: (id) => set({ compareTargetNodeId: id }),
   toggleCompareMode: (isOpen) => set({ isCompareMode: isOpen, comparisonSummary: null }),
@@ -1695,12 +1699,8 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   toggleSaveTemplate: (isOpen) => set({ isSaveTemplateOpen: isOpen }),
   toggleNetworkEditor: (isOpen) => set({ isNetworkEditorOpen: isOpen }),
   toggleReportModal: (isOpen) => set({ isReportModalOpen: isOpen }),
-    toggleInitialEvents: (isOpen) => set({ isInitialEventsOpen: isOpen }),
 
-    initialEvents: [],
-    isInitialEventsOpen: false,
-
-  injectLog: (type, content, imageUrl, audioUrl, videoUrl) => set(state => {
+  injectLog: (type, content, imageUrl) => set(state => {
     if (!state.selectedNodeId) return {};
     const log: LogEntry = {
       id: `host-${Date.now()}`,
@@ -1708,32 +1708,11 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       round: 0,
       type: type === 'SYSTEM' || type === 'ENVIRONMENT' ? type : 'HOST_INTERVENTION',
       content: content,
-      imageUrl,
-      audioUrl,
-      videoUrl,
+      imageUrl: imageUrl,
       timestamp: new Date().toISOString()
     };
     return { logs: [...state.logs, log] };
   }),
-
-    addInitialEvent: (title, content, imageUrl, audioUrl, videoUrl) => {
-      const id = `init-${Date.now()}`;
-      set(state => ({
-        initialEvents: [...(state.initialEvents || []), { id, title, content, imageUrl, audioUrl, videoUrl }],
-        logs: state.selectedNodeId ? [...state.logs, {
-          id,
-          nodeId: state.selectedNodeId,
-          round: 0,
-          type: 'ENVIRONMENT',
-          content: `[初始事件] ${title}\n${content}` + (audioUrl ? `\n[audio: ${audioUrl}]` : '') + (videoUrl ? `\n[video: ${videoUrl}]` : ''),
-          imageUrl,
-          audioUrl,
-          videoUrl,
-          timestamp: new Date().toISOString()
-        } as LogEntry] : state.logs,
-      }));
-      get().addNotification('success', '初始事件已保存');
-    },
 
   updateAgentProperty: (agentId, property, value) => {
     set(state => {
@@ -1748,15 +1727,6 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     const agentName = get().agents.find(a => a.id === agentId)?.name || agentId;
     get().injectLog('HOST_INTERVENTION', `Host 修改了 ${agentName} 的属性 [${property}] 为 ${value}`);
     get().addNotification('success', '智能体属性已更新');
-  },
-
-  updateAgentProfile: (agentId, profile) => {
-    set(state => ({
-      agents: state.agents.map(a => a.id === agentId ? { ...a, profile } : a)
-    }));
-    const agentName = get().agents.find(a => a.id === agentId)?.name || agentId;
-    get().injectLog('AGENT_METADATA', `${agentName} 的画像已更新`);
-    get().addNotification('success', '智能体画像已更新');
   },
 
   addKnowledgeToAgent: (agentId, item) => {
@@ -1809,29 +1779,24 @@ export const useSimulationStore = create<AppState>((set, get) => ({
 
             const turnVal = Number(simState?.turns ?? 0) || 0;
 
-            const agentsMapped: Agent[] = (simState?.agents || []).map((a: any, idx: number) => {
-              const existing = state.agents.find((ex) => ex.name === a.name);
-              const fallbackRole = a.properties && (a.properties.role || a.properties.title || a.properties.position);
-              const fallbackProfile = a.profile || a.user_profile || a.userProfile || (a.properties && (a.properties.profile || a.properties.description)) || existing?.profile || '';
-              return {
-                id: `a-${idx}-${a.name}`,
-                name: a.name,
-                role: a.role || fallbackRole || '',
-                avatarUrl: existing?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
-                profile: fallbackProfile,
-                llmConfig: existing?.llmConfig || { provider: 'mock', model: 'default' },
-                properties: a.properties || existing?.properties || {},
-                history: existing?.history || {},
-                memory: (a.short_memory || []).map((m: any, j: number) => ({
-                  id: `m-${idx}-${j}`,
-                  round: turnVal,
-                  content: String(m.content ?? ''),
-                  type: (String(m.role ?? '') === 'assistant' || String(m.role ?? '') === 'user') ? 'dialogue' : 'observation',
-                  timestamp: new Date().toISOString()
-                })),
-                knowledgeBase: existing?.knowledgeBase || []
-              };
-            });
+            const agentsMapped: Agent[] = (simState?.agents || []).map((a: any, idx: number) => ({
+              id: `a-${idx}-${a.name}`,
+              name: a.name,
+              role: a.role || '',
+              avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
+              profile: a.profile || '',
+              llmConfig: { provider: 'mock', model: 'default' },
+              properties: a.properties || {},
+              history: {},
+              memory: (a.short_memory || []).map((m: any, j: number) => ({
+                id: `m-${idx}-${j}`,
+                round: turnVal,
+                content: String(m.content ?? ''),
+                type: (String(m.role ?? '') === 'assistant' || String(m.role ?? '') === 'user') ? 'dialogue' : 'observation',
+                timestamp: new Date().toISOString()
+              })),
+              knowledgeBase: []
+            }));
 
             const eventsArray = Array.isArray(events) ? events : [];
             
@@ -2015,11 +1980,6 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   deleteNode: async () => {
     const state = get();
     if (!state.selectedNodeId) return;
-    const rootNode = state.nodes.find((n) => n.parentId === null);
-    if (rootNode && state.selectedNodeId === rootNode.id) {
-      get().addNotification('error', '不能删除根节点');
-      return;
-    }
     if (state.engineConfig.mode === 'connected' && state.currentSimulation) {
       try {
         const base = state.engineConfig.endpoint;
@@ -2467,7 +2427,58 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   useAuthStore.subscribe((s) => {
     const nowAuth = s.isAuthenticated;
     if (!lastAuthState && nowAuth) {
-      // 关闭自动同步以避免误创建草稿，用户需手动点击“保存到后端”
+      // user just logged in: attempt to sync local sims
+      (async () => {
+        try {
+          const state = useSimulationStore.getState();
+          const localSims = state.simulations.filter((sim) => typeof sim.id === 'string' && /^sim\d+/.test(sim.id));
+          if (!localSims.length) return;
+          setTimeout(async () => {
+            try {
+              const endpoint = state.engineConfig.endpoint;
+              const token = (state.engineConfig as any).token as string | undefined;
+              const { createSimulation } = await import('./services/simulations');
+              for (const sim of localSims) {
+                // build minimal payload from sim (we don't have full template here)
+                const payload: any = {
+                  scene_type: sim.templateId || 'village',
+                  scene_config: sim.timeConfig || {},
+                  social_network: sim.socialNetwork || {},
+                  agent_config: { agents: state.agents.map(a => ({
+                    name: a.name,
+                    profile: a.profile,
+                    role: (a as any).role,
+                    avatarUrl: (a as any).avatarUrl,
+                    llmConfig: (a as any).llmConfig,
+                    properties: (a as any).properties || {},
+                    history: (a as any).history || {},
+                    memory: (a as any).memory || [],
+                    knowledgeBase: (a as any).knowledgeBase || [],
+                    action_space: Array.isArray((a as any).action_space) ? (a as any).action_space : ['send_message']
+                  }) )},
+                  name: sim.name
+                };
+                try {
+                  const saved = await createSimulation(endpoint, payload, token);
+                  if (saved && saved.id) {
+                    useSimulationStore.setState((s) => ({
+                      simulations: s.simulations.map(x => x === sim ? { ...x, id: saved.id } : x),
+                      currentSimulation: s.currentSimulation && s.currentSimulation.id === sim.id ? { ...s.currentSimulation, id: saved.id } : s.currentSimulation
+                    } as any));
+                    useSimulationStore.getState().addNotification('success', `本地仿真 "${sim.name}" 已同步到后端`);
+                  }
+                } catch (err) {
+                  console.warn('同步本地仿真到后端失败', err);
+                }
+              }
+            } catch (e) {
+              console.warn('同步本地仿真过程失败', e);
+            }
+          }, 400);
+        } catch (e) {
+          console.warn('同步本地仿真失败', e);
+        }
+      })();
     }
     lastAuthState = nowAuth;
   });

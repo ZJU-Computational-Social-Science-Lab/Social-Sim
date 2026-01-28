@@ -1,7 +1,7 @@
 # src/socialsim4/backend/api/routes/llm.py
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 import logging
 logger = logging.getLogger(__name__)
 from litestar import Router, post
@@ -15,13 +15,39 @@ from ...dependencies import extract_bearer_token, resolve_current_user
 from ...models.user import ProviderConfig
 
 # 👇 关键：这里需要上升 3 层到 socialsim4，然后再进入 core
-from ....core.llm import create_llm_client
+from ....core.llm import (
+    create_llm_client,
+    generate_agents_with_archetypes,  # ← AgentTorch integration
+)
 from ....core.llm_config import LLMConfig, guess_supports_vision
 
 class GenerateAgentsRequest(BaseModel):
+    """Request model for simple description-based agent generation."""
     count: int = Field(5, ge=1, le=50)
     description: str
-    # 前端 generateAgentsWithAI 里传的 provider_id
+    provider_id: Optional[int] = None
+
+
+class DemographicDimension(BaseModel):
+    """A demographic dimension with categories (e.g., Age: [18-30, 31-50, 51+])."""
+    name: str
+    categories: List[str]
+
+
+class TraitConfig(BaseModel):
+    """Configuration for a trait with mean/std bounds."""
+    name: str
+    mean: int = 50
+    std: int = 15
+
+
+class GenerateAgentsDemographicsRequest(BaseModel):
+    """Request model for demographic-based agent generation using AgentTorch."""
+    total_agents: int = Field(10, ge=1, le=200)
+    demographics: List[DemographicDimension]
+    archetype_probabilities: Dict[str, float] = {}
+    traits: List[TraitConfig] = []
+    language: str = "zh"  # Default to Chinese
     provider_id: Optional[int] = None
 
 
@@ -220,8 +246,101 @@ async def generate_agents(
             )
 
         return agents
+
+
+@post("/generate_agents_demographics")
+async def generate_agents_demographics(
+    request: Request,
+    data: GenerateAgentsDemographicsRequest,
+) -> List[GeneratedAgent]:
+    """
+    POST /llm/generate_agents_demographics
+
+    Demographic-based agent generation using AgentTorch framework.
+    Frontend's generateAgentsWithDemographics() calls this endpoint.
+
+    Process:
+    1. Generate archetypes from demographic cross-product
+    2. For each archetype, ONE LLM call to get description, roles, and trait distributions
+    3. Generate agents with Gaussian-sampled traits
+    4. Return agents with demographic properties
+    """
+    token = extract_bearer_token(request)
+
+    async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
+
+        provider = await _select_provider(
+            session, current_user.id, data.provider_id
+        )
+
+        dialect = (provider.provider or "").lower()
+        cfg = LLMConfig(
+            dialect=dialect,
+            api_key=provider.api_key or "",
+            model=provider.model,
+            base_url=provider.base_url or ("http://127.0.0.1:11434" if dialect == "ollama" else None),
+            temperature=0.7,
+            top_p=1.0,
+            frequency_penalty=0.0,
+            presence_penalty=0.0,
+            max_tokens=1024,
+            supports_vision=guess_supports_vision(provider.model),
+        )
+        llm = create_llm_client(cfg)
+
+        # Traits are required
+        if not data.traits:
+            raise RuntimeError("Traits are required for demographic generation")
+
+        # Convert Pydantic models to dicts for llm.py function
+        demographics_dicts = [
+            {"name": d.name, "categories": d.categories}
+            for d in data.demographics
+        ]
+
+        traits_dicts = [
+            {"name": t.name, "mean": t.mean, "std": t.std}
+            for t in data.traits
+        ]
+
+        # 🎯 Call the integrated AgentTorch function from llm.py
+        agents_data = generate_agents_with_archetypes(
+            total_agents=data.total_agents,
+            demographics=demographics_dicts,
+            archetype_probabilities=data.archetype_probabilities,
+            traits=traits_dicts,
+            llm_client=llm,
+            language=data.language
+        )
+
+        # Convert to GeneratedAgent response models
+        agents: List[GeneratedAgent] = []
+        for agent_dict in agents_data:
+            agents.append(
+                GeneratedAgent(
+                    id=agent_dict.get("id"),
+                    name=agent_dict.get("name", "Agent"),
+                    role=agent_dict.get("role"),
+                    profile=agent_dict.get("profile", ""),
+                    provider=provider.provider or "backend",
+                    model=provider.model or "default",
+                    properties=agent_dict.get("properties", {}),
+                    history=agent_dict.get("history", {}),
+                    memory=agent_dict.get("memory", []),
+                    knowledgeBase=agent_dict.get("knowledgeBase", []),
+                )
+            )
+
+        logger.info(f"Generated {len(agents)} agents using demographic modeling")
+        return agents
+
+
 # 暴露 /llm 前缀的 Router
 router = Router(
     path="/llm",
-    route_handlers=[generate_agents],
+    route_handlers=[
+        generate_agents,               # Simple generation
+        generate_agents_demographics,  # AgentTorch demographic generation
+    ],
 )

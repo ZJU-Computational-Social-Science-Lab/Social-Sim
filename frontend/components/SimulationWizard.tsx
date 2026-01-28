@@ -2,7 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   useSimulationStore,
-  generateAgentsWithAI
+  generateAgentsWithAI,
+  generateAgentsWithDemographics
 } from '../store';
 import {
   X,
@@ -14,7 +15,9 @@ import {
   Clock,
   LayoutTemplate,
   Sparkles,
-  Loader2
+  Loader2,
+  Plus,
+  Minus
 } from 'lucide-react';
 import Papa from 'papaparse';
 import { Agent, LLMConfig, TimeUnit } from '../types';
@@ -28,6 +31,64 @@ const TIME_UNITS: { value: TimeUnit; label: string }[] = [
   { value: 'month', label: '月' },
   { value: 'year', label: '年' }
 ];
+
+
+
+// =============================================================================
+// Types for Demographic Generation (AgentTorch Integration)
+// =============================================================================
+
+interface Demographic {
+  id: string;
+  name: string;
+  categories: string[];
+}
+
+interface Archetype {
+  id: string;
+  attributes: Record<string, string>;
+  label: string;
+  probability: number;
+}
+
+interface TraitConfig {
+  id: string;
+  name: string;
+  mean: number;
+  std: number;
+}
+
+// Helper to generate unique IDs
+const generateId = () => `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+// Generate archetypes from demographics (cross-product) - UI helper only
+const generateArchetypes = (demographics: Demographic[]): Archetype[] => {
+  if (demographics.length === 0) return [];
+  
+  let combinations: Record<string, string>[] = demographics[0].categories.map(cat => ({
+    [demographics[0].name]: cat
+  }));
+  
+  for (let i = 1; i < demographics.length; i++) {
+    const demo = demographics[i];
+    const newCombos: Record<string, string>[] = [];
+    for (const combo of combinations) {
+      for (const cat of demo.categories) {
+        newCombos.push({ ...combo, [demo.name]: cat });
+      }
+    }
+    combinations = newCombos;
+  }
+  
+  const equalProb = 1 / combinations.length;
+  return combinations.map((attrs, idx) => ({
+    id: `arch_${idx}`,
+    attributes: attrs,
+    label: Object.entries(attrs).map(([k, v]) => `${k}: ${v}`).join(' | '),
+    probability: equalProb
+  }));
+};
+
 
 export const SimulationWizard: React.FC = () => {
   const isOpen = useSimulationStore((state) => state.isWizardOpen);
@@ -66,11 +127,24 @@ export const SimulationWizard: React.FC = () => {
   const [genDesc, setGenDesc] = useState(
     '创建一个多元化的乡村社区，包含务农者、商人和知识分子。'
   );
-  const [isEmbeddingImage, setIsEmbeddingImage] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isEmbeddingImage, setIsEmbeddingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  // Demographic-based generation fields (AgentTorch)
+  const [useDemographics, setUseDemographics] = useState(false);
+  const [demographics, setDemographics] = useState<Demographic[]>([
+    { id: generateId(), name: 'Age', categories: ['18-30', '31-50', '51+'] },
+    { id: generateId(), name: 'Location', categories: ['Urban', 'Suburban', 'Rural'] }
+  ]);
+  const [archetypes, setArchetypes] = useState<Archetype[]>([]);
+  const [traits, setTraits] = useState<TraitConfig[]>([
+    { id: generateId(), name: 'Trust', mean: 50, std: 15 },
+    { id: generateId(), name: 'Empathy', mean: 50, std: 15 },
+    { id: generateId(), name: 'Assertiveness', mean: 50, std: 15 }
+  ]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // 打开向导时加载 provider 列表
   useEffect(() => {
@@ -98,6 +172,14 @@ export const SimulationWizard: React.FC = () => {
     setGenCount(counts[selectedTemplateId] ?? 5);
   }, [selectedTemplateId]);
 
+  // Update archetypes when demographics change (AgentTorch)
+  useEffect(() => {
+    if (useDemographics) {
+      setArchetypes(generateArchetypes(demographics));
+    }
+  }, [demographics, useDemographics]);
+
+
   const selectedTemplate =
     savedTemplates.find((t) => t.id === selectedTemplateId) ||
     savedTemplates[0];
@@ -121,6 +203,7 @@ export const SimulationWizard: React.FC = () => {
         model: 'default'
       };
 
+  // Vision capability detection for multimodal models
   const visionCapable = !!(
     (selectedProvider as any)?.model &&
     /vision|gpt-4o|4o-mini|o1|gemini-pro-vision|gemini 1\.5|flash|pro|llava|llama-?3\.2|qwen2-vl/i.test((selectedProvider as any).model)
@@ -178,6 +261,20 @@ export const SimulationWizard: React.FC = () => {
     setGenDesc(
       '创建一个多元化的乡村社区，包含务农者、商人和知识分子。'
     );
+
+    setUseDemographics(false);
+    setDemographics([
+      { id: generateId(), name: 'Age', categories: ['18-30', '31-50', '51+'] },
+      { id: generateId(), name: 'Location', categories: ['Urban', 'Suburban', 'Rural'] }
+    ]);
+    setArchetypes([]);
+    setTraits([
+      { id: generateId(), name: 'Trust', mean: 50, std: 15 },
+      { id: generateId(), name: 'Empathy', mean: 50, std: 15 },
+      { id: generateId(), name: 'Assertiveness', mean: 50, std: 15 }
+    ]);
+    
+    toggleWizard(false);
   };
 
   const handleDeleteTemplate = (e: React.MouseEvent, id: string) => {
@@ -235,11 +332,43 @@ export const SimulationWizard: React.FC = () => {
     setIsGenerating(true);
     setImportError(null);
     try {
-      const agents = await generateAgentsWithAI(
-        genCount,
-        genDesc,
-        selectedProviderId ?? undefined
-      );
+      let agents: Agent[];
+      
+      if (useDemographics) {
+        // Demographic-based generation
+        const demographicsData = demographics.map(d => ({
+          name: d.name,
+          categories: d.categories
+        }));
+
+        const traitsData = traits.map(t => ({
+          name: t.name,
+          mean: t.mean,
+          std: t.std
+        }));
+        
+        const archetypeProbabilities: Record<string, number> = {};
+        archetypes.forEach(a => {
+          archetypeProbabilities[a.id] = a.probability;
+        });
+        
+        agents = await generateAgentsWithDemographics(
+          genCount,
+          demographicsData,
+          archetypeProbabilities,
+          traitsData,
+          'en',
+          selectedProviderId ?? undefined
+        );
+      } else {
+        // Simple description-based generation
+        agents = await generateAgentsWithAI(
+          genCount,
+          genDesc,
+          selectedProviderId ?? undefined
+        );
+      }
+      
       agents.forEach((a) => {
         a.llmConfig = defaultLlmConfig;
       });
@@ -253,19 +382,97 @@ export const SimulationWizard: React.FC = () => {
     }
   };
 
-  // 点击“下一步”时的处理逻辑：如果没有任何可用模型，提醒一下
+  // 点击"下一步"时的处理逻辑：如果没有任何可用模型，提醒一下
   const handleNext = () => {
     if (llmProviders.length === 0 || !selectedProviderId) {
-      window.alert('没有可用模型，请先在“设置 → LLM 提供商”中添加。');
+      window.alert('没有可用模型，请先在"设置 → LLM 提供商"中添加。');
       addNotification(
         'error',
-        '没有可用模型，请先在“设置 → LLM 提供商”中添加。'
+        '没有可用模型，请先在"设置 → LLM 提供商"中添加。'
       );
-      // 这里选择“提示但仍然允许继续下一步”；如果你想阻止继续，可以直接 return;
+      // 这里选择"提示但仍然允许继续下一步"；如果你想阻止继续，可以直接 return;
       // return;
     }
     setStep((s) => s + 1);
   };
+
+  
+  // ========================================================================== 
+  // Demographic management handlers (AgentTorch)
+  // ==========================================================================
+  const handleAddDemographic = () => {
+    setDemographics([
+      ...demographics,
+      { id: generateId(), name: `Dimension ${demographics.length + 1}`, categories: ['A', 'B', 'C'] }
+    ]);
+  };
+
+  const handleRemoveDemographic = (id: string) => {
+    if (demographics.length > 1) {
+      setDemographics(demographics.filter(d => d.id !== id));
+    }
+  };
+
+  const handleUpdateDemographicName = (id: string, name: string) => {
+    setDemographics(demographics.map(d => d.id === id ? { ...d, name } : d));
+  };
+
+  const handleAddCategory = (demoId: string) => {
+    setDemographics(demographics.map(d =>
+      d.id === demoId
+        ? { ...d, categories: [...d.categories, `Category ${d.categories.length + 1}`] }
+        : d
+    ));
+  };
+
+  const handleRemoveCategory = (demoId: string, catIndex: number) => {
+    setDemographics(demographics.map(d => {
+      if (d.id === demoId && d.categories.length > 1) {
+        const newCats = [...d.categories];
+        newCats.splice(catIndex, 1);
+        return { ...d, categories: newCats };
+      }
+      return d;
+    }));
+  };
+
+  const handleUpdateCategory = (demoId: string, catIndex: number, value: string) => {
+    setDemographics(demographics.map(d => {
+      if (d.id === demoId) {
+        const newCats = [...d.categories];
+        newCats[catIndex] = value;
+        return { ...d, categories: newCats };
+      }
+      return d;
+    }));
+  };
+
+  // Trait management handlers
+  const handleAddTrait = () => {
+    setTraits([...traits, { id: generateId(), name: `Trait ${traits.length + 1}`, mean: 50, std: 15 }]);
+  };
+
+  const handleRemoveTrait = (id: string) => {
+    if (traits.length > 1) {
+      setTraits(traits.filter(t => t.id !== id));
+    }
+  };
+
+  const handleUpdateTrait = (id: string, field: keyof TraitConfig, value: string | number) => {
+    setTraits(traits.map(t => t.id === id ? { ...t, [field]: value } : t));
+  };
+
+  // Archetype probability handlers
+  const handleUpdateArchetypeProbability = (archId: string, prob: number) => {
+    setArchetypes(archetypes.map(a => a.id === archId ? { ...a, probability: prob } : a));
+  };
+
+  const handleNormalizeProbabilities = () => {
+    const total = archetypes.reduce((sum, a) => sum + a.probability, 0) || 1;
+    setArchetypes(archetypes.map(a => ({ ...a, probability: a.probability / total })));
+  };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
@@ -326,7 +533,7 @@ export const SimulationWizard: React.FC = () => {
                 >
                   {llmProviders.length === 0 && (
                     <option value="">
-                      尚未配置任何提供商（请先在“设置”中添加）
+                      尚未配置任何提供商（请先在"设置"中添加）
                     </option>
                   )}
                   {llmProviders.map((p) => (
@@ -339,7 +546,7 @@ export const SimulationWizard: React.FC = () => {
                 </select>
               </div>
 
-              {/* Template Selection #20 */}
+              {/* Template Selection */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
                   <LayoutTemplate size={16} /> 1. 选择场景模板
@@ -428,7 +635,7 @@ export const SimulationWizard: React.FC = () => {
                 />
               </div>
 
-              {/* Time Configuration #9 */}
+              {/* Time Configuration */}
               <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-5">
                 <label className="block text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
                   <Clock size={16} /> 3. 仿真时间设置 (Time Scale)
@@ -526,7 +733,7 @@ export const SimulationWizard: React.FC = () => {
                 >
                   {llmProviders.length === 0 && (
                     <option value="">
-                      尚未配置任何提供商（请先在“设置”中添加）
+                      尚未配置任何提供商（请先在"设置"中添加）
                     </option>
                   )}
                   {llmProviders.map((p) => (
@@ -607,141 +814,272 @@ export const SimulationWizard: React.FC = () => {
               {/* MODE: AI GENERATE */}
               {importMode === 'generate' && (
                 <div className="flex-1 flex flex-col gap-4">
+                  {/* Vision Capability Indicator */}
                   <div className={`text-xs p-3 rounded border ${visionCapable ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
                     {visionCapable
                       ? '当前模型推断支持视觉，多模态描述将以图片链接发送；图片推理可能产生额外费用，请确认计价。可用 scripts/check_vision_model.py 先行自检。'
-                      : '当前模型可能不支持视觉，图片将以占位符文本传递。若需识图，请在设置中选择支持 vision 的模型。'}
+                      : '当前模型不支持多模态（图片推理），描述中的图片将以占位符形式保留。'}
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-purple-50 border border-purple-100 p-4 rounded-lg">
-                    <div className="col-span-1">
-                      <label className="block text-xs font-bold text-purple-800 mb-2">
-                        生成数量
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="50"
-                        value={genCount}
-                        onChange={(e) =>
-                          setGenCount(
-                            Math.min(
-                              50,
-                              Math.max(1, parseInt(e.target.value))
-                            )
-                          )
-                        }
-                        className="w-full px-3 py-2 border border-purple-200 rounded text-sm focus:ring-purple-500"
-                      />
-                    </div>
-                    <div className="col-span-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="block text-xs font-bold text-purple-800">
-                          群体画像描述 (Population Distribution)
-                        </label>
-                        <div className="flex items-center gap-2">
+
+                  {/* Demographics Toggle */}
+                  <div className="flex items-center gap-3 p-3 bg-purple-50 border border-purple-100 rounded-lg">
+                    <input
+                      type="checkbox"
+                      id="useDemographics"
+                      checked={useDemographics}
+                      onChange={(e) => setUseDemographics(e.target.checked)}
+                      className="w-4 h-4 text-purple-600 rounded"
+                    />
+                    <label htmlFor="useDemographics" className="flex-1">
+                      <span className="text-sm font-bold text-slate-800">Use Demographic Generation</span>
+                      <p className="text-xs text-slate-600">Define demographics and archetypes for large-scale generation</p>
+                    </label>
+                  </div>
+
+                  {/* Generation Count */}
+                  <div className="bg-purple-50 border border-purple-100 p-4 rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <div className="w-32">
+                        <label className="block text-xs font-bold text-slate-700 mb-2">Agent Count</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="200"
+                          value={genCount}
+                          onChange={(e) => setGenCount(Math.min(200, Math.max(1, parseInt(e.target.value) || 1)))}
+                          className="w-full px-3 py-2 border border-purple-200 rounded text-sm focus:ring-purple-500"
+                        />
+                      </div>
+
+                      {!useDemographics && (
+                        <div className="flex-1">
+                          <label className="block text-xs font-bold text-slate-700 mb-2">Population Description</label>
+                          <div className="flex gap-2 mb-2">
+                            <button
+                              onClick={() => imageInputRef.current?.click()}
+                              disabled={isEmbeddingImage}
+                              className="px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded disabled:opacity-50"
+                            >
+                              {isEmbeddingImage ? (
+                                <span className="flex items-center gap-1">
+                                  <Loader2 size={12} className="animate-spin" />
+                                  上传中...
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1">
+                                  <Upload size={12} />
+                                  上传场景图片
+                                </span>
+                              )}
+                            </button>
+                          </div>
                           <input
                             type="file"
                             ref={imageInputRef}
+                            onChange={(e) => handleEmbedImage(e.target.files?.[0] || null)}
                             accept="image/*"
                             className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0] ?? null;
-                              handleEmbedImage(file);
-                              if (imageInputRef.current) {
-                                imageInputRef.current.value = '';
-                              }
-                            }}
                           />
-                          <button
-                            onClick={() => imageInputRef.current?.click()}
-                            disabled={isEmbeddingImage}
-                            className="text-[10px] px-2 py-1 border border-purple-200 rounded text-purple-700 bg-white hover:bg-purple-50 disabled:opacity-60"
-                          >
-                            {isEmbeddingImage ? '上传中...' : '插入图片'}
-                          </button>
+                          <textarea
+                            value={genDesc}
+                            onChange={(e) => setGenDesc(e.target.value)}
+                            className="w-full px-3 py-2 border border-purple-200 rounded text-sm focus:ring-purple-500 h-20 resize-none"
+                            placeholder="Describe population: 'A small town with 5 residents: 2 conservative farmers, 2 activist students, 1 neutral teacher.'"
+                          />
                         </div>
-                      </div>
-                      <textarea
-                        value={genDesc}
-                        onChange={(e) => setGenDesc(e.target.value)}
-                        className="w-full px-3 py-2 border border-purple-200 rounded text-sm focus:ring-purple-500 h-20 resize-none"
-                        placeholder="描述群体的构成，例如：'一个包括5名居民的小镇，其中2名是保守派农民，2名是年轻激进的学生，1名是中立的教师。'"
-                      />
-                    </div>
-                    <div className="col-span-4 flex justify-end">
-                      <button
-                        onClick={handleGenerateAgents}
-                        disabled={isGenerating}
-                        className="px-6 py-2 bg-purple-600 text-white text-sm font-bold rounded-lg hover:bg-purple-700 flex items-center gap-2 disabled:opacity-50"
-                      >
-                        {isGenerating ? (
-                          <Loader2
-                            size={16}
-                            className="animate-spin"
-                          />
-                        ) : (
-                          <Sparkles size={16} />
-                        )}
-                        开始生成
-                      </button>
+                      )}
                     </div>
                   </div>
 
+                  {/* Demographics Configuration */}
+                  {useDemographics && (
+                    <div className="space-y-4 bg-white border rounded-lg p-4">
+                      {/* Traits */}
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <h4 className="text-sm font-bold text-slate-800">Trait Configuration</h4>
+                          <button onClick={handleAddTrait} className="text-xs text-purple-600 hover:text-purple-700 flex items-center gap-1 font-medium">
+                            <Plus size={12} /> Add Trait
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {traits.map((trait) => (
+  <div key={trait.id} className="flex items-center gap-2">
+    <input
+      value={trait.name}
+      onChange={(e) => handleUpdateTrait(trait.id, 'name', e.target.value)}
+      className="flex-1 px-2 py-1.5 text-sm border rounded text-slate-800"
+      placeholder="Trait name"
+    />
+    <span className="text-xs text-slate-500">μ</span>
+    <input
+      type="number"
+      value={trait.mean}
+      onChange={(e) => handleUpdateTrait(trait.id, 'mean', parseInt(e.target.value) || 50)}
+      className="w-16 px-2 py-1.5 text-sm border rounded text-center text-slate-800"
+      title="Mean"
+    />
+    <span className="text-xs text-slate-500">σ</span>
+    <input
+      type="number"
+      value={trait.std}
+      onChange={(e) => handleUpdateTrait(trait.id, 'std', parseInt(e.target.value) || 15)}
+      className="w-16 px-2 py-1.5 text-sm border rounded text-center text-slate-800"
+      title="Standard Deviation"
+    />
+    {traits.length > 1 && (
+      <button onClick={() => handleRemoveTrait(trait.id)} className="p-1 text-red-400 hover:text-red-600">
+        <X size={14} />
+      </button>
+    )}
+  </div>
+))}
+                        </div>
+                      </div>
+
+                      {/* Demographics */}
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <h4 className="text-sm font-bold text-slate-800">Demographics</h4>
+                          <button onClick={handleAddDemographic} className="text-xs text-purple-600 hover:text-purple-700 flex items-center gap-1 font-medium">
+                            <Plus size={12} /> Add Dimension
+                          </button>
+                        </div>
+                        <div className="space-y-3">
+                          {demographics.map((demo) => (
+                            <div key={demo.id} className="bg-slate-50 rounded p-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <input
+                                  value={demo.name}
+                                  onChange={(e) => handleUpdateDemographicName(demo.id, e.target.value)}
+                                  className="flex-1 px-2 py-1.5 text-sm border rounded font-medium text-slate-800"
+                                  placeholder="Dimension name"
+                                />
+                                {demographics.length > 1 && (
+                                  <button onClick={() => handleRemoveDemographic(demo.id)} className="p-1 text-red-400 hover:text-red-600">
+                                    <Trash2 size={14} />
+                                  </button>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {demo.categories.map((cat, catIdx) => (
+                                  <div key={catIdx} className="flex items-center bg-white rounded border">
+                                    <input
+                                      value={cat}
+                                      onChange={(e) => handleUpdateCategory(demo.id, catIdx, e.target.value)}
+                                      className="w-24 px-2 py-1.5 text-sm rounded-l border-0 text-slate-800"
+                                    />
+                                    {demo.categories.length > 1 && (
+                                      <button onClick={() => handleRemoveCategory(demo.id, catIdx)} className="px-1.5 text-red-400 hover:text-red-600">
+                                        <X size={12} />
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                                <button
+                                  onClick={() => handleAddCategory(demo.id)}
+                                  className="px-2 py-1.5 text-sm text-purple-600 hover:bg-purple-50 rounded border border-dashed border-purple-300"
+                                >
+                                  <Plus size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Archetypes Display */}
+                      {archetypes.length > 0 && (
+                        <div>
+                          <div className="flex justify-between items-center mb-2">
+                            <h4 className="text-sm font-bold text-slate-800">Archetypes ({archetypes.length})</h4>
+                            <button onClick={handleNormalizeProbabilities} className="text-xs text-purple-600 hover:text-purple-700 font-medium">
+                              Normalize
+                            </button>
+                          </div>
+                          <div className="max-h-[280px] overflow-y-auto space-y-2 border rounded p-2 bg-slate-50">
+                            {archetypes.map((arch) => (
+                              <div key={arch.id} className="bg-white p-3 rounded border">
+                                <div className="flex flex-wrap gap-2 mb-2">
+                                  {Object.entries(arch.attributes).map(([dimName, value]) => (
+                                    <span key={dimName} className="inline-flex items-center px-2 py-1 bg-indigo-100 text-indigo-800 text-xs rounded font-medium">
+                                      {dimName}: <span className="ml-1 font-bold">{value}</span>
+                                    </span>
+                                  ))}
+                                </div>
+
+                                <p className="text-xs text-slate-500 mb-2 italic">
+                                  Trait distributions (μ, σ) determined by LLM
+                                </p>
+
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-slate-600">Probability:</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="1"
+                                    step="0.01"
+                                    value={arch.probability.toFixed(2)}
+                                    onChange={(e) => handleUpdateArchetypeProbability(arch.id, Number(e.target.value))}
+                                    className="w-20 px-2 py-1 text-sm border rounded text-center text-slate-800"
+                                  />
+                                  <span className="text-xs text-slate-500">
+                                    (~{Math.max(1, Math.round(genCount * arch.probability))} agents)
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Generate Button */}
+                  <button
+                    onClick={handleGenerateAgents}
+                    disabled={isGenerating || isGeneratingGlobal}
+                    className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="animate-spin" size={16} />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={16} />
+                        {useDemographics ? `Generate ${genCount} Agents (Demographics)` : `Generate ${genCount} Agents (Description)`}
+                      </>
+                    )}
+                  </button>
+
+                  {/* Error Display */}
                   {importError && (
-                    <div className="p-3 bg-red-50 text-red-700 text-xs rounded border border-red-200">
+                    <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-600">
                       {importError}
                     </div>
                   )}
 
-                  {/* Preview for Generated Agents */}
+                  {/* Preview of Generated Agents */}
                   {customAgents.length > 0 && (
-                    <div className="flex-1 border rounded-lg overflow-hidden flex flex-col bg-white">
-                      <div className="px-4 py-2 bg-slate-50 border-b flex justify-between items-center">
-                        <span className="text-xs font-bold text-slate-700">
-                          已生成 {customAgents.length} 个智能体
-                        </span>
-                        <button
-                          onClick={() => setCustomAgents([])}
-                          className="text-xs text-red-500 hover:underline"
-                        >
-                          清空重置
-                        </button>
-                      </div>
-                      <div className="overflow-y-auto flex-1 p-0">
-                        <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-50 sticky top-0 text-slate-500">
-                            <tr>
-                              <th className="px-4 py-2">姓名</th>
-                              <th className="px-4 py-2">角色</th>
-                              <th className="px-4 py-2">画像描述</th>
-                              <th className="px-4 py-2">初始属性</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y">
-                            {customAgents.map((a, i) => (
-                              <tr
-                                key={i}
-                                className="hover:bg-slate-50"
-                              >
-                                <td className="px-4 py-2 font-bold">
-                                  {a.name}
-                                </td>
-                                <td className="px-4 py-2">
-                                  {a.role}
-                                </td>
-                                <td
-                                  className="px-4 py-2 max-w-xs truncate"
-                                  title={a.profile}
-                                >
-                                  {a.profile}
-                                </td>
-                                <td className="px-4 py-2 font-mono text-[10px] text-slate-500">
-                                  {JSON.stringify(a.properties)}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                    <div className="border rounded-lg p-4 bg-green-50">
+                      <h4 className="text-sm font-bold text-slate-800 mb-2">
+                        Generated {customAgents.length} agents
+                      </h4>
+                      <div className="max-h-32 overflow-y-auto space-y-1">
+                        {customAgents.slice(0, 5).map((a) => (
+                          <div key={a.id} className="text-xs text-slate-600 flex items-center gap-2">
+                            <span className="font-medium">{a.name}</span>
+                            <span className="text-slate-400">·</span>
+                            <span>{a.role}</span>
+                          </div>
+                        ))}
+                        {customAgents.length > 5 && (
+                          <div className="text-xs text-slate-400 italic">
+                            ... {customAgents.length - 5} more
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
