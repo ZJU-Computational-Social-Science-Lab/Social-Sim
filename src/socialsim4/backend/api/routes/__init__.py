@@ -11,6 +11,7 @@ from . import (
     search_providers,
     llm,  # 👈 新增：LLM 相关路由
     experiments,
+    uploads,
 )
 
 router = Router(
@@ -24,6 +25,7 @@ router = Router(
         search_providers.router,
         llm.router,   # 👈 新增：挂载 /llm 路由（包含 /llm/generate_agents）
         experiments.router,
+        uploads.router,
         admin.router,
     ],
 )

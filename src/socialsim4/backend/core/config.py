@@ -42,6 +42,16 @@ class Settings(BaseSettings):
     allowed_origins: list[str] = []
     admin_emails: list[str] = []
 
+    upload_dir: str = "uploads"
+    upload_base_url: str = "/uploads"
+    upload_max_mb: int = 5
+    upload_docs_max_mb: int = 10
+    upload_enable_ocr: bool = False
+    upload_ocr_lang: str | None = None
+    upload_backend: str = "local"  # local | cloud
+    upload_cloud_base_url: str | None = None  # used when upload_backend = cloud; still writes locally but returns cloud URL
+    upload_cloud_dir: str | None = None  # optional: when cloud backend is enabled, write to this directory (e.g., mounted bucket)
+
     model_config = SettingsConfigDict(
         extra="ignore",
         env_prefix="SOCIALSIM4_",

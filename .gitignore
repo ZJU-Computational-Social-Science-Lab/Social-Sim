@@ -136,3 +136,14 @@ stats.sh
 .DS_Store
 frontend/dist/
 frontend/node_modules/
+uploads/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+
+# Claude Code settings (local to each developer)
+.claude/
+.claude.json
+settings.local.json

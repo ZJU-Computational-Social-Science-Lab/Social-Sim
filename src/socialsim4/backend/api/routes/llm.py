@@ -16,7 +16,7 @@ from ...models.user import ProviderConfig
 
 # 👇 关键：这里需要上升 3 层到 socialsim4，然后再进入 core
 from ....core.llm import create_llm_client
-from ....core.llm_config import LLMConfig
+from ....core.llm_config import LLMConfig, guess_supports_vision
 
 class GenerateAgentsRequest(BaseModel):
     count: int = Field(5, ge=1, le=50)
@@ -72,9 +72,9 @@ async def _select_provider(
             raise RuntimeError("LLM provider not configured")
 
     dialect = (provider.provider or "").lower()
-    if dialect not in {"openai", "gemini", "mock"}:
+    if dialect not in {"openai", "gemini", "mock", "ollama"}:
         raise RuntimeError("Invalid LLM provider dialect")
-    if dialect != "mock" and not provider.api_key:
+    if dialect in {"openai", "gemini"} and not provider.api_key:
         raise RuntimeError("LLM API key required")
     if not provider.model:
         raise RuntimeError("LLM model required")
@@ -103,12 +103,13 @@ async def generate_agents(
             dialect=(provider.provider or "").lower(),
             api_key=provider.api_key or "",
             model=provider.model,
-            base_url=provider.base_url,
+            base_url=provider.base_url or ("http://127.0.0.1:11434" if dialect == "ollama" else None),
             temperature=0.7,
             top_p=1.0,
             frequency_penalty=0.0,
             presence_penalty=0.0,
             max_tokens=1024,
+            supports_vision=guess_supports_vision(provider.model),
         )
         llm = create_llm_client(cfg)
 

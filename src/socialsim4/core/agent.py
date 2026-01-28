@@ -626,18 +626,25 @@ History:
         return action_data
 
 
-    def add_env_feedback(self, content: str):
+    def add_env_feedback(self, content, images=None, audio=None, video=None):
         """Add feedback from the simulation environment to the agent's context.
 
         Stores the feedback as a `user` role entry in short-term memory so the
         agent can react to system/status updates, private confirmations, and
         scene messages.
         """
-        self.short_memory.append("user", content)
+        self.short_memory.append("user", content, images=images, audio=audio, video=video)
         if self.log_event:
             self.log_event(
                 "agent_ctx_delta",
-                {"agent": self.name, "role": "user", "content": content},
+                {
+                    "agent": self.name,
+                    "role": "user",
+                    "content": content,
+                    "images": images or [],
+                    "audio": audio or [],
+                    "video": video or [],
+                },
             )
 
     def append_env_message(self, content):
@@ -646,7 +653,16 @@ History:
 
     def serialize(self):
         # Deep-copy dict/list fields to avoid sharing across snapshots
-        mem = [{"role": m.get("role"), "content": m.get("content")} for m in self.short_memory.get_all()]
+        mem = [
+            {
+                "role": m.get("role"),
+                "content": m.get("content"),
+                "images": m.get("images", []),
+                "audio": m.get("audio", []),
+                "video": m.get("video", []),
+            }
+            for m in self.short_memory.get_all()
+        ]
         props = json.loads(json.dumps(self.properties))
         plan = json.loads(json.dumps(self.plan_state))
         return {

@@ -129,10 +129,23 @@ class Simulator:
         time = self.scene.state.get("time")
         formatted = event.to_string(time)
 
+        images = getattr(event, "images", []) or []
+        audio = getattr(event, "audio", []) or []
+        video = getattr(event, "video", []) or []
+        # 降级策略：为音视频添加占位文本，保证非多模态模型也能感知附件
+        attachment_texts = []
+        if audio:
+            attachment_texts.append("[audio: " + ", ".join(audio) + "]")
+        if video:
+            attachment_texts.append("[video: " + ", ".join(video) + "]")
+        enriched = formatted
+        if attachment_texts:
+            enriched = f"{formatted}\n" + "\n".join(attachment_texts)
+
         recipients = []
         for agent in self.agents.values():
             if agent.name != sender and (receivers is None or agent.name in receivers):
-                agent.add_env_feedback(formatted)
+                agent.add_env_feedback(enriched, images=images, audio=audio, video=video)
                 recipients.append(agent.name)
 
         # Timeline: keep minimal
@@ -142,6 +155,9 @@ class Simulator:
             "sender": sender,
             "recipients": recipients,
             "text": event.to_string(),
+            "images": images,
+            "audio": audio,
+            "video": video,
         }
         code = getattr(event, "code", None)
         if code is not None:

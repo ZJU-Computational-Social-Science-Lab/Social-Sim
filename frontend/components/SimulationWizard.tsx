@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import Papa from 'papaparse';
 import { Agent, LLMConfig, TimeUnit } from '../types';
+import { uploadImage } from '../services/uploads';
 
 const TIME_UNITS: { value: TimeUnit; label: string }[] = [
   { value: 'minute', label: '分钟' },
@@ -65,9 +66,11 @@ export const SimulationWizard: React.FC = () => {
   const [genDesc, setGenDesc] = useState(
     '创建一个多元化的乡村社区，包含务农者、商人和知识分子。'
   );
+  const [isEmbeddingImage, setIsEmbeddingImage] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // 打开向导时加载 provider 列表
   useEffect(() => {
@@ -117,6 +120,26 @@ export const SimulationWizard: React.FC = () => {
         provider: 'backend',
         model: 'default'
       };
+
+  const visionCapable = !!(
+    (selectedProvider as any)?.model &&
+    /vision|gpt-4o|4o-mini|o1|gemini-pro-vision|gemini 1\.5|flash|pro|llava|llama-?3\.2|qwen2-vl/i.test((selectedProvider as any).model)
+  );
+
+  const handleEmbedImage = async (file: File | null) => {
+    if (!file) return;
+    setIsEmbeddingImage(true);
+    try {
+      const asset = await uploadImage(file);
+      setGenDesc((prev) => `${prev}\n![scene image](${asset.url})`);
+      addNotification('success', '图片已上传并插入描述');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '上传失败';
+      addNotification('error', message);
+    } finally {
+      setIsEmbeddingImage(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -584,6 +607,11 @@ export const SimulationWizard: React.FC = () => {
               {/* MODE: AI GENERATE */}
               {importMode === 'generate' && (
                 <div className="flex-1 flex flex-col gap-4">
+                  <div className={`text-xs p-3 rounded border ${visionCapable ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
+                    {visionCapable
+                      ? '当前模型推断支持视觉，多模态描述将以图片链接发送；图片推理可能产生额外费用，请确认计价。可用 scripts/check_vision_model.py 先行自检。'
+                      : '当前模型可能不支持视觉，图片将以占位符文本传递。若需识图，请在设置中选择支持 vision 的模型。'}
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-purple-50 border border-purple-100 p-4 rounded-lg">
                     <div className="col-span-1">
                       <label className="block text-xs font-bold text-purple-800 mb-2">
@@ -606,9 +634,33 @@ export const SimulationWizard: React.FC = () => {
                       />
                     </div>
                     <div className="col-span-3">
-                      <label className="block text-xs font-bold text-purple-800 mb-2">
-                        群体画像描述 (Population Distribution)
-                      </label>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-xs font-bold text-purple-800">
+                          群体画像描述 (Population Distribution)
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="file"
+                            ref={imageInputRef}
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] ?? null;
+                              handleEmbedImage(file);
+                              if (imageInputRef.current) {
+                                imageInputRef.current.value = '';
+                              }
+                            }}
+                          />
+                          <button
+                            onClick={() => imageInputRef.current?.click()}
+                            disabled={isEmbeddingImage}
+                            className="text-[10px] px-2 py-1 border border-purple-200 rounded text-purple-700 bg-white hover:bg-purple-50 disabled:opacity-60"
+                          >
+                            {isEmbeddingImage ? '上传中...' : '插入图片'}
+                          </button>
+                        </div>
+                      </div>
                       <textarea
                         value={genDesc}
                         onChange={(e) => setGenDesc(e.target.value)}

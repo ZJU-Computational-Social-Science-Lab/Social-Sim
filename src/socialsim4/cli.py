@@ -7,7 +7,7 @@ import os
 from typing import Iterable
 
 from socialsim4.core.llm import create_llm_client
-from socialsim4.core.llm_config import LLMConfig
+from socialsim4.core.llm_config import LLMConfig, guess_supports_vision
 from socialsim4.scenarios import SCENES, console_logger
 
 
@@ -26,17 +26,18 @@ def build_llm_clients(args: argparse.Namespace) -> dict[str, object]:
     dialect = (args.dialect or os.getenv("LLM_DIALECT") or "").strip().lower()
     if not dialect:
         raise SystemExit("LLM dialect is required. Use --dialect or set LLM_DIALECT.")
-    if dialect not in {"openai", "gemini", "mock"}:
+    if dialect not in {"openai", "gemini", "mock", "ollama"}:
         raise SystemExit(f"Unsupported LLM dialect: {dialect}")
 
     api_key = args.api_key or os.getenv("LLM_API_KEY")
-    if dialect != "mock" and not api_key:
+    if dialect in {"openai", "gemini"} and not api_key:
         raise SystemExit("API key is required for real LLM usage. Provide --api-key or set LLM_API_KEY.")
 
     model_defaults = {
         "openai": "gpt-4o-mini",
         "gemini": "gemini-2.0-flash-exp",
         "mock": "mock",
+        "ollama": "llava:latest",
     }
     model = args.model or os.getenv("LLM_MODEL") or model_defaults[dialect]
 
@@ -58,12 +59,13 @@ def build_llm_clients(args: argparse.Namespace) -> dict[str, object]:
         dialect=dialect,
         api_key=api_key or "",
         model=model,
-        base_url=args.base_url or os.getenv("LLM_BASE_URL"),
+        base_url=args.base_url or os.getenv("LLM_BASE_URL") or ("http://127.0.0.1:11434" if dialect == "ollama" else None),
         temperature=_float("temperature", "LLM_TEMPERATURE", 0.7),
         top_p=_float("top_p", "LLM_TOP_P", 1.0),
         frequency_penalty=_float("frequency_penalty", "LLM_FREQUENCY_PENALTY", 0.0),
         presence_penalty=_float("presence_penalty", "LLM_PRESENCE_PENALTY", 0.0),
         max_tokens=_int("max_tokens", "LLM_MAX_TOKENS", 1024),
+        supports_vision=guess_supports_vision(model),
     )
 
     client = create_llm_client(config)
@@ -95,7 +97,7 @@ def build_parser() -> argparse.ArgumentParser:
     sim_parser = subparsers.add_parser("run-sim", help="Run a scripted simulation scenario")
     sim_parser.add_argument("--scene", choices=scene_choices, default="simple_chat_scene", help="Scenario to execute")
     sim_parser.add_argument("--turns", type=int, help="Maximum turns to execute (defaults per scene)")
-    sim_parser.add_argument("--dialect", choices=["openai", "gemini", "mock"], help="LLM dialect to use")
+    sim_parser.add_argument("--dialect", choices=["openai", "gemini", "mock", "ollama"], help="LLM dialect to use")
     sim_parser.add_argument("--api-key", help="API key for the selected LLM provider")
     sim_parser.add_argument("--model", help="Model name to use")
     sim_parser.add_argument("--base-url", help="Optional custom API base URL")

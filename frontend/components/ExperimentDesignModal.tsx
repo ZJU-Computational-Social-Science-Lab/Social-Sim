@@ -4,6 +4,12 @@ import { useSimulationStore } from '../store';
 import { X, Beaker, Plus, Trash2, Zap, UserCog, Settings, ArrowRight } from 'lucide-react';
 import { ExperimentVariant, Intervention } from '../types';
 import { connectNodeEvents } from '../services/simulationTree';
+import { MultimodalInput } from './MultimodalInput';
+
+const extractMarkdownImages = (text: string): string[] => {
+  const matches = Array.from(text.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g));
+  return matches.map((m) => m[1]).filter(Boolean);
+};
 
 export const ExperimentDesignModal: React.FC = () => {
   const isOpen = useSimulationStore(state => state.isExperimentDesignerOpen);
@@ -14,6 +20,7 @@ export const ExperimentDesignModal: React.FC = () => {
   const agents = useSimulationStore(state => state.agents);
   const engineConfig = useSimulationStore(state => state.engineConfig);
   const currentSimulation = useSimulationStore(state => state.currentSimulation);
+  const addNotification = useSimulationStore(state => state.addNotification);
 
   const baseNode = nodes.find(n => n.id === selectedNodeId);
 
@@ -138,6 +145,21 @@ export const ExperimentDesignModal: React.FC = () => {
       }
       return v;
     }));
+  };
+
+  const handleEmbedInterventionImage = (variantId: string, interventionId: string, url: string) => {
+    setVariants((prev) => prev.map((v) => {
+      if (v.id !== variantId) return v;
+      return {
+        ...v,
+        interventions: v.interventions.map((iv) =>
+          iv.id === interventionId
+            ? { ...iv, description: `${iv.description || ''}${iv.description ? '\n' : ''}![image](${url})` }
+            : iv
+        ),
+      };
+    }));
+    addNotification('success', '图片已上传并插入');
   };
 
   const handleSubmit = () => {
@@ -339,12 +361,26 @@ export const ExperimentDesignModal: React.FC = () => {
                                 )}
                               </div>
                               
+                              <MultimodalInput
+                                label="图片 (可选)"
+                                helperText="拖拽/点击上传后将图片以 markdown 链接插入"
+                                onInsert={(url) => handleEmbedInterventionImage(variant.id, iv.id, url)}
+                              />
                               <textarea 
                                 value={iv.description}
                                 onChange={(e) => updateIntervention(variant.id, iv.id, 'description', e.target.value)}
                                 placeholder={iv.type === 'AGENT_PROPERTY' ? '例如：将信任值降低至 10' : '描述具体的干预内容...'}
                                 className="w-full text-xs bg-white border rounded p-2 focus:ring-1 focus:ring-indigo-500 outline-none resize-none h-16"
                               />
+                              {extractMarkdownImages(iv.description || '').length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {extractMarkdownImages(iv.description || '').map((url) => (
+                                    <div key={url} className="w-16 h-16 border rounded overflow-hidden bg-slate-50">
+                                      <img src={url} alt="preview" className="w-full h-full object-cover" />
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
 
                               <button 
                                 onClick={() => removeIntervention(variant.id, iv.id)}

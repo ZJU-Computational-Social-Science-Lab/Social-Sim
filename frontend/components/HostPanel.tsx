@@ -1,7 +1,9 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useSimulationStore, fetchEnvironmentSuggestions } from '../store';
-import { Megaphone, CloudLightning, Edit, Save, Zap, Sparkles, Loader2, Check, Image as ImageIcon } from 'lucide-react';
+import { Megaphone, CloudLightning, Edit, Save, Sparkles, Loader2, Check, FilePlus } from 'lucide-react';
+import { MultimodalInput } from './MultimodalInput';
+import { InitialEventsModal } from './InitialEventsModal';
 
 export const HostPanel: React.FC = () => {
   const agents = useSimulationStore(state => state.agents);
@@ -9,6 +11,7 @@ export const HostPanel: React.FC = () => {
   const injectLog = useSimulationStore(state => state.injectLog);
   const updateAgentProperty = useSimulationStore(state => state.updateAgentProperty);
   const addNotification = useSimulationStore(state => state.addNotification);
+  const toggleInitialEvents = useSimulationStore((state: any) => state.toggleInitialEvents);
 
   const [broadcastMsg, setBroadcastMsg] = useState('');
   const [envEvent, setEnvEvent] = useState('');
@@ -23,8 +26,6 @@ export const HostPanel: React.FC = () => {
   const [suggestions, setSuggestions] = useState<Array<{event: string, reason: string}>>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
   
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const handleBroadcast = () => {
     if (!broadcastMsg.trim()) return;
     injectLog('SYSTEM', `[系统公告] ${broadcastMsg}`);
@@ -38,17 +39,6 @@ export const HostPanel: React.FC = () => {
        setEnvEvent('');
        setEnvImage(null);
     }
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-     const file = e.target.files?.[0];
-     if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-           setEnvImage(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-     }
   };
 
   const handleUpdateProp = () => {
@@ -88,6 +78,12 @@ export const HostPanel: React.FC = () => {
          <p className="text-xs text-amber-800 leading-relaxed">
            <strong>主持模式 (God Mode)</strong>: 此处的操作将强制干预当前仿真状态，并立即产生系统日志。请谨慎使用。
          </p>
+         <button
+           onClick={() => toggleInitialEvents(true)}
+           className="mt-2 text-[11px] px-2 py-1 bg-white border border-amber-200 text-amber-700 rounded flex items-center gap-1"
+         >
+           <FilePlus size={12} /> 初始事件编辑器
+         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
@@ -169,35 +165,15 @@ export const HostPanel: React.FC = () => {
               className="w-full text-sm border rounded px-2 py-1.5 focus:ring-1 focus:ring-emerald-500 outline-none"
             />
             
-            {/* Image Upload Trigger */}
-             <div className="flex items-center gap-2">
-               <input 
-                 type="file" 
-                 ref={fileInputRef} 
-                 onChange={handleImageUpload} 
-                 accept="image/*" 
-                 className="hidden" 
-               />
-               <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`flex-1 py-1.5 border border-dashed rounded text-xs flex items-center justify-center gap-1 transition-colors ${envImage ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-300 text-slate-400 hover:border-slate-400'}`}
-               >
-                  <ImageIcon size={12} />
-                  {envImage ? '已选择图片 (点击更换)' : '添加图片 (多模态)'}
-               </button>
-               {envImage && (
-                  <button 
-                     onClick={() => setEnvImage(null)}
-                     className="text-slate-400 hover:text-red-500 px-2"
-                  >
-                     <Check size={14} className="rotate-45" /> {/* Close X icon mock */}
-                  </button>
-               )}
-            </div>
-
-            {envImage && (
-               <img src={envImage} alt="Preview" className="h-20 w-full object-cover rounded border border-slate-200" />
-            )}
+            <MultimodalInput
+              label="图片 (可选)"
+              helperText="支持拖拽、点击上传，自动插入到事件日志。"
+              presetUrl={envImage}
+              onInsert={(url) => {
+               setEnvImage(url);
+               addNotification('success', '图片已上传');
+              }}
+            />
           </div>
           <button 
             onClick={() => handleEnvEvent()}
@@ -257,6 +233,7 @@ export const HostPanel: React.FC = () => {
         </div>
 
       </div>
+      <InitialEventsModal />
     </div>
   );
 };

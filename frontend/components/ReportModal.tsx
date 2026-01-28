@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect } from 'react';
 import { useSimulationStore } from '../store';
 import { X, FileText, Sparkles, Loader2, Calendar, Lightbulb, Users, Target, Download } from 'lucide-react';
@@ -17,17 +16,21 @@ export const ReportModal: React.FC = () => {
 
   const [showSettings, setShowSettings] = useState(false);
   const [showAllKeyEvents, setShowAllKeyEvents] = useState(false);
+  const [lightbox, setLightbox] = useState<string | null>(null);
+
   const agentNames = useMemo(() => agents.map(a => a.name), [agents]);
   const roundBounds = useMemo(() => {
     if (!nodes || nodes.length === 0) return { min: 0, max: 0 };
     const depths = nodes.map((n) => n.depth || 0);
     return { min: Math.min(...depths), max: Math.max(...depths) };
   }, [nodes]);
+
   useEffect(() => {
     if (agentNames.length > 0 && analysisConfig.focusAgents.length === 0) {
       updateAnalysisConfig({ focusAgents: agentNames });
     }
   }, [agentNames, analysisConfig.focusAgents.length, updateAnalysisConfig]);
+
   const startVal = analysisConfig.roundStart ?? roundBounds.min;
   const endVal = analysisConfig.roundEnd ?? roundBounds.max;
   const span = Math.max(1, roundBounds.max - roundBounds.min);
@@ -36,11 +39,12 @@ export const ReportModal: React.FC = () => {
 
   if (!isOpen || !currentSim) return null;
   const report = currentSim.report;
+  const logs = useSimulationStore(state => state.logs);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        
+
         {/* Header */}
         <div className="px-6 py-4 border-b flex justify-between items-center bg-indigo-50 shrink-0">
           <div>
@@ -217,7 +221,7 @@ export const ReportModal: React.FC = () => {
                    />
                    启用 LLM 精炼（需配置 provider）
                  </label>
-                 <p className="text-xs text-slate-400">设置将用于下一次“立即生成报告”。</p>
+                 <p className="text-xs text-slate-400">设置将用于下一次"立即生成报告"。</p>
                </div>
              </div>
            )}
@@ -230,7 +234,7 @@ export const ReportModal: React.FC = () => {
                     <h3 className="text-lg font-bold text-slate-700 mb-2">生成智能分析报告</h3>
                     <p className="text-sm">系统将读取当前实验的日志记录与智能体历史状态，使用大模型生成包含摘要、关键转折、行为分析与改进建议的完整报告。</p>
                  </div>
-                 <button 
+                 <button
                    onClick={generateReport}
                    disabled={isGenerating}
                    className="px-8 py-3 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 hover:shadow-xl transition-all font-bold flex items-center gap-2 disabled:opacity-70 disabled:cursor-wait"
@@ -307,7 +311,7 @@ export const ReportModal: React.FC = () => {
                                 </span>
                                 <p className="text-sm text-slate-700">{event.description}</p>
                              </li>
-                          ))}
+                          )}
                        </ul>
                        {report.keyEvents.length > 5 && (
                          <button
@@ -351,10 +355,29 @@ export const ReportModal: React.FC = () => {
                        ))}
                     </div>
                  </section>
+
+                 {/* Thumbnails from logs */}
+                 <section className="bg-white rounded-xl shadow-sm border p-6">
+                      <div className="flex items-center gap-2 text-slate-600 mb-4 pb-2 border-b">
+                          <FileText size={18} />
+                          <h3 className="font-bold text-lg">多模态日志缩略图</h3>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                         {logs.filter(l => l.imageUrl).slice(-12).map((l) => (
+                            <div key={l.id} className="bg-slate-50 border rounded p-2">
+                               <img src={l.imageUrl} alt="thumb" className="w-full h-24 object-cover rounded cursor-pointer" onClick={() => setLightbox(l.imageUrl!)} />
+                               <p className="text-[11px] text-slate-500 mt-1 truncate">{l.content}</p>
+                            </div>
+                         ))}
+                         {logs.filter(l => l.imageUrl).length === 0 && (
+                            <p className="text-xs text-slate-400 col-span-full">暂无图片日志</p>
+                         )}
+                      </div>
+                 </section>
               </div>
            )}
         </div>
-        
+
         {report && (
           <div className="px-6 py-4 border-t bg-white flex justify-end gap-3 shrink-0">
              <button
@@ -371,7 +394,7 @@ export const ReportModal: React.FC = () => {
              >
                 <Download size={16} /> 导出 Markdown
              </button>
-             <button 
+             <button
                 onClick={generateReport}
                 disabled={isGenerating}
                 className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg flex items-center gap-2 disabled:opacity-50"
@@ -382,6 +405,16 @@ export const ReportModal: React.FC = () => {
                 关闭
              </button>
           </div>
+        )}
+
+        {/* Lightbox Modal */}
+        {lightbox && (
+           <div className="fixed inset-0 z-[120] bg-black/80 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
+              <img src={lightbox} alt="full" className="max-w-full max-h-full rounded shadow-2xl" />
+              <button className="absolute top-4 right-4 text-white" onClick={() => setLightbox(null)}>
+                 <X size={28} />
+              </button>
+           </div>
         )}
       </div>
     </div>

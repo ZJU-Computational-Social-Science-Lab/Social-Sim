@@ -30,6 +30,10 @@ export async function resumeSimulation(simulationId: string): Promise<any> {
   return data;
 }
 
+export async function resetSimulation(simulationId: string): Promise<void> {
+  await apiClient.post(`/simulations/${simulationId}/reset`, {});
+}
+
 // Fetch a single simulation by id
 export async function getSimulation(simulationId: string): Promise<any> {
   const { data } = await apiClient.get(`/simulations/${encodeURIComponent(simulationId)}`);

@@ -1,3 +1,4 @@
+import base64
 import os
 import re
 import time
@@ -5,27 +6,84 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutTimeout
 from threading import BoundedSemaphore
 from copy import deepcopy
+from urllib.parse import urlparse
+from typing import Literal
 
-import google.generativeai as genai
 from openai import OpenAI
+import google.genai as genai
+import httpx
 
 from .llm_config import LLMConfig
+
+
+# SSRF prevention: allowed URL schemes for media content
+_ALLOWED_URL_SCHEMES = {"http", "https", "data"}
+
+# SSRF prevention: denylist of private/internal network patterns
+# These patterns prevent the vision model from accessing internal resources
+_PRIVATE_NETWORK_PATTERNS = (
+    r"127\.\d+\.\d+\.\d+",  # 127.0.0.0/8
+    r"10\.\d+\.\d+\.\d+",  # 10.0.0.0/8
+    r"172\.(1[6-9]|2\d|3[01])\.\d+\.\d+",  # 172.16.0.0/12
+    r"192\.168\.\d+\.\d+",  # 192.168.0.0/16
+    r"169\.254\.\d+\.\d+",  # 169.254.0.0/16 (link-local)
+    r"::1$",  # IPv6 localhost
+    r"fe80::",  # IPv6 link-local
+    r"fc00::",  # IPv6 unique local
+    r"localhost",  # localhost hostname
+    r"0\.0\.0\.0",  # 0.0.0.0
+)
+
+def _is_private_network_url(url: str) -> bool:
+    """Check if a URL points to a private/internal network (SSRF prevention)."""
+    if url.startswith("data:"):
+        return False  # data URLs are safe (embedded content)
+
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname or ""
+
+        # Check against private network patterns
+        for pattern in _PRIVATE_NETWORK_PATTERNS:
+            if re.search(pattern, hostname, re.IGNORECASE):
+                return True
+
+        # Block metadata addresses like <metadata> in cloud providers
+        if hostname in ("metadata", "169.254.169.254"):
+            return True
+
+        return False
+    except Exception:
+        # If URL parsing fails, treat as potentially unsafe
+        return True
+
+
+def validate_media_url(url: str) -> Literal["valid", "invalid_scheme", "private_network"]:
+    """
+    Validate a media URL for SSRF prevention.
+
+    Returns:
+        "valid": URL is safe to pass to vision models
+        "invalid_scheme": URL uses a disallowed scheme
+        "private_network": URL points to a private/internal network
+    """
+    if not isinstance(url, str):
+        return "invalid_scheme"
+
+    # Check scheme
+    if not any(url.startswith(f"{scheme}:") for scheme in _ALLOWED_URL_SCHEMES):
+        return "invalid_scheme"
+
+    # Check for private network addresses
+    if _is_private_network_url(url):
+        return "private_network"
+
+    return "valid"
 
 
 class LLMClient:
     def __init__(self, provider: LLMConfig):
         self.provider = provider
-
-        # 根据 dialect 初始化底层 client
-        if provider.dialect == "openai":
-            self.client = OpenAI(api_key=provider.api_key, base_url=provider.base_url)
-        elif provider.dialect == "gemini":
-            genai.configure(api_key=provider.api_key)
-            self.client = genai.GenerativeModel(provider.model)
-        elif provider.dialect == "mock":
-            self.client = _MockModel()
-        else:
-            raise ValueError(f"Unknown LLM provider dialect: {provider.dialect}")
 
         # Timeout and retry settings (environment-driven defaults)
         self.timeout_s = float(os.getenv("LLM_TIMEOUT_S", "30"))
@@ -37,6 +95,20 @@ class LLMClient:
         if max_concurrent < 1:
             max_concurrent = 1
         self._sem = BoundedSemaphore(max_concurrent)
+
+        # 根据 dialect 初始化底层 client
+        if provider.dialect == "openai":
+            self.client = OpenAI(api_key=provider.api_key, base_url=provider.base_url)
+        elif provider.dialect == "gemini":
+            genai.configure(api_key=provider.api_key)
+            self.client = genai.GenerativeModel(model_name=provider.model)
+        elif provider.dialect == "mock":
+            self.client = _MockModel()
+        elif provider.dialect == "ollama":
+            base_url = provider.base_url or os.getenv("OLLAMA_BASE_URL") or "http://127.0.0.1:11434"
+            self.client = httpx.Client(base_url=base_url, timeout=self.timeout_s)
+        else:
+            raise ValueError(f"Unknown LLM provider dialect: {provider.dialect}")
 
     # ----------- 新增：用于“强隔离模式”的 clone 方法 -----------
     def clone(self) -> "LLMClient":
@@ -64,9 +136,12 @@ class LLMClient:
             )
         elif cloned_provider.dialect == "gemini":
             genai.configure(api_key=cloned_provider.api_key)
-            cloned.client = genai.GenerativeModel(cloned_provider.model)
+            cloned.client = genai.GenerativeModel(model_name=cloned_provider.model)
         elif cloned_provider.dialect == "mock":
             cloned.client = _MockModel()
+        elif cloned_provider.dialect == "ollama":
+            base_url = cloned_provider.base_url or os.getenv("OLLAMA_BASE_URL") or "http://127.0.0.1:11434"
+            cloned.client = httpx.Client(base_url=base_url, timeout=self.timeout_s)
         else:
             raise ValueError(f"Unknown LLM provider dialect: {cloned_provider.dialect}")
 
@@ -126,14 +201,128 @@ class LLMClient:
 
     # ----------- Chat API -----------
     def chat(self, messages):
+        # 统一规范消息：支持 text + images，并在不支持 vision 的模型上降级为带占位符的纯文本
+        supports_vision = bool(getattr(self.provider, "supports_vision", False))
+
+        def _safe_media_urls(urls):
+            """Validate and filter media URLs for SSRF prevention."""
+            safe = []
+            for url in urls or []:
+                if not isinstance(url, str):
+                    continue
+                validation = validate_media_url(url)
+                if validation == "valid":
+                    safe.append(url)
+                else:
+                    # Log unsafe URL and skip it
+                    print(f"[LLMClient] Skipping unsafe media URL ({validation}): {url[:50]}...")
+            return safe
+
+        def _merge_with_placeholders(text, images, audio, video, include_image_placeholder):
+            parts = []
+            if text:
+                parts.append(text)
+            if include_image_placeholder and images:
+                parts.append("\n".join([f"[image: {u}]" for u in images]))
+            if audio:
+                parts.append("\n".join([f"[audio: {u}]" for u in audio]))
+            if video:
+                parts.append("\n".join([f"[video: {u}]" for u in video]))
+            return "\n".join([p for p in parts if p])
+
+        def _normalize_for_openai(msgs, allow_vision):
+            norm = []
+            for m in msgs:
+                role = m.get("role")
+                if role not in ("system", "user", "assistant"):
+                    continue
+                text = m.get("content") or ""
+                images = _safe_media_urls(m.get("images"))
+                audio = _safe_media_urls(m.get("audio"))
+                video = _safe_media_urls(m.get("video"))
+                if allow_vision and images:
+                    merged_text = _merge_with_placeholders(text, [], audio, video, include_image_placeholder=False)
+                    parts = []
+                    if merged_text:
+                        parts.append({"type": "text", "text": merged_text})
+                    for url in images:
+                        if not url:
+                            continue
+                        parts.append({"type": "image_url", "image_url": {"url": url}})
+                    norm.append({"role": role, "content": parts})
+                else:
+                    content = _merge_with_placeholders(text, images, audio, video, include_image_placeholder=True)
+                    norm.append({"role": role, "content": content})
+            return norm
+
+        def _normalize_for_gemini(msgs, allow_vision):
+            norm = []
+            for m in msgs:
+                role = m.get("role")
+                if role not in ("system", "user", "assistant"):
+                    continue
+                text = m.get("content") or ""
+                images = _safe_media_urls(m.get("images"))
+                audio = _safe_media_urls(m.get("audio"))
+                video = _safe_media_urls(m.get("video"))
+                if allow_vision and images:
+                    merged_text = _merge_with_placeholders(text, [], audio, video, include_image_placeholder=False)
+                    parts = []
+                    if merged_text:
+                        parts.append({"text": merged_text})
+                    for url in images:
+                        if not url:
+                            continue
+                        parts.append({"image_url": url})
+                    norm.append({"role": ("model" if role == "assistant" else "user"), "parts": parts})
+                else:
+                    merged = _merge_with_placeholders(text, images, audio, video, include_image_placeholder=True)
+                    norm.append({"role": ("model" if role == "assistant" else "user"), "parts": [{"text": merged}]})
+            return norm
+
+        def _normalize_for_mock(msgs):
+            norm = []
+            for m in msgs:
+                role = m.get("role")
+                if role not in ("system", "user", "assistant"):
+                    continue
+                text = m.get("content") or ""
+                images = _safe_media_urls(m.get("images"))
+                audio = _safe_media_urls(m.get("audio"))
+                video = _safe_media_urls(m.get("video"))
+                merged = _merge_with_placeholders(text, images, audio, video, include_image_placeholder=True)
+                norm.append({"role": role, "content": merged})
+            return norm
+
+        def _normalize_for_ollama(msgs, allow_vision):
+            norm = []
+            for m in msgs:
+                role = m.get("role")
+                if role not in ("system", "user", "assistant"):
+                    continue
+                text = m.get("content") or ""
+                images = _safe_media_urls(m.get("images"))
+                audio = _safe_media_urls(m.get("audio"))
+                video = _safe_media_urls(m.get("video"))
+                entry = {
+                    "role": role,
+                    "content": _merge_with_placeholders(
+                        text,
+                        [] if allow_vision else images,
+                        audio,
+                        video,
+                        include_image_placeholder=not allow_vision,
+                    ),
+                }
+                if allow_vision and images:
+                    entry["images"] = images
+                norm.append(entry)
+            return norm
+
         if self.provider.dialect == "openai":
 
             def _do():
-                msgs = [
-                    {"role": m["role"], "content": m["content"]}
-                    for m in messages
-                    if m["role"] in ("system", "user", "assistant")
-                ]
+                msgs = _normalize_for_openai(messages, supports_vision)
                 resp = self.client.chat.completions.create(
                     model=self.provider.model,
                     messages=msgs,
@@ -150,42 +339,78 @@ class LLMClient:
         if self.provider.dialect == "gemini":
 
             def _do():
-                contents = [
-                    {
-                        "role": ("model" if m["role"] == "assistant" else "user"),
-                        "parts": [{"text": m["content"]}],
-                    }
-                    for m in messages
-                    if m["role"] in ("system", "user", "assistant")
-                ]
+                contents = _normalize_for_gemini(messages, supports_vision)
                 resp = self.client.generate_content(
-                    contents,
-                    generation_config={
-                        "temperature": self.provider.temperature,
-                        "max_output_tokens": self.provider.max_tokens,
-                        "top_p": self.provider.top_p,
-                        "frequency_penalty": self.provider.frequency_penalty,
-                        "presence_penalty": self.provider.presence_penalty,
-                    },
+                    contents=contents,
+                    config=GenerateContentConfig(
+                        temperature=self.provider.temperature,
+                        max_output_tokens=self.provider.max_tokens,
+                        top_p=self.provider.top_p,
+                        frequency_penalty=self.provider.frequency_penalty,
+                        presence_penalty=self.provider.presence_penalty,
+                    ),
                 )
-                # Some responses may not populate resp.text; extract from candidates if present
-                text = ""
-                cands = getattr(resp, "candidates", None)
-                if cands:
-                    first = cands[0] if len(cands) > 0 else None
-                    if first is not None:
-                        content = getattr(first, "content", None)
-                        parts = getattr(content, "parts", None) if content is not None else None
+                if hasattr(resp, "text") and resp.text:
+                    return resp.text.strip()
+                if hasattr(resp, "candidates") and resp.candidates:
+                    cand = resp.candidates[0]
+                    if hasattr(cand, "content") and cand.content:
+                        parts = getattr(cand.content, "parts", [])
                         if parts:
-                            text = "".join([getattr(p, "text", "") for p in parts])
-                return text.strip()
+                            return "".join([getattr(p, "text", "") for p in parts]).strip()
+                return ""
 
             return self._with_timeout_and_retry(_do)
 
         if self.provider.dialect == "mock":
 
             def _do():
-                return self.client.chat(messages)
+                msgs = _normalize_for_mock(messages)
+                return self.client.chat(msgs)
+
+            return self._with_timeout_and_retry(_do)
+
+        if self.provider.dialect == "ollama":
+
+            def _encode_images(urls):
+                encoded = []
+                for url in urls or []:
+                    if url.startswith("data:"):
+                        parts = url.split(",", 1)
+                        if len(parts) == 2:
+                            encoded.append(parts[1])
+                        continue
+                    # Validate URL before fetching (SSRF protection)
+                    validation = validate_media_url(url)
+                    if validation != "valid":
+                        print(f"[LLMClient] Skipping unsafe image URL ({validation}): {url[:50]}...")
+                        continue
+                    resp = self.client.get(url, timeout=10)
+                    resp.raise_for_status()
+                    encoded.append(base64.b64encode(resp.content).decode("utf-8"))
+                return encoded
+
+            def _do():
+                msgs = _normalize_for_ollama(messages, supports_vision)
+                for m in msgs:
+                    if supports_vision and m.get("images"):
+                        m["images"] = _encode_images(m.get("images"))
+                payload = {
+                    "model": self.provider.model,
+                    "messages": msgs,
+                    "stream": False,
+                    "options": {
+                        "temperature": self.provider.temperature,
+                        "top_p": self.provider.top_p,
+                        "num_predict": self.provider.max_tokens,
+                    },
+                }
+                resp = self.client.post("/api/chat", json=payload, timeout=self.timeout_s)
+                resp.raise_for_status()
+                data = resp.json()
+                message = data.get("message") or {}
+                content = message.get("content") or data.get("response") or ""
+                return str(content).strip()
 
             return self._with_timeout_and_retry(_do)
 
@@ -219,6 +444,26 @@ class LLMClient:
         if self.provider.dialect == "mock":
             return ""
 
+        if self.provider.dialect == "ollama":
+
+            def _do():
+                payload = {
+                    "model": self.provider.model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": self.provider.temperature,
+                        "top_p": self.provider.top_p,
+                        "num_predict": self.provider.max_tokens,
+                    },
+                }
+                resp = self.client.post("/api/generate", json=payload, timeout=self.timeout_s)
+                resp.raise_for_status()
+                data = resp.json()
+                return str(data.get("response") or "").strip()
+
+            return self._with_timeout_and_retry(_do)
+
         raise ValueError(f"Unknown LLM dialect: {self.provider.dialect}")
 
     # ----------- Embedding API -----------
@@ -247,6 +492,20 @@ class LLMClient:
 
         if self.provider.dialect == "mock":
             return []
+
+        if self.provider.dialect == "ollama":
+
+            def _do():
+                payload = {"model": self.provider.model, "prompt": text}
+                resp = self.client.post("/api/embeddings", json=payload, timeout=self.timeout_s)
+                resp.raise_for_status()
+                data = resp.json()
+                embedding = data.get("embedding")
+                if embedding is None:
+                    raise ValueError("Ollama did not return embedding")
+                return embedding
+
+            return self._with_timeout_and_retry(_do)
 
         raise ValueError(f"Unknown LLM dialect: {self.provider.dialect}")
 
