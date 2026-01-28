@@ -13,6 +13,7 @@ export const ReportModal: React.FC = () => {
   const updateAnalysisConfig = useSimulationStore(state => state.updateAnalysisConfig);
   const agents = useSimulationStore(state => state.agents);
   const nodes = useSimulationStore(state => state.nodes);
+  const logs = useSimulationStore(state => state.logs);
 
   const [showSettings, setShowSettings] = useState(false);
   const [showAllKeyEvents, setShowAllKeyEvents] = useState(false);
@@ -39,7 +40,6 @@ export const ReportModal: React.FC = () => {
 
   if (!isOpen || !currentSim) return null;
   const report = currentSim.report;
-  const logs = useSimulationStore(state => state.logs);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
@@ -311,7 +311,7 @@ export const ReportModal: React.FC = () => {
                                 </span>
                                 <p className="text-sm text-slate-700">{event.description}</p>
                              </li>
-                          )}
+                           ))}
                        </ul>
                        {report.keyEvents.length > 5 && (
                          <button

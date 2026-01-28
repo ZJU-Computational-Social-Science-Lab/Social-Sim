@@ -919,7 +919,7 @@ const normalizeEventsForAnalysis = (
   rawEvents.forEach((ev: any, i: number) => {
     const data = (ev && typeof ev === 'object') ? ev.data || {} : {};
     const type = ev?.type || ev?.event_type || 'unknown';
-    const agent = data.agent || data.actor || data.name || '';
+    const agent = data.agent || data.actor || data.name || data.sender || '';
     const normalizeContent = (val: any) => {
       if (val == null) return '';
       if (typeof val === 'string') return val;
@@ -2014,20 +2014,78 @@ export const useSimulationStore = create<AppState>((set, get) => ({
 
       const baseEvents = state.rawEvents.length
         ? state.rawEvents
-        : state.logs.map((l) => ({
-            type: l.type.toLowerCase(),
-            node: l.nodeId,
-            data: { agent: state.agents.find((a) => a.id === l.agentId)?.name || '', content: l.content, round: l.round, time: l.timestamp }
-          }));
+        : state.logs.map((l) => {
+            // Map LogEntry type to backend event type for better classification
+            let backendType = l.type.toLowerCase();
+            let content = l.content;
+            let agent = state.agents.find((a) => a.id === l.agentId)?.name || '';
+            // Try to extract more specific type from content
+            if (l.type === 'AGENT_SAY') {
+              backendType = 'system_broadcast';
+            } else if (l.type === 'AGENT_ACTION') {
+              backendType = 'action_end';
+              // Try to extract action name from content
+              const actionMatch = content.match(/^\[(\w+)\]/);
+              if (actionMatch) {
+                content = content;
+              }
+            }
+            return {
+              type: backendType,
+              event_type: backendType,
+              node: l.nodeId,
+              data: { agent, sender: agent, content, text: content, message: content, round: l.round, time: l.timestamp }
+            };
+          });
+
+      // Create agent name mapping: backend placeholder names -> actual frontend agent names
+      // Map by position: backend agents follow the same order as frontend agents
+      const agentNameMapping: Record<string, string> = {};
+      state.agents.forEach((agent, i) => {
+        // Backend uses placeholder names: Agent_0, Agent_1, etc. or example names like Alice, Bob
+        // We map by index: backend agent i -> frontend agent i
+        // First, collect all unique agent names from events to create the mapping
+        const seenAgents = new Set<string>();
+        baseEvents.forEach((ev: any) => {
+          const data = (ev && typeof ev === 'object') ? ev.data || {} : {};
+          const agentName = data.agent || data.actor || data.name || data.sender || '';
+          if (agentName && !seenAgents.has(agentName)) {
+            seenAgents.add(agentName);
+            if (seenAgents.size === i + 1) {
+              agentNameMapping[agentName] = agent.name;
+            }
+          }
+        });
+      });
+
+      // Apply mapping to events
+      const mappedEvents = baseEvents.map((ev: any) => {
+        if (typeof ev !== 'object' || !ev) return ev;
+        const data = { ...(ev.data || {}) };
+        const oldAgent = data.agent || data.actor || data.name || data.sender || '';
+        if (agentNameMapping[oldAgent]) {
+          data.agent = agentNameMapping[oldAgent];
+          if (data.sender) data.sender = agentNameMapping[oldAgent];
+          if (data.actor) data.actor = agentNameMapping[oldAgent];
+          if (data.name) data.name = agentNameMapping[oldAgent];
+          return { ...ev, data };
+        }
+        return ev;
+      });
+
+      // Also update focusAgents to use frontend agent names if they contain backend names
+      const updatedFocusAgents = state.analysisConfig.focusAgents.map((agentName) =>
+        agentNameMapping[agentName] || agentName
+      );
 
       const dataset = normalizeEventsForAnalysis(
-        baseEvents,
+        mappedEvents,
         state.agents,
         fallbackNode,
         state.nodes,
         maxEvents,
         samplePerRound,
-        state.analysisConfig.focusAgents,
+        updatedFocusAgents,
         state.analysisConfig.roundStart,
         state.analysisConfig.roundEnd
       );
