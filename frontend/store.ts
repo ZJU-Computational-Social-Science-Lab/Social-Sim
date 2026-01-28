@@ -57,6 +57,17 @@ const closeTreeSocket = () => {
 };
 
 interface AppState {
+  // 报告分析配置
+  analysisConfig: {
+    maxEvents: number;
+    samplePerRound: number;
+    focusAgents: string[];
+    enableLLM: boolean;
+    roundStart: number | null;
+    roundEnd: number | null;
+  };
+  updateAnalysisConfig: (patch: Partial<AppState['analysisConfig']>) => void;
+
   // # Integration: Engine Config
   engineConfig: EngineConfig;
   setEngineMode: (mode: EngineMode) => void;
@@ -173,6 +184,7 @@ interface AppState {
   deleteNode: () => Promise<void>;
   runExperiment: (baseNodeId: string, name: string, variants: ExperimentVariant[]) => void;
   generateComparisonAnalysis: () => Promise<void>;
+  exportReport: (format: 'json' | 'md') => void;
 }
 
 // --- Helpers for Time Calculation #9 ---
@@ -449,6 +461,97 @@ const translateEnvText = (content: string): string => {
   return text;
 };
 
+const extractEventTimestamp = (ev: any, data: any, fallback: string): string => {
+  const raw = data?.time || data?.timestamp || ev?.timestamp;
+  if (!raw) return fallback;
+  const d = new Date(raw);
+  return isNaN(d.getTime()) ? fallback : d.toISOString();
+};
+
+const pickNodeId = (ev: any, fallback: string): string => {
+  const nodeVal = ev?.node;
+  if (nodeVal === null || nodeVal === undefined) return fallback;
+  return String(nodeVal);
+};
+
+const pickRound = (ev: any, data: any, fallback: number): number => {
+  const cand = data?.turn ?? data?.round ?? ev?.round;
+  const n = Number(cand);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+const buildLLMPrompt = (report: {
+  summary: string;
+  keyEvents: { round: number; description: string }[];
+  suggestions: string[];
+  agentAnalysis: { agentName: string; analysis: string }[];
+}) => {
+  const lines: string[] = [];
+  lines.push('你是分析员，请用中文简洁总结。');
+  lines.push('已有摘要:');
+  lines.push(report.summary.slice(0, 800));
+  lines.push('\n关键事件:');
+  report.keyEvents.slice(-12).forEach((e) => lines.push(`- R${e.round}: ${e.description}`));
+  lines.push('\n建议:');
+  report.suggestions.slice(0, 6).forEach((s) => lines.push(`- ${s}`));
+  lines.push('\n智能体分析:');
+  report.agentAnalysis.slice(0, 6).forEach((a) => lines.push(`- ${a.agentName}: ${a.analysis}`));
+  lines.push('\n请输出 JSON，字段: summary(string), keyEvents([{round,description} 至多8条]), suggestions(string[] 至多6条), agentAnalysis([{agentName,analysis} 至多6条]).');
+  return lines.join('\n');
+};
+
+const tryLLMRefine = async (
+  report: {
+    summary: string;
+    keyEvents: { round: number; description: string }[];
+    suggestions: string[];
+    agentAnalysis: { agentName: string; analysis: string }[];
+  },
+  enableLLM: boolean,
+  providerId: number | null
+) => {
+  if (!enableLLM) return null;
+
+  // 优先走后端 provider 配置（仪表盘里设置的）
+  if (providerId != null) {
+    try {
+      const prompt = buildLLMPrompt(report);
+      const res = await apiClient.post<{ text: string }>("llm/refine_report", {
+        prompt,
+        provider_id: providerId
+      });
+      const parsed = JSON.parse(res.data.text || "{}");
+      return parsed;
+    } catch (e) {
+      console.warn("backend provider refine failed, fallback to local", e);
+    }
+  }
+
+  // fallback: 本地直连 Gemini（需要环境变量）
+  try {
+    const apiKey =
+      (import.meta as any).env?.VITE_GEMINI_API_KEY ||
+      (window as any).GEMINI_API_KEY ||
+      '';
+    if (!apiKey) return null;
+
+    const genAI = new GoogleGenAI({ apiKey });
+    const model =
+      (import.meta as any).env?.VITE_GEMINI_MODEL ||
+      (window as any).GEMINI_MODEL ||
+      'gemini-2.0-flash';
+    const prompt = buildLLMPrompt(report);
+    const modelInst = genAI.getGenerativeModel({ model });
+    const res = await modelInst.generateContent(prompt);
+    const text = res?.response?.text?.() || '';
+    const parsed = JSON.parse(text);
+    return parsed;
+  } catch (e) {
+    console.warn('LLM refine failed, fallback到模板', e);
+    return null;
+  }
+};
+
 export const mapBackendEventsToLogs = (
   events: any[],
   nodeId: string,
@@ -461,13 +564,19 @@ export const mapBackendEventsToLogs = (
   agents.forEach(a => nameToId.set(a.name, a.id));
 
   return (events || []).map((ev: any, i: number): LogEntry | null => {
+    const evData = (ev && typeof ev === 'object' && (ev.data || ev.event_type || ev.type)) ? (ev as any) : null;
+    const payload = evData ? (ev as any).data || {} : {};
+    const ts = extractEventTimestamp(ev, payload, nowIso);
+    const roundVal = pickRound(ev, payload, round);
+    const nodeVal = pickNodeId(ev, nodeId);
+
     const base: LogEntry = {
       id: `srv-${Date.now()}-${i}`,
-      nodeId,
-      round,
+      nodeId: nodeVal,
+      round: roundVal,
       type: 'SYSTEM',
       content: '',
-      timestamp: nowIso
+      timestamp: ts
     };
 
     // 字符串事件直接当系统事件
@@ -479,7 +588,7 @@ export const mapBackendEventsToLogs = (
     }
 
     const evType = ev.type || ev.event_type;
-    const data = ev.data || {};
+    const data = payload;
     const separator = isZh() ? '，' : ', ';
     const labels = {
       reasoningStep: (step: number) =>
@@ -743,6 +852,259 @@ export const mapBackendEventsToLogs = (
     const text = data.text || data.message || evType || labels.systemEvent;
     return { ...base, type: 'SYSTEM', content: text };
   }).filter((entry): entry is LogEntry => entry !== null);
+};
+
+// --------- 报告分析辅助 ---------
+type AnalysisEvent = {
+  nodeId: string;
+  round: number;
+  ts: string;
+  type: string;
+  agent: string;
+  content: string;
+  action?: string;
+  isError: boolean;
+};
+
+type AnalysisDataset = {
+  events: AnalysisEvent[];
+  agents: Agent[];
+  meta: {
+    truncated: boolean;
+    totalRaw: number;
+  };
+  stats: {
+    totalEvents: number;
+    talkEvents: number;
+    actionEvents: number;
+    errorEvents: number;
+    byAgent: Record<
+      string,
+      {
+        talk: number;
+        action: number;
+        errors: number;
+        trends: string[];
+      }
+    >;
+  };
+};
+
+const normalizeEventsForAnalysis = (
+  rawEvents: any[],
+  agents: Agent[],
+  selectedNodeId: string | null,
+  nodes: SimNode[],
+  maxEvents: number,
+  samplePerRound: number,
+  focusAgents: string[],
+  roundStart: number | null,
+  roundEnd: number | null
+): AnalysisDataset => {
+  const defaultNode = selectedNodeId || nodes[0]?.id || 'root';
+  const defaultRound = nodes.find((n) => n.id === selectedNodeId)?.depth ?? nodes[0]?.depth ?? 0;
+  const nameMap = new Map<string, string>();
+  agents.forEach((a) => nameMap.set(a.name, a.id));
+
+  const samples: AnalysisEvent[] = [];
+  const roundBuckets = new Map<number, AnalysisEvent[]>();
+
+  const addEvent = (ev: AnalysisEvent) => {
+    const bucket = roundBuckets.get(ev.round) || [];
+    bucket.push(ev);
+    roundBuckets.set(ev.round, bucket);
+  };
+
+  const totalRaw = rawEvents.length;
+  rawEvents.forEach((ev: any, i: number) => {
+    const data = (ev && typeof ev === 'object') ? ev.data || {} : {};
+    const type = ev?.type || ev?.event_type || 'unknown';
+    const agent = data.agent || data.actor || data.name || data.sender || '';
+    const normalizeContent = (val: any) => {
+      if (val == null) return '';
+      if (typeof val === 'string') return val;
+      try {
+        return JSON.stringify(val);
+      } catch {
+        return String(val);
+      }
+    };
+    const content = normalizeContent(data.text || data.message || data.content || ev?.content || ev?.message);
+    const action = data.action?.action || data.action?.name;
+    const roundVal = pickRound(ev, data, defaultRound);
+    const nodeIdVal = pickNodeId(ev, defaultNode);
+    const ts = extractEventTimestamp(ev, data, new Date().toISOString());
+    const isError = type === 'agent_error' || type === 'error';
+
+    if (focusAgents.length > 0 && agent && !focusAgents.includes(agent)) {
+      return;
+    }
+    if (roundStart !== null && roundVal < roundStart) return;
+    if (roundEnd !== null && roundVal > roundEnd) return;
+
+    const item: AnalysisEvent = {
+      nodeId: nodeIdVal,
+      round: roundVal,
+      ts,
+      type,
+      agent,
+      content,
+      action,
+      isError
+    };
+    addEvent(item);
+  });
+
+  // 采样：每轮最多 samplePerRound 条，优先错误/关键事件
+  const priorityTypes = new Set(['agent_error', 'error', 'plan_update', 'action_end', 'system_broadcast', 'public_event']);
+  const allRounds = Array.from(roundBuckets.keys()).sort((a, b) => a - b);
+  for (const r of allRounds) {
+    const bucket = roundBuckets.get(r) || [];
+    const sorted = bucket.sort((a, b) => {
+      const aPri = priorityTypes.has(a.type) ? 1 : 0;
+      const bPri = priorityTypes.has(b.type) ? 1 : 0;
+      if (aPri !== bPri) return bPri - aPri;
+      return new Date(a.ts).getTime() - new Date(b.ts).getTime();
+    });
+    sorted.slice(0, samplePerRound).forEach((ev) => samples.push(ev));
+  }
+
+  // 总量再截断，保持时间顺序
+  const truncated = samples.length > maxEvents;
+  const events = (truncated ? samples.slice(-maxEvents) : samples).sort(
+    (a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime()
+  );
+
+  const stats: AnalysisDataset['stats'] = {
+    totalEvents: events.length,
+    talkEvents: 0,
+    actionEvents: 0,
+    errorEvents: 0,
+    byAgent: {}
+  };
+
+  events.forEach((ev) => {
+    const a = ev.agent && ev.agent.trim() ? ev.agent : null;
+    // 没有 agent 名称的事件不参与按人统计，避免出现 UNKNOWN
+    if (!a) return;
+    const rec = stats.byAgent[a] || { talk: 0, action: 0, errors: 0, trends: [] };
+    if (ev.type === 'system_broadcast' || ev.type === 'public_event') rec.talk += 1;
+    if (ev.type === 'action_end' || ev.type === 'action_start') rec.action += 1;
+    if (ev.isError) rec.errors += 1;
+    stats.byAgent[a] = rec;
+  });
+
+  stats.talkEvents = events.filter((ev) => ev.type === 'system_broadcast' || ev.type === 'public_event').length;
+  stats.actionEvents = events.filter((ev) => ev.type === 'action_end' || ev.type === 'action_start').length;
+  stats.errorEvents = events.filter((ev) => ev.isError).length;
+
+  return {
+    events,
+    agents,
+    meta: { truncated, totalRaw },
+    stats
+  };
+};
+
+const buildReportFromDataset = (dataset: AnalysisDataset) => {
+  const { events, stats } = dataset;
+
+  // 简单的数值趋势分析（基于 agents.history）
+  const agentTrends: Record<string, string[]> = {};
+  dataset.agents.forEach((agent) => {
+    const trends: string[] = [];
+    const history = agent.history || {};
+    Object.keys(history).forEach((key) => {
+      const arr = history[key] || [];
+      if (!Array.isArray(arr) || arr.length < 2) return;
+      const first = Number(arr[0]);
+      const last = Number(arr[arr.length - 1]);
+      if (!Number.isFinite(first) || !Number.isFinite(last)) return;
+      const delta = last - first;
+      const dir = delta > 0 ? '上升' : delta < 0 ? '下降' : '持平';
+      trends.push(`${key}: ${dir} ${delta > 0 ? '+' : ''}${Math.round(delta * 10) / 10}`);
+    });
+    agentTrends[agent.name] = trends;
+    if (stats.byAgent[agent.name]) {
+      stats.byAgent[agent.name].trends = trends;
+    }
+  });
+  const keyEvents = (() => {
+    const candidates = events
+      .filter((ev) => ev.isError || ev.type === 'plan_update' || ev.type === 'action_end' || ev.type === 'system_broadcast' || ev.type === 'public_event')
+      .sort((a, b) => {
+        if (a.round !== b.round) return a.round - b.round;
+        return new Date(a.ts).getTime() - new Date(b.ts).getTime();
+      });
+
+    const seen = new Set<string>();
+    const deduped: { round: number; description: string }[] = [];
+
+    for (const ev of candidates) {
+      const desc = `${ev.agent ? `${ev.agent}: ` : ''}${ev.content || ev.type}`;
+      const key = `${ev.round}|${desc}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      deduped.push({ round: ev.round, description: desc });
+    }
+
+    // 只保留最近 8 条，避免刷屏
+    return deduped.slice(-8);
+  })();
+
+  // 轮次统计：动作 / 错误 / 广播
+  const roundStatsMap = new Map<number, { actions: number; errors: number; broadcasts: number }>();
+  events.forEach((ev) => {
+    const rec = roundStatsMap.get(ev.round) || { actions: 0, errors: 0, broadcasts: 0 };
+    if (ev.type === 'action_end' || ev.type === 'action_start') rec.actions += 1;
+    if (ev.isError) rec.errors += 1;
+    if (ev.type === 'system_broadcast' || ev.type === 'public_event') rec.broadcasts += 1;
+    roundStatsMap.set(ev.round, rec);
+  });
+  const roundStats = Array.from(roundStatsMap.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([round, v]) => ({ round, ...v }));
+
+  const suggestions: string[] = [];
+  if (stats.errorEvents > 0) {
+    suggestions.push(`发现 ${stats.errorEvents} 个错误事件，建议检查对应轮次和智能体的指令/上下文。`);
+  }
+  if (stats.actionEvents < Math.max(3, events.length * 0.1)) {
+    suggestions.push('动作事件较少，可能存在停滞或策略过于保守，考虑调整行动提示。');
+  }
+  if (dataset.meta.truncated) {
+    suggestions.push('日志较长，已采样后生成报告，如需完整分析请降低过滤条件或导出全量日志。');
+  }
+  if (suggestions.length === 0) {
+    suggestions.push('流程平稳，无明显异常，可继续迭代场景或调整角色目标以探索更多行为。');
+  }
+
+  const agentAnalysis = Object.keys(stats.byAgent).map((agent) => {
+    const rec = stats.byAgent[agent];
+    const baseParts = [
+      `发言:${rec.talk}`,
+      `动作:${rec.action}`,
+      `错误:${rec.errors}`
+    ];
+    if (rec.trends && rec.trends.length) {
+      baseParts.push(`趋势: ${rec.trends.slice(0, 2).join('；')}`);
+    }
+    const analysisParts = baseParts.join(' / ');
+    return {
+      agentName: agent,
+      analysis: `${agent} 在采样日志中的表现：${analysisParts}。`
+    };
+  });
+
+  const summary = `共处理 ${stats.totalEvents} 条日志（原始 ${dataset.meta.totalRaw} 条${dataset.meta.truncated ? '，已采样' : ''}）。动作事件 ${stats.actionEvents} 条，广播/对话 ${stats.talkEvents} 条，错误 ${stats.errorEvents} 条。`;
+
+  return {
+    summary,
+    keyEvents,
+    suggestions,
+    agentAnalysis,
+    roundStats
+  };
 };
 
 const generateNodes = (): SimNode[] => {
@@ -1036,6 +1398,14 @@ export const fetchEnvironmentSuggestions = async (
 };
 
 export const useSimulationStore = create<AppState>((set, get) => ({
+  analysisConfig: {
+    maxEvents: 800,
+    samplePerRound: 5,
+    focusAgents: [],
+    enableLLM: false,
+    roundStart: null,
+    roundEnd: null
+  },
   // # Integration Config
   engineConfig: {
     mode: 'standalone',
@@ -1132,6 +1502,11 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   syncLogs: [] as string[],
   openSyncModal: () => set({ isSyncModalOpen: true }),
   closeSyncModal: () => set({ isSyncModalOpen: false }),
+
+  updateAnalysisConfig: (patch) =>
+    set((state) => ({
+      analysisConfig: { ...state.analysisConfig, ...patch }
+    })),
 
 
   setEngineMode: (mode) =>
@@ -1625,9 +2000,188 @@ export const useSimulationStore = create<AppState>((set, get) => ({
 
   // #14 Report Generation
   generateReport: async () => {
-    // 占位实现：当前暂不调用前端 Gemini 报告生成，避免未定义函数报错
-    set({ isGeneratingReport: false });
-    get().addNotification('error', '报告生成功能暂未启用');
+    const state = get();
+    if (!state.currentSimulation) {
+      get().addNotification('error', '请先加载仿真后再生成报告');
+      return;
+    }
+
+    set({ isGeneratingReport: true });
+    try {
+      const { maxEvents, samplePerRound } = state.analysisConfig;
+      const fallbackRound = state.nodes.find((n) => n.id === state.selectedNodeId)?.depth ?? 0;
+      const fallbackNode = state.selectedNodeId || state.nodes[0]?.id || 'root';
+
+      const baseEvents = state.rawEvents.length
+        ? state.rawEvents
+        : state.logs.map((l) => {
+            // Map LogEntry type to backend event type for better classification
+            let backendType = l.type.toLowerCase();
+            let content = l.content;
+            let agent = state.agents.find((a) => a.id === l.agentId)?.name || '';
+            // Try to extract more specific type from content
+            if (l.type === 'AGENT_SAY') {
+              backendType = 'system_broadcast';
+            } else if (l.type === 'AGENT_ACTION') {
+              backendType = 'action_end';
+              // Try to extract action name from content
+              const actionMatch = content.match(/^\[(\w+)\]/);
+              if (actionMatch) {
+                content = content;
+              }
+            }
+            return {
+              type: backendType,
+              event_type: backendType,
+              node: l.nodeId,
+              data: { agent, sender: agent, content, text: content, message: content, round: l.round, time: l.timestamp }
+            };
+          });
+
+      // Create agent name mapping: backend placeholder names -> actual frontend agent names
+      // Map by position: backend agents follow the same order as frontend agents
+      const agentNameMapping: Record<string, string> = {};
+      state.agents.forEach((agent, i) => {
+        // Backend uses placeholder names: Agent_0, Agent_1, etc. or example names like Alice, Bob
+        // We map by index: backend agent i -> frontend agent i
+        // First, collect all unique agent names from events to create the mapping
+        const seenAgents = new Set<string>();
+        baseEvents.forEach((ev: any) => {
+          const data = (ev && typeof ev === 'object') ? ev.data || {} : {};
+          const agentName = data.agent || data.actor || data.name || data.sender || '';
+          if (agentName && !seenAgents.has(agentName)) {
+            seenAgents.add(agentName);
+            if (seenAgents.size === i + 1) {
+              agentNameMapping[agentName] = agent.name;
+            }
+          }
+        });
+      });
+
+      // Apply mapping to events
+      const mappedEvents = baseEvents.map((ev: any) => {
+        if (typeof ev !== 'object' || !ev) return ev;
+        const data = { ...(ev.data || {}) };
+        const oldAgent = data.agent || data.actor || data.name || data.sender || '';
+        if (agentNameMapping[oldAgent]) {
+          data.agent = agentNameMapping[oldAgent];
+          if (data.sender) data.sender = agentNameMapping[oldAgent];
+          if (data.actor) data.actor = agentNameMapping[oldAgent];
+          if (data.name) data.name = agentNameMapping[oldAgent];
+          return { ...ev, data };
+        }
+        return ev;
+      });
+
+      // Also update focusAgents to use frontend agent names if they contain backend names
+      const updatedFocusAgents = state.analysisConfig.focusAgents.map((agentName) =>
+        agentNameMapping[agentName] || agentName
+      );
+
+      const dataset = normalizeEventsForAnalysis(
+        mappedEvents,
+        state.agents,
+        fallbackNode,
+        state.nodes,
+        maxEvents,
+        samplePerRound,
+        updatedFocusAgents,
+        state.analysisConfig.roundStart,
+        state.analysisConfig.roundEnd
+      );
+      const reportParts = buildReportFromDataset(dataset);
+      const providerSelection = state.selectedProviderId ?? state.currentProviderId ?? null;
+      const refined = await tryLLMRefine(reportParts, state.analysisConfig.enableLLM, providerSelection);
+      const merged = refined
+        ? {
+            summary: refined.summary || reportParts.summary,
+            keyEvents: Array.isArray(refined.keyEvents)
+              ? refined.keyEvents
+                  .map((k: any) => ({
+                    round: Number(k.round) || 0,
+                    description: String(k.description || '')
+                  }))
+                  .filter((k: any) => k.description)
+                  .slice(0, 8)
+              : reportParts.keyEvents,
+            suggestions: Array.isArray(refined.suggestions)
+              ? refined.suggestions.map((s: any) => String(s || '')).filter(Boolean).slice(0, 6)
+              : reportParts.suggestions,
+            agentAnalysis: Array.isArray(refined.agentAnalysis)
+              ? refined.agentAnalysis
+                  .map((a: any) => ({
+                    agentName: String(a.agentName || a.name || '未知'),
+                    analysis: String(a.analysis || a.summary || '')
+                  }))
+                  .filter((a: any) => a.analysis)
+                  .slice(0, 6)
+              : reportParts.agentAnalysis
+          }
+        : reportParts;
+      const report: SimulationReport = {
+        id: `rep-${Date.now()}`,
+        generatedAt: new Date().toISOString(),
+        summary: merged.summary,
+        keyEvents: merged.keyEvents,
+        suggestions: merged.suggestions,
+        agentAnalysis: merged.agentAnalysis,
+        roundStats: reportParts.roundStats,
+        refinedByLLM: Boolean(refined)
+      };
+
+      set((s) => ({
+        currentSimulation: s.currentSimulation ? { ...s.currentSimulation, report } : s.currentSimulation,
+        isGeneratingReport: false
+      }));
+      get().addNotification('success', '报告生成完成');
+    } catch (e) {
+      console.error('generateReport failed', e);
+      set({ isGeneratingReport: false });
+      get().addNotification('error', '报告生成失败，请稍后重试');
+    }
+  },
+
+  exportReport: (format) => {
+    const state = get();
+    const report = state.currentSimulation?.report;
+    if (!report) {
+      get().addNotification('error', '暂无报告可导出');
+      return;
+    }
+    if (format === 'json') {
+      const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${state.currentSimulation?.name || 'simulation'}_report.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+    // markdown 导出
+    const lines: string[] = [];
+    lines.push(`# 仿真实验分析报告`);
+    lines.push(`生成时间: ${new Date(report.generatedAt).toLocaleString()}`);
+    lines.push(`\n## 摘要\n${report.summary}`);
+    lines.push(`\n## 关键转折`);
+    report.keyEvents.forEach((ev) => {
+      lines.push(`- R${ev.round}: ${ev.description}`);
+    });
+    lines.push(`\n## 建议`);
+    report.suggestions.forEach((sug) => lines.push(`- ${sug}`));
+    lines.push(`\n## 智能体分析`);
+    report.agentAnalysis.forEach((a) => {
+      lines.push(`- **${a.agentName}**: ${a.analysis}`);
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${state.currentSimulation?.name || 'simulation'}_report.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   },
 
   exitSimulation: () => {

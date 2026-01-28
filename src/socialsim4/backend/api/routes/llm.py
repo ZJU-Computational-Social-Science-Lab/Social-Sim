@@ -36,6 +36,13 @@ class GeneratedAgent(BaseModel):
     history: dict[str, Any] = {}
     memory: list[Any] = []
     knowledgeBase: list[Any] = []
+
+
+class RefineReportRequest(BaseModel):
+    prompt: str
+    provider_id: Optional[int] = None
+
+
 async def _select_provider(
     session: AsyncSession,
     user_id: int,
@@ -62,7 +69,7 @@ async def _select_provider(
         provider = active[0] if len(active) == 1 else (items[0] if items else None)
 
     if provider is None:
-        raise RuntimeError("LLM provider not configured")
+            raise RuntimeError("LLM provider not configured")
 
     dialect = (provider.provider or "").lower()
     if dialect not in {"openai", "gemini", "mock", "ollama"}:
@@ -220,8 +227,36 @@ async def generate_agents(
             )
 
         return agents
+
+
+@post("/refine_report")
+async def refine_report(request: Request, data: RefineReportRequest) -> dict:
+    token = extract_bearer_token(request)
+
+    async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
+        provider = await _select_provider(session, current_user.id, data.provider_id)
+        cfg = LLMConfig(
+            dialect=(provider.provider or "").lower(),
+            api_key=provider.api_key or "",
+            model=provider.model,
+            base_url=provider.base_url,
+            temperature=0.4,
+            top_p=1.0,
+            frequency_penalty=0.0,
+            presence_penalty=0.0,
+            max_tokens=512,
+        )
+        llm = create_llm_client(cfg)
+
+        messages: list[dict[str, str]] = [
+            {"role": "system", "content": "你是一名报告精炼助手，请严格返回 JSON。"},
+            {"role": "user", "content": data.prompt},
+        ]
+        text = llm.chat(messages)
+        return {"text": text}
 # 暴露 /llm 前缀的 Router
 router = Router(
     path="/llm",
-    route_handlers=[generate_agents],
+    route_handlers=[generate_agents, refine_report],
 )
