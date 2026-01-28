@@ -142,6 +142,7 @@ interface AppState {
   // #23 Knowledge Base Actions
   addKnowledgeToAgent: (agentId: string, item: KnowledgeItem) => void;
   removeKnowledgeFromAgent: (agentId: string, itemId: string) => void;
+  updateKnowledgeInAgent: (agentId: string, itemId: string, updates: Partial<KnowledgeItem>) => void;
 
   // Simulation Control
   advanceSimulation: () => Promise<void>;
@@ -1743,6 +1744,44 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       };
       updateSimulationApi(state.currentSimulation.id, { agent_config: agentConfig }).catch(err => {
         console.error('Failed to sync knowledge to backend:', err);
+      });
+    }
+  },
+
+  updateKnowledgeInAgent: (agentId, itemId, updates) => {
+    const state = get();
+    // Update local state - find the agent and update the specific knowledge item
+    const updatedAgents = state.agents.map(a => {
+      if (a.id === agentId) {
+        const updatedKnowledgeBase = a.knowledgeBase.map(item =>
+          item.id === itemId
+            ? { ...item, ...updates, timestamp: updates.timestamp || new Date().toISOString() }
+            : item
+        );
+        return { ...a, knowledgeBase: updatedKnowledgeBase };
+      }
+      return a;
+    });
+    set({ agents: updatedAgents });
+    get().addNotification('success', '知识库条目已更新');
+    // Sync to backend if we have a current simulation
+    if (state.currentSimulation && state.engineConfig.mode === 'connected') {
+      const agentConfig = {
+        agents: updatedAgents.map(a => ({
+          name: a.name,
+          profile: a.profile,
+          role: (a as any).role,
+          avatarUrl: (a as any).avatarUrl,
+          llmConfig: (a as any).llmConfig,
+          properties: (a as any).properties || {},
+          history: (a as any).history || {},
+          memory: (a as any).memory || [],
+          knowledgeBase: a.knowledgeBase || [],
+          action_space: Array.isArray((a as any).action_space) ? (a as any).action_space : ['send_message']
+        }))
+      };
+      updateSimulationApi(state.currentSimulation.id, { agent_config: agentConfig }).catch(err => {
+        console.error('Failed to sync knowledge update to backend:', err);
       });
     }
   },

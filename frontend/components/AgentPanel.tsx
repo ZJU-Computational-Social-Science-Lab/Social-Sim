@@ -13,12 +13,18 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
 
   const addKnowledgeToAgent = useSimulationStore(state => state.addKnowledgeToAgent);
   const removeKnowledgeFromAgent = useSimulationStore(state => state.removeKnowledgeFromAgent);
+  const updateKnowledgeInAgent = useSimulationStore(state => state.updateKnowledgeInAgent);
   const simulationId = useSimulationStore(state => state.currentSimulation?.id);
   const selectedNodeId = useSimulationStore(state => state.selectedNodeId);
 
   const [newKbTitle, setNewKbTitle] = useState('');
   const [newKbContent, setNewKbContent] = useState('');
   const [isAddingKB, setIsAddingKB] = useState(false);
+
+  // Edit state for knowledge items
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
 
   // Document upload state
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
@@ -166,6 +172,31 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
     setIsAddingKB(false);
   };
 
+  // Edit handlers for knowledge items
+  const handleStartEdit = (kb: KnowledgeItem) => {
+    setEditingItemId(kb.id);
+    setEditTitle(kb.title);
+    setEditContent(kb.content);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingItemId || !editTitle.trim()) return;
+    updateKnowledgeInAgent(agent.id, editingItemId, {
+      title: editTitle,
+      content: editContent,
+      timestamp: new Date().toISOString()
+    });
+    setEditingItemId(null);
+    setEditTitle('');
+    setEditContent('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingItemId(null);
+    setEditTitle('');
+    setEditContent('');
+  };
+
   return (
     <div className="bg-white border-b last:border-b-0">
       {/* Sticky Profile Header (#6) */}
@@ -237,21 +268,71 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                <div className="text-center py-2 text-slate-400 text-xs italic">暂无知识库文档</div>
              )}
              
-             {agent.knowledgeBase.map(kb => (
-               <div key={kb.id} className="bg-white border rounded p-2 text-xs relative group">
-                  <div className="flex items-center gap-2 font-bold text-slate-700 mb-1">
-                     <FileText size={12} className="text-blue-500" />
-                     {kb.title}
-                  </div>
-                  <p className="text-slate-500 line-clamp-2">{kb.content}</p>
-                  <button 
-                     onClick={() => removeKnowledgeFromAgent(agent.id, kb.id)}
-                     className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                     <Trash2 size={12} />
-                  </button>
-               </div>
-             ))}
+             {agent.knowledgeBase.map(kb => {
+               const isEditing = editingItemId === kb.id;
+               return (
+                 <div key={kb.id} className="bg-white border rounded p-2 text-xs relative group">
+                   {isEditing ? (
+                     // Edit mode
+                     <div className="space-y-2">
+                       <input
+                         type="text"
+                         value={editTitle}
+                         onChange={(e) => setEditTitle(e.target.value)}
+                         className="w-full p-1 border rounded text-xs outline-none focus:ring-1 focus:ring-brand-500"
+                         placeholder="标题"
+                       />
+                       <textarea
+                         value={editContent}
+                         onChange={(e) => setEditContent(e.target.value)}
+                         className="w-full p-1 border rounded text-xs h-20 resize-none outline-none focus:ring-1 focus:ring-brand-500"
+                         placeholder="知识内容..."
+                       />
+                       <div className="flex gap-2 justify-end">
+                         <button
+                           onClick={handleSaveEdit}
+                           disabled={!editTitle.trim()}
+                           className="px-2 py-1 text-green-600 hover:text-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                         >
+                           保存
+                         </button>
+                         <button
+                           onClick={handleCancelEdit}
+                           className="px-2 py-1 text-slate-500 hover:text-slate-600"
+                         >
+                           取消
+                         </button>
+                       </div>
+                     </div>
+                   ) : (
+                     // View mode
+                     <>
+                       <div className="flex items-center gap-2 font-bold text-slate-700 mb-1">
+                         <FileText size={12} className="text-blue-500" />
+                         {kb.title}
+                       </div>
+                       <p className="text-slate-500 line-clamp-2">{kb.content}</p>
+                       <div className="flex gap-2 absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <button
+                           onClick={() => handleStartEdit(kb)}
+                           className="text-slate-400 hover:text-blue-500"
+                           title="编辑"
+                         >
+                           ✏️
+                         </button>
+                         <button
+                           onClick={() => removeKnowledgeFromAgent(agent.id, kb.id)}
+                           className="text-slate-400 hover:text-red-500"
+                           title="删除"
+                         >
+                           🗑️
+                         </button>
+                       </div>
+                     </>
+                   )}
+                 </div>
+               );
+             })}
 
              {isAddingKB ? (
                 <div className="bg-white border border-brand-200 rounded p-2 text-xs space-y-2">

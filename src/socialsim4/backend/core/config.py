@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     allowed_origins: list[str] = []
     admin_emails: list[str] = []
 
+    # Vector Store (ChromaDB) Configuration
+    use_chromadb: bool = False
+    chromadb_persist_dir: str = "./chroma_db"
+
     model_config = SettingsConfigDict(
         extra="ignore",
         env_prefix="SOCIALSIM4_",

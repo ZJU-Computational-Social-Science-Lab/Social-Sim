@@ -545,6 +545,21 @@ History:
 
         system_prompt = self.system_prompt(scene)
 
+        # Auto-inject RAG context if enabled
+        from socialsim4.core.config import RAG_AUTO_INJECT
+        if RAG_AUTO_INJECT:
+            llm_client = clients.get("chat")
+            if llm_client:
+                rag_context = self._get_auto_rag_context(llm_client)
+                if rag_context:
+                    # Append RAG context to system prompt
+                    system_prompt += f"""
+
+{rag_context}
+
+Use the above context to inform your responses when relevant.
+"""
+
         # Get history from memory
         ctx = self.short_memory.searilize(dialect="default")
         ctx.insert(0, {"role": "system", "content": system_prompt})
@@ -763,11 +778,23 @@ History:
 
     def retrieve_from_documents(self, query_embedding: list, top_k: int = 5) -> list:
         """
-        Retrieve relevant chunks from agent's private documents using embeddings.
+        Retrieve relevant chunks from agent's private documents.
+
+        Uses ChromaDB if available, otherwise falls back to JSON cosine similarity.
         Returns list of results sorted by similarity.
         """
+        from socialsim4.backend.services.vector_store import get_vector_store
         from socialsim4.backend.services.documents import cosine_similarity
 
+        # Try ChromaDB first
+        vector_store = get_vector_store()
+        if vector_store and vector_store.use_chromadb:
+            results = vector_store.search(self.name, query_embedding, top_k)
+            if results:
+                return results
+            # Fall through to JSON if ChromaDB returns empty
+
+        # JSON fallback: existing cosine similarity code
         results = []
         for doc_id, doc in self.documents.items():
             embeddings = doc.get("embeddings", {})
@@ -793,16 +820,20 @@ History:
         """
         Composite RAG retrieval merging private documents and global knowledge.
         Returns top_k results sorted by similarity.
+
+        NOTE: llm_client parameter kept for backwards compatibility but NOT used for embeddings.
+        Query embeddings use MiniLM to match document embeddings.
         """
         from socialsim4.backend.services.documents import (
             retrieve_from_global_knowledge,
             cosine_similarity,
+            generate_embedding,  # Import MiniLM-based generation
         )
 
         all_results = []
 
-        # Generate query embedding
-        query_embedding = llm_client.embedding(query)
+        # Generate query embedding using MiniLM (same as documents)
+        query_embedding = generate_embedding(query)
 
         # Retrieve from private documents
         if self.documents:
@@ -830,6 +861,9 @@ History:
         """
         Get formatted RAG context from documents to inject into prompts.
         Combines results from private documents and global knowledge.
+
+        NOTE: llm_client parameter kept for backwards compatibility but NOT used.
+        Query embeddings use MiniLM to match document embeddings.
         """
         # Only do embedding-based retrieval if we have documents or global knowledge
         if not self.documents and not self._global_knowledge:
@@ -848,6 +882,125 @@ History:
             context_parts.append(f"[{i}] {source_label}{source_info}:\n{result['text']}")
 
         return "\n\nRelevant Context:\n" + "\n\n".join(context_parts)
+
+    def _generate_search_query_from_memory(self) -> str:
+        """
+        Generate a semantic search query from recent memory.
+        Uses last few user messages to extract conversation context.
+        """
+        recent = self.short_memory.get_all()[-3:]  # Last 3 messages
+        if not recent:
+            return ""
+
+        # Extract content from user role messages (these contain conversation context)
+        user_msgs = [m["content"] for m in recent if m.get("role") == "user"]
+
+        if not user_msgs:
+            return ""
+
+        # Use the most recent user message as the query
+        # This captures the latest context without being too verbose
+        return user_msgs[-1].strip()
+
+    def _summarize_rag_results(self, results: list, llm_client) -> str:
+        """
+        Summarize retrieved chunks using the LLM to reduce prompt size.
+
+        Only called when total chunk length exceeds RAG_SUMMARY_THRESHOLD.
+        Falls back to truncated text if LLM call fails.
+        """
+        if not results:
+            return ""
+
+        # Combine chunks with metadata for context
+        chunks_text = "\n\n".join([
+            f"[Source: {r.get('filename', 'Unknown document')}]\n{r['text']}"
+            for r in results
+        ])
+
+        summary_prompt = f"""You are a knowledge summarizer. Given the following retrieved document chunks, produce a concise summary (max 150 words) that captures the key information relevant to an agent's decision-making.
+
+Retrieved Chunks:
+{chunks_text}
+
+Output ONLY the summary, nothing else."""
+
+        try:
+            summary = llm_client.chat([{"role": "user", "content": summary_prompt}])
+            return summary.strip()
+        except Exception as e:
+            # Fallback: return first 300 chars of first result
+            if results and results[0].get("text"):
+                fallback = results[0]["text"]
+                return fallback[:300] + "..." if len(fallback) > 300 else fallback
+            return ""
+
+    def _get_auto_rag_context(self, llm_client) -> str:
+        """
+        Auto-retrieve and inject relevant context based on recent conversation.
+        Applies length-based summarization if chunks are too long.
+        """
+        from socialsim4.core.config import RAG_SUMMARY_THRESHOLD, RAG_TOP_K_DEFAULT
+        from socialsim4.backend.services.documents import composite_rag_retrieval, format_rag_context
+
+        # Only retrieve if we have documents or global knowledge
+        if not self.documents and not self._global_knowledge:
+            return ""
+
+        # Generate search query from recent memory
+        query = self._generate_search_query_from_memory()
+        if not query:
+            return ""
+
+        # Retrieve relevant chunks
+        results = composite_rag_retrieval(
+            query=query,
+            agent_documents=self.documents,
+            global_knowledge=self._global_knowledge,
+            top_k=RAG_TOP_K_DEFAULT
+        )
+
+        if not results:
+            return ""
+
+        # Check total length
+        total_length = sum(len(r.get("text", "")) for r in results)
+
+        # Use raw text if under threshold, otherwise summarize
+        if total_length <= RAG_SUMMARY_THRESHOLD:
+            return format_rag_context(results)
+        else:
+            return self._summarize_rag_results(results, llm_client)
+
+    def sync_documents_to_vector_store(self) -> bool:
+        """
+        Sync agent's documents to ChromaDB vector store.
+
+        Called after document upload. Returns True if sync succeeded.
+        """
+        from socialsim4.backend.services.vector_store import get_vector_store
+
+        vector_store = get_vector_store()
+        if not vector_store or not vector_store.use_chromadb:
+            return False
+
+        for doc_id, doc in self.documents.items():
+            chunks = doc.get("chunks", [])
+            # Convert embeddings dict values to list in order
+            embeddings = [doc.get("embeddings", {}).get(c["chunk_id"]) for c in chunks]
+
+            # Filter out chunks without embeddings
+            valid_chunks = []
+            valid_embeddings = []
+            for chunk, emb in zip(chunks, embeddings):
+                if emb is not None:
+                    valid_chunks.append(chunk)
+                    valid_embeddings.append(emb)
+
+            if valid_chunks and valid_embeddings:
+                vector_store.add_document(self.name, doc_id, valid_chunks, valid_embeddings)
+
+        return True
 
     def serialize(self):
         # Deep-copy dict/list fields to avoid sharing across snapshots

@@ -1119,12 +1119,25 @@ async def upload_agent_document(
         logger.debug(f"File validation - type={ext}, size_ok={file_size <= MAX_FILE_SIZE}")
 
         # Process document (extract, chunk, embed using MiniLM)
-        document = await asyncio.to_thread(
-            process_document,
-            file_content,
-            filename,
-            file_size,
-        )
+        try:
+            document = await asyncio.to_thread(
+                process_document,
+                file_content,
+                filename,
+                file_size,
+            )
+        except ImportError as e:
+            logger.error(f"Upload failed - sim_id={simulation_id}, agent={agent_name}, reason=Missing dependency: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail="Document processing requires 'sentence-transformers' package. Please install it: pip install sentence-transformers"
+            )
+        except Exception as e:
+            logger.exception(f"Upload failed - sim_id={simulation_id}, agent={agent_name}, reason={e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Document processing failed: {str(e)}"
+            )
 
         # Update simulation agent_config with the new document
         # Use deep copy to ensure SQLAlchemy detects the change
@@ -1378,12 +1391,25 @@ async def upload_global_document(
             raise HTTPException(status_code=400, detail=f"File too large. Max size: {MAX_FILE_SIZE // (1024*1024)}MB")
 
         # Process document (extract, chunk, embed using MiniLM)
-        document = await asyncio.to_thread(
-            process_document,
-            file_content,
-            filename,
-            file_size,
-        )
+        try:
+            document = await asyncio.to_thread(
+                process_document,
+                file_content,
+                filename,
+                file_size,
+            )
+        except ImportError as e:
+            logger.error(f"Global upload failed - sim_id={simulation_id}, reason=Missing dependency: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail="Document processing requires 'sentence-transformers' package. Please install it: pip install sentence-transformers"
+            )
+        except Exception as e:
+            logger.exception(f"Global upload failed - sim_id={simulation_id}, reason={e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Document processing failed: {str(e)}"
+            )
 
         kw_id = f"gk_{uuid.uuid4().hex[:8]}"
 
