@@ -39,3 +39,13 @@ trafilatura>=1.12.2
 
 # Celery
 celery>=5.3.0
+
+# Document Processing (Knowledge Base)
+pypdf>=4.0.0
+python-docx>=1.1.0
+
+# Embeddings (for RAG)
+sentence-transformers>=2.2.0
+
+# Vector Store (optional, for RAG)
+chromadb>=0.4.0  # Optional hybrid vector store

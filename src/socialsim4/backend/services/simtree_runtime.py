@@ -110,6 +110,7 @@ def _apply_agent_config(simulator, agent_config: dict | None):
 
 
 def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
+    print(f"[KB-DEBUG] _build_tree_for_sim: Building tree for sim {sim_record.id}")
     scene_type = sim_record.scene_type
     # Normalize scene_type to registry keys (allow aliases like 'village' -> 'village_scene')
     scene_key = scene_type if scene_type in SCENE_MAP else f"{scene_type}_scene"
@@ -120,7 +121,15 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
     cfg = getattr(sim_record, "scene_config", {}) or {}
     name = getattr(sim_record, "name", scene_type)
 
-    items = (getattr(sim_record, "agent_config", {}) or {}).get("agents") or []
+    agent_config = getattr(sim_record, "agent_config", {}) or {}
+    print(f"[KB-DEBUG] _build_tree_for_sim: agent_config keys: {list(agent_config.keys())}")
+    items = agent_config.get("agents") or []
+    print(f"[KB-DEBUG] _build_tree_for_sim: Found {len(items)} agents in config")
+    for i, agent in enumerate(items):
+        kb = agent.get("knowledgeBase", [])
+        print(f"[KB-DEBUG]   Agent {i} '{agent.get('name', 'unknown')}': {len(kb)} knowledge items, keys: {list(agent.keys())}")
+        for j, item in enumerate(kb):
+            print(f"[KB-DEBUG]     KB Item {j}: id={item.get('id')}, title='{item.get('title', '')[:50]}', enabled={item.get('enabled')}")
     first_language = None
     for cfg_agent in items:
         lang = str(cfg_agent.get("language") or "").strip()
@@ -196,9 +205,6 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         profile = str(cfg_agent.get("profile") or "")
         selected = [str(a) for a in (cfg_agent.get("action_space") or [])]
         props = dict(cfg_agent.get("properties") or {})
-        role_value = str(cfg_agent.get("role") or "").strip()
-        if role_value and "role" not in props:
-            props["role"] = role_value
         if "emotion_enabled" not in props:
             props["emotion_enabled"] = emotion_enabled
         language = _normalize_language(cfg_agent.get("language") or preferred_language)
@@ -213,20 +219,26 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
             if n and n not in seen:
                 seen.add(n)
                 merged_names.append(n)
-        built_agents.append(
-            Agent.deserialize(
-                {
-                    "name": aname,
-                    "user_profile": profile,
-                    "style": "",
-                    "initial_instruction": "",
-                    "role_prompt": "",
-                    "language": language,
-                    "action_space": merged_names,
-                    "properties": props,
-                }
-            )
-        )
+        # Get knowledge base from agent config
+        knowledge_base = list(cfg_agent.get("knowledgeBase") or cfg_agent.get("knowledge_base") or [])
+        # Get documents from agent config
+        documents = dict(cfg_agent.get("documents") or {})
+        print(f"[KB-DEBUG] Building agent '{aname}': passing {len(knowledge_base)} KB items, {len(documents)} documents to Agent.deserialize")
+        agent_data = {
+            "name": aname,
+            "user_profile": profile,
+            "style": "",
+            "initial_instruction": "",
+            "role_prompt": "",
+            "language": language,
+            "action_space": merged_names,
+            "properties": props,
+            "knowledge_base": knowledge_base,
+            "documents": documents,
+        }
+        new_agent = Agent.deserialize(agent_data)
+        print(f"[KB-DEBUG] After deserialize, agent '{aname}' has {len(new_agent.knowledge_base)} KB items, {len(new_agent.documents)} documents")
+        built_agents.append(new_agent)
 
     ordering = SequentialOrdering()
     if scene_type == "landlord_scene":
@@ -284,30 +296,19 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         max_steps_per_turn=3 if scene_type == "landlord_scene" else 5,
         emotion_enabled=emotion_enabled,
     )
-    def _normalize_initial_event(item):
-        if isinstance(item, str):
-            return {"content": item, "images": [], "audio": [], "video": []}
-        if isinstance(item, dict):
-            return {
-                "content": str(item.get("content") or ""),
-                "images": item.get("images") or [],
-                "audio": item.get("audio") or [],
-                "video": item.get("video") or [],
-            }
-        return {"content": str(item or ""), "images": [], "audio": [], "video": []}
+    # Set global knowledge reference on all agents
+    global_knowledge = cfg.get("global_knowledge", {})
+    if global_knowledge:
+        for agent in built_agents:
+            agent.set_global_knowledge(global_knowledge)
+        print(f"[KB-DEBUG] Set global knowledge ({len(global_knowledge)} items) on {len(built_agents)} agents")
 
-    # Broadcast configured initial events as public events (now supports media)
-    for raw in cfg.get("initial_events") or []:
-        ev_data = _normalize_initial_event(raw)
-        if ev_data["content"].strip() or ev_data["images"] or ev_data["audio"] or ev_data["video"]:
-            ev = PublicEvent(
-                ev_data["content"],
-                images=ev_data["images"],
-                audio=ev_data["audio"],
-                video=ev_data["video"],
-            )
+    # Broadcast configured initial events as public events
+    for text in cfg.get("initial_events") or []:
+        if isinstance(text, str) and text.strip():
+            ev = PublicEvent(text)
             ev.code = "initial_event"
-            ev.params = {"content": ev_data["content"], "lang": preferred_language, "images": ev_data["images"], "audio": ev_data["audio"], "video": ev_data["video"]}
+            ev.params = {"content": text, "lang": preferred_language}
             sim.broadcast(ev)
     # For council, include draft announcement as an initial event if provided
     if scene_type == "council_scene":
@@ -367,12 +368,7 @@ class SimTreeRegistry:
             record = self._records.get(key)
             if record is not None:
                 return record
-            # 如果存在持久化的 latest_state，优先用它反序列化以恢复节点/日志
-            persisted_state = getattr(sim_record, "latest_state", None)
-            if isinstance(persisted_state, dict) and persisted_state.get("nodes"):
-                tree = await asyncio.to_thread(SimTree.deserialize, persisted_state, clients or make_clients_from_env())
-            else:
-                tree = await asyncio.to_thread(_build_tree_for_sim, sim_record, clients)
+            tree = await asyncio.to_thread(_build_tree_for_sim, sim_record, clients)
             record = SimTreeRecord(tree)
             loop = asyncio.get_running_loop()
             tree.attach_event_loop(loop)
@@ -395,6 +391,91 @@ class SimTreeRegistry:
 
     def get(self, simulation_id: str) -> SimTreeRecord | None:
         return self._records.get(simulation_id.upper())
+
+    def update_agent_knowledge(self, simulation_id: str, agent_config: dict) -> bool:
+        """
+        Update agent knowledge bases and documents in all nodes of an existing tree.
+        This preserves simulation state while updating knowledge.
+
+        IMPORTANT: This function MERGES knowledge/documents - it only updates agents
+        that are explicitly in the config, and preserves existing data for agents
+        not in the config.
+
+        Returns True if tree was found and updated, False if no tree exists.
+        """
+        key = simulation_id.upper()
+        record = self._records.get(key)
+        if record is None:
+            print(f"[KB-DEBUG] update_agent_knowledge: No cached tree for sim {simulation_id}")
+            return False
+
+        # Build a mapping of agent name -> knowledge base and documents from the new config
+        # Only include agents that have the respective keys defined
+        agents_config = agent_config.get("agents", [])
+        kb_by_name = {}
+        docs_by_name = {}
+        for agent_cfg in agents_config:
+            name = agent_cfg.get("name", "")
+            # Only update knowledge base if explicitly present in config
+            if "knowledgeBase" in agent_cfg:
+                kb_by_name[name] = agent_cfg["knowledgeBase"]
+            # Only update documents if explicitly present in config
+            if "documents" in agent_cfg:
+                docs_by_name[name] = agent_cfg["documents"]
+            print(f"[KB-DEBUG] update_agent_knowledge: {name} -> {len(kb_by_name.get(name, []))} KB items, {len(docs_by_name.get(name, {}))} documents")
+
+        # Update knowledge base and documents in all tree nodes
+        tree = record.tree
+        nodes_updated = 0
+        for node_id, node_data in tree.nodes.items():
+            sim = node_data.get("sim")
+            if sim is None:
+                continue
+            for agent_name, agent in sim.agents.items():
+                # Only update knowledge base if we have new data for this agent
+                if agent_name in kb_by_name:
+                    old_kb_count = len(agent.knowledge_base)
+                    agent.knowledge_base = list(kb_by_name[agent_name])
+                    new_kb_count = len(agent.knowledge_base)
+                    print(f"[KB-DEBUG] update_agent_knowledge: Node {node_id}, agent '{agent_name}': {old_kb_count} -> {new_kb_count} KB items")
+                # Only update documents if we have new data for this agent
+                if agent_name in docs_by_name:
+                    old_docs_count = len(agent.documents)
+                    agent.documents = dict(docs_by_name[agent_name])
+                    new_docs_count = len(agent.documents)
+                    print(f"[KB-DEBUG] update_agent_knowledge: Node {node_id}, agent '{agent_name}': {old_docs_count} -> {new_docs_count} documents")
+            nodes_updated += 1
+
+        print(f"[KB-DEBUG] update_agent_knowledge: Updated {nodes_updated} nodes in tree for sim {simulation_id}")
+        return True
+
+    def update_global_knowledge(self, simulation_id: str, global_knowledge: dict) -> bool:
+        """
+        Update global knowledge reference in all agents of an existing tree.
+
+        Returns True if tree was found and updated, False if no tree exists.
+        """
+        key = simulation_id.upper()
+        record = self._records.get(key)
+        if record is None:
+            print(f"[KB-DEBUG] update_global_knowledge: No cached tree for sim {simulation_id}")
+            return False
+
+        # Update global knowledge in all tree nodes
+        tree = record.tree
+        nodes_updated = 0
+        agents_updated = 0
+        for node_id, node_data in tree.nodes.items():
+            sim = node_data.get("sim")
+            if sim is None:
+                continue
+            for agent_name, agent in sim.agents.items():
+                agent.set_global_knowledge(global_knowledge)
+                agents_updated += 1
+            nodes_updated += 1
+
+        print(f"[KB-DEBUG] update_global_knowledge: Updated {agents_updated} agents in {nodes_updated} nodes for sim {simulation_id}")
+        return True
 
 
 SIM_TREE_REGISTRY = SimTreeRegistry()

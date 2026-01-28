@@ -175,3 +175,26 @@ This document summarizes the coding requirements, conventions, and the project�
 ## Parser note
 
 - Action/Plan Update XML parsing normalizes bare `&` to `&amp;` before XML parse to avoid crashes on LLM outputs containing raw ampersands. Parsing remains strict otherwise.
+
+## RAG (Retrieval-Augmented Generation)
+
+Agents have two knowledge sources:
+1. **Knowledge Base:** Simple text items (keyword-based, manual entry)
+2. **Documents:** Uploaded files with embeddings (semantic search via MiniLM)
+
+### Auto-Inject RAG
+- Agents automatically retrieve relevant document context based on conversation
+- Query is extracted from the most recent user message in short-term memory
+- Results are injected into the system prompt before each LLM call
+- Configuration via `RAG_AUTO_INJECT`, `RAG_SUMMARY_THRESHOLD`, `RAG_TOP_K_DEFAULT`
+
+### Vector Store
+- Hybrid storage: ChromaDB when available, JSON cosine similarity fallback
+- All embeddings use `all-MiniLM-L6-v2` (384 dimensions) for consistency
+- Initialize at startup: `initialize_vector_store(use_chromadb=True, persist_dir="./chroma_db")`
+
+### Editing Knowledge
+- Frontend supports inline editing via pencil icon (✏️)
+- Store methods: `addKnowledgeToAgent`, `removeKnowledgeFromAgent`, `updateKnowledgeInAgent`
+
+See `docs/rag-improvements.md` for complete documentation.

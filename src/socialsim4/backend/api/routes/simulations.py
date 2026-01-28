@@ -1,13 +1,18 @@
 import asyncio
+import copy
 import logging
 from datetime import datetime, timezone
 
 from jose import JWTError, jwt
 from litestar import Router, delete, get, patch, post, websocket
 from litestar.connection import Request, WebSocket
+from litestar.datastructures import UploadFile
 from litestar.exceptions import WebSocketDisconnect, HTTPException  # ✅ 新增 HTTPException
+from litestar.enums import RequestEncodingType
+from litestar.params import Body
 from sqlalchemy import select, delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 
 from socialsim4.core.llm import create_llm_client
 from socialsim4.core.llm_config import LLMConfig, guess_supports_vision
@@ -36,6 +41,7 @@ from ...schemas.simulation import (
 )
 from ...services.simtree_runtime import SIM_TREE_REGISTRY, SimTreeRecord
 from ...services.simulations import generate_simulation_id, generate_simulation_name
+from ...services.documents import process_document, composite_rag_retrieval, format_rag_context, generate_embedding
 
 
 logger = logging.getLogger(__name__)
@@ -237,6 +243,64 @@ async def update_simulation(
             sim.status = data.status
         if data.notes is not None:
             sim.notes = data.notes
+        if data.agent_config is not None:
+            print(f"[KB-DEBUG] update_simulation: Received agent_config update for sim {simulation_id}")
+
+            # IMPORTANT: Merge the incoming agent_config with existing config to preserve documents
+            # The frontend may only send updated fields (e.g., new KB items), so we need to merge
+            # rather than replace to avoid losing documents, knowledgeBase, and other agent fields
+            existing_agent_config = copy.deepcopy(sim.agent_config) if sim.agent_config else {"agents": []}
+            incoming_agents = data.agent_config.get("agents", [])
+            existing_agents = existing_agent_config.get("agents", [])
+
+            # Create a map of existing agents by name for quick lookup
+            existing_by_name = {agent.get("name"): agent for agent in existing_agents}
+
+            # Merge incoming agents with existing agents
+            merged_agents = []
+            for incoming_agent in incoming_agents:
+                agent_name = incoming_agent.get("name")
+                if agent_name in existing_by_name:
+                    # Merge: keep existing documents and other fields, update with incoming data
+                    merged_agent = copy.deepcopy(existing_by_name[agent_name])
+                    # Update only the fields that were explicitly provided in incoming data
+                    for key, value in incoming_agent.items():
+                        merged_agent[key] = value
+                    merged_agents.append(merged_agent)
+                else:
+                    # New agent, use as-is
+                    merged_agents.append(incoming_agent)
+
+            # Keep any agents that were in existing but not in incoming
+            for existing_agent in existing_agents:
+                agent_name = existing_agent.get("name")
+                if agent_name not in {a.get("name") for a in incoming_agents}:
+                    merged_agents.append(copy.deepcopy(existing_agent))
+
+            merged_config = copy.deepcopy(data.agent_config)
+            merged_config["agents"] = merged_agents
+
+            agents_in_config = merged_config.get("agents", [])
+            for i, agent in enumerate(agents_in_config):
+                kb = agent.get("knowledgeBase", [])
+                docs = agent.get("documents", {})
+                print(f"[KB-DEBUG]   Agent {i} '{agent.get('name', 'unknown')}': {len(kb)} knowledge items, {len(docs)} documents")
+                for j, item in enumerate(kb):
+                    print(f"[KB-DEBUG]     KB Item {j}: id={item.get('id')}, title='{item.get('title', '')[:50]}', enabled={item.get('enabled')}")
+                for j, (doc_id, doc) in enumerate(docs.items()):
+                    print(f"[KB-DEBUG]     Doc Item {j}: id={doc_id}, filename='{doc.get('filename', 'unknown')}'")
+
+            sim.agent_config = merged_config
+            # Explicitly mark as modified for SQLAlchemy to detect the change
+            flag_modified(sim, "agent_config")
+
+            # CRITICAL: Update the agent knowledge bases in the cached SimTree
+            # The tree is cached in memory and won't see database changes unless we update it
+            # Use update_agent_knowledge to preserve existing simulation state while updating knowledge
+            updated = SIM_TREE_REGISTRY.update_agent_knowledge(simulation_id, merged_config)
+            if not updated:
+                # No cached tree exists - it will be built fresh on next access with the new config
+                print(f"[KB-DEBUG] update_simulation: No cached tree to update for sim {simulation_id}")
 
         await session.commit()
         await session.refresh(sim)
@@ -676,6 +740,7 @@ async def simulation_tree_events(
 async def simulation_tree_state(
     request: Request, simulation_id: str, node_id: int
 ) -> dict:
+    print(f"[KB-DEBUG] simulation_tree_state: Fetching state for sim={simulation_id}, node={node_id}")
     async with get_session() as session:
         _, record = await _get_simulation_and_tree_any(session, simulation_id)
         node = record.tree.nodes.get(int(node_id))
@@ -689,6 +754,13 @@ async def simulation_tree_state(
             if role and "role" not in props:
                 props["role"] = role
             profile = agent.user_profile or props.get("profile") or props.get("description") or ""
+            kb = getattr(agent, "knowledge_base", [])
+            docs = getattr(agent, "documents", {})
+            print(f"[KB-DEBUG] simulation_tree_state: Agent '{name}' has {len(kb)} KB items, {len(docs)} documents")
+            for i, item in enumerate(kb):
+                print(f"[KB-DEBUG]   KB[{i}]: id={item.get('id')}, title='{item.get('title', '')[:40]}', enabled={item.get('enabled')}")
+            for doc_id, doc in docs.items():
+                print(f"[KB-DEBUG]   Doc: id={doc_id}, filename='{doc.get('filename', 'unknown')}'")
             agents.append(
                 {
                     "name": name,
@@ -698,9 +770,240 @@ async def simulation_tree_state(
                     "emotion": agent.emotion,
                     "plan_state": agent.plan_state,
                     "short_memory": agent.short_memory.get_all(),
+                    "knowledgeBase": kb,
+                    "documents": docs,
                 }
             )
         return {"turns": simulator.turns, "agents": agents}
+
+
+@get("/{simulation_id:str}/tree/sim/{node_id:int}/test-knowledge")
+async def test_agent_knowledge(
+    request: Request, simulation_id: str, node_id: int
+) -> dict:
+    """
+    Test endpoint to verify agent knowledge bases are working.
+
+    Query params:
+        agent_name: Optional specific agent name to test (tests all if not provided)
+        query: Optional search query to test knowledge retrieval
+
+    Returns:
+        Dict with agent knowledge details and query results
+    """
+    # Extract query params from request
+    agent_name = request.query_params.get("agent_name")
+    query = request.query_params.get("query")
+    print(f"[KB-DEBUG] test_agent_knowledge: sim={simulation_id}, node={node_id}, agent={agent_name}, query={query}")
+    async with get_session() as session:
+        _, record = await _get_simulation_and_tree_any(session, simulation_id)
+        node = record.tree.nodes.get(int(node_id))
+        if node is None:
+            raise HTTPException(status_code=404, detail="Tree node not found")
+        simulator = node["sim"]
+
+        results = []
+        for name, agent in simulator.agents.items():
+            if agent_name and name != agent_name:
+                continue
+
+            kb = getattr(agent, "knowledge_base", [])
+            enabled_kb = [item for item in kb if item.get("enabled", True)]
+
+            agent_result = {
+                "name": name,
+                "total_knowledge_items": len(kb),
+                "enabled_knowledge_items": len(enabled_kb),
+                "knowledge_base": kb,
+            }
+
+            # If a query is provided, test the query_knowledge method
+            if query and hasattr(agent, "query_knowledge"):
+                query_results = agent.query_knowledge(query, top_k=5)
+                agent_result["query"] = query
+                agent_result["query_results"] = query_results
+
+            # Also get the knowledge context that would be included in prompts
+            if hasattr(agent, "get_knowledge_context"):
+                context = agent.get_knowledge_context(query or "test")
+                agent_result["knowledge_context_preview"] = context[:500] if context else ""
+
+            results.append(agent_result)
+
+        return {
+            "simulation_id": simulation_id,
+            "node_id": node_id,
+            "agent_count": len(simulator.agents),
+            "agents": results
+        }
+
+
+@post("/{simulation_id:str}/tree/sim/{node_id:int}/ask-agents")
+async def ask_agents_question(
+    request: Request, simulation_id: str, node_id: int, data: dict
+) -> dict:
+    """
+    Ask all agents a question and get their responses based on their knowledge.
+    This proves each agent uses their individual RAG knowledge.
+
+    POST body: {"question": "What is the village budget?", "agent_name": "optional"}
+
+    Returns each agent's response showing they use their specific knowledge.
+    """
+    question = data.get("question", "What do you know?")
+    target_agent = data.get("agent_name")
+
+    print(f"\n{'='*60}")
+    print(f"[KB-DEBUG] ask_agents_question: sim={simulation_id}, node={node_id}")
+    print(f"[KB-DEBUG] Question: '{question}'")
+    print(f"[KB-DEBUG] Target agent: {target_agent or 'ALL'}")
+    print(f"{'='*60}")
+
+    async with get_session() as session:
+        sim, record = await _get_simulation_and_tree_any(session, simulation_id)
+        node = record.tree.nodes.get(int(node_id))
+        if node is None:
+            raise HTTPException(status_code=404, detail="Tree node not found")
+        simulator = node["sim"]
+
+        # Get the LLM client from simulator
+        llm_client = simulator.clients.get("chat") or simulator.clients.get("default")
+        if llm_client is None:
+            raise HTTPException(status_code=500, detail="No LLM client available")
+
+        # Get global knowledge from the scene_config
+        scene_config = sim.scene_config or {}
+        global_knowledge = scene_config.get("global_knowledge", {})
+
+        results = []
+        for name, agent in simulator.agents.items():
+            if target_agent and name != target_agent:
+                continue
+
+            # Gather all knowledge sources for this agent
+            kb_items = getattr(agent, "knowledge_base", [])
+            enabled_kb = [item for item in kb_items if item.get("enabled", True)]
+            documents = getattr(agent, "documents", {})
+            agent_config = sim.agent_config or {}
+            agents_list = agent_config.get("agents", [])
+            agent_cfg = next((a for a in agents_list if a.get("name") == name), {})
+            cfg_documents = agent_cfg.get("documents", {})
+
+            print(f"\n[KB-DEBUG] --- Agent: {name} ---")
+            print(f"[KB-DEBUG] Free-text KB items: {len(enabled_kb)}")
+            print(f"[KB-DEBUG] Private documents: {len(cfg_documents)}")
+            print(f"[KB-DEBUG] Global knowledge items: {len(global_knowledge)}")
+
+            # Build knowledge context using composite_rag_retrieval
+            knowledge_context = ""
+            knowledge_sources = []
+
+            # 1. Add free-text knowledge base items
+            if enabled_kb:
+                kb_items_list = []
+                for i, item in enumerate(enabled_kb, 1):
+                    title = item.get("title", "Untitled")
+                    content = item.get("content", "")
+                    kb_items_list.append(f"[KB-{i}] {title}:\n{content}")
+                    knowledge_sources.append(title)
+                    print(f"[KB-DEBUG]   Free-text KB: '{title}'")
+                knowledge_context += "\n\n### Your Free-text Knowledge:\n" + "\n\n".join(kb_items_list)
+
+            # 2. Use composite_rag_retrieval to get relevant chunks from documents and global knowledge
+            # Note: composite_rag_retrieval returns list[dict], not dict with "chunks" key
+            retrieval_result = await asyncio.to_thread(
+                composite_rag_retrieval,
+                question,
+                agent_documents=cfg_documents,  # Agent's private documents
+                global_knowledge=global_knowledge,  # Global knowledge shared with all agents
+                top_k=5
+            )
+
+            if retrieval_result:
+                formatted_context = await asyncio.to_thread(
+                    format_rag_context,
+                    retrieval_result
+                )
+                if formatted_context:
+                    knowledge_context += "\n\n### Retrieved Knowledge:\n" + formatted_context
+                    for chunk in retrieval_result:
+                        source = chunk.get("source", "Unknown")
+                        if source not in knowledge_sources:
+                            knowledge_sources.append(source)
+                    print(f"[KB-DEBUG]   Retrieved {len(retrieval_result)} chunks from documents")
+
+            # Build a prompt asking the question with all knowledge
+            if knowledge_context:
+                prompt = f"""You are {name}. {agent.user_profile}
+
+{knowledge_context}
+
+Based on your knowledge above, please answer this question concisely:
+{question}
+
+If you have specific information in your knowledge base about this, use it. If not, say you don't have that information."""
+            else:
+                prompt = f"""You are {name}. {agent.user_profile}
+
+Based on your knowledge (if any), please answer this question concisely:
+{question}
+
+If you don't have specific information about this, say so."""
+
+            print(f"[KB-DEBUG] Knowledge sources: {knowledge_sources}")
+            print(f"[KB-DEBUG] Sending prompt to LLM...")
+            print(f"[KB-DEBUG] Prompt includes knowledge: {bool(knowledge_context)}")
+
+            try:
+                # Call the LLM using the chat method
+                messages = [{"role": "user", "content": prompt}]
+                response = await asyncio.to_thread(
+                    llm_client.chat,
+                    messages
+                )
+
+                # Extract response text - the chat method returns the content directly
+                if isinstance(response, str):
+                    answer = response
+                elif hasattr(response, 'choices') and response.choices:
+                    answer = response.choices[0].message.content
+                elif isinstance(response, dict):
+                    answer = response.get("choices", [{}])[0].get("message", {}).get("content", str(response))
+                else:
+                    answer = str(response)
+
+                print(f"[KB-DEBUG] Response from {name}:")
+                print(f"[KB-DEBUG] >>> {answer[:200]}{'...' if len(answer) > 200 else ''}")
+
+                results.append({
+                    "agent_name": name,
+                    "knowledge_count": len(enabled_kb) + len(cfg_documents) + len(global_knowledge),
+                    "knowledge_sources": knowledge_sources,
+                    "question": question,
+                    "answer": answer,
+                    "success": True
+                })
+
+            except Exception as e:
+                print(f"[KB-DEBUG] ERROR for {name}: {e}")
+                results.append({
+                    "agent_name": name,
+                    "knowledge_count": len(enabled_kb) + len(cfg_documents),
+                    "question": question,
+                    "answer": f"Error: {str(e)}",
+                    "success": False
+                })
+
+        print(f"\n{'='*60}")
+        print(f"[KB-DEBUG] Completed asking {len(results)} agents")
+        print(f"{'='*60}\n")
+
+        return {
+            "simulation_id": simulation_id,
+            "node_id": node_id,
+            "question": question,
+            "responses": results
+        }
 
 
 # -------------------------------------------------------------------
@@ -808,6 +1111,447 @@ async def simulation_tree_node_events_ws(
         logger.debug("WS node events unsubscribed: sim=%s node=%s", simulation_id, node_id)
 
 
+# -------------------------------------------------------------------
+# Document Upload Endpoints (Per-Agent Private Knowledge)
+# -------------------------------------------------------------------
+
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+ALLOWED_EXTENSIONS = {".pdf", ".txt", ".docx", ".md"}
+
+
+@post("/{simulation_id:str}/agents/{agent_name:str}/documents")
+async def upload_agent_document(
+    request: Request,
+    simulation_id: str,
+    agent_name: str,
+    data: UploadFile = Body(media_type=RequestEncodingType.MULTI_PART),
+) -> dict:
+    """
+    Upload a document to an agent's private knowledge base.
+
+    Accepts: PDF, TXT, DOCX, MD files (max 10MB)
+    Returns: {success: true, doc_id: str, chunks_count: int, agent_name: str}
+    """
+    token = extract_bearer_token(request)
+    async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
+        sim = await _get_simulation_for_owner(session, current_user.id, simulation_id)
+
+        filename = data.filename
+        file_content = await data.read()
+        file_size = len(file_content)
+
+        logger.info(f"File upload initiated - sim_id={simulation_id}, agent={agent_name}, file={filename}, size={file_size}")
+
+        # Validate file extension
+        ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+        if ext not in ALLOWED_EXTENSIONS:
+            logger.error(f"Upload failed - sim_id={simulation_id}, agent={agent_name}, reason=Invalid file type {ext}")
+            raise HTTPException(status_code=400, detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}")
+
+        # Validate file size
+        if file_size > MAX_FILE_SIZE:
+            logger.error(f"Upload failed - sim_id={simulation_id}, agent={agent_name}, reason=File too large ({file_size} bytes)")
+            raise HTTPException(status_code=400, detail=f"File too large. Max size: {MAX_FILE_SIZE // (1024*1024)}MB")
+
+        logger.debug(f"File validation - type={ext}, size_ok={file_size <= MAX_FILE_SIZE}")
+
+        # Process document (extract, chunk, embed using MiniLM)
+        try:
+            document = await asyncio.to_thread(
+                process_document,
+                file_content,
+                filename,
+                file_size,
+            )
+        except ImportError as e:
+            logger.error(f"Upload failed - sim_id={simulation_id}, agent={agent_name}, reason=Missing dependency: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail="Document processing requires 'sentence-transformers' package. Please install it: pip install sentence-transformers"
+            )
+        except Exception as e:
+            logger.exception(f"Upload failed - sim_id={simulation_id}, agent={agent_name}, reason={e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Document processing failed: {str(e)}"
+            )
+
+        # Update simulation agent_config with the new document
+        # Use deep copy to ensure SQLAlchemy detects the change
+        agent_config = copy.deepcopy(sim.agent_config) if sim.agent_config else {}
+        agents = agent_config.get("agents", [])
+
+        # Find the target agent
+        agent_found = False
+        for agent in agents:
+            if agent.get("name") == agent_name:
+                agent_found = True
+                # Initialize documents dict if not present
+                if "documents" not in agent:
+                    agent["documents"] = {}
+                agent["documents"][document["id"]] = document
+                break
+
+        if not agent_found:
+            raise HTTPException(status_code=404, detail=f"Agent '{agent_name}' not found")
+
+        agent_config["agents"] = agents
+        sim.agent_config = agent_config
+        # Explicitly mark JSON column as modified to ensure SQLAlchemy persists it
+        flag_modified(sim, "agent_config")
+
+        await session.commit()
+
+        # Update cached tree if exists
+        SIM_TREE_REGISTRY.update_agent_knowledge(simulation_id, agent_config)
+
+        logger.info(f"Document stored - doc_id={document['id']}, chunks={len(document['chunks'])}")
+
+        return {
+            "success": True,
+            "doc_id": document["id"],
+            "chunks_count": len(document["chunks"]),
+            "agent_name": agent_name,
+            "filename": filename,
+        }
+
+
+@get("/{simulation_id:str}/agents/{agent_name:str}/documents")
+async def list_agent_documents(
+    request: Request,
+    simulation_id: str,
+    agent_name: str,
+) -> list[dict]:
+    """
+    List all documents uploaded to an agent's private knowledge base.
+
+    Query params:
+        node_id: Optional node ID to fetch documents from in-memory tree.
+                 If provided, fetches from the tree node's agent.
+                 If not provided, fetches from database config.
+    """
+    token = extract_bearer_token(request)
+    node_id_param = request.query_params.get("node_id")
+
+    async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
+        sim = await _get_simulation_for_owner(session, current_user.id, simulation_id)
+
+        # If node_id is provided, try to fetch from in-memory tree first
+        if node_id_param is not None:
+            try:
+                node_id = int(node_id_param)
+                record = SIM_TREE_REGISTRY.get(simulation_id)
+                if record is not None:
+                    node = record.tree.nodes.get(node_id)
+                    if node is not None:
+                        simulator = node["sim"]
+                        agent = simulator.agents.get(agent_name)
+                        if agent is not None:
+                            documents = getattr(agent, "documents", {})
+                            return [
+                                {
+                                    "id": doc["id"],
+                                    "filename": doc["filename"],
+                                    "file_size": doc["file_size"],
+                                    "uploaded_at": doc["uploaded_at"],
+                                    "chunks_count": len(doc.get("chunks", [])),
+                                }
+                                for doc in documents.values()
+                            ]
+            except (ValueError, KeyError):
+                pass  # Fall through to database lookup
+
+        # Fall back to database config
+        agent_config = sim.agent_config or {}
+        agents = agent_config.get("agents", [])
+
+        for agent in agents:
+            if agent.get("name") == agent_name:
+                documents = agent.get("documents", {})
+                return [
+                    {
+                        "id": doc["id"],
+                        "filename": doc["filename"],
+                        "file_size": doc["file_size"],
+                        "uploaded_at": doc["uploaded_at"],
+                        "chunks_count": len(doc.get("chunks", [])),
+                    }
+                    for doc in documents.values()
+                ]
+
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_name}' not found")
+
+
+@delete("/{simulation_id:str}/agents/{agent_name:str}/documents/{doc_id:str}", status_code=200)
+async def delete_agent_document(
+    request: Request,
+    simulation_id: str,
+    agent_name: str,
+    doc_id: str,
+) -> dict:
+    """
+    Delete a document from an agent's private knowledge base.
+    """
+    token = extract_bearer_token(request)
+    async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
+        sim = await _get_simulation_for_owner(session, current_user.id, simulation_id)
+
+        agent_config = copy.deepcopy(sim.agent_config) if sim.agent_config else {}
+        agents = agent_config.get("agents", [])
+
+        for agent in agents:
+            if agent.get("name") == agent_name:
+                documents = agent.get("documents", {})
+                if doc_id not in documents:
+                    raise HTTPException(status_code=404, detail=f"Document '{doc_id}' not found")
+
+                del documents[doc_id]
+                agent["documents"] = documents
+                agent_config["agents"] = agents
+                sim.agent_config = agent_config
+                flag_modified(sim, "agent_config")
+
+                await session.commit()
+
+                # Update cached tree if exists
+                SIM_TREE_REGISTRY.update_agent_knowledge(simulation_id, agent_config)
+
+                logger.info(f"Document deleted - doc_id={doc_id}, agent={agent_name}, sim={simulation_id}")
+
+                return {"success": True, "deleted_doc_id": doc_id}
+
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_name}' not found")
+
+
+# -------------------------------------------------------------------
+# Global Knowledge Base Endpoints
+# -------------------------------------------------------------------
+
+@post("/{simulation_id:str}/global-knowledge")
+async def add_global_knowledge(
+    request: Request,
+    simulation_id: str,
+    data: dict,
+) -> dict:
+    """
+    Add text content to the global knowledge base.
+
+    Body: {content: str, title?: str}
+    Returns: {success: true, kw_id: str}
+    """
+    import uuid
+
+    token = extract_bearer_token(request)
+    async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
+        sim = await _get_simulation_for_owner(session, current_user.id, simulation_id)
+
+        content = data.get("content")
+        title = data.get("title", "")
+
+        if not content:
+            raise HTTPException(status_code=400, detail="Content is required")
+
+        logger.info(f"Global knowledge add initiated - sim_id={simulation_id}, source=manual_text")
+
+        # Generate embedding using MiniLM
+        logger.debug("Generating embedding for global knowledge using MiniLM")
+        embedding = await asyncio.to_thread(generate_embedding, content)
+        logger.info(f"Embedding generated - sim_id={simulation_id}")
+
+        kw_id = f"gk_{uuid.uuid4().hex[:8]}"
+
+        # Get or create global_knowledge in scene_config
+        # Use deep copy to ensure SQLAlchemy detects the change
+        scene_config = copy.deepcopy(sim.scene_config) if sim.scene_config else {}
+        global_knowledge = scene_config.get("global_knowledge", {})
+
+        global_knowledge[kw_id] = {
+            "id": kw_id,
+            "title": title,
+            "content": content,
+            "source_type": "manual_text",
+            "filename": None,
+            "created_by": str(current_user.id),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "embedding": embedding,
+        }
+
+        scene_config["global_knowledge"] = global_knowledge
+        sim.scene_config = scene_config
+        flag_modified(sim, "scene_config")
+
+        await session.commit()
+
+        # Update global knowledge in cached tree if exists
+        SIM_TREE_REGISTRY.update_global_knowledge(simulation_id, global_knowledge)
+
+        logger.info(f"Global knowledge stored - kw_id={kw_id}")
+
+        return {"success": True, "kw_id": kw_id}
+
+
+@post("/{simulation_id:str}/global-knowledge/documents")
+async def upload_global_document(
+    request: Request,
+    simulation_id: str,
+    data: UploadFile = Body(media_type=RequestEncodingType.MULTI_PART),
+) -> dict:
+    """
+    Upload a document to the global knowledge base.
+
+    Accepts: PDF, TXT, DOCX, MD files (max 10MB)
+    Returns: {success: true, kw_id: str, chunks_count: int}
+    """
+    import uuid
+
+    token = extract_bearer_token(request)
+    async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
+        sim = await _get_simulation_for_owner(session, current_user.id, simulation_id)
+
+        filename = data.filename
+        file_content = await data.read()
+        file_size = len(file_content)
+
+        logger.info(f"Global document upload initiated - sim_id={simulation_id}, file={filename}, size={file_size}")
+
+        # Validate file extension
+        ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+        if ext not in ALLOWED_EXTENSIONS:
+            raise HTTPException(status_code=400, detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}")
+
+        # Validate file size
+        if file_size > MAX_FILE_SIZE:
+            raise HTTPException(status_code=400, detail=f"File too large. Max size: {MAX_FILE_SIZE // (1024*1024)}MB")
+
+        # Process document (extract, chunk, embed using MiniLM)
+        try:
+            document = await asyncio.to_thread(
+                process_document,
+                file_content,
+                filename,
+                file_size,
+            )
+        except ImportError as e:
+            logger.error(f"Global upload failed - sim_id={simulation_id}, reason=Missing dependency: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail="Document processing requires 'sentence-transformers' package. Please install it: pip install sentence-transformers"
+            )
+        except Exception as e:
+            logger.exception(f"Global upload failed - sim_id={simulation_id}, reason={e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Document processing failed: {str(e)}"
+            )
+
+        kw_id = f"gk_{uuid.uuid4().hex[:8]}"
+
+        # Get or create global_knowledge in scene_config
+        # Use deep copy to ensure SQLAlchemy detects the change
+        scene_config = copy.deepcopy(sim.scene_config) if sim.scene_config else {}
+        global_knowledge = scene_config.get("global_knowledge", {})
+
+        global_knowledge[kw_id] = {
+            "id": kw_id,
+            "content": f"Document: {filename}",
+            "source_type": "document",
+            "filename": filename,
+            "file_size": file_size,
+            "created_by": str(current_user.id),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "chunks": document["chunks"],
+            "embeddings": document["embeddings"],
+        }
+
+        scene_config["global_knowledge"] = global_knowledge
+        sim.scene_config = scene_config
+        flag_modified(sim, "scene_config")
+
+        await session.commit()
+
+        # Update global knowledge in cached tree if exists
+        SIM_TREE_REGISTRY.update_global_knowledge(simulation_id, global_knowledge)
+
+        logger.info(f"Global document stored - kw_id={kw_id}, chunks={len(document['chunks'])}")
+
+        return {
+            "success": True,
+            "kw_id": kw_id,
+            "chunks_count": len(document["chunks"]),
+            "filename": filename,
+        }
+
+
+@get("/{simulation_id:str}/global-knowledge")
+async def list_global_knowledge(
+    request: Request,
+    simulation_id: str,
+) -> list[dict]:
+    """
+    List all items in the global knowledge base.
+    """
+    token = extract_bearer_token(request)
+    async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
+        sim = await _get_simulation_for_owner(session, current_user.id, simulation_id)
+
+        scene_config = sim.scene_config or {}
+        global_knowledge = scene_config.get("global_knowledge", {})
+
+        return [
+            {
+                "id": kw["id"],
+                "title": kw.get("title", kw.get("filename", "Untitled")),
+                "content_preview": kw.get("content", "")[:200],
+                "source_type": kw.get("source_type", "unknown"),
+                "filename": kw.get("filename"),
+                "created_at": kw.get("created_at"),
+                "chunks_count": len(kw.get("chunks", [])) if "chunks" in kw else 0,
+            }
+            for kw in global_knowledge.values()
+        ]
+
+
+@delete("/{simulation_id:str}/global-knowledge/{kw_id:str}", status_code=200)
+async def delete_global_knowledge(
+    request: Request,
+    simulation_id: str,
+    kw_id: str,
+) -> dict:
+    """
+    Delete an item from the global knowledge base.
+    """
+    token = extract_bearer_token(request)
+    async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
+        sim = await _get_simulation_for_owner(session, current_user.id, simulation_id)
+
+        scene_config = copy.deepcopy(sim.scene_config) if sim.scene_config else {}
+        global_knowledge = scene_config.get("global_knowledge", {})
+
+        if kw_id not in global_knowledge:
+            raise HTTPException(status_code=404, detail=f"Global knowledge item '{kw_id}' not found")
+
+        del global_knowledge[kw_id]
+        scene_config["global_knowledge"] = global_knowledge
+        sim.scene_config = scene_config
+        flag_modified(sim, "scene_config")
+
+        await session.commit()
+
+        # Update global knowledge in cached tree if exists
+        SIM_TREE_REGISTRY.update_global_knowledge(simulation_id, global_knowledge)
+
+        logger.info(f"Global knowledge deleted - kw_id={kw_id}, sim={simulation_id}")
+
+        return {"success": True, "deleted_kw_id": kw_id}
+
+
 router = Router(
     path="/simulations",
     route_handlers=[
@@ -831,7 +1575,18 @@ router = Router(
         simulation_tree_delete_subtree,
         simulation_tree_events,
         simulation_tree_state,
+        test_agent_knowledge,
+        ask_agents_question,
         simulation_tree_events_ws,
         simulation_tree_node_events_ws,
+        # Document upload endpoints
+        upload_agent_document,
+        list_agent_documents,
+        delete_agent_document,
+        # Global knowledge endpoints
+        add_global_knowledge,
+        upload_global_document,
+        list_global_knowledge,
+        delete_global_knowledge,
     ],
 )

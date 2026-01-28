@@ -23,6 +23,24 @@ async def _prepare_database() -> None:
         await conn.run_sync(Base.metadata.create_all)
 
 
+async def _initialize_vector_store() -> None:
+    """Initialize the vector store on startup if ChromaDB is enabled."""
+    from .core.config import get_settings
+    from .services.vector_store import initialize_vector_store
+
+    settings = get_settings()
+    if settings.use_chromadb:
+        initialize_vector_store(
+            use_chromadb=True,
+            persist_dir=settings.chromadb_persist_dir
+        )
+        print(f"[vector_store] ChromaDB initialized at {settings.chromadb_persist_dir}")
+    else:
+        # Initialize with JSON fallback
+        initialize_vector_store(use_chromadb=False)
+        print("[vector_store] Using JSON fallback mode")
+
+
 def internal_error_handler(request: Request, exc: Exception) -> Response:
     # Return JSON error for any unhandled exception (HTTP 500)
     # Note: 4xx HTTPException responses will continue to use Litestar's default handling.
@@ -99,7 +117,7 @@ def create_app() -> Litestar:
 
     app_kwargs: dict = {
         "route_handlers": [base_router],
-        "on_startup": [_prepare_database, _log_routes],
+        "on_startup": [_prepare_database, _initialize_vector_store, _log_routes],
         "cors_config": cors_config,
         "debug": settings.debug,
         "openapi_config": OpenAPIConfig(title=settings.app_name, version="1.0.0"),
