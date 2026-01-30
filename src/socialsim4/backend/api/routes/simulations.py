@@ -2,6 +2,7 @@ import asyncio
 import copy
 import logging
 from datetime import datetime, timezone
+from urllib.parse import unquote
 
 from jose import JWTError, jwt
 from litestar import Router, delete, get, patch, post, websocket
@@ -1231,6 +1232,9 @@ async def list_agent_documents(
                  If provided, fetches from the tree node's agent.
                  If not provided, fetches from database config.
     """
+    # URL-decode the agent_name to handle spaces and special characters
+    agent_name = unquote(agent_name)
+
     token = extract_bearer_token(request)
     node_id_param = request.query_params.get("node_id")
 
@@ -1281,7 +1285,9 @@ async def list_agent_documents(
                     for doc in documents.values()
                 ]
 
-        raise HTTPException(status_code=404, detail=f"Agent '{agent_name}' not found")
+        # Return empty list instead of 404 when agent has no documents
+        # This handles newly created agents that don't have documents yet
+        return []
 
 
 @delete("/{simulation_id:str}/agents/{agent_name:str}/documents/{doc_id:str}", status_code=200)
