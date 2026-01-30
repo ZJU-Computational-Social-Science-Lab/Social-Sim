@@ -198,32 +198,129 @@ export const SimulationWizard: React.FC = () => {
     reader.onload = (event) => {
       const text = event.target?.result as string;
       try {
-        let rawAgents: any[] = [];
+        type RawItem = { row: any; label: string };
+        let rawItems: RawItem[] = [];
         if (file.name.endsWith('.json')) {
           const data = JSON.parse(text);
-          rawAgents = Array.isArray(data) ? data : data.agents;
+          const items = Array.isArray(data) ? data : data.agents;
+          if (!Array.isArray(items)) {
+            throw new Error('JSON 格式错误：应为数组或包含 agents 数组');
+          }
+          rawItems = items.map((row, index) => ({
+            row,
+            label: `第 ${index + 1} 项`
+          }));
         } else if (file.name.endsWith('.csv')) {
           const result = Papa.parse(text, {
-            header: true,
+            header: false,
             skipEmptyLines: true
           });
-          rawAgents = result.data as any[];
+          if (result.errors.length > 0) {
+            throw new Error(
+              `CSV 解析失败：${result.errors[0].message || '格式错误'}`
+            );
+          }
+          const rows = result.data as any[];
+          if (!rows || rows.length === 0) {
+            throw new Error('CSV 为空或没有有效数据行');
+          }
+          const firstRow = (rows[0] || []).map((v: any) =>
+            String(v ?? '').trim()
+          );
+          const headerLooksLike =
+            firstRow.length >= 2 &&
+            (firstRow[0] === 'agent_name' ||
+              firstRow[1] === 'agent_description' ||
+              firstRow[0] === 'name' ||
+              firstRow[1] === 'description');
+          const header = headerLooksLike ? firstRow : null;
+          const dataRows = header ? rows.slice(1) : rows;
+          if (dataRows.length === 0) {
+            throw new Error('CSV 为空或没有有效数据行');
+          }
+          rawItems = dataRows.map((row: any, index: number) => {
+            const values = Array.isArray(row) ? row : Object.values(row);
+            if (header) {
+              const obj: Record<string, any> = {};
+              header.forEach((key, i) => {
+                if (key) obj[key] = values[i];
+              });
+              return { row: obj, label: `第 ${index + 2} 行` };
+            }
+            const obj: Record<string, any> = {
+              agent_name: values[0],
+              agent_description: values[1]
+            };
+            values.slice(2).forEach((val, i) => {
+              obj[`attribute${i + 1}`] = val;
+            });
+            return { row: obj, label: `第 ${index + 1} 行` };
+          });
+        } else {
+          throw new Error('仅支持 .json 或 .csv 文件');
         }
-        const agents: Agent[] = rawAgents.map((row: any, index) => ({
-          id: row.id || `imported_${Date.now()}_${index}`,
-          name: row.name,
-          role: row.role || 'Citizen',
-          avatarUrl:
-            row.avatarUrl ||
-            `https://api.dicebear.com/7.x/avataaars/svg?seed=${row.name}`,
-          profile: row.profile || '暂无描述',
-          properties: row.properties || {},
-          history: row.history || {},
-          memory: row.memory || [],
-          knowledgeBase: row.knowledgeBase || [],
-          llmConfig: row.llmConfig || currentConfig
-        }));
+        const errors: string[] = [];
+        const agents: Agent[] = [];
+        rawItems.forEach(({ row, label }, index) => {
+          if (!row || typeof row !== 'object') {
+            errors.push(`${label}：数据格式错误`);
+            return;
+          }
+          const name = row.agent_name ?? row.name;
+          const profile = row.agent_description ?? row.profile;
+          if (!name || !profile) {
+            errors.push(`${label}：缺少 agent_name 或 agent_description`);
+            return;
+          }
+          const reservedKeys = new Set([
+            'agent_name',
+            'agent_description',
+            'name',
+            'profile',
+            'id',
+            'role',
+            'avatarUrl',
+            'properties',
+            'history',
+            'memory',
+            'knowledgeBase',
+            'llmConfig'
+          ]);
+          const extraAttributes = Object.fromEntries(
+            Object.entries(row).filter(([key]) => !reservedKeys.has(key))
+          );
+          const properties = {
+            ...(row.properties || {}),
+            ...extraAttributes
+          };
+          agents.push({
+            id: row.id || `imported_${Date.now()}_${index}`,
+            name,
+            role: row.role || 'Citizen',
+            avatarUrl:
+              row.avatarUrl ||
+              `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
+            profile,
+            properties,
+            history: row.history || {},
+            memory: row.memory || [],
+            knowledgeBase: row.knowledgeBase || [],
+            llmConfig: row.llmConfig || currentConfig
+          });
+        });
         setCustomAgents(agents);
+        if (errors.length > 0) {
+          const detail = errors.slice(0, 5).join('；');
+          const more =
+            errors.length > 5
+              ? `；另有 ${errors.length - 5} 条错误`
+              : '';
+          setImportError(
+            `已导入 ${agents.length} 个，以下 ${errors.length} 个无效：${detail}${more}`
+          );
+        } else {
+          setImportError(null);
+        }
       } catch (err) {
         setImportError((err as Error).message);
       }
@@ -770,6 +867,9 @@ export const SimulationWizard: React.FC = () => {
                       <p className="text-sm font-bold text-slate-700 group-hover:text-brand-600">
                         点击上传 CSV 或 JSON
                       </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        必填字段：agent_name, agent_description；其余列将作为属性保留
+                      </p>
                     </div>
                   </div>
                   {importError && (
@@ -779,30 +879,47 @@ export const SimulationWizard: React.FC = () => {
                   )}
                   {customAgents.length > 0 && (
                     <div className="flex-1 border rounded-lg overflow-hidden flex flex-col bg-white">
-                      <div className="px-4 py-2 bg-slate-50 border-b">
+                      <div className="px-4 py-2 bg-slate-50 border-b flex justify-between items-center">
                         <span className="text-xs font-bold text-slate-700">
                           已解析 {customAgents.length} 个智能体
                         </span>
+                        <button
+                          onClick={() => setCustomAgents([])}
+                          className="text-xs text-red-500 hover:underline"
+                        >
+                          清空重置
+                        </button>
                       </div>
                       <div className="overflow-y-auto flex-1 p-0">
                         <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-50 sticky top-0">
+                          <thead className="bg-slate-50 sticky top-0 text-slate-500">
                             <tr>
-                              <th className="px-4 py-2">Name</th>
-                              <th className="px-4 py-2">Role</th>
-                              <th className="px-4 py-2">Model</th>
+                              <th className="px-4 py-2">姓名</th>
+                              <th className="px-4 py-2">角色</th>
+                              <th className="px-4 py-2">画像描述</th>
+                              <th className="px-4 py-2">初始属性</th>
                             </tr>
                           </thead>
-                          <tbody>
+                          <tbody className="divide-y">
                             {customAgents.map((a, i) => (
                               <tr
                                 key={i}
-                                className="border-b"
+                                className="hover:bg-slate-50"
                               >
-                                <td className="px-4 py-2">{a.name}</td>
-                                <td className="px-4 py-2">{a.role}</td>
+                                <td className="px-4 py-2 font-bold">
+                                  {a.name}
+                                </td>
                                 <td className="px-4 py-2">
-                                  {a.llmConfig?.model}
+                                  {a.role}
+                                </td>
+                                <td
+                                  className="px-4 py-2 max-w-xs truncate"
+                                  title={a.profile}
+                                >
+                                  {a.profile}
+                                </td>
+                                <td className="px-4 py-2 font-mono text-[10px] text-slate-500">
+                                  {JSON.stringify(a.properties)}
                                 </td>
                               </tr>
                             ))}
