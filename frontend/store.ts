@@ -172,6 +172,7 @@ interface AppState {
   isInitialEventsOpen: boolean;
 
   // Environment Suggestions
+  environmentEnabled: boolean;
   environmentSuggestionsAvailable: boolean;
   environmentSuggestions: EnvironmentSuggestion[];
   environmentSuggestionsLoading: boolean;
@@ -179,6 +180,7 @@ interface AppState {
   generateEnvironmentSuggestions: () => Promise<void>;
   applyEnvironmentSuggestion: (suggestion: EnvironmentSuggestion) => Promise<void>;
   dismissEnvironmentSuggestions: () => void;
+  toggleEnvironmentEnabled: () => Promise<void>;
 
   // Host Actions #16
   injectLog: (type: LogEntry['type'], content: string, imageUrl?: string, audioUrl?: string, videoUrl?: string) => void; // #24 Updated signature
@@ -1558,6 +1560,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   isGeneratingReport: false,
 
   // Environment Suggestions
+  environmentEnabled: false,
   environmentSuggestionsAvailable: false,
   environmentSuggestions: [],
   environmentSuggestionsLoading: false,
@@ -1724,6 +1727,30 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       environmentSuggestions: [],
       environmentSuggestionsAvailable: false,
     });
+  },
+
+  toggleEnvironmentEnabled: async () => {
+    const { currentSimulation, environmentEnabled } = get();
+    if (!currentSimulation) return;
+
+    const newValue = !environmentEnabled;
+
+    // Update local state immediately for responsiveness
+    set({ environmentEnabled: newValue });
+
+    try {
+      // Update the simulation on the backend
+      await updateSimulationApi(currentSimulation.id, {
+        scene_config: {
+          environment_enabled: newValue,
+        },
+      });
+      get().addNotification('success', newValue ? 'Environment events enabled' : 'Environment events disabled');
+    } catch (error) {
+      // Revert on error
+      set({ environmentEnabled: environmentEnabled });
+      get().addNotification('error', 'Failed to update environment settings');
+    }
   },
 
   // #13 Guide Actions

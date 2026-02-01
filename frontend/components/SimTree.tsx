@@ -4,7 +4,7 @@ import * as d3 from 'd3';
 import { SimNode } from '../types';
 import { useSimulationStore } from '../store';
 import { HelpCircle, Move, ZoomIn, ZoomOut, Maximize, MousePointer2, Trash2 } from 'lucide-react';
-import { EnvironmentSuggestionDialogWrapper } from './EnvironmentSuggestion';
+import { EnvironmentSuggestionDialogWrapper, EnvironmentToggleButton } from './EnvironmentSuggestion';
 
 export const SimTree: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -186,13 +186,16 @@ const root = d3.stratify<SimNode>()
             {isCompareMode ? <MousePointer2 size={16} className="text-amber-500" /> : <Move size={16} className="text-slate-400" />}
             {isCompareMode ? "请选择对比节点..." : "仿真树 (SimTree)"}
         </h3>
-        <button 
-          onClick={() => toggleHelpModal(true)}
-          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
-        >
-          <HelpCircle size={14} />
-          <span>图例说明</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <EnvironmentToggleButton />
+          <button
+            onClick={() => toggleHelpModal(true)}
+            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
+          >
+            <HelpCircle size={14} />
+            <span>图例说明</span>
+          </button>
+        </div>
       </div>
       
       {/* Zoom Controls */}

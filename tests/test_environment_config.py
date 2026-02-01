@@ -4,7 +4,7 @@ from socialsim4.core.environment_config import EnvironmentConfig
 
 def test_default_config():
     config = EnvironmentConfig()
-    assert config.enabled is True
+    assert config.enabled is False  # Default to OFF
     assert config.turn_interval == 5
     assert config.max_suggestions == 3
     assert config.require_llm_provider is True
@@ -25,7 +25,7 @@ def test_custom_config():
 def test_config_serialize():
     config = EnvironmentConfig()
     data = config.serialize()
-    assert data["enabled"] is True
+    assert data["enabled"] is False  # Changed default to OFF
     assert data["turn_interval"] == 5
 
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSimulationStore } from '../store';
 import { type EnvironmentSuggestion } from '../services/environmentSuggestions';
-import { Cloud, Loader2, X, CloudDrizzle, AlertTriangle, Megaphone } from 'lucide-react';
+import { Cloud, Loader2, X, CloudDrizzle, AlertTriangle, Megaphone, ToggleLeft, ToggleRight } from 'lucide-react';
 
 const severityColors = {
   mild: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -187,6 +187,27 @@ export const EnvironmentSuggestionDialogWrapper: React.FC = () => {
   }
 
   return <EnvironmentSuggestionIndicator />;
+};
+
+// Toggle button to enable/disable dynamic environment suggestions
+export const EnvironmentToggleButton: React.FC<{ className?: string }> = ({ className = "" }) => {
+  const environmentEnabled = useSimulationStore((s) => s.environmentEnabled);
+  const toggleEnvironmentEnabled = useSimulationStore((s) => s.toggleEnvironmentEnabled);
+
+  return (
+    <button
+      onClick={() => toggleEnvironmentEnabled()}
+      className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm border transition-all ${
+        environmentEnabled
+          ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+          : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+      } ${className}`}
+      title={environmentEnabled ? 'Disable dynamic environment events' : 'Enable dynamic environment events'}
+    >
+      {environmentEnabled ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+      <span>Dynamic Events</span>
+    </button>
+  );
 };
 
 export default EnvironmentSuggestionDialogWrapper;
