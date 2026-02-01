@@ -107,7 +107,6 @@ async def dismiss_suggestions_endpoint(
 
 
 router = Router(
-    path="/api",
     route_handlers=[
         get_suggestion_status,
         generate_suggestions,
