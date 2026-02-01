@@ -1658,7 +1658,10 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       };
     }),
 
-  setSimulation: (sim) => set({ currentSimulation: sim }),
+  setSimulation: (sim) => set({
+    currentSimulation: sim,
+    environmentEnabled: sim?.scene_config?.environment_enabled ?? false,
+  }),
 
   addNotification: (type, message) =>
     set((state) => {

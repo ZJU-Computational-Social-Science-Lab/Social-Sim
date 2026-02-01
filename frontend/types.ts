@@ -138,6 +138,7 @@ export interface Simulation {
   timeConfig: TimeConfig; // #9
   socialNetwork: SocialNetwork; // #22
   report?: SimulationReport; // #14
+  scene_config?: Record<string, any>; // Dynamic environment config
 }
 
 export enum ViewMode {
