@@ -43,12 +43,18 @@ async def get_suggestion_status(
         # Check if this interval has already been viewed
         viewed_intervals = state.get("_suggestions_viewed_intervals", set())
 
+        # Debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[STATUS] sim={simulation_id} turns={turns} interval={interval} milestone={current_interval_milestone} viewed={viewed_intervals}")
+
         available = (
             turns > 0
             and turns >= interval
             and current_interval_milestone not in viewed_intervals
         )
 
+        logger.info(f"[STATUS] available={available} (turns>0={turns>0}, turns>=interval={turns>=interval}, milestone_not_viewed={current_interval_milestone not in viewed_intervals})")
         return {"available": available, "turn": turns if available else None}
 
 
