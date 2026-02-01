@@ -23,7 +23,7 @@ import {
 
 import { GoogleGenAI, Type } from "@google/genai";
 import { createSimulation as createSimulationApi, getSimulation as getSimulationApi, updateSimulation as updateSimulationApi, resetSimulation as resetSimulationApi, deleteSimulation as deleteSimulationApi } from './services/simulations';
-import { getSuggestionStatus, generateSuggestions, applyEnvironmentEvent, type EnvironmentSuggestion } from './services/environmentSuggestions';
+import { getSuggestionStatus, generateSuggestions, applyEnvironmentEvent, dismissSuggestions, type EnvironmentSuggestion } from './services/environmentSuggestions';
 import {
   getTreeGraph,
   treeAdvanceChain,
@@ -1730,7 +1730,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     if (!currentSimulation) return;
 
     try {
-      await apiClient.post(`/simulations/${currentSimulation.id}/suggestions/dismiss`);
+      await dismissSuggestions(currentSimulation.id);
       set({
         environmentSuggestions: [],
         environmentSuggestionsAvailable: false,
