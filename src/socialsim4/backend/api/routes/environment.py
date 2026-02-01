@@ -1,5 +1,6 @@
 from typing import Dict, Any
 from litestar import Router, get, post
+from litestar.connection import Request
 from litestar.exceptions import HTTPException
 from litestar.params import Body
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,7 +17,7 @@ from ...services.environment_suggestion_service import (
 @get("/simulations/{simulation_id:str}/suggestions/status")
 async def get_suggestion_status(
     simulation_id: str,
-    request,
+    request: Request,
 ) -> Dict[str, Any]:
     """Check if environment suggestions are available for the current turn."""
     token = extract_bearer_token(request)
@@ -47,7 +48,7 @@ async def get_suggestion_status(
 @post("/simulations/{simulation_id:str}/suggestions/generate")
 async def generate_suggestions(
     simulation_id: str,
-    request,
+    request: Request,
 ) -> Dict[str, Any]:
     """Generate environment event suggestions based on current simulation context."""
     token = extract_bearer_token(request)
@@ -64,7 +65,7 @@ async def generate_suggestions(
 async def apply_environment_event(
     simulation_id: str,
     data: Dict[str, Any],
-    request,
+    request: Request,
 ) -> Dict[str, Any]:
     """Apply an environment event to the simulation."""
     token = extract_bearer_token(request)
