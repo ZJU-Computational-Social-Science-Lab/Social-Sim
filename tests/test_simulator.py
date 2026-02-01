@@ -3,6 +3,7 @@ from socialsim4.core.simulator import Simulator
 from socialsim4.core.agent import Agent
 from socialsim4.core.scene import Scene
 from socialsim4.core.ordering import SequentialOrdering
+from socialsim4.core.environment_config import EnvironmentConfig
 from unittest.mock import Mock
 
 
@@ -41,6 +42,7 @@ def test_simulator_turn_tracking_at_interval(minimal_scene, mock_clients):
         clients=mock_clients,
         broadcast_initial=False,
         ordering=SequentialOrdering(),
+        environment_config=EnvironmentConfig(enabled=True),  # Explicitly enable for testing
     )
 
     # Initially no suggestions available
@@ -83,7 +85,7 @@ def test_simulator_custom_turn_interval(minimal_scene, mock_clients):
         clients=mock_clients,
         broadcast_initial=False,
         ordering=SequentialOrdering(),
-        environment_config=EnvironmentConfig(turn_interval=3),
+        environment_config=EnvironmentConfig(enabled=True, turn_interval=3),
     )
 
     # At turn 3, suggestions available
