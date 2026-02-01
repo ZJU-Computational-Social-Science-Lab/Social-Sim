@@ -71,7 +71,7 @@ async def get_simulation_state(simulation_id: str, db, user_id: int) -> Optional
         return {
             "turns": 0,
             "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
-            "_suggestions_viewed_turn": None,
+            "_suggestions_viewed_intervals": set(),
             "clients": None,
         }
 
@@ -85,7 +85,7 @@ async def get_simulation_state(simulation_id: str, db, user_id: int) -> Optional
         return {
             "turns": 0,
             "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
-            "_suggestions_viewed_turn": None,
+            "_suggestions_viewed_intervals": set(),
             "clients": None,
         }
 
@@ -96,7 +96,7 @@ async def get_simulation_state(simulation_id: str, db, user_id: int) -> Optional
         return {
             "turns": 0,
             "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
-            "_suggestions_viewed_turn": None,
+            "_suggestions_viewed_intervals": set(),
             "clients": None,
         }
 
@@ -106,7 +106,7 @@ async def get_simulation_state(simulation_id: str, db, user_id: int) -> Optional
         return {
             "turns": 0,
             "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
-            "_suggestions_viewed_turn": None,
+            "_suggestions_viewed_intervals": set(),
             "clients": None,
         }
 

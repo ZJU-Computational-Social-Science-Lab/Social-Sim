@@ -1,8 +1,8 @@
 from typing import Dict, Any
+import logging
 from litestar import Router, get, post
 from litestar.connection import Request
 from litestar.exceptions import HTTPException
-from litestar.params import Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.database import get_session
@@ -13,6 +13,8 @@ from ...services.environment_suggestion_service import (
     broadcast_environment_event,
     dismiss_suggestions,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @get("/simulations/{simulation_id:str}/suggestions/status")
@@ -29,24 +31,14 @@ async def get_suggestion_status(
         if not state:
             return {"available": False, "turn": None}
 
-        # Check if suggestions should be available
         config = state["config"]
         if not config.get("enabled"):
             return {"available": False, "turn": None}
 
         turns = state["turns"]
         interval = config.get("turn_interval", 5)
-
-        # Calculate the current interval milestone (e.g., turns=7, interval=5 -> milestone=5)
         current_interval_milestone = (turns // interval) * interval
-
-        # Check if this interval has already been viewed
         viewed_intervals = state.get("_suggestions_viewed_intervals", set())
-
-        # Debug logging
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(f"[STATUS] sim={simulation_id} turns={turns} interval={interval} milestone={current_interval_milestone} viewed={viewed_intervals}")
 
         available = (
             turns > 0
@@ -54,7 +46,6 @@ async def get_suggestion_status(
             and current_interval_milestone not in viewed_intervals
         )
 
-        logger.info(f"[STATUS] available={available} (turns>0={turns>0}, turns>=interval={turns>=interval}, milestone_not_viewed={current_interval_milestone not in viewed_intervals})")
         return {"available": available, "turn": turns if available else None}
 
 
@@ -67,15 +58,18 @@ async def generate_suggestions(
     token = extract_bearer_token(request)
     async with get_session() as session:
         current_user = await resolve_current_user(session, token)
-        try:
-            suggestions = await generate_environment_suggestions(simulation_id, session, current_user.id)
-            # Debug logging
-            logger = logging.getLogger(__name__)
-            logger.info(f"[GENERATE] sim={simulation_id} generated {len(suggestions)} suggestions: {suggestions}")
-            return {"suggestions": suggestions}
-        except ValueError as e:
-            logger.error(f"[GENERATE] sim={simulation_id} error: {e}")
-            raise HTTPException(status_code=400, detail=str(e))
+        suggestions = await generate_environment_suggestions(simulation_id, session, current_user.id)
+
+        # Ensure suggestions are JSON-serializable (convert to list of dicts with str values)
+        cleaned_suggestions = [
+            {
+                "event_type": str(s.get("event_type", "")),
+                "description": str(s.get("description", "")),
+                "severity": str(s.get("severity", "mild")),
+            }
+            for s in suggestions
+        ]
+        return {"suggestions": cleaned_suggestions}
 
 
 @post("/simulations/{simulation_id:str}/events/environment")
