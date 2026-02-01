@@ -50,7 +50,7 @@ JSON only, no explanation."""
             response = chat_client.chat([{"role": "user", "content": prompt}])
             # Parse JSON from response (handle potential markdown code blocks)
             response = response.strip()
-            logger.debug(f"LLM summarize response: {response[:200]}...")
+            logger.info(f"[ANALYZER] Summarize LLM response: {response[:200]}...")
             if response.startswith("```"):
                 response = response.split("```")[1]
                 if response.startswith("json"):
@@ -115,7 +115,7 @@ JSON only, no explanation."""
         try:
             response = chat_client.chat([{"role": "user", "content": prompt}])
             response = response.strip()
-            logger.debug(f"LLM suggestions response: {response[:200]}...")
+            logger.info(f"[ANALYZER] LLM response: {response[:200]}...")
             if not response:
                 raise ValueError("Empty LLM response")
             if response.startswith("```"):
@@ -139,10 +139,12 @@ JSON only, no explanation."""
                         "severity": s["severity"],
                     })
 
+            logger.info(f"[ANALYZER] Validated {len(result)} suggestions from {len(suggestions)} total")
             return result
         except Exception as e:
-            logger.exception("Failed to generate suggestions: %s", e)
+            logger.exception("[ANALYZER] Failed to generate suggestions: %s", e)
             # Fallback suggestion
+            logger.info("[ANALALYZER] Using fallback suggestion")
             return [{
                 "event_type": "notification",
                 "description": "A community announcement is posted on the bulletin board.",

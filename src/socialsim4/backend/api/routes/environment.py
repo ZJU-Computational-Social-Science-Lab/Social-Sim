@@ -69,8 +69,12 @@ async def generate_suggestions(
         current_user = await resolve_current_user(session, token)
         try:
             suggestions = await generate_environment_suggestions(simulation_id, session, current_user.id)
+            # Debug logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"[GENERATE] sim={simulation_id} generated {len(suggestions)} suggestions: {suggestions}")
             return {"suggestions": suggestions}
         except ValueError as e:
+            logger.error(f"[GENERATE] sim={simulation_id} error: {e}")
             raise HTTPException(status_code=400, detail=str(e))
 
 
