@@ -34,13 +34,15 @@ export const EnvironmentSuggestionIndicator: React.FC = () => {
   const checkEnvironmentSuggestions = useSimulationStore((s) => s.checkEnvironmentSuggestions);
   const generateEnvironmentSuggestions = useSimulationStore((s) => s.generateEnvironmentSuggestions);
   const currentSimulation = useSimulationStore((s) => s.currentSimulation);
+  const nodes = useSimulationStore((s) => s.nodes);
+  const selectedNodeId = useSimulationStore((s) => s.selectedNodeId);
 
   React.useEffect(() => {
-    // Check status when simulation changes
+    // Check status when simulation loads or when nodes change (turns advance)
     if (currentSimulation) {
       checkEnvironmentSuggestions();
     }
-  }, [currentSimulation?.id, checkEnvironmentSuggestions]);
+  }, [currentSimulation?.id, nodes.length, selectedNodeId, checkEnvironmentSuggestions]);
 
   if (!environmentSuggestionsAvailable) return null;
 

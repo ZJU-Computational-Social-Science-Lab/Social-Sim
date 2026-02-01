@@ -63,6 +63,7 @@ async def get_simulation_state(simulation_id: str, db, user_id: int) -> Optional
     # Get current tree record from SimTree registry
     record = SIM_TREE_REGISTRY.get(simulation_id)
     if not record:
+        logger.warning(f"Simulation {simulation_id} not found in SIM_TREE_REGISTRY")
         return {
             "turns": 0,
             "config": EnvironmentConfig().serialize(),
@@ -72,9 +73,11 @@ async def get_simulation_state(simulation_id: str, db, user_id: int) -> Optional
 
     # Get current node simulator
     tree = record.tree
+
     # Try to get the leaf node (most recent state)
     leaves = tree.leaves()
     if not leaves:
+        logger.warning(f"No leaf nodes found for simulation {simulation_id}")
         return {
             "turns": 0,
             "config": EnvironmentConfig().serialize(),
@@ -85,6 +88,7 @@ async def get_simulation_state(simulation_id: str, db, user_id: int) -> Optional
     current_node_id = leaves[0]
     current_node = tree.nodes.get(current_node_id)
     if not current_node:
+        logger.warning(f"Current node {current_node_id} not found in tree")
         return {
             "turns": 0,
             "config": EnvironmentConfig().serialize(),
@@ -94,12 +98,15 @@ async def get_simulation_state(simulation_id: str, db, user_id: int) -> Optional
 
     simulator = current_node.get("sim")
     if not simulator:
+        logger.warning(f"No simulator found in node {current_node_id}")
         return {
             "turns": 0,
             "config": EnvironmentConfig().serialize(),
             "_suggestions_viewed_turn": None,
             "clients": None,
         }
+
+    logger.info(f"Simulation {simulation_id}: turns={simulator.turns}, config_enabled={simulator.environment_config.enabled}")
 
     return {
         "turns": simulator.turns,
