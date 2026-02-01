@@ -47,7 +47,7 @@ Respond in JSON format with these keys:
 JSON only, no explanation."""
 
         try:
-            response = chat_client.call(prompt, temperature=0.7)
+            response = chat_client.chat([{"role": "user", "content": prompt}])
             # Parse JSON from response (handle potential markdown code blocks)
             response = response.strip()
             if response.startswith("```"):
@@ -110,7 +110,7 @@ Respond in JSON format as a list:
 JSON only, no explanation."""
 
         try:
-            response = chat_client.call(prompt, temperature=0.8)
+            response = chat_client.chat([{"role": "user", "content": prompt}])
             response = response.strip()
             if response.startswith("```"):
                 response = response.split("```")[1]
