@@ -50,10 +50,13 @@ JSON only, no explanation."""
             response = chat_client.chat([{"role": "user", "content": prompt}])
             # Parse JSON from response (handle potential markdown code blocks)
             response = response.strip()
+            logger.debug(f"LLM summarize response: {response[:200]}...")
             if response.startswith("```"):
                 response = response.split("```")[1]
                 if response.startswith("json"):
                     response = response[4:]
+            if not response.strip():
+                raise ValueError("Empty LLM response")
             return json.loads(response.strip())
         except Exception as e:
             logger.exception("Failed to summarize context with LLM: %s", e)
@@ -112,10 +115,15 @@ JSON only, no explanation."""
         try:
             response = chat_client.chat([{"role": "user", "content": prompt}])
             response = response.strip()
+            logger.debug(f"LLM suggestions response: {response[:200]}...")
+            if not response:
+                raise ValueError("Empty LLM response")
             if response.startswith("```"):
                 response = response.split("```")[1]
                 if response.startswith("json"):
                     response = response[4:]
+            if not response.strip():
+                raise ValueError("Empty LLM response after cleaning")
             suggestions = json.loads(response.strip())
 
             # Validate and sanitize

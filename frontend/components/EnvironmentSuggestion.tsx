@@ -177,9 +177,13 @@ export const EnvironmentSuggestionDialogWrapper: React.FC = () => {
   const environmentSuggestions = useSimulationStore((s) => s.environmentSuggestions);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
 
-  // When suggestions become available, show indicator first
-  // When user clicks indicator, show dialog
-  const handleOpenDialog = () => setIsDialogOpen(true);
+  // Auto-open dialog when suggestions arrive
+  React.useEffect(() => {
+    if (environmentSuggestions.length > 0 && !isDialogOpen) {
+      setIsDialogOpen(true);
+    }
+  }, [environmentSuggestions.length]);
+
   const handleCloseDialog = () => setIsDialogOpen(false);
 
   if (environmentSuggestions.length > 0 && isDialogOpen) {

@@ -164,7 +164,9 @@ async def generate_environment_suggestions(
     }
 
     analyzer = EnvironmentAnalyzer(clients)
-    return analyzer.generate_suggestions(context, count=3)
+    suggestions = analyzer.generate_suggestions(context, count=3)
+    logger.info(f"Generated {len(suggestions)} suggestions for simulation {simulation_id}")
+    return suggestions
 
 
 async def broadcast_environment_event(
