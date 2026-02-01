@@ -60,13 +60,17 @@ async def get_simulation_state(simulation_id: str, db, user_id: int) -> Optional
     if not sim:
         return None
 
+    # Read environment_enabled from database scene_config (source of truth for toggle state)
+    scene_config = sim.scene_config or {}
+    environment_enabled = bool(scene_config.get("environment_enabled", False))
+
     # Get current tree record from SimTree registry
     record = SIM_TREE_REGISTRY.get(simulation_id)
     if not record:
         logger.warning(f"Simulation {simulation_id} not found in SIM_TREE_REGISTRY")
         return {
             "turns": 0,
-            "config": EnvironmentConfig().serialize(),
+            "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
             "_suggestions_viewed_turn": None,
             "clients": None,
         }
@@ -80,7 +84,7 @@ async def get_simulation_state(simulation_id: str, db, user_id: int) -> Optional
         logger.warning(f"No leaf nodes found for simulation {simulation_id}")
         return {
             "turns": 0,
-            "config": EnvironmentConfig().serialize(),
+            "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
             "_suggestions_viewed_turn": None,
             "clients": None,
         }
@@ -91,7 +95,7 @@ async def get_simulation_state(simulation_id: str, db, user_id: int) -> Optional
         logger.warning(f"Current node {current_node_id} not found in tree")
         return {
             "turns": 0,
-            "config": EnvironmentConfig().serialize(),
+            "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
             "_suggestions_viewed_turn": None,
             "clients": None,
         }
@@ -101,12 +105,15 @@ async def get_simulation_state(simulation_id: str, db, user_id: int) -> Optional
         logger.warning(f"No simulator found in node {current_node_id}")
         return {
             "turns": 0,
-            "config": EnvironmentConfig().serialize(),
+            "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
             "_suggestions_viewed_turn": None,
             "clients": None,
         }
 
-    logger.info(f"Simulation {simulation_id}: turns={simulator.turns}, config_enabled={simulator.environment_config.enabled}")
+    # Update simulator's config to match database (sync toggle state)
+    simulator.environment_config.enabled = environment_enabled
+
+    logger.info(f"Simulation {simulation_id}: turns={simulator.turns}, config_enabled={environment_enabled} (from db)")
 
     return {
         "turns": simulator.turns,
