@@ -12,6 +12,7 @@ from . import (
     llm,  # 👈 新增：LLM 相关路由
     experiments,
     uploads,
+    environment,  # Dynamic environment routes
 )
 
 router = Router(
@@ -27,5 +28,6 @@ router = Router(
         experiments.router,
         uploads.router,
         admin.router,
+        environment.router,  # Dynamic environment suggestions
     ],
 )
