@@ -1725,11 +1725,19 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     }
   },
 
-  dismissEnvironmentSuggestions: () => {
-    set({
-      environmentSuggestions: [],
-      environmentSuggestionsAvailable: false,
-    });
+  dismissEnvironmentSuggestions: async () => {
+    const { currentSimulation } = get();
+    if (!currentSimulation) return;
+
+    try {
+      await apiClient.post(`/simulations/${currentSimulation.id}/suggestions/dismiss`);
+      set({
+        environmentSuggestions: [],
+        environmentSuggestionsAvailable: false,
+      });
+    } catch (error) {
+      console.error('Failed to dismiss suggestions:', error);
+    }
   },
 
   toggleEnvironmentEnabled: async () => {

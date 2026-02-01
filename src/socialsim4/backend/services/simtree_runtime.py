@@ -30,10 +30,12 @@ def _is_english_language(lang: str) -> bool:
 class SimTreeRecord:
     def __init__(self, tree: SimTree):
         self.tree = tree
-        # 用于“一棵树所有节点事件”的广播订阅（DevUI 左侧总线）
+        # 用于"一棵树所有节点事件"的广播订阅（DevUI 左侧总线）
         self.subs: list[asyncio.Queue] = []
         # 正在运行的节点 ID 集合（用于只转发 running 节点的事件）
         self.running: set[int] = set()
+        # Track which suggestion intervals have been viewed (to avoid re-showing)
+        self._suggestions_viewed_intervals: set[int] = set()
 
 
 def _quiet_logger(event_type: str, data: dict) -> None:

@@ -11,6 +11,7 @@ from ...services.environment_suggestion_service import (
     get_simulation_state,
     generate_environment_suggestions,
     broadcast_environment_event,
+    dismiss_suggestions,
 )
 
 
@@ -36,10 +37,16 @@ async def get_suggestion_status(
         turns = state["turns"]
         interval = config.get("turn_interval", 5)
 
+        # Calculate the current interval milestone (e.g., turns=7, interval=5 -> milestone=5)
+        current_interval_milestone = (turns // interval) * interval
+
+        # Check if this interval has already been viewed
+        viewed_intervals = state.get("_suggestions_viewed_intervals", set())
+
         available = (
             turns > 0
             and turns >= interval
-            and state.get("_suggestions_viewed_turn") != (turns // interval) * interval
+            and current_interval_milestone not in viewed_intervals
         )
 
         return {"available": available, "turn": turns if available else None}
@@ -83,11 +90,28 @@ async def apply_environment_event(
             raise HTTPException(status_code=400, detail=str(e))
 
 
+@post("/simulations/{simulation_id:str}/suggestions/dismiss")
+async def dismiss_suggestions_endpoint(
+    simulation_id: str,
+    request: Request,
+) -> Dict[str, Any]:
+    """Dismiss environment suggestions for the current interval."""
+    token = extract_bearer_token(request)
+    async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
+        try:
+            await dismiss_suggestions(simulation_id, session, current_user.id)
+            return {"success": True, "message": "Suggestions dismissed"}
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+
 router = Router(
     path="/api",
     route_handlers=[
         get_suggestion_status,
         generate_suggestions,
         apply_environment_event,
+        dismiss_suggestions_endpoint,
     ],
 )

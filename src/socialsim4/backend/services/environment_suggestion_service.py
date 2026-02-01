@@ -118,7 +118,7 @@ async def get_simulation_state(simulation_id: str, db, user_id: int) -> Optional
     return {
         "turns": simulator.turns,
         "config": simulator.environment_config.serialize(),
-        "_suggestions_viewed_turn": simulator._suggestions_viewed_turn,
+        "_suggestions_viewed_intervals": record._suggestions_viewed_intervals,
         "clients": simulator.clients,
         "node_id": current_node_id,
         "tree": tree,
@@ -196,7 +196,36 @@ async def broadcast_environment_event(
     # Broadcast to all agents
     simulator.broadcast(event)
 
-    # Mark suggestions as viewed
-    simulator.dismiss_environment_suggestions()
+    # Mark suggestions as viewed at the tree level
+    record = SIM_TREE_REGISTRY.get(simulation_id)
+    if record:
+        interval = simulator.environment_config.turn_interval
+        current_interval_milestone = (simulator.turns // interval) * interval
+        record._suggestions_viewed_intervals.add(current_interval_milestone)
+        logger.info(f"Marked interval {current_interval_milestone} as viewed for simulation {simulation_id}")
 
     return True
+
+
+async def dismiss_suggestions(
+    simulation_id: str,
+    db,
+    user_id: int,
+) -> bool:
+    """Dismiss environment suggestions for the current interval."""
+    state = await get_simulation_state(simulation_id, db, user_id)
+    if not state:
+        raise ValueError("Simulation not found")
+
+    # Mark suggestions as viewed at the tree level
+    record = SIM_TREE_REGISTRY.get(simulation_id)
+    if record:
+        simulator = state.get("tree").nodes[state["node_id"]].get("sim")
+        if simulator:
+            interval = simulator.environment_config.turn_interval
+            current_interval_milestone = (simulator.turns // interval) * interval
+            record._suggestions_viewed_intervals.add(current_interval_milestone)
+            logger.info(f"Dismissed interval {current_interval_milestone} for simulation {simulation_id}")
+            return True
+
+    return False
