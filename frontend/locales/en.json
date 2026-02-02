@@ -168,7 +168,48 @@
     "basicActions": "Basic actions",
     "allowedActions": "Allowed actions",
     "emotionEnabled": "Enable emotion tracking",
-    "emotionHint": "When enabled, agents emit emotion updates each turn."
+    "emotionHint": "When enabled, agents emit emotion updates each turn.",
+    "timeUnits": {
+      "minute": "Minutes",
+      "hour": "Hours",
+      "day": "Days",
+      "week": "Weeks",
+      "month": "Months",
+      "year": "Years"
+    },
+    "titles": {
+      "createSimulation": "Create New Simulation",
+      "defaultModelConfig": "Default Model Configuration",
+      "templateSelection": "Select Template",
+      "agentGeneration": "Generate Agents",
+      "reviewAndStart": "Review and Start"
+    },
+    "instructions": {
+      "selectProvider": "Select a configured provider from Settings → LLM Providers.",
+      "noProviderConfigured": "No providers configured yet (add in Settings first)"
+    },
+    "messages": {
+      "generatedAgents": "Successfully generated {{count}} agents",
+      "generationFailed": "Generation failed. Check API Key or retry."
+    },
+    "templateDefaults": {
+      "village": "Create a diverse village community including farmers, merchants, and intellectuals.",
+      "council": "Create a 5-member council with different policy stances and influence.",
+      "werewolf": "Create 9 werewolf game players: judge/seer, witch, hunter, 2 wolves, 3 civilians with personalities."
+    },
+    "confirmations": {
+      "deleteTemplate": "Are you sure you want to delete this template?"
+    },
+    "placeholders": {
+      "simulationName": "Enter simulation name...",
+      "generationDescription": "Describe the agents to generate..."
+    },
+    "methods": {
+      "default": "Use template defaults",
+      "generate": "AI Generation",
+      "demographics": "Demographics (Scaling)",
+      "custom": "Import CSV/JSON"
+    }
   },
   "auth": {
     "login": {
