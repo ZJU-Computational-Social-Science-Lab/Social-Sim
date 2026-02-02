@@ -7,6 +7,7 @@ import traceback
 from socialsim4.core.agent import Agent
 from socialsim4.core.event import Event, StatusEvent
 from socialsim4.core.ordering import ORDERING_MAP, Ordering, SequentialOrdering
+from socialsim4.core.environment_config import EnvironmentConfig
 
 logger = logging.getLogger(__name__)
 
@@ -22,12 +23,17 @@ class Simulator:
         ordering: Optional[Ordering] = None,
         event_handler: Callable[[str, dict], None] = None,
         emotion_enabled: bool = False,
+        environment_config: Optional[EnvironmentConfig] = None,
     ):
         self.started = False
         self.log_event = event_handler
 
         for agent in agents:
             agent.log_event = self.log_event
+
+        # Environment config for dynamic suggestions
+        self.environment_config = environment_config or EnvironmentConfig()
+        self._suggestions_viewed_turn = None  # Track when user last viewed/dismissed suggestions
 
         # 用 dict 便于按名字查找
         self.agents = {agent.name: agent for agent in agents}
@@ -180,6 +186,8 @@ class Simulator:
             "event_queue": list(self.event_queue.queue),
             "turns": int(self.turns),
             "emotion_enabled": self.emotion_enabled,
+            "environment_config": self.environment_config.serialize(),
+            "_suggestions_viewed_turn": self._suggestions_viewed_turn,
         }
         return deepcopy(snap)
 
@@ -229,6 +237,7 @@ class Simulator:
             ordering=ordering,
             event_handler=log_handler,
             emotion_enabled=data["emotion_enabled"],
+            environment_config=EnvironmentConfig.deserialize(data.get("environment_config")) if data.get("environment_config") else None,
         )
         # Apply ordering state if provided
         simulator.ordering.deserialize(ordering_state)
@@ -240,6 +249,7 @@ class Simulator:
             for item in pending:
                 q.put(item)
             simulator.event_queue = q
+        simulator._suggestions_viewed_turn = data.get("_suggestions_viewed_turn")
         return simulator
 
     def _emit_error_event(
@@ -275,6 +285,39 @@ class Simulator:
         except Exception:
             # 不要因为上报错误又抛错导致崩溃
             logger.exception("failed to emit error event")
+
+    # ----- Dynamic Environment Support -----
+
+    def are_environment_suggestions_available(self) -> bool:
+        """
+        Check if environment suggestions should be shown to the user.
+
+        Returns True if:
+        - Feature is enabled
+        - Current turn is at or past an interval (5, 10, 15...) but before next interval
+        - User hasn't already dismissed/viewed suggestions for this interval
+        """
+        if not self.environment_config.enabled:
+            return False
+
+        if self.turns == 0:
+            return False
+
+        interval = self.environment_config.turn_interval
+
+        # Check if user already viewed/dismissed at this interval
+        current_interval = (self.turns // interval) * interval
+        if self._suggestions_viewed_turn == current_interval:
+            return False
+
+        # Suggestions available at or past each interval (but not before first interval)
+        return self.turns >= interval
+
+    def dismiss_environment_suggestions(self) -> None:
+        """Mark that the user has viewed/dismissed suggestions for current interval."""
+        interval = self.environment_config.turn_interval
+        interval_marker = (self.turns // interval) * interval
+        self._suggestions_viewed_turn = interval_marker
 
     def run(self, max_turns=1000):
         turns = 0

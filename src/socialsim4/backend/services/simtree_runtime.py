@@ -10,6 +10,7 @@ from socialsim4.core.ordering import ControlledOrdering, CycledOrdering, Sequent
 from socialsim4.core.registry import ACTION_SPACE_MAP, SCENE_ACTIONS, SCENE_MAP
 from socialsim4.core.simtree import SimTree
 from socialsim4.core.simulator import Simulator
+from socialsim4.core.environment_config import EnvironmentConfig
 from socialsim4.scenarios.basic import make_clients_from_env
 
 
@@ -29,10 +30,12 @@ def _is_english_language(lang: str) -> bool:
 class SimTreeRecord:
     def __init__(self, tree: SimTree):
         self.tree = tree
-        # 用于“一棵树所有节点事件”的广播订阅（DevUI 左侧总线）
+        # 用于"一棵树所有节点事件"的广播订阅（DevUI 左侧总线）
         self.subs: list[asyncio.Queue] = []
         # 正在运行的节点 ID 集合（用于只转发 running 节点的事件）
         self.running: set[int] = set()
+        # Track which suggestion intervals have been viewed (to avoid re-showing)
+        self._suggestions_viewed_intervals: set[int] = set()
 
 
 def _quiet_logger(event_type: str, data: dict) -> None:
@@ -287,6 +290,10 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         seq = wolves + wolves + seers + witches + names + names + ["Moderator"]
         ordering = CycledOrdering(seq)
 
+    # Read environment config from scene_config
+    environment_enabled = bool(cfg.get("environment_enabled", False))
+    environment_config = EnvironmentConfig(enabled=environment_enabled)
+
     sim = Simulator(
         built_agents,
         scene,
@@ -295,6 +302,7 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         ordering=ordering,
         max_steps_per_turn=3 if scene_type == "landlord_scene" else 5,
         emotion_enabled=emotion_enabled,
+        environment_config=environment_config,
     )
     # Set global knowledge reference on all agents
     global_knowledge = cfg.get("global_knowledge", {})

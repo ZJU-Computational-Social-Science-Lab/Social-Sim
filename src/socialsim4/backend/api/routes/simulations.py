@@ -303,6 +303,14 @@ async def update_simulation(
                 # No cached tree exists - it will be built fresh on next access with the new config
                 print(f"[KB-DEBUG] update_simulation: No cached tree to update for sim {simulation_id}")
 
+        if data.scene_config is not None:
+            # Merge scene_config with existing to preserve other settings
+            existing_scene_config = sim.scene_config or {}
+            merged_scene_config = {**existing_scene_config, **data.scene_config}
+            sim.scene_config = merged_scene_config
+            flag_modified(sim, "scene_config")
+            print(f"[ENV-DEBUG] update_simulation: Updated scene_config for sim {simulation_id}, environment_enabled={merged_scene_config.get('environment_enabled')}")
+
         await session.commit()
         await session.refresh(sim)
         return SimulationBase.model_validate(sim)

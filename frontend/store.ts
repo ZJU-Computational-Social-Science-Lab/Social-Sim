@@ -23,6 +23,7 @@ import {
 
 import { GoogleGenAI, Type } from "@google/genai";
 import { createSimulation as createSimulationApi, getSimulation as getSimulationApi, updateSimulation as updateSimulationApi, resetSimulation as resetSimulationApi, deleteSimulation as deleteSimulationApi } from './services/simulations';
+import { getSuggestionStatus, generateSuggestions, applyEnvironmentEvent, dismissSuggestions, type EnvironmentSuggestion } from './services/environmentSuggestions';
 import {
   getTreeGraph,
   treeAdvanceChain,
@@ -169,6 +170,17 @@ interface AppState {
 
   initialEvents: InitialEventItem[];
   isInitialEventsOpen: boolean;
+
+  // Environment Suggestions
+  environmentEnabled: boolean;
+  environmentSuggestionsAvailable: boolean;
+  environmentSuggestions: EnvironmentSuggestion[];
+  environmentSuggestionsLoading: boolean;
+  checkEnvironmentSuggestions: () => Promise<void>;
+  generateEnvironmentSuggestions: () => Promise<void>;
+  applyEnvironmentSuggestion: (suggestion: EnvironmentSuggestion) => Promise<void>;
+  dismissEnvironmentSuggestions: () => void;
+  toggleEnvironmentEnabled: () => Promise<void>;
 
   // Host Actions #16
   injectLog: (type: LogEntry['type'], content: string, imageUrl?: string, audioUrl?: string, videoUrl?: string) => void; // #24 Updated signature
@@ -1547,6 +1559,12 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   isGenerating: false,
   isGeneratingReport: false,
 
+  // Environment Suggestions
+  environmentEnabled: false,
+  environmentSuggestionsAvailable: false,
+  environmentSuggestions: [],
+  environmentSuggestionsLoading: false,
+
   // 手动同步 UI 状态
   isSyncModalOpen: false,
   isSyncing: false,
@@ -1640,7 +1658,10 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       };
     }),
 
-  setSimulation: (sim) => set({ currentSimulation: sim }),
+  setSimulation: (sim) => set({
+    currentSimulation: sim,
+    environmentEnabled: sim?.scene_config?.environment_enabled ?? false,
+  }),
 
   addNotification: (type, message) =>
     set((state) => {
@@ -1657,7 +1678,92 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     set((state) => ({
       notifications: state.notifications.filter((n) => n.id !== id)
     })),
-    
+
+  // Environment Suggestions Actions
+  checkEnvironmentSuggestions: async () => {
+    const { currentSimulation } = get();
+    if (!currentSimulation) return;
+
+    try {
+      const status = await getSuggestionStatus(currentSimulation.id);
+      set({ environmentSuggestionsAvailable: status.available });
+    } catch (error) {
+      console.error('Failed to check environment suggestions:', error);
+    }
+  },
+
+  generateEnvironmentSuggestions: async () => {
+    const { currentSimulation } = get();
+    if (!currentSimulation) return;
+
+    set({ environmentSuggestionsLoading: true });
+    try {
+      const result = await generateSuggestions(currentSimulation.id);
+      set({ environmentSuggestions: result.suggestions });
+    } catch (error) {
+      console.error('Failed to generate suggestions:', error);
+      get().addNotification('error', 'Failed to generate environment suggestions');
+    } finally {
+      set({ environmentSuggestionsLoading: false });
+    }
+  },
+
+  applyEnvironmentSuggestion: async (suggestion: EnvironmentSuggestion) => {
+    const { currentSimulation } = get();
+    if (!currentSimulation) return;
+
+    try {
+      await applyEnvironmentEvent(currentSimulation.id, suggestion);
+      set({
+        environmentSuggestions: [],
+        environmentSuggestionsAvailable: false,
+      });
+      get().addNotification('success', 'Environment event applied');
+    } catch (error) {
+      console.error('Failed to apply event:', error);
+      get().addNotification('error', 'Failed to apply environment event');
+    }
+  },
+
+  dismissEnvironmentSuggestions: async () => {
+    const { currentSimulation } = get();
+    if (!currentSimulation) return;
+
+    try {
+      await dismissSuggestions(currentSimulation.id);
+      set({
+        environmentSuggestions: [],
+        environmentSuggestionsAvailable: false,
+      });
+    } catch (error) {
+      console.error('Failed to dismiss suggestions:', error);
+    }
+  },
+
+  toggleEnvironmentEnabled: async () => {
+    const { currentSimulation, environmentEnabled } = get();
+    if (!currentSimulation) return;
+
+    const newValue = !environmentEnabled;
+
+    // Update local state immediately for responsiveness
+    set({ environmentEnabled: newValue });
+
+    try {
+      // Update the simulation on the backend
+      await updateSimulationApi(currentSimulation.id, {
+        scene_config: {
+          environment_enabled: newValue,
+        },
+      });
+      get().addNotification('success', newValue ? 'Environment events enabled' : 'Environment events disabled');
+    } catch (error) {
+      // Revert on error
+      set({ environmentEnabled: environmentEnabled });
+      get().addNotification('error', 'Failed to update environment settings');
+    }
+  },
+
   // #13 Guide Actions
   toggleGuide: (isOpen) => set({ isGuideOpen: isOpen }),
   

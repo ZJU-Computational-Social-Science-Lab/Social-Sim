@@ -4,6 +4,7 @@ import * as d3 from 'd3';
 import { SimNode } from '../types';
 import { useSimulationStore } from '../store';
 import { HelpCircle, Move, ZoomIn, ZoomOut, Maximize, MousePointer2, Trash2 } from 'lucide-react';
+import { EnvironmentSuggestionDialogWrapper, EnvironmentToggleButton } from './EnvironmentSuggestion';
 
 export const SimTree: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -177,19 +178,24 @@ const root = d3.stratify<SimNode>()
   };
 
   return (
-    <div className={`flex flex-col h-full bg-white border rounded-lg shadow-sm overflow-hidden relative transition-colors ${isCompareMode ? 'ring-2 ring-amber-400 border-amber-300' : ''}`}>
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-slate-50 z-10 relative">
-        <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-          {isCompareMode ? <MousePointer2 size={16} className="text-amber-500" /> : <Move size={16} className="text-slate-400" />}
-          {isCompareMode ? "请选择对比节点..." : "仿真树 (SimTree)"}
+    <>
+      <EnvironmentSuggestionDialogWrapper />
+      <div className={`flex flex-col h-full bg-white border rounded-lg shadow-sm overflow-hidden relative transition-colors ${isCompareMode ? 'ring-2 ring-amber-400 border-amber-300' : ''}`}>
+        <div className="flex items-center justify-between px-4 py-3 border-b bg-slate-50 z-10 relative">
+          <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+            {isCompareMode ? <MousePointer2 size={16} className="text-amber-500" /> : <Move size={16} className="text-slate-400" />}
+            {isCompareMode ? "请选择对比节点..." : "仿真树 (SimTree)"}
         </h3>
-        <button 
-          onClick={() => toggleHelpModal(true)}
-          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
-        >
-          <HelpCircle size={14} />
-          <span>图例说明</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <EnvironmentToggleButton />
+          <button
+            onClick={() => toggleHelpModal(true)}
+            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
+          >
+            <HelpCircle size={14} />
+            <span>图例说明</span>
+          </button>
+        </div>
       </div>
       
       {/* Zoom Controls */}
@@ -253,7 +259,8 @@ const root = d3.stratify<SimNode>()
             </div>
           </>
         )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
