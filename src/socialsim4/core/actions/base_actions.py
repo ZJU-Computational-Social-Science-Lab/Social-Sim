@@ -5,8 +5,8 @@ from socialsim4.core.event import MessageEvent, SpeakEvent, TalkToEvent
 class SpeakAction(Action):
     NAME = "speak"
     DESC = "Say something."
-    INSTRUCTION = """- To speak:
-<Action name=\"speak\"><message>[your_message]</message></Action>
+    INSTRUCTION = """- speak: Broadcast a message
+  <Action name="speak"><message>Your message</message></Action>
 """
 
     def handle(self, action_data, agent, simulator, scene):
@@ -25,8 +25,8 @@ class SpeakAction(Action):
 class SendMessageAction(Action):
     NAME = "send_message"
     DESC = "Post a message to all participants."
-    INSTRUCTION = """- To send a message:
-<Action name=\"send_message\"><message>[your_message]</message></Action>
+    INSTRUCTION = """- send_message: Send to everyone
+  <Action name="send_message"><message>Your message</message></Action>
 """
 
     def handle(self, action_data, agent, simulator, scene):
@@ -45,8 +45,8 @@ class SendMessageAction(Action):
 class YieldAction(Action):
     NAME = "yield"
     DESC = "Yield the floor and end your turn."
-    INSTRUCTION = """- To yield the floor:
-<Action name=\"yield\" />
+    INSTRUCTION = """- yield: End your turn
+  <Action name="yield"/>
 """
 
     def handle(self, action_data, agent, simulator, scene):
@@ -58,15 +58,15 @@ class YieldAction(Action):
 class TalkToAction(Action):
     NAME = "talk_to"
     DESC = "Say something to a nearby person by name."
-    INSTRUCTION = """- To talk to someone nearby (by name):
-<Action name=\"talk_to\"><to>[recipient_name]</to><message>[your_message]</message></Action>
+    INSTRUCTION = """- talk_to: Speak to nearby agent
+  <Action name="talk_to"><target>Name</target><message>Hi!</message></Action>
 """
 
     def handle(self, action_data, agent, simulator, scene):
-        to_name = action_data.get("to")
+        to_name = action_data.get("target") or action_data.get("to")
         message = action_data.get("message")
         if not to_name or not message:
-            error = "Provide 'to' (name) and 'message'."
+            error = "Provide 'target' (name) and 'message'."
             agent.add_env_feedback(error)
             return False, {"error": error}, f"{agent.name} failed to talk", {}, False
 
