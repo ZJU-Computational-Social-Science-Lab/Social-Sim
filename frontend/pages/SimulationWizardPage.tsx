@@ -160,7 +160,7 @@ export const SimulationWizard: React.FC = () => {
 
   const handleDeleteTemplate = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (window.confirm('确定要删除这个模板吗？')) {
+    if (window.confirm(t('wizard.confirmations.deleteTemplate'))) {
       deleteTemplate(id);
       if (selectedTemplateId === id) setSelectedTemplateId('village');
     }
@@ -222,10 +222,10 @@ export const SimulationWizard: React.FC = () => {
         a.llmConfig = defaultLlmConfig;
       });
       setCustomAgents(agents);
-      addNotification('success', `成功生成 ${agents.length} 个智能体`);
+      addNotification('success', t('wizard.messages.generatedAgents', { count: agents.length }));
     } catch (e) {
       console.error(e);
-      setImportError('生成失败，请检查 API Key 或重试');
+      setImportError(t('wizard.messages.generationFailed'));
     } finally {
       setIsGenerating(false);
     }
