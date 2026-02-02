@@ -238,7 +238,7 @@ export const SimulationWizard: React.FC = () => {
         <div className="px-6 py-4 border-b flex justify-between items-center bg-slate-50 shrink-0">
           <div>
             <h2 className="text-lg font-bold text-slate-800">
-              创建新仿真
+              {t('wizard.titles.createSimulation')}
             </h2>
             <div className="flex gap-2 mt-1">
               {[1, 2, 3].map((i) => (
@@ -271,10 +271,10 @@ export const SimulationWizard: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-indigo-900">
-                      默认模型配置
+                      {t('wizard.titles.defaultModelConfig')}
                     </h3>
                     <p className="text-xs text-indigo-700">
-                      从「设置 → LLM提供商」中选择一个已配置的模型。
+                      {t('wizard.instructions.selectProvider')}
                     </p>
                   </div>
                 </div>
@@ -290,7 +290,7 @@ export const SimulationWizard: React.FC = () => {
                 >
                   {llmProviders.length === 0 && (
                     <option value="">
-                      尚未配置任何提供商（请先在“设置”中添加）
+                      {t('wizard.instructions.noProviderConfigured')}
                     </option>
                   )}
                   {llmProviders.map((p) => (
@@ -321,7 +321,7 @@ export const SimulationWizard: React.FC = () => {
               onClick={() => setStep(step - 1)}
               className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg"
             >
-              上一步
+              {t('wizard.back')}
             </button>
           )}
           {step === 1 && (
@@ -329,7 +329,7 @@ export const SimulationWizard: React.FC = () => {
               onClick={() => toggleWizard(false)}
               className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg"
             >
-              取消
+              {t('common.cancel', { defaultValue: 'Cancel' })}
             </button>
           )}
           {step < 3 && (
@@ -337,7 +337,7 @@ export const SimulationWizard: React.FC = () => {
               onClick={() => setStep(step + 1)}
               className="px-6 py-2 text-sm bg-brand-600 text-white font-medium hover:bg-brand-700 rounded-lg shadow-sm"
             >
-              下一步
+              {t('wizard.continue')}
             </button>
           )}
           {step === 3 && (
@@ -345,7 +345,7 @@ export const SimulationWizard: React.FC = () => {
               onClick={handleFinish}
               className="px-6 py-2 text-sm bg-green-600 text-white font-medium hover:bg-green-700 rounded-lg shadow-sm"
             >
-              开始仿真
+              {t('wizard.start')}
             </button>
           )}
         </div>

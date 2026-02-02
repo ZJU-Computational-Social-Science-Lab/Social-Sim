@@ -5,7 +5,10 @@
     "show": "Show",
     "yes": "Yes",
     "no": "No",
-    "none": "(none)"
+    "none": "(none)",
+    "cancel": "Cancel",
+    "next": "Next",
+    "back": "Back"
   },
   "brand": "SocialSim4",
   "nav": {
