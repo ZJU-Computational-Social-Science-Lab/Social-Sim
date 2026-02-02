@@ -147,3 +147,6 @@ uploads/
 .claude/
 .claude.json
 settings.local.json
+
+# Git worktrees for parallel development
+.worktrees/
