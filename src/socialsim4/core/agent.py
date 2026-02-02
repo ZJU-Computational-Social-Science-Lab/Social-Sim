@@ -151,112 +151,75 @@ You have a personal knowledge base with {kb_count} item(s) containing informatio
 Use the query_knowledge action to search for specific information when needed. The knowledge base contains facts and information that you should use to inform your responses when relevant.
 """
 
-        base = f"""
-You are {self.name}.
-You speak in a {self.style} style.
-{emotion_prompt}
+        # Compact identity for 4B models
+        identity_parts = [self.name]
+        if self.role:
+            identity_parts.append(self.role)
+        if self.style and self.style != "neutral":
+            identity_parts.append(f"({self.style})")
+        identity_line = " - ".join(identity_parts)
 
-{self.user_profile}
+        emotion_prompt = f" | Emotion: {self.emotion}" if self.emotion_enabled else ""
 
-{self.role_prompt}
-{knowledge_block}
-{plan_state_block}
+        base = f"""{identity_line}{emotion_prompt}
 
-Language Policy:
-- Output all public messages in {self.language}.
-- Keep Action XML element and attribute names in English; localize only values (e.g., <message>…</message>).
-- Plan Update tag names remain English; content may be written in {self.language}.
-- Do not switch languages unless explicitly asked.
+{self.user_profile if len(self.user_profile) < 200 else self.user_profile[:200] + "..."}
+
+{self.role_prompt if len(self.role_prompt or "") < 200 else ""}{knowledge_block}{plan_state_block}
+
+Language: {self.language}. Action XML in English; content in {self.language}.
 
 {scene.get_scenario_description() if scene else ""}
 
 {scene.get_behavior_guidelines() if scene else ""}
 
 Action Space:
-
-Available Actions:
 {action_catalog}
 
 Usage:
 {action_instructions}
 
-
 {examples_block}
-
 
 {self.get_output_format()}
 
-
-Initial instruction:
 {self.initial_instruction}
 """
         return base
 
     def get_output_format(self):
-        base_prompt = """
-Planning guidelines:
-- The Goals, Milestones, Plan, and Current Focus you author here are your inner behavioral plans, not scene-wide commitments. Use them to decide Actions;
-- Goals: stable end-states. Rarely change; name and describe them briefly.
-- Milestones: observable sub-results that indicate progress toward goals.
-- Current Focus: the single step you are executing now. Align Action with this.
-- Strategy: a brief approach for achieving the goals over time.
-- Prefer continuity: preserve unaffected goals/milestones; make the smallest coherent change when adapting to new information. State what stays the same.
-- Avoid repeating the same action, message, or summary across turns. If nothing new advances the plan, yield instead of restating.
-
-Turn Flow:
-- Output exactly one Thoughts/Plan/Action block per response.
-- Each time you can choose one action from the Action Space to execute.
-- Some actions may return immediate results (e.g., briefs, searches). Incorporate them and proceed;
-- Some actions may require multiple steps (e.g., complex messages, multi-step tasks), do not yield the floor. The system will schedule your next turn.
-- If the next step is clear, take it; when finished, yield the floor with <Action name="yield"></Action>.
-
-Your entire response MUST follow the format below. 
-For your first action in each turn, always include Thoughts, Plan, and Action. 
-For subsequent actions, output only the Action element. omit Thoughts, Plan, and Plan Update.
-Include Plan Update in the end, only when you decide to modify the plan.
-
---- Thoughts ---
-Your internal monologue. Analyze the current situation, your persona, your long-term goals, and the information you have.
-Re-evaluation: Compare the latest events with your current plan. Is your plan still relevant? Should you add, remove, or reorder steps? Should you jump to a different step instead of proceeding sequentially? Prefer continuity; preserve unaffected goals and milestones. Explicitly state whether you are keeping or changing the plan and why.
-Strategy for This Turn: Based on your re-evaluation, state your immediate objective for this turn and the short rationale for how you will achieve it.
+        # Compact format for 4B models
+        base_prompt = """--- Thoughts ---
+[What you're thinking right now - brief]
 
 --- Plan ---
-// Update the living plan if needed; mark your immediate focus with [CURRENT]. Keep steps concise and executable.
-1. [Step 1]
-2. [Step 2] [CURRENT]
-3. [Step 3]
-
+Goals: [your goals]
+Milestones: [completed ✓, pending →]
 
 --- Action ---
-// Output exactly one Action XML element. No extra text.
-// Do not wrap the Action XML in code fences or other decorations.
-// Use one of the actions listed in Available Actions.
-// If no avaliable actions, yield.
+<Action name="[action_name]">
+  [params if needed]
+</Action>
 
---- Plan Update ---
-// Optional. Include ONLY if you are changing the plan.
-// Output either "no change"
-// or one or more of these tags (no extra text, no code fences):
-//   <Goals>\n1. ...\n2. ... [CURRENT]\n</Goals>
-//   <Milestones>\n1. ... [DONE]\n</Milestones>
-//   <Strategy>...</Strategy>
-//   <Notes>...</Notes>
-// Use numbered lists for Goals and Milestones.
+Example:
+--- Thoughts ---
+Need to gather food.
+
+--- Plan ---
+Goals: Collect dinner
+Milestones: ✓ at market, → gather food
+
+--- Action ---
+<Action name="gather_resource"><resource>food</resource></Action>
 """
         if self.emotion_enabled:
             emotion_rules = """
+
 --- Emotion Update ---
-// This section is mandatory.
-Emotion Update Rules:
-- Always output one emotion after each turn to represent your affective state.
-- Use Plutchik’s 8 primary emotions: Joy, Trust, Fear, Surprise, Sadness, Disgust, Anger, Anticipation.
-- Combine two if appropriate to form a Dyad emotion (e.g., Joy + Anticipation = Hope).
-- Determine emotion by analyzing:
-  - Progress toward goals or milestones (positive → Joy/Trust; negative → Sadness/Fear).
-  - Novelty or unexpected events (→ Surprise).
-  - Conflict or obstacles (→ Anger or Disgust).
-  - Anticipation of success or new opportunity (→ Anticipation).
-- Prefer continuity; avoid abrupt switches unless major events occur.
+// Mandatory: Output your emotion after each turn
+// Use Plutchik emotions: Joy, Trust, Fear, Surprise, Sadness, Disgust, Anger, Anticipation
+// Base on: goal progress (+→ Joy/Trust, -→ Sadness/Fear), novelty (→ Surprise), conflict (→ Anger/Disgust)
+<Emotion>[emotion]</Emotion>
 """
             return base_prompt + emotion_rules
         return base_prompt
