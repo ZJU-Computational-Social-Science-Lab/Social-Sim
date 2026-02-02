@@ -153,8 +153,8 @@ Use the query_knowledge action to search for specific information when needed. T
 
         # Compact identity for 4B models
         identity_parts = [self.name]
-        if self.role:
-            identity_parts.append(self.role)
+        if self.role_prompt:
+            identity_parts.append(self.role_prompt)
         if self.style and self.style != "neutral":
             identity_parts.append(f"({self.style})")
         identity_line = " - ".join(identity_parts)

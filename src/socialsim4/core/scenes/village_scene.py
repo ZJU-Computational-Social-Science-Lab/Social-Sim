@@ -398,7 +398,7 @@ You have coordinates, needs (hunger, energy), and an inventory. You can move acr
 
     def get_compact_description(self):
         """Compact description for 4B models."""
-        locations = ", ".join([loc.name for loc in self.game_map.locations[:5]])
+        locations = ", ".join([loc.name for loc in list(self.game_map.locations.values())[:5]])
         return f"Village {self.game_map.width}x{self.game_map.height} grid. Locations: {locations}. Energy ↓ with actions. Chat range: {self.chat_range}."
 
     def get_behavior_guidelines(self):

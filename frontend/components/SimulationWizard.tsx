@@ -1,5 +1,6 @@
 // frontend/pages/SimulationWizard.tsx
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   useSimulationStore,
   generateAgentsWithAI,
@@ -17,11 +18,13 @@ import {
   Sparkles,
   Loader2,
   Plus,
-  Minus
+  Minus,
+  Settings
 } from 'lucide-react';
 import Papa from 'papaparse';
-import { Agent, LLMConfig, TimeUnit } from '../types';
+import { Agent, LLMConfig, TimeUnit, GenericTemplateConfig } from '../types';
 import { uploadImage } from '../services/uploads';
+import { TemplateBuilder, createEmptyGenericTemplate } from './TemplateBuilder';
 
 const TIME_UNITS: { value: TimeUnit; label: string }[] = [
   { value: 'minute', label: '分钟' },
@@ -88,6 +91,7 @@ const generateArchetypes = (demographics: Demographic[]): Archetype[] => {
 };
 
 export const SimulationWizard: React.FC = () => {
+  const { t } = useTranslation();
   const isOpen = useSimulationStore((state) => state.isWizardOpen);
   const toggleWizard = useSimulationStore((state) => state.toggleWizard);
   const addSimulation = useSimulationStore((state) => state.addSimulation);
@@ -96,7 +100,7 @@ export const SimulationWizard: React.FC = () => {
   const addNotification = useSimulationStore((state) => state.addNotification);
   const isGeneratingGlobal = useSimulationStore((s) => s.isGenerating);
 
-  // ⭐ provider 相关
+  // provider related
   const llmProviders = useSimulationStore((s) => s.llmProviders);
   const selectedProviderId = useSimulationStore((s) => s.selectedProviderId);
   const setSelectedProvider = useSimulationStore((s) => s.setSelectedProvider);
@@ -108,6 +112,10 @@ export const SimulationWizard: React.FC = () => {
   const [selectedTemplateId, setSelectedTemplateId] =
     useState<string>('village');
   const [activeTab, setActiveTab] = useState<'system' | 'custom'>('system');
+
+  // Custom Template Mode
+  const [useCustomTemplate, setUseCustomTemplate] = useState(false);
+  const [genericTemplate, setGenericTemplate] = useState<GenericTemplateConfig>(createEmptyGenericTemplate());
 
   const [baseTime, setBaseTime] = useState(
     new Date().toISOString().slice(0, 16)
@@ -236,7 +244,26 @@ export const SimulationWizard: React.FC = () => {
       });
     }
 
-    addSimulation(name, selectedTemplate, agentsToUse, {
+    // If using custom template, create a template from generic config
+    const templateToUse = useCustomTemplate
+      ? {
+          id: genericTemplate.id,
+          name: genericTemplate.name || 'Custom Template',
+          description: genericTemplate.description || '',
+          category: 'custom' as const,
+          sceneType: 'generic', // Indicates generic template
+          agents: agentsToUse || [],
+          defaultTimeConfig: genericTemplate.defaultTimeConfig || {
+            baseTime: new Date(baseTime).toISOString(),
+            unit: timeUnit,
+            step: timeStep
+          },
+          // Store generic template data for backend processing
+          genericConfig: genericTemplate
+        }
+      : selectedTemplate;
+
+    addSimulation(name, templateToUse, agentsToUse, {
       baseTime: new Date(baseTime).toISOString(),
       unit: timeUnit,
       step: timeStep
@@ -256,6 +283,8 @@ export const SimulationWizard: React.FC = () => {
     setGenDesc(
       '创建一个多元化的乡村社区，包含务农者、商人和知识分子。'
     );
+    setUseCustomTemplate(false);
+    setGenericTemplate(createEmptyGenericTemplate());
   };
 
   const handleDeleteTemplate = (e: React.MouseEvent, id: string) => {
@@ -628,9 +657,9 @@ export const SimulationWizard: React.FC = () => {
 
                 <div className="flex gap-4 border-b border-slate-200 mb-4">
                   <button
-                    onClick={() => setActiveTab('system')}
+                    onClick={() => { setActiveTab('system'); setUseCustomTemplate(false); }}
                     className={`pb-2 text-sm font-medium transition-colors ${
-                      activeTab === 'system'
+                      activeTab === 'system' && !useCustomTemplate
                         ? 'text-brand-600 border-b-2 border-brand-600'
                         : 'text-slate-500 hover:text-slate-700'
                     }`}
@@ -638,61 +667,112 @@ export const SimulationWizard: React.FC = () => {
                     系统预设
                   </button>
                   <button
-                    onClick={() => setActiveTab('custom')}
+                    onClick={() => { setActiveTab('custom'); setUseCustomTemplate(false); }}
                     className={`pb-2 text-sm font-medium transition-colors ${
-                      activeTab === 'custom'
+                      activeTab === 'custom' && !useCustomTemplate
                         ? 'text-brand-600 border-b-2 border-brand-600'
                         : 'text-slate-500 hover:text-slate-700'
                     }`}
                   >
                     我的模板库
                   </button>
+                  <button
+                    onClick={() => { setUseCustomTemplate(true); }}
+                    className={`pb-2 text-sm font-medium transition-colors flex items-center gap-1 ${
+                      useCustomTemplate
+                        ? 'text-purple-600 border-b-2 border-purple-600'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    <Settings size={14} />
+                    自定义模板构建器
+                  </button>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  {savedTemplates.filter((t) => t.category === activeTab)
-                    .length === 0 ? (
-                    <div className="col-span-3 py-8 text-center text-slate-400 bg-slate-50 rounded-lg border border-dashed">
-                      暂无自定义模板。请先配置一个仿真并保存为模板。
-                    </div>
-                  ) : (
-                    savedTemplates
-                      .filter((t) => t.category === activeTab)
-                      .map((t) => (
-                        <div
-                          key={t.id}
-                          onClick={() => setSelectedTemplateId(t.id)}
-                          className={`p-4 border rounded-lg text-left transition-all cursor-pointer relative group ${
-                            selectedTemplateId === t.id
-                              ? 'border-brand-500 ring-2 ring-brand-100 bg-brand-50'
-                              : 'hover:border-slate-300 hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="font-bold text-slate-800">
-                            {t.name}
-                          </div>
-                          <div className="text-xs text-slate-500 mt-1 line-clamp-2">
-                            {t.description}
-                          </div>
-
-                          {t.category === 'custom' && (
-                            <button
-                              onClick={(e) => handleDeleteTemplate(e, t.id)}
-                              className="absolute top-2 right-2 p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-
-                          {t.category === 'custom' && (
-                            <div className="mt-2 flex items-center gap-1 text-[10px] text-brand-600 bg-brand-100 px-1.5 py-0.5 rounded w-fit">
-                              <Users size={10} /> {t.agents?.length || 0} 个预设角色
+                {/* System/Custom Templates */}
+                {!useCustomTemplate && (
+                  <div className="grid grid-cols-3 gap-4">
+                    {savedTemplates.filter((t) => t.category === activeTab)
+                      .length === 0 ? (
+                      <div className="col-span-3 py-8 text-center text-slate-400 bg-slate-50 rounded-lg border border-dashed">
+                        {activeTab === 'custom'
+                          ? '暂无自定义模板。请先配置一个仿真并保存为模板。'
+                          : '暂无系统模板。'}
+                      </div>
+                    ) : (
+                      savedTemplates
+                        .filter((t) => t.category === activeTab)
+                        .map((t) => (
+                          <div
+                            key={t.id}
+                            onClick={() => setSelectedTemplateId(t.id)}
+                            className={`p-4 border rounded-lg text-left transition-all cursor-pointer relative group ${
+                              selectedTemplateId === t.id && !useCustomTemplate
+                                ? 'border-brand-500 ring-2 ring-brand-100 bg-brand-50'
+                                : 'hover:border-slate-300 hover:bg-slate-50'
+                            }`}
+                          >
+                            <div className="font-bold text-slate-800">
+                              {t.name}
                             </div>
-                          )}
-                        </div>
-                      ))
-                  )}
-                </div>
+                            <div className="text-xs text-slate-500 mt-1 line-clamp-2">
+                              {t.description}
+                            </div>
+
+                            {t.category === 'custom' && (
+                              <button
+                                onClick={(e) => handleDeleteTemplate(e, t.id)}
+                                className="absolute top-2 right-2 p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+
+                            {t.category === 'custom' && (
+                              <div className="mt-2 flex items-center gap-1 text-[10px] text-brand-600 bg-brand-100 px-1.5 py-0.5 rounded w-fit">
+                                <Users size={10} /> {t.agents?.length || 0} 个预设角色
+                              </div>
+                            )}
+                          </div>
+                        ))
+                    )}
+                  </div>
+                )}
+
+                {/* Custom Template Builder */}
+                {useCustomTemplate && (
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Settings className="text-purple-600" size={18} />
+                        <span className="text-sm font-bold text-purple-900">
+                          自定义模板构建器
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-purple-700 mb-3">
+                      通过选择核心机制和定义语义动作来构建自定义仿真模板。完成后点击"下一步"配置智能体。
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                      <div className="bg-white rounded p-2 text-center">
+                        <div className="font-bold text-purple-700">{genericTemplate.coreMechanics.filter(m => m.enabled).length}</div>
+                        <div className="text-slate-500">启用的机制</div>
+                      </div>
+                      <div className="bg-white rounded p-2 text-center">
+                        <div className="font-bold text-purple-700">{genericTemplate.semanticActions.length}</div>
+                        <div className="text-slate-500">语义动作</div>
+                      </div>
+                      <div className="bg-white rounded p-2 text-center">
+                        <div className="font-bold text-purple-700">{genericTemplate.agentArchetypes.length}</div>
+                        <div className="text-slate-500">智能体原型</div>
+                      </div>
+                      <div className="bg-white rounded p-2 text-center">
+                        <div className="font-bold text-purple-700">{(genericTemplate.environment.rules?.length || 0)}</div>
+                        <div className="text-slate-500">环境规则</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Basic Info */}
@@ -776,6 +856,27 @@ export const SimulationWizard: React.FC = () => {
                   })()}
                 </p>
               </div>
+
+              {/* Custom Template Builder - Expanded View */}
+              {useCustomTemplate && (
+                <div className="border border-purple-200 rounded-lg overflow-hidden">
+                  <div className="bg-purple-100 px-4 py-2 flex items-center justify-between">
+                    <span className="text-sm font-bold text-purple-900">自定义模板配置</span>
+                    <button
+                      onClick={() => setUseCustomTemplate(false)}
+                      className="text-xs text-purple-700 hover:text-purple-900"
+                    >
+                      收起
+                    </button>
+                  </div>
+                  <div className="p-4 bg-white max-h-[400px] overflow-y-auto">
+                    <TemplateBuilder
+                      template={genericTemplate}
+                      onChange={setGenericTemplate}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1342,21 +1443,58 @@ export const SimulationWizard: React.FC = () => {
                 准备就绪
               </h3>
               <div className="bg-slate-50 rounded-lg p-6 max-w-md mx-auto text-left space-y-3 border">
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">模板:</span>
-                  <span className="font-bold text-slate-800">
-                    {selectedTemplate.name}
-                  </span>
-                </div>
-                {(importMode === 'custom' || importMode === 'generate') &&
-                  customAgents.length > 0 && (
+                {useCustomTemplate ? (
+                  <>
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-500">自定义角色:</span>
-                      <span className="font-bold text-brand-600">
-                        {customAgents.length} 人
+                      <span className="text-slate-500">模板类型:</span>
+                      <span className="font-bold text-purple-700">
+                        自定义模板
                       </span>
                     </div>
-                  )}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500">模板名称:</span>
+                      <span className="font-bold text-slate-800">
+                        {genericTemplate.name || '未命名'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500">核心机制:</span>
+                      <span className="font-bold text-slate-800">
+                        {genericTemplate.coreMechanics.filter(m => m.enabled).map(m => m.type).join(', ') || '无'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500">语义动作:</span>
+                      <span className="font-bold text-slate-800">
+                        {genericTemplate.semanticActions.length} 个
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500">智能体原型:</span>
+                      <span className="font-bold text-slate-800">
+                        {genericTemplate.agentArchetypes.length} 个
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500">模板:</span>
+                      <span className="font-bold text-slate-800">
+                        {selectedTemplate.name}
+                      </span>
+                    </div>
+                    {(importMode === 'custom' || importMode === 'generate') &&
+                      customAgents.length > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-500">自定义角色:</span>
+                          <span className="font-bold text-brand-600">
+                            {customAgents.length} 人
+                          </span>
+                        </div>
+                      )}
+                  </>
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">时间流速:</span>
                   <span className="font-bold text-slate-800">
