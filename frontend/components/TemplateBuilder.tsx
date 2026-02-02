@@ -84,7 +84,7 @@ const CORE_MECHANIC_DEFINITIONS: Record<CoreMechanicType, { name: string; descri
   }
 };
 
-const generateId = () => `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+const generateId = () => `${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 
 const createEmptyAction = (): SemanticActionConfig => ({
   name: '',

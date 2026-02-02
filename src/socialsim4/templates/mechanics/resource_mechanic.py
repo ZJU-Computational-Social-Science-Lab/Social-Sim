@@ -9,12 +9,14 @@ from typing import TYPE_CHECKING
 
 from socialsim4.core.actions.village_actions import GatherResourceAction
 from socialsim4.templates.mechanics.base import CoreMechanic
+from socialsim4.templates.mechanics import register_mechanic
 
 if TYPE_CHECKING:
     from socialsim4.core.agent import Agent
     from socialsim4.core.scene import Scene
 
 
+@register_mechanic
 class ResourceMechanic(CoreMechanic):
     """Resource mechanic for inventory and gathering.
 

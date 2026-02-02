@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 from socialsim4.core.action import Action
 from socialsim4.core.actions.council_actions import VotingStatusAction
 from socialsim4.templates.mechanics.base import CoreMechanic
+from socialsim4.templates.mechanics import register_mechanic
 
 if TYPE_CHECKING:
     from socialsim4.core.agent import Agent
@@ -80,6 +81,7 @@ class Proposal:
     active: bool = True
 
 
+@register_mechanic
 class VotingMechanic(CoreMechanic):
     """Voting mechanic for democratic decision-making.
 
@@ -160,16 +162,6 @@ class VotingMechanic(CoreMechanic):
 
         if vote == "abstain" and not self.allow_abstain:
             return False, "Abstaining is not allowed."
-
-        # Remove previous vote if changing
-        if agent in proposal.votes_by_agent:
-            old_vote = proposal.votes_by_agent[agent]
-            if old_vote == "yes":
-                proposal.yes_votes -= 1
-            elif old_vote == "no":
-                proposal.no_votes -= 1
-            else:
-                proposal.abstain_votes -= 1
 
         # Record new vote
         proposal.votes_by_agent[agent] = vote

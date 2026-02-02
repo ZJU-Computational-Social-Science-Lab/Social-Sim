@@ -15,12 +15,14 @@ from socialsim4.core.actions.village_actions import (
 )
 from socialsim4.core.scenes.village_scene import GameMap
 from socialsim4.templates.mechanics.base import CoreMechanic
+from socialsim4.templates.mechanics import register_mechanic
 
 if TYPE_CHECKING:
     from socialsim4.core.agent import Agent
     from socialsim4.core.scene import Scene
 
 
+@register_mechanic
 class GridMechanic(CoreMechanic):
     """Grid-based spatial navigation mechanic.
 

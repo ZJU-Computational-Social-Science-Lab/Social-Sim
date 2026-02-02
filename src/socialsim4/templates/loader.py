@@ -158,6 +158,7 @@ class TemplateLoader:
         # Extract environment configuration
         env_config = template.environment
         if env_config is None:
+            # Import inside function to avoid circular import with schema module
             from socialsim4.templates.schema import EnvironmentConfig
             env_config = EnvironmentConfig()
 

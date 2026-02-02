@@ -9,12 +9,14 @@ from typing import TYPE_CHECKING
 
 from socialsim4.core.actions.base_actions import SendMessageAction
 from socialsim4.templates.mechanics.base import CoreMechanic
+from socialsim4.templates.mechanics import register_mechanic
 
 if TYPE_CHECKING:
     from socialsim4.core.agent import Agent
     from socialsim4.core.scene import Scene
 
 
+@register_mechanic
 class DiscussionMechanic(CoreMechanic):
     """Discussion mechanic for agent communication.
 

@@ -6,7 +6,6 @@ Unlike core actions (coded in Python), semantic actions are defined
 declaratively with an instruction, parameters, and optional effect code.
 """
 
-import xml.etree.ElementTree as ET
 from socialsim4.core.action import Action
 
 

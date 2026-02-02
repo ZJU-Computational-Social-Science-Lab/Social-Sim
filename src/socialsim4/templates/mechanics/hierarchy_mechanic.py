@@ -8,12 +8,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from socialsim4.templates.mechanics.base import CoreMechanic
+from socialsim4.templates.mechanics import register_mechanic
 
 if TYPE_CHECKING:
     from socialsim4.core.agent import Agent
     from socialsim4.core.scene import Scene
 
 
+@register_mechanic
 class HierarchyMechanic(CoreMechanic):
     """Hierarchy mechanic for role-based organization.
 
