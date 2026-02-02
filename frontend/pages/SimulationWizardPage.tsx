@@ -1,5 +1,6 @@
 // frontend/pages/SimulationWizard.tsx
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   useSimulationStore,
   generateAgentsWithAI
@@ -19,22 +20,24 @@ import {
 import Papa from 'papaparse';
 import { Agent, LLMConfig, TimeUnit } from '../types';
 
-const TIME_UNITS: { value: TimeUnit; label: string }[] = [
-  { value: 'minute', label: '分钟' },
-  { value: 'hour', label: '小时' },
-  { value: 'day', label: '天' },
-  { value: 'week', label: '周' },
-  { value: 'month', label: '月' },
-  { value: 'year', label: '年' }
-];
-
 export const SimulationWizard: React.FC = () => {
+  const { t } = useTranslation();
   const isOpen = useSimulationStore((state) => state.isWizardOpen);
   const toggleWizard = useSimulationStore((state) => state.toggleWizard);
   const addSimulation = useSimulationStore((state) => state.addSimulation);
   const savedTemplates = useSimulationStore((state) => state.savedTemplates);
   const deleteTemplate = useSimulationStore((state) => state.deleteTemplate);
   const addNotification = useSimulationStore((state) => state.addNotification);
+
+  // Time units with i18n labels
+  const TIME_UNITS: { value: TimeUnit; label: string }[] = [
+    { value: 'minute', label: t('wizard.timeUnits.minute') },
+    { value: 'hour', label: t('wizard.timeUnits.hour') },
+    { value: 'day', label: t('wizard.timeUnits.day') },
+    { value: 'week', label: t('wizard.timeUnits.week') },
+    { value: 'month', label: t('wizard.timeUnits.month') },
+    { value: 'year', label: t('wizard.timeUnits.year') }
+  ];
 
   // ⭐ 新增：连接到 store 里的 provider 列表
   const llmProviders = useSimulationStore((s) => s.llmProviders);
