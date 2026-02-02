@@ -17,6 +17,10 @@ class Scene:
     def get_scenario_description(self):
         return ""
 
+    def get_compact_description(self):
+        """Compact description for 4B models. Override in subclasses."""
+        return self.get_scenario_description()
+
     def get_behavior_guidelines(self):
         return ""
 

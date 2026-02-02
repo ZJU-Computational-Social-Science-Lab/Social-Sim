@@ -169,7 +169,7 @@ Use the query_knowledge action to search for specific information when needed. T
 
 Language: {self.language}. Action XML in English; content in {self.language}.
 
-{scene.get_scenario_description() if scene else ""}
+{scene.get_compact_description() if scene and hasattr(scene, 'get_compact_description') else (scene.get_scenario_description() if scene else "")}
 
 {scene.get_behavior_guidelines() if scene else ""}
 
