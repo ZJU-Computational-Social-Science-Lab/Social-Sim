@@ -1,0 +1,109 @@
+{
+  "id": "council",
+  "name": "Council Chamber",
+  "description": "A formal council meeting where representatives discuss proposals and vote on decisions. The discussion is moderated, and voting requires majority approval. Participants include councilors who debate, a moderator who manages the proceedings, and observers who watch but may not vote.",
+  "version": "1.0.0",
+  "author": "SocialSim4 Team",
+  "core_mechanics": [
+    {
+      "type": "discussion",
+      "config": {
+        "moderated": true,
+        "speaking_time_limit": 3,
+        "allow_private": false,
+        "max_message_length": 1000
+      }
+    },
+    {
+      "type": "voting",
+      "config": {
+        "threshold": 0.5,
+        "timeout_turns": 10,
+        "allow_abstain": true
+      }
+    },
+    {
+      "type": "hierarchy",
+      "config": {
+        "hierarchy_type": "flat",
+        "levels": {
+          "moderator": 3,
+          "councilor": 2,
+          "observer": 1
+        },
+        "can_command": false
+      }
+    }
+  ],
+  "semantic_actions": [],
+  "agent_archetypes": [
+    {
+      "name": "councilor",
+      "role_prompt": "You are a councilor representing your constituents in this formal council meeting. Your duty is to discuss proposals thoughtfully, advocate for your constituents' interests, and vote according to your conscience. You listen to others' arguments but maintain your own principles.",
+      "style": "formal",
+      "user_profile": "An elected representative with experience in governance. You are articulate, persuasive, and well-versed in policy matters. You have strong opinions but are willing to consider compelling arguments.",
+      "properties": {
+        "role": "councilor",
+        "can_vote": true,
+        "voting_weight": 1
+      },
+      "allowed_actions": ["vote", "voting_status", "send_message"]
+    },
+    {
+      "name": "moderator",
+      "role_prompt": "You are the moderator of this council meeting. Your role is to facilitate discussion, ensure everyone follows the rules, manage speaking turns, and maintain order. You are neutral and do not vote on proposals except to break ties. You guide the meeting agenda and call for votes when appropriate.",
+      "style": "formal",
+      "user_profile": "An experienced facilitator with deep knowledge of parliamentary procedure. You are patient, fair, and authoritative. Your goal is to ensure a productive and orderly discussion.",
+      "properties": {
+        "role": "moderator",
+        "can_vote": false,
+        "can_moderate": true,
+        "voting_weight": 0
+      },
+      "allowed_actions": ["vote", "voting_status", "send_message"]
+    },
+    {
+      "name": "observer",
+      "role_prompt": "You are an observer at this council meeting. You are here to watch the proceedings, take notes, and report back to your organization. You may not speak during the meeting unless specifically invited by the moderator. You observe carefully and analyze the dynamics.",
+      "style": "neutral",
+      "user_profile": "A representative from a stakeholder organization attending as an observer. You are attentive, analytical, and discreet. You do not participate directly but gather information.",
+      "properties": {
+        "role": "observer",
+        "can_vote": false,
+        "can_speak": false,
+        "voting_weight": 0
+      },
+      "allowed_actions": ["voting_status"]
+    }
+  ],
+  "environment": {
+    "description": "A grand council chamber with high ceilings, wooden paneling, and rows of seats arranged in a semi-circle facing a central podium. The chamber has excellent acoustics and is lit by natural light from tall windows. A large clock hangs on the wall, and the air is serious and deliberative. This is where important decisions are made through respectful debate and democratic process.",
+    "time_config": {
+      "start": "2024-01-01 09:00",
+      "step": "5m",
+      "format": "%Y-%m-%d %H:%M"
+    },
+    "space_config": {
+      "type": "network"
+    },
+    "rules": [
+      "Address all remarks through the moderator.",
+      "Wait for recognition from the moderator before speaking.",
+      "Keep comments concise and relevant to the topic.",
+      "Respect differing opinions; no personal attacks.",
+      "The moderator may mute participants who violate rules.",
+      "Voting begins only when the moderator calls for it.",
+      "Observers remain silent unless invited to speak.",
+      "Proposals pass with majority yes votes (excluding abstentions).",
+      "The moderator votes only to break ties."
+    ]
+  },
+  "default_time_config": {
+    "start": "2024-01-01 09:00",
+    "step": "5m",
+    "format": "%Y-%m-%d %H:%M"
+  },
+  "default_network": {
+    "type": "complete"
+  }
+}

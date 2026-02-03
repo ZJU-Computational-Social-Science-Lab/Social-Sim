@@ -16,10 +16,9 @@ def _localized(agent: Agent, en_text: str, zh_text: str) -> str:
 class MoveToLocationAction(Action):
     NAME = "move_to_location"
     DESC = "Move to a named location or coordinates."
-    INSTRUCTION = """- To move to a location:
-<Action name=\"move_to_location\"><location>[location_name]</location></Action>
-- Or move to coordinates:
-<Action name=\"move_to_location\"><x>12</x><y>34</y></Action>
+    INSTRUCTION = """- move_to_location: Go to a place
+  <Action name="move_to_location"><location>market</location></Action>
+  Or: <Action name="move_to_location"><x>10</x><y>10</y></Action>
 """
 
     def handle(self, action_data, agent: Agent, simulator: Simulator, scene: Scene):
@@ -119,8 +118,8 @@ class MoveToLocationAction(Action):
 class LookAroundAction(Action):
     NAME = "look_around"
     DESC = "Survey nearby tiles, locations, and agents."
-    INSTRUCTION = """- To look around and see nearby locations and agents:
-<Action name=\"look_around\"><radius>5</radius></Action>
+    INSTRUCTION = """- look_around: See who and what is nearby
+  <Action name="look_around"/>
 """
 
     def handle(self, action_data, agent: Agent, simulator: Simulator, scene: Scene):
@@ -205,8 +204,8 @@ class LookAroundAction(Action):
 class GatherResourceAction(Action):
     NAME = "gather_resource"
     DESC = "Collect a resource at current tile/location."
-    INSTRUCTION = """- To gather resources:
-<Action name=\"gather_resource\"><resource>[resource_name]</resource><amount>[number]</amount></Action>
+    INSTRUCTION = """- gather_resource: Collect food, wood, or water
+  <Action name="gather_resource"><resource>food</resource></Action>
 """
 
     def handle(self, action_data, agent: Agent, simulator: Simulator, scene: Scene):
@@ -271,8 +270,8 @@ class GatherResourceAction(Action):
 class RestAction(Action):
     NAME = "rest"
     DESC = "Recover energy; more in buildings."
-    INSTRUCTION = """- To rest and recover energy:
-<Action name=\"rest\" />
+    INSTRUCTION = """- rest: Recover energy
+  <Action name="rest"/>
 """
 
     def handle(self, action_data, agent: Agent, simulator: Simulator, scene: Scene):

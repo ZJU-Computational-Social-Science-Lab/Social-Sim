@@ -2062,9 +2062,14 @@ export const useSimulationStore = create<AppState>((set, get) => ({
           const mapSceneType: Record<string, string> = {
             village: 'village_scene',
             council: 'council_scene',
-            werewolf: 'werewolf_scene'
+            werewolf: 'werewolf_scene',
+            generic: 'generic_scene'
           };
           const backendSceneType = mapSceneType[template.sceneType] || template.sceneType;
+
+          // Get availableActions from custom template genericConfig
+          const templateActions = (template as any).genericConfig?.availableActions || [];
+          const useCustomActions = templateActions.length > 0;
 
           let baseAgents = customAgents;
           if (!baseAgents) {
@@ -2076,6 +2081,14 @@ export const useSimulationStore = create<AppState>((set, get) => ({
                 model: 'gpt-4o'
               });
             }
+          }
+
+          // Apply custom template actions to agents
+          if (useCustomActions && baseAgents) {
+            baseAgents = baseAgents.map(agent => ({
+              ...agent,
+              action_space: templateActions
+            }));
           }
 
           const finalTimeConfig =
@@ -2095,6 +2108,8 @@ export const useSimulationStore = create<AppState>((set, get) => ({
                 audio: ev.audioUrl ? [ev.audioUrl] : [],
                 video: ev.videoUrl ? [ev.videoUrl] : [],
               })),
+              // Pass available_actions for GenericScene filtering
+              ...(useCustomActions && { available_actions: templateActions }),
             },
             agent_config: {
               agents: (baseAgents || []).map((a) => ({

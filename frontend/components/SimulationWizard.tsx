@@ -1,5 +1,6 @@
 // frontend/pages/SimulationWizard.tsx
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   useSimulationStore,
   generateAgentsWithAI,
@@ -17,19 +18,21 @@ import {
   Sparkles,
   Loader2,
   Plus,
-  Minus
+  Minus,
+  Settings
 } from 'lucide-react';
 import Papa from 'papaparse';
-import { Agent, LLMConfig, TimeUnit } from '../types';
+import { Agent, LLMConfig, TimeUnit, GenericTemplateConfig } from '../types';
 import { uploadImage } from '../services/uploads';
+import { TemplateBuilder, createEmptyGenericTemplate } from './TemplateBuilder';
 
-const TIME_UNITS: { value: TimeUnit; label: string }[] = [
-  { value: 'minute', label: '分钟' },
-  { value: 'hour', label: '小时' },
-  { value: 'day', label: '天' },
-  { value: 'week', label: '周' },
-  { value: 'month', label: '月' },
-  { value: 'year', label: '年' }
+const TIME_UNITS = (t: (key: string) => string): { value: TimeUnit; label: string }[] => [
+  { value: 'minute', label: t('wizard.timeUnits.minute') },
+  { value: 'hour', label: t('wizard.timeUnits.hour') },
+  { value: 'day', label: t('wizard.timeUnits.day') },
+  { value: 'week', label: t('wizard.timeUnits.week') },
+  { value: 'month', label: t('wizard.timeUnits.month') },
+  { value: 'year', label: t('wizard.timeUnits.year') }
 ];
 
 // =============================================================================
@@ -88,6 +91,7 @@ const generateArchetypes = (demographics: Demographic[]): Archetype[] => {
 };
 
 export const SimulationWizard: React.FC = () => {
+  const { t } = useTranslation();
   const isOpen = useSimulationStore((state) => state.isWizardOpen);
   const toggleWizard = useSimulationStore((state) => state.toggleWizard);
   const addSimulation = useSimulationStore((state) => state.addSimulation);
@@ -96,7 +100,7 @@ export const SimulationWizard: React.FC = () => {
   const addNotification = useSimulationStore((state) => state.addNotification);
   const isGeneratingGlobal = useSimulationStore((s) => s.isGenerating);
 
-  // ⭐ provider 相关
+  // provider related
   const llmProviders = useSimulationStore((s) => s.llmProviders);
   const selectedProviderId = useSimulationStore((s) => s.selectedProviderId);
   const setSelectedProvider = useSimulationStore((s) => s.setSelectedProvider);
@@ -108,6 +112,10 @@ export const SimulationWizard: React.FC = () => {
   const [selectedTemplateId, setSelectedTemplateId] =
     useState<string>('village');
   const [activeTab, setActiveTab] = useState<'system' | 'custom'>('system');
+
+  // Custom Template Mode
+  const [useCustomTemplate, setUseCustomTemplate] = useState(false);
+  const [genericTemplate, setGenericTemplate] = useState<GenericTemplateConfig>(createEmptyGenericTemplate());
 
   const [baseTime, setBaseTime] = useState(
     new Date().toISOString().slice(0, 16)
@@ -121,9 +129,7 @@ export const SimulationWizard: React.FC = () => {
   const [importError, setImportError] = useState<string | null>(null);
 
   const [genCount, setGenCount] = useState(5);
-  const [genDesc, setGenDesc] = useState(
-    '创建一个多元化的乡村社区，包含务农者、商人和知识分子。'
-  );
+  const [genDesc, setGenDesc] = useState('');
   const [isEmbeddingImage, setIsEmbeddingImage] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -131,11 +137,8 @@ export const SimulationWizard: React.FC = () => {
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   // Demographic-based generation fields (AgentTorch)
-  const [useDemographics, setUseDemographics] = useState(false);
-  const [demographics, setDemographics] = useState<Demographic[]>([
-    { id: generateId(), name: 'Age', categories: ['18-30', '31-50', '51+'] },
-    { id: generateId(), name: 'Location', categories: ['Urban', 'Suburban', 'Rural'] }
-  ]);
+  const [useDemographics, setUseDemographics] = useState(true);
+  const [demographics, setDemographics] = useState<Demographic[]>([]);
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
   const [traits, setTraits] = useState<TraitConfig[]>([
     { id: generateId(), name: 'Trust', mean: 50, std: 15 },
@@ -147,18 +150,27 @@ export const SimulationWizard: React.FC = () => {
   useEffect(() => {
     if (isOpen) {
       loadProviders();
+      // Initialize demographics on open
+      if (demographics.length === 0) {
+        setDemographics([
+          { id: generateId(), name: t('wizard.tabs.age'), categories: ['18-30', '31-50', '51+'] },
+          { id: generateId(), name: t('wizard.tabs.location'), categories: ['Urban', 'Suburban', 'Rural'] }
+        ]);
+      }
+      // Set default description if empty
+      if (!genDesc) {
+        setGenDesc(t('wizard.templateDefaults.village'));
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, loadProviders]);
 
   // 根据模板自动调整生成描述和数量
   useEffect(() => {
     const defaults: Record<string, string> = {
-      village:
-        '创建一个多元化的乡村社区，包含务农者、商人和知识分子。',
-      council:
-        '创建一个由5名成员组成的议会，每位成员具有不同政策立场与影响力。',
-      werewolf:
-        '创建一个狼人杀9人局的玩家群体画像：法官/上帝、预言家、女巫、猎人、2名狼人、3名平民，并描述性格与策略偏好。'
+      village: t('wizard.templateDefaults.village'),
+      council: t('wizard.templateDefaults.council'),
+      werewolf: t('wizard.templateDefaults.werewolf')
     };
     setGenDesc(defaults[selectedTemplateId] || defaults['village']);
     const counts: Record<string, number> = {
@@ -167,7 +179,7 @@ export const SimulationWizard: React.FC = () => {
       werewolf: 9
     };
     setGenCount(counts[selectedTemplateId] ?? 5);
-  }, [selectedTemplateId]);
+  }, [selectedTemplateId, t]);
 
   // Update archetypes when demographics change (AgentTorch)
   useEffect(() => {
@@ -210,9 +222,9 @@ export const SimulationWizard: React.FC = () => {
     try {
       const asset = await uploadImage(file);
       setGenDesc((prev) => `${prev}\n![scene image](${asset.url})`);
-      addNotification('success', '图片已上传并插入描述');
+      addNotification('success', t('wizard.messages.imageUploaded'));
     } catch (err) {
-      const message = err instanceof Error ? err.message : '上传失败';
+      const message = err instanceof Error ? err.message : t('wizard.messages.uploadFailed');
       addNotification('error', message);
     } finally {
       setIsEmbeddingImage(false);
@@ -236,7 +248,26 @@ export const SimulationWizard: React.FC = () => {
       });
     }
 
-    addSimulation(name, selectedTemplate, agentsToUse, {
+    // If using custom template, create a template from generic config
+    const templateToUse = useCustomTemplate
+      ? {
+          id: genericTemplate.id,
+          name: genericTemplate.name || 'Custom Template',
+          description: genericTemplate.description || '',
+          category: 'custom' as const,
+          sceneType: 'generic', // Indicates generic template
+          agents: agentsToUse || [],
+          defaultTimeConfig: genericTemplate.defaultTimeConfig || {
+            baseTime: new Date(baseTime).toISOString(),
+            unit: timeUnit,
+            step: timeStep
+          },
+          // Store generic template data for backend processing
+          genericConfig: genericTemplate
+        }
+      : selectedTemplate;
+
+    addSimulation(name, templateToUse, agentsToUse, {
       baseTime: new Date(baseTime).toISOString(),
       unit: timeUnit,
       step: timeStep
@@ -253,14 +284,14 @@ export const SimulationWizard: React.FC = () => {
     setCustomAgents([]);
     setImportError(null);
     setGenCount(5);
-    setGenDesc(
-      '创建一个多元化的乡村社区，包含务农者、商人和知识分子。'
-    );
+    setGenDesc(t('wizard.templateDefaults.village'));
+    setUseCustomTemplate(false);
+    setGenericTemplate(createEmptyGenericTemplate());
   };
 
   const handleDeleteTemplate = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (window.confirm('确定要删除这个模板吗？')) {
+    if (window.confirm(t('wizard.confirmations.deleteTemplate'))) {
       deleteTemplate(id);
       if (selectedTemplateId === id) setSelectedTemplateId('village');
     }
@@ -282,11 +313,11 @@ export const SimulationWizard: React.FC = () => {
           const data = JSON.parse(text);
           const items = Array.isArray(data) ? data : data.agents;
           if (!Array.isArray(items)) {
-            throw new Error('JSON 格式错误：应为数组或包含 agents 数组');
+            throw new Error(t('wizard.errors.jsonFormatError'));
           }
           rawItems = items.map((row, index) => ({
             row,
-            label: `第 ${index + 1} 项`
+            label: t('wizard.errors.itemLabel', { index: index + 1 })
           }));
         } else if (file.name.endsWith('.csv')) {
           const result = Papa.parse(text, {
@@ -295,12 +326,12 @@ export const SimulationWizard: React.FC = () => {
           });
           if (result.errors.length > 0) {
             throw new Error(
-              `CSV 解析失败：${result.errors[0].message || '格式错误'}`
+              t('wizard.errors.csvParseError', { message: result.errors[0].message || t('common.loading') })
             );
           }
           const rows = result.data as any[];
           if (!rows || rows.length === 0) {
-            throw new Error('CSV 为空或没有有效数据行');
+            throw new Error(t('wizard.errors.csvEmpty'));
           }
           const firstRow = (rows[0] || []).map((v: any) =>
             String(v ?? '').trim()
@@ -314,7 +345,7 @@ export const SimulationWizard: React.FC = () => {
           const header = headerLooksLike ? firstRow : null;
           const dataRows = header ? rows.slice(1) : rows;
           if (dataRows.length === 0) {
-            throw new Error('CSV 为空或没有有效数据行');
+            throw new Error(t('wizard.errors.csvEmpty'));
           }
           rawItems = dataRows.map((row: any, index: number) => {
             const values = Array.isArray(row) ? row : Object.values(row);
@@ -323,7 +354,7 @@ export const SimulationWizard: React.FC = () => {
               header.forEach((key, i) => {
                 if (key) obj[key] = values[i];
               });
-              return { row: obj, label: `第 ${index + 2} 行` };
+              return { row: obj, label: t('wizard.errors.rowLabel', { index: index + 2 }) };
             }
             const obj: Record<string, any> = {
               agent_name: values[0],
@@ -332,22 +363,22 @@ export const SimulationWizard: React.FC = () => {
             values.slice(2).forEach((val, i) => {
               obj[`attribute${i + 1}`] = val;
             });
-            return { row: obj, label: `第 ${index + 1} 行` };
+            return { row: obj, label: t('wizard.errors.rowLabel', { index: index + 1 }) };
           });
         } else {
-          throw new Error('仅支持 .json 或 .csv 文件');
+          throw new Error(t('wizard.errors.onlySupportCsvJson'));
         }
         const errors: string[] = [];
         const agents: Agent[] = [];
         rawItems.forEach(({ row, label }, index) => {
           if (!row || typeof row !== 'object') {
-            errors.push(`${label}：数据格式错误`);
+            errors.push(`${label}：${t('wizard.errors.dataFormatError')}`);
             return;
           }
           const name = row.agent_name ?? row.name;
           const profile = row.agent_description ?? row.profile;
           if (!name || !profile) {
-            errors.push(`${label}：缺少 agent_name 或 agent_description`);
+            errors.push(`${label}：${t('wizard.errors.missingRequiredFields')}`);
             return;
           }
           const reservedKeys = new Set([
@@ -391,10 +422,15 @@ export const SimulationWizard: React.FC = () => {
           const detail = errors.slice(0, 5).join('；');
           const more =
             errors.length > 5
-              ? `；另有 ${errors.length - 5} 条错误`
+              ? t('wizard.errors.additionalErrors', { count: errors.length - 5 })
               : '';
           setImportError(
-            `已导入 ${agents.length} 个，以下 ${errors.length} 个无效：${detail}${more}`
+            t('wizard.errors.importedWithErrors', {
+              count: agents.length,
+              errorCount: errors.length,
+              detail,
+              more
+            })
           );
         } else {
           setImportError(null);
@@ -421,7 +457,7 @@ export const SimulationWizard: React.FC = () => {
           genCount,
           demographics.map(d => ({ name: d.name, categories: d.categories })),
           archetypeProbs,
-          traits.map(t => ({ name: t.name, mean: t.mean, std: t.std })),
+          traits.map(tr => ({ name: tr.name, mean: tr.mean, std: tr.std })),
           'zh',
           selectedProviderId ?? undefined
         );
@@ -437,10 +473,10 @@ export const SimulationWizard: React.FC = () => {
         a.llmConfig = defaultLlmConfig;
       });
       setCustomAgents(agents);
-      addNotification('success', `成功生成 ${agents.length} 个智能体`);
+      addNotification('success', t('wizard.messages.generatedAgents', { count: agents.length }));
     } catch (e) {
       console.error(e);
-      setImportError('生成失败，请检查 API Key 或重试');
+      setImportError(t('wizard.messages.generationFailed'));
     } finally {
       setIsGenerating(false);
     }
@@ -537,12 +573,12 @@ export const SimulationWizard: React.FC = () => {
   // 点击"下一步"时的处理逻辑：如果没有任何可用模型，提醒一下
   const handleNext = () => {
     if (llmProviders.length === 0 || !selectedProviderId) {
-      window.alert('没有可用模型，请先在“设置 → LLM 提供商”中添加。');
+      window.alert(`${t('wizard.alerts.noProviderTitle')}${t('wizard.alerts.noProviderMessage')}`);
       addNotification(
         'error',
-        '没有可用模型，请先在“设置 → LLM 提供商”中添加。'
+        t('wizard.alerts.noProviderMessage')
       );
-      // 这里选择“提示但仍然允许继续下一步”；如果你想阻止继续，可以直接 return;
+      // 这里选择"提示但仍然允许继续下一步"；如果你想阻止继续，可以直接 return;
       // return;
     }
     setStep((s) => s + 1);
@@ -555,7 +591,7 @@ export const SimulationWizard: React.FC = () => {
         <div className="px-6 py-4 border-b flex justify-between items-center bg-slate-50 shrink-0">
           <div>
             <h2 className="text-lg font-bold text-slate-800">
-              创建新仿真
+              {t('wizard.titles.createSimulation')}
             </h2>
             <div className="flex gap-2 mt-1">
               {[1, 2, 3].map((i) => (
@@ -588,10 +624,10 @@ export const SimulationWizard: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-indigo-900">
-                      默认模型配置
+                      {t('wizard.step1.defaultModelConfig')}
                     </h3>
                     <p className="text-xs text-indigo-700">
-                      从「设置 → LLM提供商」中选择一个已配置的模型。
+                      {t('wizard.step1.selectProviderHint')}
                     </p>
                   </div>
                 </div>
@@ -607,7 +643,7 @@ export const SimulationWizard: React.FC = () => {
                 >
                   {llmProviders.length === 0 && (
                     <option value="">
-                      尚未配置任何提供商（请先在“设置”中添加）
+                      {t('wizard.alerts.noProviderOption')}
                     </option>
                   )}
                   {llmProviders.map((p) => (
@@ -623,88 +659,135 @@ export const SimulationWizard: React.FC = () => {
               {/* Template Selection #20 */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                  <LayoutTemplate size={16} /> 1. 选择场景模板
+                  <LayoutTemplate size={16} /> {t('wizard.step1.selectSceneTemplate')}
                 </label>
 
                 <div className="flex gap-4 border-b border-slate-200 mb-4">
                   <button
-                    onClick={() => setActiveTab('system')}
+                    onClick={() => { setActiveTab('system'); setUseCustomTemplate(false); }}
                     className={`pb-2 text-sm font-medium transition-colors ${
-                      activeTab === 'system'
+                      activeTab === 'system' && !useCustomTemplate
                         ? 'text-brand-600 border-b-2 border-brand-600'
                         : 'text-slate-500 hover:text-slate-700'
                     }`}
                   >
-                    系统预设
+                    {t('wizard.step1.systemPresets')}
                   </button>
                   <button
-                    onClick={() => setActiveTab('custom')}
+                    onClick={() => { setActiveTab('custom'); setUseCustomTemplate(false); }}
                     className={`pb-2 text-sm font-medium transition-colors ${
-                      activeTab === 'custom'
+                      activeTab === 'custom' && !useCustomTemplate
                         ? 'text-brand-600 border-b-2 border-brand-600'
                         : 'text-slate-500 hover:text-slate-700'
                     }`}
                   >
-                    我的模板库
+                    {t('wizard.step1.myTemplates')}
+                  </button>
+                  <button
+                    onClick={() => { setUseCustomTemplate(true); }}
+                    className={`pb-2 text-sm font-medium transition-colors flex items-center gap-1 ${
+                      useCustomTemplate
+                        ? 'text-purple-600 border-b-2 border-purple-600'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    <Settings size={14} />
+                    {t('wizard.step1.customTemplateBuilder')}
                   </button>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  {savedTemplates.filter((t) => t.category === activeTab)
-                    .length === 0 ? (
-                    <div className="col-span-3 py-8 text-center text-slate-400 bg-slate-50 rounded-lg border border-dashed">
-                      暂无自定义模板。请先配置一个仿真并保存为模板。
-                    </div>
-                  ) : (
-                    savedTemplates
-                      .filter((t) => t.category === activeTab)
-                      .map((t) => (
-                        <div
-                          key={t.id}
-                          onClick={() => setSelectedTemplateId(t.id)}
-                          className={`p-4 border rounded-lg text-left transition-all cursor-pointer relative group ${
-                            selectedTemplateId === t.id
-                              ? 'border-brand-500 ring-2 ring-brand-100 bg-brand-50'
-                              : 'hover:border-slate-300 hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="font-bold text-slate-800">
-                            {t.name}
-                          </div>
-                          <div className="text-xs text-slate-500 mt-1 line-clamp-2">
-                            {t.description}
-                          </div>
-
-                          {t.category === 'custom' && (
-                            <button
-                              onClick={(e) => handleDeleteTemplate(e, t.id)}
-                              className="absolute top-2 right-2 p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-
-                          {t.category === 'custom' && (
-                            <div className="mt-2 flex items-center gap-1 text-[10px] text-brand-600 bg-brand-100 px-1.5 py-0.5 rounded w-fit">
-                              <Users size={10} /> {t.agents?.length || 0} 个预设角色
+                {/* System/Custom Templates */}
+                {!useCustomTemplate && (
+                  <div className="grid grid-cols-3 gap-4">
+                    {savedTemplates.filter((t) => t.category === activeTab)
+                      .length === 0 ? (
+                      <div className="col-span-3 py-8 text-center text-slate-400 bg-slate-50 rounded-lg border border-dashed">
+                        {activeTab === 'custom'
+                          ? t('wizard.step1.noCustomTemplates')
+                          : t('wizard.step1.noSystemTemplates')}
+                      </div>
+                    ) : (
+                      savedTemplates
+                        .filter((t) => t.category === activeTab)
+                        .map((t) => (
+                          <div
+                            key={t.id}
+                            onClick={() => setSelectedTemplateId(t.id)}
+                            className={`p-4 border rounded-lg text-left transition-all cursor-pointer relative group ${
+                              selectedTemplateId === t.id && !useCustomTemplate
+                                ? 'border-brand-500 ring-2 ring-brand-100 bg-brand-50'
+                                : 'hover:border-slate-300 hover:bg-slate-50'
+                            }`}
+                          >
+                            <div className="font-bold text-slate-800">
+                              {t.name}
                             </div>
-                          )}
-                        </div>
-                      ))
-                  )}
-                </div>
+                            <div className="text-xs text-slate-500 mt-1 line-clamp-2">
+                              {t.description}
+                            </div>
+
+                            {t.category === 'custom' && (
+                              <button
+                                onClick={(e) => handleDeleteTemplate(e, t.id)}
+                                className="absolute top-2 right-2 p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+
+                            {t.category === 'custom' && (
+                              <div className="mt-2 flex items-center gap-1 text-[10px] text-brand-600 bg-brand-100 px-1.5 py-0.5 rounded w-fit">
+                                <Users size={10} /> {t.agents?.length || 0} {t('wizard.agents')}
+                              </div>
+                            )}
+                          </div>
+                        ))
+                    )}
+                  </div>
+                )}
+
+                {/* Custom Template Builder */}
+                {useCustomTemplate && (
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Settings className="text-purple-600" size={18} />
+                        <span className="text-sm font-bold text-purple-900">
+                          {t('wizard.step1.customTemplateBuilderTitle')}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-purple-700 mb-3">
+                      {t('wizard.step1.customTemplateBuilderDesc')}
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                      <div className="bg-white rounded p-2 text-center">
+                        <div className="font-bold text-purple-700">{genericTemplate.coreMechanics.filter(m => m.enabled).length}</div>
+                        <div className="text-slate-500">{t('wizard.step1.enabledMechanisms')}</div>
+                      </div>
+                      <div className="bg-white rounded p-2 text-center">
+                        <div className="font-bold text-purple-700">{genericTemplate.availableActions.length}</div>
+                        <div className="text-slate-500">{t('wizard.step1.availableActions')}</div>
+                      </div>
+                      <div className="bg-white rounded p-2 text-center">
+                        <div className="font-bold text-purple-700">{(genericTemplate.environment.rules?.length || 0)}</div>
+                        <div className="text-slate-500">{t('wizard.step1.environmentRules')}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Basic Info */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  2. 实验名称 (可选)
+                  {t('wizard.step1.experimentName')}
                 </label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="例如：乡村信任度测试 A组"
+                  placeholder={t('wizard.placeholders.experimentName')}
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-sm"
                 />
               </div>
@@ -712,12 +795,12 @@ export const SimulationWizard: React.FC = () => {
               {/* Time Configuration #9 */}
               <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-5">
                 <label className="block text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
-                  <Clock size={16} /> 3. 仿真时间设置 (Time Scale)
+                  <Clock size={16} /> {t('wizard.step1.timeSettings')}
                 </label>
                 <div className="flex items-end gap-4 flex-wrap">
                   <div className="flex-1 min-w-[180px]">
                     <span className="text-xs text-indigo-700 mb-1 block font-medium">
-                      起始世界时间
+                      {t('wizard.step1.baseWorldTime')}
                     </span>
                     <div className="relative">
                       <input
@@ -730,7 +813,7 @@ export const SimulationWizard: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2 bg-white px-3 py-2 border border-indigo-200 rounded">
                     <span className="text-xs text-indigo-700 whitespace-nowrap">
-                      每回合推进:
+                      {t('wizard.step1.advancePerTurn')}
                     </span>
                     <input
                       type="number"
@@ -748,7 +831,7 @@ export const SimulationWizard: React.FC = () => {
                       }
                       className="text-sm bg-transparent border-none outline-none font-bold text-slate-700 cursor-pointer"
                     >
-                      {TIME_UNITS.map((u) => (
+                      {TIME_UNITS(t).map((u) => (
                         <option key={u.value} value={u.value}>
                           {u.label}
                         </option>
@@ -757,7 +840,7 @@ export const SimulationWizard: React.FC = () => {
                   </div>
                 </div>
                 <p className="text-[10px] text-indigo-600 mt-2">
-                  当前设置下，第 10 回合将对应:{' '}
+                  {t('wizard.step1.currentSettingsPreview')}
                   {(() => {
                     const d = new Date(baseTime);
                     const msMap: any = {
@@ -772,10 +855,31 @@ export const SimulationWizard: React.FC = () => {
                       );
                       return d.toLocaleString();
                     }
-                    return '根据单位动态计算';
+                    return t('wizard.step1.dynamicCalculation');
                   })()}
                 </p>
               </div>
+
+              {/* Custom Template Builder - Expanded View */}
+              {useCustomTemplate && (
+                <div className="border border-purple-200 rounded-lg overflow-hidden">
+                  <div className="bg-purple-100 px-4 py-2 flex items-center justify-between">
+                    <span className="text-sm font-bold text-purple-900">{t('wizard.step1.customTemplateConfig')}</span>
+                    <button
+                      onClick={() => setUseCustomTemplate(false)}
+                      className="text-xs text-purple-700 hover:text-purple-900"
+                    >
+                      {t('wizard.step1.collapse')}
+                    </button>
+                  </div>
+                  <div className="p-4 bg-white max-h-[400px] overflow-y-auto">
+                    <TemplateBuilder
+                      template={genericTemplate}
+                      onChange={setGenericTemplate}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -789,10 +893,10 @@ export const SimulationWizard: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-indigo-900">
-                      默认模型配置
+                      {t('wizard.step2.defaultModelConfig')}
                     </h3>
                     <p className="text-xs text-indigo-700">
-                      选择一个用于新建智能体的模型（来自设置中的 LLM 提供商）。
+                      {t('wizard.step2.selectModelForAgents')}
                     </p>
                   </div>
                 </div>
@@ -807,7 +911,7 @@ export const SimulationWizard: React.FC = () => {
                 >
                   {llmProviders.length === 0 && (
                     <option value="">
-                      尚未配置任何提供商（请先在“设置”中添加）
+                      {t('wizard.alerts.noProviderOption')}
                     </option>
                   )}
                   {llmProviders.map((p) => (
@@ -830,7 +934,7 @@ export const SimulationWizard: React.FC = () => {
                         : 'text-slate-500 hover:text-slate-700'
                     }`}
                   >
-                    使用模板角色
+                    {t('wizard.methods.useTemplateAgents')}
                   </button>
                   <button
                     onClick={() => setImportMode('generate')}
@@ -841,7 +945,7 @@ export const SimulationWizard: React.FC = () => {
                     }`}
                   >
                     <Sparkles size={14} />
-                    AI 批量生成
+                    {t('wizard.methods.aiBatchGenerate')}
                   </button>
                   <button
                     onClick={() => setImportMode('custom')}
@@ -851,7 +955,7 @@ export const SimulationWizard: React.FC = () => {
                         : 'text-slate-500 hover:text-slate-700'
                     }`}
                   >
-                    文件导入
+                    {t('wizard.methods.fileImport')}
                   </button>
                 </div>
               </div>
@@ -863,24 +967,24 @@ export const SimulationWizard: React.FC = () => {
                     <Users size={32} />
                   </div>
                   <h3 className="text-lg font-bold text-slate-700">
-                    将使用{' '}
+                    {t('wizard.step2.usingPresetAgents')}{' '}
                     <span className="text-brand-600">
                       {selectedTemplate.name}
                     </span>{' '}
-                    预设角色
+                    {t('wizard.step2.customTemplateAgents', { count: selectedTemplate.agents?.length || 0 })}
                   </h3>
                   <p className="text-slate-500 mt-2 text-sm max-w-md mx-auto">
                     {selectedTemplate.category === 'custom'
-                      ? `此自定义模板包含 ${
-                          selectedTemplate.agents?.length || 0
-                        } 个配置好的智能体。`
-                      : `此系统模板将自动生成 ${
-                          selectedTemplate.sceneType === 'council'
+                      ? t('wizard.step2.customTemplateAgents', {
+                          count: selectedTemplate.agents?.length || 0
+                        })
+                      : t('wizard.step2.systemTemplateAgents', {
+                          count: selectedTemplate.sceneType === 'council'
                             ? 5
                             : selectedTemplate.sceneType === 'werewolf'
                             ? 9
                             : 2
-                        } 个标准角色。`}
+                        })}
                   </p>
                 </div>
               )}
@@ -890,8 +994,8 @@ export const SimulationWizard: React.FC = () => {
                 <div className="flex-1 flex flex-col gap-4">
                   <div className={`text-xs p-3 rounded border ${visionCapable ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
                     {visionCapable
-                      ? '当前模型推断支持视觉，多模态描述将以图片链接发送；图片推理可能产生额外费用，请确认计价。可用 scripts/check_vision_model.py 先行自检。'
-                      : '当前模型可能不支持视觉，图片将以占位符文本传递。若需识图，请在设置中选择支持 vision 的模型。'}
+                      ? t('wizard.step2.visionSupported')
+                      : t('wizard.step2.visionNotSupported')}
                   </div>
 
                   {/* Demographics Mode Toggle */}
@@ -903,9 +1007,9 @@ export const SimulationWizard: React.FC = () => {
                         onChange={(e) => setUseDemographics(e.target.checked)}
                         className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                       />
-                      <span className="text-sm font-bold text-blue-900">使用人口统计模式 (Demographics)</span>
+                      <span className="text-sm font-bold text-blue-900">{t('wizard.step2.useDemographicsMode')}</span>
                     </label>
-                    <span className="text-xs text-blue-700">基于人口维度生成大量智能体 (最多200个)</span>
+                    <span className="text-xs text-blue-700">{t('wizard.step2.demographicsHint')}</span>
                   </div>
 
                   {!useDemographics ? (
@@ -913,7 +1017,7 @@ export const SimulationWizard: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-purple-50 border border-purple-100 p-4 rounded-lg">
                       <div className="col-span-1">
                         <label className="block text-xs font-bold text-purple-800 mb-2">
-                          生成数量
+                          {t('wizard.step2.generateCount')}
                         </label>
                         <input
                           type="number"
@@ -934,7 +1038,7 @@ export const SimulationWizard: React.FC = () => {
                       <div className="col-span-3">
                         <div className="flex items-center justify-between mb-2">
                           <label className="block text-xs font-bold text-purple-800">
-                            群体画像描述 (Population Distribution)
+                            {t('wizard.step2.populationDescription')}
                           </label>
                           <div className="flex items-center gap-2">
                             <input
@@ -955,7 +1059,7 @@ export const SimulationWizard: React.FC = () => {
                               disabled={isEmbeddingImage}
                               className="text-[10px] px-2 py-1 border border-purple-200 rounded text-purple-700 bg-white hover:bg-purple-50 disabled:opacity-60"
                             >
-                              {isEmbeddingImage ? '上传中...' : '插入图片'}
+                              {isEmbeddingImage ? t('wizard.step2.uploading') : t('wizard.step2.uploadImage')}
                             </button>
                           </div>
                         </div>
@@ -963,7 +1067,7 @@ export const SimulationWizard: React.FC = () => {
                           value={genDesc}
                           onChange={(e) => setGenDesc(e.target.value)}
                           className="w-full px-3 py-2 border border-purple-200 rounded text-sm focus:ring-purple-500 h-20 resize-none"
-                          placeholder="描述群体的构成，例如：'一个包括5名居民的小镇，其中2名是保守派农民，2名是年轻激进的学生，1名是中立的教师。'"
+                          placeholder={t('wizard.step2.generatePlaceholder')}
                         />
                       </div>
                       <div className="col-span-4 flex justify-end">
@@ -980,7 +1084,7 @@ export const SimulationWizard: React.FC = () => {
                           ) : (
                             <Sparkles size={16} />
                           )}
-                          开始生成
+                          {t('wizard.step2.startGeneration')}
                         </button>
                       </div>
                     </div>
@@ -990,12 +1094,12 @@ export const SimulationWizard: React.FC = () => {
                       {/* Demographics Configuration */}
                       <div className="border border-slate-200 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-sm font-bold text-slate-800">人口统计维度 (Demographics)</h4>
+                          <h4 className="text-sm font-bold text-slate-800">{t('wizard.step2.demographics')}</h4>
                           <button
                             onClick={handleAddDemographic}
                             className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded flex items-center gap-1"
                           >
-                            <Plus size={14} /> 添加维度
+                            <Plus size={14} /> {t('wizard.step2.addDimension')}
                           </button>
                         </div>
                         <div className="space-y-3">
@@ -1006,7 +1110,7 @@ export const SimulationWizard: React.FC = () => {
                                   type="text"
                                   value={demo.name}
                                   onChange={(e) => handleUpdateDemographicName(demo.id, e.target.value)}
-                                  placeholder="维度名称 (如: Age)"
+                                  placeholder={t('wizard.step2.dimensionNamePlaceholder')}
                                   className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm"
                                 />
                                 {demographics.length > 1 && (
@@ -1019,7 +1123,7 @@ export const SimulationWizard: React.FC = () => {
                                 )}
                               </div>
                               <div className="space-y-1">
-                                <div className="text-xs text-slate-500">类别 (用逗号分隔):</div>
+                                <div className="text-xs text-slate-500">{t('wizard.step2.categoriesLabel')}</div>
                                 {demo.categories.map((cat, catIdx) => (
                                   <div key={catIdx} className="flex items-center gap-2">
                                     <input
@@ -1042,7 +1146,7 @@ export const SimulationWizard: React.FC = () => {
                                   onClick={() => handleAddCategory(demo.id)}
                                   className="text-xs px-2 py-1 bg-slate-200 hover:bg-slate-300 rounded flex items-center gap-1"
                                 >
-                                  <Plus size={12} /> 添加类别
+                                  <Plus size={12} /> {t('wizard.step2.addCategory')}
                                 </button>
                               </div>
                             </div>
@@ -1055,16 +1159,16 @@ export const SimulationWizard: React.FC = () => {
                         <div className="border border-slate-200 rounded-lg p-4">
                           <div className="flex items-center justify-between mb-3">
                             <div>
-                              <h4 className="text-sm font-bold text-slate-800">生成的原型 (Archetypes: {archetypes.length})</h4>
-                              <span className="text-xs text-slate-500">原型 × 人口维度 = 智能体组合</span>
+                              <h4 className="text-sm font-bold text-slate-800">{t('wizard.step2.archetypes', { count: archetypes.length })}</h4>
+                              <span className="text-xs text-slate-500">{t('wizard.step2.archetypesHint')}</span>
                             </div>
                             <div className="text-right">
-                              <div className="text-xs text-slate-500">总概率: <span className={Math.abs(archetypes.reduce((sum, a) => sum + a.probability, 0) - 1.0) < 0.01 ? "text-green-600 font-bold" : "text-amber-600 font-bold"}>{archetypes.reduce((sum, a) => sum + a.probability, 0).toFixed(2)}</span> (应为 1.0)</div>
+                              <div className="text-xs text-slate-500">{t('wizard.step2.totalProbability')}: <span className={Math.abs(archetypes.reduce((sum, a) => sum + a.probability, 0) - 1.0) < 0.01 ? "text-green-600 font-bold" : "text-amber-600 font-bold"}>{archetypes.reduce((sum, a) => sum + a.probability, 0).toFixed(2)}</span> {t('wizard.step2.shouldBeOne')}</div>
                               <button
                                 onClick={handleNormalizeProbabilities}
                                 className="text-[10px] px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded mt-1"
                               >
-                                归一化全部
+                                {t('wizard.step2.normalizeAll')}
                               </button>
                             </div>
                           </div>
@@ -1073,7 +1177,7 @@ export const SimulationWizard: React.FC = () => {
                               <div key={arch.id} className="p-2 bg-slate-50 rounded border border-slate-200 text-xs">
                                 <div className="font-medium text-slate-700 truncate mb-1" title={arch.label}>{arch.label}</div>
                                 <div className="flex items-center gap-2">
-                                  <label className="text-slate-500">概率:</label>
+                                  <label className="text-slate-500">{t('wizard.step2.probability')}:</label>
                                   <input
                                     type="number"
                                     min="0"
@@ -1088,19 +1192,19 @@ export const SimulationWizard: React.FC = () => {
                               </div>
                             ))}
                           </div>
-                          <p className="text-xs text-slate-500 mt-2">修改任意概率后，其他概率会自动按比例调整以保持总和为 1.0</p>
+                          <p className="text-xs text-slate-500 mt-2">{t('wizard.step2.modifyProbabilityHint')}</p>
                         </div>
                       )}
 
                       {/* Traits Configuration */}
                       <div className="border border-slate-200 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-sm font-bold text-slate-800">智能体属性配置 (Traits)</h4>
+                          <h4 className="text-sm font-bold text-slate-800">{t('wizard.step2.traits')}</h4>
                           <button
                             onClick={handleAddTrait}
                             className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded flex items-center gap-1"
                           >
-                            <Plus size={14} /> 添加属性
+                            <Plus size={14} /> {t('wizard.step2.addTrait')}
                           </button>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1124,7 +1228,7 @@ export const SimulationWizard: React.FC = () => {
                               </div>
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <label className="text-[10px] text-slate-500">均值 (Mean)</label>
+                                  <label className="text-[10px] text-slate-500">{t('wizard.step2.mean')}</label>
                                   <input
                                     type="number"
                                     min="0"
@@ -1135,7 +1239,7 @@ export const SimulationWizard: React.FC = () => {
                                   />
                                 </div>
                                 <div>
-                                  <label className="text-[10px] text-slate-500">标准差 (Std)</label>
+                                  <label className="text-[10px] text-slate-500">{t('wizard.step2.std')}</label>
                                   <input
                                     type="number"
                                     min="0"
@@ -1149,14 +1253,14 @@ export const SimulationWizard: React.FC = () => {
                             </div>
                           ))}
                         </div>
-                        <p className="text-xs text-slate-500 mt-2">属性将使用高斯分布 (均值 ± 标准差) 生成，范围限制在 0-100。</p>
+                        <p className="text-xs text-slate-500 mt-2">{t('wizard.step2.traitsHint')}</p>
                       </div>
 
                       {/* Generation Settings */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50 border border-blue-200 p-4 rounded-lg">
                         <div>
                           <label className="block text-xs font-bold text-blue-800 mb-2">
-                            生成数量
+                            {t('wizard.step2.generateCount')}
                           </label>
                           <input
                             type="number"
@@ -1177,7 +1281,7 @@ export const SimulationWizard: React.FC = () => {
                             ) : (
                               <Sparkles size={16} />
                             )}
-                            开始生成
+                            {t('wizard.step2.startGeneration')}
                           </button>
                         </div>
                       </div>
@@ -1195,23 +1299,23 @@ export const SimulationWizard: React.FC = () => {
                     <div className="flex-1 border rounded-lg overflow-hidden flex flex-col bg-white">
                       <div className="px-4 py-2 bg-slate-50 border-b flex justify-between items-center">
                         <span className="text-xs font-bold text-slate-700">
-                          已生成 {customAgents.length} 个智能体
+                          {t('wizard.step2.generatedAgents', { count: customAgents.length })}
                         </span>
                         <button
                           onClick={() => setCustomAgents([])}
                           className="text-xs text-red-500 hover:underline"
                         >
-                          清空重置
+                          {t('wizard.step2.clearReset')}
                         </button>
                       </div>
                       <div className="overflow-y-auto flex-1 p-0">
                         <table className="w-full text-left text-xs">
                           <thead className="bg-slate-50 sticky top-0 text-slate-500">
                             <tr>
-                              <th className="px-4 py-2">姓名</th>
-                              <th className="px-4 py-2">角色</th>
-                              <th className="px-4 py-2">画像描述</th>
-                              <th className="px-4 py-2">初始属性</th>
+                              <th className="px-4 py-2">{t('wizard.step2.name')}</th>
+                              <th className="px-4 py-2">{t('wizard.step2.role')}</th>
+                              <th className="px-4 py-2">{t('wizard.step2.description')}</th>
+                              <th className="px-4 py-2">{t('wizard.step2.attributes')}</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y">
@@ -1265,10 +1369,10 @@ export const SimulationWizard: React.FC = () => {
                         size={32}
                       />
                       <p className="text-sm font-bold text-slate-700 group-hover:text-brand-600">
-                        点击上传 CSV 或 JSON
+                        {t('wizard.step2.uploadCsvJson')}
                       </p>
                       <p className="text-xs text-slate-500 mt-1">
-                        必填字段：agent_name, agent_description；其余列将作为属性保留
+                        {t('wizard.step2.requiredFields')}
                       </p>
                     </div>
                   </div>
@@ -1281,23 +1385,23 @@ export const SimulationWizard: React.FC = () => {
                     <div className="flex-1 border rounded-lg overflow-hidden flex flex-col bg-white">
                       <div className="px-4 py-2 bg-slate-50 border-b flex justify-between items-center">
                         <span className="text-xs font-bold text-slate-700">
-                          已解析 {customAgents.length} 个智能体
+                          {t('wizard.step2.parsedAgents', { count: customAgents.length })}
                         </span>
                         <button
                           onClick={() => setCustomAgents([])}
                           className="text-xs text-red-500 hover:underline"
                         >
-                          清空重置
+                          {t('wizard.step2.clearReset')}
                         </button>
                       </div>
                       <div className="overflow-y-auto flex-1 p-0">
                         <table className="w-full text-left text-xs">
                           <thead className="bg-slate-50 sticky top-0 text-slate-500">
                             <tr>
-                              <th className="px-4 py-2">姓名</th>
-                              <th className="px-4 py-2">角色</th>
-                              <th className="px-4 py-2">画像描述</th>
-                              <th className="px-4 py-2">初始属性</th>
+                              <th className="px-4 py-2">{t('wizard.step2.name')}</th>
+                              <th className="px-4 py-2">{t('wizard.step2.role')}</th>
+                              <th className="px-4 py-2">{t('wizard.step2.description')}</th>
+                              <th className="px-4 py-2">{t('wizard.step2.attributes')}</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y">
@@ -1339,30 +1443,61 @@ export const SimulationWizard: React.FC = () => {
                 <Check size={32} />
               </div>
               <h3 className="text-xl font-bold text-slate-800">
-                准备就绪
+                {t('wizard.step3.ready')}
               </h3>
               <div className="bg-slate-50 rounded-lg p-6 max-w-md mx-auto text-left space-y-3 border">
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">模板:</span>
-                  <span className="font-bold text-slate-800">
-                    {selectedTemplate.name}
-                  </span>
-                </div>
-                {(importMode === 'custom' || importMode === 'generate') &&
-                  customAgents.length > 0 && (
+                {useCustomTemplate ? (
+                  <>
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-500">自定义角色:</span>
-                      <span className="font-bold text-brand-600">
-                        {customAgents.length} 人
+                      <span className="text-slate-500">{t('wizard.step3.templateType')}:</span>
+                      <span className="font-bold text-purple-700">
+                        {t('wizard.step3.customTemplate')}
                       </span>
                     </div>
-                  )}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500">{t('wizard.step3.templateName')}:</span>
+                      <span className="font-bold text-slate-800">
+                        {genericTemplate.name || t('wizard.step3.unnamed')}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500">{t('wizard.step3.coreMechanisms')}:</span>
+                      <span className="font-bold text-slate-800">
+                        {genericTemplate.coreMechanics.filter(m => m.enabled).map(m => m.type).join(', ') || t('wizard.step3.none')}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500">{t('wizard.step3.availableActionsCount')}:</span>
+                      <span className="font-bold text-slate-800">
+                        {genericTemplate.availableActions.length} {t('wizard.step1.availableActions')}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500">{t('wizard.step3.template')}:</span>
+                      <span className="font-bold text-slate-800">
+                        {selectedTemplate.name}
+                      </span>
+                    </div>
+                    {(importMode === 'custom' || importMode === 'generate') &&
+                      customAgents.length > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-500">{t('wizard.step3.customAgents')}:</span>
+                          <span className="font-bold text-brand-600">
+                            {customAgents.length} {t('wizard.step3.people')}
+                          </span>
+                        </div>
+                      )}
+                  </>
+                )}
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">时间流速:</span>
+                  <span className="text-slate-500">{t('wizard.step3.timeFlow')}:</span>
                   <span className="font-bold text-slate-800">
-                    1 回合 = {timeStep}{' '}
+                    {t('wizard.step3.perTurn')} {timeStep}{' '}
                     {
-                      TIME_UNITS.find((u) => u.value === timeUnit)
+                      TIME_UNITS(t).find((u) => u.value === timeUnit)
                         ?.label
                     }
                   </span>
@@ -1379,7 +1514,7 @@ export const SimulationWizard: React.FC = () => {
               onClick={() => setStep(step - 1)}
               className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg"
             >
-              上一步
+              {t('wizard.footer.previous')}
             </button>
           )}
           {step === 1 && (
@@ -1387,7 +1522,7 @@ export const SimulationWizard: React.FC = () => {
               onClick={() => toggleWizard(false)}
               className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg"
             >
-              取消
+              {t('wizard.footer.cancel')}
             </button>
           )}
           {step < 3 && (
@@ -1395,7 +1530,7 @@ export const SimulationWizard: React.FC = () => {
               onClick={handleNext}
               className="px-6 py-2 text-sm bg-brand-600 text-white font-medium hover:bg-brand-700 rounded-lg shadow-sm"
             >
-              下一步
+              {t('wizard.footer.next')}
             </button>
           )}
           {step === 3 && (
@@ -1406,10 +1541,10 @@ export const SimulationWizard: React.FC = () => {
             >
               {isGeneratingGlobal ? (
                 <span className="flex items-center gap-2">
-                  <Loader2 size={16} className="animate-spin" /> 保存中...
+                  <Loader2 size={16} className="animate-spin" /> {t('wizard.footer.saving')}
                 </span>
               ) : (
-                '开始仿真'
+                t('wizard.footer.startSimulation')
               )}
             </button>
           )}

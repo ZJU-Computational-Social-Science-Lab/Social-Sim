@@ -185,6 +185,14 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         role_map = cfg.get("role_map") or None
         moderator_names = cfg.get("moderator_names") or None
         scene = scene_cls(name, initial, role_map=role_map, moderator_names=moderator_names)
+    elif scene_key == "generic_scene":
+        # GenericScene needs available_actions from scene_config
+        available_actions = cfg.get("available_actions")
+        scene = scene_cls(
+            name,
+            str(cfg.get("initial_event") or ""),
+            available_actions=available_actions,
+        )
     else:
         scene = scene_cls(name, str(cfg.get("initial_event") or ""))
 
