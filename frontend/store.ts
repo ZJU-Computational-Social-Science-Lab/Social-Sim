@@ -143,7 +143,7 @@ interface AppState {
   deleteSimulation: () => Promise<void>;
 
   // #22 Social Network
-  updateSocialNetwork: (network: SocialNetwork) => void;
+  updateSocialNetwork: (network: SocialNetwork) => Promise<void>;
 
   // #14 Report
   generateReport: () => Promise<void>;
@@ -2244,14 +2244,33 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     get().addNotification('info', pickText('Time configuration updated', '时间配置已更新'));
   },
 
-  updateSocialNetwork: (network) => {
-     set(state => {
-       if (!state.currentSimulation) return {};
-       return {
-         currentSimulation: { ...state.currentSimulation, socialNetwork: network }
-       };
-     });
-     get().addNotification('success', pickText('Network graph updated', '社交网络拓扑已更新'));
+  updateSocialNetwork: async (network) => {
+     const { currentSimulation, engineConfig } = get();
+     if (!currentSimulation) return;
+
+     // Update local state immediately for responsiveness
+     set(state => ({
+       currentSimulation: { ...state.currentSimulation, socialNetwork: network }
+     }));
+
+     // Sync to backend if in connected mode
+     if (engineConfig.mode === 'connected') {
+       try {
+         await updateSimulationApi(currentSimulation.id, {
+           scene_config: { social_network: network }
+         });
+         get().addNotification('success', pickText('Network topology saved', '社交网络拓扑已保存'));
+       } catch (error) {
+         console.error('Failed to save network topology:', error);
+         get().addNotification('error', pickText('Failed to save network', '保存网络失败'));
+         // Revert on error
+         set(state => ({
+           currentSimulation: { ...state.currentSimulation, socialNetwork: get().currentSimulation?.socialNetwork || {} }
+         }));
+       }
+     } else {
+       get().addNotification('info', pickText('Network topology updated locally (not synced)', '社交网络拓扑已更新（仅本地）'));
+     }
   },
 
   saveTemplate: (name, description) => {
@@ -2819,6 +2838,15 @@ export const useSimulationStore = create<AppState>((set, get) => ({
 
             console.log('[KB-DEBUG] advanceSimulation: Received simState from backend');
             console.log('[KB-DEBUG] simState.agents:', JSON.stringify(simState?.agents?.map((a: any) => ({ name: a.name, knowledgeBase: a.knowledgeBase })), null, 2));
+
+            // Extract social_network from scene_config and update currentSimulation
+            const socialNetwork = simState?.scene_config?.social_network || {};
+            if (Object.keys(socialNetwork).length > 0) {
+              console.log('[NETWORK-DEBUG] Found social_network in scene_config:', socialNetwork);
+              set(state => ({
+                currentSimulation: { ...state.currentSimulation!, socialNetwork }
+              }));
+            }
 
             const turnVal = Number(simState?.turns ?? 0) || 0;
 

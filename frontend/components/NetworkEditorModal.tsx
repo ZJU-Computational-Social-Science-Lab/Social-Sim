@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSimulationStore } from '../store';
-import { X, Network, Save, RefreshCw, Hexagon, Circle, Share2, Shuffle, ZoomIn, ZoomOut, Maximize, Move, Users, Waypoints, Target, GitBranch, MapPin, ChevronDown, ChevronRight, Play, Settings2 } from 'lucide-react';
+import { X, Network, Save, RefreshCw, Hexagon, Circle, Share2, Shuffle, ZoomIn, ZoomOut, Maximize, Move, Users, Waypoints, Target, GitBranch, MapPin, ChevronDown, ChevronRight, Play, Settings2, Loader2 } from 'lucide-react';
 import * as d3 from 'd3';
 import { SocialNetwork } from '../types';
 
@@ -163,6 +163,7 @@ export const NetworkEditorModal: React.FC = () => {
   const [network, setNetwork] = useState<SocialNetwork>({});
   const [selectedPreset, setSelectedPreset] = useState<PresetType>(null);
   const [params, setParams] = useState<PresetParams>(defaultParams);
+  const [isSaving, setIsSaving] = useState(false);
   
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -174,7 +175,51 @@ export const NetworkEditorModal: React.FC = () => {
   // Initialize network from store on open
   useEffect(() => {
     if (isOpen && currentSim) {
-      setNetwork(currentSim.socialNetwork || {});
+      let networkFromStore = currentSim.socialNetwork || {};
+
+      // Migration: Convert old ID-based keys to name-based keys
+      // Check if network keys look like old generated IDs (start with 'gen_' or don't match any agent name)
+      const agentNames = new Set(agents.map(a => a.name));
+      const needsMigration = Object.keys(networkFromStore).some(
+        key => !agentNames.has(key) && (key.startsWith('gen_') || key.includes('_'))
+      );
+
+      if (needsMigration) {
+        console.log('[NETWORK-DEBUG] Migrating old ID-based network to name-based');
+        const migratedNetwork: SocialNetwork = {};
+
+        // Create a mapping from old IDs to agent names
+        const idToName: Record<string, string> = {};
+        agents.forEach(agent => {
+          idToName[agent.id] = agent.name;
+        });
+
+        // Migrate the network
+        Object.entries(networkFromStore).forEach(([sourceId, targets]) => {
+          const sourceName = idToName[sourceId] || sourceId;
+          if (!agentNames.has(sourceName)) return; // Skip if agent no longer exists
+
+          const migratedTargets: string[] = [];
+          targets.forEach(targetId => {
+            const targetName = idToName[targetId] || targetId;
+            if (agentNames.has(targetName)) {
+              migratedTargets.push(targetName);
+            }
+          });
+
+          migratedNetwork[sourceName] = migratedTargets;
+        });
+
+        networkFromStore = migratedNetwork;
+        // Save the migrated network back to store
+        updateSocialNetwork(migratedNetwork).catch(() => {
+          // If save fails, just use the migrated network locally
+          console.log('[NETWORK-DEBUG] Failed to save migrated network, using locally');
+        });
+      }
+
+      console.log('[NETWORK-DEBUG] NetworkEditorModal: Initializing network from store:', networkFromStore);
+      setNetwork(networkFromStore);
     }
   }, [isOpen, currentSim]);
 
@@ -204,7 +249,7 @@ export const NetworkEditorModal: React.FC = () => {
   // Apply Presets with current parameters
   const applyPreset = (type: NonNullable<PresetType>) => {
     const newNetwork: SocialNetwork = {};
-    const agentIds = agents.map(a => a.id);
+    const agentIds = agents.map(a => a.name); // Use agent names, not temporary IDs
     const n = agentIds.length;
 
     // Initialize all as empty
@@ -475,13 +520,13 @@ export const NetworkEditorModal: React.FC = () => {
     svg.call(zoom).on("dblclick.zoom", null);
 
     // 2. Prepare Data
-    const nodes = agents.map(a => ({ id: a.id, name: a.name, img: a.avatarUrl }));
+    const nodes = agents.map(a => ({ id: a.name, name: a.name, img: a.avatarUrl })); // Use agent name as id
     const links: {source: string, target: string}[] = [];
-    
+
     Object.keys(network).forEach(source => {
       (network[source] || []).forEach(target => {
-        // Only add link if target exists
-        if (agents.find(a => a.id === target)) {
+        // Only add link if target exists (match by name)
+        if (agents.find(a => a.name === target)) {
           links.push({ source, target });
         }
       });
@@ -607,9 +652,15 @@ export const NetworkEditorModal: React.FC = () => {
     }
   };
 
-  const handleSave = () => {
-    updateSocialNetwork(network);
-    toggle(false);
+  const handleSave = async () => {
+    setIsSaving(true);
+    console.log('[NETWORK-DEBUG] NetworkEditorModal: Saving network:', network);
+    try {
+      await updateSocialNetwork(network);
+      toggle(false);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Render parameter controls based on selected preset
@@ -954,12 +1005,13 @@ export const NetworkEditorModal: React.FC = () => {
           <button onClick={() => toggle(false)} className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg">
             取消
           </button>
-          <button 
+          <button
             onClick={handleSave}
-            className="px-6 py-2 text-sm bg-brand-600 text-white font-medium hover:bg-brand-700 rounded-lg shadow-sm flex items-center gap-2"
+            disabled={isSaving}
+            className="px-6 py-2 text-sm bg-brand-600 text-white font-medium hover:bg-brand-700 rounded-lg shadow-sm flex items-center gap-2 disabled:bg-slate-400 disabled:cursor-not-allowed"
           >
-            <Save size={16} />
-            保存拓扑设置
+            {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            {isSaving ? '保存中...' : '保存拓扑设置'}
           </button>
         </div>
       </div>

@@ -309,7 +309,7 @@ async def update_simulation(
             merged_scene_config = {**existing_scene_config, **data.scene_config}
             sim.scene_config = merged_scene_config
             flag_modified(sim, "scene_config")
-            print(f"[ENV-DEBUG] update_simulation: Updated scene_config for sim {simulation_id}, environment_enabled={merged_scene_config.get('environment_enabled')}")
+            print(f"[ENV-DEBUG] update_simulation: Updated scene_config for sim {simulation_id}, environment_enabled={merged_scene_config.get('environment_enabled')}, social_network={merged_scene_config.get('social_network', {})}")
 
         await session.commit()
         await session.refresh(sim)
@@ -751,7 +751,7 @@ async def simulation_tree_state(
 ) -> dict:
     print(f"[KB-DEBUG] simulation_tree_state: Fetching state for sim={simulation_id}, node={node_id}")
     async with get_session() as session:
-        _, record = await _get_simulation_and_tree_any(session, simulation_id)
+        sim, record = await _get_simulation_and_tree_any(session, simulation_id)
         node = record.tree.nodes.get(int(node_id))
         if node is None:
             raise HTTPException(status_code=404, detail="Tree node not found")
@@ -783,7 +783,11 @@ async def simulation_tree_state(
                     "documents": docs,
                 }
             )
-        return {"turns": simulator.turns, "agents": agents}
+        # Include scene_config from the simulation record so frontend can access social_network
+        scene_config = sim.scene_config or {}
+        social_network = scene_config.get("social_network", {})
+        print(f"[NETWORK-DEBUG] simulation_tree_state: returning scene_config with social_network: {social_network}")
+        return {"turns": simulator.turns, "agents": agents, "scene_config": scene_config}
 
 
 @get("/{simulation_id:str}/tree/sim/{node_id:int}/test-knowledge")
@@ -1566,6 +1570,99 @@ async def delete_global_knowledge(
         return {"success": True, "deleted_kw_id": kw_id}
 
 
+@get("/{simulation_id:str}/agents/{agent_name:str}/memory")
+async def get_agent_memory(
+    request: Request,
+    simulation_id: str,
+    agent_name: str,
+) -> dict:
+    """
+    Get an agent's memory to see what messages they have received.
+
+    This helps verify that social network filtering is working correctly -
+    agents should only have messages from agents they share an edge with.
+
+    Query params:
+        node_id: Optional node ID to fetch from in-memory tree.
+                 If not provided, fetches from latest database snapshot.
+    """
+    # URL-decode the agent_name to handle spaces and special characters
+    agent_name = unquote(agent_name)
+
+    token = extract_bearer_token(request)
+    node_id_param = request.query_params.get("node_id")
+
+    async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
+        sim = await _get_simulation_for_owner(session, current_user.id, simulation_id)
+
+        agent_data = None
+
+        # If node_id is provided, try to fetch from in-memory tree
+        if node_id_param is not None:
+            try:
+                node_id = int(node_id_param)
+                record = SIM_TREE_REGISTRY.get(simulation_id)
+                if record is not None:
+                    node = record.tree.nodes.get(node_id)
+                    if node is not None:
+                        simulator = node["sim"]
+                        agent = simulator.agents.get(agent_name)
+                        if agent is not None:
+                            # Extract message sources from env_feedback
+                            env_feedback = getattr(agent, "env_feedback", [])
+                            seen_messages_from = _extract_senders_from_feedback(env_feedback)
+
+                            # Get connections from social network
+                            scene = simulator.scene
+                            social_network = scene.state.get("social_network", {})
+                            connections = social_network.get(agent_name, [])
+
+                            agent_data = {
+                                "name": agent_name,
+                                "node_id": node_id,
+                                "env_feedback_count": len(env_feedback),
+                                "env_feedback_preview": env_feedback[-10:] if env_feedback else [],
+                                "seen_messages_from": seen_messages_from,
+                                "social_network_connections": connections,
+                                "total_agents": len(simulator.agents),
+                            }
+            except (ValueError, KeyError):
+                pass  # Fall through to database lookup
+
+        # If no agent_data from tree, or no node_id, we can't get live data
+        # Return a message indicating this requires a running simulation
+        if agent_data is None:
+            return {
+                "name": agent_name,
+                "error": "Agent memory not available. Provide a valid node_id from a running simulation.",
+                "hint": "Use /tree/graph to get available nodes, then query with ?node_id=<node>",
+            }
+
+        return agent_data
+
+
+def _extract_senders_from_feedback(env_feedback: list) -> dict:
+    """Extract unique senders from environment feedback messages."""
+    seen_from = {}
+    for feedback in env_feedback:
+        # Try to extract sender name from feedback string
+        # Format is typically: "[HH:MM] SenderName: message"
+        feedback_str = str(feedback)
+        parts = feedback_str.split(":", 1)
+        if len(parts) >= 2:
+            # Extract name from the first part (after time stamp if present)
+            first_part = parts[0].strip()
+            # Remove [HH:MM] timestamp if present
+            if "] " in first_part:
+                first_part = first_part.split("] ", 1)[1] if "] " in first_part else first_part
+            if first_part and first_part not in seen_from:
+                seen_from[first_part] = seen_from.get(first_part, 0) + 1
+            # Count all messages from this sender
+            seen_from[first_part] = seen_from.get(first_part, 0) + 1
+    return seen_from
+
+
 router = Router(
     path="/simulations",
     route_handlers=[
@@ -1597,6 +1694,8 @@ router = Router(
         upload_agent_document,
         list_agent_documents,
         delete_agent_document,
+        # Agent memory endpoint (for testing social network)
+        get_agent_memory,
         # Global knowledge endpoints
         add_global_knowledge,
         upload_global_document,
