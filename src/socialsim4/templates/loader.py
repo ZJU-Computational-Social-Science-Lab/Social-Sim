@@ -213,6 +213,7 @@ class TemplateLoader:
             mechanics_config=mechanics_config if mechanics_config else None,
             semantic_actions_config=semantic_actions_config if semantic_actions_config else None,
             environment=environment,
+            available_actions=template.available_actions if hasattr(template, "available_actions") else None,
         )
 
         return scene
@@ -243,6 +244,7 @@ class GenericScene(Scene):
         mechanics_config: list[dict[str, Any]] | None = None,
         semantic_actions_config: list[dict[str, Any]] | None = None,
         environment: dict[str, Any] | None = None,
+        available_actions: list[str] | None = None,
     ):
         """Initialize a GenericScene.
 
@@ -252,8 +254,12 @@ class GenericScene(Scene):
             mechanics_config: List of mechanic configs with 'type' and 'config' keys.
             semantic_actions_config: List of semantic action configs.
             environment: Environment configuration dict.
+            available_actions: List of action NAMEs to filter available actions. If None, all actions are available.
         """
         super().__init__(name, initial_event)
+
+        # Store available actions filter
+        self.available_actions = set(available_actions) if available_actions else None
 
         # Initialize mechanics
         self.mechanics: list[Any] = []
@@ -296,7 +302,8 @@ class GenericScene(Scene):
     def get_scene_actions(self, agent: Agent) -> list[Action]:
         """Return all actions available to the agent.
 
-        Collects actions from all mechanics and semantic actions.
+        Collects actions from all mechanics and semantic actions, filtered by
+        the available_actions list if provided.
 
         Args:
             agent: The agent to get actions for.
@@ -313,6 +320,15 @@ class GenericScene(Scene):
 
         # Add semantic actions
         actions.extend(self.semantic_actions)
+
+        # Filter by available_actions if set
+        if self.available_actions is not None:
+            filtered_actions = []
+            for action in actions:
+                action_name = getattr(action, "NAME", None)
+                if action_name in self.available_actions:
+                    filtered_actions.append(action)
+            return filtered_actions
 
         return actions
 
@@ -396,7 +412,7 @@ class GenericScene(Scene):
         """Return scene-specific configuration for serialization.
 
         Returns:
-            Dict with mechanics and semantic actions config.
+            Dict with mechanics, semantic actions, and available actions config.
         """
         return {
             "mechanics_config": [
@@ -417,6 +433,7 @@ class GenericScene(Scene):
                 for sa in self.semantic_actions
             ],
             "environment": self.environment,
+            "available_actions": list(self.available_actions) if self.available_actions else None,
         }
 
     @classmethod
@@ -433,4 +450,5 @@ class GenericScene(Scene):
             "mechanics_config": config.get("mechanics_config", []),
             "semantic_actions_config": config.get("semantic_actions_config", []),
             "environment": config.get("environment", {}),
+            "available_actions": config.get("available_actions"),
         }

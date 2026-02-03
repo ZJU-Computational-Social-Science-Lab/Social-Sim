@@ -127,7 +127,24 @@ SCENE_ACTIONS: dict[str, dict[str, list[str]]] = {
     },
     "generic_scene": {
         "basic": ["yield"],
-        "allowed": [],  # GenericScene actions are determined by template configuration
+        "allowed": [
+            # Communication
+            "send_message", "talk_to", "speak",
+            # Movement
+            "move_to_location",
+            # Observation
+            "look_around",
+            # Resources
+            "gather_resource", "rest",
+            # Tools
+            "web_search", "view_page", "query_knowledge", "list_knowledge",
+            # Council
+            "start_voting", "vote", "finish_meeting", "request_brief", "voting_status", "schedule_order",
+            # Werewolf
+            "vote_lynch", "night_kill", "inspect", "witch_save", "witch_poison", "open_voting", "close_voting",
+            # Landlord
+            "call_landlord", "rob_landlord", "pass", "play_cards", "double", "no_double",
+        ],
     },
 }
 

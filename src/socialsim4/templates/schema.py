@@ -372,6 +372,7 @@ class GenericTemplate(BaseModel):
         author: Template author/creator.
         core_mechanics: List of core mechanics used in this template.
         semantic_actions: Custom actions available to agents.
+        available_actions: Action IDs (from ACTION_SPACE_MAP) that agents can use.
         agent_archetypes: Reusable agent profiles.
         environment: Shared environment settings.
         default_time_config: Default time settings (used if environment.time_config is None).
@@ -399,6 +400,10 @@ class GenericTemplate(BaseModel):
     semantic_actions: list[SemanticAction] = Field(
         default_factory=list,
         description="Custom actions available to agents.",
+    )
+    available_actions: list[str] = Field(
+        default_factory=list,
+        description="Action IDs (from ACTION_SPACE_MAP) that agents can use in this template.",
     )
     agent_archetypes: list[AgentArchetype] = Field(
         default_factory=list,

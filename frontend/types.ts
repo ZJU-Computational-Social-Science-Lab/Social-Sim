@@ -220,8 +220,7 @@ export interface GenericTemplateConfig {
   description: string;
   version?: string;
   coreMechanics: CoreMechanicConfig[];
-  semanticActions: SemanticActionConfig[];
-  agentArchetypes: AgentArchetypeConfig[];
+  availableActions: string[];  // Array of action IDs from ACTION_SPACE_MAP
   environment: {
     description: string;
     rules?: string[];

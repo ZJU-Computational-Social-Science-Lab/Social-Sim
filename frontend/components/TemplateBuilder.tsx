@@ -6,14 +6,11 @@ import {
   Trash2,
   Settings,
   Zap,
-  Users,
   Globe
 } from 'lucide-react';
 import {
   CoreMechanicConfig,
   CoreMechanicType,
-  SemanticActionConfig,
-  AgentArchetypeConfig,
   GenericTemplateConfig,
   TimeConfig,
   TimeUnit
@@ -84,24 +81,86 @@ const CORE_MECHANIC_DEFINITIONS: Record<CoreMechanicType, { name: string; descri
   }
 };
 
+// Available system actions from backend ACTION_SPACE_MAP
+const SYSTEM_ACTIONS = [
+  // Communication
+  { id: 'send_message', category: 'communication' },
+  { id: 'talk_to', category: 'communication' },
+  { id: 'speak', category: 'communication' },
+  { id: 'yield', category: 'communication' },
+  // Movement
+  { id: 'move_to_location', category: 'movement' },
+  // Observation
+  { id: 'look_around', category: 'observation' },
+  // Resources
+  { id: 'gather_resource', category: 'resources' },
+  { id: 'rest', category: 'resources' },
+  // Tools
+  { id: 'web_search', category: 'tools' },
+  { id: 'view_page', category: 'tools' },
+  { id: 'query_knowledge', category: 'tools' },
+  { id: 'list_knowledge', category: 'tools' },
+  // Council
+  { id: 'start_voting', category: 'council' },
+  { id: 'vote', category: 'council' },
+  { id: 'finish_meeting', category: 'council' },
+  { id: 'request_brief', category: 'council' },
+  { id: 'voting_status', category: 'council' },
+  { id: 'schedule_order', category: 'council' },
+  // Werewolf
+  { id: 'vote_lynch', category: 'werewolf' },
+  { id: 'night_kill', category: 'werewolf' },
+  { id: 'inspect', category: 'werewolf' },
+  { id: 'witch_save', category: 'werewolf' },
+  { id: 'witch_poison', category: 'werewolf' },
+  { id: 'open_voting', category: 'werewolf' },
+  { id: 'close_voting', category: 'werewolf' },
+  // Landlord
+  { id: 'call_landlord', category: 'landlord' },
+  { id: 'rob_landlord', category: 'landlord' },
+  { id: 'pass', category: 'landlord' },
+  { id: 'play_cards', category: 'landlord' },
+  { id: 'double', category: 'landlord' },
+  { id: 'no_double', category: 'landlord' },
+];
+
+const ACTION_CATEGORIES = ['communication', 'movement', 'observation', 'resources', 'tools', 'council', 'werewolf', 'landlord'] as const;
+
+// Action to required mechanic mapping
+// When these actions are selected, the corresponding mechanic will be auto-enabled
+const ACTION_MECHANIC_REQUIREMENTS: Record<string, CoreMechanicType[]> = {
+  // Movement & Observation actions require Grid
+  move_to_location: ['grid'],
+  look_around: ['grid'],
+  // Resources actions require Resources
+  gather_resource: ['resources'],
+  rest: ['grid', 'resources'],  // Rest works with both, prefer grid
+  // Voting actions require Voting
+  start_voting: ['voting'],
+  vote: ['voting'],
+  voting_status: ['voting'],
+  finish_meeting: ['voting'],
+  request_brief: ['voting'],
+  // Council discussion requires Discussion
+  schedule_order: ['discussion'],
+  // Werewolf actions have special requirements
+  vote_lynch: ['voting'],
+  night_kill: [],
+  inspect: [],
+  witch_save: [],
+  witch_poison: [],
+  open_voting: ['voting'],
+  close_voting: ['voting'],
+  // Landlord actions
+  call_landlord: [],
+  rob_landlord: [],
+  pass: [],
+  play_cards: [],
+  double: [],
+  no_double: [],
+};
+
 const generateId = () => `${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
-
-const createEmptyAction = (): SemanticActionConfig => ({
-  name: '',
-  description: '',
-  instruction: '',
-  parameters: {},
-  effect: ''
-});
-
-const createEmptyArchetype = (): AgentArchetypeConfig => ({
-  name: '',
-  rolePrompt: '',
-  style: '',
-  userProfile: '',
-  properties: {},
-  allowedActions: []
-});
 
 const createEmptyCoreMechanic = (type: CoreMechanicType): CoreMechanicConfig => {
   const def = CORE_MECHANIC_DEFINITIONS[type];
@@ -143,42 +202,36 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
     updateTemplate({ coreMechanics: updated });
   };
 
-  const addSemanticAction = () => {
+  const toggleAction = (actionId: string, checked: boolean) => {
+    // Update actions
+    const currentActions = new Set(template.availableActions || []);
+    if (checked) {
+      currentActions.add(actionId);
+    } else {
+      currentActions.delete(actionId);
+    }
+    const newAvailableActions = Array.from(currentActions);
+
+    // Auto-enable required mechanics when actions are selected
+    const requiredMechanics = ACTION_MECHANIC_REQUIREMENTS[actionId];
+    let newCoreMechanics = template.coreMechanics;
+    if (requiredMechanics && requiredMechanics.length > 0 && checked) {
+      newCoreMechanics = template.coreMechanics.map(m =>
+        requiredMechanics.includes(m.type)
+          ? { ...m, enabled: true }
+          : m
+      );
+    }
+
+    // Single atomic update
     updateTemplate({
-      semanticActions: [...template.semanticActions, { ...createEmptyAction(), id: generateId() }]
+      availableActions: newAvailableActions,
+      coreMechanics: newCoreMechanics
     });
   };
 
-  const updateSemanticAction = (index: number, field: keyof SemanticActionConfig, value: any) => {
-    const updated = template.semanticActions.map((a, i) =>
-      i === index ? { ...a, [field]: value } : a
-    );
-    updateTemplate({ semanticActions: updated });
-  };
-
-  const removeSemanticAction = (index: number) => {
-    updateTemplate({
-      semanticActions: template.semanticActions.filter((_, i) => i !== index)
-    });
-  };
-
-  const addAgentArchetype = () => {
-    updateTemplate({
-      agentArchetypes: [...template.agentArchetypes, { ...createEmptyArchetype(), id: generateId() }]
-    });
-  };
-
-  const updateAgentArchetype = (index: number, field: keyof AgentArchetypeConfig, value: any) => {
-    const updated = template.agentArchetypes.map((a, i) =>
-      i === index ? { ...a, [field]: value } : a
-    );
-    updateTemplate({ agentArchetypes: updated });
-  };
-
-  const removeAgentArchetype = (index: number) => {
-    updateTemplate({
-      agentArchetypes: template.agentArchetypes.filter((_, i) => i !== index)
-    });
+  const isActionSelected = (actionId: string) => {
+    return (template.availableActions || []).includes(actionId);
   };
 
   const updateEnvironment = (field: 'description' | 'rules', value: any) => {
@@ -219,6 +272,15 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
       onTimeConfigChange({ ...timeConfig!, [field]: value });
     }
   };
+
+  // Group actions by category
+  const actionsByCategory = SYSTEM_ACTIONS.reduce((acc, action) => {
+    if (!acc[action.category]) {
+      acc[action.category] = [];
+    }
+    acc[action.category].push(action);
+    return acc;
+  }, {} as Record<string, typeof SYSTEM_ACTIONS>);
 
   return (
     <div className="space-y-6">
@@ -330,143 +392,75 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
         </div>
       </div>
 
-      {/* Semantic Actions */}
+      {/* Select Actions */}
       <div className="border border-slate-200 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-            <Zap size={16} />
-            {t('templateBuilder.semanticActions', { defaultValue: 'Semantic Actions' })}
-          </h3>
-          <button
-            onClick={addSemanticAction}
-            className="text-xs px-2 py-1 bg-brand-100 text-brand-700 rounded hover:bg-brand-200 flex items-center gap-1"
-          >
-            <Plus size={12} />
-            {t('templateBuilder.addAction', { defaultValue: 'Add Action' })}
-          </button>
-        </div>
+        <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <Zap size={16} />
+          {t('templateBuilder.selectActions', { defaultValue: 'Select Actions' })}
+        </h3>
         <p className="text-xs text-slate-500 mb-4">
-          {t('templateBuilder.semanticActionsHint', { defaultValue: 'Define custom actions agents can perform in this simulation' })}
+          {t('templateBuilder.selectActionsHint', { defaultValue: 'Choose which actions agents can perform in this simulation.' })}
+        </p>
+        <p className="text-xs text-amber-600 mb-4">
+          {t('templateBuilder.mechanicAutoEnabled', { defaultValue: 'Required for selected actions' })}
         </p>
 
-        <div className="space-y-3">
-          {template.semanticActions.length === 0 ? (
-            <div className="text-center py-4 text-slate-400 text-sm bg-slate-50 rounded border border-dashed border-slate-200">
-              {t('templateBuilder.noActions', { defaultValue: 'No semantic actions defined yet' })}
-            </div>
-          ) : (
-            template.semanticActions.map((action, index) => (
-              <div key={index} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <input
-                    type="text"
-                    value={action.name}
-                    onChange={(e) => updateSemanticAction(index, 'name', e.target.value)}
-                    className="flex-1 px-2 py-1 border border-slate-200 rounded text-sm font-medium"
-                    placeholder={t('templateBuilder.actionName', { defaultValue: 'Action Name' })}
-                  />
-                  <button
-                    onClick={() => removeSemanticAction(index)}
-                    className="p-1 text-red-500 hover:bg-red-50 rounded"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-                <input
-                  type="text"
-                  value={action.description}
-                  onChange={(e) => updateSemanticAction(index, 'description', e.target.value)}
-                  className="w-full px-2 py-1 border border-slate-200 rounded text-sm mb-2"
-                  placeholder={t('templateBuilder.actionDescription', { defaultValue: 'Short description' })}
-                />
-                <textarea
-                  value={action.instruction}
-                  onChange={(e) => updateSemanticAction(index, 'instruction', e.target.value)}
-                  className="w-full px-2 py-1 border border-slate-200 rounded text-sm mb-2 resize-none"
-                  rows={2}
-                  placeholder={t('templateBuilder.actionInstruction', { defaultValue: 'LLM instruction for this action...' })}
-                />
-                <input
-                  type="text"
-                  value={action.effect || ''}
-                  onChange={(e) => updateSemanticAction(index, 'effect', e.target.value)}
-                  className="w-full px-2 py-1 border border-slate-200 rounded text-sm"
-                  placeholder={t('templateBuilder.actionEffect', { defaultValue: 'Effect on simulation state (optional)' })}
-                />
-              </div>
-            ))
-          )}
-        </div>
-      </div>
+        <div className="space-y-4">
+          {ACTION_CATEGORIES.map(category => {
+            const categoryActions = actionsByCategory[category];
+            if (!categoryActions || categoryActions.length === 0) return null;
 
-      {/* Agent Archetypes */}
-      <div className="border border-slate-200 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-            <Users size={16} />
-            {t('templateBuilder.agentArchetypes', { defaultValue: 'Agent Archetypes' })}
-          </h3>
+            return (
+              <div key={category} className="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">
+                  {t(`templateBuilder.categories.${category}`, { defaultValue: category })}
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {categoryActions.map(action => {
+                    const isSelected = isActionSelected(action.id);
+                    const requiredMechanics = ACTION_MECHANIC_REQUIREMENTS[action.id] || [];
+                    const autoEnabledMechs = requiredMechanics.filter(
+                      m => !template.coreMechanics.find(cm => cm.type === m)?.enabled
+                    );
+
+                    return (
+                      <label key={action.id} className="flex items-start gap-2 cursor-pointer hover:bg-white p-1.5 rounded transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => toggleAction(action.id, e.target.checked)}
+                          className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500 mt-0.5"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-slate-700">{action.id}</div>
+                          <div className="text-xs text-slate-500">{t(`templateBuilder.actions.${action.id}`, { defaultValue: action.id })}</div>
+                          {autoEnabledMechs.length > 0 && (
+                            <div className="text-xs text-amber-600 mt-0.5">
+                              {autoEnabledMechs.map(m =>
+                                t(`templateBuilder.mechanics.${m}`, { defaultValue: m })
+                              ).join(', ')}
+                            </div>
+                          )}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+          <span>
+            {t('templateBuilder.selectedCount', { defaultValue: '{{count}} selected' }).replace('{{count}}', String(template.availableActions?.length || 0))}
+          </span>
           <button
-            onClick={addAgentArchetype}
-            className="text-xs px-2 py-1 bg-brand-100 text-brand-700 rounded hover:bg-brand-200 flex items-center gap-1"
+            onClick={() => updateTemplate({ availableActions: [] })}
+            className="text-red-500 hover:text-red-700"
           >
-            <Plus size={12} />
-            {t('templateBuilder.addArchetype', { defaultValue: 'Add Archetype' })}
+            {t('templateBuilder.clearAll', { defaultValue: 'Clear All' })}
           </button>
-        </div>
-        <p className="text-xs text-slate-500 mb-4">
-          {t('templateBuilder.agentArchetypesHint', { defaultValue: 'Define agent archetypes for population generation' })}
-        </p>
-
-        <div className="space-y-3">
-          {template.agentArchetypes.length === 0 ? (
-            <div className="text-center py-4 text-slate-400 text-sm bg-slate-50 rounded border border-dashed border-slate-200">
-              {t('templateBuilder.noArchetypes', { defaultValue: 'No agent archetypes defined yet' })}
-            </div>
-          ) : (
-            template.agentArchetypes.map((archetype, index) => (
-              <div key={index} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <input
-                    type="text"
-                    value={archetype.name}
-                    onChange={(e) => updateAgentArchetype(index, 'name', e.target.value)}
-                    className="flex-1 px-2 py-1 border border-slate-200 rounded text-sm font-medium"
-                    placeholder={t('templateBuilder.archetypeName', { defaultValue: 'Archetype Name' })}
-                  />
-                  <button
-                    onClick={() => removeAgentArchetype(index)}
-                    className="p-1 text-red-500 hover:bg-red-50 rounded"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-                <textarea
-                  value={archetype.rolePrompt}
-                  onChange={(e) => updateAgentArchetype(index, 'rolePrompt', e.target.value)}
-                  className="w-full px-2 py-1 border border-slate-200 rounded text-sm mb-2 resize-none"
-                  rows={2}
-                  placeholder={t('templateBuilder.rolePrompt', { defaultValue: 'Role prompt for this archetype...' })}
-                />
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="text"
-                    value={archetype.style || ''}
-                    onChange={(e) => updateAgentArchetype(index, 'style', e.target.value)}
-                    className="px-2 py-1 border border-slate-200 rounded text-sm"
-                    placeholder={t('templateBuilder.style', { defaultValue: 'Style (optional)' })}
-                  />
-                  <input
-                    type="text"
-                    value={archetype.allowedActions?.join(', ') || ''}
-                    onChange={(e) => updateAgentArchetype(index, 'allowedActions', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                    className="px-2 py-1 border border-slate-200 rounded text-sm"
-                    placeholder={t('templateBuilder.allowedActions', { defaultValue: 'Allowed actions (comma separated)' })}
-                  />
-                </div>
-              </div>
-            ))
-          )}
         </div>
       </div>
 
@@ -591,8 +585,7 @@ export const createEmptyGenericTemplate = (): GenericTemplateConfig => ({
     createEmptyCoreMechanic('hierarchy'),
     createEmptyCoreMechanic('time')
   ],
-  semanticActions: [],
-  agentArchetypes: [],
+  availableActions: [],
   environment: {
     description: '',
     rules: []

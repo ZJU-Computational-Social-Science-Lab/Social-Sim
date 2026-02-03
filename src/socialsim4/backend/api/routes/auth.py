@@ -156,7 +156,12 @@ async def refresh_token(data: RefreshRequest) -> TokenPair:
         token_db = token_q.scalar_one_or_none()
         if token_db is None or token_db.revoked_at is not None:
             raise HTTPException(status_code=401, detail="Token revoked")
-        if token_db.expires_at < datetime.now(timezone.utc):
+
+        # Handle timezone-aware and naive datetimes
+        expires_at = token_db.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at < datetime.now(timezone.utc):
             raise HTTPException(status_code=401, detail="Token expired")
 
         access_token, access_exp = create_access_token(subject)
