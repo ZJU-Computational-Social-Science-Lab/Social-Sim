@@ -1,0 +1,156 @@
+{
+  "id": "trading_post",
+  "name": "Trading Post",
+  "description": "A bustling trading post where merchants gather to buy, sell, and trade goods. The trading post features a grid-based layout with different market stalls, a resource system for tracking inventory, and custom semantic actions for trading and setting prices.",
+  "version": "1.0.0",
+  "author": "SocialSim4 Team",
+  "core_mechanics": [
+    {
+      "type": "grid",
+      "config": {
+        "width": 15,
+        "height": 15,
+        "chat_range": 3,
+        "movement_cost": 1
+      }
+    },
+    {
+      "type": "resources",
+      "config": {
+        "resources": ["gold", "food", "tools", "cloth"],
+        "initial_amount": 20,
+        "max_stack_size": 200
+      }
+    }
+  ],
+  "semantic_actions": [
+    {
+      "name": "trade",
+      "description": "Trade resources with another agent",
+      "instruction": "Use this action when you want to exchange goods or resources with another trader. Specify what you're offering and what you want in return.",
+      "parameters": [
+        {
+          "name": "target_agent",
+          "type": "str",
+          "description": "The name of the agent you want to trade with",
+          "required": true
+        },
+        {
+          "name": "offer_item",
+          "type": "str",
+          "description": "The item you are offering (gold, food, tools, cloth)",
+          "required": true
+        },
+        {
+          "name": "offer_amount",
+          "type": "int",
+          "description": "The amount of the item you are offering",
+          "required": true
+        },
+        {
+          "name": "request_item",
+          "type": "str",
+          "description": "The item you want in return (gold, food, tools, cloth)",
+          "required": true
+        },
+        {
+          "name": "request_amount",
+          "type": "int",
+          "description": "The amount of the item you want in return",
+          "required": true
+        }
+      ],
+      "effect": "Transfers resources between agents if both have sufficient inventory and agree to the trade."
+    },
+    {
+      "name": "set_price",
+      "description": "Set or announce prices for goods you are selling",
+      "instruction": "Use this action to establish your selling prices for specific goods. This helps other traders know your rates.",
+      "parameters": [
+        {
+          "name": "item",
+          "type": "str",
+          "description": "The item you are pricing (gold, food, tools, cloth)",
+          "required": true
+        },
+        {
+          "name": "price",
+          "type": "int",
+          "description": "The price in gold per unit of the item",
+          "required": true
+        },
+        {
+          "name": "action_type",
+          "type": "str",
+          "description": "Whether you are buying or selling (buy/sell)",
+          "required": true
+        }
+      ],
+      "effect": "Updates your price list that other traders can view when considering trades."
+    },
+    {
+      "name": "inspect_goods",
+      "description": "Examine another trader's available goods and prices",
+      "instruction": "Use this action to learn what another trader has in stock and their current prices before making a trade offer.",
+      "parameters": [
+        {
+          "name": "target_agent",
+          "type": "str",
+          "description": "The name of the trader you want to inspect",
+          "required": true
+        }
+      ],
+      "effect": "Reveals the target agent's inventory and current prices to you."
+    }
+  ],
+  "agent_archetypes": [
+    {
+      "name": "trader",
+      "role_prompt": "You are a merchant at the trading post. You buy and sell goods to make profit. You are shrewd but fair, and you know the market value of all commodities. You negotiate skillfully and build relationships with other traders.",
+      "style": "business",
+      "user_profile": "An experienced merchant with knowledge of markets, prices, and trade routes. You have capital to invest and goods to sell. You are always looking for profitable opportunities while maintaining good reputation.",
+      "properties": {
+        "role": "trader",
+        "shop_name": "",
+        "price_list": {}
+      },
+      "allowed_actions": ["move_to_location", "look_around", "rest", "gather_resource", "trade", "set_price", "inspect_goods"]
+    }
+  ],
+  "environment": {
+    "description": "A busy trading post located at a crossroads between several towns. The post consists of a central courtyard with permanent stalls and shops around the perimeter. Each stall is run by a different merchant specializing in certain goods. The atmosphere is noisy and energetic with traders haggling, customers browsing, and goods being delivered. The trading post operates from dawn to dusk, with peak activity in mid-morning and late afternoon. A prominent board displays current market rates, and a town official collects fees from stall operators.",
+    "time_config": {
+      "start": "2024-01-01 08:00",
+      "step": "5m",
+      "format": "%Y-%m-%d %H:%M"
+    },
+    "space_config": {
+      "type": "grid",
+      "width": 15,
+      "height": 15,
+      "wrap_around": false
+    },
+    "rules": [
+      "All trades must be mutually agreed upon.",
+      "Honest dealing is required; fraud will result in banishment.",
+      "Pay your stall fees promptly to the town official.",
+      "Respect other traders' customers and stalls.",
+      "Set fair prices; price gouging is prohibited.",
+      "Resolve disputes through the trading post master.",
+      "Do not block pathways with your goods.",
+      "Trading ends at dusk; all stalls must close by then."
+    ]
+  },
+  "default_time_config": {
+    "start": "2024-01-01 08:00",
+    "step": "5m",
+    "format": "%Y-%m-%d %H:%M"
+  },
+  "default_network": {
+    "type": "small_world",
+    "parameters": {
+      "k": 3,
+      "p": 0.2
+    }
+  }
+}

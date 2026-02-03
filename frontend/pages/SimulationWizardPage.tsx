@@ -1,8 +1,10 @@
 // frontend/pages/SimulationWizard.tsx
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   useSimulationStore,
-  generateAgentsWithAI
+  generateAgentsWithAI,
+  generateAgentsWithDemographics
 } from '../store';
 import {
   X,
@@ -18,23 +20,26 @@ import {
 } from 'lucide-react';
 import Papa from 'papaparse';
 import { Agent, LLMConfig, TimeUnit } from '../types';
-
-const TIME_UNITS: { value: TimeUnit; label: string }[] = [
-  { value: 'minute', label: '分钟' },
-  { value: 'hour', label: '小时' },
-  { value: 'day', label: '天' },
-  { value: 'week', label: '周' },
-  { value: 'month', label: '月' },
-  { value: 'year', label: '年' }
-];
+import { DemographicsBuilder } from '../components/DemographicsBuilder';
 
 export const SimulationWizard: React.FC = () => {
+  const { t } = useTranslation();
   const isOpen = useSimulationStore((state) => state.isWizardOpen);
   const toggleWizard = useSimulationStore((state) => state.toggleWizard);
   const addSimulation = useSimulationStore((state) => state.addSimulation);
   const savedTemplates = useSimulationStore((state) => state.savedTemplates);
   const deleteTemplate = useSimulationStore((state) => state.deleteTemplate);
   const addNotification = useSimulationStore((state) => state.addNotification);
+
+  // Time units with i18n labels
+  const TIME_UNITS: { value: TimeUnit; label: string }[] = [
+    { value: 'minute', label: t('wizard.timeUnits.minute') },
+    { value: 'hour', label: t('wizard.timeUnits.hour') },
+    { value: 'day', label: t('wizard.timeUnits.day') },
+    { value: 'week', label: t('wizard.timeUnits.week') },
+    { value: 'month', label: t('wizard.timeUnits.month') },
+    { value: 'year', label: t('wizard.timeUnits.year') }
+  ];
 
   // ⭐ 新增：连接到 store 里的 provider 列表
   const llmProviders = useSimulationStore((s) => s.llmProviders);
@@ -56,9 +61,14 @@ export const SimulationWizard: React.FC = () => {
   const [timeStep, setTimeStep] = useState(1);
 
   const [importMode, setImportMode] =
-    useState<'default' | 'custom' | 'generate'>('default');
+    useState<'default' | 'custom' | 'generate' | 'demographics'>('demographics');
   const [customAgents, setCustomAgents] = useState<Agent[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
+
+  // Demographics state
+  const [demoTotalAgents, setDemoTotalAgents] = useState(50);
+  const [demographics, setDemographics] = useState<Array<{name: string, categories: string[]}>>([]);
+  const [traits, setTraits] = useState<Array<{name: string, mean: number, std: number}>>([]);
 
   const [genCount, setGenCount] = useState(5);
   const [genDesc, setGenDesc] = useState(
@@ -157,7 +167,7 @@ export const SimulationWizard: React.FC = () => {
 
   const handleDeleteTemplate = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (window.confirm('确定要删除这个模板吗？')) {
+    if (window.confirm(t('wizard.confirmations.deleteTemplate'))) {
       deleteTemplate(id);
       if (selectedTemplateId === id) setSelectedTemplateId('village');
     }
@@ -219,10 +229,43 @@ export const SimulationWizard: React.FC = () => {
         a.llmConfig = defaultLlmConfig;
       });
       setCustomAgents(agents);
-      addNotification('success', `成功生成 ${agents.length} 个智能体`);
+      addNotification('success', t('wizard.messages.generatedAgents', { count: agents.length }));
     } catch (e) {
       console.error(e);
-      setImportError('生成失败，请检查 API Key 或重试');
+      setImportError(t('wizard.messages.generationFailed'));
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleGenerateDemographics = async () => {
+    setIsGenerating(true);
+    setImportError(null);
+    try {
+      // Build archetype probabilities from demographics
+      const archetypeProbs: Record<string, number> = {};
+      demographics.forEach(d => {
+        d.categories.forEach(c => {
+          archetypeProbs[`${d.name}:${c}`] = 1 / d.categories.length;
+        });
+      });
+
+      const agents = await generateAgentsWithDemographics(
+        demoTotalAgents,
+        demographics,
+        archetypeProbs,
+        traits,
+        'en',
+        selectedProviderId ?? undefined
+      );
+      agents.forEach((a) => {
+        a.llmConfig = defaultLlmConfig;
+      });
+      setCustomAgents(agents);
+      addNotification('success', t('wizard.messages.generatedAgents', { count: agents.length }));
+    } catch (e) {
+      console.error(e);
+      setImportError(t('wizard.messages.generationFailed'));
     } finally {
       setIsGenerating(false);
     }
@@ -235,7 +278,7 @@ export const SimulationWizard: React.FC = () => {
         <div className="px-6 py-4 border-b flex justify-between items-center bg-slate-50 shrink-0">
           <div>
             <h2 className="text-lg font-bold text-slate-800">
-              创建新仿真
+              {t('wizard.titles.createSimulation')}
             </h2>
             <div className="flex gap-2 mt-1">
               {[1, 2, 3].map((i) => (
@@ -268,10 +311,10 @@ export const SimulationWizard: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-indigo-900">
-                      默认模型配置
+                      {t('wizard.titles.defaultModelConfig')}
                     </h3>
                     <p className="text-xs text-indigo-700">
-                      从「设置 → LLM提供商」中选择一个已配置的模型。
+                      {t('wizard.instructions.selectProvider')}
                     </p>
                   </div>
                 </div>
@@ -287,7 +330,7 @@ export const SimulationWizard: React.FC = () => {
                 >
                   {llmProviders.length === 0 && (
                     <option value="">
-                      尚未配置任何提供商（请先在“设置”中添加）
+                      {t('wizard.instructions.noProviderConfigured')}
                     </option>
                   )}
                   {llmProviders.map((p) => (
@@ -301,14 +344,232 @@ export const SimulationWizard: React.FC = () => {
               </div>
 
               {/* Template Selection */}
-              {/* —— 下面这一大块保持不变，我就直接用你原来的 JSX —— */}
-              {/* ... 原来的模板选择 + 时间配置代码都照旧 ... */}
-              {/*（这里为节省长度不一一重写，如果你需要，我也可以把整段展开）*/}
-              {/* 你只需要把文件整体替换为我发的版本即可。 */}
+              <div className="bg-white border border-slate-200 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-slate-700 mb-3">
+                  {t('wizard.titles.templateSelection', { defaultValue: 'Select Template' })}
+                </h3>
+                <select
+                  value={selectedTemplateId}
+                  onChange={(e) => setSelectedTemplateId(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                >
+                  <option value="village">Village</option>
+                  <option value="council">Council</option>
+                  <option value="werewolf">Werewolf</option>
+                </select>
+              </div>
+
+              {/* Simulation Name */}
+              <div className="bg-white border border-slate-200 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-slate-700 mb-3">
+                  {t('wizard.simulationName', { defaultValue: 'Simulation Name' })}
+                </h3>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={t('wizard.placeholders.simulationName')}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                />
+              </div>
+
+              {/* Time Configuration */}
+              <div className="bg-white border border-slate-200 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-slate-700 mb-3">
+                  {t('wizard.timeConfig', { defaultValue: 'Time Configuration' })}
+                </h3>
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="text-xs text-slate-600">Start Time</label>
+                    <input
+                      type="datetime-local"
+                      value={baseTime}
+                      onChange={(e) => setBaseTime(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs text-slate-600">Unit</label>
+                    <select
+                      value={timeUnit}
+                      onChange={(e) => setTimeUnit(e.target.value as TimeUnit)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                    >
+                      {TIME_UNITS.map(u => (
+                        <option key={u.value} value={u.value}>{u.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="w-24">
+                    <label className="text-xs text-slate-600">Step</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={timeStep}
+                      onChange={(e) => setTimeStep(parseInt(e.target.value) || 1)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* step === 2 / 3 的 JSX 逻辑也和你发的一样，只是用到了新的 handleGenerateAgents / handleFileUpload 等，这里不再赘述。 */}
+          {step === 2 && (
+            <div className="space-y-6 max-w-3xl mx-auto">
+              {/* Agent Generation Method Selection */}
+              <div>
+                <h3 className="text-sm font-semibold text-slate-700 mb-3">
+                  {t('wizard.titles.agentGeneration', { defaultValue: 'Agent Generation Method' })}
+                </h3>
+                <div className="grid grid-cols-4 gap-2">
+                  <button
+                    onClick={() => setImportMode('demographics')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                      importMode === 'demographics'
+                        ? 'bg-brand-500 text-white'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    {t('wizard.methods.demographics')}
+                  </button>
+                  <button
+                    onClick={() => setImportMode('generate')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                      importMode === 'generate'
+                        ? 'bg-brand-500 text-white'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    {t('wizard.methods.generate')}
+                  </button>
+                  <button
+                    onClick={() => setImportMode('custom')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                      importMode === 'custom'
+                        ? 'bg-brand-500 text-white'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    {t('wizard.methods.custom')}
+                  </button>
+                  <button
+                    onClick={() => setImportMode('default')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                      importMode === 'default'
+                        ? 'bg-brand-500 text-white'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    {t('wizard.methods.default')}
+                  </button>
+                </div>
+              </div>
+
+              {/* Demographics Mode */}
+              {importMode === 'demographics' && (
+                <DemographicsBuilder
+                  totalAgents={demoTotalAgents}
+                  setTotalAgents={setDemoTotalAgents}
+                  demographics={demographics}
+                  setDemographics={setDemographics}
+                  traits={traits}
+                  setTraits={setTraits}
+                  onGenerate={handleGenerateDemographics}
+                  isGenerating={isGenerating}
+                />
+              )}
+
+              {/* Simple Generate Mode */}
+              {importMode === 'generate' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      {t('wizard.agentCount', { defaultValue: 'Number of Agents' })}
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={genCount}
+                      onChange={(e) => setGenCount(parseInt(e.target.value) || 1)}
+                      className="w-32 px-3 py-2 border border-slate-300 rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      {t('wizard.agentDescription', { defaultValue: 'Description' })}
+                    </label>
+                    <textarea
+                      value={genDesc}
+                      onChange={(e) => setGenDesc(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                      rows={3}
+                    />
+                  </div>
+                  <button
+                    onClick={handleGenerateAgents}
+                    disabled={isGenerating}
+                    className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-slate-300"
+                  >
+                    {isGenerating ? t('wizard.demographics.generating', { defaultValue: 'Generating...' }) : t('wizard.generate')}
+                  </button>
+                </div>
+              )}
+
+              {/* Custom Import Mode */}
+              {importMode === 'custom' && (
+                <div className="space-y-4">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".json,.csv"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full px-4 py-8 border-2 border-dashed border-slate-300 rounded-lg hover:border-brand-500 hover:bg-brand-50"
+                  >
+                    <Upload className="mx-auto mb-2" size={24} />
+                    {t('wizard.uploadFile', { defaultValue: 'Click to upload CSV or JSON' })}
+                  </button>
+                  {importError && (
+                    <p className="text-red-500 text-sm">{importError}</p>
+                  )}
+                  {customAgents.length > 0 && (
+                    <p className="text-sm text-slate-600">
+                      {customAgents.length} {t('wizard.agentsLoaded', { defaultValue: 'agents loaded' })}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Default Mode */}
+              {importMode === 'default' && (
+                <p className="text-slate-600 text-sm">
+                  {t('wizard.defaultModeDescription', { defaultValue: 'Using template default agents. Click Next to continue.' })}
+                </p>
+              )}
+
+              {importError && (
+                <p className="text-red-500 text-sm">{importError}</p>
+              )}
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-6 max-w-3xl mx-auto">
+              <h3 className="text-lg font-semibold">
+                {t('wizard.titles.reviewAndStart', { defaultValue: 'Review and Start' })}
+              </h3>
+              <div className="bg-slate-50 rounded-lg p-4">
+                <p><strong>Name:</strong> {name || t('wizard.untitled', { defaultValue: 'Untitled' })}</p>
+                <p><strong>Template:</strong> {selectedTemplateId}</p>
+                <p><strong>Agents:</strong> {customAgents.length || t('wizard.usingDefaults', { defaultValue: 'Using defaults' })}</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -318,7 +579,7 @@ export const SimulationWizard: React.FC = () => {
               onClick={() => setStep(step - 1)}
               className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg"
             >
-              上一步
+              {t('wizard.back')}
             </button>
           )}
           {step === 1 && (
@@ -326,7 +587,7 @@ export const SimulationWizard: React.FC = () => {
               onClick={() => toggleWizard(false)}
               className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg"
             >
-              取消
+              {t('common.cancel', { defaultValue: 'Cancel' })}
             </button>
           )}
           {step < 3 && (
@@ -334,7 +595,7 @@ export const SimulationWizard: React.FC = () => {
               onClick={() => setStep(step + 1)}
               className="px-6 py-2 text-sm bg-brand-600 text-white font-medium hover:bg-brand-700 rounded-lg shadow-sm"
             >
-              下一步
+              {t('wizard.continue')}
             </button>
           )}
           {step === 3 && (
@@ -342,7 +603,7 @@ export const SimulationWizard: React.FC = () => {
               onClick={handleFinish}
               className="px-6 py-2 text-sm bg-green-600 text-white font-medium hover:bg-green-700 rounded-lg shadow-sm"
             >
-              开始仿真
+              {t('wizard.start')}
             </button>
           )}
         </div>
