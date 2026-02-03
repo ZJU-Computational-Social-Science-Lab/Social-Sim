@@ -414,6 +414,10 @@ const SimulationPage: React.FC = () => {
           let sim: any | null = null;
           try {
             sim = await apiGetSimulation(String(simIdParam));
+            // Map scene_config.social_network to socialNetwork for frontend
+            if (sim?.scene_config?.social_network) {
+              sim.socialNetwork = sim.scene_config.social_network;
+            }
           } catch (err) {
             console.warn('apiGetSimulation failed, will attempt rehydrate fallback', err);
             // try rehydrate directly using simIdParam (may succeed even if primary endpoint requires auth)
@@ -548,8 +552,11 @@ const SimulationPage: React.FC = () => {
                 knowledgeBase: a.knowledgeBase || []
               }));
 
+              // Map scene_config.social_network to socialNetwork for frontend
+              const socialNetwork = (sim as any).scene_config?.social_network || {};
+
               useSimulationStore.setState({
-                currentSimulation: sim,
+                currentSimulation: { ...sim, socialNetwork },
                 nodes,
                 selectedNodeId: graph && graph.root != null ? String(graph.root) : nodes[0]?.id ?? null,
                 agents: agents,

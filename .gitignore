@@ -147,6 +147,12 @@ uploads/
 .claude/
 .claude.json
 settings.local.json
+claude.md
+
+# Documentation and plans (local to each developer)
+docs/plans/
+*.md.design
+DESIGN.md
 
 # Git worktrees for parallel development
 .worktrees/
