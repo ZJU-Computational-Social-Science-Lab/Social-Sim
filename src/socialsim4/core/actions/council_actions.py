@@ -1,26 +1,34 @@
 from socialsim4.core.action import Action
+from socialsim4.core.action_controller import ActionConstraints
 from socialsim4.core.event import MessageEvent, PublicEvent
 
 
-class StartVotingAction(Action):
+class StartVotingAction(Action, ActionConstraints):
     NAME = "start_voting"
     DESC = "Host starts a voting round with a title."
     INSTRUCTION = """- To start voting with a title:
 <Action name=\"start_voting\"><title>[short subject]</title></Action>
 """
 
-    def handle(self, action_data, agent, simulator, scene):
-        if scene.state.get("voting_started", False):
-            error = "Voting already started."
-            agent.add_env_feedback(error)
-            return (
-                False,
-                {"error": error},
-                f"{agent.name} failed to start voting",
-                {},
-                False,
-            )
+    # VALIDATION: Declared right here with the action!
+    ALLOWED_ROLES = {"Host"}
 
+    @staticmethod
+    def state_guard(scene_state):
+        return not scene_state.get("voting_started", False)
+
+    STATE_GUARD = state_guard
+    STATE_ERROR = "Cannot start voting: a vote is already in progress"
+
+    @staticmethod
+    def validate_params(action_data):
+        title = action_data.get("title", "").strip()
+        return len(title) > 0
+
+    PARAMETER_VALIDATOR = validate_params
+
+    def handle(self, action_data, agent, simulator, scene):
+        # Pure execution logic - validation already done!
         title = action_data["title"].strip()
         scene.state["voting_started"] = True
         scene.state["vote_title"] = title
