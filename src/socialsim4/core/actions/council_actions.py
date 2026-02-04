@@ -173,68 +173,76 @@ class RequestBriefAction(Action):
         return True, result, summary, {}, False
 
 
-class VoteAction(Action):
+class VoteAction(Action, ActionConstraints):
     NAME = "vote"
     DESC = "Member casts a vote with optional comment."
     INSTRUCTION = """- To vote (only after voting has started):
 <Action name=\"vote\"><vote>yes|no|abstain</vote><comment>[optional]</comment></Action>
 """
 
-    def handle(self, action_data, agent, simulator, scene):
-        if not scene.state.get("voting_started", False):
-            error = "Voting has not started yet."
-            agent.add_env_feedback(error)
-            return False, {"error": error}, f"{agent.name} vote failed", {}, False
+    # VALIDATION: Declared here!
+    ALLOWED_ROLES = {"*"}  # '*' = any non-Host agent
 
+    @staticmethod
+    def state_guard(scene_state):
+        return scene_state.get("voting_started", False)
+
+    STATE_GUARD = state_guard
+    STATE_ERROR = "Cannot vote: voting has not started yet"
+
+    @staticmethod
+    def validate_params(action_data):
+        return action_data.get("vote") in ["yes", "no", "abstain"]
+
+    PARAMETER_VALIDATOR = validate_params
+
+    def handle(self, action_data, agent, simulator, scene):
+        # Pure execution logic
         if agent.name in scene.state.get("votes", {}):
             error = "You have already voted."
             agent.add_env_feedback(error)
             return False, {"error": error}, f"{agent.name} vote failed", {}, False
 
         vote = action_data.get("vote")
-        if vote in ["yes", "no", "abstain"] and agent.name != "Host":
-            scene.state.setdefault("votes", {})[agent.name] = vote
-            comment = action_data.get("comment", "")
-            title = scene.state.get("vote_title", "the draft")
-            vote_message = f"I vote {vote} on '{title}'."
-            if comment:
-                vote_message += f" Comment: {comment}"
-            event = MessageEvent(agent.name, vote_message)
-            # Route through scene delivery so voter also retains their own message
-            scene.deliver_message(event, agent, simulator)
-            # No logging here; central processing can record using result/summary
-            result = {"vote": vote, "comment": comment}
-            summary = f"{agent.name} voted {vote}"
-            # Auto-conclude when all non-host members have voted
-            num_members = sum(1 for a in simulator.agents.values() if a.name != "Host")
-            votes = scene.state.get("votes", {})
-            if (
-                scene.state.get("voting_started", False)
-                and num_members > 0
-                and len(votes) >= num_members
-                and not scene.state.get("voting_completed_announced", False)
-            ):
-                yes = sum(v == "yes" for v in votes.values())
-                no = sum(v == "no" for v in votes.values())
-                abstain = sum(v == "abstain" for v in votes.values())
-                result_text = "passed" if yes > num_members / 2 else "failed"
-                simulator.broadcast(
-                    PublicEvent(
-                        f"Voting on '{title}' has concluded. It {result_text} with {yes} yes, {no} no, and {abstain} abstain."
-                    )
+        scene.state.setdefault("votes", {})[agent.name] = vote
+        comment = action_data.get("comment", "")
+        title = scene.state.get("vote_title", "the draft")
+        vote_message = f"I vote {vote} on '{title}'."
+        if comment:
+            vote_message += f" Comment: {comment}"
+        event = MessageEvent(agent.name, vote_message)
+        scene.deliver_message(event, agent, simulator)
+
+        result = {"vote": vote, "comment": comment}
+        summary = f"{agent.name} voted {vote}"
+
+        # Auto-conclude when all non-host members have voted
+        num_members = sum(1 for a in simulator.agents.values() if a.name != "Host")
+        votes = scene.state.get("votes", {})
+        if (
+            scene.state.get("voting_started", False)
+            and num_members > 0
+            and len(votes) >= num_members
+            and not scene.state.get("voting_completed_announced", False)
+        ):
+            yes = sum(v == "yes" for v in votes.values())
+            no = sum(v == "no" for v in votes.values())
+            abstain = sum(v == "abstain" for v in votes.values())
+            result_text = "passed" if yes > num_members / 2 else "failed"
+            simulator.broadcast(
+                PublicEvent(
+                    f"Voting on '{title}' has concluded. It {result_text} with {yes} yes, {no} no, and {abstain} abstain."
                 )
-                # Archive result and reset voting state; do NOT end the scene
-                past = scene.state.get("past_votes") or []
-                past.append({"title": title, "yes": yes, "no": no, "abstain": abstain})
-                scene.state["past_votes"] = past
-                scene.state["voting_started"] = False
-                scene.state["voting_completed_announced"] = True
-                scene.state["votes"] = {}
-                scene.state["vote_title"] = ""
-            return True, result, summary, {}, True
-        error = "Invalid vote or role."
-        agent.add_env_feedback(error)
-        return False, {"error": error}, f"{agent.name} vote failed", {}, False
+            )
+            # Archive result and reset voting state; do NOT end the scene
+            past = scene.state.get("past_votes") or []
+            past.append({"title": title, "yes": yes, "no": no, "abstain": abstain})
+            scene.state["past_votes"] = past
+            scene.state["voting_started"] = False
+            scene.state["voting_completed_announced"] = True
+            scene.state["votes"] = {}
+            scene.state["vote_title"] = ""
+        return True, result, summary, {}, True
 
 
 class FinishMeetingAction(Action):
