@@ -97,7 +97,7 @@ class VotingStatusAction(Action):
 # Removed: GetRoundsAction — no round concept
 
 
-class RequestBriefAction(Action):
+class RequestBriefAction(Action, ActionConstraints):
     NAME = "request_brief"
     DESC = (
         "Host: fetch a concise, neutral brief via LLM when debate stalls, facts are missing, "
@@ -108,19 +108,11 @@ class RequestBriefAction(Action):
 <Action name=\"request_brief\"><desc>[topic + focus]</desc></Action>
 """
 
-    def handle(self, action_data, agent, simulator, scene):
-        # Only the host can fetch briefs
-        if getattr(agent, "name", "") != "Host":
-            error = "Only the Host can use request_brief."
-            agent.add_env_feedback(error)
-            return (
-                False,
-                {"error": error},
-                f"{agent.name} request_brief failed",
-                {},
-                False,
-            )
+    # VALIDATION: Host only
+    ALLOWED_ROLES = {"Host"}
 
+    def handle(self, action_data, agent, simulator, scene):
+        # Role check moved to ActionController
         desc = action_data["desc"]
 
         # Prepare a concise LLM prompt for a short, actionable briefing
@@ -160,10 +152,7 @@ class RequestBriefAction(Action):
             used_fallback = True
 
         content = f"Brief (private) on '{desc}':\n{material.strip()}"
-        # Deliver privately to host and record the event (private)
         agent.add_env_feedback(content)
-        # Add a concise transcript note (non-world log)
-        # No logging inside action handlers; central logging can use the returned summary/result
         result = {
             "desc": desc,
             "material": material.strip(),
