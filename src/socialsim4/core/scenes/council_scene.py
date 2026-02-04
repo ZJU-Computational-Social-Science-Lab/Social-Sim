@@ -13,6 +13,7 @@ class CouncilScene(SimpleChatScene):
         self.state["voting_started"] = False
         self.state["voting_completed_announced"] = False
         self.complete = False
+        self._host_designated = False  # Track if we've set a host yet
 
     def get_scene_actions(self, agent: Agent):
         actions = super().get_scene_actions(agent)
@@ -32,5 +33,21 @@ class CouncilScene(SimpleChatScene):
 
     def is_complete(self):
         return self.complete
+
+    def initialize_agent(self, agent: Agent):
+        """
+        Initialize an agent for the council scene.
+
+        Auto-designates the first agent as "host" if no role is set.
+        """
+        super().initialize_agent(agent)
+
+        # Auto-designate first agent as host if no role is set
+        if not self._host_designated:
+            if not hasattr(agent, 'properties') or not agent.properties.get('role'):
+                if not hasattr(agent, 'properties'):
+                    agent.properties = {}
+                agent.properties['role'] = 'host'
+                self._host_designated = True
 
     # No round-based completion; result announcement happens in VoteAction

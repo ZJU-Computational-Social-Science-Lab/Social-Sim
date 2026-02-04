@@ -58,7 +58,7 @@ class ActionController:
         Otherwise falls back to explicit rules.
         """
         if DEBUG_ACTION_VALIDATION:
-            print(f"\n[ACTION-VALIDATION] Agent '{agent.name}' attempting action: '{action_name}'")
+            print(f"\n[ACTION-VALIDATION] Agent '{agent.name}' (role: {agent.properties.get('role', agent.name) if hasattr(agent, 'properties') else agent.name}) attempting action: '{action_name}'")
 
         # Try to get constraints from the action instance
         if action_instance and hasattr(action_instance, 'ALLOWED_ROLES'):
@@ -146,16 +146,27 @@ class ActionController:
         return True, None
 
     def _check_role(self, agent: Agent, allowed_roles: Set[str]) -> bool:
-        """Check if agent's role allows this action."""
+        """Check if agent's role allows this action.
+
+        Uses agent.properties.get("role") if available, otherwise falls back to agent.name.
+        """
+        # Get the agent's role - either from properties or use name as fallback
+        agent_role = agent.properties.get("role", agent.name) if hasattr(agent, 'properties') else agent.name
+
         if "*" in allowed_roles:
-            return agent.name != "Host"  # '*' means non-Host only
+            return agent_role != "host"  # '*' means non-host only (case-insensitive)
         if not allowed_roles:
             return True  # Empty set = anyone allowed
-        return agent.name in allowed_roles
+        # Case-insensitive role check for flexibility
+        agent_role_lower = agent_role.lower()
+        allowed_roles_lower = {r.lower() for r in allowed_roles}
+        return agent_role_lower in allowed_roles_lower
 
     def _role_error(self, agent: Agent, allowed_roles: Set[str]) -> str:
         """Generate role error message."""
+        agent_role = agent.properties.get("role", agent.name) if hasattr(agent, 'properties') else agent.name
+
         if "*" in allowed_roles:
             return f"Permission denied: Host cannot perform this action"
         roles_str = ", ".join(allowed_roles)
-        return f"Permission denied: Agent '{agent.name}' is not allowed (requires: {roles_str})"
+        return f"Permission denied: Agent '{agent.name}' (role: '{agent_role}') is not allowed (requires: {roles_str})"
