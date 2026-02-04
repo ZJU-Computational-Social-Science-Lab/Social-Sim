@@ -234,14 +234,25 @@ class VoteAction(Action, ActionConstraints):
         return True, result, summary, {}, True
 
 
-class FinishMeetingAction(Action):
+class FinishMeetingAction(Action, ActionConstraints):
     NAME = "finish_meeting"
     DESC = "Host finishes the council meeting and ends the scene."
     INSTRUCTION = """- To finish the council meeting (host only):
 <Action name=\"finish_meeting\" />
 """
 
+    # VALIDATION: Declared here!
+    ALLOWED_ROLES = {"Host"}
+
+    @staticmethod
+    def state_guard(scene_state):
+        return not scene_state.get("voting_started", False)
+
+    STATE_GUARD = state_guard
+    STATE_ERROR = "Cannot finish meeting: voting is still in progress"
+
     def handle(self, action_data, agent, simulator, scene):
+        # Pure execution logic
         scene.complete = True
         simulator.broadcast(PublicEvent("The council session is adjourned."))
         agent.add_env_feedback("Meeting finished.")
