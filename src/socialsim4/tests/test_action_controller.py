@@ -146,3 +146,172 @@ class TestActionController:
         )
         assert allowed
         assert error is None
+
+
+# Council action imports for integration testing
+from socialsim4.core.actions.council_actions import (
+    StartVotingAction,
+    VoteAction,
+    FinishMeetingAction,
+    RequestBriefAction,
+)
+
+
+class TestCouncilActionValidation:
+    """Integration tests for council actions with declarative constraints."""
+
+    def test_start_voting_host_only(self):
+        """StartVotingAction only allows Host agent."""
+        controller = ActionController()
+        action = StartVotingAction()
+        host = Agent("Host", "profile", "style", [], {})
+        agent = Agent("Rep. Chen", "profile", "style", [], {})
+
+        # Host allowed with valid title
+        allowed, error = controller.validate_action(
+            "start_voting", {"title": "Budget 2024"}, host, {}, action
+        )
+        assert allowed
+
+        # Non-host rejected
+        allowed, error = controller.validate_action(
+            "start_voting", {"title": "Budget 2024"}, agent, {}, action
+        )
+        assert not allowed
+        assert "Permission denied" in error
+
+    def test_start_voting_cannot_start_twice(self):
+        """StartVotingAction blocked when voting already started."""
+        controller = ActionController()
+        action = StartVotingAction()
+        host = Agent("Host", "profile", "style", [], {})
+
+        allowed, error = controller.validate_action(
+            "start_voting", {"title": "Budget"}, host, {"voting_started": True}, action
+        )
+        assert not allowed
+        assert "already in progress" in error.lower()
+
+    def test_start_voting_requires_title(self):
+        """StartVotingAction requires non-empty title."""
+        controller = ActionController()
+        action = StartVotingAction()
+        host = Agent("Host", "profile", "style", [], {})
+
+        # Empty title rejected
+        allowed, error = controller.validate_action(
+            "start_voting", {"title": "   "}, host, {}, action
+        )
+        assert not allowed
+        assert "Invalid parameters" in error
+
+    def test_vote_requires_voting_started(self):
+        """VoteAction requires voting state."""
+        controller = ActionController()
+        action = VoteAction()
+        agent = Agent("Rep. Chen", "profile", "style", [], {})
+
+        allowed, error = controller.validate_action(
+            "vote", {"vote": "yes"}, agent, {}, action
+        )
+        assert not allowed
+        assert "not started" in error.lower()
+
+    def test_vote_valid_values(self):
+        """VoteAction accepts yes/no/abstain."""
+        controller = ActionController()
+        action = VoteAction()
+        agent = Agent("Rep. Chen", "profile", "style", [], {})
+        state = {"voting_started": True}
+
+        for vote in ["yes", "no", "abstain"]:
+            allowed, error = controller.validate_action(
+                "vote", {"vote": vote}, agent, state, action
+            )
+            assert allowed, f"Vote '{vote}' should be allowed"
+
+    def test_vote_rejects_invalid_values(self):
+        """VoteAction rejects invalid vote values."""
+        controller = ActionController()
+        action = VoteAction()
+        agent = Agent("Rep. Chen", "profile", "style", [], {})
+        state = {"voting_started": True}
+
+        for vote in ["maybe", "I vote yes", "", "present"]:
+            allowed, error = controller.validate_action(
+                "vote", {"vote": vote}, agent, state, action
+            )
+            assert not allowed, f"Vote '{vote}' should be rejected"
+
+    def test_vote_excludes_host(self):
+        """VoteAction excludes Host with '*' role restriction."""
+        controller = ActionController()
+        action = VoteAction()
+        host = Agent("Host", "profile", "style", [], {})
+        agent = Agent("Rep. Chen", "profile", "style", [], {})
+        state = {"voting_started": True}
+
+        # Host rejected
+        allowed, error = controller.validate_action(
+            "vote", {"vote": "yes"}, host, state, action
+        )
+        assert not allowed
+        assert "Host cannot perform" in error
+
+        # Member allowed
+        allowed, error = controller.validate_action(
+            "vote", {"vote": "yes"}, agent, state, action
+        )
+        assert allowed
+
+    def test_finish_meeting_host_only(self):
+        """FinishMeetingAction only allows Host."""
+        controller = ActionController()
+        action = FinishMeetingAction()
+        host = Agent("Host", "profile", "style", [], {})
+        agent = Agent("Rep. Chen", "profile", "style", [], {})
+
+        # Host allowed
+        allowed, error = controller.validate_action(
+            "finish_meeting", {}, host, {}, action
+        )
+        assert allowed
+
+        # Non-host rejected
+        allowed, error = controller.validate_action(
+            "finish_meeting", {}, agent, {}, action
+        )
+        assert not allowed
+        assert "Permission denied" in error
+
+    def test_finish_meeting_blocked_during_vote(self):
+        """FinishMeetingAction blocked while voting active."""
+        controller = ActionController()
+        action = FinishMeetingAction()
+        host = Agent("Host", "profile", "style", [], {})
+
+        allowed, error = controller.validate_action(
+            "finish_meeting", {}, host, {"voting_started": True}, action
+        )
+        assert not allowed
+        assert "voting is still in progress" in error.lower()
+
+    def test_request_brief_host_only(self):
+        """RequestBriefAction only allows Host."""
+        controller = ActionController()
+        action = RequestBriefAction()
+        host = Agent("Host", "profile", "style", [], {})
+        agent = Agent("Rep. Chen", "profile", "style", [], {})
+
+        # Host allowed
+        allowed, error = controller.validate_action(
+            "request_brief", {"desc": "Climate policy"}, host, {}, action
+        )
+        assert allowed
+
+        # Non-host rejected
+        allowed, error = controller.validate_action(
+            "request_brief", {"desc": "Climate policy"}, agent, {}, action
+        )
+        assert not allowed
+        assert "Permission denied" in error
