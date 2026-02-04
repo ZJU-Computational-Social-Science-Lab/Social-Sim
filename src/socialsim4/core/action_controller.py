@@ -8,6 +8,9 @@ The ActionController simply checks what each action declares.
 from typing import Tuple, Optional, Dict, Any, Callable, Set
 from socialsim4.core.agent import Agent
 
+# Debug flag for action validation logging
+DEBUG_ACTION_VALIDATION = True
+
 
 class ActionConstraints:
     """
@@ -54,19 +57,38 @@ class ActionController:
         If action_instance is provided, reads constraints from it.
         Otherwise falls back to explicit rules.
         """
+        if DEBUG_ACTION_VALIDATION:
+            print(f"\n[ACTION-VALIDATION] Agent '{agent.name}' attempting action: '{action_name}'")
+
         # Try to get constraints from the action instance
         if action_instance and hasattr(action_instance, 'ALLOWED_ROLES'):
-            return self._validate_with_constraints(
+            result = self._validate_with_constraints(
                 action_instance, action_data, agent, scene_state
             )
+            if DEBUG_ACTION_VALIDATION:
+                allowed, error = result
+                status = "[ALLOWED]" if allowed else "[BLOCKED]"
+                print(f"[ACTION-VALIDATION]   Result: {status}")
+                if error:
+                    print(f"[ACTION-VALIDATION]   Reason: {error}")
+            return result
 
         # Fall back to explicit rules (for backward compatibility)
         if action_name in self._explicit_rules:
-            return self._validate_with_explicit_rules(
+            result = self._validate_with_explicit_rules(
                 action_name, action_data, agent, scene_state
             )
+            if DEBUG_ACTION_VALIDATION:
+                allowed, error = result
+                status = "[ALLOWED]" if allowed else "[BLOCKED]"
+                print(f"[ACTION-VALIDATION]   Result: {status} (explicit rules)")
+                if error:
+                    print(f"[ACTION-VALIDATION]   Reason: {error}")
+            return result
 
         # No constraints defined - allow the action
+        if DEBUG_ACTION_VALIDATION:
+            print(f"[ACTION-VALIDATION]   Result: [ALLOWED] (no constraints)")
         return True, None
 
     def _validate_with_constraints(
@@ -74,6 +96,16 @@ class ActionController:
         agent: Agent, scene_state: Dict[str, Any]
     ) -> Tuple[bool, Optional[str]]:
         """Validate using constraints declared on the Action class."""
+        if DEBUG_ACTION_VALIDATION:
+            constraints = []
+            if hasattr(action, 'ALLOWED_ROLES') and action.ALLOWED_ROLES:
+                constraints.append(f"roles={action.ALLOWED_ROLES}")
+            if hasattr(action, 'STATE_GUARD') and action.STATE_GUARD:
+                constraints.append("state_guard=True")
+            if hasattr(action, 'PARAMETER_VALIDATOR') and action.PARAMETER_VALIDATOR:
+                constraints.append("param_validator=True")
+            print(f"[ACTION-VALIDATION]   Constraints: {', '.join(constraints) if constraints else 'none'}")
+
         # Check 1: Role permission
         if hasattr(action, 'ALLOWED_ROLES') and action.ALLOWED_ROLES:
             if not self._check_role(agent, action.ALLOWED_ROLES):
