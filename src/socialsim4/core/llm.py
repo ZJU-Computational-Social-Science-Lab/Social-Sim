@@ -1,31 +1,92 @@
+import base64
+import json
+import math
 import os
+import random
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutTimeout
 from threading import BoundedSemaphore
 from copy import deepcopy
+from urllib.parse import urlparse
+from typing import Literal, List, Dict, Any, Optional
 
-import google.generativeai as genai
 from openai import OpenAI
+import google.genai as genai
+import httpx
 
 from .llm_config import LLMConfig
+
+
+# SSRF prevention: allowed URL schemes for media content
+_ALLOWED_URL_SCHEMES = {"http", "https", "data"}
+
+# SSRF prevention: denylist of private/internal network patterns
+# These patterns prevent the vision model from accessing internal resources
+_PRIVATE_NETWORK_PATTERNS = (
+    r"127\.\d+\.\d+\.\d+",  # 127.0.0.0/8
+    r"10\.\d+\.\d+\.\d+",  # 10.0.0.0/8
+    r"172\.(1[6-9]|2\d|3[01])\.\d+\.\d+",  # 172.16.0.0/12
+    r"192\.168\.\d+\.\d+",  # 192.168.0.0/16
+    r"169\.254\.\d+\.\d+",  # 169.254.0.0/16 (link-local)
+    r"::1$",  # IPv6 localhost
+    r"fe80::",  # IPv6 link-local
+    r"fc00::",  # IPv6 unique local
+    r"localhost",  # localhost hostname
+    r"0\.0\.0\.0",  # 0.0.0.0
+)
+
+def _is_private_network_url(url: str) -> bool:
+    """Check if a URL points to a private/internal network (SSRF prevention)."""
+    if url.startswith("data:"):
+        return False  # data URLs are safe (embedded content)
+
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname or ""
+
+        # Check against private network patterns
+        for pattern in _PRIVATE_NETWORK_PATTERNS:
+            if re.search(pattern, hostname, re.IGNORECASE):
+                return True
+
+        # Block metadata addresses like <metadata> in cloud providers
+        if hostname in ("metadata", "169.254.169.254"):
+            return True
+
+        return False
+    except Exception:
+        # If URL parsing fails, treat as potentially unsafe
+        return True
+
+
+def validate_media_url(url: str) -> Literal["valid", "invalid_scheme", "private_network"]:
+    """
+    Validate a media URL for SSRF prevention.
+
+    Returns:
+        "valid": URL is safe to pass to vision models
+        "invalid_scheme": URL uses a disallowed scheme
+        "private_network": URL points to a private/internal network
+    """
+    if not isinstance(url, str):
+        return "invalid_scheme"
+
+    # Check scheme
+    if not any(url.startswith(f"{scheme}:") for scheme in _ALLOWED_URL_SCHEMES):
+        return "invalid_scheme"
+
+    # Check for private network addresses
+    if _is_private_network_url(url):
+        return "private_network"
+
+    return "valid"
 
 
 class LLMClient:
     def __init__(self, provider: LLMConfig):
         self.provider = provider
-
-        # 根据 dialect 初始化底层 client
-        if provider.dialect == "openai":
-            self.client = OpenAI(api_key=provider.api_key, base_url=provider.base_url)
-        elif provider.dialect == "gemini":
-            genai.configure(api_key=provider.api_key)
-            self.client = genai.GenerativeModel(provider.model)
-        elif provider.dialect == "mock":
-            self.client = _MockModel()
-        else:
-            raise ValueError(f"Unknown LLM provider dialect: {provider.dialect}")
 
         # Timeout and retry settings (environment-driven defaults)
         self.timeout_s = float(os.getenv("LLM_TIMEOUT_S", "30"))
@@ -37,6 +98,20 @@ class LLMClient:
         if max_concurrent < 1:
             max_concurrent = 1
         self._sem = BoundedSemaphore(max_concurrent)
+
+        # 根据 dialect 初始化底层 client
+        if provider.dialect == "openai":
+            self.client = OpenAI(api_key=provider.api_key, base_url=provider.base_url)
+        elif provider.dialect == "gemini":
+            genai.configure(api_key=provider.api_key)
+            self.client = genai.GenerativeModel(model_name=provider.model)
+        elif provider.dialect == "mock":
+            self.client = _MockModel()
+        elif provider.dialect == "ollama":
+            base_url = provider.base_url or os.getenv("OLLAMA_BASE_URL") or "http://127.0.0.1:11434"
+            self.client = httpx.Client(base_url=base_url, timeout=self.timeout_s)
+        else:
+            raise ValueError(f"Unknown LLM provider dialect: {provider.dialect}")
 
     # ----------- 新增：用于“强隔离模式”的 clone 方法 -----------
     def clone(self) -> "LLMClient":
@@ -64,9 +139,12 @@ class LLMClient:
             )
         elif cloned_provider.dialect == "gemini":
             genai.configure(api_key=cloned_provider.api_key)
-            cloned.client = genai.GenerativeModel(cloned_provider.model)
+            cloned.client = genai.GenerativeModel(model_name=cloned_provider.model)
         elif cloned_provider.dialect == "mock":
             cloned.client = _MockModel()
+        elif cloned_provider.dialect == "ollama":
+            base_url = cloned_provider.base_url or os.getenv("OLLAMA_BASE_URL") or "http://127.0.0.1:11434"
+            cloned.client = httpx.Client(base_url=base_url, timeout=self.timeout_s)
         else:
             raise ValueError(f"Unknown LLM provider dialect: {cloned_provider.dialect}")
 
@@ -126,14 +204,128 @@ class LLMClient:
 
     # ----------- Chat API -----------
     def chat(self, messages):
+        # 统一规范消息：支持 text + images，并在不支持 vision 的模型上降级为带占位符的纯文本
+        supports_vision = bool(getattr(self.provider, "supports_vision", False))
+
+        def _safe_media_urls(urls):
+            """Validate and filter media URLs for SSRF prevention."""
+            safe = []
+            for url in urls or []:
+                if not isinstance(url, str):
+                    continue
+                validation = validate_media_url(url)
+                if validation == "valid":
+                    safe.append(url)
+                else:
+                    # Log unsafe URL and skip it
+                    print(f"[LLMClient] Skipping unsafe media URL ({validation}): {url[:50]}...")
+            return safe
+
+        def _merge_with_placeholders(text, images, audio, video, include_image_placeholder):
+            parts = []
+            if text:
+                parts.append(text)
+            if include_image_placeholder and images:
+                parts.append("\n".join([f"[image: {u}]" for u in images]))
+            if audio:
+                parts.append("\n".join([f"[audio: {u}]" for u in audio]))
+            if video:
+                parts.append("\n".join([f"[video: {u}]" for u in video]))
+            return "\n".join([p for p in parts if p])
+
+        def _normalize_for_openai(msgs, allow_vision):
+            norm = []
+            for m in msgs:
+                role = m.get("role")
+                if role not in ("system", "user", "assistant"):
+                    continue
+                text = m.get("content") or ""
+                images = _safe_media_urls(m.get("images"))
+                audio = _safe_media_urls(m.get("audio"))
+                video = _safe_media_urls(m.get("video"))
+                if allow_vision and images:
+                    merged_text = _merge_with_placeholders(text, [], audio, video, include_image_placeholder=False)
+                    parts = []
+                    if merged_text:
+                        parts.append({"type": "text", "text": merged_text})
+                    for url in images:
+                        if not url:
+                            continue
+                        parts.append({"type": "image_url", "image_url": {"url": url}})
+                    norm.append({"role": role, "content": parts})
+                else:
+                    content = _merge_with_placeholders(text, images, audio, video, include_image_placeholder=True)
+                    norm.append({"role": role, "content": content})
+            return norm
+
+        def _normalize_for_gemini(msgs, allow_vision):
+            norm = []
+            for m in msgs:
+                role = m.get("role")
+                if role not in ("system", "user", "assistant"):
+                    continue
+                text = m.get("content") or ""
+                images = _safe_media_urls(m.get("images"))
+                audio = _safe_media_urls(m.get("audio"))
+                video = _safe_media_urls(m.get("video"))
+                if allow_vision and images:
+                    merged_text = _merge_with_placeholders(text, [], audio, video, include_image_placeholder=False)
+                    parts = []
+                    if merged_text:
+                        parts.append({"text": merged_text})
+                    for url in images:
+                        if not url:
+                            continue
+                        parts.append({"image_url": url})
+                    norm.append({"role": ("model" if role == "assistant" else "user"), "parts": parts})
+                else:
+                    merged = _merge_with_placeholders(text, images, audio, video, include_image_placeholder=True)
+                    norm.append({"role": ("model" if role == "assistant" else "user"), "parts": [{"text": merged}]})
+            return norm
+
+        def _normalize_for_mock(msgs):
+            norm = []
+            for m in msgs:
+                role = m.get("role")
+                if role not in ("system", "user", "assistant"):
+                    continue
+                text = m.get("content") or ""
+                images = _safe_media_urls(m.get("images"))
+                audio = _safe_media_urls(m.get("audio"))
+                video = _safe_media_urls(m.get("video"))
+                merged = _merge_with_placeholders(text, images, audio, video, include_image_placeholder=True)
+                norm.append({"role": role, "content": merged})
+            return norm
+
+        def _normalize_for_ollama(msgs, allow_vision):
+            norm = []
+            for m in msgs:
+                role = m.get("role")
+                if role not in ("system", "user", "assistant"):
+                    continue
+                text = m.get("content") or ""
+                images = _safe_media_urls(m.get("images"))
+                audio = _safe_media_urls(m.get("audio"))
+                video = _safe_media_urls(m.get("video"))
+                entry = {
+                    "role": role,
+                    "content": _merge_with_placeholders(
+                        text,
+                        [] if allow_vision else images,
+                        audio,
+                        video,
+                        include_image_placeholder=not allow_vision,
+                    ),
+                }
+                if allow_vision and images:
+                    entry["images"] = images
+                norm.append(entry)
+            return norm
+
         if self.provider.dialect == "openai":
 
             def _do():
-                msgs = [
-                    {"role": m["role"], "content": m["content"]}
-                    for m in messages
-                    if m["role"] in ("system", "user", "assistant")
-                ]
+                msgs = _normalize_for_openai(messages, supports_vision)
                 resp = self.client.chat.completions.create(
                     model=self.provider.model,
                     messages=msgs,
@@ -150,42 +342,78 @@ class LLMClient:
         if self.provider.dialect == "gemini":
 
             def _do():
-                contents = [
-                    {
-                        "role": ("model" if m["role"] == "assistant" else "user"),
-                        "parts": [{"text": m["content"]}],
-                    }
-                    for m in messages
-                    if m["role"] in ("system", "user", "assistant")
-                ]
+                contents = _normalize_for_gemini(messages, supports_vision)
                 resp = self.client.generate_content(
-                    contents,
-                    generation_config={
-                        "temperature": self.provider.temperature,
-                        "max_output_tokens": self.provider.max_tokens,
-                        "top_p": self.provider.top_p,
-                        "frequency_penalty": self.provider.frequency_penalty,
-                        "presence_penalty": self.provider.presence_penalty,
-                    },
+                    contents=contents,
+                    config=GenerateContentConfig(
+                        temperature=self.provider.temperature,
+                        max_output_tokens=self.provider.max_tokens,
+                        top_p=self.provider.top_p,
+                        frequency_penalty=self.provider.frequency_penalty,
+                        presence_penalty=self.provider.presence_penalty,
+                    ),
                 )
-                # Some responses may not populate resp.text; extract from candidates if present
-                text = ""
-                cands = getattr(resp, "candidates", None)
-                if cands:
-                    first = cands[0] if len(cands) > 0 else None
-                    if first is not None:
-                        content = getattr(first, "content", None)
-                        parts = getattr(content, "parts", None) if content is not None else None
+                if hasattr(resp, "text") and resp.text:
+                    return resp.text.strip()
+                if hasattr(resp, "candidates") and resp.candidates:
+                    cand = resp.candidates[0]
+                    if hasattr(cand, "content") and cand.content:
+                        parts = getattr(cand.content, "parts", [])
                         if parts:
-                            text = "".join([getattr(p, "text", "") for p in parts])
-                return text.strip()
+                            return "".join([getattr(p, "text", "") for p in parts]).strip()
+                return ""
 
             return self._with_timeout_and_retry(_do)
 
         if self.provider.dialect == "mock":
 
             def _do():
-                return self.client.chat(messages)
+                msgs = _normalize_for_mock(messages)
+                return self.client.chat(msgs)
+
+            return self._with_timeout_and_retry(_do)
+
+        if self.provider.dialect == "ollama":
+
+            def _encode_images(urls):
+                encoded = []
+                for url in urls or []:
+                    if url.startswith("data:"):
+                        parts = url.split(",", 1)
+                        if len(parts) == 2:
+                            encoded.append(parts[1])
+                        continue
+                    # Validate URL before fetching (SSRF protection)
+                    validation = validate_media_url(url)
+                    if validation != "valid":
+                        print(f"[LLMClient] Skipping unsafe image URL ({validation}): {url[:50]}...")
+                        continue
+                    resp = self.client.get(url, timeout=10)
+                    resp.raise_for_status()
+                    encoded.append(base64.b64encode(resp.content).decode("utf-8"))
+                return encoded
+
+            def _do():
+                msgs = _normalize_for_ollama(messages, supports_vision)
+                for m in msgs:
+                    if supports_vision and m.get("images"):
+                        m["images"] = _encode_images(m.get("images"))
+                payload = {
+                    "model": self.provider.model,
+                    "messages": msgs,
+                    "stream": False,
+                    "options": {
+                        "temperature": self.provider.temperature,
+                        "top_p": self.provider.top_p,
+                        "num_predict": self.provider.max_tokens,
+                    },
+                }
+                resp = self.client.post("/api/chat", json=payload, timeout=self.timeout_s)
+                resp.raise_for_status()
+                data = resp.json()
+                message = data.get("message") or {}
+                content = message.get("content") or data.get("response") or ""
+                return str(content).strip()
 
             return self._with_timeout_and_retry(_do)
 
@@ -219,6 +447,26 @@ class LLMClient:
         if self.provider.dialect == "mock":
             return ""
 
+        if self.provider.dialect == "ollama":
+
+            def _do():
+                payload = {
+                    "model": self.provider.model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": self.provider.temperature,
+                        "top_p": self.provider.top_p,
+                        "num_predict": self.provider.max_tokens,
+                    },
+                }
+                resp = self.client.post("/api/generate", json=payload, timeout=self.timeout_s)
+                resp.raise_for_status()
+                data = resp.json()
+                return str(data.get("response") or "").strip()
+
+            return self._with_timeout_and_retry(_do)
+
         raise ValueError(f"Unknown LLM dialect: {self.provider.dialect}")
 
     # ----------- Embedding API -----------
@@ -247,6 +495,20 @@ class LLMClient:
 
         if self.provider.dialect == "mock":
             return []
+
+        if self.provider.dialect == "ollama":
+
+            def _do():
+                payload = {"model": self.provider.model, "prompt": text}
+                resp = self.client.post("/api/embeddings", json=payload, timeout=self.timeout_s)
+                resp.raise_for_status()
+                data = resp.json()
+                embedding = data.get("embedding")
+                if embedding is None:
+                    raise ValueError("Ollama did not return embedding")
+                return embedding
+
+            return self._with_timeout_and_retry(_do)
 
         raise ValueError(f"Unknown LLM dialect: {self.provider.dialect}")
 
@@ -523,3 +785,235 @@ def action_to_xml(a):
         return f'<Action name="{name}" />'
     parts = "".join([f"<{k}>{a[k]}</{k}>" for k in params])
     return f'<Action name="{name}">{parts}</Action>'
+
+
+# =============================================================================
+# Agent Scaling: Archetype-Based Agent Generation
+# =============================================================================
+
+def generate_archetypes_from_demographics(demographics: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Generate all archetype combinations from demographics.
+
+    Args:
+        demographics: List of {"name": str, "categories": List[str]}
+
+    Returns:
+        List of archetypes: [{"id", "attributes", "label", "probability"}, ...]
+    """
+    if not demographics:
+        return []
+
+    # Start with first demographic
+    combinations = [{demographics[0]["name"]: cat} for cat in demographics[0]["categories"]]
+
+    # Cross-product with remaining demographics
+    for demo in demographics[1:]:
+        new_combinations = []
+        for combo in combinations:
+            for cat in demo["categories"]:
+                new_combo = dict(combo)
+                new_combo[demo["name"]] = cat
+                new_combinations.append(new_combo)
+        combinations = new_combinations
+
+    # Create archetype objects
+    equal_prob = 1.0 / len(combinations) if combinations else 0
+    archetypes = []
+    for i, attrs in enumerate(combinations):
+        label = " | ".join(f"{k}: {v}" for k, v in attrs.items())
+        archetypes.append({
+            "id": f"arch_{i}",
+            "attributes": attrs,
+            "label": label,
+            "probability": equal_prob
+        })
+
+    return archetypes
+
+
+def add_gaussian_noise(value: float, std_dev: float, min_val: float = 0, max_val: float = 100) -> int:
+    """Add Gaussian noise to a value and clamp to min/max range."""
+    u1 = random.random() or 0.0001
+    u2 = random.random()
+    z = math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
+    noisy = value + z * std_dev
+    return int(round(max(min_val, min(max_val, noisy))))
+
+
+def generate_archetype_template(
+    archetype: Dict[str, Any],
+    llm_client: "LLMClient",
+    language: str = "en"
+) -> Dict[str, Any]:
+    """
+    Make ONE LLM call to get description and roles only.
+    Traits are now user-specified, not LLM-generated.
+    """
+    attrs_str = ", ".join(f"{k}: {v}" for k, v in archetype["attributes"].items())
+
+    if language == "zh":
+        prompt = f"""为此人口创建角色模板: {attrs_str}
+
+返回这个格式的JSON:
+{{"description": "一句人物描述", "roles": ["职业1", "职业2", "职业3", "职业4", "职业5"]}}
+
+仅输出JSON，无其他文字。"""
+    else:
+        prompt = f"""Create agent template for: {attrs_str}
+
+Return JSON in this exact format:
+{{"description": "one sentence bio", "roles": ["Job Title 1", "Job Title 2", "Job Title 3", "Job Title 4", "Job Title 5"]}}
+
+JSON only, no other text."""
+
+    messages = [
+        {"role": "system", "content": "Return only valid JSON."},
+        {"role": "user", "content": prompt}
+    ]
+
+    response = llm_client.chat(messages)
+
+    # Debug logging
+    print(f"[DEBUG] Archetype: {attrs_str}")
+    print(f"[DEBUG] LLM Response: {response[:500]}...")
+
+    # Strip markdown code blocks if present
+    cleaned = response.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r'^```(?:json)?\s*', '', cleaned)
+        cleaned = re.sub(r'\s*```$', '', cleaned)
+
+    # Try to parse JSON from response
+    json_match = re.search(r'\{[\s\S]*\}', cleaned)
+    if not json_match:
+        print(f"[ERROR] No JSON found in response for archetype {attrs_str}")
+        print(f"[ERROR] Cleaned response: {cleaned}")
+        raise RuntimeError(f"No JSON found in LLM response for archetype {attrs_str}. Response: {cleaned[:200]}")
+
+    try:
+        parsed = json.loads(json_match.group())
+    except json.JSONDecodeError as e:
+        print(f"[ERROR] JSON parse error for archetype {attrs_str}: {e}")
+        print(f"[ERROR] JSON string: {json_match.group()[:200]}")
+        raise RuntimeError(f"Failed to parse JSON for archetype {attrs_str}: {e}")
+
+    # Validate required fields
+    if "description" not in parsed or not isinstance(parsed["description"], str):
+        raise RuntimeError(f"Missing or invalid 'description' for archetype {attrs_str}. Got keys: {list(parsed.keys())}")
+    if "roles" not in parsed or not isinstance(parsed["roles"], list) or len(parsed["roles"]) == 0:
+        raise RuntimeError(f"Missing or invalid 'roles' for archetype {attrs_str}. Got: {parsed.get('roles')}")
+
+    # Validate roles are strings
+    for i, r in enumerate(parsed["roles"]):
+        if not isinstance(r, str):
+            raise RuntimeError(f"Role {i} must be a string, got {type(r).__name__} for archetype {attrs_str}")
+
+    return {
+        "description": parsed["description"],
+        "roles": parsed["roles"]
+    }
+
+
+def generate_agents_with_archetypes(
+    total_agents: int,
+    demographics: List[Dict[str, Any]],
+    archetype_probabilities: Optional[Dict[str, float]],
+    traits: List[Dict[str, Any]],
+    llm_client: "LLMClient",
+    language: str = "en"
+) -> List[Dict[str, Any]]:
+    """
+    Generate agents based on demographics and archetype probabilities.
+    Traits use user-specified mean/std directly.
+    """
+    # Validate inputs
+    if not traits:
+        raise ValueError("Traits are required for agent generation")
+
+    # Validate trait format
+    for trait in traits:
+        if "mean" not in trait or "std" not in trait:
+            raise ValueError(f"Trait '{trait.get('name', 'unknown')}' must have 'mean' and 'std'")
+
+    # Step 1: Generate archetypes
+    archetypes = generate_archetypes_from_demographics(demographics)
+    if not archetypes:
+        return []
+
+    # Step 2: Apply custom probabilities
+    if archetype_probabilities:
+        for arch in archetypes:
+            if arch["id"] in archetype_probabilities:
+                arch["probability"] = archetype_probabilities[arch["id"]]
+
+    # Step 3: Calculate agent counts per archetype
+    total_prob = sum(a["probability"] for a in archetypes) or 1.0
+    counts = {}
+    remaining = total_agents
+
+    for i, arch in enumerate(archetypes):
+        if i == len(archetypes) - 1:
+            counts[arch["id"]] = remaining
+        else:
+            normalized_prob = arch["probability"] / total_prob
+            count = int(round(total_agents * normalized_prob))
+            count = min(count, remaining)
+            counts[arch["id"]] = count
+            remaining -= count
+
+    # Step 4: Generate agents - ONE ARCHETYPE AT A TIME
+    agents = []
+    global_index = 0
+
+    for arch in archetypes:
+        count = counts.get(arch["id"], 0)
+        if count == 0:
+            continue
+
+        # ONE LLM call per archetype to get description and roles only
+        template = generate_archetype_template(arch, llm_client, language)
+
+        # Create agents with random role and Gaussian noise on traits
+        for i in range(count):
+            agent_num = global_index + 1
+            name = f"Agent {agent_num}"
+
+            # Randomly assign a role from LLM-generated list
+            role = random.choice(template["roles"]) if template["roles"] else "Citizen"
+
+            # Generate trait values with Gaussian noise using USER-SPECIFIED mean/std
+            properties = {
+                "archetype_id": arch["id"],
+                "archetype_label": arch["label"],
+                **arch["attributes"]
+            }
+
+            for trait in traits:
+                value = add_gaussian_noise(
+                    trait["mean"],
+                    trait["std"],
+                    0,    # min clamp
+                    100   # max clamp (or make configurable)
+                )
+                properties[trait["name"]] = value
+
+            # Profile is just the description
+            profile = template["description"]
+
+            agent = {
+                "id": f"agent_{agent_num}",
+                "name": name,
+                "role": role,
+                "avatarUrl": f"https://api.dicebear.com/7.x/avataaars/svg?seed=agent{agent_num}",
+                "profile": profile,
+                "properties": properties,
+                "history": {},
+                "memory": [],
+                "knowledgeBase": []
+            }
+
+            agents.append(agent)
+            global_index += 1
+
+    return agents

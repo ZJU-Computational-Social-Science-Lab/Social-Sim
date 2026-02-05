@@ -29,11 +29,20 @@ class MessageEvent(Event):
 
 
 class PublicEvent(Event):
-    def __init__(self, content, prefix="Public Event"):
+    def __init__(self, content, prefix="Public Event", images=None, audio=None, video=None):
         self.content = content
         self.prefix = prefix
+        self.images = images or []
+        self.audio = audio or []
+        self.video = video or []
         self.code = "public_event"
-        self.params = {"content": content, "prefix": prefix}
+        self.params = {
+            "content": content,
+            "prefix": prefix,
+            "images": self.images,
+            "audio": self.audio,
+            "video": self.video,
+        }
 
     def to_string(self, time=None):
         time_str = _fmt_time_prefix(time)
@@ -84,3 +93,29 @@ class TalkToEvent(Event):
 
     def get_sender(self):
         return self.sender
+
+
+class EnvironmentEvent(Event):
+    """Environmental events like weather, emergencies, notifications, public opinion."""
+
+    def __init__(self, event_type: str, description: str, severity: str = "mild"):
+        self.event_type = event_type  # "weather", "emergency", "notification", "opinion"
+        self.description = description
+        self.severity = severity  # "mild", "moderate", "severe"
+        self.code = "environment_event"
+        self.params = {
+            "event_type": event_type,
+            "description": description,
+            "severity": severity,
+        }
+
+    def to_string(self, time=None):
+        time_str = _fmt_time_prefix(time)
+        prefix_map = {
+            "weather": "WEATHER",
+            "emergency": "EMERGENCY",
+            "notification": "NOTIFICATION",
+            "opinion": "PUBLIC OPINION",
+        }
+        prefix = prefix_map.get(self.event_type, "ENVIRONMENT")
+        return f"{time_str}[{prefix}] {self.description}"

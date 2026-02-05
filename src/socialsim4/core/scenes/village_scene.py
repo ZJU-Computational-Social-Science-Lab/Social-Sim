@@ -396,46 +396,17 @@ You have coordinates, needs (hunger, energy), and an inventory. You can move acr
 - Use look_around to see nearby locations, resources, and agents; speaking range is {self.chat_range}.
 """
 
-    def get_behavior_guidelines(self):
-        return """
-Map living guidelines:
-- Move to different places to explore, find resources, and meet others.
-- Gather resources at resource tiles or named locations.
-- Use buildings to rest; manage energy and plan routes efficiently.
-- Speak only to nearby agents (within range), and consider relevance.
-- Time passes each round; hunger increases and energy decreases.
+    def get_compact_description(self):
+        """Compact description for 4B models."""
+        locations = ", ".join([loc.name for loc in list(self.game_map.locations.values())[:5]])
+        return f"Village {self.game_map.width}x{self.game_map.height} grid. Locations: {locations}. Energy ↓ with actions. Chat range: {self.chat_range}."
 
-Movement strategy:
-- Look around before choosing where to go.
-- Consider distance and energy cost.
-- Prioritize immediate needs (hunger, fatigue).
-"""
+    def get_behavior_guidelines(self):
+        return """Map: Move, explore, gather resources. Speak to nearby agents only. Manage energy."""
 
     def get_examples(self):
-        return """
-Example 1:
---- Thoughts ---
-I'm getting hungry. I should go to the farm to get some food.
-
---- Plan ---
-1. Move to the farm.[CURRENT]
-2. Gather some apples.
-
---- Action ---
-<Action name="move_to_location"><location>farm</location></Action>
-
-
-Example 2:
---- Thoughts ---
-There are people nearby; I'll greet them.
-
---- Plan ---
-1. Look around.
-2. Talk to a nearby agent.[CURRENT]
-
---- Action ---
-<Action name="talk_to"><to>Lyra</to><message>Hi there!</message></Action>
-"""
+        # Return empty for 4B models - examples are now in output_format
+        return ""
 
     def initialize_agent(self, agent: Agent):
         """Initializes an agent with scene-specific properties."""

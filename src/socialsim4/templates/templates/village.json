@@ -1,0 +1,101 @@
+{
+  "id": "village",
+  "name": "Village Simulation",
+  "description": "A grid-based village simulation where agents can move, gather resources, and interact with each other in a shared environment. Agents have different roles (farmers, merchants, guards) with unique behaviors and responsibilities.",
+  "version": "1.0.0",
+  "author": "SocialSim4 Team",
+  "core_mechanics": [
+    {
+      "type": "grid",
+      "config": {
+        "width": 20,
+        "height": 20,
+        "chat_range": 5,
+        "movement_cost": 1
+      }
+    },
+    {
+      "type": "resources",
+      "config": {
+        "resources": ["food", "wood", "water"],
+        "initial_amount": 10,
+        "max_stack_size": 100
+      }
+    }
+  ],
+  "semantic_actions": [],
+  "agent_archetypes": [
+    {
+      "name": "farmer",
+      "role_prompt": "You are a farmer living in the village. You work the land and produce food for the community. You are hardworking, practical, and connected to the seasons. You care about the well-being of your neighbors and the prosperity of the village.",
+      "style": "casual",
+      "user_profile": "A farmer who tends to crops and livestock. You wake early, work hard, and value community. You are knowledgeable about weather, soil, and growing seasons.",
+      "properties": {
+        "role": "farmer",
+        "starting_food": 20,
+        "special_skill": "farming"
+      },
+      "allowed_actions": ["move_to_location", "look_around", "rest", "gather_resource"]
+    },
+    {
+      "name": "merchant",
+      "role_prompt": "You are a merchant who travels between villages trading goods. You are savvy with numbers, knowledgeable about market prices, and always looking for profitable opportunities. You are friendly but business-minded.",
+      "style": "polite",
+      "user_profile": "A merchant who buys and sells goods. You have a keen eye for value and are skilled at negotiation. You carry news and stories from other places.",
+      "properties": {
+        "role": "merchant",
+        "starting_gold": 50,
+        "special_skill": "trading"
+      },
+      "allowed_actions": ["move_to_location", "look_around", "rest", "gather_resource"]
+    },
+    {
+      "name": "guard",
+      "role_prompt": "You are a village guard responsible for maintaining order and protecting the residents. You are observant, disciplined, and take your duties seriously. You are familiar with everyone in the village and notice when something seems amiss.",
+      "style": "formal",
+      "user_profile": "A guard who keeps watch over the village. You are trained in combat and conflict resolution. You are respected by villagers and trusted to handle disputes.",
+      "properties": {
+        "role": "guard",
+        "authority_level": 3,
+        "special_skill": "defense"
+      },
+      "allowed_actions": ["move_to_location", "look_around", "rest", "gather_resource"]
+    }
+  ],
+  "environment": {
+    "description": "A small medieval village surrounded by fertile farmland. The village has a central square with a well, a marketplace, a few cottages, and fields stretching out to the horizon. A dirt road leads to the nearest town. The villagers know each other well and work together for the common good. The day begins at dawn and ends at dusk, with villagers gathering in the square to trade news and goods.",
+    "time_config": {
+      "start": "2024-01-01 06:00",
+      "step": "3m",
+      "format": "%Y-%m-%d %H:%M"
+    },
+    "space_config": {
+      "type": "grid",
+      "width": 20,
+      "height": 20,
+      "wrap_around": false
+    },
+    "rules": [
+      "Respect your fellow villagers and their property.",
+      "Share resources in times of need.",
+      "Follow the guard's instructions during emergencies.",
+      "Trade fairly and honestly in the marketplace.",
+      "Help neighbors who are struggling.",
+      "Report any suspicious activity to the guard.",
+      "Settle disputes peacefully in the village square.",
+      "Gather only what you need from the common lands."
+    ]
+  },
+  "default_time_config": {
+    "start": "2024-01-01 06:00",
+    "step": "3m",
+    "format": "%Y-%m-%d %H:%M"
+  },
+  "default_network": {
+    "type": "small_world",
+    "parameters": {
+      "k": 4,
+      "p": 0.1
+    }
+  }
+}

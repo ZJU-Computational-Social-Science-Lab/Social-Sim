@@ -17,11 +17,13 @@ import {
   GuideMessage,
   GuideActionType,
   EngineConfig,
-  EngineMode
+  EngineMode,
+  InitialEventItem
 } from './types';
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { createSimulation as createSimulationApi, getSimulation as getSimulationApi } from './services/simulations';
+import { createSimulation as createSimulationApi, getSimulation as getSimulationApi, updateSimulation as updateSimulationApi, resetSimulation as resetSimulationApi, deleteSimulation as deleteSimulationApi } from './services/simulations';
+import { getSuggestionStatus, generateSuggestions, applyEnvironmentEvent, dismissSuggestions, type EnvironmentSuggestion } from './services/environmentSuggestions';
 import {
   getTreeGraph,
   treeAdvanceChain,
@@ -44,7 +46,29 @@ import { useAuthStore } from './store/auth';
 let _treeSocket: WebSocket | null = null;
 let _treeSocketRefreshTimer: number | null = null;
 
+const closeTreeSocket = () => {
+  if (_treeSocket) {
+    try { _treeSocket.close(); } catch (e) { /* ignore */ }
+    _treeSocket = null;
+  }
+  if (_treeSocketRefreshTimer) {
+    window.clearTimeout(_treeSocketRefreshTimer);
+    _treeSocketRefreshTimer = null;
+  }
+};
+
 interface AppState {
+  // 报告分析配置
+  analysisConfig: {
+    maxEvents: number;
+    samplePerRound: number;
+    focusAgents: string[];
+    enableLLM: boolean;
+    roundStart: number | null;
+    roundEnd: number | null;
+  };
+  updateAnalysisConfig: (patch: Partial<AppState['analysisConfig']>) => void;
+
   // # Integration: Engine Config
   engineConfig: EngineConfig;
   setEngineMode: (mode: EngineMode) => void;
@@ -97,6 +121,7 @@ interface AppState {
   isSaveTemplateOpen: boolean; // #20
   isNetworkEditorOpen: boolean; // #22
   isReportModalOpen: boolean; // #14
+  globalKnowledgeOpen: boolean; // Global knowledge panel
   isGenerating: boolean;
   isGeneratingReport: boolean; // #14
 
@@ -113,11 +138,19 @@ interface AppState {
   saveTemplate: (name: string, description: string) => void; // #20
   deleteTemplate: (id: string) => void; // #20
 
+  exitSimulation: () => void;
+  resetSimulation: () => Promise<void>;
+  deleteSimulation: () => Promise<void>;
+
   // #22 Social Network
-  updateSocialNetwork: (network: SocialNetwork) => void;
+  updateSocialNetwork: (network: SocialNetwork) => Promise<void>;
 
   // #14 Report
   generateReport: () => Promise<void>;
+
+  exitSimulation: () => void;
+  resetSimulation: () => Promise<void>;
+  deleteSimulation: () => Promise<void>;
 
   selectNode: (id: string) => void;
   setCompareTarget: (id: string | null) => void;
@@ -132,14 +165,33 @@ interface AppState {
   toggleSaveTemplate: (isOpen: boolean) => void; // #20
   toggleNetworkEditor: (isOpen: boolean) => void; // #22
   toggleReportModal: (isOpen: boolean) => void; // #14
+  setGlobalKnowledgeOpen: (isOpen: boolean) => void; // Global knowledge panel
+  toggleInitialEvents: (isOpen: boolean) => void;
+
+  initialEvents: InitialEventItem[];
+  isInitialEventsOpen: boolean;
+
+  // Environment Suggestions
+  environmentEnabled: boolean;
+  environmentSuggestionsAvailable: boolean;
+  environmentSuggestions: EnvironmentSuggestion[];
+  environmentSuggestionsLoading: boolean;
+  checkEnvironmentSuggestions: () => Promise<void>;
+  generateEnvironmentSuggestions: () => Promise<void>;
+  applyEnvironmentSuggestion: (suggestion: EnvironmentSuggestion) => Promise<void>;
+  dismissEnvironmentSuggestions: () => void;
+  toggleEnvironmentEnabled: () => Promise<void>;
 
   // Host Actions #16
-  injectLog: (type: LogEntry['type'], content: string, imageUrl?: string) => void; // #24 Updated signature
+  injectLog: (type: LogEntry['type'], content: string, imageUrl?: string, audioUrl?: string, videoUrl?: string) => void; // #24 Updated signature
+  addInitialEvent: (title: string, content: string, imageUrl?: string, audioUrl?: string, videoUrl?: string) => void;
   updateAgentProperty: (agentId: string, property: string, value: any) => void;
+  updateAgentProfile: (agentId: string, profile: string) => void;
 
   // #23 Knowledge Base Actions
   addKnowledgeToAgent: (agentId: string, item: KnowledgeItem) => void;
   removeKnowledgeFromAgent: (agentId: string, itemId: string) => void;
+  updateKnowledgeInAgent: (agentId: string, itemId: string, updates: Partial<KnowledgeItem>) => void;
 
   // Simulation Control
   advanceSimulation: () => Promise<void>;
@@ -147,6 +199,7 @@ interface AppState {
   deleteNode: () => Promise<void>;
   runExperiment: (baseNodeId: string, name: string, variants: ExperimentVariant[]) => void;
   generateComparisonAnalysis: () => Promise<void>;
+  exportReport: (format: 'json' | 'md') => void;
 }
 
 // --- Helpers for Time Calculation #9 ---
@@ -423,6 +476,97 @@ const translateEnvText = (content: string): string => {
   return text;
 };
 
+const extractEventTimestamp = (ev: any, data: any, fallback: string): string => {
+  const raw = data?.time || data?.timestamp || ev?.timestamp;
+  if (!raw) return fallback;
+  const d = new Date(raw);
+  return isNaN(d.getTime()) ? fallback : d.toISOString();
+};
+
+const pickNodeId = (ev: any, fallback: string): string => {
+  const nodeVal = ev?.node;
+  if (nodeVal === null || nodeVal === undefined) return fallback;
+  return String(nodeVal);
+};
+
+const pickRound = (ev: any, data: any, fallback: number): number => {
+  const cand = data?.turn ?? data?.round ?? ev?.round;
+  const n = Number(cand);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+const buildLLMPrompt = (report: {
+  summary: string;
+  keyEvents: { round: number; description: string }[];
+  suggestions: string[];
+  agentAnalysis: { agentName: string; analysis: string }[];
+}) => {
+  const lines: string[] = [];
+  lines.push('你是分析员，请用中文简洁总结。');
+  lines.push('已有摘要:');
+  lines.push(report.summary.slice(0, 800));
+  lines.push('\n关键事件:');
+  report.keyEvents.slice(-12).forEach((e) => lines.push(`- R${e.round}: ${e.description}`));
+  lines.push('\n建议:');
+  report.suggestions.slice(0, 6).forEach((s) => lines.push(`- ${s}`));
+  lines.push('\n智能体分析:');
+  report.agentAnalysis.slice(0, 6).forEach((a) => lines.push(`- ${a.agentName}: ${a.analysis}`));
+  lines.push('\n请输出 JSON，字段: summary(string), keyEvents([{round,description} 至多8条]), suggestions(string[] 至多6条), agentAnalysis([{agentName,analysis} 至多6条]).');
+  return lines.join('\n');
+};
+
+const tryLLMRefine = async (
+  report: {
+    summary: string;
+    keyEvents: { round: number; description: string }[];
+    suggestions: string[];
+    agentAnalysis: { agentName: string; analysis: string }[];
+  },
+  enableLLM: boolean,
+  providerId: number | null
+) => {
+  if (!enableLLM) return null;
+
+  // 优先走后端 provider 配置（仪表盘里设置的）
+  if (providerId != null) {
+    try {
+      const prompt = buildLLMPrompt(report);
+      const res = await apiClient.post<{ text: string }>("llm/refine_report", {
+        prompt,
+        provider_id: providerId
+      });
+      const parsed = JSON.parse(res.data.text || "{}");
+      return parsed;
+    } catch (e) {
+      console.warn("backend provider refine failed, fallback to local", e);
+    }
+  }
+
+  // fallback: 本地直连 Gemini（需要环境变量）
+  try {
+    const apiKey =
+      (import.meta as any).env?.VITE_GEMINI_API_KEY ||
+      (window as any).GEMINI_API_KEY ||
+      '';
+    if (!apiKey) return null;
+
+    const genAI = new GoogleGenAI({ apiKey });
+    const model =
+      (import.meta as any).env?.VITE_GEMINI_MODEL ||
+      (window as any).GEMINI_MODEL ||
+      'gemini-2.0-flash';
+    const prompt = buildLLMPrompt(report);
+    const modelInst = genAI.getGenerativeModel({ model });
+    const res = await modelInst.generateContent(prompt);
+    const text = res?.response?.text?.() || '';
+    const parsed = JSON.parse(text);
+    return parsed;
+  } catch (e) {
+    console.warn('LLM refine failed, fallback到模板', e);
+    return null;
+  }
+};
+
 export const mapBackendEventsToLogs = (
   events: any[],
   nodeId: string,
@@ -435,13 +579,19 @@ export const mapBackendEventsToLogs = (
   agents.forEach(a => nameToId.set(a.name, a.id));
 
   return (events || []).map((ev: any, i: number): LogEntry | null => {
+    const evData = (ev && typeof ev === 'object' && (ev.data || ev.event_type || ev.type)) ? (ev as any) : null;
+    const payload = evData ? (ev as any).data || {} : {};
+    const ts = extractEventTimestamp(ev, payload, nowIso);
+    const roundVal = pickRound(ev, payload, round);
+    const nodeVal = pickNodeId(ev, nodeId);
+
     const base: LogEntry = {
       id: `srv-${Date.now()}-${i}`,
-      nodeId,
-      round,
+      nodeId: nodeVal,
+      round: roundVal,
       type: 'SYSTEM',
       content: '',
-      timestamp: nowIso
+      timestamp: ts
     };
 
     // 字符串事件直接当系统事件
@@ -453,7 +603,7 @@ export const mapBackendEventsToLogs = (
     }
 
     const evType = ev.type || ev.event_type;
-    const data = ev.data || {};
+    const data = payload;
     const separator = isZh() ? '，' : ', ';
     const labels = {
       reasoningStep: (step: number) =>
@@ -719,6 +869,259 @@ export const mapBackendEventsToLogs = (
   }).filter((entry): entry is LogEntry => entry !== null);
 };
 
+// --------- 报告分析辅助 ---------
+type AnalysisEvent = {
+  nodeId: string;
+  round: number;
+  ts: string;
+  type: string;
+  agent: string;
+  content: string;
+  action?: string;
+  isError: boolean;
+};
+
+type AnalysisDataset = {
+  events: AnalysisEvent[];
+  agents: Agent[];
+  meta: {
+    truncated: boolean;
+    totalRaw: number;
+  };
+  stats: {
+    totalEvents: number;
+    talkEvents: number;
+    actionEvents: number;
+    errorEvents: number;
+    byAgent: Record<
+      string,
+      {
+        talk: number;
+        action: number;
+        errors: number;
+        trends: string[];
+      }
+    >;
+  };
+};
+
+const normalizeEventsForAnalysis = (
+  rawEvents: any[],
+  agents: Agent[],
+  selectedNodeId: string | null,
+  nodes: SimNode[],
+  maxEvents: number,
+  samplePerRound: number,
+  focusAgents: string[],
+  roundStart: number | null,
+  roundEnd: number | null
+): AnalysisDataset => {
+  const defaultNode = selectedNodeId || nodes[0]?.id || 'root';
+  const defaultRound = nodes.find((n) => n.id === selectedNodeId)?.depth ?? nodes[0]?.depth ?? 0;
+  const nameMap = new Map<string, string>();
+  agents.forEach((a) => nameMap.set(a.name, a.id));
+
+  const samples: AnalysisEvent[] = [];
+  const roundBuckets = new Map<number, AnalysisEvent[]>();
+
+  const addEvent = (ev: AnalysisEvent) => {
+    const bucket = roundBuckets.get(ev.round) || [];
+    bucket.push(ev);
+    roundBuckets.set(ev.round, bucket);
+  };
+
+  const totalRaw = rawEvents.length;
+  rawEvents.forEach((ev: any, i: number) => {
+    const data = (ev && typeof ev === 'object') ? ev.data || {} : {};
+    const type = ev?.type || ev?.event_type || 'unknown';
+    const agent = data.agent || data.actor || data.name || data.sender || '';
+    const normalizeContent = (val: any) => {
+      if (val == null) return '';
+      if (typeof val === 'string') return val;
+      try {
+        return JSON.stringify(val);
+      } catch {
+        return String(val);
+      }
+    };
+    const content = normalizeContent(data.text || data.message || data.content || ev?.content || ev?.message);
+    const action = data.action?.action || data.action?.name;
+    const roundVal = pickRound(ev, data, defaultRound);
+    const nodeIdVal = pickNodeId(ev, defaultNode);
+    const ts = extractEventTimestamp(ev, data, new Date().toISOString());
+    const isError = type === 'agent_error' || type === 'error';
+
+    if (focusAgents.length > 0 && agent && !focusAgents.includes(agent)) {
+      return;
+    }
+    if (roundStart !== null && roundVal < roundStart) return;
+    if (roundEnd !== null && roundVal > roundEnd) return;
+
+    const item: AnalysisEvent = {
+      nodeId: nodeIdVal,
+      round: roundVal,
+      ts,
+      type,
+      agent,
+      content,
+      action,
+      isError
+    };
+    addEvent(item);
+  });
+
+  // 采样：每轮最多 samplePerRound 条，优先错误/关键事件
+  const priorityTypes = new Set(['agent_error', 'error', 'plan_update', 'action_end', 'system_broadcast', 'public_event']);
+  const allRounds = Array.from(roundBuckets.keys()).sort((a, b) => a - b);
+  for (const r of allRounds) {
+    const bucket = roundBuckets.get(r) || [];
+    const sorted = bucket.sort((a, b) => {
+      const aPri = priorityTypes.has(a.type) ? 1 : 0;
+      const bPri = priorityTypes.has(b.type) ? 1 : 0;
+      if (aPri !== bPri) return bPri - aPri;
+      return new Date(a.ts).getTime() - new Date(b.ts).getTime();
+    });
+    sorted.slice(0, samplePerRound).forEach((ev) => samples.push(ev));
+  }
+
+  // 总量再截断，保持时间顺序
+  const truncated = samples.length > maxEvents;
+  const events = (truncated ? samples.slice(-maxEvents) : samples).sort(
+    (a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime()
+  );
+
+  const stats: AnalysisDataset['stats'] = {
+    totalEvents: events.length,
+    talkEvents: 0,
+    actionEvents: 0,
+    errorEvents: 0,
+    byAgent: {}
+  };
+
+  events.forEach((ev) => {
+    const a = ev.agent && ev.agent.trim() ? ev.agent : null;
+    // 没有 agent 名称的事件不参与按人统计，避免出现 UNKNOWN
+    if (!a) return;
+    const rec = stats.byAgent[a] || { talk: 0, action: 0, errors: 0, trends: [] };
+    if (ev.type === 'system_broadcast' || ev.type === 'public_event') rec.talk += 1;
+    if (ev.type === 'action_end' || ev.type === 'action_start') rec.action += 1;
+    if (ev.isError) rec.errors += 1;
+    stats.byAgent[a] = rec;
+  });
+
+  stats.talkEvents = events.filter((ev) => ev.type === 'system_broadcast' || ev.type === 'public_event').length;
+  stats.actionEvents = events.filter((ev) => ev.type === 'action_end' || ev.type === 'action_start').length;
+  stats.errorEvents = events.filter((ev) => ev.isError).length;
+
+  return {
+    events,
+    agents,
+    meta: { truncated, totalRaw },
+    stats
+  };
+};
+
+const buildReportFromDataset = (dataset: AnalysisDataset) => {
+  const { events, stats } = dataset;
+
+  // 简单的数值趋势分析（基于 agents.history）
+  const agentTrends: Record<string, string[]> = {};
+  dataset.agents.forEach((agent) => {
+    const trends: string[] = [];
+    const history = agent.history || {};
+    Object.keys(history).forEach((key) => {
+      const arr = history[key] || [];
+      if (!Array.isArray(arr) || arr.length < 2) return;
+      const first = Number(arr[0]);
+      const last = Number(arr[arr.length - 1]);
+      if (!Number.isFinite(first) || !Number.isFinite(last)) return;
+      const delta = last - first;
+      const dir = delta > 0 ? '上升' : delta < 0 ? '下降' : '持平';
+      trends.push(`${key}: ${dir} ${delta > 0 ? '+' : ''}${Math.round(delta * 10) / 10}`);
+    });
+    agentTrends[agent.name] = trends;
+    if (stats.byAgent[agent.name]) {
+      stats.byAgent[agent.name].trends = trends;
+    }
+  });
+  const keyEvents = (() => {
+    const candidates = events
+      .filter((ev) => ev.isError || ev.type === 'plan_update' || ev.type === 'action_end' || ev.type === 'system_broadcast' || ev.type === 'public_event')
+      .sort((a, b) => {
+        if (a.round !== b.round) return a.round - b.round;
+        return new Date(a.ts).getTime() - new Date(b.ts).getTime();
+      });
+
+    const seen = new Set<string>();
+    const deduped: { round: number; description: string }[] = [];
+
+    for (const ev of candidates) {
+      const desc = `${ev.agent ? `${ev.agent}: ` : ''}${ev.content || ev.type}`;
+      const key = `${ev.round}|${desc}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      deduped.push({ round: ev.round, description: desc });
+    }
+
+    // 只保留最近 8 条，避免刷屏
+    return deduped.slice(-8);
+  })();
+
+  // 轮次统计：动作 / 错误 / 广播
+  const roundStatsMap = new Map<number, { actions: number; errors: number; broadcasts: number }>();
+  events.forEach((ev) => {
+    const rec = roundStatsMap.get(ev.round) || { actions: 0, errors: 0, broadcasts: 0 };
+    if (ev.type === 'action_end' || ev.type === 'action_start') rec.actions += 1;
+    if (ev.isError) rec.errors += 1;
+    if (ev.type === 'system_broadcast' || ev.type === 'public_event') rec.broadcasts += 1;
+    roundStatsMap.set(ev.round, rec);
+  });
+  const roundStats = Array.from(roundStatsMap.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([round, v]) => ({ round, ...v }));
+
+  const suggestions: string[] = [];
+  if (stats.errorEvents > 0) {
+    suggestions.push(`发现 ${stats.errorEvents} 个错误事件，建议检查对应轮次和智能体的指令/上下文。`);
+  }
+  if (stats.actionEvents < Math.max(3, events.length * 0.1)) {
+    suggestions.push('动作事件较少，可能存在停滞或策略过于保守，考虑调整行动提示。');
+  }
+  if (dataset.meta.truncated) {
+    suggestions.push('日志较长，已采样后生成报告，如需完整分析请降低过滤条件或导出全量日志。');
+  }
+  if (suggestions.length === 0) {
+    suggestions.push('流程平稳，无明显异常，可继续迭代场景或调整角色目标以探索更多行为。');
+  }
+
+  const agentAnalysis = Object.keys(stats.byAgent).map((agent) => {
+    const rec = stats.byAgent[agent];
+    const baseParts = [
+      `发言:${rec.talk}`,
+      `动作:${rec.action}`,
+      `错误:${rec.errors}`
+    ];
+    if (rec.trends && rec.trends.length) {
+      baseParts.push(`趋势: ${rec.trends.slice(0, 2).join('；')}`);
+    }
+    const analysisParts = baseParts.join(' / ');
+    return {
+      agentName: agent,
+      analysis: `${agent} 在采样日志中的表现：${analysisParts}。`
+    };
+  });
+
+  const summary = `共处理 ${stats.totalEvents} 条日志（原始 ${dataset.meta.totalRaw} 条${dataset.meta.truncated ? '，已采样' : ''}）。动作事件 ${stats.actionEvents} 条，广播/对话 ${stats.talkEvents} 条，错误 ${stats.errorEvents} 条。`;
+
+  return {
+    summary,
+    keyEvents,
+    suggestions,
+    agentAnalysis,
+    roundStats
+  };
+};
+
 const generateNodes = (): SimNode[] => {
   const now = new Date();
   const startTime = now.toISOString();
@@ -844,7 +1247,204 @@ const generateAgents = (templateType: string, defaultModel: LLMConfig): Agent[] 
   ];
 };
 
+// 社会学实验代理生成函数
+const generateNormDisruptionAgents = (defaultModel: LLMConfig): Agent[] => {
+  // 社会规范的突变：20个具有不同职业和性格的代理
+  const professions = ['教师', '商人', '医生', '警察', '农民', '工人', '管理员', '艺术家', '记者', '律师'];
+  const personalities = ['保守', '开放', '理性', '感性', '叛逆', '顺从', '社交', '内向', '乐观', '悲观'];
+
+  return Array.from({ length: 20 }).map((_, i) => {
+    const profession = professions[i % professions.length];
+    const personality = personalities[i % personalities.length];
+    return {
+      id: `norm_${i + 1}`,
+      name: `${profession}${String.fromCharCode(65 + (i % 20))}`,
+      role: profession,
+      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=norm${i}`,
+      profile: `${profession}，性格${personality}。在面对新规范时倾向于${personality === '保守' ? '谨慎遵守' : personality === '叛逆' ? '主动反抗' : '观察他人'}。`,
+      llmConfig: defaultModel,
+      properties: {
+        规范遵守度: 50 + Math.floor(Math.random() * 40),
+        社会地位: 30 + Math.floor(Math.random() * 50),
+        反抗倾向: 20 + Math.floor(Math.random() * 60)
+      },
+      history: {},
+      memory: [],
+      knowledgeBase: []
+    };
+  });
+};
+
+const generatePolicyDiffusionAgents = (defaultModel: LLMConfig): Agent[] => {
+  // 政策传播中的意义磨损：层级制组织（政府→社区→居民）
+  return [
+    // 顶层：政策制定者（3个）
+    ...Array.from({ length: 3 }).map((_, i) => ({
+      id: `policy_top_${i + 1}`,
+      name: `政策官员${i + 1}`,
+      role: '政策制定者',
+      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=policy_top${i}`,
+      profile: '政府部门的高级官员，负责制定宏观政策。相信政策是科学合理的，但往往忽视基层现实。',
+      llmConfig: defaultModel,
+      properties: { 官级: 90, 意识形态强度: 80, 现实理解度: 30 },
+      history: {},
+      memory: [],
+      knowledgeBase: []
+    })),
+    // 中层：执行官员（7个）
+    ...Array.from({ length: 7 }).map((_, i) => ({
+      id: `policy_mid_${i + 1}`,
+      name: `社区主管${i + 1}`,
+      role: '中层执行官',
+      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=policy_mid${i}`,
+      profile: '社区管理者，处于上下级之间的压力。既要向上级交代，也要应对基层的现实困难。',
+      llmConfig: defaultModel,
+      properties: { 官级: 50, 灵活性: 60 + Math.floor(Math.random() * 30), 个人利益驱动: 40 },
+      history: {},
+      memory: [],
+      knowledgeBase: []
+    })),
+    // 基层：居民代表（10个）
+    ...Array.from({ length: 10 }).map((_, i) => ({
+      id: `policy_base_${i + 1}`,
+      name: `居民${i + 1}`,
+      role: '基层接收者',
+      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=policy_base${i}`,
+      profile: '普通居民，直接受政策影响。更关心实际利益而非理想主义。',
+      llmConfig: defaultModel,
+      properties: { 官级: 10, 实用性: 80, 对官僚的不信任度: 50 + Math.floor(Math.random() * 40) },
+      history: {},
+      memory: [],
+      knowledgeBase: []
+    }))
+  ];
+};
+
+const generatePolarizationAgents = (defaultModel: LLMConfig): Agent[] => {
+  // 极化与数字茧房：两个极端立场 + 中立者 + 推荐算法
+  return [
+    // 激进派（8个）
+    ...Array.from({ length: 8 }).map((_, i) => ({
+      id: `polar_radical_${i + 1}`,
+      name: `激进者${i + 1}`,
+      role: '激进派',
+      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=radical${i}`,
+      profile: '信念坚定，对立场敏感。容易被同立场的内容激怒。',
+      llmConfig: defaultModel,
+      properties: {
+        立场强度: 85 + Math.floor(Math.random() * 15),
+        情绪易激怒度: 70 + Math.floor(Math.random() * 25),
+        包容度: 20 + Math.floor(Math.random() * 20),
+        接收度: 0
+      },
+      history: {},
+      memory: [],
+      knowledgeBase: []
+    })),
+    // 保守派（8个）
+    ...Array.from({ length: 8 }).map((_, i) => ({
+      id: `polar_conservative_${i + 1}`,
+      name: `保守者${i + 1}`,
+      role: '保守派',
+      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=conservative${i}`,
+      profile: '立场传统，对变化持谨慎态度。',
+      llmConfig: defaultModel,
+      properties: {
+        立场强度: 75 + Math.floor(Math.random() * 20),
+        情绪易激怒度: 60 + Math.floor(Math.random() * 30),
+        包容度: 30 + Math.floor(Math.random() * 20),
+        接收度: 100
+      },
+      history: {},
+      memory: [],
+      knowledgeBase: []
+    })),
+    // 中立者（4个）
+    ...Array.from({ length: 4 }).map((_, i) => ({
+      id: `polar_neutral_${i + 1}`,
+      name: `中立者${i + 1}`,
+      role: '中立派',
+      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=neutral${i}`,
+      profile: '倾向于平衡考虑，但容易受信息流影响。',
+      llmConfig: defaultModel,
+      properties: {
+        立场强度: 30 + Math.floor(Math.random() * 30),
+        情绪易激怒度: 40 + Math.floor(Math.random() * 30),
+        包容度: 60 + Math.floor(Math.random() * 30),
+        接收度: 50
+      },
+      history: {},
+      memory: [],
+      knowledgeBase: []
+    }))
+  ];
+};
+
+const generateResourceScarcityAgents = (defaultModel: LLMConfig): Agent[] => {
+  // 稀缺资源压力下的社会契约演化：灾后社区（20个）
+  const roles = ['医生', '军人', '商贩', '教师', '工程师', '农民', '老人', '儿童监护人', '牧师', '黑市商人'];
+
+  return Array.from({ length: 20 }).map((_, i) => {
+    const role = roles[i % roles.length];
+    const trustLevel = i % 3 === 0 ? 80 : i % 3 === 1 ? 50 : 20; // 三分之一高信用，三分之一中等，三分之一低
+    return {
+      id: `scarcity_${i + 1}`,
+      name: `${role}${String.fromCharCode(65 + (i % 20))}`,
+      role,
+      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=scarcity${i}`,
+      profile: `${role}。在灾难中${trustLevel > 70 ? '因为职业受信任' : trustLevel > 40 ? '信用中等' : '信用低下或被怀疑'}。`,
+      llmConfig: defaultModel,
+      properties: {
+        社会资本: trustLevel + Math.floor(Math.random() * 20 - 10),
+        诚实度: 50 + Math.floor(Math.random() * 50),
+        绝望指数: 50 + Math.floor(Math.random() * 40),
+        资源占有: 10 + Math.floor(Math.random() * 30),
+        欺诈倾向: 100 - trustLevel + Math.floor(Math.random() * 30)
+      },
+      history: {},
+      memory: [],
+      knowledgeBase: []
+    };
+  });
+};
+
 const SYSTEM_TEMPLATES: SimulationTemplate[] = [
+  {
+    id: 'norm_disruption',
+    name: '社会规范的突变',
+    description: '常人方法论视角：20个异质代理在突发规范变化中的意义构建与适应。观察从服从→反抗→黑市协议的演化轨迹。',
+    category: 'system',
+    sceneType: 'village',
+    agents: generateNormDisruptionAgents({ provider: 'OpenAI', model: 'gpt-4o' }),
+    defaultTimeConfig: DEFAULT_TIME_CONFIG
+  },
+  {
+    id: 'policy_diffusion',
+    name: '政策传播中的意义磨损',
+    description: '街头官僚制视角：模拟三层级组织(政府→社区→居民)中政策的重构与异化。验证底层逻辑如何消解宏观规划。',
+    category: 'system',
+    sceneType: 'village',
+    agents: generatePolicyDiffusionAgents({ provider: 'OpenAI', model: 'gpt-4o' }),
+    defaultTimeConfig: DEFAULT_TIME_CONFIG
+  },
+  {
+    id: 'polarization',
+    name: '极化与数字茧房生成',
+    description: '回声壁效应视角：20个代理（8激进+8保守+4中立）在推荐算法驱动下的观点极化与群体分裂。追踪情绪传染机制。',
+    category: 'system',
+    sceneType: 'village',
+    agents: generatePolarizationAgents({ provider: 'OpenAI', model: 'gpt-4o' }),
+    defaultTimeConfig: DEFAULT_TIME_CONFIG
+  },
+  {
+    id: 'resource_scarcity',
+    name: '稀缺资源下的社会契约',
+    description: '霍布斯丛林视角：灾后社区中，拥有社会资本的代理能否通过信用契约度过危机，还是陷入大规模欺诈与崩溃？',
+    category: 'system',
+    sceneType: 'village',
+    agents: generateResourceScarcityAgents({ provider: 'OpenAI', model: 'gpt-4o' }),
+    defaultTimeConfig: DEFAULT_TIME_CONFIG
+  },
   {
     id: 'village',
     name: '乡村治理',
@@ -964,6 +1564,53 @@ export const generateAgentsWithAI = async (
   }));
 };
 
+// Agent Scaling: demographic-based agent generation using AgentTorch framework
+export async function generateAgentsWithDemographics(
+  totalAgents: number,
+  demographics: { name: string; categories: string[] }[],
+  archetypeProbabilities: Record<string, number>,
+  traits: { name: string; mean: number; std: number }[],
+  language: string,
+  providerId?: string | number
+): Promise<Agent[]> {
+  const body = {
+    total_agents: totalAgents,
+    demographics,
+    archetype_probabilities: archetypeProbabilities,
+    traits,
+    language: language,
+    provider_id: providerId != null ? Number(providerId) : undefined
+  };
+
+  const res = await apiClient.post("/llm/generate_agents_demographics", body);
+
+  const rawAgents: any[] = Array.isArray(res.data)
+    ? res.data
+    : Array.isArray(res.data?.agents)
+    ? res.data.agents
+    : [];
+
+  return rawAgents.map((a: any, index: number) => ({
+    id: a.id || `gen_${Date.now()}_${index}`,
+    name: a.name,
+    role: a.role || "角色",
+    avatarUrl:
+      a.avatarUrl ||
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(
+        a.name || `agent_${index}`
+      )}`,
+    profile: a.profile || "暂无描述",
+    llmConfig: {
+      provider: a.provider || "backend",
+      model: a.model || "default"
+    },
+    properties: a.properties || {},
+    history: a.history || {},
+    memory: a.memory || [],
+    knowledgeBase: a.knowledgeBase || []
+  }));
+}
+
 
 // #12 Helper for Environment Suggestions
 export const fetchEnvironmentSuggestions = async (
@@ -1010,6 +1657,14 @@ export const fetchEnvironmentSuggestions = async (
 };
 
 export const useSimulationStore = create<AppState>((set, get) => ({
+  analysisConfig: {
+    maxEvents: 800,
+    samplePerRound: 5,
+    focusAgents: [],
+    enableLLM: false,
+    roundStart: null,
+    roundEnd: null
+  },
   // # Integration Config
   engineConfig: {
     mode: 'standalone',
@@ -1097,8 +1752,15 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   isSaveTemplateOpen: false,
   isNetworkEditorOpen: false,
   isReportModalOpen: false,
+  globalKnowledgeOpen: false,
   isGenerating: false,
   isGeneratingReport: false,
+
+  // Environment Suggestions
+  environmentEnabled: false,
+  environmentSuggestionsAvailable: false,
+  environmentSuggestions: [],
+  environmentSuggestionsLoading: false,
 
   // 手动同步 UI 状态
   isSyncModalOpen: false,
@@ -1106,6 +1768,11 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   syncLogs: [] as string[],
   openSyncModal: () => set({ isSyncModalOpen: true }),
   closeSyncModal: () => set({ isSyncModalOpen: false }),
+
+  updateAnalysisConfig: (patch) =>
+    set((state) => ({
+      analysisConfig: { ...state.analysisConfig, ...patch }
+    })),
 
 
   setEngineMode: (mode) =>
@@ -1188,7 +1855,10 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       };
     }),
 
-  setSimulation: (sim) => set({ currentSimulation: sim }),
+  setSimulation: (sim) => set({
+    currentSimulation: sim,
+    environmentEnabled: sim?.scene_config?.environment_enabled ?? false,
+  }),
 
   addNotification: (type, message) =>
     set((state) => {
@@ -1205,7 +1875,92 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     set((state) => ({
       notifications: state.notifications.filter((n) => n.id !== id)
     })),
-    
+
+  // Environment Suggestions Actions
+  checkEnvironmentSuggestions: async () => {
+    const { currentSimulation } = get();
+    if (!currentSimulation) return;
+
+    try {
+      const status = await getSuggestionStatus(currentSimulation.id);
+      set({ environmentSuggestionsAvailable: status.available });
+    } catch (error) {
+      console.error('Failed to check environment suggestions:', error);
+    }
+  },
+
+  generateEnvironmentSuggestions: async () => {
+    const { currentSimulation } = get();
+    if (!currentSimulation) return;
+
+    set({ environmentSuggestionsLoading: true });
+    try {
+      const result = await generateSuggestions(currentSimulation.id);
+      set({ environmentSuggestions: result.suggestions });
+    } catch (error) {
+      console.error('Failed to generate suggestions:', error);
+      get().addNotification('error', 'Failed to generate environment suggestions');
+    } finally {
+      set({ environmentSuggestionsLoading: false });
+    }
+  },
+
+  applyEnvironmentSuggestion: async (suggestion: EnvironmentSuggestion) => {
+    const { currentSimulation } = get();
+    if (!currentSimulation) return;
+
+    try {
+      await applyEnvironmentEvent(currentSimulation.id, suggestion);
+      set({
+        environmentSuggestions: [],
+        environmentSuggestionsAvailable: false,
+      });
+      get().addNotification('success', 'Environment event applied');
+    } catch (error) {
+      console.error('Failed to apply event:', error);
+      get().addNotification('error', 'Failed to apply environment event');
+    }
+  },
+
+  dismissEnvironmentSuggestions: async () => {
+    const { currentSimulation } = get();
+    if (!currentSimulation) return;
+
+    try {
+      await dismissSuggestions(currentSimulation.id);
+      set({
+        environmentSuggestions: [],
+        environmentSuggestionsAvailable: false,
+      });
+    } catch (error) {
+      console.error('Failed to dismiss suggestions:', error);
+    }
+  },
+
+  toggleEnvironmentEnabled: async () => {
+    const { currentSimulation, environmentEnabled } = get();
+    if (!currentSimulation) return;
+
+    const newValue = !environmentEnabled;
+
+    // Update local state immediately for responsiveness
+    set({ environmentEnabled: newValue });
+
+    try {
+      // Update the simulation on the backend
+      await updateSimulationApi(currentSimulation.id, {
+        scene_config: {
+          environment_enabled: newValue,
+        },
+      });
+      get().addNotification('success', newValue ? 'Environment events enabled' : 'Environment events disabled');
+    } catch (error) {
+      // Revert on error
+      set({ environmentEnabled: environmentEnabled });
+      get().addNotification('error', 'Failed to update environment settings');
+    }
+  },
+
   // #13 Guide Actions
   toggleGuide: (isOpen) => set({ isGuideOpen: isOpen }),
   
@@ -1307,9 +2062,14 @@ export const useSimulationStore = create<AppState>((set, get) => ({
           const mapSceneType: Record<string, string> = {
             village: 'village_scene',
             council: 'council_scene',
-            werewolf: 'werewolf_scene'
+            werewolf: 'werewolf_scene',
+            generic: 'generic_scene'
           };
           const backendSceneType = mapSceneType[template.sceneType] || template.sceneType;
+
+          // Get availableActions from custom template genericConfig
+          const templateActions = (template as any).genericConfig?.availableActions || [];
+          const useCustomActions = templateActions.length > 0;
 
           let baseAgents = customAgents;
           if (!baseAgents) {
@@ -1323,6 +2083,14 @@ export const useSimulationStore = create<AppState>((set, get) => ({
             }
           }
 
+          // Apply custom template actions to agents
+          if (useCustomActions && baseAgents) {
+            baseAgents = baseAgents.map(agent => ({
+              ...agent,
+              action_space: templateActions
+            }));
+          }
+
           const finalTimeConfig =
             timeConfig || template.defaultTimeConfig || DEFAULT_TIME_CONFIG;
           const selectedProviderId =
@@ -1332,7 +2100,16 @@ export const useSimulationStore = create<AppState>((set, get) => ({
             scene_type: backendSceneType,
             scene_config: {
               time_scale: finalTimeConfig,
-              social_network: template.defaultNetwork || {}
+              social_network: template.defaultNetwork || {},
+              initial_events: (state.initialEvents || []).map((ev) => ({
+                content: ev.content,
+                title: ev.title,
+                images: ev.imageUrl ? [ev.imageUrl] : [],
+                audio: ev.audioUrl ? [ev.audioUrl] : [],
+                video: ev.videoUrl ? [ev.videoUrl] : [],
+              })),
+              // Pass available_actions for GenericScene filtering
+              ...(useCustomActions && { available_actions: templateActions }),
             },
             agent_config: {
               agents: (baseAgents || []).map((a) => ({
@@ -1341,7 +2118,11 @@ export const useSimulationStore = create<AppState>((set, get) => ({
                 role: (a as any).role,
                 avatarUrl: (a as any).avatarUrl,
                 llmConfig: (a as any).llmConfig,
-                properties: (a as any).properties || {},
+                properties: (() => {
+                  const props = { ...(a as any).properties };
+                  if ((a as any).role && !props.role) props.role = (a as any).role;
+                  return props;
+                })(),
                 history: (a as any).history || {},
                 memory: (a as any).memory || [],
                 knowledgeBase: (a as any).knowledgeBase || [],
@@ -1450,68 +2231,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     });
     get().addNotification('success', `仿真 "${name}" 创建成功`);
 
-    // 异步：如果用户已登录，尝试自动将本地仿真保存到后端
-    (async () => {
-      try {
-        const auth = useAuthStore.getState();
-        if (!auth?.isAuthenticated) return;
-        // 显示正在保存的 spinner
-        set({ isGenerating: true });
-
-        const endpoint = state.engineConfig.endpoint;
-        const token = (state.engineConfig as any).token as string | undefined;
-
-        // 构造后端所需的 payload，保持与 connected 分支一致
-        const mapSceneType: Record<string, string> = {
-          village: 'village_scene',
-          council: 'council_scene',
-          werewolf: 'werewolf_scene'
-        };
-        const backendSceneType = mapSceneType[template.sceneType] || template.sceneType;
-
-        const payload: any = {
-          scene_type: backendSceneType,
-          scene_config: {
-            time_scale: timeConfig || template.defaultTimeConfig || DEFAULT_TIME_CONFIG,
-            social_network: template.defaultNetwork || {}
-          },
-          agent_config: {
-            agents: (finalAgents || []).map((a) => ({
-              name: a.name,
-              profile: a.profile,
-              role: (a as any).role,
-              avatarUrl: (a as any).avatarUrl,
-              llmConfig: (a as any).llmConfig,
-              properties: (a as any).properties || {},
-              history: (a as any).history || {},
-              memory: (a as any).memory || [],
-              knowledgeBase: (a as any).knowledgeBase || [],
-              action_space: Array.isArray((a as any).action_space) ? (a as any).action_space : ['send_message']
-            }))
-          },
-          llm_provider_id: state.selectedProviderId || state.currentProviderId || undefined,
-          name: name || undefined
-        };
-
-        // 使用已有的 API wrapper（createSimulation），兼容旧签名
-        try {
-          const { createSimulation } = await import('./services/simulations');
-          const saved = await createSimulation(endpoint, payload, token);
-          if (saved && saved.id) {
-            // 用后端 id 更新本地 simulation，确保后续 resume/list 能找到它
-            set((s) => ({
-              simulations: s.simulations.map(sim => sim === newSim ? { ...sim, id: saved.id } : sim),
-              currentSimulation: { ...s.currentSimulation!, id: saved.id }
-            } as any));
-            get().addNotification('success', pickText('Auto-saved to backend', '已自动保存至后端'));
-          }
-        } catch (e) {
-          console.warn('自动保存仿真到后端失败', e);
-        }
-      } finally {
-        set({ isGenerating: false });
-      }
-    })();
+    // 关闭自动保存：仅手动同步时写入后端，避免运行中产生草稿
   },
 
   updateTimeConfig: (config) => {
@@ -1524,14 +2244,33 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     get().addNotification('info', pickText('Time configuration updated', '时间配置已更新'));
   },
 
-  updateSocialNetwork: (network) => {
-     set(state => {
-       if (!state.currentSimulation) return {};
-       return {
-         currentSimulation: { ...state.currentSimulation, socialNetwork: network }
-       };
-     });
-     get().addNotification('success', pickText('Network graph updated', '社交网络拓扑已更新'));
+  updateSocialNetwork: async (network) => {
+     const { currentSimulation, engineConfig } = get();
+     if (!currentSimulation) return;
+
+     // Update local state immediately for responsiveness
+     set(state => ({
+       currentSimulation: { ...state.currentSimulation, socialNetwork: network }
+     }));
+
+     // Sync to backend if in connected mode
+     if (engineConfig.mode === 'connected') {
+       try {
+         await updateSimulationApi(currentSimulation.id, {
+           scene_config: { social_network: network }
+         });
+         get().addNotification('success', pickText('Network topology saved', '社交网络拓扑已保存'));
+       } catch (error) {
+         console.error('Failed to save network topology:', error);
+         get().addNotification('error', pickText('Failed to save network', '保存网络失败'));
+         // Revert on error
+         set(state => ({
+           currentSimulation: { ...state.currentSimulation, socialNetwork: get().currentSimulation?.socialNetwork || {} }
+         }));
+       }
+     } else {
+       get().addNotification('info', pickText('Network topology updated locally (not synced)', '社交网络拓扑已更新（仅本地）'));
+     }
   },
 
   saveTemplate: (name, description) => {
@@ -1562,6 +2301,16 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       set((s) => ({ syncLogs: [...s.syncLogs, '[ERROR] 未找到当前仿真'] } as any));
       return;
     }
+    if (state.engineConfig.mode !== 'connected') {
+      get().addNotification('error', '仅连接模式可保存到后端');
+      return;
+    }
+    const simId = state.currentSimulation.id || '';
+    const isLocalOnly = /^sim\d+/i.test(simId) || /^Simulation_\d+$/i.test(simId);
+    if (isLocalOnly) {
+      get().addNotification('error', '当前仿真尚未在后端创建，无法直接覆盖，请先在连接模式创建/加载后再保存');
+      return;
+    }
     set({ isSyncing: true, syncLogs: [] });
     const sim = state.currentSimulation;
     try {
@@ -1580,7 +2329,11 @@ export const useSimulationStore = create<AppState>((set, get) => ({
             role: (a as any).role,
             avatarUrl: (a as any).avatarUrl,
             llmConfig: (a as any).llmConfig,
-            properties: (a as any).properties || {},
+            properties: (() => {
+              const props = { ...(a as any).properties };
+              if ((a as any).role && !props.role) props.role = (a as any).role;
+              return props;
+            })(),
             history: (a as any).history || {},
             memory: (a as any).memory || [],
             knowledgeBase: (a as any).knowledgeBase || [],
@@ -1593,6 +2346,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       const syncLogId = res?.sync_log_id;
       const taskId = res?.task_id;
       set((s) => ({ syncLogs: [...s.syncLogs, `[OK] 后端已接收同步请求 (sync_log=${syncLogId}, task=${taskId})`] } as any));
+      get().addNotification('info', '已提交保存请求，后台处理中');
 
       // Poll for updates until finished/error or timeout
       const start = Date.now();
@@ -1634,9 +2388,241 @@ export const useSimulationStore = create<AppState>((set, get) => ({
 
   // #14 Report Generation
   generateReport: async () => {
-    // 占位实现：当前暂不调用前端 Gemini 报告生成，避免未定义函数报错
-    set({ isGeneratingReport: false });
-    get().addNotification('error', '报告生成功能暂未启用');
+    const state = get();
+    if (!state.currentSimulation) {
+      get().addNotification('error', '请先加载仿真后再生成报告');
+      return;
+    }
+
+    set({ isGeneratingReport: true });
+    try {
+      const { maxEvents, samplePerRound } = state.analysisConfig;
+      const fallbackRound = state.nodes.find((n) => n.id === state.selectedNodeId)?.depth ?? 0;
+      const fallbackNode = state.selectedNodeId || state.nodes[0]?.id || 'root';
+
+      const baseEvents = state.rawEvents.length
+        ? state.rawEvents
+        : state.logs.map((l) => {
+            // Map LogEntry type to backend event type for better classification
+            let backendType = l.type.toLowerCase();
+            let content = l.content;
+            let agent = state.agents.find((a) => a.id === l.agentId)?.name || '';
+            // Try to extract more specific type from content
+            if (l.type === 'AGENT_SAY') {
+              backendType = 'system_broadcast';
+            } else if (l.type === 'AGENT_ACTION') {
+              backendType = 'action_end';
+              // Try to extract action name from content
+              const actionMatch = content.match(/^\[(\w+)\]/);
+              if (actionMatch) {
+                content = content;
+              }
+            }
+            return {
+              type: backendType,
+              event_type: backendType,
+              node: l.nodeId,
+              data: { agent, sender: agent, content, text: content, message: content, round: l.round, time: l.timestamp }
+            };
+          });
+
+      // Create agent name mapping: backend placeholder names -> actual frontend agent names
+      // Map by position: backend agents follow the same order as frontend agents
+      const agentNameMapping: Record<string, string> = {};
+      state.agents.forEach((agent, i) => {
+        // Backend uses placeholder names: Agent_0, Agent_1, etc. or example names like Alice, Bob
+        // We map by index: backend agent i -> frontend agent i
+        // First, collect all unique agent names from events to create the mapping
+        const seenAgents = new Set<string>();
+        baseEvents.forEach((ev: any) => {
+          const data = (ev && typeof ev === 'object') ? ev.data || {} : {};
+          const agentName = data.agent || data.actor || data.name || data.sender || '';
+          if (agentName && !seenAgents.has(agentName)) {
+            seenAgents.add(agentName);
+            if (seenAgents.size === i + 1) {
+              agentNameMapping[agentName] = agent.name;
+            }
+          }
+        });
+      });
+
+      // Apply mapping to events
+      const mappedEvents = baseEvents.map((ev: any) => {
+        if (typeof ev !== 'object' || !ev) return ev;
+        const data = { ...(ev.data || {}) };
+        const oldAgent = data.agent || data.actor || data.name || data.sender || '';
+        if (agentNameMapping[oldAgent]) {
+          data.agent = agentNameMapping[oldAgent];
+          if (data.sender) data.sender = agentNameMapping[oldAgent];
+          if (data.actor) data.actor = agentNameMapping[oldAgent];
+          if (data.name) data.name = agentNameMapping[oldAgent];
+          return { ...ev, data };
+        }
+        return ev;
+      });
+
+      // Also update focusAgents to use frontend agent names if they contain backend names
+      const updatedFocusAgents = state.analysisConfig.focusAgents.map((agentName) =>
+        agentNameMapping[agentName] || agentName
+      );
+
+      const dataset = normalizeEventsForAnalysis(
+        mappedEvents,
+        state.agents,
+        fallbackNode,
+        state.nodes,
+        maxEvents,
+        samplePerRound,
+        updatedFocusAgents,
+        state.analysisConfig.roundStart,
+        state.analysisConfig.roundEnd
+      );
+      const reportParts = buildReportFromDataset(dataset);
+      const providerSelection = state.selectedProviderId ?? state.currentProviderId ?? null;
+      const refined = await tryLLMRefine(reportParts, state.analysisConfig.enableLLM, providerSelection);
+      const merged = refined
+        ? {
+            summary: refined.summary || reportParts.summary,
+            keyEvents: Array.isArray(refined.keyEvents)
+              ? refined.keyEvents
+                  .map((k: any) => ({
+                    round: Number(k.round) || 0,
+                    description: String(k.description || '')
+                  }))
+                  .filter((k: any) => k.description)
+                  .slice(0, 8)
+              : reportParts.keyEvents,
+            suggestions: Array.isArray(refined.suggestions)
+              ? refined.suggestions.map((s: any) => String(s || '')).filter(Boolean).slice(0, 6)
+              : reportParts.suggestions,
+            agentAnalysis: Array.isArray(refined.agentAnalysis)
+              ? refined.agentAnalysis
+                  .map((a: any) => ({
+                    agentName: String(a.agentName || a.name || '未知'),
+                    analysis: String(a.analysis || a.summary || '')
+                  }))
+                  .filter((a: any) => a.analysis)
+                  .slice(0, 6)
+              : reportParts.agentAnalysis
+          }
+        : reportParts;
+      const report: SimulationReport = {
+        id: `rep-${Date.now()}`,
+        generatedAt: new Date().toISOString(),
+        summary: merged.summary,
+        keyEvents: merged.keyEvents,
+        suggestions: merged.suggestions,
+        agentAnalysis: merged.agentAnalysis,
+        roundStats: reportParts.roundStats,
+        refinedByLLM: Boolean(refined)
+      };
+
+      set((s) => ({
+        currentSimulation: s.currentSimulation ? { ...s.currentSimulation, report } : s.currentSimulation,
+        isGeneratingReport: false
+      }));
+      get().addNotification('success', '报告生成完成');
+    } catch (e) {
+      console.error('generateReport failed', e);
+      set({ isGeneratingReport: false });
+      get().addNotification('error', '报告生成失败，请稍后重试');
+    }
+  },
+
+  exportReport: (format) => {
+    const state = get();
+    const report = state.currentSimulation?.report;
+    if (!report) {
+      get().addNotification('error', '暂无报告可导出');
+      return;
+    }
+    if (format === 'json') {
+      const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${state.currentSimulation?.name || 'simulation'}_report.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+    // markdown 导出
+    const lines: string[] = [];
+    lines.push(`# 仿真实验分析报告`);
+    lines.push(`生成时间: ${new Date(report.generatedAt).toLocaleString()}`);
+    lines.push(`\n## 摘要\n${report.summary}`);
+    lines.push(`\n## 关键转折`);
+    report.keyEvents.forEach((ev) => {
+      lines.push(`- R${ev.round}: ${ev.description}`);
+    });
+    lines.push(`\n## 建议`);
+    report.suggestions.forEach((sug) => lines.push(`- ${sug}`));
+    lines.push(`\n## 智能体分析`);
+    report.agentAnalysis.forEach((a) => {
+      lines.push(`- **${a.agentName}**: ${a.analysis}`);
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${state.currentSimulation?.name || 'simulation'}_report.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  },
+
+  exitSimulation: () => {
+    closeTreeSocket();
+    set({
+      currentSimulation: null,
+      nodes: generateNodes(),
+      selectedNodeId: 'root',
+      logs: [],
+      rawEvents: [],
+      compareTargetNodeId: null,
+      isCompareMode: false,
+    });
+    get().addNotification('info', '已退出当前模拟');
+  },
+
+  resetSimulation: async () => {
+    const state = get();
+    if (!state.currentSimulation) return;
+    try {
+      if (state.engineConfig.mode === 'connected') {
+        const token = (state.engineConfig as any).token as string | undefined;
+        await resetSimulationApi(state.currentSimulation.id);
+        const graph = await getTreeGraph(state.engineConfig.endpoint, state.currentSimulation.id, token);
+        if (graph) {
+          const nodesMapped = mapGraphToNodes(graph);
+          set({ nodes: nodesMapped, selectedNodeId: graph.root != null ? String(graph.root) : null, logs: [], rawEvents: [] });
+        }
+      } else {
+        closeTreeSocket();
+        set({ nodes: generateNodes(), selectedNodeId: 'root', logs: [], rawEvents: [] });
+      }
+      get().addNotification('success', '模拟已重置');
+    } catch (e) {
+      console.error('resetSimulation failed', e);
+      get().addNotification('error', '重置模拟失败');
+    }
+  },
+
+  deleteSimulation: async () => {
+    const state = get();
+    if (!state.currentSimulation) return;
+    try {
+      if (state.engineConfig.mode === 'connected') {
+        await deleteSimulationApi(state.currentSimulation.id);
+      }
+      closeTreeSocket();
+      set({ currentSimulation: null, nodes: generateNodes(), selectedNodeId: 'root', logs: [], rawEvents: [], compareTargetNodeId: null, isCompareMode: false });
+      get().addNotification('success', '模拟已删除');
+    } catch (e) {
+      console.error('deleteSimulation failed', e);
+      get().addNotification('error', '删除模拟失败');
+    }
   },
 
   selectNode: (id) => set({ selectedNodeId: id }),
@@ -1651,8 +2637,13 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   toggleSaveTemplate: (isOpen) => set({ isSaveTemplateOpen: isOpen }),
   toggleNetworkEditor: (isOpen) => set({ isNetworkEditorOpen: isOpen }),
   toggleReportModal: (isOpen) => set({ isReportModalOpen: isOpen }),
+  setGlobalKnowledgeOpen: (isOpen) => set({ globalKnowledgeOpen: isOpen }),
+  toggleInitialEvents: (isOpen) => set({ isInitialEventsOpen: isOpen }),
 
-  injectLog: (type, content, imageUrl) => set(state => {
+  initialEvents: [],
+  isInitialEventsOpen: false,
+
+  injectLog: (type, content, imageUrl, audioUrl, videoUrl) => set(state => {
     if (!state.selectedNodeId) return {};
     const log: LogEntry = {
       id: `host-${Date.now()}`,
@@ -1660,11 +2651,32 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       round: 0,
       type: type === 'SYSTEM' || type === 'ENVIRONMENT' ? type : 'HOST_INTERVENTION',
       content: content,
-      imageUrl: imageUrl,
+      imageUrl,
+      audioUrl,
+      videoUrl,
       timestamp: new Date().toISOString()
     };
     return { logs: [...state.logs, log] };
   }),
+
+    addInitialEvent: (title, content, imageUrl, audioUrl, videoUrl) => {
+      const id = `init-${Date.now()}`;
+      set(state => ({
+        initialEvents: [...(state.initialEvents || []), { id, title, content, imageUrl, audioUrl, videoUrl }],
+        logs: state.selectedNodeId ? [...state.logs, {
+          id,
+          nodeId: state.selectedNodeId,
+          round: 0,
+          type: 'ENVIRONMENT',
+          content: `[初始事件] ${title}\n${content}` + (audioUrl ? `\n[audio: ${audioUrl}]` : '') + (videoUrl ? `\n[video: ${videoUrl}]` : ''),
+          imageUrl,
+          audioUrl,
+          videoUrl,
+          timestamp: new Date().toISOString()
+        } as LogEntry] : state.logs,
+      }));
+      get().addNotification('success', '初始事件已保存');
+    },
 
   updateAgentProperty: (agentId, property, value) => {
     set(state => {
@@ -1681,18 +2693,113 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     get().addNotification('success', '智能体属性已更新');
   },
 
-  addKnowledgeToAgent: (agentId, item) => {
+  updateAgentProfile: (agentId, profile) => {
     set(state => ({
-      agents: state.agents.map(a => a.id === agentId ? { ...a, knowledgeBase: [...a.knowledgeBase, item] } : a)
+      agents: state.agents.map(a => a.id === agentId ? { ...a, profile } : a)
     }));
+    const agentName = get().agents.find(a => a.id === agentId)?.name || agentId;
+    get().injectLog('AGENT_METADATA', `${agentName} 的画像已更新`);
+    get().addNotification('success', '智能体画像已更新');
+  },
+
+  addKnowledgeToAgent: (agentId, item) => {
+    const state = get();
+    console.log('[KB-DEBUG] addKnowledgeToAgent called:', { agentId, item, simId: state.currentSimulation?.id, mode: state.engineConfig.mode });
+    // Update local state
+    const updatedAgents = state.agents.map(a => a.id === agentId ? { ...a, knowledgeBase: [...a.knowledgeBase, item] } : a);
+    set({ agents: updatedAgents });
     get().addNotification('success', '知识库条目已添加');
+    // Sync to backend if we have a current simulation
+    if (state.currentSimulation && state.engineConfig.mode === 'connected') {
+      const agentConfig = {
+        agents: updatedAgents.map(a => ({
+          name: a.name,
+          profile: a.profile,
+          role: (a as any).role,
+          avatarUrl: (a as any).avatarUrl,
+          llmConfig: (a as any).llmConfig,
+          properties: (a as any).properties || {},
+          history: (a as any).history || {},
+          memory: (a as any).memory || [],
+          knowledgeBase: a.knowledgeBase || [],
+          action_space: Array.isArray((a as any).action_space) ? (a as any).action_space : ['send_message']
+        }))
+      };
+      console.log('[KB-DEBUG] Syncing to backend - agentConfig:', JSON.stringify(agentConfig, null, 2));
+      updateSimulationApi(state.currentSimulation.id, { agent_config: agentConfig })
+        .then(() => console.log('[KB-DEBUG] Backend sync SUCCESS'))
+        .catch(err => {
+          console.error('[KB-DEBUG] Backend sync FAILED:', err);
+        });
+    } else {
+      console.log('[KB-DEBUG] NOT syncing to backend - no simulation or not connected mode');
+    }
   },
 
   removeKnowledgeFromAgent: (agentId, itemId) => {
-    set(state => ({
-      agents: state.agents.map(a => a.id === agentId ? { ...a, knowledgeBase: a.knowledgeBase.filter(i => i.id !== itemId) } : a)
-    }));
+    const state = get();
+    // Update local state
+    const updatedAgents = state.agents.map(a => a.id === agentId ? { ...a, knowledgeBase: a.knowledgeBase.filter(i => i.id !== itemId) } : a);
+    set({ agents: updatedAgents });
     get().addNotification('success', '知识库条目已移除');
+    // Sync to backend if we have a current simulation
+    if (state.currentSimulation && state.engineConfig.mode === 'connected') {
+      const agentConfig = {
+        agents: updatedAgents.map(a => ({
+          name: a.name,
+          profile: a.profile,
+          role: (a as any).role,
+          avatarUrl: (a as any).avatarUrl,
+          llmConfig: (a as any).llmConfig,
+          properties: (a as any).properties || {},
+          history: (a as any).history || {},
+          memory: (a as any).memory || [],
+          knowledgeBase: a.knowledgeBase || [],
+          action_space: Array.isArray((a as any).action_space) ? (a as any).action_space : ['send_message']
+        }))
+      };
+      updateSimulationApi(state.currentSimulation.id, { agent_config: agentConfig }).catch(err => {
+        console.error('Failed to sync knowledge to backend:', err);
+      });
+    }
+  },
+
+  updateKnowledgeInAgent: (agentId, itemId, updates) => {
+    const state = get();
+    // Update local state - find the agent and update the specific knowledge item
+    const updatedAgents = state.agents.map(a => {
+      if (a.id === agentId) {
+        const updatedKnowledgeBase = a.knowledgeBase.map(item =>
+          item.id === itemId
+            ? { ...item, ...updates, timestamp: updates.timestamp || new Date().toISOString() }
+            : item
+        );
+        return { ...a, knowledgeBase: updatedKnowledgeBase };
+      }
+      return a;
+    });
+    set({ agents: updatedAgents });
+    get().addNotification('success', '知识库条目已更新');
+    // Sync to backend if we have a current simulation
+    if (state.currentSimulation && state.engineConfig.mode === 'connected') {
+      const agentConfig = {
+        agents: updatedAgents.map(a => ({
+          name: a.name,
+          profile: a.profile,
+          role: (a as any).role,
+          avatarUrl: (a as any).avatarUrl,
+          llmConfig: (a as any).llmConfig,
+          properties: (a as any).properties || {},
+          history: (a as any).history || {},
+          memory: (a as any).memory || [],
+          knowledgeBase: a.knowledgeBase || [],
+          action_space: Array.isArray((a as any).action_space) ? (a as any).action_space : ['send_message']
+        }))
+      };
+      updateSimulationApi(state.currentSimulation.id, { agent_config: agentConfig }).catch(err => {
+        console.error('Failed to sync knowledge update to backend:', err);
+      });
+    }
   },
 
   advanceSimulation: async () => {
@@ -1729,26 +2836,45 @@ export const useSimulationStore = create<AppState>((set, get) => ({
               getSimState(base, simId, res.child, token)
             ]);
 
+            console.log('[KB-DEBUG] advanceSimulation: Received simState from backend');
+            console.log('[KB-DEBUG] simState.agents:', JSON.stringify(simState?.agents?.map((a: any) => ({ name: a.name, knowledgeBase: a.knowledgeBase })), null, 2));
+
+            // Extract social_network from scene_config and update currentSimulation
+            const socialNetwork = simState?.scene_config?.social_network || {};
+            if (Object.keys(socialNetwork).length > 0) {
+              console.log('[NETWORK-DEBUG] Found social_network in scene_config:', socialNetwork);
+              set(state => ({
+                currentSimulation: { ...state.currentSimulation!, socialNetwork }
+              }));
+            }
+
             const turnVal = Number(simState?.turns ?? 0) || 0;
 
-            const agentsMapped: Agent[] = (simState?.agents || []).map((a: any, idx: number) => ({
-              id: `a-${idx}-${a.name}`,
-              name: a.name,
-              role: a.role || '',
-              avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
-              profile: a.profile || '',
-              llmConfig: { provider: 'mock', model: 'default' },
-              properties: a.properties || {},
-              history: {},
-              memory: (a.short_memory || []).map((m: any, j: number) => ({
-                id: `m-${idx}-${j}`,
-                round: turnVal,
-                content: String(m.content ?? ''),
-                type: (String(m.role ?? '') === 'assistant' || String(m.role ?? '') === 'user') ? 'dialogue' : 'observation',
-                timestamp: new Date().toISOString()
-              })),
-              knowledgeBase: []
-            }));
+            const agentsMapped: Agent[] = (simState?.agents || []).map((a: any, idx: number) => {
+              const existing = state.agents.find((ex) => ex.name === a.name);
+              const fallbackRole = a.properties && (a.properties.role || a.properties.title || a.properties.position);
+              const fallbackProfile = a.profile || a.user_profile || a.userProfile || (a.properties && (a.properties.profile || a.properties.description)) || existing?.profile || '';
+              return {
+                id: `a-${idx}-${a.name}`,
+                name: a.name,
+                role: a.role || fallbackRole || '',
+                avatarUrl: existing?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
+                profile: fallbackProfile,
+                llmConfig: existing?.llmConfig || { provider: 'mock', model: 'default' },
+                properties: a.properties || existing?.properties || {},
+                history: existing?.history || {},
+                memory: (a.short_memory || []).map((m: any, j: number) => ({
+                  id: `m-${idx}-${j}`,
+                  round: turnVal,
+                  content: String(m.content ?? ''),
+                  type: (String(m.role ?? '') === 'assistant' || String(m.role ?? '') === 'user') ? 'dialogue' : 'observation',
+                  timestamp: new Date().toISOString()
+                })),
+                knowledgeBase: a.knowledgeBase || existing?.knowledgeBase || []
+              };
+            });
+
+            console.log('[KB-DEBUG] advanceSimulation: Mapped agents:', agentsMapped.map(a => ({ name: a.name, kbCount: a.knowledgeBase.length })));
 
             const eventsArray = Array.isArray(events) ? events : [];
             
@@ -1932,6 +3058,11 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   deleteNode: async () => {
     const state = get();
     if (!state.selectedNodeId) return;
+    const rootNode = state.nodes.find((n) => n.parentId === null);
+    if (rootNode && state.selectedNodeId === rootNode.id) {
+      get().addNotification('error', '不能删除根节点');
+      return;
+    }
     if (state.engineConfig.mode === 'connected' && state.currentSimulation) {
       try {
         const base = state.engineConfig.endpoint;
@@ -2379,58 +3510,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   useAuthStore.subscribe((s) => {
     const nowAuth = s.isAuthenticated;
     if (!lastAuthState && nowAuth) {
-      // user just logged in: attempt to sync local sims
-      (async () => {
-        try {
-          const state = useSimulationStore.getState();
-          const localSims = state.simulations.filter((sim) => typeof sim.id === 'string' && /^sim\d+/.test(sim.id));
-          if (!localSims.length) return;
-          setTimeout(async () => {
-            try {
-              const endpoint = state.engineConfig.endpoint;
-              const token = (state.engineConfig as any).token as string | undefined;
-              const { createSimulation } = await import('./services/simulations');
-              for (const sim of localSims) {
-                // build minimal payload from sim (we don't have full template here)
-                const payload: any = {
-                  scene_type: sim.templateId || 'village',
-                  scene_config: sim.timeConfig || {},
-                  social_network: sim.socialNetwork || {},
-                  agent_config: { agents: state.agents.map(a => ({
-                    name: a.name,
-                    profile: a.profile,
-                    role: (a as any).role,
-                    avatarUrl: (a as any).avatarUrl,
-                    llmConfig: (a as any).llmConfig,
-                    properties: (a as any).properties || {},
-                    history: (a as any).history || {},
-                    memory: (a as any).memory || [],
-                    knowledgeBase: (a as any).knowledgeBase || [],
-                    action_space: Array.isArray((a as any).action_space) ? (a as any).action_space : ['send_message']
-                  }) )},
-                  name: sim.name
-                };
-                try {
-                  const saved = await createSimulation(endpoint, payload, token);
-                  if (saved && saved.id) {
-                    useSimulationStore.setState((s) => ({
-                      simulations: s.simulations.map(x => x === sim ? { ...x, id: saved.id } : x),
-                      currentSimulation: s.currentSimulation && s.currentSimulation.id === sim.id ? { ...s.currentSimulation, id: saved.id } : s.currentSimulation
-                    } as any));
-                    useSimulationStore.getState().addNotification('success', `本地仿真 "${sim.name}" 已同步到后端`);
-                  }
-                } catch (err) {
-                  console.warn('同步本地仿真到后端失败', err);
-                }
-              }
-            } catch (e) {
-              console.warn('同步本地仿真过程失败', e);
-            }
-          }, 400);
-        } catch (e) {
-          console.warn('同步本地仿真失败', e);
-        }
-      })();
+      // 关闭自动同步以避免误创建草稿，用户需手动点击“保存到后端”
     }
     lastAuthState = nowAuth;
   });

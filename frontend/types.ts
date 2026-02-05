@@ -17,6 +17,14 @@ export interface LLMConfig {
   model: string;
 }
 
+export interface UploadedAsset {
+  url: string;
+  filename: string;
+  size: number;
+  content_type: string;
+  extracted_text?: string | null;
+}
+
 // # Integration: Platform Connection Status
 export type EngineMode = 'standalone' | 'connected';
 
@@ -67,8 +75,21 @@ export interface LogEntry {
   agentId?: string;
   content: string;
   imageUrl?: string; // #24 Multimodal Content
+  imageAlt?: string; // Alt text for accessibility
+  audioUrl?: string;
+  videoUrl?: string;
   timestamp: string;
   round: number;
+}
+
+export interface InitialEventItem {
+  id: string;
+  title: string;
+  content: string;
+  imageUrl?: string;
+  imageAlt?: string; // Alt text for accessibility
+  audioUrl?: string;
+  videoUrl?: string;
 }
 
 // #9 Time Configuration
@@ -88,10 +109,12 @@ export type SocialNetwork = Record<string, string[]>;
 export interface SimulationReport {
   id: string;
   generatedAt: string;
+  refinedByLLM?: boolean;
   summary: string;
   keyEvents: { round: number; description: string }[];
   agentAnalysis: { agentName: string; analysis: string }[];
   suggestions: string[];
+  roundStats?: { round: number; actions: number; errors: number; broadcasts: number }[];
 }
 
 // #20 Template System
@@ -100,10 +123,11 @@ export interface SimulationTemplate {
   name: string;
   description: string;
   category: 'system' | 'custom';
-  sceneType: string; // underlying hardcoded logic type (village, council, etc.)
+  sceneType: string; // underlying hardcoded logic type (village, council, etc., or 'generic' for custom templates)
   agents: Agent[]; // Pre-configured agents
   defaultTimeConfig: TimeConfig;
   defaultNetwork?: SocialNetwork; // #22
+  genericConfig?: GenericTemplateConfig; // For custom templates built with TemplateBuilder
 }
 
 export interface Simulation {
@@ -115,6 +139,7 @@ export interface Simulation {
   timeConfig: TimeConfig; // #9
   socialNetwork: SocialNetwork; // #22
   report?: SimulationReport; // #14
+  scene_config?: Record<string, any>; // Dynamic environment config
 }
 
 export enum ViewMode {
@@ -152,10 +177,53 @@ export interface GuideMessage {
   suggestedActions?: GuideActionType[]; // Actions parsed from content
 }
 
-export type GuideActionType = 
-  | 'OPEN_WIZARD' 
-  | 'OPEN_NETWORK' 
-  | 'OPEN_EXPERIMENT' 
-  | 'OPEN_EXPORT' 
+export type GuideActionType =
+  | 'OPEN_WIZARD'
+  | 'OPEN_NETWORK'
+  | 'OPEN_EXPERIMENT'
+  | 'OPEN_EXPORT'
   | 'OPEN_ANALYTICS'
   | 'OPEN_HOST';
+
+// =============================================================================
+// Generic Template System Types
+// =============================================================================
+
+export type CoreMechanicType = 'grid' | 'discussion' | 'voting' | 'resources' | 'hierarchy' | 'time';
+
+export interface CoreMechanicConfig {
+  type: CoreMechanicType;
+  enabled: boolean;
+  config: Record<string, any>;
+}
+
+export interface SemanticActionConfig {
+  name: string;
+  description: string;
+  instruction: string;
+  parameters?: Record<string, string>;
+  effect?: string;
+}
+
+export interface AgentArchetypeConfig {
+  name: string;
+  rolePrompt: string;
+  style?: string;
+  userProfile?: string;
+  properties?: Record<string, any>;
+  allowedActions?: string[];
+}
+
+export interface GenericTemplateConfig {
+  id: string;
+  name: string;
+  description: string;
+  version?: string;
+  coreMechanics: CoreMechanicConfig[];
+  availableActions: string[];  // Array of action IDs from ACTION_SPACE_MAP
+  environment: {
+    description: string;
+    rules?: string[];
+  };
+  defaultTimeConfig?: TimeConfig;
+}

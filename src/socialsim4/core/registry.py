@@ -24,6 +24,7 @@ from .actions.village_actions import (
     RestAction,
 )
 from .actions.web_actions import ViewPageAction, WebSearchAction
+from .actions.rag_actions import QueryKnowledgeAction, ListKnowledgeAction
 from .actions.werewolf_actions import (
     CloseVotingAction,
     InspectAction,
@@ -39,6 +40,7 @@ from .scenes.landlord_scene import LandlordPokerScene
 from .scenes.simple_chat_scene import SimpleChatScene
 from .scenes.village_scene import VillageScene
 from .scenes.werewolf_scene import WerewolfScene
+from socialsim4.templates.loader import GenericScene
 
 ACTION_SPACE_MAP = {
     "speak": SpeakAction(),
@@ -60,6 +62,9 @@ ACTION_SPACE_MAP = {
     # Web actions
     "web_search": WebSearchAction(),
     "view_page": ViewPageAction(),
+    # RAG actions (knowledge base)
+    "query_knowledge": QueryKnowledgeAction(),
+    "list_knowledge": ListKnowledgeAction(),
     # Moderation actions
     "schedule_order": ScheduleOrderAction(),
     # Werewolf actions
@@ -87,6 +92,7 @@ SCENE_MAP = {
     "village_scene": VillageScene,
     "werewolf_scene": WerewolfScene,
     "landlord_scene": LandlordPokerScene,
+    "generic_scene": GenericScene,
 }
 
 ORDERING_MAP = _ORDERING_MAP
@@ -97,19 +103,19 @@ ORDERING_MAP = _ORDERING_MAP
 SCENE_ACTIONS: dict[str, dict[str, list[str]]] = {
     "simple_chat_scene": {
         "basic": ["send_message", "yield"],
-        "allowed": ["web_search", "view_page"],
+        "allowed": ["web_search", "view_page", "query_knowledge", "list_knowledge"],
     },
     "emotional_conflict_scene": {
         "basic": ["send_message", "yield"],
-        "allowed": ["web_search", "view_page"],
+        "allowed": ["web_search", "view_page", "query_knowledge", "list_knowledge"],
     },
     "council_scene": {
         "basic": ["send_message", "voting_status", "yield"],
-        "allowed": ["start_voting", "finish_meeting", "request_brief", "vote", "web_search", "view_page"],
+        "allowed": ["start_voting", "finish_meeting", "request_brief", "vote", "web_search", "view_page", "query_knowledge", "list_knowledge"],
     },
     "village_scene": {
         "basic": ["talk_to", "move_to_location", "look_around", "gather_resource", "rest", "yield"],
-        "allowed": [],
+        "allowed": ["query_knowledge", "list_knowledge"],
     },
     "werewolf_scene": {
         "basic": ["speak", "vote_lynch", "yield"],
@@ -118,6 +124,27 @@ SCENE_ACTIONS: dict[str, dict[str, list[str]]] = {
     "landlord_scene": {
         "basic": ["yield"],
         "allowed": ["call_landlord", "rob_landlord", "pass", "play_cards", "double", "no_double"],
+    },
+    "generic_scene": {
+        "basic": ["yield"],
+        "allowed": [
+            # Communication
+            "send_message", "talk_to", "speak",
+            # Movement
+            "move_to_location",
+            # Observation
+            "look_around",
+            # Resources
+            "gather_resource", "rest",
+            # Tools
+            "web_search", "view_page", "query_knowledge", "list_knowledge",
+            # Council
+            "start_voting", "vote", "finish_meeting", "request_brief", "voting_status", "schedule_order",
+            # Werewolf
+            "vote_lynch", "night_kill", "inspect", "witch_save", "witch_poison", "open_voting", "close_voting",
+            # Landlord
+            "call_landlord", "rob_landlord", "pass", "play_cards", "double", "no_double",
+        ],
     },
 }
 
@@ -129,4 +156,5 @@ SCENE_DESCRIPTIONS: dict[str, str] = {
     "village_scene": "Grid-based village simulation with movement, looking around, gathering, and resting.",
     "werewolf_scene": "Social deduction game with night/day phases and role-specific actions (moderated flow).",
     "landlord_scene": "Dou Dizhu (Landlord) card game flow with bidding, playing, and scoring stages.",
+    "generic_scene": "A flexible scene type composed from template configuration. Supports custom mechanics and semantic actions.",
 }

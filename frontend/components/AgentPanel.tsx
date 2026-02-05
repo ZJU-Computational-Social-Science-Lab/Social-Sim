@@ -1,20 +1,168 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useSimulationStore } from '../store';
-import { User, Brain, Activity, ChevronDown, ChevronRight, Bot, BookOpen, Plus, FileText, Trash2 } from 'lucide-react';
+import { User, Brain, Activity, ChevronDown, ChevronRight, Bot, BookOpen, Plus, FileText, Trash2, Upload, File, Loader2, Edit3, Save, X } from 'lucide-react';
 import { Agent, KnowledgeItem } from '../types';
+import { uploadAgentDocument, listAgentDocuments, deleteAgentDocument, DocumentInfo } from '../services/simulations';
+import { MultimodalInput } from './MultimodalInput';
+
+const renderProfileHtml = (text: string) => {
+  const escape = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const escaped = escape(text || '');
+  const withImages = escaped.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_m, alt, url) => {
+    const safeAlt = escape(alt || 'image');
+    const safeUrl = url.replace(/"/g, '&quot;');
+    return `<img src="${safeUrl}" alt="${safeAlt}" class="inline-block max-h-32 rounded border border-slate-200 mr-2 mb-2" />`;
+  });
+  return withImages.replace(/\n/g, '<br />');
+};
 
 const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   const [isMemoryOpen, setIsMemoryOpen] = useState(true);
   const [isPropsOpen, setIsPropsOpen] = useState(false);
   const [isKBOpen, setIsKBOpen] = useState(false); // #23
-  
+  const [isDocsOpen, setIsDocsOpen] = useState(false); // Documents section
+
   const addKnowledgeToAgent = useSimulationStore(state => state.addKnowledgeToAgent);
   const removeKnowledgeFromAgent = useSimulationStore(state => state.removeKnowledgeFromAgent);
-  
+  const updateKnowledgeInAgent = useSimulationStore(state => state.updateKnowledgeInAgent);
+  const updateAgentProfile = useSimulationStore(state => state.updateAgentProfile);
+  const addNotification = useSimulationStore(state => state.addNotification);
+  const simulationId = useSimulationStore(state => state.currentSimulation?.id);
+  const selectedNodeId = useSimulationStore(state => state.selectedNodeId);
+
   const [newKbTitle, setNewKbTitle] = useState('');
   const [newKbContent, setNewKbContent] = useState('');
   const [isAddingKB, setIsAddingKB] = useState(false);
+
+  // Edit state for knowledge items
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
+
+  // Profile editing state
+  const [isProfileEditing, setIsProfileEditing] = useState(false);
+  const [profileDraft, setProfileDraft] = useState(agent.profile);
+
+  // Document upload state
+  const [documents, setDocuments] = useState<DocumentInfo[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load documents when docs section is opened
+  const loadDocuments = useCallback(async () => {
+    if (!simulationId) return;
+    try {
+      // Pass selectedNodeId to fetch documents from the correct tree node
+      const docs = await listAgentDocuments(simulationId, agent.name, selectedNodeId ?? undefined);
+      setDocuments(docs);
+    } catch (err) {
+      console.error('Failed to load documents:', err);
+    }
+  }, [simulationId, agent.name, selectedNodeId]);
+
+  // Auto-load documents when node changes to keep count accurate
+  useEffect(() => {
+    if (simulationId) {
+      loadDocuments();
+    }
+  }, [simulationId, selectedNodeId, agent.name, loadDocuments]);
+
+  const handleDocsToggle = () => {
+    const newState = !isDocsOpen;
+    setIsDocsOpen(newState);
+    if (newState) {
+      loadDocuments();
+    }
+  };
+
+  // Handle file upload
+  const handleFileUpload = async (file: File) => {
+    if (!simulationId) {
+      setUploadError('No simulation ID');
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['.pdf', '.txt', '.docx', '.md'];
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!allowedTypes.includes(ext)) {
+      setUploadError(`Invalid file type. Allowed: ${allowedTypes.join(', ')}`);
+      return;
+    }
+
+    // Validate file size (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('File too large. Max size: 10MB');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      console.log(`INFO: Upload started - agent=${agent.name}, file=${file.name}`);
+      const result = await uploadAgentDocument(simulationId, agent.name, file);
+      console.log(`INFO: Upload complete - doc_id=${result.doc_id}, chunks=${result.chunks_count}`);
+      loadDocuments(); // Refresh the list
+    } catch (err: any) {
+      console.error('ERROR: Upload failed -', err);
+      setUploadError(err.message || 'Upload failed');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Handle delete document
+  const handleDeleteDocument = async (docId: string) => {
+    if (!simulationId) return;
+    try {
+      await deleteAgentDocument(simulationId, agent.name, docId);
+      loadDocuments();
+    } catch (err) {
+      console.error('Failed to delete document:', err);
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFileUpload(files[0]);
+    }
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleFileUpload(files[0]);
+    }
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   // Helper to color code models
   const getModelBadgeStyle = (provider: string) => {
@@ -42,6 +190,31 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
     setIsAddingKB(false);
   };
 
+  // Edit handlers for knowledge items
+  const handleStartEdit = (kb: KnowledgeItem) => {
+    setEditingItemId(kb.id);
+    setEditTitle(kb.title);
+    setEditContent(kb.content);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingItemId || !editTitle.trim()) return;
+    updateKnowledgeInAgent(agent.id, editingItemId, {
+      title: editTitle,
+      content: editContent,
+      timestamp: new Date().toISOString()
+    });
+    setEditingItemId(null);
+    setEditTitle('');
+    setEditContent('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingItemId(null);
+    setEditTitle('');
+    setEditContent('');
+  };
+
   return (
     <div className="bg-white border-b last:border-b-0">
       {/* Sticky Profile Header (#6) */}
@@ -63,9 +236,53 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
           <span className="inline-block mt-1 px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full border border-slate-200">
             {agent.role}
           </span>
-          <p className="mt-2 text-xs text-slate-500 leading-relaxed">
-            {agent.profile}
-          </p>
+          {isProfileEditing ? (
+            <div className="space-y-2 mt-2">
+              <textarea
+                value={profileDraft}
+                onChange={(e) => setProfileDraft(e.target.value)}
+                className="w-full text-xs border rounded p-2 focus:ring-1 focus:ring-brand-500 outline-none min-h-[80px]"
+              />
+              <MultimodalInput
+                helperText="拖拽/上传图片将以 markdown 链接插入画像描述"
+                onInsert={(url) => setProfileDraft((prev) => `${prev}${prev ? '\n' : ''}![image](${url})`)}
+              />
+              <div className="flex gap-2">
+                <button
+                  className="flex-1 py-1.5 bg-brand-600 text-white rounded text-xs flex items-center justify-center gap-1"
+                  onClick={() => {
+                    updateAgentProfile(agent.id, profileDraft);
+                    setIsProfileEditing(false);
+                  }}
+                >
+                  <Save size={12} /> 保存画像
+                </button>
+                <button
+                  className="flex-1 py-1.5 bg-slate-200 text-slate-600 rounded text-xs flex items-center justify-center gap-1"
+                  onClick={() => {
+                    setProfileDraft(agent.profile);
+                    setIsProfileEditing(false);
+                  }}
+                >
+                  <X size={12} /> 取消
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-2 flex items-start gap-2">
+              <div
+                className="text-xs text-slate-500 leading-relaxed flex-1 markdown-body"
+                dangerouslySetInnerHTML={{ __html: renderProfileHtml(agent.profile) }}
+              />
+              <button
+                className="text-slate-400 hover:text-brand-600"
+                onClick={() => setIsProfileEditing(true)}
+                title="编辑画像"
+              >
+                <Edit3 size={14} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -113,32 +330,82 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                <div className="text-center py-2 text-slate-400 text-xs italic">暂无知识库文档</div>
              )}
              
-             {agent.knowledgeBase.map(kb => (
-               <div key={kb.id} className="bg-white border rounded p-2 text-xs relative group">
-                  <div className="flex items-center gap-2 font-bold text-slate-700 mb-1">
-                     <FileText size={12} className="text-blue-500" />
-                     {kb.title}
-                  </div>
-                  <p className="text-slate-500 line-clamp-2">{kb.content}</p>
-                  <button 
-                     onClick={() => removeKnowledgeFromAgent(agent.id, kb.id)}
-                     className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                     <Trash2 size={12} />
-                  </button>
-               </div>
-             ))}
+             {agent.knowledgeBase.map(kb => {
+               const isEditing = editingItemId === kb.id;
+               return (
+                 <div key={kb.id} className="bg-white border rounded p-2 text-xs relative group">
+                   {isEditing ? (
+                     // Edit mode
+                     <div className="space-y-2">
+                       <input
+                         type="text"
+                         value={editTitle}
+                         onChange={(e) => setEditTitle(e.target.value)}
+                         className="w-full p-1 border rounded text-xs outline-none focus:ring-1 focus:ring-brand-500"
+                         placeholder="标题"
+                       />
+                       <textarea
+                         value={editContent}
+                         onChange={(e) => setEditContent(e.target.value)}
+                         className="w-full p-1 border rounded text-xs h-20 resize-none outline-none focus:ring-1 focus:ring-brand-500"
+                         placeholder="知识内容..."
+                       />
+                       <div className="flex gap-2 justify-end">
+                         <button
+                           onClick={handleSaveEdit}
+                           disabled={!editTitle.trim()}
+                           className="px-2 py-1 text-green-600 hover:text-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                         >
+                           保存
+                         </button>
+                         <button
+                           onClick={handleCancelEdit}
+                           className="px-2 py-1 text-slate-500 hover:text-slate-600"
+                         >
+                           取消
+                         </button>
+                       </div>
+                     </div>
+                   ) : (
+                     // View mode
+                     <>
+                       <div className="flex items-center gap-2 font-bold text-slate-700 mb-1">
+                         <FileText size={12} className="text-blue-500" />
+                         {kb.title}
+                       </div>
+                       <p className="text-slate-500 line-clamp-2">{kb.content}</p>
+                       <div className="flex gap-2 absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <button
+                           onClick={() => handleStartEdit(kb)}
+                           className="text-slate-400 hover:text-blue-500"
+                           title="编辑"
+                         >
+                           ✏️
+                         </button>
+                         <button
+                           onClick={() => removeKnowledgeFromAgent(agent.id, kb.id)}
+                           className="text-slate-400 hover:text-red-500"
+                           title="删除"
+                         >
+                           🗑️
+                         </button>
+                       </div>
+                     </>
+                   )}
+                 </div>
+               );
+             })}
 
              {isAddingKB ? (
                 <div className="bg-white border border-brand-200 rounded p-2 text-xs space-y-2">
-                   <input 
-                     type="text" 
+                   <input
+                     type="text"
                      placeholder="标题 (如: 乡村公约)"
-                     value={newKbTitle} 
+                     value={newKbTitle}
                      onChange={(e) => setNewKbTitle(e.target.value)}
                      className="w-full p-1 border rounded outline-none focus:ring-1 focus:ring-brand-500"
                    />
-                   <textarea 
+                   <textarea
                      placeholder="知识内容..."
                      value={newKbContent}
                      onChange={(e) => setNewKbContent(e.target.value)}
@@ -150,13 +417,104 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                    </div>
                 </div>
              ) : (
-                <button 
+                <button
                    onClick={() => setIsAddingKB(true)}
                    className="w-full py-1.5 border border-dashed border-slate-300 text-slate-500 hover:border-brand-500 hover:text-brand-600 rounded text-xs flex items-center justify-center gap-1 transition-colors"
                 >
                    <Plus size={12} /> 添加知识条目
                 </button>
              )}
+          </div>
+        )}
+      </div>
+
+      {/* Documents Section (Embedded RAG) */}
+      <div className="p-0 border-t">
+        <button
+          onClick={handleDocsToggle}
+          className="w-full flex items-center justify-between px-4 py-2 bg-slate-50 hover:bg-slate-100 transition-colors"
+        >
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+            <Upload size={14} />
+            <span>文档知识库 ({documents.length})</span>
+          </div>
+          {isDocsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </button>
+
+        {isDocsOpen && (
+          <div className="p-4 bg-slate-50/50 space-y-3">
+            {/* Upload area */}
+            <div
+              className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+                isDragging
+                  ? 'border-brand-500 bg-brand-50'
+                  : 'border-slate-300 hover:border-brand-400'
+              } ${isUploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => !isUploading && fileInputRef.current?.click()}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.txt,.docx,.md"
+                onChange={handleFileInput}
+                className="hidden"
+                disabled={isUploading}
+              />
+              {isUploading ? (
+                <div className="flex items-center justify-center gap-2 text-slate-500">
+                  <Loader2 size={16} className="animate-spin" />
+                  <span className="text-xs">上传中...</span>
+                </div>
+              ) : (
+                <>
+                  <Upload size={20} className="mx-auto text-slate-400 mb-2" />
+                  <p className="text-xs text-slate-500">
+                    拖放文件或点击上传
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    支持: PDF, TXT, DOCX, MD (最大 10MB)
+                  </p>
+                </>
+              )}
+            </div>
+
+            {/* Error message */}
+            {uploadError && (
+              <div className="bg-red-50 border border-red-200 rounded p-2 text-xs text-red-600">
+                {uploadError}
+              </div>
+            )}
+
+            {/* Uploaded documents list */}
+            {documents.length === 0 && !isUploading && (
+              <div className="text-center py-2 text-slate-400 text-xs italic">
+                暂无上传文档
+              </div>
+            )}
+
+            {documents.map(doc => (
+              <div key={doc.id} className="bg-white border rounded p-2 text-xs relative group">
+                <div className="flex items-center gap-2 font-bold text-slate-700 mb-1">
+                  <File size={12} className="text-blue-500" />
+                  <span className="truncate flex-1">{doc.filename}</span>
+                  <span className="text-slate-400 font-normal">{formatFileSize(doc.file_size)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-400">
+                  <span>{doc.chunks_count} 个文本块</span>
+                  <span>·</span>
+                  <span>{new Date(doc.uploaded_at).toLocaleDateString()}</span>
+                </div>
+                <button
+                  onClick={() => handleDeleteDocument(doc.id)}
+                  className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </div>

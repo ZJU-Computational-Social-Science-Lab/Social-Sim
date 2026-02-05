@@ -36,7 +36,8 @@ class SimulationUpdate(BaseModel):
     name: str | None = None
     status: str | None = None
     notes: str | None = None
-
+    agent_config: dict | None = None
+    scene_config: dict | None = None
 
 class SnapshotBase(BaseModel):
     id: int

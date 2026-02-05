@@ -23,6 +23,24 @@ async def _prepare_database() -> None:
         await conn.run_sync(Base.metadata.create_all)
 
 
+async def _initialize_vector_store() -> None:
+    """Initialize the vector store on startup if ChromaDB is enabled."""
+    from .core.config import get_settings
+    from .services.vector_store import initialize_vector_store
+
+    settings = get_settings()
+    if settings.use_chromadb:
+        initialize_vector_store(
+            use_chromadb=True,
+            persist_dir=settings.chromadb_persist_dir
+        )
+        print(f"[vector_store] ChromaDB initialized at {settings.chromadb_persist_dir}")
+    else:
+        # Initialize with JSON fallback
+        initialize_vector_store(use_chromadb=False)
+        print("[vector_store] Using JSON fallback mode")
+
+
 def internal_error_handler(request: Request, exc: Exception) -> Response:
     # Return JSON error for any unhandled exception (HTTP 500)
     # Note: 4xx HTTPException responses will continue to use Litestar's default handling.
@@ -44,10 +62,19 @@ def create_app() -> Litestar:
     api_prefix = settings.api_prefix or "/api"
     api_routes = Router(path=api_prefix, route_handlers=[api_router])
 
-    route_handlers = [api_routes]
+    # Static uploads
+    root_dir = Path(__file__).resolve().parents[3]
+    upload_dir = (root_dir / settings.upload_dir).resolve()
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    upload_router = create_static_files_router(
+        path=settings.upload_base_url,
+        directories=[str(upload_dir)],
+        name="uploads",
+    )
+
+    route_handlers = [api_routes, upload_router]
 
     # 只在生产模式（有 dist 目录）时服务静态文件
-    root_dir = Path(__file__).resolve().parents[3]
     dist_dir = Path(settings.frontend_dist_path or root_dir / "frontend" / "dist").resolve()
     index_file = dist_dir / "index.html"
 
@@ -90,7 +117,7 @@ def create_app() -> Litestar:
 
     app_kwargs: dict = {
         "route_handlers": [base_router],
-        "on_startup": [_prepare_database, _log_routes],
+        "on_startup": [_prepare_database, _initialize_vector_store, _log_routes],
         "cors_config": cors_config,
         "debug": settings.debug,
         "openapi_config": OpenAPIConfig(title=settings.app_name, version="1.0.0"),

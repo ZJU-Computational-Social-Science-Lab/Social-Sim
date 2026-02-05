@@ -102,6 +102,25 @@ npm run dev
 3. Click "New Simulation" to create a simulation
 4. In the simulation interface, advance nodes, create branches, and view logs
 
+### Dynamic Environment Events
+
+The simulation can suggest environmental events based on recent activity, adding contextual events that agents can react to:
+
+- **Weather Changes**: Rain, storms, snow, temperature shifts
+- **Emergencies**: Fire, power outage, medical emergencies, accidents
+- **Notifications**: Government announcements, policy changes, school closures
+- **Public Opinion**: Rumors spreading, sentiment shifts, trending topics
+
+**How it works:**
+- Suggestions are offered every 5 turns during simulation
+- An "Environment Events Available" indicator appears when suggestions are ready
+- Click the indicator to view AI-generated suggestions based on recent simulation context
+- Apply a suggestion to broadcast it to all agents, who will react naturally based on their personalities
+- Events are logged in the timeline with special styling (green/emerald highlighting)
+
+**Configuration:**
+The feature can be enabled/disabled per simulation and the turn interval can be customized in the simulation settings.
+
 ### Tech Stack
 
 - **Backend**: Python 3.11+, Litestar, SQLAlchemy, Pydantic

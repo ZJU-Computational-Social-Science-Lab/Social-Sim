@@ -17,6 +17,10 @@ class Scene:
     def get_scenario_description(self):
         return ""
 
+    def get_compact_description(self):
+        """Compact description for 4B models. Override in subclasses."""
+        return self.get_scenario_description()
+
     def get_behavior_guidelines(self):
         return ""
 
@@ -83,6 +87,9 @@ class Scene:
         if social_network and isinstance(social_network, dict) and len(social_network) > 0:
             # 使用社交网络过滤接收者
             recipients = self._get_recipients_by_social_network(sender, simulator)
+            # Debug logging for network filtering
+            all_recipients = [a.name for a in simulator.agents.values() if a.name != sender.name]
+            print(f"[NETWORK-DEBUG] {sender.name} -> {recipients} (filtered from all: {all_recipients})")
             # 直接向接收者发送消息
             for agent_name in recipients:
                 agent = simulator.agents.get(agent_name)
@@ -107,6 +114,7 @@ class Scene:
         else:
             # 没有配置社交网络，使用默认的全局广播
             global_recipients = [a.name for a in simulator.agents.values() if a.name != sender.name]
+            print(f"[NETWORK-DEBUG] {sender.name} -> {global_recipients} (global broadcast: no social network configured)")
             event.params = {
                 "sender": sender.name,
                 "message": event.message,

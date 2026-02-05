@@ -30,6 +30,10 @@ export async function resumeSimulation(simulationId: string): Promise<any> {
   return data;
 }
 
+export async function resetSimulation(simulationId: string): Promise<void> {
+  await apiClient.post(`/simulations/${simulationId}/reset`, {});
+}
+
 // Fetch a single simulation by id
 export async function getSimulation(simulationId: string): Promise<any> {
   const { data } = await apiClient.get(`/simulations/${encodeURIComponent(simulationId)}`);
@@ -96,6 +100,153 @@ export async function startSimulation(
   const { data } = await apiClient.post(
     `/simulations/${encodeURIComponent(simulationId)}/start`,
     {}
+  );
+  return data;
+}
+
+// ---------------------------------------------------------
+// Document Upload API (Per-Agent Private Knowledge)
+// ---------------------------------------------------------
+
+export interface DocumentInfo {
+  id: string;
+  filename: string;
+  file_size: number;
+  uploaded_at: string;
+  chunks_count: number;
+}
+
+export interface UploadDocumentResponse {
+  success: boolean;
+  doc_id: string;
+  chunks_count: number;
+  agent_name: string;
+  filename: string;
+}
+
+// Upload a document to an agent's private knowledge base
+export async function uploadAgentDocument(
+  simulationId: string,
+  agentName: string,
+  file: File
+): Promise<UploadDocumentResponse> {
+  const formData = new FormData();
+  formData.append('data', file);
+
+  const { data } = await apiClient.post(
+    `/simulations/${encodeURIComponent(simulationId)}/agents/${encodeURIComponent(agentName)}/documents`,
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );
+  return data;
+}
+
+// List documents for an agent
+export async function listAgentDocuments(
+  simulationId: string,
+  agentName: string,
+  nodeId?: string | number
+): Promise<DocumentInfo[]> {
+  let url = `/simulations/${encodeURIComponent(simulationId)}/agents/${encodeURIComponent(agentName)}/documents`;
+  if (nodeId !== undefined && nodeId !== null) {
+    url += `?node_id=${encodeURIComponent(String(nodeId))}`;
+  }
+  const { data } = await apiClient.get(url);
+  return data;
+}
+
+// Delete a document from an agent
+export async function deleteAgentDocument(
+  simulationId: string,
+  agentName: string,
+  docId: string
+): Promise<{ success: boolean; deleted_doc_id: string }> {
+  const { data } = await apiClient.delete(
+    `/simulations/${encodeURIComponent(simulationId)}/agents/${encodeURIComponent(agentName)}/documents/${encodeURIComponent(docId)}`
+  );
+  return data;
+}
+
+// ---------------------------------------------------------
+// Global Knowledge Base API
+// ---------------------------------------------------------
+
+export interface GlobalKnowledgeItem {
+  id: string;
+  title: string;
+  content_preview: string;
+  source_type: 'manual_text' | 'document';
+  filename: string | null;
+  created_at: string;
+  chunks_count: number;
+}
+
+export interface AddGlobalKnowledgeResponse {
+  success: boolean;
+  kw_id: string;
+}
+
+export interface UploadGlobalDocumentResponse {
+  success: boolean;
+  kw_id: string;
+  chunks_count: number;
+  filename: string;
+}
+
+// Add text content to global knowledge
+export async function addGlobalKnowledge(
+  simulationId: string,
+  content: string,
+  title?: string
+): Promise<AddGlobalKnowledgeResponse> {
+  const { data } = await apiClient.post(
+    `/simulations/${encodeURIComponent(simulationId)}/global-knowledge`,
+    { content, title: title || '' }
+  );
+  return data;
+}
+
+// Upload a document to global knowledge
+export async function uploadGlobalDocument(
+  simulationId: string,
+  file: File
+): Promise<UploadGlobalDocumentResponse> {
+  const formData = new FormData();
+  formData.append('data', file);
+
+  const { data } = await apiClient.post(
+    `/simulations/${encodeURIComponent(simulationId)}/global-knowledge/documents`,
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );
+  return data;
+}
+
+// List global knowledge items
+export async function listGlobalKnowledge(
+  simulationId: string
+): Promise<GlobalKnowledgeItem[]> {
+  const { data } = await apiClient.get(
+    `/simulations/${encodeURIComponent(simulationId)}/global-knowledge`
+  );
+  return data;
+}
+
+// Delete a global knowledge item
+export async function deleteGlobalKnowledge(
+  simulationId: string,
+  kwId: string
+): Promise<{ success: boolean; deleted_kw_id: string }> {
+  const { data } = await apiClient.delete(
+    `/simulations/${encodeURIComponent(simulationId)}/global-knowledge/${encodeURIComponent(kwId)}`
   );
   return data;
 }
