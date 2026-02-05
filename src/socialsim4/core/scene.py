@@ -2,6 +2,7 @@ from socialsim4.core.actions.base_actions import YieldAction
 from socialsim4.core.agent import Agent
 from socialsim4.core.event import PublicEvent
 from socialsim4.core.simulator import Simulator
+from socialsim4.core.action_controller import ActionController
 
 
 class Scene:
@@ -13,6 +14,9 @@ class Scene:
         self.state = {"time": 1080}
         # Default timekeeping: minutes since 0. Scenes can adjust per-turn minutes.
         self.minutes_per_turn = 3
+
+        # Initialize action controller
+        self.action_controller = ActionController()
 
     def get_scenario_description(self):
         return ""
@@ -35,10 +39,29 @@ class Scene:
     def parse_and_handle_action(self, action_data, agent: Agent, simulator: Simulator):
         action_name = action_data.get("action")
         print(f"Action Space({agent.name}):", agent.action_space)
+
+        # Find the action instance first (for validation)
+        action_instance = None
         for act in agent.action_space:
             if act.NAME == action_name:
-                success, result, summary, meta, pass_control = act.handle(action_data, agent, simulator, self)
-                return success, result, summary, meta, bool(pass_control)
+                action_instance = act
+                break
+
+        # Validate using the action instance's constraints
+        allowed, error = self.action_controller.validate_action(
+            action_name, action_data, agent, self.state, action_instance, self
+        )
+        if not allowed:
+            agent.add_env_feedback(error)
+            return False, {"error": error}, f"{agent.name} action blocked: {error}", {}, False
+
+        # Execute the action
+        if action_instance:
+            success, result, summary, meta, pass_control = action_instance.handle(
+                action_data, agent, simulator, self
+            )
+            return success, result, summary, meta, bool(pass_control)
+
         return False, {}, None, {}, False
 
     def _get_recipients_by_social_network(
