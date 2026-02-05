@@ -1,5 +1,8 @@
 """
-Unit tests for ActionController with declarative action constraints.
+Unit tests for ActionController with phase-based validation.
+
+Tests both the new phase-based facilitator validation and backward compatibility
+with role-based validation for scenes without a facilitator.
 """
 
 import pytest
@@ -8,8 +11,17 @@ from socialsim4.core.action import Action
 from socialsim4.core.agent import Agent
 
 
+# Mock scene with facilitator
+class MockSceneWithFacilitator:
+    def __init__(self):
+        from socialsim4.core.phase_controller import SystemFacilitator, CouncilPhase
+        self.facilitator = SystemFacilitator(self)
+        self.state = {"voting_started": False}
+
+
 # Example actions with constraints for testing
 class HostOnlyAction(Action, ActionConstraints):
+    """Example action with role restriction (deprecated pattern)."""
     NAME = "host_only_action"
     ALLOWED_ROLES = {"Host"}
 
@@ -17,9 +29,9 @@ class HostOnlyAction(Action, ActionConstraints):
         return True, {}, "done", {}, False
 
 
-class MemberOnlyAction(Action, ActionConstraints):
-    NAME = "member_only_action"
-    ALLOWED_ROLES = {"*"}  # Non-Host only
+class StateGuardedAction(Action, ActionConstraints):
+    """Example action with state guard (phase-based pattern)."""
+    NAME = "state_guarded_action"
 
     @staticmethod
     def state_guard(state):
@@ -33,6 +45,7 @@ class MemberOnlyAction(Action, ActionConstraints):
 
 
 class ParameterValidatedAction(Action, ActionConstraints):
+    """Example action with parameter validation."""
     NAME = "param_action"
 
     @staticmethod
@@ -54,65 +67,57 @@ class UnconstrainedAction(Action):
 
 
 class TestActionController:
-    """Test suite for ActionController with declarative constraints."""
+    """Test suite for ActionController with phase-based validation."""
 
-    def test_host_only_action_rejects_non_host(self):
-        """Actions with ALLOWED_ROLES={'Host'} reject non-Host agents."""
+    def test_facilitator_blocks_actions_in_wrong_phase(self):
+        """Actions blocked by facilitator when phase is inappropriate."""
         controller = ActionController()
-        action = HostOnlyAction()
-        host = Agent("Host", "profile", "style", [], {})
+        scene = MockSceneWithFacilitator()
+
+        # In discussion phase, voting actions should be blocked
         agent = Agent("Agent 1", "profile", "style", [], {})
 
-        # Host allowed
+        # vote action should be blocked (voting not started)
         allowed, error = controller.validate_action(
-            "host_only_action", {}, host, {}, action
+            "vote", {"vote": "yes"}, agent, scene.state, None, scene
+        )
+        assert not allowed
+        assert "not started" in error.lower()
+
+    def test_facilitator_allows_actions_in_correct_phase(self):
+        """Actions allowed by facilitator when phase is appropriate."""
+        controller = ActionController()
+        scene = MockSceneWithFacilitator()
+
+        # Set voting started
+        scene.state["voting_started"] = True
+
+        agent = Agent("Agent 1", "profile", "style", [], {})
+
+        # vote action should be allowed now
+        allowed, error = controller.validate_action(
+            "vote", {"vote": "yes"}, agent, scene.state, None, scene
         )
         assert allowed
         assert error is None
 
-        # Non-host rejected
-        allowed, error = controller.validate_action(
-            "host_only_action", {}, agent, {}, action
-        )
-        assert not allowed
-        assert "Permission denied" in error
-
-    def test_member_only_action_excludes_host(self):
-        """Actions with ALLOWED_ROLES={'*'} allow non-Host, reject Host."""
-        controller = ActionController()
-        action = MemberOnlyAction()
-        host = Agent("Host", "profile", "style", [], {})
-        agent = Agent("Agent 1", "profile", "style", [], {})
-
-        # Host rejected
-        allowed, error = controller.validate_action(
-            "member_only_action", {}, host, {"active": True}, action
-        )
-        assert not allowed
-        assert "Host cannot perform" in error
-
-        # Member allowed
-        allowed, error = controller.validate_action(
-            "member_only_action", {}, agent, {"active": True}, action
-        )
-        assert allowed
-
     def test_state_guard_blocks_invalid_state(self):
         """State guard function blocks actions in wrong state."""
         controller = ActionController()
-        action = MemberOnlyAction()
+        action = StateGuardedAction()
         agent = Agent("Agent 1", "profile", "style", [], {})
+        scene = MockSceneWithFacilitator()
 
         # Inactive state blocked
         allowed, error = controller.validate_action(
-            "member_only_action", {}, agent, {"active": False}, action
+            "state_guarded_action", {}, agent, {"active": False}, action, scene
         )
         assert not allowed
         assert "session not active" in error
 
         # Active state allowed
         allowed, error = controller.validate_action(
-            "member_only_action", {}, agent, {"active": True}, action
+            "state_guarded_action", {}, agent, {"active": True}, action, scene
         )
         assert allowed
 
@@ -121,17 +126,18 @@ class TestActionController:
         controller = ActionController()
         action = ParameterValidatedAction()
         agent = Agent("Agent 1", "profile", "style", [], {})
+        scene = MockSceneWithFacilitator()
 
         # Invalid param (value <= 0)
         allowed, error = controller.validate_action(
-            "param_action", {"value": 0}, agent, {}, action
+            "param_action", {"value": 0}, agent, {}, action, scene
         )
         assert not allowed
         assert "Invalid parameters" in error
 
         # Valid param (value > 0)
         allowed, error = controller.validate_action(
-            "param_action", {"value": 5}, agent, {}, action
+            "param_action", {"value": 5}, agent, {}, action, scene
         )
         assert allowed
 
@@ -140,12 +146,36 @@ class TestActionController:
         controller = ActionController()
         action = UnconstrainedAction()
         agent = Agent("Agent 1", "profile", "style", [], {})
+        scene = MockSceneWithFacilitator()
 
         allowed, error = controller.validate_action(
-            "unconstrained_action", {}, agent, {}, action
+            "unconstrained_action", {}, agent, {}, action, scene
         )
         assert allowed
         assert error is None
+
+    def test_backward_compatible_role_validation(self):
+        """Role-based validation still works for actions with ALLOWED_ROLES."""
+        controller = ActionController()
+        action = HostOnlyAction()
+        scene = MockSceneWithFacilitator()
+
+        # Create agents with role property
+        host = Agent("Host", "profile", "style", [], {}, role="host")
+        member = Agent("Agent 1", "profile", "style", [], {}, role="member")
+
+        # Host allowed
+        allowed, error = controller.validate_action(
+            "host_only_action", {}, host, {}, action, scene
+        )
+        assert allowed
+
+        # Member rejected
+        allowed, error = controller.validate_action(
+            "host_only_action", {}, member, {}, action, scene
+        )
+        assert not allowed
+        assert "Permission denied" in error
 
 
 # Council action imports for integration testing
@@ -158,36 +188,33 @@ from socialsim4.core.actions.council_actions import (
 
 
 class TestCouncilActionValidation:
-    """Integration tests for council actions with declarative constraints."""
+    """Integration tests for council actions with phase-based validation."""
 
-    def test_start_voting_host_only(self):
-        """StartVotingAction only allows Host agent."""
+    def test_start_voting_any_agent_can_start(self):
+        """StartVotingAction can be initiated by any agent when in discussion phase."""
         controller = ActionController()
         action = StartVotingAction()
-        host = Agent("Host", "profile", "style", [], {})
+        scene = MockSceneWithFacilitator()
+
         agent = Agent("Rep. Chen", "profile", "style", [], {})
 
-        # Host allowed with valid title
+        # Any agent should be able to start voting
         allowed, error = controller.validate_action(
-            "start_voting", {"title": "Budget 2024"}, host, {}, action
+            "start_voting", {"title": "Budget 2024"}, agent, scene.state, action, scene
         )
         assert allowed
 
-        # Non-host rejected
-        allowed, error = controller.validate_action(
-            "start_voting", {"title": "Budget 2024"}, agent, {}, action
-        )
-        assert not allowed
-        assert "Permission denied" in error
-
-    def test_start_voting_cannot_start_twice(self):
+    def test_start_voting_blocked_when_voting_active(self):
         """StartVotingAction blocked when voting already started."""
         controller = ActionController()
         action = StartVotingAction()
-        host = Agent("Host", "profile", "style", [], {})
+        scene = MockSceneWithFacilitator()
+        scene.state["voting_started"] = True
+
+        agent = Agent("Rep. Chen", "profile", "style", [], {})
 
         allowed, error = controller.validate_action(
-            "start_voting", {"title": "Budget"}, host, {"voting_started": True}, action
+            "start_voting", {"title": "Budget"}, agent, scene.state, action, scene
         )
         assert not allowed
         assert "already in progress" in error.lower()
@@ -196,11 +223,13 @@ class TestCouncilActionValidation:
         """StartVotingAction requires non-empty title."""
         controller = ActionController()
         action = StartVotingAction()
-        host = Agent("Host", "profile", "style", [], {})
+        scene = MockSceneWithFacilitator()
+
+        agent = Agent("Rep. Chen", "profile", "style", [], {})
 
         # Empty title rejected
         allowed, error = controller.validate_action(
-            "start_voting", {"title": "   "}, host, {}, action
+            "start_voting", {"title": "   "}, agent, scene.state, action, scene
         )
         assert not allowed
         assert "Invalid parameters" in error
@@ -209,10 +238,12 @@ class TestCouncilActionValidation:
         """VoteAction requires voting state."""
         controller = ActionController()
         action = VoteAction()
+        scene = MockSceneWithFacilitator()
+
         agent = Agent("Rep. Chen", "profile", "style", [], {})
 
         allowed, error = controller.validate_action(
-            "vote", {"vote": "yes"}, agent, {}, action
+            "vote", {"vote": "yes"}, agent, scene.state, action, scene
         )
         assert not allowed
         assert "not started" in error.lower()
@@ -221,12 +252,14 @@ class TestCouncilActionValidation:
         """VoteAction accepts yes/no/abstain."""
         controller = ActionController()
         action = VoteAction()
+        scene = MockSceneWithFacilitator()
+        scene.state["voting_started"] = True
+
         agent = Agent("Rep. Chen", "profile", "style", [], {})
-        state = {"voting_started": True}
 
         for vote in ["yes", "no", "abstain"]:
             allowed, error = controller.validate_action(
-                "vote", {"vote": vote}, agent, state, action
+                "vote", {"vote": vote}, agent, scene.state, action, scene
             )
             assert allowed, f"Vote '{vote}' should be allowed"
 
@@ -234,84 +267,124 @@ class TestCouncilActionValidation:
         """VoteAction rejects invalid vote values."""
         controller = ActionController()
         action = VoteAction()
+        scene = MockSceneWithFacilitator()
+        scene.state["voting_started"] = True
+
         agent = Agent("Rep. Chen", "profile", "style", [], {})
-        state = {"voting_started": True}
 
         for vote in ["maybe", "I vote yes", "", "present"]:
             allowed, error = controller.validate_action(
-                "vote", {"vote": vote}, agent, state, action
+                "vote", {"vote": vote}, agent, scene.state, action, scene
             )
             assert not allowed, f"Vote '{vote}' should be rejected"
 
-    def test_vote_excludes_host(self):
-        """VoteAction excludes Host with '*' role restriction."""
+    def test_vote_any_agent_can_vote(self):
+        """VoteAction allows any agent to vote (not just non-Host)."""
         controller = ActionController()
         action = VoteAction()
+        scene = MockSceneWithFacilitator()
+        scene.state["voting_started"] = True
+
+        # Even an agent named "Host" can vote in the new system
         host = Agent("Host", "profile", "style", [], {})
-        agent = Agent("Rep. Chen", "profile", "style", [], {})
-        state = {"voting_started": True}
+        member = Agent("Rep. Chen", "profile", "style", [], {})
 
-        # Host rejected
-        allowed, error = controller.validate_action(
-            "vote", {"vote": "yes"}, host, state, action
+        # Both should be allowed
+        allowed, _ = controller.validate_action(
+            "vote", {"vote": "yes"}, host, scene.state, action, scene
         )
-        assert not allowed
-        assert "Host cannot perform" in error
+        assert allowed, "Host should be allowed to vote"
 
-        # Member allowed
-        allowed, error = controller.validate_action(
-            "vote", {"vote": "yes"}, agent, state, action
+        allowed, _ = controller.validate_action(
+            "vote", {"vote": "yes"}, member, scene.state, action, scene
         )
-        assert allowed
+        assert allowed, "Member should be allowed to vote"
 
-    def test_finish_meeting_host_only(self):
-        """FinishMeetingAction only allows Host."""
+    def test_finish_meeting_any_agent_can_finish(self):
+        """FinishMeetingAction can be called by any agent when no vote is active."""
         controller = ActionController()
         action = FinishMeetingAction()
-        host = Agent("Host", "profile", "style", [], {})
+        scene = MockSceneWithFacilitator()
+
         agent = Agent("Rep. Chen", "profile", "style", [], {})
 
-        # Host allowed
+        # Any agent should be able to finish meeting
         allowed, error = controller.validate_action(
-            "finish_meeting", {}, host, {}, action
+            "finish_meeting", {}, agent, scene.state, action, scene
         )
         assert allowed
-
-        # Non-host rejected
-        allowed, error = controller.validate_action(
-            "finish_meeting", {}, agent, {}, action
-        )
-        assert not allowed
-        assert "Permission denied" in error
 
     def test_finish_meeting_blocked_during_vote(self):
         """FinishMeetingAction blocked while voting active."""
         controller = ActionController()
         action = FinishMeetingAction()
-        host = Agent("Host", "profile", "style", [], {})
+        scene = MockSceneWithFacilitator()
+        scene.state["voting_started"] = True
+
+        agent = Agent("Rep. Chen", "profile", "style", [], {})
 
         allowed, error = controller.validate_action(
-            "finish_meeting", {}, host, {"voting_started": True}, action
+            "finish_meeting", {}, agent, scene.state, action, scene
         )
         assert not allowed
         assert "voting is still in progress" in error.lower()
 
-    def test_request_brief_host_only(self):
-        """RequestBriefAction only allows Host."""
+    def test_request_brief_any_agent_can_request(self):
+        """RequestBriefAction can be requested by any agent."""
         controller = ActionController()
         action = RequestBriefAction()
-        host = Agent("Host", "profile", "style", [], {})
+        scene = MockSceneWithFacilitator()
+
         agent = Agent("Rep. Chen", "profile", "style", [], {})
 
-        # Host allowed
+        # Any agent should be able to request brief
         allowed, error = controller.validate_action(
-            "request_brief", {"desc": "Climate policy"}, host, {}, action
+            "request_brief", {"desc": "Climate policy"}, agent, scene.state, action, scene
         )
         assert allowed
 
-        # Non-host rejected
-        allowed, error = controller.validate_action(
-            "request_brief", {"desc": "Climate policy"}, agent, {}, action
-        )
+
+class TestPhaseController:
+    """Test the SystemFacilitator phase management."""
+
+    def test_phase_transitions(self):
+        """Test phase transitions work correctly."""
+        from socialsim4.core.phase_controller import SystemFacilitator, CouncilPhase
+
+        scene = MockSceneWithFacilitator()
+        facilitator = scene.facilitator
+
+        # Start in discussion phase
+        assert facilitator.get_phase() == CouncilPhase.DISCUSSION
+
+        # Transition to voting
+        facilitator.transition_to_voting("Test Proposal")
+        assert facilitator.get_phase() == CouncilPhase.VOTING
+        assert scene.state["voting_started"] == True
+
+    def test_action_allowed_by_phase(self):
+        """Test is_action_allowed respects phases."""
+        from socialsim4.core.phase_controller import SystemFacilitator, CouncilPhase
+
+        scene = MockSceneWithFacilitator()
+        facilitator = scene.facilitator
+
+        # In discussion phase, voting is not allowed
+        allowed, error = facilitator.is_action_allowed("vote")
         assert not allowed
-        assert "Permission denied" in error
+        assert "not started" in error.lower()
+
+        # start_voting is allowed
+        allowed, _ = facilitator.is_action_allowed("start_voting")
+        assert allowed
+
+        # Transition to voting
+        facilitator.transition_to_voting("Test")
+
+        # Now vote is allowed
+        allowed, _ = facilitator.is_action_allowed("vote")
+        assert allowed
+
+        # start_voting is not allowed (already voting)
+        allowed, _ = facilitator.is_action_allowed("start_voting")
+        assert not allowed

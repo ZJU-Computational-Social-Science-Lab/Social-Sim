@@ -1,3 +1,10 @@
+"""
+Council-specific actions with phase-based validation.
+
+Uses the SystemFacilitator for permission checks instead of role-based restrictions.
+Any agent can initiate facilitation actions when in the appropriate phase.
+"""
+
 from socialsim4.core.action import Action
 from socialsim4.core.action_controller import ActionConstraints
 from socialsim4.core.event import MessageEvent, PublicEvent
@@ -5,13 +12,10 @@ from socialsim4.core.event import MessageEvent, PublicEvent
 
 class StartVotingAction(Action, ActionConstraints):
     NAME = "start_voting"
-    DESC = "Host starts a voting round with a title."
+    DESC = "Initiate a voting round with a title. Any agent can propose when in discussion phase."
     INSTRUCTION = """- To start voting with a title:
 <Action name=\"start_voting\"><title>[short subject]</title></Action>
 """
-
-    # VALIDATION: Declared right here with the action!
-    ALLOWED_ROLES = {"Host"}
 
     @staticmethod
     def state_guard(scene_state):
@@ -28,16 +32,20 @@ class StartVotingAction(Action, ActionConstraints):
     PARAMETER_VALIDATOR = validate_params
 
     def handle(self, action_data, agent, simulator, scene):
-        # Pure execution logic - validation already done!
         title = action_data["title"].strip()
         scene.state["voting_started"] = True
         scene.state["vote_title"] = title
         scene.state["votes"] = {}
         scene.state["voting_completed_announced"] = False
 
+        # Update facilitator phase if present
+        if hasattr(scene, 'facilitator'):
+            scene.facilitator.phase = scene.facilitator.phase.__class__.VOTING
+            scene.facilitator.last_facilitation_turn = scene.facilitator.turn_count
+
         simulator.broadcast(
             PublicEvent(
-                f"The Host has initiated the voting round: {title}. Please cast your votes now."
+                f"{agent.name} has initiated the voting round: {title}. Please cast your votes now."
             )
         )
         agent.add_env_feedback(f"Voting started: {title}")
@@ -56,7 +64,13 @@ class VotingStatusAction(Action):
     def handle(self, action_data, agent, simulator, scene):
         started = scene.state.get("voting_started", False)
         votes = scene.state.get("votes", {})
-        num_members = sum(1 for a in simulator.agents.values() if a.name != "Host")
+
+        # Count non-facilitator agents (any agent that's not the system)
+        # In the new system, all agents can vote
+        all_agents = list(simulator.agents.keys())
+        # Exclude agents who have already voted from the pending count
+        num_members = len(all_agents)
+
         if not started:
             agent.add_env_feedback("Voting has not started.")
             result = {"started": False, "members": num_members}
@@ -67,14 +81,12 @@ class VotingStatusAction(Action):
         no = sum(v == "no" for v in votes.values())
         abstain = sum(v == "abstain" for v in votes.values())
         pending_names = [
-            name
-            for name in simulator.agents.keys()
-            if name != "Host" and name not in votes
+            name for name in all_agents if name not in votes
         ]
         pending = len(pending_names)
         lines = [
             f"Voting status on: {scene.state.get('vote_title', '(untitled)')}:",
-            f"- Members: {num_members}",
+            f"- Participants: {num_members}",
             f"- Yes: {yes}, No: {no}, Abstain: {abstain}",
             f"- Pending: {pending}"
             + (f" ({', '.join(pending_names)})" if pending_names else ""),
@@ -94,25 +106,25 @@ class VotingStatusAction(Action):
         return True, result, summary, {}, False
 
 
-# Removed: GetRoundsAction — no round concept
-
-
 class RequestBriefAction(Action, ActionConstraints):
     NAME = "request_brief"
     DESC = (
-        "Host: fetch a concise, neutral brief via LLM when debate stalls, facts are missing, "
-        "or members request data; provide a clear 'desc' (topic + focus)."
+        "Fetch a concise, neutral brief via LLM when debate stalls, facts are missing, "
+        "or members request data; provide a clear 'desc' (topic + focus). Any agent can request."
     )
     INSTRUCTION = """
-- To request a brief (host only):
+- To request a brief (any agent):
 <Action name=\"request_brief\"><desc>[topic + focus]</desc></Action>
 """
 
-    # VALIDATION: Host only
-    ALLOWED_ROLES = {"Host"}
+    @staticmethod
+    def validate_params(action_data):
+        desc = action_data.get("desc", "").strip()
+        return len(desc) > 0
+
+    PARAMETER_VALIDATOR = validate_params
 
     def handle(self, action_data, agent, simulator, scene):
-        # Role check moved to ActionController
         desc = action_data["desc"]
 
         # Prepare a concise LLM prompt for a short, actionable briefing
@@ -135,10 +147,9 @@ class RequestBriefAction(Action, ActionConstraints):
                 {"role": "user", "content": user_prompt},
             ],
         )
-        # Assume LLM returns a string in this prototype
 
         used_fallback = False
-        if not material.strip():
+        if not material or not material.strip():
             # Fallback: short list of prompts to guide discussion
             material = (
                 f"- Scope: {desc}\n"
@@ -164,13 +175,10 @@ class RequestBriefAction(Action, ActionConstraints):
 
 class VoteAction(Action, ActionConstraints):
     NAME = "vote"
-    DESC = "Member casts a vote with optional comment."
+    DESC = "Cast a vote with optional comment. Available during voting phase."
     INSTRUCTION = """- To vote (only after voting has started):
 <Action name=\"vote\"><vote>yes|no|abstain</vote><comment>[optional]</comment></Action>
 """
-
-    # VALIDATION: Declared here!
-    ALLOWED_ROLES = {"*"}  # '*' = any non-Host agent
 
     @staticmethod
     def state_guard(scene_state):
@@ -186,7 +194,6 @@ class VoteAction(Action, ActionConstraints):
     PARAMETER_VALIDATOR = validate_params
 
     def handle(self, action_data, agent, simulator, scene):
-        # Pure execution logic
         if agent.name in scene.state.get("votes", {}):
             error = "You have already voted."
             agent.add_env_feedback(error)
@@ -205,8 +212,9 @@ class VoteAction(Action, ActionConstraints):
         result = {"vote": vote, "comment": comment}
         summary = f"{agent.name} voted {vote}"
 
-        # Auto-conclude when all non-host members have voted
-        num_members = sum(1 for a in simulator.agents.values() if a.name != "Host")
+        # Auto-conclude when all members have voted
+        all_agents = list(simulator.agents.keys())
+        num_members = len(all_agents)
         votes = scene.state.get("votes", {})
         if (
             scene.state.get("voting_started", False)
@@ -231,18 +239,20 @@ class VoteAction(Action, ActionConstraints):
             scene.state["voting_completed_announced"] = True
             scene.state["votes"] = {}
             scene.state["vote_title"] = ""
+
+            # Update facilitator phase if present
+            if hasattr(scene, 'facilitator'):
+                scene.facilitator.phase = scene.facilitator.phase.__class__.DISCUSSION
+
         return True, result, summary, {}, True
 
 
 class FinishMeetingAction(Action, ActionConstraints):
     NAME = "finish_meeting"
-    DESC = "Host finishes the council meeting and ends the scene."
-    INSTRUCTION = """- To finish the council meeting (host only):
+    DESC = "Conclude the council meeting and end the scene. Any agent can propose when no vote is active."
+    INSTRUCTION = """- To finish the council meeting (when voting is not in progress):
 <Action name=\"finish_meeting\" />
 """
-
-    # VALIDATION: Declared here!
-    ALLOWED_ROLES = {"Host"}
 
     @staticmethod
     def state_guard(scene_state):
@@ -252,8 +262,12 @@ class FinishMeetingAction(Action, ActionConstraints):
     STATE_ERROR = "Cannot finish meeting: voting is still in progress"
 
     def handle(self, action_data, agent, simulator, scene):
-        # Pure execution logic
         scene.complete = True
-        simulator.broadcast(PublicEvent("The council session is adjourned."))
+
+        # Update facilitator phase if present
+        if hasattr(scene, 'facilitator'):
+            scene.facilitator.phase = scene.facilitator.phase.__class__.CONCLUDED
+
+        simulator.broadcast(PublicEvent(f"{agent.name} has moved to adjourn the council. The session is concluded."))
         agent.add_env_feedback("Meeting finished.")
         return True, {}, f"{agent.name} finished the meeting", {}, True

@@ -1,15 +1,17 @@
 """
 Action validation with declarative metadata.
 
-Each action declares its role requirements, state guards, and parameter validators.
-The ActionController simply checks what each action declares.
+Each action can declare state guards and parameter validators.
+When a scene has a facilitator, it handles phase-based validation.
+Otherwise, falls back to role-based validation for backward compatibility.
 """
 
+import os
 from typing import Tuple, Optional, Dict, Any, Callable, Set
 from socialsim4.core.agent import Agent
 
 # Debug flag for action validation logging
-DEBUG_ACTION_VALIDATION = True
+DEBUG_ACTION_VALIDATION = os.getenv("DEBUG_ACTION_VALIDATION", "false").lower() == "true"
 
 
 class ActionConstraints:
@@ -19,6 +21,7 @@ class ActionConstraints:
     """
 
     # Override in subclasses: set of roles allowed (empty = any agent)
+    # Deprecated: Prefer phase-based validation via facilitator
     ALLOWED_ROLES: Set[str] = set()
 
     # Override in subclasses: state guard function
@@ -36,7 +39,7 @@ class ActionController:
     Validates agent actions before execution.
 
     Reads constraints from Action classes (via ActionConstraints).
-    No need to update this controller when adding new actions!
+    Delegates to scene facilitator for phase-based validation when available.
     """
 
     def __init__(self):
@@ -49,25 +52,55 @@ class ActionController:
         action_data: Dict[str, Any],
         agent: Agent,
         scene_state: Dict[str, Any],
-        action_instance: Any = None
+        action_instance: Any = None,
+        scene: Any = None
     ) -> Tuple[bool, Optional[str]]:
         """
         Validate an action before execution.
 
-        If action_instance is provided, reads constraints from it.
-        Otherwise falls back to explicit rules.
+        Args:
+            action_name: Name of the action being validated
+            action_data: Action parameters
+            agent: Agent attempting the action
+            scene_state: Current scene state
+            action_instance: Action instance with constraints
+            scene: Scene reference (for facilitator access)
+
+        Returns:
+            (allowed, error): Tuple of permission status and error message if not allowed
         """
         if DEBUG_ACTION_VALIDATION:
-            print(f"\n[ACTION-VALIDATION] Agent '{agent.name}' (role: {agent.properties.get('role', agent.name) if hasattr(agent, 'properties') else agent.name}) attempting action: '{action_name}'")
+            agent_info = agent.name
+            if hasattr(agent, 'properties') and agent.properties.get('role'):
+                agent_info += f" (role: {agent.properties.get('role')})"
+            print(f"\n[ACTION-VALIDATION] Agent '{agent_info}' attempting action: '{action_name}'")
+
+        # Try facilitator-based validation first (if scene has one)
+        if scene and hasattr(scene, 'facilitator') and scene.facilitator:
+            allowed, error = scene.facilitator.is_action_allowed(action_name)
+            if not allowed:
+                if DEBUG_ACTION_VALIDATION:
+                    print(f"[ACTION-VALIDATION]   Result: [BLOCKED] (facilitator)")
+                    print(f"[ACTION-VALIDATION]   Reason: {error}")
+                return False, error
 
         # Try to get constraints from the action instance
-        if action_instance and hasattr(action_instance, 'ALLOWED_ROLES'):
+        if action_instance:
             result = self._validate_with_constraints(
                 action_instance, action_data, agent, scene_state
             )
             if DEBUG_ACTION_VALIDATION:
                 allowed, error = result
                 status = "[ALLOWED]" if allowed else "[BLOCKED]"
+                constraints_info = []
+                if hasattr(action_instance, 'ALLOWED_ROLES') and action_instance.ALLOWED_ROLES:
+                    constraints_info.append(f"roles={action_instance.ALLOWED_ROLES}")
+                if hasattr(action_instance, 'STATE_GUARD') and action_instance.STATE_GUARD:
+                    constraints_info.append("state_guard=True")
+                if hasattr(action_instance, 'PARAMETER_VALIDATOR') and action_instance.PARAMETER_VALIDATOR:
+                    constraints_info.append("param_validator=True")
+                if constraints_info:
+                    print(f"[ACTION-VALIDATION]   Constraints: {', '.join(constraints_info)}")
                 print(f"[ACTION-VALIDATION]   Result: {status}")
                 if error:
                     print(f"[ACTION-VALIDATION]   Reason: {error}")
@@ -96,28 +129,19 @@ class ActionController:
         agent: Agent, scene_state: Dict[str, Any]
     ) -> Tuple[bool, Optional[str]]:
         """Validate using constraints declared on the Action class."""
-        if DEBUG_ACTION_VALIDATION:
-            constraints = []
-            if hasattr(action, 'ALLOWED_ROLES') and action.ALLOWED_ROLES:
-                constraints.append(f"roles={action.ALLOWED_ROLES}")
-            if hasattr(action, 'STATE_GUARD') and action.STATE_GUARD:
-                constraints.append("state_guard=True")
-            if hasattr(action, 'PARAMETER_VALIDATOR') and action.PARAMETER_VALIDATOR:
-                constraints.append("param_validator=True")
-            print(f"[ACTION-VALIDATION]   Constraints: {', '.join(constraints) if constraints else 'none'}")
-
-        # Check 1: Role permission
+        # Skip role-based validation if action has no ALLOWED_ROLES set
+        # (This means any agent can use it in the appropriate phase)
         if hasattr(action, 'ALLOWED_ROLES') and action.ALLOWED_ROLES:
             if not self._check_role(agent, action.ALLOWED_ROLES):
                 return False, self._role_error(agent, action.ALLOWED_ROLES)
 
-        # Check 2: State guard
+        # Check state guard
         if hasattr(action, 'STATE_GUARD') and action.STATE_GUARD:
             if not action.STATE_GUARD(scene_state):
                 error = getattr(action, 'STATE_ERROR', 'Invalid state for this action')
                 return False, error
 
-        # Check 3: Parameter validation
+        # Check parameter validation
         if hasattr(action, 'PARAMETER_VALIDATOR') and action.PARAMETER_VALIDATOR:
             if not action.PARAMETER_VALIDATOR(action_data):
                 return False, f"Invalid parameters for '{action.NAME}'"
@@ -154,7 +178,7 @@ class ActionController:
         agent_role = agent.properties.get("role", agent.name) if hasattr(agent, 'properties') else agent.name
 
         if "*" in allowed_roles:
-            return agent_role != "host"  # '*' means non-host only (case-insensitive)
+            return agent_role.lower() != "host"  # '*' means non-host only (case-insensitive)
         if not allowed_roles:
             return True  # Empty set = anyone allowed
         # Case-insensitive role check for flexibility

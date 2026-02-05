@@ -333,107 +333,78 @@ def build_simple_chat_sim_chinese(
 
 
 def build_council_sim(
+    agents: List[Agent],
+    draft_text: str | None = None,
     clients: Dict[str, object] | None = None,
     *,
     event_logger: Callable[[str, dict], None] = console_logger,
 ) -> Simulator:
-    reps = [
-        Agent.deserialize(
-            {
-                "name": "Host",
-                "user_profile": (
-                    "You chair the legislative council. Remain neutral, enforce procedure, and summarize fairly."
-                ),
-                "style": "formal and neutral",
-                "initial_instruction": (
-                    "Open the session by summarizing the draft, invite opening remarks, and proceed to a vote when discussion is adequate."
-                ),
-                "role_prompt": "",
-                "action_space": ["start_voting", "finish_meeting", "request_brief"],
-                "properties": {},
-            }
-        ),
-        Agent.deserialize(
-            {
-                "name": "Rep. Chen Wei",
-                "user_profile": "Centrist economist focused on fiscal responsibility and transit efficiency.",
-                "style": "measured and data-driven",
-                "initial_instruction": "",
-                "role_prompt": "Support pragmatic compromises balancing budgets and benefits.",
-                "action_space": ["vote"],
-                "properties": {},
-            }
-        ),
-        Agent.deserialize(
-            {
-                "name": "Rep. Li Na",
-                "user_profile": "Progressive voice emphasizing equity and climate action.",
-                "style": "principled and empathetic",
-                "initial_instruction": "",
-                "role_prompt": "Press for environmental standards and equity safeguards.",
-                "action_space": ["vote"],
-                "properties": {},
-            }
-        ),
-        Agent.deserialize(
-            {
-                "name": "Rep. Zhang Rui",
-                "user_profile": "Conservative representative concerned about small businesses and unintended consequences.",
-                "style": "direct and skeptical",
-                "initial_instruction": "",
-                "role_prompt": "Highlight risks to businesses and drivers.",
-                "action_space": ["vote"],
-                "properties": {},
-            }
-        ),
-        Agent.deserialize(
-            {
-                "name": "Rep. Wang Mei",
-                "user_profile": "Business-aligned representative focused on competitiveness and logistics.",
-                "style": "pragmatic and concise",
-                "initial_instruction": "",
-                "role_prompt": "Seek exemptions that protect merchants and logistics.",
-                "action_space": ["vote"],
-                "properties": {},
-            }
-        ),
-        Agent.deserialize(
-            {
-                "name": "Rep. Qiao Jun",
-                "user_profile": "Environmentalist pushing for ambitious climate policy and rapid emissions reduction.",
-                "style": "assertive and analytical",
-                "initial_instruction": "",
-                "role_prompt": "Push for strong air-quality targets and transparency.",
-                "action_space": ["send_message", "yield", "vote"],
-                "properties": {},
-            }
-        ),
-    ]
+    """
+    Build a council simulation with user-provided agents.
 
-    draft_text = (
-        "Draft Ordinance: Urban Air Quality and Congestion Management (Pilot).\n"
-        "1) Establish a 12-month congestion charge pilot in the CBD with base fee 30 CNY per entry.\n"
-        "2) Revenue ring-fenced for transit upgrades and air-quality programs.\n"
-        "3) Monthly public dashboard on PM2.5/NOx, traffic speed, ridership.\n"
-        "4) Camera enforcement with strict privacy limits.\n"
-        "5) Independent evaluation at 12 months with target reductions."
-    )
+    The SystemFacilitator manages meeting flow without requiring a dedicated host.
+    Any participant can initiate voting, request briefs, or finish the meeting.
+
+    Args:
+        agents: List of Agent objects (user-provided via AI generation or CSV upload)
+        draft_text: Optional proposal text for the council to debate.
+                    If None, uses a default congestion charge ordinance.
+        clients: Optional LLM clients dictionary
+        event_logger: Optional event logging callback
+
+    Returns:
+        Configured Simulator ready to run
+    """
+    # Ensure all agents have the council action space
+    council_actions = ["send_message", "yield", "start_voting", "vote", "finish_meeting", "request_brief", "voting_status"]
+
+    for agent in agents:
+        # Merge council actions with existing action space
+        existing_actions = {getattr(a, "NAME", a) for a in agent.action_space}
+        for action_name in council_actions:
+            if action_name not in existing_actions:
+                # Find and add the action class
+                from socialsim4.core.actions.council_actions import (
+                    StartVotingAction, VoteAction, FinishMeetingAction,
+                    RequestBriefAction, VotingStatusAction
+                )
+                action_map = {
+                    "start_voting": StartVotingAction(),
+                    "vote": VoteAction(),
+                    "finish_meeting": FinishMeetingAction(),
+                    "request_brief": RequestBriefAction(),
+                    "voting_status": VotingStatusAction(),
+                }
+                if action_name in action_map:
+                    agent.action_space.append(action_map[action_name])
+
+    # Default draft text if not provided
+    if draft_text is None:
+        draft_text = (
+            "Draft Ordinance: Urban Air Quality and Congestion Management (Pilot).\n"
+            "1) Establish a 12-month congestion charge pilot in the CBD with base fee 30 CNY per entry.\n"
+            "2) Revenue ring-fenced for transit upgrades and air-quality programs.\n"
+            "3) Monthly public dashboard on PM2.5/NOx, traffic speed, ridership.\n"
+            "4) Camera enforcement with strict privacy limits.\n"
+            "5) Independent evaluation at 12 months with target reductions."
+        )
 
     scene = CouncilScene(
         "council",
-        f"The chamber will now consider the following draft for debate and vote:\n{draft_text}",
+        f"The council will now consider the following draft for debate and vote:\n{draft_text}\n\n"
+        f"Any participant may initiate voting when discussion has reached a natural conclusion.",
     )
 
     active_clients = clients or make_clients_from_env()
 
     sim = Simulator(
-        reps,
+        agents,
         scene,
         active_clients,
         event_handler=event_logger,
         ordering=SequentialOrdering(),
     )
-    sim.broadcast(PublicEvent("Participants: " + ", ".join(a.name for a in reps)))
+    sim.broadcast(PublicEvent("Council Members: " + ", ".join(a.name for a in agents)))
     return sim
 
 

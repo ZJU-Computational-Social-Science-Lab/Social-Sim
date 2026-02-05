@@ -49,7 +49,7 @@ class Scene:
 
         # Validate using the action instance's constraints
         allowed, error = self.action_controller.validate_action(
-            action_name, action_data, agent, self.state, action_instance
+            action_name, action_data, agent, self.state, action_instance, self
         )
         if not allowed:
             agent.add_env_feedback(error)
