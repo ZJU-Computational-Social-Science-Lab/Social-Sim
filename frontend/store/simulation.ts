@@ -22,62 +22,7 @@ import type {
   EngineMode,
   SocialNetwork
 } from '../types';
-
-// Helper to generate default nodes
-const generateNodes = (): SimNode[] => {
-  return [
-    {
-      id: 'root',
-      display_id: '0',
-      parentId: null,
-      name: 'Start',
-      depth: 0,
-      isLeaf: true,
-      status: 'pending',
-      timestamp: new Date().toISOString(),
-      worldTime: new Date().toISOString()
-    }
-  ];
-};
-
-const DEFAULT_TIME_CONFIG: TimeConfig = {
-  baseTime: new Date().toISOString(),
-  unit: 'hour',
-  step: 1
-};
-
-// Graph -> SimNode mapping helper
-const mapGraphToNodes = (graph: any): SimNode[] => {
-  const parentMap = new Map<number, number | null>();
-  const childrenSet = new Set<number>();
-  for (const edge of graph.edges) {
-    parentMap.set(edge.to, edge.from);
-    childrenSet.add(edge.from);
-  }
-  const root = graph.root;
-  if (root != null && !parentMap.has(root)) parentMap.set(root, null);
-  const running = new Set(graph.running || []);
-  const nowIso = new Date().toISOString();
-
-  return graph.nodes.map((n: any) => {
-    const pid = parentMap.has(n.id) ? parentMap.get(n.id)! : null;
-    const isLeaf = !childrenSet.has(n.id);
-    const meta = (n as any).meta || null;
-
-    return {
-      id: String(n.id),
-      display_id: String(n.id),
-      parentId: pid == null ? null : String(pid),
-      name: `Node ${n.id}`,
-      depth: n.depth,
-      isLeaf,
-      status: running.has(n.id) ? 'running' : 'completed',
-      timestamp: new Date().toLocaleTimeString(),
-      worldTime: nowIso,
-      meta
-    };
-  });
-};
+import { SYSTEM_TEMPLATES, generateNodes, mapGraphToNodes, DEFAULT_TIME_CONFIG } from './helpers';
 
 export interface SimulationSlice {
   // State
@@ -115,7 +60,7 @@ export const createSimulationSlice: StateCreator<
   currentSimulation: null,
   nodes: generateNodes(),
   selectedNodeId: 'root',
-  savedTemplates: [],
+  savedTemplates: [...SYSTEM_TEMPLATES],
   timeConfig: DEFAULT_TIME_CONFIG,
   engineConfig: {
     mode: 'standalone',
