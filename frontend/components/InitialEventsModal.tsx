@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useSimulationStore } from '../store';
+import { useTranslation } from 'react-i18next';
 import { X, Plus, Save, Image as ImageIcon, Music2, Video } from 'lucide-react';
 import { MultimodalInput } from './MultimodalInput';
 
 export const InitialEventsModal: React.FC = () => {
+  const { t } = useTranslation();
   const isOpen = useSimulationStore(s => (s as any).isInitialEventsOpen ?? false);
   const toggle = useSimulationStore(s => (s as any).toggleInitialEvents);
   const addInitialEvent = useSimulationStore(s => (s as any).addInitialEvent);
@@ -26,7 +28,7 @@ export const InitialEventsModal: React.FC = () => {
   const handleSave = () => {
     if (!title && !content && !mediaUrl) return;
     addInitialEvent(
-      title || '初始事件',
+      title || t('components.initialEventsModal.defaultEventTitle'),
       content,
       mediaType === 'image' ? mediaUrl || undefined : undefined,
       mediaType === 'audio' ? mediaUrl || undefined : undefined,
@@ -39,7 +41,7 @@ export const InitialEventsModal: React.FC = () => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl h-[80vh] flex flex-col overflow-hidden">
         <div className="px-5 py-3 border-b bg-slate-50 flex items-center justify-between">
-          <h3 className="font-bold text-slate-800 text-sm">初始事件编辑器</h3>
+          <h3 className="font-bold text-slate-800 text-sm">{t('components.initialEventsModal.title')}</h3>
           <button onClick={() => { toggle(false); reset(); }} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
 
@@ -48,41 +50,41 @@ export const InitialEventsModal: React.FC = () => {
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="事件标题"
+              placeholder={t('components.initialEventsModal.eventTitlePlaceholder')}
               className="w-full text-sm border rounded px-3 py-2 focus:ring-1 focus:ring-brand-500 outline-none"
             />
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="事件描述，可包含 markdown"
+              placeholder={t('components.initialEventsModal.eventDescPlaceholder')}
               className="w-full text-sm border rounded px-3 py-2 focus:ring-1 focus:ring-brand-500 outline-none min-h-[120px]"
             />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="col-span-1">
                 <MultimodalInput
-                  label="图片 (可选)"
-                  helperText="上传后自动插入 markdown 链接，可裁剪"
+                  label={t('components.initialEventsModal.imageOptional')}
+                  helperText={t('components.initialEventsModal.uploadAutoInsert')}
                   enableCrop
                   onInsert={(url) => { setMediaUrl(url); setMediaType('image'); setContent((p) => `${p}${p ? '\n' : ''}![image](${url})`); }}
                 />
               </div>
               <div className="col-span-1 space-y-2">
-                <label className="text-xs font-bold text-slate-600 flex items-center gap-1"><Music2 size={14} /> 音频 URL</label>
+                <label className="text-xs font-bold text-slate-600 flex items-center gap-1"><Music2 size={14} /> {t('components.initialEventsModal.audioUrl')}</label>
                 <input
                   type="url"
                   value={mediaType === 'audio' ? (mediaUrl || '') : ''}
                   onChange={(e) => { setMediaUrl(e.target.value); setMediaType('audio'); }}
-                  placeholder="https://example.com/audio.mp3"
+                  placeholder={t('components.initialEventsModal.audioUrlPlaceholder')}
                   className="w-full text-sm border rounded px-3 py-2 focus:ring-1 focus:ring-brand-500 outline-none"
                 />
               </div>
               <div className="col-span-1 space-y-2">
-                <label className="text-xs font-bold text-slate-600 flex items-center gap-1"><Video size={14} /> 视频 URL</label>
+                <label className="text-xs font-bold text-slate-600 flex items-center gap-1"><Video size={14} /> {t('components.initialEventsModal.videoUrl')}</label>
                 <input
                   type="url"
                   value={mediaType === 'video' ? (mediaUrl || '') : ''}
                   onChange={(e) => { setMediaUrl(e.target.value); setMediaType('video'); }}
-                  placeholder="https://example.com/video.mp4"
+                  placeholder={t('components.initialEventsModal.videoUrlPlaceholder')}
                   className="w-full text-sm border rounded px-3 py-2 focus:ring-1 focus:ring-brand-500 outline-none"
                 />
               </div>
@@ -92,19 +94,19 @@ export const InitialEventsModal: React.FC = () => {
                 onClick={handleSave}
                 className="flex-1 py-2 bg-brand-600 text-white rounded flex items-center justify-center gap-2 text-sm"
               >
-                <Save size={14} /> 保存并注入
+                <Save size={14} /> {t('components.initialEventsModal.saveAndInject')}
               </button>
               <button
                 onClick={reset}
                 className="px-3 py-2 text-sm text-slate-500 hover:text-slate-700"
-              >重置</button>
+              >{t('components.initialEventsModal.reset')}</button>
             </div>
           </div>
 
           <div className="bg-white border rounded-lg p-3 shadow-sm">
-            <div className="text-xs font-bold text-slate-600 mb-2">已保存的初始事件</div>
+            <div className="text-xs font-bold text-slate-600 mb-2">{t('components.initialEventsModal.savedEvents')}</div>
             <div className="space-y-2 max-h-48 overflow-y-auto">
-              {initialEvents.length === 0 && <div className="text-xs text-slate-400">暂无初始事件</div>}
+              {initialEvents.length === 0 && <div className="text-xs text-slate-400">{t('components.initialEventsModal.noEventsYet')}</div>}
               {initialEvents.map(ev => (
                 <div key={ev.id} className="border rounded p-2 text-sm bg-slate-50">
                   <div className="font-bold text-slate-700">{ev.title}</div>
@@ -112,17 +114,17 @@ export const InitialEventsModal: React.FC = () => {
                   <div className="flex flex-wrap gap-2 mt-1 text-[11px] text-slate-500">
                     {ev.imageUrl && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 rounded">
-                        <ImageIcon size={12} /> 图片
+                        <ImageIcon size={12} /> {t('components.initialEventsModal.image')}
                       </span>
                     )}
                     {ev.audioUrl && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 rounded">
-                        <Music2 size={12} /> 音频
+                        <Music2 size={12} /> {t('components.initialEventsModal.audio')}
                       </span>
                     )}
                     {ev.videoUrl && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 rounded">
-                        <Video size={12} /> 视频
+                        <Video size={12} /> {t('components.initialEventsModal.video')}
                       </span>
                     )}
                   </div>

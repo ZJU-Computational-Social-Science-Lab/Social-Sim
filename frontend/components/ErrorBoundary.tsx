@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 type Props = {
   children: React.ReactNode;
@@ -9,35 +10,42 @@ type State = {
   error: any;
 };
 
-export class ErrorBoundary extends React.Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
+export function ErrorBoundary({ children }: Props) {
+  const { t } = useTranslation();
+  const [state, setState] = React.useState<State>({ hasError: false, error: null });
 
-  static getDerivedStateFromError(error: any) {
+  React.useEffect(() => {
+    const handleError = (error: any) => {
+      console.error("React ErrorBoundary Caught:", error);
+      setState({ hasError: true, error });
+    };
+
+    const handleErrorEvent = (event: ErrorEvent) => {
+      handleError(event.error);
+    };
+
+    window.addEventListener("error", handleErrorEvent);
+    return () => window.removeEventListener("error", handleErrorEvent);
+  }, []);
+
+  // Static method for class component compatibility
+  ErrorBoundary.getDerivedStateFromError = (error: any) => {
     return { hasError: true, error };
+  };
+
+  if (state.hasError) {
+    return (
+      <div style={{ padding: 24, fontFamily: "monospace" }}>
+        <h1>{t('components.errorBoundary.title')}</h1>
+        <p style={{ color: "#b91c1c" }}>
+          {String(state.error)}
+        </p>
+        <p style={{ marginTop: 16 }}>
+          {t('components.errorBoundary.instructions')}
+        </p>
+      </div>
+    );
   }
 
-  componentDidCatch(error: any, info: any) {
-    // 打到控制台，方便你在浏览器 F12 里看
-    console.error("React ErrorBoundary Caught:", error, info);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div style={{ padding: 24, fontFamily: "monospace" }}>
-          <h1>前端运行时出错（不是后端问题）</h1>
-          <p style={{ color: "#b91c1c" }}>
-            {String(this.state.error)}
-          </p>
-          <p style={{ marginTop: 16 }}>
-            请把上面这行红字错误信息，或者浏览器控制台（Console）里红色那行，截图或复制给我。
-          </p>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
+  return <>{children}</>;
 }

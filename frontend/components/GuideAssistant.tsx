@@ -1,6 +1,7 @@
 
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useSimulationStore } from '../store';
+import { useTranslation } from 'react-i18next';
 import { MessageSquare, X, Send, Sparkles, Loader2, ArrowRight } from 'lucide-react';
 import { GuideActionType } from '../types';
 import { uploadImage } from '../services/uploads';
@@ -11,6 +12,7 @@ const extractMarkdownImages = (text: string): string[] => {
 };
 
 export const GuideAssistant: React.FC = () => {
+  const { t } = useTranslation();
   const isOpen = useSimulationStore(state => state.isGuideOpen);
   const toggle = useSimulationStore(state => state.toggleGuide);
   const messages = useSimulationStore(state => state.guideMessages);
@@ -54,9 +56,9 @@ export const GuideAssistant: React.FC = () => {
       try {
          const asset = await uploadImage(file);
          setInput((prev) => `${prev}${prev ? '\n' : ''}![image](${asset.url})`);
-         addNotification('success', '图片已上传并插入');
+         addNotification('success', t('components.guideAssistant.uploadSuccess'));
       } catch (err) {
-         const message = err instanceof Error ? err.message : '上传失败';
+         const message = err instanceof Error ? err.message : t('components.guideAssistant.uploadFailed');
          addNotification('error', message);
       } finally {
          setIsUploadingImage(false);
@@ -78,24 +80,24 @@ export const GuideAssistant: React.FC = () => {
         case 'OPEN_EXPERIMENT': toggleExperimentDesigner(true); break;
         case 'OPEN_EXPORT': toggleExport(true); break;
         case 'OPEN_ANALYTICS': toggleAnalytics(true); break;
-        case 'OPEN_HOST': 
-           // Sidebar tab switching is local state in Sidebar.tsx. 
-           // In a full app, we would move activeTab to global store. 
+        case 'OPEN_HOST':
+           // Sidebar tab switching is local state in Sidebar.tsx.
+           // In a full app, we would move activeTab to global store.
            // For now, we'll just show a hint.
-           alert("请查看右侧边栏的“主持控制”标签页。");
+           alert(t('components.guideAssistant.hostPanelHint'));
            break;
      }
   };
 
   const getActionLabel = (action: GuideActionType) => {
      switch(action) {
-        case 'OPEN_WIZARD': return '打开新建仿真向导';
-        case 'OPEN_NETWORK': return '打开社交网络编辑器';
-        case 'OPEN_EXPERIMENT': return '打开实验设计器';
-        case 'OPEN_EXPORT': return '打开导出面板';
-        case 'OPEN_ANALYTICS': return '查看统计分析';
-        case 'OPEN_HOST': return '前往主持控制台';
-        default: return '执行操作';
+        case 'OPEN_WIZARD': return t('components.guideAssistant.openWizard');
+        case 'OPEN_NETWORK': return t('components.guideAssistant.openNetwork');
+        case 'OPEN_EXPERIMENT': return t('components.guideAssistant.openExperiment');
+        case 'OPEN_EXPORT': return t('components.guideAssistant.openExport');
+        case 'OPEN_ANALYTICS': return t('components.guideAssistant.openAnalytics');
+        case 'OPEN_HOST': return t('components.guideAssistant.openHost');
+        default: return t('components.guideAssistant.executeAction');
      }
   };
 
@@ -117,7 +119,7 @@ export const GuideAssistant: React.FC = () => {
       <div className="bg-indigo-600 p-4 flex justify-between items-center text-white shrink-0">
         <div className="flex items-center gap-2">
           <Sparkles size={18} />
-          <h3 className="font-bold text-sm">平台指引助手 (Guide)</h3>
+          <h3 className="font-bold text-sm">{t('components.guideAssistant.title')}</h3>
         </div>
         <button onClick={() => toggle(false)} className="text-indigo-200 hover:text-white transition-colors">
           <X size={18} />
@@ -165,12 +167,12 @@ export const GuideAssistant: React.FC = () => {
       {/* Input */}
       <div className="p-3 bg-white border-t shrink-0">
          <div className="relative">
-            <input 
-               type="text" 
+            <input
+               type="text"
                value={input}
                onChange={(e) => setInput(e.target.value)}
                onKeyDown={handleKeyPress}
-               placeholder="你想了解什么功能..."
+               placeholder={t('components.guideAssistant.placeholder')}
                className="w-full pl-4 pr-20 py-3 bg-slate-100 border-transparent focus:bg-white focus:ring-2 focus:ring-indigo-500 rounded-xl text-sm outline-none transition-all"
                autoFocus
             />
@@ -186,11 +188,11 @@ export const GuideAssistant: React.FC = () => {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploadingImage}
                 className="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-lg disabled:opacity-50"
-                title="插入图片"
+                title={t('components.guideAssistant.insertImage')}
               >
                 {isUploadingImage ? <Loader2 size={16} className="animate-spin" /> : <MessageSquare size={16} />}
               </button>
-              <button 
+              <button
                  onClick={handleSend}
                  disabled={!input.trim() || isGuideLoading}
                  className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:opacity-50 disabled:hover:bg-transparent"
@@ -209,7 +211,7 @@ export const GuideAssistant: React.FC = () => {
            </div>
          )}
          <p className="text-[10px] text-center text-slate-400 mt-2">
-            AI 可能会犯错。请核对重要信息。
+            {t('components.guideAssistant.disclaimer')}
          </p>
       </div>
     </div>

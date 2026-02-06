@@ -708,36 +708,40 @@ export const SimulationWizard: React.FC = () => {
                       </div>
                     ) : (
                       savedTemplates
-                        .filter((t) => t.category === activeTab)
-                        .map((t) => (
+                        .filter((tpl) => tpl.category === activeTab)
+                        .map((tpl) => (
                           <div
-                            key={t.id}
-                            onClick={() => setSelectedTemplateId(t.id)}
+                            key={tpl.id}
+                            onClick={() => setSelectedTemplateId(tpl.id)}
                             className={`p-4 border rounded-lg text-left transition-all cursor-pointer relative group ${
-                              selectedTemplateId === t.id && !useCustomTemplate
+                              selectedTemplateId === tpl.id && !useCustomTemplate
                                 ? 'border-brand-500 ring-2 ring-brand-100 bg-brand-50'
                                 : 'hover:border-slate-300 hover:bg-slate-50'
                             }`}
                           >
                             <div className="font-bold text-slate-800">
-                              {t.name}
+                              {tpl.category === 'system'
+                                ? t(`systemTemplates.${tpl.id}.name`)
+                                : tpl.name}
                             </div>
                             <div className="text-xs text-slate-500 mt-1 line-clamp-2">
-                              {t.description}
+                              {tpl.category === 'system'
+                                ? t(`systemTemplates.${tpl.id}.description`)
+                                : tpl.description}
                             </div>
 
-                            {t.category === 'custom' && (
+                            {tpl.category === 'custom' && (
                               <button
-                                onClick={(e) => handleDeleteTemplate(e, t.id)}
+                                onClick={(e) => handleDeleteTemplate(e, tpl.id)}
                                 className="absolute top-2 right-2 p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                               >
                                 <Trash2 size={14} />
                               </button>
                             )}
 
-                            {t.category === 'custom' && (
+                            {tpl.category === 'custom' && (
                               <div className="mt-2 flex items-center gap-1 text-[10px] text-brand-600 bg-brand-100 px-1.5 py-0.5 rounded w-fit">
-                                <Users size={10} /> {t.agents?.length || 0} {t('wizard.agents')}
+                                <Users size={10} /> {tpl.agents?.length || 0} {t('wizard.agents')}
                               </div>
                             )}
                           </div>
@@ -969,7 +973,9 @@ export const SimulationWizard: React.FC = () => {
                   <h3 className="text-lg font-bold text-slate-700">
                     {t('wizard.step2.usingPresetAgents')}{' '}
                     <span className="text-brand-600">
-                      {selectedTemplate.name}
+                      {selectedTemplate.category === 'system'
+                        ? t(`systemTemplates.${selectedTemplate.id}.name`)
+                        : selectedTemplate.name}
                     </span>{' '}
                     {t('wizard.step2.customTemplateAgents', { count: selectedTemplate.agents?.length || 0 })}
                   </h3>
@@ -1478,7 +1484,9 @@ export const SimulationWizard: React.FC = () => {
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-500">{t('wizard.step3.template')}:</span>
                       <span className="font-bold text-slate-800">
-                        {selectedTemplate.name}
+                        {selectedTemplate.category === 'system'
+                          ? t(`systemTemplates.${selectedTemplate.id}.name`)
+                          : selectedTemplate.name}
                       </span>
                     </div>
                     {(importMode === 'custom' || importMode === 'generate') &&

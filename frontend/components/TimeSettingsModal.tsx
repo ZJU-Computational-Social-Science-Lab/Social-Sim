@@ -1,19 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSimulationStore } from '../store';
+import { useTranslation } from 'react-i18next';
 import { X, Clock } from 'lucide-react';
 import { TimeUnit } from '../types';
 
-const TIME_UNITS: {value: TimeUnit, label: string}[] = [
-  { value: 'minute', label: '分钟' },
-  { value: 'hour', label: '小时' },
-  { value: 'day', label: '天' },
-  { value: 'week', label: '周' },
-  { value: 'month', label: '月' },
-  { value: 'year', label: '年' },
-];
-
 export const TimeSettingsModal: React.FC = () => {
+  const { t } = useTranslation();
   const isOpen = useSimulationStore(state => state.isTimeSettingsOpen);
   const toggle = useSimulationStore(state => state.toggleTimeSettings);
   const currentSim = useSimulationStore(state => state.currentSimulation);
@@ -22,6 +15,15 @@ export const TimeSettingsModal: React.FC = () => {
   const [step, setStep] = useState(1);
   const [unit, setUnit] = useState<TimeUnit>('hour');
   const [baseTime, setBaseTime] = useState('');
+
+  const TIME_UNITS: {value: TimeUnit, label: string}[] = [
+    { value: 'minute', label: t('components.timeSettingsModal.minute') },
+    { value: 'hour', label: t('components.timeSettingsModal.hour') },
+    { value: 'day', label: t('components.timeSettingsModal.day') },
+    { value: 'week', label: t('components.timeSettingsModal.week') },
+    { value: 'month', label: t('components.timeSettingsModal.month') },
+    { value: 'year', label: t('components.timeSettingsModal.year') },
+  ];
 
   useEffect(() => {
     if (currentSim && isOpen) {
@@ -53,7 +55,7 @@ export const TimeSettingsModal: React.FC = () => {
         <div className="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
             <Clock className="text-brand-600" size={20} />
-            时间流速设置
+            {t('components.timeSettingsModal.title')}
           </h2>
           <button onClick={() => toggle(false)} className="text-slate-400 hover:text-slate-600">
             <X size={20} />
@@ -62,12 +64,12 @@ export const TimeSettingsModal: React.FC = () => {
 
         <div className="p-6 space-y-4">
           <p className="text-xs text-slate-500 mb-4">
-            调整仿真推进时的时间跨度。修改将在下一回合生效，不会影响历史记录。
+            {t('components.timeSettingsModal.description')}
           </p>
 
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-              每回合推进
+              {t('components.timeSettingsModal.perRoundAdvance')}
             </label>
             <div className="flex gap-2">
               <input 
@@ -89,7 +91,7 @@ export const TimeSettingsModal: React.FC = () => {
 
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-               校准起始时间 (慎用)
+               {t('components.timeSettingsModal.calibrateStartTime')}
             </label>
             <input 
               type="datetime-local" 
@@ -102,13 +104,13 @@ export const TimeSettingsModal: React.FC = () => {
 
         <div className="px-6 py-4 border-t bg-slate-50 flex justify-end gap-3">
           <button onClick={() => toggle(false)} className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg">
-            取消
+            {t('components.timeSettingsModal.cancel')}
           </button>
-          <button 
+          <button
             onClick={handleSave}
             className="px-6 py-2 text-sm bg-brand-600 text-white font-medium hover:bg-brand-700 rounded-lg shadow-sm"
           >
-            应用设置
+            {t('components.timeSettingsModal.applySettings')}
           </button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSimulationStore } from '../store';
+import { useTranslation } from 'react-i18next';
 import { X, Beaker, Plus, Trash2, Zap, UserCog, Settings, ArrowRight } from 'lucide-react';
 import { ExperimentVariant, Intervention } from '../types';
 import { connectNodeEvents } from '../services/simulationTree';
@@ -12,6 +13,7 @@ const extractMarkdownImages = (text: string): string[] => {
 };
 
 export const ExperimentDesignModal: React.FC = () => {
+  const { t } = useTranslation();
   const isOpen = useSimulationStore(state => state.isExperimentDesignerOpen);
   const toggle = useSimulationStore(state => state.toggleExperimentDesigner);
   const runExperiment = useSimulationStore(state => state.runExperiment);
@@ -26,7 +28,7 @@ export const ExperimentDesignModal: React.FC = () => {
 
   const [experimentName, setExperimentName] = useState('');
   const [variants, setVariants] = useState<ExperimentVariant[]>([
-    { id: 'v1', name: '实验组 A', description: '', interventions: [] }
+    { id: 'v1', name: `${t('components.experimentDesignModal.variantPrefix')} A`, description: '', interventions: [] }
   ]);
 
   // live per-node logs: nodeId (string) -> array of log entries
@@ -91,7 +93,7 @@ export const ExperimentDesignModal: React.FC = () => {
   const handleAddVariant = () => {
     setVariants([...variants, {
       id: `v${Date.now()}`,
-      name: `实验组 ${String.fromCharCode(65 + variants.length)}`,
+      name: `${t('components.experimentDesignModal.variantPrefix')} ${String.fromCharCode(65 + variants.length)}`,
       description: '',
       interventions: []
     }]);
@@ -159,12 +161,12 @@ export const ExperimentDesignModal: React.FC = () => {
         ),
       };
     }));
-    addNotification('success', '图片已上传并插入');
+    addNotification('success', t('components.experimentDesignModal.imageUploaded'));
   };
 
   const handleSubmit = () => {
     if (!experimentName) {
-      alert("请输入实验名称");
+      alert(t('components.experimentDesignModal.pleaseEnterName'));
       return;
     }
     // Build ops for each variant based on interventions
@@ -212,7 +214,7 @@ export const ExperimentDesignModal: React.FC = () => {
     toggle(false);
     // Reset state
     setExperimentName('');
-    setVariants([{ id: 'v1', name: '实验组 A', description: '', interventions: [] }]);
+    setVariants([{ id: 'v1', name: `${t('components.experimentDesignModal.variantPrefix')} A`, description: '', interventions: [] }]);
   };
 
   return (
@@ -224,11 +226,14 @@ export const ExperimentDesignModal: React.FC = () => {
           <div>
             <h2 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
               <Beaker className="text-indigo-600" size={24} />
-              因果干预实验设计 (Experimental Design)
+              {t('components.experimentDesignModal.title')}
             </h2>
-            <p className="text-xs text-indigo-600 mt-1">
-              基于节点 <span className="font-mono bg-white px-1 rounded border border-indigo-200">{baseNode.display_id}</span> ({baseNode.name}) 创建平行对照组
-            </p>
+            <p className="text-xs text-indigo-600 mt-1" dangerouslySetInnerHTML={{
+              __html: t('components.experimentDesignModal.subtitle', {
+                displayId: baseNode.display_id,
+                name: baseNode.name
+              })
+            }} />
           </div>
           <button onClick={() => toggle(false)} className="text-slate-400 hover:text-slate-600">
             <X size={24} />
@@ -241,31 +246,31 @@ export const ExperimentDesignModal: React.FC = () => {
           {/* Sidebar: Global Settings & Control Group */}
           <div className="w-full md:w-80 bg-slate-50 border-r p-6 overflow-y-auto shrink-0 space-y-6">
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">实验名称</label>
-              <input 
-                type="text" 
+              <label className="block text-sm font-bold text-slate-700 mb-2">{t('components.experimentDesignModal.experimentNameLabel')}</label>
+              <input
+                type="text"
                 value={experimentName}
                 onChange={(e) => setExperimentName(e.target.value)}
-                placeholder="例如：高压力环境测试"
+                placeholder={t('components.experimentDesignModal.experimentNamePlaceholder')}
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
               />
             </div>
 
             <div className="bg-white border rounded-lg p-4 shadow-sm relative overflow-hidden">
                <div className="absolute top-0 left-0 w-1 h-full bg-slate-300"></div>
-               <h3 className="text-sm font-bold text-slate-800 mb-1">对照组 (Control Group)</h3>
-               <p className="text-xs text-slate-500 mb-3">基准对照，不施加额外干预。</p>
+               <h3 className="text-sm font-bold text-slate-800 mb-1">{t('components.experimentDesignModal.controlGroup')}</h3>
+               <p className="text-xs text-slate-500 mb-3">{t('components.experimentDesignModal.controlGroupDescription')}</p>
                <div className="text-xs bg-slate-100 p-2 rounded text-slate-600">
-                  继承当前节点状态与历史记录。
+                  {t('components.experimentDesignModal.controlGroupState')}
                </div>
             </div>
 
             <div className="text-xs text-slate-400 leading-relaxed">
-              <p>💡 提示：</p>
+              <p>{t('components.experimentDesignModal.hintTitle')}</p>
               <ul className="list-disc pl-4 space-y-1 mt-1">
-                <li>点击右侧添加实验组。</li>
-                <li>为每个组定义不同的干预变量。</li>
-                <li>系统将自动并行运行所有分支。</li>
+                <li>{t('components.experimentDesignModal.hintAddVariant')}</li>
+                <li>{t('components.experimentDesignModal.hintDefineVariables')}</li>
+                <li>{t('components.experimentDesignModal.hintAutoParallel')}</li>
               </ul>
             </div>
           </div>
@@ -310,7 +315,7 @@ export const ExperimentDesignModal: React.FC = () => {
                             <div className="mt-2 text-xs text-slate-500">
                               <div className="flex items-center gap-2">
                                 <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
-                                <span>实时日志预览（最近 {Math.min(5, logs.length)} 条）</span>
+                                <span>{t('components.experimentDesignModal.liveLogPreview', { count: Math.min(5, logs.length) })}</span>
                               </div>
                               <div className="mt-2 bg-slate-50 border rounded p-2 text-[11px] h-20 overflow-auto">
                                 {logs.slice(-5).map((l: any, i: number) => (
@@ -319,7 +324,7 @@ export const ExperimentDesignModal: React.FC = () => {
                                     <div className="text-slate-700">{String((l.data && (l.data.action || l.data.message || JSON.stringify(l.data))) || l.data || '')}</div>
                                   </div>
                                 ))}
-                                {logs.length === 0 && <div className="text-slate-400">暂无日志</div>}
+                                {logs.length === 0 && <div className="text-slate-400">{t('components.experimentDesignModal.noLogsYet')}</div>}
                               </div>
                             </div>
                           );
@@ -333,43 +338,43 @@ export const ExperimentDesignModal: React.FC = () => {
                     <div className="p-4 space-y-3 min-h-[200px]">
                        {variant.interventions.length === 0 ? (
                          <div className="text-center py-8 text-slate-400 text-sm border-2 border-dashed border-slate-100 rounded-lg">
-                           暂无干预措施
+                           {t('components.experimentDesignModal.noInterventions')}
                          </div>
                        ) : (
                          variant.interventions.map((iv, i) => (
                            <div key={iv.id} className="bg-slate-50 rounded-lg border p-3 text-sm relative">
                               <div className="flex gap-2 mb-2">
-                                <select 
+                                <select
                                   value={iv.type}
                                   onChange={(e) => updateIntervention(variant.id, iv.id, 'type', e.target.value)}
                                   className="text-[10px] font-bold uppercase bg-white border rounded px-1 py-0.5 text-slate-600 outline-none"
                                 >
-                                  <option value="INSTRUCTION">全局指令</option>
-                                  <option value="AGENT_PROPERTY">修改属性</option>
-                                  <option value="ENVIRONMENT">环境事件</option>
+                                  <option value="INSTRUCTION">{t('components.experimentDesignModal.instructionType')}</option>
+                                  <option value="AGENT_PROPERTY">{t('components.experimentDesignModal.propertyType')}</option>
+                                  <option value="ENVIRONMENT">{t('components.experimentDesignModal.environmentType')}</option>
                                 </select>
-                                
+
                                 {iv.type === 'AGENT_PROPERTY' && (
                                   <select
                                     value={iv.targetId || ''}
                                     onChange={(e) => updateIntervention(variant.id, iv.id, 'targetId', e.target.value)}
                                     className="text-[10px] bg-white border rounded px-1 py-0.5 text-slate-600 outline-none max-w-[100px]"
                                   >
-                                    <option value="">选择智能体...</option>
+                                    <option value="">{t('components.experimentDesignModal.selectAgent')}</option>
                                     {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                                   </select>
                                 )}
                               </div>
                               
                               <MultimodalInput
-                                label="图片 (可选)"
-                                helperText="拖拽/点击上传后将图片以 markdown 链接插入"
+                                label={t('components.experimentDesignModal.imageLabel')}
+                                helperText={t('components.experimentDesignModal.imageHelper')}
                                 onInsert={(url) => handleEmbedInterventionImage(variant.id, iv.id, url)}
                               />
-                              <textarea 
+                              <textarea
                                 value={iv.description}
                                 onChange={(e) => updateIntervention(variant.id, iv.id, 'description', e.target.value)}
-                                placeholder={iv.type === 'AGENT_PROPERTY' ? '例如：将信任值降低至 10' : '描述具体的干预内容...'}
+                                placeholder={iv.type === 'AGENT_PROPERTY' ? t('components.experimentDesignModal.propertyPlaceholder') : t('components.experimentDesignModal.descriptionPlaceholder')}
                                 className="w-full text-xs bg-white border rounded p-2 focus:ring-1 focus:ring-indigo-500 outline-none resize-none h-16"
                               />
                               {extractMarkdownImages(iv.description || '').length > 0 && (
@@ -392,25 +397,25 @@ export const ExperimentDesignModal: React.FC = () => {
                          ))
                        )}
                        
-                       <button 
+                       <button
                          onClick={() => addIntervention(variant.id)}
                          className="w-full py-2 border-2 border-dashed border-indigo-100 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors"
                        >
-                         <Plus size={14} /> 添加干预项
+                         <Plus size={14} /> {t('components.experimentDesignModal.addIntervention')}
                        </button>
                     </div>
                   </div>
                 ))}
 
                 {/* Add Variant Button */}
-                <button 
+                <button
                   onClick={handleAddVariant}
                   className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl min-h-[200px] flex flex-col items-center justify-center text-slate-400 hover:text-indigo-500 hover:border-indigo-300 hover:bg-indigo-50/30 transition-all gap-2"
                 >
                   <div className="w-12 h-12 rounded-full bg-white border-2 border-current flex items-center justify-center">
                     <Plus size={24} />
                   </div>
-                  <span className="font-bold text-sm">添加新的实验组</span>
+                  <span className="font-bold text-sm">{t('components.experimentDesignModal.addVariant')}</span>
                 </button>
              </div>
           </div>
@@ -419,14 +424,14 @@ export const ExperimentDesignModal: React.FC = () => {
         {/* Footer */}
         <div className="px-6 py-4 border-t bg-white flex justify-end gap-3 shrink-0">
           <button onClick={() => toggle(false)} className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg">
-            取消
+            {t('components.experimentDesignModal.cancel')}
           </button>
-          <button 
+          <button
             onClick={handleSubmit}
             className="px-6 py-2 text-sm bg-indigo-600 text-white font-medium hover:bg-indigo-700 rounded-lg shadow-sm flex items-center gap-2"
           >
             <Zap size={16} />
-            启动批量运行 ({variants.length} 个分支)
+            {t('components.experimentDesignModal.startBatch', { count: variants.length })}
           </button>
         </div>
       </div>

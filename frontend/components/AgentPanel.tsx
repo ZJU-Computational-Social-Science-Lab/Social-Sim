@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSimulationStore } from '../store';
 import { User, Brain, Activity, ChevronDown, ChevronRight, Bot, BookOpen, Plus, FileText, Trash2, Upload, File, Loader2, Edit3, Save, X } from 'lucide-react';
 import { Agent, KnowledgeItem } from '../types';
@@ -18,6 +19,7 @@ const renderProfileHtml = (text: string) => {
 };
 
 const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
+  const { t } = useTranslation();
   const [isMemoryOpen, setIsMemoryOpen] = useState(true);
   const [isPropsOpen, setIsPropsOpen] = useState(false);
   const [isKBOpen, setIsKBOpen] = useState(false); // #23
@@ -81,7 +83,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   // Handle file upload
   const handleFileUpload = async (file: File) => {
     if (!simulationId) {
-      setUploadError('No simulation ID');
+      setUploadError(t('components.agentPanel.noSimulationId'));
       return;
     }
 
@@ -89,13 +91,13 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
     const allowedTypes = ['.pdf', '.txt', '.docx', '.md'];
     const ext = '.' + file.name.split('.').pop()?.toLowerCase();
     if (!allowedTypes.includes(ext)) {
-      setUploadError(`Invalid file type. Allowed: ${allowedTypes.join(', ')}`);
+      setUploadError(t('components.agentPanel.invalidFileType', { types: allowedTypes.join(', ') }));
       return;
     }
 
     // Validate file size (10MB)
     if (file.size > 10 * 1024 * 1024) {
-      setUploadError('File too large. Max size: 10MB');
+      setUploadError(t('components.agentPanel.fileTooLarge'));
       return;
     }
 
@@ -109,7 +111,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
       loadDocuments(); // Refresh the list
     } catch (err: any) {
       console.error('ERROR: Upload failed -', err);
-      setUploadError(err.message || 'Upload failed');
+      setUploadError(err.message || t('components.agentPanel.uploadFailed'));
     } finally {
       setIsUploading(false);
     }
@@ -244,7 +246,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                 className="w-full text-xs border rounded p-2 focus:ring-1 focus:ring-brand-500 outline-none min-h-[80px]"
               />
               <MultimodalInput
-                helperText="拖拽/上传图片将以 markdown 链接插入画像描述"
+                helperText={t('components.agentPanel.uploadHelperText')}
                 onInsert={(url) => setProfileDraft((prev) => `${prev}${prev ? '\n' : ''}![image](${url})`)}
               />
               <div className="flex gap-2">
@@ -255,7 +257,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                     setIsProfileEditing(false);
                   }}
                 >
-                  <Save size={12} /> 保存画像
+                  <Save size={12} /> {t('components.agentPanel.saveProfile')}
                 </button>
                 <button
                   className="flex-1 py-1.5 bg-slate-200 text-slate-600 rounded text-xs flex items-center justify-center gap-1"
@@ -264,7 +266,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                     setIsProfileEditing(false);
                   }}
                 >
-                  <X size={12} /> 取消
+                  <X size={12} /> {t('common.cancel')}
                 </button>
               </div>
             </div>
@@ -277,7 +279,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
               <button
                 className="text-slate-400 hover:text-brand-600"
                 onClick={() => setIsProfileEditing(true)}
-                title="编辑画像"
+                title={t('components.agentPanel.editProfile')}
               >
                 <Edit3 size={14} />
               </button>
@@ -294,7 +296,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
         >
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
             <Activity size={14} />
-            <span>当前状态属性</span>
+            <span>{t('components.agentPanel.currentAttributes')}</span>
           </div>
           {isPropsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>
@@ -319,7 +321,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
         >
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
             <BookOpen size={14} />
-            <span>知识库 (RAG) ({agent.knowledgeBase.length})</span>
+            <span>{t('components.agentPanel.knowledgeBase')} ({agent.knowledgeBase.length})</span>
           </div>
           {isKBOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>
@@ -327,7 +329,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
         {isKBOpen && (
           <div className="p-4 bg-slate-50/50 space-y-3">
              {agent.knowledgeBase.length === 0 && !isAddingKB && (
-               <div className="text-center py-2 text-slate-400 text-xs italic">暂无知识库文档</div>
+               <div className="text-center py-2 text-slate-400 text-xs italic">{t('components.agentPanel.noKnowledgeDocs')}</div>
              )}
              
              {agent.knowledgeBase.map(kb => {
@@ -342,13 +344,13 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                          value={editTitle}
                          onChange={(e) => setEditTitle(e.target.value)}
                          className="w-full p-1 border rounded text-xs outline-none focus:ring-1 focus:ring-brand-500"
-                         placeholder="标题"
+                         placeholder={t('components.agentPanel.title')}
                        />
                        <textarea
                          value={editContent}
                          onChange={(e) => setEditContent(e.target.value)}
                          className="w-full p-1 border rounded text-xs h-20 resize-none outline-none focus:ring-1 focus:ring-brand-500"
-                         placeholder="知识内容..."
+                         placeholder={t('components.agentPanel.knowledgeContent')}
                        />
                        <div className="flex gap-2 justify-end">
                          <button
@@ -356,13 +358,13 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                            disabled={!editTitle.trim()}
                            className="px-2 py-1 text-green-600 hover:text-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                          >
-                           保存
+                           {t('components.agentPanel.save')}
                          </button>
                          <button
                            onClick={handleCancelEdit}
                            className="px-2 py-1 text-slate-500 hover:text-slate-600"
                          >
-                           取消
+                           {t('common.cancel')}
                          </button>
                        </div>
                      </div>
@@ -378,14 +380,14 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                          <button
                            onClick={() => handleStartEdit(kb)}
                            className="text-slate-400 hover:text-blue-500"
-                           title="编辑"
+                           title={t('components.agentPanel.edit')}
                          >
                            ✏️
                          </button>
                          <button
                            onClick={() => removeKnowledgeFromAgent(agent.id, kb.id)}
                            className="text-slate-400 hover:text-red-500"
-                           title="删除"
+                           title={t('components.agentPanel.delete')}
                          >
                            🗑️
                          </button>
@@ -400,20 +402,20 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                 <div className="bg-white border border-brand-200 rounded p-2 text-xs space-y-2">
                    <input
                      type="text"
-                     placeholder="标题 (如: 乡村公约)"
+                     placeholder={t('components.agentPanel.titlePlaceholder')}
                      value={newKbTitle}
                      onChange={(e) => setNewKbTitle(e.target.value)}
                      className="w-full p-1 border rounded outline-none focus:ring-1 focus:ring-brand-500"
                    />
                    <textarea
-                     placeholder="知识内容..."
+                     placeholder={t('components.agentPanel.knowledgeContent')}
                      value={newKbContent}
                      onChange={(e) => setNewKbContent(e.target.value)}
                      className="w-full p-1 border rounded outline-none focus:ring-1 focus:ring-brand-500 h-16 resize-none"
                    />
                    <div className="flex gap-2">
-                      <button onClick={handleAddKB} className="flex-1 py-1 bg-brand-600 text-white rounded hover:bg-brand-700">保存</button>
-                      <button onClick={() => setIsAddingKB(false)} className="flex-1 py-1 bg-slate-200 text-slate-600 rounded hover:bg-slate-300">取消</button>
+                      <button onClick={handleAddKB} className="flex-1 py-1 bg-brand-600 text-white rounded hover:bg-brand-700">{t('components.agentPanel.save')}</button>
+                      <button onClick={() => setIsAddingKB(false)} className="flex-1 py-1 bg-slate-200 text-slate-600 rounded hover:bg-slate-300">{t('common.cancel')}</button>
                    </div>
                 </div>
              ) : (
@@ -421,7 +423,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                    onClick={() => setIsAddingKB(true)}
                    className="w-full py-1.5 border border-dashed border-slate-300 text-slate-500 hover:border-brand-500 hover:text-brand-600 rounded text-xs flex items-center justify-center gap-1 transition-colors"
                 >
-                   <Plus size={12} /> 添加知识条目
+                   <Plus size={12} /> {t('components.agentPanel.addKnowledge')}
                 </button>
              )}
           </div>
@@ -436,7 +438,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
         >
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
             <Upload size={14} />
-            <span>文档知识库 ({documents.length})</span>
+            <span>{t('components.agentPanel.documentKnowledgeBase')} ({documents.length})</span>
           </div>
           {isDocsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>
@@ -466,16 +468,16 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
               {isUploading ? (
                 <div className="flex items-center justify-center gap-2 text-slate-500">
                   <Loader2 size={16} className="animate-spin" />
-                  <span className="text-xs">上传中...</span>
+                  <span className="text-xs">{t('components.agentPanel.uploading')}</span>
                 </div>
               ) : (
                 <>
                   <Upload size={20} className="mx-auto text-slate-400 mb-2" />
                   <p className="text-xs text-slate-500">
-                    拖放文件或点击上传
+                    {t('components.agentPanel.dragDropUpload')}
                   </p>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    支持: PDF, TXT, DOCX, MD (最大 10MB)
+                    {t('components.agentPanel.supportedFormats')}
                   </p>
                 </>
               )}
@@ -491,7 +493,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
             {/* Uploaded documents list */}
             {documents.length === 0 && !isUploading && (
               <div className="text-center py-2 text-slate-400 text-xs italic">
-                暂无上传文档
+                {t('components.agentPanel.noUploadedDocs')}
               </div>
             )}
 
@@ -503,7 +505,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                   <span className="text-slate-400 font-normal">{formatFileSize(doc.file_size)}</span>
                 </div>
                 <div className="flex items-center gap-2 text-slate-400">
-                  <span>{doc.chunks_count} 个文本块</span>
+                  <span>{doc.chunks_count} {t('components.agentPanel.textChunks')}</span>
                   <span>·</span>
                   <span>{new Date(doc.uploaded_at).toLocaleDateString()}</span>
                 </div>
@@ -527,7 +529,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
         >
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
             <Brain size={14} />
-            <span>短期记忆 ({agent.memory.length})</span>
+            <span>{t('components.agentPanel.shortTermMemory')} ({agent.memory.length})</span>
           </div>
           {isMemoryOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>

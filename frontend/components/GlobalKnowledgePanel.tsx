@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useSimulationStore } from '../store';
+import { useTranslation } from 'react-i18next';
 import {
   X,
   BookOpen,
@@ -20,6 +21,7 @@ import {
 } from '../services/simulations';
 
 export const GlobalKnowledgePanel: React.FC = () => {
+  const { t } = useTranslation();
   const isOpen = useSimulationStore((s) => s.globalKnowledgeOpen);
   const setOpen = useSimulationStore((s) => s.setGlobalKnowledgeOpen);
   const simulationId = useSimulationStore((s) => s.currentSimulation?.id);
@@ -79,7 +81,7 @@ export const GlobalKnowledgePanel: React.FC = () => {
   // Handle file upload
   const handleFileUpload = async (file: File) => {
     if (!simulationId) {
-      setUploadError('No simulation ID');
+      setUploadError(t('components.globalKnowledgePanel.noSimulationId'));
       return;
     }
 
@@ -87,13 +89,13 @@ export const GlobalKnowledgePanel: React.FC = () => {
     const allowedTypes = ['.pdf', '.txt', '.docx', '.md'];
     const ext = '.' + file.name.split('.').pop()?.toLowerCase();
     if (!allowedTypes.includes(ext)) {
-      setUploadError(`Invalid file type. Allowed: ${allowedTypes.join(', ')}`);
+      setUploadError(t('components.globalKnowledgePanel.invalidFileType', { types: allowedTypes.join(', ') }));
       return;
     }
 
     // Validate file size (10MB)
     if (file.size > 10 * 1024 * 1024) {
-      setUploadError('File too large. Max size: 10MB');
+      setUploadError(t('components.globalKnowledgePanel.fileTooLarge'));
       return;
     }
 
@@ -107,7 +109,7 @@ export const GlobalKnowledgePanel: React.FC = () => {
       loadItems();
     } catch (err: any) {
       console.error('ERROR: Global document upload failed -', err);
-      setUploadError(err.message || 'Upload failed');
+      setUploadError(err.message || t('components.globalKnowledgePanel.uploadFailed'));
     } finally {
       setIsUploading(false);
     }
@@ -173,8 +175,8 @@ export const GlobalKnowledgePanel: React.FC = () => {
               <Globe className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-800">全局知识库</h2>
-              <p className="text-xs text-slate-500">所有代理共享的知识</p>
+              <h2 className="text-lg font-bold text-slate-800">{t('components.globalKnowledgePanel.title')}</h2>
+              <p className="text-xs text-slate-500">{t('components.globalKnowledgePanel.subtitle')}</p>
             </div>
           </div>
           <button
@@ -191,7 +193,7 @@ export const GlobalKnowledgePanel: React.FC = () => {
           <div>
             <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
               <Upload size={14} />
-              上传文档
+              {t('components.globalKnowledgePanel.uploadDocuments')}
             </h3>
             <div
               className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
@@ -215,14 +217,14 @@ export const GlobalKnowledgePanel: React.FC = () => {
               {isUploading ? (
                 <div className="flex items-center justify-center gap-2 text-slate-500">
                   <Loader2 size={20} className="animate-spin" />
-                  <span>上传中...</span>
+                  <span>{t('components.globalKnowledgePanel.uploading')}</span>
                 </div>
               ) : (
                 <>
                   <Upload size={24} className="mx-auto text-slate-400 mb-2" />
-                  <p className="text-sm text-slate-600">拖放文件或点击上传</p>
+                  <p className="text-sm text-slate-600">{t('components.globalKnowledgePanel.dragDropUpload')}</p>
                   <p className="text-xs text-slate-400 mt-1">
-                    支持: PDF, TXT, DOCX, MD (最大 10MB)
+                    {t('components.globalKnowledgePanel.supportedFormats')}
                   </p>
                 </>
               )}
@@ -238,19 +240,19 @@ export const GlobalKnowledgePanel: React.FC = () => {
           <div>
             <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
               <FileText size={14} />
-              添加文本知识
+              {t('components.globalKnowledgePanel.addTextKnowledge')}
             </h3>
             {isAddingText ? (
               <div className="bg-slate-50 border rounded-lg p-4 space-y-3">
                 <input
                   type="text"
-                  placeholder="标题（可选）"
+                  placeholder={t('components.globalKnowledgePanel.titlePlaceholder')}
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   className="w-full p-2 border rounded text-sm outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <textarea
-                  placeholder="知识内容..."
+                  placeholder={t('components.globalKnowledgePanel.contentPlaceholder')}
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value)}
                   className="w-full p-2 border rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none"
@@ -262,7 +264,7 @@ export const GlobalKnowledgePanel: React.FC = () => {
                     className="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 text-sm flex items-center justify-center gap-2"
                   >
                     {isSavingText && <Loader2 size={14} className="animate-spin" />}
-                    保存
+                    {t('components.globalKnowledgePanel.save')}
                   </button>
                   <button
                     onClick={() => {
@@ -272,7 +274,7 @@ export const GlobalKnowledgePanel: React.FC = () => {
                     }}
                     className="flex-1 py-2 bg-slate-200 text-slate-600 rounded hover:bg-slate-300 text-sm"
                   >
-                    取消
+                    {t('components.globalKnowledgePanel.cancel')}
                   </button>
                 </div>
               </div>
@@ -281,7 +283,7 @@ export const GlobalKnowledgePanel: React.FC = () => {
                 onClick={() => setIsAddingText(true)}
                 className="w-full py-3 border-2 border-dashed border-slate-300 text-slate-500 hover:border-blue-500 hover:text-blue-600 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
               >
-                <Plus size={16} /> 添加文本知识
+                <Plus size={16} /> {t('components.globalKnowledgePanel.addTextKnowledge')}
               </button>
             )}
           </div>
@@ -290,17 +292,17 @@ export const GlobalKnowledgePanel: React.FC = () => {
           <div>
             <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
               <BookOpen size={14} />
-              知识列表 ({items.length})
+              {t('components.globalKnowledgePanel.knowledgeList', { count: items.length })}
             </h3>
 
             {isLoading ? (
               <div className="text-center py-8 text-slate-400">
                 <Loader2 size={24} className="mx-auto animate-spin mb-2" />
-                <p className="text-sm">加载中...</p>
+                <p className="text-sm">{t('components.globalKnowledgePanel.loading')}</p>
               </div>
             ) : items.length === 0 ? (
               <div className="text-center py-8 text-slate-400 text-sm italic">
-                暂无全局知识
+                {t('components.globalKnowledgePanel.noKnowledgeYet')}
               </div>
             ) : (
               <div className="space-y-2">
@@ -323,7 +325,7 @@ export const GlobalKnowledgePanel: React.FC = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-sm text-slate-800 truncate">
-                          {item.title || item.filename || '未命名'}
+                          {item.title || item.filename || t('components.globalKnowledgePanel.unnamed')}
                         </div>
                         <p className="text-xs text-slate-500 line-clamp-2 mt-1">
                           {item.content_preview}
@@ -334,10 +336,10 @@ export const GlobalKnowledgePanel: React.FC = () => {
                               ? 'bg-blue-50 text-blue-600'
                               : 'bg-green-50 text-green-600'
                           }`}>
-                            {item.source_type === 'document' ? '文档' : '文本'}
+                            {item.source_type === 'document' ? t('components.globalKnowledgePanel.document') : t('components.globalKnowledgePanel.text')}
                           </span>
                           {item.chunks_count > 0 && (
-                            <span>{item.chunks_count} 个文本块</span>
+                            <span>{t('components.globalKnowledgePanel.textChunks', { count: item.chunks_count })}</span>
                           )}
                           <span>{new Date(item.created_at).toLocaleDateString()}</span>
                         </div>

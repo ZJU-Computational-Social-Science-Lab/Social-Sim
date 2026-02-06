@@ -3,10 +3,12 @@ import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { SimNode } from '../types';
 import { useSimulationStore } from '../store';
+import { useTranslation } from 'react-i18next';
 import { HelpCircle, Move, ZoomIn, ZoomOut, Maximize, MousePointer2, Trash2 } from 'lucide-react';
 import { EnvironmentSuggestionDialogWrapper, EnvironmentToggleButton } from './EnvironmentSuggestion';
 
 export const SimTree: React.FC = () => {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const nodes = useSimulationStore(state => state.nodes);
   const selectedNodeId = useSimulationStore(state => state.selectedNodeId);
@@ -184,7 +186,7 @@ const root = d3.stratify<SimNode>()
         <div className="flex items-center justify-between px-4 py-3 border-b bg-slate-50 z-10 relative">
           <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
             {isCompareMode ? <MousePointer2 size={16} className="text-amber-500" /> : <Move size={16} className="text-slate-400" />}
-            {isCompareMode ? "请选择对比节点..." : "仿真树 (SimTree)"}
+            {isCompareMode ? t('components.simTree.selectCompareNode') : t('components.simTree.title')}
         </h3>
         <div className="flex items-center gap-2">
           <EnvironmentToggleButton />
@@ -193,33 +195,33 @@ const root = d3.stratify<SimNode>()
             className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
           >
             <HelpCircle size={14} />
-            <span>图例说明</span>
+            <span>{t('components.simTree.legendHelp')}</span>
           </button>
         </div>
       </div>
       
       {/* Zoom Controls */}
       <div className="absolute top-14 right-4 z-10 flex flex-col gap-1 bg-white border rounded shadow-sm p-1">
-        <button onClick={handleZoomIn} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title="放大">
+        <button onClick={handleZoomIn} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('components.simTree.zoomIn')}>
           <ZoomIn size={16} />
         </button>
-        <button onClick={handleZoomOut} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title="缩小">
+        <button onClick={handleZoomOut} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('components.simTree.zoomOut')}>
           <ZoomOut size={16} />
         </button>
         <div className="h-px bg-slate-200 my-0.5"></div>
-        <button onClick={handleReset} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title="重置视角">
+        <button onClick={handleReset} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('components.simTree.resetView')}>
           <Maximize size={16} />
         </button>
         <div className="h-px bg-slate-200 my-0.5"></div>
-        <button 
+        <button
           onClick={() => {
-            if (selectedNodeId && window.confirm('确定要删除选中的节点及其所有子节点吗？')) {
+            if (selectedNodeId && window.confirm(t('components.simTree.confirmDelete'))) {
               deleteNode();
             }
           }}
           disabled={!selectedNodeId}
-          className="p-1.5 hover:bg-red-50 rounded text-slate-600 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed" 
-          title="删除选中节点"
+          className="p-1.5 hover:bg-red-50 rounded text-slate-600 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
+          title={t('components.simTree.deleteNode')}
         >
           <Trash2 size={16} />
         </button>
@@ -233,29 +235,29 @@ const root = d3.stratify<SimNode>()
           <>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-              <span>基准 (A)</span>
+              <span>{t('components.simTree.baseline')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-amber-500 border-dashed border-2 border-white"></div>
-              <span>对比 (B)</span>
+              <span>{t('components.simTree.compare')}</span>
             </div>
             <div className="ml-auto text-amber-600 font-medium">
-               点击节点设为对比对象
+               {t('components.simTree.clickToCompare')}
             </div>
           </>
         ) : (
           <>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full border-2 border-brand-500 bg-brand-100"></div>
-              <span>前沿</span>
+              <span>{t('components.simTree.frontier')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-brand-500"></div>
-              <span>选中</span>
+              <span>{t('components.simTree.selected')}</span>
             </div>
              <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-red-100 border-2 border-red-500"></div>
-              <span>异常</span>
+              <span>{t('components.simTree.failed')}</span>
             </div>
           </>
         )}
