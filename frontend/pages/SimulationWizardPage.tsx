@@ -72,7 +72,7 @@ export const SimulationWizard: React.FC = () => {
 
   const [genCount, setGenCount] = useState(5);
   const [genDesc, setGenDesc] = useState(
-    '创建一个多元化的乡村社区，包含务农者、商人和知识分子。'
+    t('wizard.defaultPrompts.village')
   );
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -87,12 +87,9 @@ export const SimulationWizard: React.FC = () => {
 
   useEffect(() => {
     const defaults: Record<string, string> = {
-      village:
-        '创建一个多元化的乡村社区，包含务农者、商人和知识分子。',
-      council:
-        '创建一个由5名成员组成的议会，每位成员具有不同政策立场与影响力。',
-      werewolf:
-        '创建一个狼人杀9人局的玩家群体画像：法官/上帝、预言家、女巫、猎人、2名狼人、3名平民，并描述性格与策略偏好。'
+      village: t('wizard.defaultPrompts.village'),
+      council: t('wizard.defaultPrompts.council'),
+      werewolf: t('wizard.defaultPrompts.werewolf')
     };
     setGenDesc(defaults[selectedTemplateId] || defaults['village']);
     const counts: Record<string, number> = {
@@ -101,7 +98,7 @@ export const SimulationWizard: React.FC = () => {
       werewolf: 9
     };
     setGenCount(counts[selectedTemplateId] ?? 5);
-  }, [selectedTemplateId]);
+  }, [selectedTemplateId, t]);
 
   const selectedTemplate =
     savedTemplates.find((t) => t.id === selectedTemplateId) ||
@@ -160,9 +157,7 @@ export const SimulationWizard: React.FC = () => {
     setCustomAgents([]);
     setImportError(null);
     setGenCount(5);
-    setGenDesc(
-      '创建一个多元化的乡村社区，包含务农者、商人和知识分子。'
-    );
+    setGenDesc(t('wizard.defaultPrompts.village'));
   };
 
   const handleDeleteTemplate = (e: React.MouseEvent, id: string) => {
@@ -201,7 +196,7 @@ export const SimulationWizard: React.FC = () => {
           avatarUrl:
             row.avatarUrl ||
             `https://api.dicebear.com/7.x/avataaars/svg?seed=${row.name}`,
-          profile: row.profile || '暂无描述',
+          profile: row.profile || t('wizard.noDescription'),
           properties: row.properties || {},
           history: row.history || {},
           memory: row.memory || [],

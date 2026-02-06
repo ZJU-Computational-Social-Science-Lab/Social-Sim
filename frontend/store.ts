@@ -205,6 +205,13 @@ interface AppState {
 // --- Helpers for Time Calculation #9 ---
 const isZh = () => (i18n.language || 'en').toLowerCase().startsWith('zh');
 const getLocale = () => (isZh() ? 'zh-CN' : 'en-US');
+
+// Translation helper using i18n instance for store (non-React context)
+const t = (key: string, params?: Record<string, string | number>): string => {
+  return i18n.t(key, params);
+};
+
+// Legacy helper - use t() for new code
 const pickText = (en: string, zh: string) => (isZh() ? zh : en);
 
 const addTime = (dateStr: string, value: number, unit: TimeUnit): string => {
@@ -265,7 +272,7 @@ const mapGraphToNodes = (graph: Graph): SimNode[] => {
     const pid = parentMap.has(n.id) ? parentMap.get(n.id)! : null;
     const isLeaf = !childrenSet.has(n.id);
     const meta = (n as any).meta || null;
-    const displayName = isZh() ? `节点 ${n.id}` : `Node ${n.id}`;
+    const displayName = t('store.node') + ` ${n.id}`;
     return {
       id: String(n.id),
       display_id: String(n.id),
@@ -282,28 +289,18 @@ const mapGraphToNodes = (graph: Graph): SimNode[] => {
 };
 
 // ★ 后端事件 -> 前端 LogEntry 映射
-const ACTION_LABELS: Record<'en' | 'zh', Record<string, string>> = {
-  en: {
-    look_around: 'Look around',
-    move_to_location: 'Move to location',
-    send_message: 'Send message',
-    rest: 'Rest',
-    yield: 'Yield'
-  },
-  zh: {
-    look_around: '环顾四周',
-    move_to_location: '移动到位置',
-    send_message: '发送消息',
-    gather_resource: '采集资源',
-    rest: '休息',
-    yield: '结束本轮发言'
-  }
-};
-
 const translateActionName = (name: string | undefined): string => {
-  if (!name) return pickText('Unknown action', '未知动作');
-  const lang = isZh() ? 'zh' : 'en';
-  return ACTION_LABELS[lang][name] || ACTION_LABELS.en[name] || name;
+  if (!name) return t('store.unknownAction');
+  // Map action names to translation keys
+  const actionKeys: Record<string, string> = {
+    look_around: 'store.lookAround',
+    move_to_location: 'store.moveToLocation',
+    send_message: 'store.sendMessage',
+    gather_resource: 'store.gatherResource',
+    rest: 'store.rest',
+    yield: 'store.yield',
+  };
+  return actionKeys[name] ? t(actionKeys[name]) : name;
 };
 
 const normalizePlanMarkers = (text: string): string => {
@@ -608,15 +605,15 @@ export const mapBackendEventsToLogs = (
     const labels = {
       reasoningStep: (step: number) =>
         pickText(`Starting step ${step} reasoning`, `开始第 ${step} 步推理`),
-      reasoningStart: pickText('Starting reasoning', '开始推理'),
-      reasoningDone: pickText('Reasoning complete', '完成推理'),
-      actionPrefix: pickText('Action', '动作'),
-      yieldTurn: pickText('Yielded the floor', '结束本轮发言'),
-      planUpdate: pickText('Plan updated', '更新计划'),
-      agentError: pickText('Agent error', '智能体发生错误'),
-      actionStart: pickText('Started action', '开始执行动作'),
-      actionEnd: pickText('performed action', '执行了动作'),
-      systemEvent: pickText('System event', '系统事件')
+      reasoningStart: t('store.startingReasoning'),
+      reasoningDone: t('store.reasoningComplete'),
+      actionPrefix: t('store.action'),
+      yieldTurn: t('store.yieldedFloor'),
+      planUpdate: t('store.planUpdated'),
+      agentError: t('store.agentError'),
+      actionStart: t('store.startedAction'),
+      actionEnd: t('store.performedAction'),
+      systemEvent: t('store.systemEvent')
     };
 
     // 智能体上下文增量
@@ -788,7 +785,7 @@ export const mapBackendEventsToLogs = (
       const errText: string = String(
         data.error || data.message || ''
       ).slice(0, 400);
-      const agentLabel = agentName || pickText('Unknown', '未知');
+      const agentLabel = agentName || t('store.unknown');
       const baseLabel = isZh()
         ? `智能体「${agentLabel}」发生错误`
         : `Agent "${agentLabel}" error`;
@@ -853,7 +850,7 @@ export const mapBackendEventsToLogs = (
       const readableAction = translateActionName(actionName);
       const label = actorName
         ? `${actorName} ${labels.actionEnd} ${readableAction}`
-        : `${pickText('Performed action', '执行了动作')} ${readableAction}`;
+        : `${t('store.performedAction')} ${readableAction}`;
 
       return {
         ...base,
@@ -1131,7 +1128,7 @@ const generateNodes = (): SimNode[] => {
       id: 'root',
       display_id: '0',
       parentId: null,
-      name: pickText('Initial state', '初始状态'),
+      name: t('store.initialState'),
       depth: 0,
       isLeaf: true,
       status: 'completed',
@@ -1516,7 +1513,7 @@ const generateLogs = (): LogEntry[] =>
                 nodeId === 'root' ? 0 : nodeId === 'n1' ? 1 : 2
               } 回合`
             )
-          : pickText('An interaction occurred.', '进行了一次交互。'),
+          : t('store.interactionOccurred'),
       timestamp: `2025-03-10 10:${10 + i}`
     };
   });
@@ -1700,7 +1697,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   simulations: [
     {
       id: 'sim1',
-      name: '2024年乡村委员会模拟',
+      name: i18n.t('store.defaultSimulationName'),
       templateId: 'village',
       status: 'active',
       createdAt: '2024-03-10',
@@ -1710,7 +1707,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   ],
   currentSimulation: {
     id: 'sim1',
-    name: '2024年乡村委员会模拟',
+    name: i18n.t('store.defaultSimulationName'),
     templateId: 'village',
     status: 'active',
     createdAt: '2024-03-10',
@@ -1738,8 +1735,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     {
       id: 'g-init',
       role: 'assistant',
-      content:
-        '你好！我是SocialSim4的智能指引助手。我可以帮你设计实验、推荐功能或解释平台操作。比如，你可以问我：\n\n- "如何模拟信息在人群中的传播？"\n- "我想做一个AB测试实验。"\n- "怎么导出分析报告？"'
+      content: i18n.t('store.guideWelcomeMessage')
     }
   ],
 
@@ -1972,36 +1968,15 @@ export const useSimulationStore = create<AppState>((set, get) => ({
 
      if (!process.env.API_KEY) {
         set(state => ({
-           guideMessages: [...state.guideMessages, { id: `sys-${Date.now()}`, role: 'assistant', content: '错误：缺少 API Key。请配置环境变量。' }],
+           guideMessages: [...state.guideMessages, { id: `sys-${Date.now()}`, role: 'assistant', content: i18n.t('store.guideErrorMissingApiKey') }],
            isGuideLoading: false
         }));
         return;
      }
 
      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-     
-     const systemPrompt = `You are the expert guide for "SocialSim4 Next", a social simulation platform. 
-     Your goal is to help users design experiments and navigate the platform features.
-     
-     PLATFORM CAPABILITIES MAP:
-     1. **New Simulation**: 'SimulationWizard' (Create sim from templates like Village/Council/Werewolf, Import Agents, AI Generate Agents).
-     2. **Social Network**: 'NetworkEditor' (Define topology like Ring/Star/Small World to control information flow).
-     3. **Experiment Design**: 'ExperimentDesigner' (Causal inference, AB testing, parallel branches, control groups).
-     4. **Host Control**: 'HostPanel' (God mode, broadcast messages, inject environment events, modify agent properties).
-     5. **Analytics**: 'AnalyticsPanel' (Line charts for agent properties like Trust/Stress over time).
-     6. **Export**: 'ExportModal' (Download logs as JSON/CSV/Excel).
-     7. **Reports**: 'ReportModal' (AI-generated analysis reports).
-     8. **SimTree**: The main visualization. Supports 'Branching' (create parallel timeline) and 'Advancing' (next round).
-     9. **Comparison**: 'ComparisonView' (Diff two nodes/timelines).
 
-     INSTRUCTIONS:
-     - Analyze the user's intent.
-     - Provide a concise, step-by-step guide mapping their goal to specific Platform Tools.
-     - If the user needs to OPEN a specific tool, append a tag at the end of your response in the format: [[ACTION_NAME]].
-     - Supported Tags: [[OPEN_WIZARD]], [[OPEN_NETWORK]], [[OPEN_EXPERIMENT]], [[OPEN_EXPORT]], [[OPEN_ANALYTICS]], [[OPEN_HOST]].
-     - You can include multiple tags if relevant, but prioritize the most important one.
-     - Use Markdown for formatting.
-     `;
+     const systemPrompt = i18n.t('guidePrompt.systemPrompt');
 
      const chatHistory = get().guideMessages.map(m => ({
         role: m.role === 'user' ? 'user' : 'model',
@@ -2020,7 +1995,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
            }
         });
 
-        const text = response.text || "抱歉，我无法理解您的请求。";
+        const text = response.text || i18n.t('guidePrompt.defaultResponse');
         
         const actions: GuideActionType[] = [];
         if (text.includes('[[OPEN_WIZARD]]')) actions.push('OPEN_WIZARD');
@@ -2044,7 +2019,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
 
      } catch (e) {
         set(state => ({
-           guideMessages: [...state.guideMessages, { id: `err-${Date.now()}`, role: 'assistant', content: '连接 AI 服务超时，请稍后再试。' }],
+           guideMessages: [...state.guideMessages, { id: `err-${Date.now()}`, role: 'assistant', content: i18n.t('guidePrompt.connectionTimeout') }],
            isGuideLoading: false
         }));
      }
@@ -2173,10 +2148,10 @@ export const useSimulationStore = create<AppState>((set, get) => ({
           } else {
             set({ isWizardOpen: false });
           }
-          get().addNotification('success', pickText(`Simulation "${newSim.name}" created`, `仿真 "${newSim.name}" 创建成功`));
+          get().addNotification('success', t('store.simulationCreated', { name: newSim.name }));
         } catch (e) {
           console.error(e);
-          get().addNotification('error', pickText('Failed to create simulation via backend', '后端创建仿真失败'));
+          get().addNotification('error', t('store.failedToCreateSimulation'));
         }
       })();
       return;
@@ -2229,7 +2204,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
         isWizardOpen: false
       };
     });
-    get().addNotification('success', `仿真 "${name}" 创建成功`);
+    get().addNotification('success', t('store.simulationCreated', { name }));
 
     // 关闭自动保存：仅手动同步时写入后端，避免运行中产生草稿
   },
@@ -2241,7 +2216,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
         currentSimulation: { ...state.currentSimulation, timeConfig: config }
       };
     });
-    get().addNotification('info', pickText('Time configuration updated', '时间配置已更新'));
+    get().addNotification('info', t('store.timeConfigUpdated'));
   },
 
   updateSocialNetwork: async (network) => {
@@ -2259,17 +2234,17 @@ export const useSimulationStore = create<AppState>((set, get) => ({
          await updateSimulationApi(currentSimulation.id, {
            scene_config: { social_network: network }
          });
-         get().addNotification('success', pickText('Network topology saved', '社交网络拓扑已保存'));
+         get().addNotification('success', t('store.networkTopologySaved'));
        } catch (error) {
          console.error('Failed to save network topology:', error);
-         get().addNotification('error', pickText('Failed to save network', '保存网络失败'));
+         get().addNotification('error', t('store.failedToSaveNetwork'));
          // Revert on error
          set(state => ({
            currentSimulation: { ...state.currentSimulation, socialNetwork: get().currentSimulation?.socialNetwork || {} }
          }));
        }
      } else {
-       get().addNotification('info', pickText('Network topology updated locally (not synced)', '社交网络拓扑已更新（仅本地）'));
+       get().addNotification('info', t('store.networkTopologyUpdatedLocal'));
      }
   },
 
@@ -2291,7 +2266,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
         isSaveTemplateOpen: false
       };
     });
-    get().addNotification('success', '模板保存成功');
+    get().addNotification('success', t('store.templateSaved'));
   },
 
   // 手动同步当前仿真到后端（将详细日志输出到 syncLogs）
@@ -2302,13 +2277,13 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       return;
     }
     if (state.engineConfig.mode !== 'connected') {
-      get().addNotification('error', '仅连接模式可保存到后端');
+      get().addNotification('error', t('store.onlyConnectedModeCanSave'));
       return;
     }
     const simId = state.currentSimulation.id || '';
     const isLocalOnly = /^sim\d+/i.test(simId) || /^Simulation_\d+$/i.test(simId);
     if (isLocalOnly) {
-      get().addNotification('error', '当前仿真尚未在后端创建，无法直接覆盖，请先在连接模式创建/加载后再保存');
+      get().addNotification('error', t('store.simulationNotCreatedOnBackend'));
       return;
     }
     set({ isSyncing: true, syncLogs: [] });
@@ -2346,7 +2321,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       const syncLogId = res?.sync_log_id;
       const taskId = res?.task_id;
       set((s) => ({ syncLogs: [...s.syncLogs, `[OK] 后端已接收同步请求 (sync_log=${syncLogId}, task=${taskId})`] } as any));
-      get().addNotification('info', '已提交保存请求，后台处理中');
+      get().addNotification('info', t('store.saveRequestSubmitted'));
 
       // Poll for updates until finished/error or timeout
       const start = Date.now();
@@ -2361,9 +2336,9 @@ export const useSimulationStore = create<AppState>((set, get) => ({
           if (log.status === 'finished' || log.status === 'error') {
             finished = true;
             if (log.status === 'finished') {
-              get().addNotification('success', '后台同步完成');
+              get().addNotification('success', t('store.backendSyncComplete'));
             } else {
-              get().addNotification('error', '后台同步出错，请查看日志');
+              get().addNotification('error', t('store.backendSyncError'));
             }
           }
         } catch (e) {
@@ -2376,7 +2351,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     } catch (e: any) {
       console.error('sync error', e);
       set((s) => ({ syncLogs: [...s.syncLogs, `[ERROR] 同步失败: ${String(e?.message || e)}`] } as any));
-      get().addNotification('error', '手动同步失败，请查看同步日志');
+      get().addNotification('error', t('store.manualSyncFailed'));
     } finally {
       set({ isSyncing: false });
     }
@@ -2390,7 +2365,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
   generateReport: async () => {
     const state = get();
     if (!state.currentSimulation) {
-      get().addNotification('error', '请先加载仿真后再生成报告');
+      get().addNotification('error', t('store.pleaseLoadSimulationFirst'));
       return;
     }
 
@@ -2521,11 +2496,11 @@ export const useSimulationStore = create<AppState>((set, get) => ({
         currentSimulation: s.currentSimulation ? { ...s.currentSimulation, report } : s.currentSimulation,
         isGeneratingReport: false
       }));
-      get().addNotification('success', '报告生成完成');
+      get().addNotification('success', t('store.reportGenerationComplete'));
     } catch (e) {
       console.error('generateReport failed', e);
       set({ isGeneratingReport: false });
-      get().addNotification('error', '报告生成失败，请稍后重试');
+      get().addNotification('error', t('store.reportGenerationFailed'));
     }
   },
 
@@ -2533,7 +2508,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     const state = get();
     const report = state.currentSimulation?.report;
     if (!report) {
-      get().addNotification('error', '暂无报告可导出');
+      get().addNotification('error', t('store.noReportToExport'));
       return;
     }
     if (format === 'json') {
@@ -2583,7 +2558,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       compareTargetNodeId: null,
       isCompareMode: false,
     });
-    get().addNotification('info', '已退出当前模拟');
+    get().addNotification('info', t('store.exitedSimulation'));
   },
 
   resetSimulation: async () => {
@@ -2602,10 +2577,10 @@ export const useSimulationStore = create<AppState>((set, get) => ({
         closeTreeSocket();
         set({ nodes: generateNodes(), selectedNodeId: 'root', logs: [], rawEvents: [] });
       }
-      get().addNotification('success', '模拟已重置');
+      get().addNotification('success', t('store.simulationReset'));
     } catch (e) {
       console.error('resetSimulation failed', e);
-      get().addNotification('error', '重置模拟失败');
+      get().addNotification('error', t('store.failedToResetSimulation'));
     }
   },
 
@@ -2618,10 +2593,10 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       }
       closeTreeSocket();
       set({ currentSimulation: null, nodes: generateNodes(), selectedNodeId: 'root', logs: [], rawEvents: [], compareTargetNodeId: null, isCompareMode: false });
-      get().addNotification('success', '模拟已删除');
+      get().addNotification('success', t('store.simulationDeleted'));
     } catch (e) {
       console.error('deleteSimulation failed', e);
-      get().addNotification('error', '删除模拟失败');
+      get().addNotification('error', t('store.failedToDeleteSimulation'));
     }
   },
 
@@ -2675,7 +2650,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
           timestamp: new Date().toISOString()
         } as LogEntry] : state.logs,
       }));
-      get().addNotification('success', '初始事件已保存');
+      get().addNotification('success', t('store.initialEventsSaved'));
     },
 
   updateAgentProperty: (agentId, property, value) => {
@@ -2690,7 +2665,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     });
     const agentName = get().agents.find(a => a.id === agentId)?.name || agentId;
     get().injectLog('HOST_INTERVENTION', `Host 修改了 ${agentName} 的属性 [${property}] 为 ${value}`);
-    get().addNotification('success', '智能体属性已更新');
+    get().addNotification('success', t('store.agentAttributesUpdated'));
   },
 
   updateAgentProfile: (agentId, profile) => {
@@ -2699,7 +2674,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     }));
     const agentName = get().agents.find(a => a.id === agentId)?.name || agentId;
     get().injectLog('AGENT_METADATA', `${agentName} 的画像已更新`);
-    get().addNotification('success', '智能体画像已更新');
+    get().addNotification('success', t('store.agentProfileUpdated'));
   },
 
   addKnowledgeToAgent: (agentId, item) => {
@@ -2708,7 +2683,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     // Update local state
     const updatedAgents = state.agents.map(a => a.id === agentId ? { ...a, knowledgeBase: [...a.knowledgeBase, item] } : a);
     set({ agents: updatedAgents });
-    get().addNotification('success', '知识库条目已添加');
+    get().addNotification('success', t('store.knowledgeItemAdded'));
     // Sync to backend if we have a current simulation
     if (state.currentSimulation && state.engineConfig.mode === 'connected') {
       const agentConfig = {
@@ -2741,7 +2716,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     // Update local state
     const updatedAgents = state.agents.map(a => a.id === agentId ? { ...a, knowledgeBase: a.knowledgeBase.filter(i => i.id !== itemId) } : a);
     set({ agents: updatedAgents });
-    get().addNotification('success', '知识库条目已移除');
+    get().addNotification('success', t('store.knowledgeItemRemoved'));
     // Sync to backend if we have a current simulation
     if (state.currentSimulation && state.engineConfig.mode === 'connected') {
       const agentConfig = {
@@ -2779,7 +2754,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       return a;
     });
     set({ agents: updatedAgents });
-    get().addNotification('success', '知识库条目已更新');
+    get().addNotification('success', t('store.knowledgeItemUpdated'));
     // Sync to backend if we have a current simulation
     if (state.currentSimulation && state.engineConfig.mode === 'connected') {
       const agentConfig = {
@@ -2934,7 +2909,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
           }
           return;
         } catch (err) {
-          get().addNotification('error', '后端推进失败，回退本地模拟');
+          get().addNotification('error', t('store.backendAdvanceFailed'));
         }
       }
 
@@ -2992,7 +2967,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     } catch (e) {
       console.error(e);
       set({ isGenerating: false });
-      get().addNotification('error', '仿真推进失败，请重试');
+      get().addNotification('error', t('store.simulationAdvanceFailed'));
     }
   },
 
@@ -3013,7 +2988,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
             set({ nodes: nodesMapped });
           }
         } catch (e) {
-          get().addNotification('error', '后端分支失败');
+          get().addNotification('error', t('store.backendBranchFailed'));
         }
       })();
       return;
@@ -3060,7 +3035,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
     if (!state.selectedNodeId) return;
     const rootNode = state.nodes.find((n) => n.parentId === null);
     if (rootNode && state.selectedNodeId === rootNode.id) {
-      get().addNotification('error', '不能删除根节点');
+      get().addNotification('error', t('store.cannotDeleteRoot'));
       return;
     }
     if (state.engineConfig.mode === 'connected' && state.currentSimulation) {
@@ -3076,9 +3051,9 @@ export const useSimulationStore = create<AppState>((set, get) => ({
           const nodesMapped = mapGraphToNodes(graph);
           set({ nodes: nodesMapped, selectedNodeId: graph.root != null ? String(graph.root) : null });
         }
-        get().addNotification('success', '节点已删除');
+        get().addNotification('success', t('store.nodeDeleted'));
       } catch (e) {
-        get().addNotification('error', '删除节点失败');
+        get().addNotification('error', t('store.failedToDeleteNode'));
       }
       return;
     }
@@ -3095,7 +3070,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       const newSelected = remaining.find(n => n.id === s.nodes.find(x => x.id === targetId)?.parentId)?.id || null;
       return { nodes: remaining, logs, selectedNodeId: newSelected };
     });
-    get().addNotification('success', '节点已删除');
+    get().addNotification('success', t('store.nodeDeleted'));
   },
 
   runExperiment: (baseNodeId, experimentName, variants) => {
@@ -3159,7 +3134,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
             }
           }
           const runId = runRes?.run_id || (runRes as any)?.run_id;
-          get().addNotification('success', `实验 "${experimentName}" 已提交到后端运行（run_id=${runId}）`);
+          get().addNotification('success', t('store.experimentSubmitted', { name: experimentName, runId }));
           // If backend returned immediate node mapping, apply it; otherwise try to fetch experiment details
             try {
             const mapping = (runRes && (runRes as any).node_mapping) || null;
@@ -3406,7 +3381,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
                             const nodesMapped = mapGraphToNodes(graph);
                             set({ nodes: nodesMapped });
                           }
-                          get().addNotification('success', `实验 ${experimentName} 已完成（run ${found.status}）`);
+                          get().addNotification('success', t('store.experimentCompleted', { name: experimentName, status: found.status }));
                         } catch (e) {
                           console.warn('刷新树失败', e);
                         }
@@ -3424,7 +3399,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
           }
         } catch (e) {
           console.error(e);
-          get().addNotification('error', '启动实验失败');
+          get().addNotification('error', t('store.failedToStartExperiment'));
         }
       })();
       return;
@@ -3463,7 +3438,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
         selectedNodeId: newNodes[0].id
       };
     });
-    get().addNotification('success', `批量实验 "${experimentName}" 已启动`);
+    get().addNotification('success', t('store.batchExperimentStarted', { name: experimentName }));
   },
 
   generateComparisonAnalysis: async () => {
@@ -3477,7 +3452,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
         const nodeA = Number(state.selectedNodeId);
         const nodeB = Number(state.compareTargetNodeId);
         if (!Number.isFinite(nodeA) || !Number.isFinite(nodeB)) {
-          get().addNotification('error', '选中的节点不是后端节点');
+          get().addNotification('error', t('store.selectedNodeNotBackend'));
           set({ isGenerating: false });
           return;
         }
@@ -3491,7 +3466,7 @@ export const useSimulationStore = create<AppState>((set, get) => ({
       } catch (e) {
         console.error(e);
         set({ isGenerating: false });
-        get().addNotification('error', '比较分析失败');
+        get().addNotification('error', t('store.comparisonAnalysisFailed'));
       }
       return;
     }

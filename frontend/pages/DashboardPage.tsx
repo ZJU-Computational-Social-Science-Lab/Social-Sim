@@ -86,7 +86,7 @@ export function DashboardPage() {
               <Link key={simulation.id} to={`/simulations/${simulation.id}`} className="card" style={{ margin: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-                    <div style={{ fontWeight: 600 }}>Simulation #{simulation.id}</div>
+                    <div style={{ fontWeight: 600 }}>{t('dashboard.simulationId', { id: simulation.id })}</div>
                     <div style={{ color: 'var(--muted)' }}>{formatSceneName(scenesQuery.data, simulation.scene_type)}</div>
                   </div>
                 </div>

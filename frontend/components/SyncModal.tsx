@@ -1,8 +1,10 @@
 import React from 'react';
 import { useSimulationStore } from '../store';
+import { useTranslation } from 'react-i18next';
 import { X, DownloadCloud, Loader2 } from 'lucide-react';
 
 export const SyncModal: React.FC = () => {
+  const { t } = useTranslation();
   const isOpen = useSimulationStore((s) => s.isSyncModalOpen);
   const close = useSimulationStore((s) => s.closeSyncModal);
   const sync = useSimulationStore((s) => s.syncCurrentSimulation);
@@ -17,7 +19,7 @@ export const SyncModal: React.FC = () => {
         <div className="flex items-center justify-between px-4 py-3 border-b">
           <div className="flex items-center gap-2">
             <DownloadCloud />
-            <div className="font-bold">手动同步到后端</div>
+            <div className="font-bold">{t('components.syncModal.title')}</div>
           </div>
           <div className="flex items-center gap-2">
             <button className="text-sm text-slate-500 hover:text-slate-700" onClick={() => { if (!isSyncing) close(); }}>
@@ -27,9 +29,9 @@ export const SyncModal: React.FC = () => {
         </div>
 
         <div className="p-4 flex-1 overflow-auto">
-          <div className="text-sm text-slate-600 mb-3">同步日志：</div>
+          <div className="text-sm text-slate-600 mb-3">{t('components.syncModal.syncLogs')}</div>
           <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-3">
-            操作会将当前仿真覆盖保存到后端同名记录，不会再自动创建草稿，请确认后再执行。
+            {t('components.syncModal.warningMessage')}
           </div>
           <div className="bg-slate-100 rounded p-3 h-64 overflow-auto font-mono text-xs">
             {(logs && logs.length) ? (
@@ -39,7 +41,7 @@ export const SyncModal: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div className="text-slate-400">暂无日志，点击下方按钮开始同步。</div>
+              <div className="text-slate-400">{t('components.syncModal.noLogsYet')}</div>
             )}
           </div>
         </div>
@@ -51,13 +53,13 @@ export const SyncModal: React.FC = () => {
                 const text = (logs || []).join('\n');
                 navigator.clipboard.writeText(text || '');
                 // small visual feedback
-                alert('已复制同步日志到剪贴板');
+                alert(t('components.syncModal.copiedToClipboard'));
               } catch (e) {
-                alert('复制失败');
+                alert(t('components.syncModal.copyFailed'));
               }
             }}
             className="px-3 py-2 rounded border text-sm"
-          >复制日志</button>
+          >{t('components.syncModal.copyLogs')}</button>
           <button
             onClick={() => {
               const content = (logs || []).join('\n');
@@ -72,11 +74,11 @@ export const SyncModal: React.FC = () => {
               URL.revokeObjectURL(url);
             }}
             className="px-3 py-2 rounded border text-sm"
-          >下载日志</button>
+          >{t('components.syncModal.downloadLogs')}</button>
           <button
             onClick={() => {
               if (isSyncing) return;
-              const ok = window.confirm('确认将当前仿真保存到后端？这会覆盖同名记录。');
+              const ok = window.confirm(t('components.syncModal.confirmSaveBackend'));
               if (!ok) return;
               sync();
             }}
@@ -84,12 +86,12 @@ export const SyncModal: React.FC = () => {
             disabled={isSyncing}
           >
             {isSyncing ? (
-              <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={14} /> 同步中...</span>
+              <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={14} /> {t('components.syncModal.syncing')}</span>
             ) : (
-              <span className="flex items-center gap-2"><DownloadCloud size={14} /> 开始同步</span>
+              <span className="flex items-center gap-2"><DownloadCloud size={14} /> {t('components.syncModal.startSync')}</span>
             )}
           </button>
-          <button onClick={() => { if (!isSyncing) close(); }} className="px-4 py-2 rounded border text-sm">关闭</button>
+          <button onClick={() => { if (!isSyncing) close(); }} className="px-4 py-2 rounded border text-sm">{t('components.syncModal.close')}</button>
         </div>
       </div>
     </div>
