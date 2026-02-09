@@ -1102,6 +1102,37 @@
     }
   },
   "store": {
+    "agents": {
+      "chairman": "Chairman",
+      "councilor": "Councilor",
+      "councilProfile": "A council member responsible for urban planning and resource allocation decisions.",
+      "judge": "Judge",
+      "seer": "Seer",
+      "witch": "Witch",
+      "hunter": "Hunter",
+      "werewolf": "Werewolf",
+      "villager": "Villager",
+      "player": "Player",
+      "roleIs": "Role is",
+      "alice": "Alice",
+      "bob": "Bob",
+      "mayor": "Mayor",
+      "merchant": "Merchant",
+      "aliceProfile": "A pragmatic leader focused on village stability. Prioritizes consensus but can appear indecisive at times.",
+      "bobProfile": "An ambitious merchant who puts profit first. Often advocates for deregulation."
+    },
+    "properties": {
+      "influence": "Influence",
+      "tendency": "Tendency",
+      "conservative": "Conservative",
+      "radical": "Radical",
+      "pressure": "Pressure",
+      "alive": "Alive",
+      "suspicion": "Suspicion",
+      "trust": "Trust",
+      "stress": "Stress",
+      "money": "Money"
+    },
     "failedToGenerateSummary": "Failed to generate summary",
     "noApiKey": "No API Key",
     "councilMember": "Council Member",

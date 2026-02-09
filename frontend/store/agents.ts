@@ -19,6 +19,7 @@ export interface AgentsSlice {
   initialEvents: InitialEventItem[];
 
   // Agent actions
+  setAgents: (agents: Agent[]) => void;
   updateAgentProperty: (agentId: string, property: string, value: any) => void;
   updateAgentProfile: (agentId: string, profile: string) => void;
 
@@ -42,6 +43,8 @@ export const createAgentsSlice: StateCreator<
   initialEvents: [],
 
   // Agent actions
+  setAgents: (agents) => set({ agents }),
+
   updateAgentProperty: (agentId, property, value) => {
     set((state) => ({
       agents: state.agents.map((a) => {

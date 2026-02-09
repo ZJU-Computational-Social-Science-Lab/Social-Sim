@@ -453,12 +453,14 @@ export const SimulationWizard: React.FC = () => {
         archetypes.forEach(a => {
           archetypeProbs[a.id] = a.probability;
         });
+        // Get current language from i18n
+        const currentLang = (i18n.language || 'en').toLowerCase().startsWith('zh') ? 'zh' : 'en';
         agents = await generateAgentsWithDemographics(
           genCount,
           demographics.map(d => ({ name: d.name, categories: d.categories })),
           archetypeProbs,
           traits.map(tr => ({ name: tr.name, mean: tr.mean, std: tr.std })),
-          'zh',
+          currentLang,
           selectedProviderId ?? undefined
         );
       } else {

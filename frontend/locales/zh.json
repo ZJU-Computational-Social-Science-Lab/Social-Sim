@@ -1102,6 +1102,37 @@
     }
   },
   "store": {
+    "agents": {
+      "chairman": "议长",
+      "councilor": "议员",
+      "councilProfile": "议会成员，负责决策城市规划与资源分配。",
+      "judge": "法官",
+      "seer": "预言家",
+      "witch": "女巫",
+      "hunter": "猎人",
+      "werewolf": "狼人",
+      "villager": "平民",
+      "player": "玩家",
+      "roleIs": "本局游戏身份为",
+      "alice": "爱丽丝村长",
+      "bob": "鲍勃商人",
+      "mayor": "村长",
+      "merchant": "商人",
+      "aliceProfile": "一位务实的领导者，专注于村庄的稳定。她优先考虑共识，但有时会显得优柔寡断。",
+      "bobProfile": "一个雄心勃勃的商人，唯利是图。他经常推动放松管制。"
+    },
+    "properties": {
+      "influence": "影响力",
+      "tendency": "倾向",
+      "conservative": "保守",
+      "radical": "激进",
+      "pressure": "压力值",
+      "alive": "存活状态",
+      "suspicion": "嫌疑度",
+      "trust": "信任值",
+      "stress": "压力值",
+      "money": "资金"
+    },
     "failedToGenerateSummary": "未能生成摘要",
     "noApiKey": "无 API 密钥",
     "councilMember": "议会成员",

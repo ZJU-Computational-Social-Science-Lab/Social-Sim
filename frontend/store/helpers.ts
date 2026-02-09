@@ -819,3 +819,16 @@ export const SYSTEM_TEMPLATES: SimulationTemplate[] = [
     }
   }
 ];
+
+// Default export for dynamic imports (used by tests)
+export default {
+  SYSTEM_TEMPLATES,
+  addTime,
+  formatWorldTime,
+  generateNodes,
+  mapGraphToNodes,
+  generateAgentsWithAI,
+  generateAgentsWithDemographics,
+  mapBackendEventsToLogs,
+  fetchEnvironmentSuggestions
+};
