@@ -326,7 +326,8 @@
       "attributes": "初始属性",
       "uploadCsvJson": "点击上传 CSV 或 JSON",
       "requiredFields": "必填字段：agent_name, agent_description；其余列将作为属性保留",
-      "parsedAgents": "已解析 {{count}} 个智能体"
+      "parsedAgents": "已解析 {{count}} 个智能体",
+      "noAgentsGenerated": "尚未生成智能体。点击【开始生成】按钮创建智能体。"
     },
     "step3": {
       "ready": "准备就绪",

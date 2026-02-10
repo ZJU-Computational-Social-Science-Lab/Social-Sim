@@ -326,7 +326,8 @@
       "attributes": "Attributes",
       "uploadCsvJson": "Click to upload CSV or JSON",
       "requiredFields": "Required fields: agent_name, agent_description; other columns will be preserved as attributes",
-      "parsedAgents": "Parsed {{count}} agents"
+      "parsedAgents": "Parsed {{count}} agents",
+      "noAgentsGenerated": "No agents generated yet. Click 'Start Generating' to create agents."
     },
     "step3": {
       "ready": "Ready",

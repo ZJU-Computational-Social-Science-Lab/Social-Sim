@@ -7,19 +7,19 @@ from litestar.exceptions import HTTPException
 from litestar.connection import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...core.database import get_session
+from socialsim4.backend.core.database import get_session
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from .simulations import _get_simulation_and_tree_any, _broadcast
-from ...models.simulation import Simulation
-from ...models.user import ProviderConfig
-from ...models.llm_usage import LLMUsage
-from ...services.experiment_runner import (
+from socialsim4.backend.api.routes.simulations.helpers import get_simulation_and_tree_any, broadcast_tree_event
+from socialsim4.backend.models.simulation import Simulation
+from socialsim4.backend.models.user import ProviderConfig
+from socialsim4.backend.models.llm_usage import LLMUsage
+from socialsim4.backend.services.experiment_runner import (
     EXPERIMENT_REGISTRY,
     create_experiment_db,
     start_experiment_run_background,
 )
-from ...models.experiment import Experiment
+from socialsim4.backend.models.experiment import Experiment
 
 
 class VariantSpec(BaseModel):
@@ -47,7 +47,7 @@ class CompareRequest(BaseModel):
 @post("/{simulation_id:str}/experiments")
 async def create_experiment(request: Request, simulation_id: str, data: CreateExperimentRequest) -> dict:
     async with get_session() as session:  # validate simulation exists and tree built
-        await _get_simulation_and_tree_any(session, simulation_id)
+        await get_simulation_and_tree_any(session, simulation_id)
     # persist experiment to DB
     # coerce base_node to int (floor) to tolerate frontend float inputs like 2.1
     exp_id = await create_experiment_db(simulation_id, int(data.base_node), data.name, None, [v.dict() for v in data.variants])
@@ -57,9 +57,9 @@ async def create_experiment(request: Request, simulation_id: str, data: CreateEx
 @post("/{simulation_id:str}/experiments/{exp_id:str}/run")
 async def run_experiment(request: Request, simulation_id: str, exp_id: str, data: RunExperimentRequest) -> dict:
     async with get_session() as session:
-        _, record = await _get_simulation_and_tree_any(session, simulation_id)
+        _, record = await get_simulation_and_tree_any(session, simulation_id)
         # broadcast run starts for visibility
-        _broadcast(record, {"type": "experiment_run_start", "data": {"experiment": exp_id}})
+        broadcast_tree_event(record, {"type": "experiment_run_start", "data": {"experiment": exp_id}})
     # start background run (Celery if configured)
     run_id = await start_experiment_run_background(simulation_id, exp_id, int(data.turns))
     # attempt to return any already-assigned variant->node mapping if available
@@ -77,15 +77,15 @@ async def run_experiment(request: Request, simulation_id: str, exp_id: str, data
 
     res = {"run_id": run_id, "node_mapping": node_mapping}
     async with get_session() as session:
-        _, record = await _get_simulation_and_tree_any(session, simulation_id)
-        _broadcast(record, {"type": "experiment_run_finish", "data": {"experiment": exp_id, "nodes": res.get("finished", [])}})
+        _, record = await get_simulation_and_tree_any(session, simulation_id)
+        broadcast_tree_event(record, {"type": "experiment_run_finish", "data": {"experiment": exp_id, "nodes": res.get("finished", [])}})
     return res
 
 
 @get("/{simulation_id:str}/experiments")
 async def list_experiments(request: Request, simulation_id: str) -> dict:
     async with get_session() as session:
-        await _get_simulation_and_tree_any(session, simulation_id)
+        await get_simulation_and_tree_any(session, simulation_id)
         result = await session.execute(
             select(Experiment).where(Experiment.simulation_id == simulation_id.upper())
         )
@@ -106,7 +106,7 @@ async def list_experiments(request: Request, simulation_id: str) -> dict:
 @get("/{simulation_id:str}/experiments/{exp_id:str}")
 async def get_experiment(request: Request, simulation_id: str, exp_id: str) -> dict:
     async with get_session() as session:
-        await _get_simulation_and_tree_any(session, simulation_id)
+        await get_simulation_and_tree_any(session, simulation_id)
         # Eager-load variants and runs to avoid lazy-loading outside session
         stmt = select(Experiment).options(selectinload(Experiment.variants), selectinload(Experiment.runs)).where(Experiment.id == exp_id)
         res = await session.execute(stmt)
@@ -147,7 +147,7 @@ async def compare_nodes(request: Request, simulation_id: str, data: dict) -> dic
         raise HTTPException(status_code=400, detail="Invalid node id(s); must be integers")
 
     async with get_session() as session:
-        sim, record = await _get_simulation_and_tree_any(session, simulation_id)
+        sim, record = await get_simulation_and_tree_any(session, simulation_id)
         tree = record.tree
 
     a = tree.nodes.get(int(node_a))
