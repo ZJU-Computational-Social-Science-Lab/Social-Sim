@@ -153,6 +153,9 @@ claude.md
 docs/plans/
 *.md.design
 DESIGN.md
+REFACTORING_PLAN.md
+*.plan.md
+planning/
 
 # Git worktrees for parallel development
 .worktrees/

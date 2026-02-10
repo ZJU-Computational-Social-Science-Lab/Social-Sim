@@ -43,7 +43,7 @@ export function LoginPage() {
       const redirectTo = location.state?.from?.pathname ?? "/dashboard";
       navigate(redirectTo, { replace: true });
     } catch (err) {
-      setError("Invalid credentials");
+      setError(t('auth.login.invalid'));
     } finally {
       setLoading(false);
     }

@@ -230,9 +230,9 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
           <div className="flex items-center justify-between">
             <h4 className="font-bold text-slate-800 truncate">{agent.name}</h4>
             {/* #10 Model Badge */}
-            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border ${getModelBadgeStyle(agent.llmConfig?.provider || 'default')}`} title={`Model: ${agent.llmConfig?.model}`}>
+            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border ${getModelBadgeStyle(agent.llmConfig?.provider || 'default')}`} title={`${t('components.agentPanel.modelTooltip')} ${agent.llmConfig?.model}`}>
               <Bot size={10} />
-              <span className="font-mono">{agent.llmConfig?.model || 'Auto'}</span>
+              <span className="font-mono">{agent.llmConfig?.model || t('components.agentPanel.auto')}</span>
             </div>
           </div>
           <span className="inline-block mt-1 px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full border border-slate-200">

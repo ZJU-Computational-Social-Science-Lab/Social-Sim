@@ -83,6 +83,20 @@
     },
     "providers": {
       "title": "提供商集成",
+      "type": {
+        "openai": "OpenAI 兼容",
+        "gemini": "Gemini"
+      },
+      "searchEngine": {
+        "ddg": "DuckDuckGo",
+        "serpapi": "SerpAPI",
+        "serper": "Serper",
+        "tavily": "Tavily"
+      },
+      "modelNote": {
+        "goodDefault": "适合智能体回合和批量操作的良好默认值",
+        "fastLongContext": "快速且具有长上下文，适合综合处理"
+      },
       "add": "新增提供商",
       "llmTab": "LLM 提供商",
       "searchTab": "搜索提供商",
@@ -185,6 +199,16 @@
     "allowedActions": "可选动作",
     "emotionEnabled": "启用情绪功能",
     "emotionHint": "开启后，智能体每回合会输出情绪更新。",
+    "sceneType": {
+      "village": "乡村",
+      "council": "议事会",
+      "werewolf": "狼人杀"
+    },
+    "timeConfig": {
+      "startTime": "起始时间",
+      "unit": "时间单位",
+      "step": "步长"
+    },
     "timeUnits": {
       "minute": "分钟",
       "hour": "小时",
@@ -346,6 +370,27 @@
     "tabs": {
       "age": "年龄",
       "location": "地区"
+    },
+    "defaults": {
+      "citizen": "公民",
+      "customTemplate": "自定义模板",
+      "provider": "提供商",
+      "traits": {
+        "trust": "信任度",
+        "empathy": "同理心",
+        "assertiveness": "果断性"
+      },
+      "categories": {
+        "urban": "城市",
+        "suburban": "郊区",
+        "rural": "乡村"
+      },
+      "newCategory": "新类别",
+      "ageRanges": {
+        "young": "18-30岁",
+        "middle": "31-50岁",
+        "senior": "51岁以上"
+      }
     }
   },
   "templateBuilder": {
@@ -638,6 +683,8 @@
   },
   "components": {
     "agentPanel": {
+      "modelTooltip": "模型：",
+      "auto": "自动",
       "noSimulationId": "无模拟 ID",
       "fileTooLarge": "文件过大。最大大小：10MB",
       "uploadFailed": "上传失败",
@@ -664,6 +711,7 @@
       "shortTermMemory": "短期记忆"
     },
     "copyButton": {
+      "copy": "复制",
       "copied": "已复制"
     },
     "comparisonView": {
@@ -690,6 +738,29 @@
       "generateAgents": "生成智能体"
     },
     "environmentSuggestion": {
+      "eventsAvailable": "环境事件可用",
+      "suggestionsTitle": "环境事件建议",
+      "suggestionsDescription": "基于最近的模拟活动，以下是可能发生的环境事件：",
+      "generating": "正在生成建议...",
+      "eventType": {
+        "weather": "天气",
+        "emergency": "紧急情况",
+        "notification": "通知",
+        "opinion": "公众舆论"
+      },
+      "severity": {
+        "mild": "轻微",
+        "moderate": "中度",
+        "severe": "严重"
+      },
+      "apply": "应用",
+      "skipAll": "全部跳过",
+      "dismissAll": "忽略所有建议",
+      "toggle": {
+        "enable": "启用动态环境事件",
+        "disable": "禁用动态环境事件"
+      },
+      "dynamicEvents": "动态事件",
       "publicOpinion": "公众舆论",
       "disableDynamicEvents": "禁用动态环境事件",
       "enableDynamicEvents": "启用动态环境事件"
@@ -845,7 +916,8 @@
     },
     "logViewer": {
       "environment": "环境",
-      "logAttachment": "日志附件"
+      "logAttachment": "日志附件",
+      "fullSize": "完整尺寸"
     },
     "multimodalInput": {
       "cropAndUploadSuccess": "裁剪并上传成功",

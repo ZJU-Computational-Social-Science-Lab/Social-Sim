@@ -62,7 +62,7 @@ export function NavBar() {
           type="button"
           className="icon-button"
           onClick={toggle}
-          title="Toggle theme"
+          title={t('components.navBar.toggleTheme')}
         >
           {mode === "dark" ? "🌙" : "☀️"}
         </button>

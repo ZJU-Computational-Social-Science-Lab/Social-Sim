@@ -24,59 +24,59 @@ interface TemplateBuilderProps {
 }
 
 const TIME_UNITS: { value: TimeUnit; label: string }[] = [
-  { value: 'minute', label: 'Minutes' },
-  { value: 'hour', label: 'Hours' },
-  { value: 'day', label: 'Days' },
-  { value: 'week', label: 'Weeks' },
-  { value: 'month', label: 'Months' },
-  { value: 'year', label: 'Years' }
+  { value: 'minute', label: '' },
+  { value: 'hour', label: '' },
+  { value: 'day', label: '' },
+  { value: 'week', label: '' },
+  { value: 'month', label: '' },
+  { value: 'year', label: '' }
 ];
 
 const CORE_MECHANIC_DEFINITIONS: Record<CoreMechanicType, { name: string; description: string; configFields?: { key: string; label: string; type: 'text' | 'number' | 'boolean'; default: any }[] }> = {
   grid: {
-    name: 'Grid',
-    description: 'Agents exist on a spatial grid with movement and location-based interactions',
+    name: '',
+    description: '',
     configFields: [
-      { key: 'width', label: 'Grid Width', type: 'number', default: 10 },
-      { key: 'height', label: 'Grid Height', type: 'number', default: 10 },
-      { key: 'wrapAround', label: 'Wrap Around Edges', type: 'boolean', default: false }
+      { key: 'width', label: '', type: 'number', default: 10 },
+      { key: 'height', label: '', type: 'number', default: 10 },
+      { key: 'wrapAround', label: '', type: 'boolean', default: false }
     ]
   },
   discussion: {
-    name: 'Discussion',
-    description: 'Agents can participate in structured discussions with turn-taking',
+    name: '',
+    description: '',
     configFields: [
-      { key: 'maxTurns', label: 'Max Turns per Round', type: 'number', default: 3 },
-      { key: 'allowInterruption', label: 'Allow Interruptions', type: 'boolean', default: false }
+      { key: 'maxTurns', label: '', type: 'number', default: 3 },
+      { key: 'allowInterruption', label: '', type: 'boolean', default: false }
     ]
   },
   voting: {
-    name: 'Voting',
-    description: 'Agents can vote on proposals with configurable voting rules',
+    name: '',
+    description: '',
     configFields: [
-      { key: 'quorum', label: 'Quorum (%)', type: 'number', default: 50 },
-      { key: 'majority', label: 'Majority Required (%)', type: 'number', default: 51 }
+      { key: 'quorum', label: '', type: 'number', default: 50 },
+      { key: 'majority', label: '', type: 'number', default: 51 }
     ]
   },
   resources: {
-    name: 'Resources',
-    description: 'Agents have resources that can be gathered, traded, and consumed',
+    name: '',
+    description: '',
     configFields: [
-      { key: 'initialAmount', label: 'Initial Amount', type: 'number', default: 100 },
-      { key: 'renewable', label: 'Renewable Resources', type: 'boolean', default: true }
+      { key: 'initialAmount', label: '', type: 'number', default: 100 },
+      { key: 'renewable', label: '', type: 'boolean', default: true }
     ]
   },
   hierarchy: {
-    name: 'Hierarchy',
-    description: 'Agents exist in a hierarchical structure with authority levels',
+    name: '',
+    description: '',
     configFields: [
-      { key: 'levels', label: 'Hierarchy Levels', type: 'number', default: 3 },
-      { key: 'enforceChain', label: 'Enforce Chain of Command', type: 'boolean', default: true }
+      { key: 'levels', label: '', type: 'number', default: 3 },
+      { key: 'enforceChain', label: '', type: 'boolean', default: true }
     ]
   },
   time: {
-    name: 'Time',
-    description: 'Time progression with configurable units and steps',
+    name: '',
+    description: '',
     configFields: []
   }
 };
@@ -342,7 +342,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                       onChange={() => toggleCoreMechanic(type as CoreMechanicType)}
                       className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
                     />
-                    <span className="font-medium text-sm text-slate-700">{def.name}</span>
+                    <span className="font-medium text-sm text-slate-700">{t(`templateBuilder.mechanics.${type}`)}</span>
                   </div>
                   <button
                     onClick={() => setExpandedMechanic(expandedMechanic === type ? null : type as CoreMechanicType)}
@@ -351,39 +351,54 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                     {expandedMechanic === type ? '▲' : '▼'}
                   </button>
                 </div>
-                <p className="text-xs text-slate-500 mb-2">{def.description}</p>
+                <p className="text-xs text-slate-500 mb-2">{t(`templateBuilder.mechanics.${type}Description`)}</p>
 
                 {isEnabled && expandedMechanic === type && def.configFields && (
                   <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
-                    {def.configFields.map(field => (
-                      <div key={field.key}>
-                        <label className="block text-xs text-slate-600 mb-1">{field.label}</label>
-                        {field.type === 'boolean' ? (
-                          <select
-                            value={mechanic?.config[field.key]?.toString() || field.default.toString()}
-                            onChange={(e) => updateCoreMechanicConfig(type as CoreMechanicType, field.key, e.target.value === 'true')}
-                            className="w-full px-2 py-1 border border-slate-200 rounded text-sm"
-                          >
-                            <option value="true">{t('common.yes', { defaultValue: 'Yes' })}</option>
-                            <option value="false">{t('common.no', { defaultValue: 'No' })}</option>
-                          </select>
-                        ) : field.type === 'number' ? (
-                          <input
-                            type="number"
-                            value={mechanic?.config[field.key] ?? field.default}
-                            onChange={(e) => updateCoreMechanicConfig(type as CoreMechanicType, field.key, parseFloat(e.target.value) || 0)}
-                            className="w-full px-2 py-1 border border-slate-200 rounded text-sm"
-                          />
-                        ) : (
-                          <input
-                            type="text"
-                            value={mechanic?.config[field.key] || ''}
-                            onChange={(e) => updateCoreMechanicConfig(type as CoreMechanicType, field.key, e.target.value)}
-                            className="w-full px-2 py-1 border border-slate-200 rounded text-sm"
-                          />
-                        )}
-                      </div>
-                    ))}
+                    {def.configFields.map((field, index) => {
+                      const labelKey = `templateBuilder.configFields.${{
+                        width: 'gridWidth',
+                        height: 'gridHeight',
+                        wrapAround: 'wrapAround',
+                        maxTurns: 'maxTurns',
+                        allowInterruption: 'allowInterruption',
+                        quorum: 'quorum',
+                        majority: 'majority',
+                        initialAmount: 'initialAmount',
+                        renewable: 'renewable',
+                        levels: 'levels',
+                        enforceChain: 'enforceChain'
+                      }[field.key] || field.key}`;
+                      return (
+                        <div key={field.key}>
+                          <label className="block text-xs text-slate-600 mb-1">{t(labelKey)}</label>
+                          {field.type === 'boolean' ? (
+                            <select
+                              value={mechanic?.config[field.key]?.toString() || field.default.toString()}
+                              onChange={(e) => updateCoreMechanicConfig(type as CoreMechanicType, field.key, e.target.value === 'true')}
+                              className="w-full px-2 py-1 border border-slate-200 rounded text-sm"
+                            >
+                              <option value="true">{t('common.yes', { defaultValue: 'Yes' })}</option>
+                              <option value="false">{t('common.no', { defaultValue: 'No' })}</option>
+                            </select>
+                          ) : field.type === 'number' ? (
+                            <input
+                              type="number"
+                              value={mechanic?.config[field.key] ?? field.default}
+                              onChange={(e) => updateCoreMechanicConfig(type as CoreMechanicType, field.key, parseFloat(e.target.value) || 0)}
+                              className="w-full px-2 py-1 border border-slate-200 rounded text-sm"
+                            />
+                          ) : (
+                            <input
+                              type="text"
+                              value={mechanic?.config[field.key] || ''}
+                              onChange={(e) => updateCoreMechanicConfig(type as CoreMechanicType, field.key, e.target.value)}
+                              className="w-full px-2 py-1 border border-slate-200 rounded text-sm"
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -551,7 +566,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
               >
                 {TIME_UNITS.map(u => (
-                  <option key={u.value} value={u.value}>{u.label}</option>
+                  <option key={u.value} value={u.value}>{t(`wizard.timeUnits.${u.value}`)}</option>
                 ))}
               </select>
             </div>

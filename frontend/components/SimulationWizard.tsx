@@ -91,7 +91,7 @@ const generateArchetypes = (demographics: Demographic[]): Archetype[] => {
 };
 
 export const SimulationWizard: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isOpen = useSimulationStore((state) => state.isWizardOpen);
   const toggleWizard = useSimulationStore((state) => state.toggleWizard);
   const addSimulation = useSimulationStore((state) => state.addSimulation);
@@ -141,9 +141,9 @@ export const SimulationWizard: React.FC = () => {
   const [demographics, setDemographics] = useState<Demographic[]>([]);
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
   const [traits, setTraits] = useState<TraitConfig[]>([
-    { id: generateId(), name: 'Trust', mean: 50, std: 15 },
-    { id: generateId(), name: 'Empathy', mean: 50, std: 15 },
-    { id: generateId(), name: 'Assertiveness', mean: 50, std: 15 }
+    { id: generateId(), name: t('wizard.defaults.traits.trust'), mean: 50, std: 15 },
+    { id: generateId(), name: t('wizard.defaults.traits.empathy'), mean: 50, std: 15 },
+    { id: generateId(), name: t('wizard.defaults.traits.assertiveness'), mean: 50, std: 15 }
   ]);
 
   // 打开向导时加载 provider 列表
@@ -153,8 +153,16 @@ export const SimulationWizard: React.FC = () => {
       // Initialize demographics on open
       if (demographics.length === 0) {
         setDemographics([
-          { id: generateId(), name: t('wizard.tabs.age'), categories: ['18-30', '31-50', '51+'] },
-          { id: generateId(), name: t('wizard.tabs.location'), categories: ['Urban', 'Suburban', 'Rural'] }
+          { id: generateId(), name: t('wizard.tabs.age'), categories: [
+            t('wizard.defaults.ageRanges.young'),
+            t('wizard.defaults.ageRanges.middle'),
+            t('wizard.defaults.ageRanges.senior')
+          ] },
+          { id: generateId(), name: t('wizard.tabs.location'), categories: [
+            t('wizard.defaults.categories.urban'),
+            t('wizard.defaults.categories.suburban'),
+            t('wizard.defaults.categories.rural')
+          ] }
         ]);
       }
       // Set default description if empty
@@ -164,6 +172,30 @@ export const SimulationWizard: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, loadProviders]);
+
+  // Update demographics when language changes
+  useEffect(() => {
+    if (demographics.length >= 2) {
+      setDemographics([
+        { id: demographics[0].id, name: t('wizard.tabs.age'), categories: [
+          t('wizard.defaults.ageRanges.young'),
+          t('wizard.defaults.ageRanges.middle'),
+          t('wizard.defaults.ageRanges.senior')
+        ] },
+        { id: demographics[1].id, name: t('wizard.tabs.location'), categories: [
+          t('wizard.defaults.categories.urban'),
+          t('wizard.defaults.categories.suburban'),
+          t('wizard.defaults.categories.rural')
+        ] }
+      ]);
+    }
+    // Update traits when language changes
+    setTraits([
+      { id: traits[0]?.id || generateId(), name: t('wizard.defaults.traits.trust'), mean: 50, std: 15 },
+      { id: traits[1]?.id || generateId(), name: t('wizard.defaults.traits.empathy'), mean: 50, std: 15 },
+      { id: traits[2]?.id || generateId(), name: t('wizard.defaults.traits.assertiveness'), mean: 50, std: 15 }
+    ]);
+  }, [i18n.language]);
 
   // 根据模板自动调整生成描述和数量
   useEffect(() => {
@@ -252,7 +284,7 @@ export const SimulationWizard: React.FC = () => {
     const templateToUse = useCustomTemplate
       ? {
           id: genericTemplate.id,
-          name: genericTemplate.name || 'Custom Template',
+          name: genericTemplate.name || t('wizard.defaults.customTemplate'),
           description: genericTemplate.description || '',
           category: 'custom' as const,
           sceneType: 'generic', // Indicates generic template
@@ -405,7 +437,7 @@ export const SimulationWizard: React.FC = () => {
           agents.push({
             id: row.id || `imported_${Date.now()}_${index}`,
             name,
-            role: row.role || 'Citizen',
+            role: row.role || t('wizard.defaults.citizen'),
             avatarUrl:
               row.avatarUrl ||
               `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
@@ -446,6 +478,9 @@ export const SimulationWizard: React.FC = () => {
     setIsGenerating(true);
     setImportError(null);
     try {
+      // Get current language from i18n (used by both modes)
+      const currentLang = (i18n.language || 'en').toLowerCase().startsWith('zh') ? 'zh' : 'en';
+
       let agents: Agent[];
       if (useDemographics) {
         // Use demographic-based generation
@@ -453,8 +488,6 @@ export const SimulationWizard: React.FC = () => {
         archetypes.forEach(a => {
           archetypeProbs[a.id] = a.probability;
         });
-        // Get current language from i18n
-        const currentLang = (i18n.language || 'en').toLowerCase().startsWith('zh') ? 'zh' : 'en';
         agents = await generateAgentsWithDemographics(
           genCount,
           demographics.map(d => ({ name: d.name, categories: d.categories })),
@@ -468,7 +501,8 @@ export const SimulationWizard: React.FC = () => {
         agents = await generateAgentsWithAI(
           genCount,
           genDesc,
-          selectedProviderId ?? undefined
+          selectedProviderId ?? null,
+          currentLang
         );
       }
       agents.forEach((a) => {
@@ -477,8 +511,9 @@ export const SimulationWizard: React.FC = () => {
       setCustomAgents(agents);
       addNotification('success', t('wizard.messages.generatedAgents', { count: agents.length }));
     } catch (e) {
-      console.error(e);
-      setImportError(t('wizard.messages.generationFailed'));
+      console.error('Agent generation error:', e);
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      setImportError(`${t('wizard.messages.generationFailed')}: ${errorMessage}`);
     } finally {
       setIsGenerating(false);
     }
@@ -486,7 +521,7 @@ export const SimulationWizard: React.FC = () => {
 
   // Demographic management handlers
   const handleAddDemographic = () => {
-    setDemographics([...demographics, { id: generateId(), name: '', categories: [] }]);
+    setDemographics([...demographics, { id: generateId(), name: t('wizard.defaults.newCategory'), categories: [] }]);
   };
 
   const handleRemoveDemographic = (id: string) => {
@@ -518,7 +553,7 @@ export const SimulationWizard: React.FC = () => {
   const handleAddCategory = (demoId: string) => {
     setDemographics(demographics.map(d => {
       if (d.id === demoId) {
-        return { ...d, categories: [...d.categories, 'New Category'] };
+        return { ...d, categories: [...d.categories, t('wizard.defaults.newCategory')] };
       }
       return d;
     }));
@@ -535,7 +570,7 @@ export const SimulationWizard: React.FC = () => {
 
   // Trait management handlers
   const handleAddTrait = () => {
-    setTraits([...traits, { id: generateId(), name: `Trait ${traits.length + 1}`, mean: 50, std: 15 }]);
+    setTraits([...traits, { id: generateId(), name: `${t('wizard.defaults.traits.trust')} ${traits.length + 1}`, mean: 50, std: 15 }]);
   };
 
   const handleRemoveTrait = (id: string) => {
@@ -650,7 +685,7 @@ export const SimulationWizard: React.FC = () => {
                   )}
                   {llmProviders.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {((p as any).name || (p as any).provider || 'Provider') +
+                      {((p as any).name || (p as any).provider || t('wizard.defaults.provider')) +
                         ((p as any).model ? ` · ${(p as any).model}` : '') +
                         ((p as any).base_url ? ` · ${(p as any).base_url}` : '')}
                     </option>
@@ -922,7 +957,7 @@ export const SimulationWizard: React.FC = () => {
                   )}
                   {llmProviders.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {((p as any).name || (p as any).provider || 'Provider') +
+                      {((p as any).name || (p as any).provider || t('wizard.defaults.provider')) +
                         ((p as any).model ? ` · ${(p as any).model}` : '') +
                         ((p as any).base_url ? ` · ${(p as any).base_url}` : '')}
                     </option>

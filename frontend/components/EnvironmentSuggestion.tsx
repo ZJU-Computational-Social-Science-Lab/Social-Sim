@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSimulationStore } from '../store';
 import { type EnvironmentSuggestion } from '../services/environmentSuggestions';
 import { Cloud, Loader2, X, CloudDrizzle, AlertTriangle, Megaphone, ToggleLeft, ToggleRight } from 'lucide-react';
@@ -15,13 +16,6 @@ const severityIcon = {
   severe: AlertTriangle,
 };
 
-const eventTypeLabels: Record<string, string> = {
-  weather: 'Weather',
-  emergency: 'Emergency',
-  notification: 'Notification',
-  opinion: 'Public Opinion',
-};
-
 const eventTypeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   weather: CloudDrizzle,
   emergency: AlertTriangle,
@@ -30,6 +24,7 @@ const eventTypeIcons: Record<string, React.ComponentType<{ className?: string }>
 };
 
 export const EnvironmentSuggestionIndicator: React.FC = () => {
+  const { t } = useTranslation();
   const environmentSuggestionsAvailable = useSimulationStore((s) => s.environmentSuggestionsAvailable);
   const checkEnvironmentSuggestions = useSimulationStore((s) => s.checkEnvironmentSuggestions);
   const generateEnvironmentSuggestions = useSimulationStore((s) => s.generateEnvironmentSuggestions);
@@ -53,7 +48,7 @@ export const EnvironmentSuggestionIndicator: React.FC = () => {
         className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 transition-colors"
       >
         <Cloud className="w-5 h-5" />
-        <span>Environment Events Available</span>
+        <span>{t('components.environmentSuggestion.eventsAvailable')}</span>
       </button>
     </div>
   );
@@ -64,6 +59,7 @@ interface EnvironmentSuggestionDialogProps {
 }
 
 export const EnvironmentSuggestionDialog: React.FC<EnvironmentSuggestionDialogProps> = ({ onClose }) => {
+  const { t } = useTranslation();
   const environmentSuggestions = useSimulationStore((s) => s.environmentSuggestions);
   const environmentSuggestionsLoading = useSimulationStore((s) => s.environmentSuggestionsLoading);
   const applyEnvironmentSuggestion = useSimulationStore((s) => s.applyEnvironmentSuggestion);
@@ -85,7 +81,7 @@ export const EnvironmentSuggestionDialog: React.FC<EnvironmentSuggestionDialogPr
         <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
           <div className="flex items-center justify-center py-8">
             <Loader2 className="animate-spin h-8 w-8 text-indigo-600" />
-            <span className="ml-3 text-gray-600">Generating suggestions...</span>
+            <span className="ml-3 text-gray-600">{t('components.environmentSuggestion.generating')}</span>
           </div>
         </div>
       </div>
@@ -100,7 +96,7 @@ export const EnvironmentSuggestionDialog: React.FC<EnvironmentSuggestionDialogPr
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col">
         <div className="p-4 border-b flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Environmental Event Suggestions</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('components.environmentSuggestion.suggestionsTitle')}</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-500"
@@ -111,7 +107,7 @@ export const EnvironmentSuggestionDialog: React.FC<EnvironmentSuggestionDialogPr
 
         <div className="p-4 overflow-y-auto flex-1">
           <p className="text-sm text-gray-600 mb-4">
-            Based on recent simulation activity, here are some environmental events that could occur:
+            {t('components.environmentSuggestion.suggestionsDescription')}
           </p>
 
           <div className="space-y-3">
@@ -128,13 +124,13 @@ export const EnvironmentSuggestionDialog: React.FC<EnvironmentSuggestionDialogPr
                     <div className="flex items-center gap-2">
                       <IconComponent className="w-4 h-4" />
                       <span className="text-sm font-medium">
-                        {eventTypeLabels[suggestion.event_type] || suggestion.event_type}
+                        {t(`components.environmentSuggestion.eventType.${suggestion.event_type}`) || suggestion.event_type}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <SeverityIcon className="w-3 h-3" />
                       <span className="text-xs capitalize">
-                        {suggestion.severity}
+                        {t(`components.environmentSuggestion.severity.${suggestion.severity}`)}
                       </span>
                     </div>
                   </div>
@@ -145,13 +141,13 @@ export const EnvironmentSuggestionDialog: React.FC<EnvironmentSuggestionDialogPr
                       onClick={() => handleApply(suggestion)}
                       className="px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 transition-colors"
                     >
-                      Apply
+                      {t('components.environmentSuggestion.apply')}
                     </button>
                     <button
                       onClick={handleDismiss}
                       className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300 transition-colors"
                     >
-                      Skip All
+                      {t('components.environmentSuggestion.skipAll')}
                     </button>
                   </div>
                 </div>
@@ -165,7 +161,7 @@ export const EnvironmentSuggestionDialog: React.FC<EnvironmentSuggestionDialogPr
             onClick={handleDismiss}
             className="w-full px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
           >
-            Dismiss All Suggestions
+            {t('components.environmentSuggestion.dismissAll')}
           </button>
         </div>
       </div>
@@ -195,6 +191,7 @@ export const EnvironmentSuggestionDialogWrapper: React.FC = () => {
 
 // Toggle button to enable/disable dynamic environment suggestions
 export const EnvironmentToggleButton: React.FC<{ className?: string }> = ({ className = "" }) => {
+  const { t } = useTranslation();
   const environmentEnabled = useSimulationStore((s) => s.environmentEnabled);
   const toggleEnvironmentEnabled = useSimulationStore((s) => s.toggleEnvironmentEnabled);
 
@@ -206,10 +203,10 @@ export const EnvironmentToggleButton: React.FC<{ className?: string }> = ({ clas
           ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
           : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
       } ${className}`}
-      title={environmentEnabled ? 'Disable dynamic environment events' : 'Enable dynamic environment events'}
+      title={environmentEnabled ? t('components.environmentSuggestion.toggle.disable') : t('components.environmentSuggestion.toggle.enable')}
     >
       {environmentEnabled ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
-      <span>Dynamic Events</span>
+      <span>{t('components.environmentSuggestion.dynamicEvents')}</span>
     </button>
   );
 };

@@ -447,12 +447,16 @@ export const mapBackendEventsToLogs = (
 export const generateAgentsWithAI = async (
   count: number,
   description: string,
-  providerId?: number | null
+  providerId?: number | null,
+  language?: string
 ): Promise<Agent[]> => {
   const { apiClient } = await import('../services/client');
   const body: any = { count, description };
   if (providerId != null) {
     body.provider_id = providerId;
+  }
+  if (language) {
+    body.language = language;
   }
 
   const res = await apiClient.post("/llm/generate_agents", body);
@@ -462,12 +466,15 @@ export const generateAgentsWithAI = async (
     ? res.data.agents
     : [];
 
+  const fallbackRole = language === 'zh' ? "角色" : "Role";
+  const fallbackProfile = language === 'zh' ? "暂无描述" : "No description";
+
   return rawAgents.map((a: any, index: number) => ({
     id: a.id || `gen_${Date.now()}_${index}`,
     name: a.name,
-    role: a.role || "角色",
+    role: a.role || fallbackRole,
     avatarUrl: a.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || `agent_${index}`)}`,
-    profile: a.profile || "暂无描述",
+    profile: a.profile || fallbackProfile,
     llmConfig: { provider: a.provider || "backend", model: a.model || "default" },
     properties: a.properties || {},
     history: a.history || {},
@@ -502,12 +509,15 @@ export async function generateAgentsWithDemographics(
     ? res.data.agents
     : [];
 
+  const fallbackRole = language === 'zh' ? "角色" : "Role";
+  const fallbackProfile = language === 'zh' ? "暂无描述" : "No description";
+
   return rawAgents.map((a: any, index: number) => ({
     id: a.id || `gen_${Date.now()}_${index}`,
     name: a.name,
-    role: a.role || "角色",
+    role: a.role || fallbackRole,
     avatarUrl: a.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || `agent_${index}`)}`,
-    profile: a.profile || "暂无描述",
+    profile: a.profile || fallbackProfile,
     llmConfig: { provider: a.provider || "backend", model: a.model || "default" },
     properties: a.properties || {},
     history: a.history || {},

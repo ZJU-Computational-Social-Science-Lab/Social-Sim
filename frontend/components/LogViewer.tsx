@@ -70,9 +70,9 @@ const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: strin
           className="relative group cursor-pointer w-fit"
           onClick={() => setIsImageExpanded(true)}
         >
-          <img 
-            src={entry.imageUrl} 
-            alt="Log Attachment" 
+          <img
+            src={entry.imageUrl}
+            alt={t('components.logViewer.logAttachment')}
             className="max-h-48 rounded border border-slate-200 object-cover"
           />
           <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors rounded flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -86,7 +86,7 @@ const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: strin
              e.stopPropagation();
              setIsImageExpanded(false);
           }}>
-             <img src={entry.imageUrl} alt="Full Size" className="max-w-full max-h-full rounded shadow-2xl" />
+             <img src={entry.imageUrl} alt={t('components.logViewer.fullSize')} className="max-w-full max-h-full rounded shadow-2xl" />
              <button className="absolute top-4 right-4 text-white hover:text-slate-300">
                <X size={32} />
              </button>

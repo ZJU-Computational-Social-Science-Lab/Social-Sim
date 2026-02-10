@@ -12,14 +12,15 @@ import { Link2Icon, TrashIcon, FilePlusIcon, StarIcon, StarFilledIcon, EyeOpenIc
 
 type Tab = "profile" | "security" | "providers_llm" | "providers_search" | "files";
 
-const capabilityRows = [
+// Helper to get capability rows with translations
+const getCapabilityRows = (t: (key: string) => string) => [
   {
     model: "gpt-4o-mini",
     context: "128k",
     input: "$0.15 / 1M",
     output: "$0.60 / 1M",
     modalities: "Text, Image",
-    note: "Good default for agent turns and bulk actions",
+    note: "settings.providers.modelNote.goodDefault",
   },
   {
     model: "gpt-4o",
@@ -27,7 +28,7 @@ const capabilityRows = [
     input: "$5.00 / 1M",
     output: "$15.00 / 1M",
     modalities: "Text, Image, Audio",
-    note: "Higher quality, handles multimodal logs",
+    note: "settings.providers.modelNote.fastLongContext",
   },
   {
     model: "gemini-1.5-flash",
@@ -35,7 +36,7 @@ const capabilityRows = [
     input: "$0.35 / 1M",
     output: "$1.05 / 1M",
     modalities: "Text, Image, Audio",
-    note: "Fast with long context for synthesis",
+    note: "settings.providers.modelNote.fastLongContext",
   },
   {
     model: "gemini-1.5-pro",
@@ -43,7 +44,7 @@ const capabilityRows = [
     input: "$3.50 / 1M",
     output: "$10.50 / 1M",
     modalities: "Text, Image, Audio",
-    note: "Best quality, use sparingly",
+    note: "settings.providers.modelNote.goodDefault",
   },
 ];
 
@@ -350,8 +351,8 @@ export function SettingsPage() {
                 <AppSelect
                   value={providerDraft.provider}
                   options={[
-                    { value: 'openai', label: 'OpenAI-compatible' },
-                    { value: 'gemini', label: 'Gemini' },
+                    { value: 'openai', label: t('settings.providers.type.openai') },
+                    { value: 'gemini', label: t('settings.providers.type.gemini') },
                   ]}
                   onChange={(val) => setProviderDraft((prev) => ({ ...prev, provider: val, base_url: val === 'openai' ? 'https://api.openai.com/v1' : '' }))}
                   size="small"
@@ -412,7 +413,7 @@ export function SettingsPage() {
               <div className="panel-subtitle" style={{ margin: 0 }}>{t('settings.providers.capabilities.title')}</div>
               <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>{t('settings.providers.capabilities.hint')}</div>
               <div style={{ display: 'grid', gap: '0.5rem' }}>
-                {capabilityRows.map((row) => (
+                {getCapabilityRows(t).map((row) => (
                   <div key={row.model} style={{ border: '1px solid var(--border)', borderRadius: '10px', padding: '0.6rem 0.7rem', background: 'rgba(255,255,255,0.02)', display: 'grid', gap: '0.35rem' }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '0.6rem', flexWrap: 'wrap' }}>
                       <div style={{ minWidth: 0 }}>
@@ -432,7 +433,7 @@ export function SettingsPage() {
                       </div>
                     </div>
                     <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>
-                      {t('settings.providers.capabilities.note')}: {row.note}
+                      {t('settings.providers.capabilities.note')}: {t(row.note)}
                     </div>
                   </div>
                 ))}
@@ -462,10 +463,10 @@ export function SettingsPage() {
                   <AppSelect
                     value={searchDraft.provider}
                     options={[
-                      { value: "ddg", label: "DuckDuckGo" },
-                      { value: "serpapi", label: "SerpAPI" },
-                      { value: "serper", label: "Serper" },
-                      { value: "tavily", label: "Tavily" },
+                      { value: "ddg", label: t('settings.providers.searchEngine.ddg') },
+                      { value: "serpapi", label: t('settings.providers.searchEngine.serpapi') },
+                      { value: "serper", label: t('settings.providers.searchEngine.serper') },
+                      { value: "tavily", label: t('settings.providers.searchEngine.tavily') },
                       { value: "mock", label: "Mock" },
                     ]}
                     onChange={(val) => setSearchDraft((p) => ({ ...p, provider: val }))}
