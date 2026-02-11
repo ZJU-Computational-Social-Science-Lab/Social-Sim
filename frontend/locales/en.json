@@ -83,6 +83,20 @@
     },
     "providers": {
       "title": "Provider integrations",
+      "type": {
+        "openai": "OpenAI-compatible",
+        "gemini": "Gemini"
+      },
+      "searchEngine": {
+        "ddg": "DuckDuckGo",
+        "serpapi": "SerpAPI",
+        "serper": "Serper",
+        "tavily": "Tavily"
+      },
+      "modelNote": {
+        "goodDefault": "Good default for agent turns and bulk actions",
+        "fastLongContext": "Fast with long context for synthesis"
+      },
       "add": "Add provider",
       "llmTab": "LLM providers",
       "searchTab": "Search providers",
@@ -185,6 +199,16 @@
     "allowedActions": "Allowed actions",
     "emotionEnabled": "Enable emotion tracking",
     "emotionHint": "When enabled, agents emit emotion updates each turn.",
+    "sceneType": {
+      "village": "Village",
+      "council": "Council",
+      "werewolf": "Werewolf"
+    },
+    "timeConfig": {
+      "startTime": "Start Time",
+      "unit": "Unit",
+      "step": "Step"
+    },
     "timeUnits": {
       "minute": "Minutes",
       "hour": "Hours",
@@ -302,7 +326,8 @@
       "attributes": "Attributes",
       "uploadCsvJson": "Click to upload CSV or JSON",
       "requiredFields": "Required fields: agent_name, agent_description; other columns will be preserved as attributes",
-      "parsedAgents": "Parsed {{count}} agents"
+      "parsedAgents": "Parsed {{count}} agents",
+      "noAgentsGenerated": "No agents generated yet. Click 'Start Generating' to create agents."
     },
     "step3": {
       "ready": "Ready",
@@ -346,6 +371,27 @@
     "tabs": {
       "age": "Age",
       "location": "Location"
+    },
+    "defaults": {
+      "citizen": "Citizen",
+      "customTemplate": "Custom Template",
+      "provider": "Provider",
+      "traits": {
+        "trust": "Trust",
+        "empathy": "Empathy",
+        "assertiveness": "Assertiveness"
+      },
+      "categories": {
+        "urban": "Urban",
+        "suburban": "Suburban",
+        "rural": "Rural"
+      },
+      "newCategory": "New Category",
+      "ageRanges": {
+        "young": "18-30",
+        "middle": "31-50",
+        "senior": "51+"
+      }
     }
   },
   "templateBuilder": {
@@ -638,6 +684,8 @@
   },
   "components": {
     "agentPanel": {
+      "modelTooltip": "Model:",
+      "auto": "Auto",
       "noSimulationId": "No simulation ID",
       "fileTooLarge": "File too large. Max size: 10MB",
       "uploadFailed": "Upload failed",
@@ -664,6 +712,7 @@
       "shortTermMemory": "Short-term Memory"
     },
     "copyButton": {
+      "copy": "Copy",
       "copied": "Copied!"
     },
     "comparisonView": {
@@ -690,6 +739,29 @@
       "generateAgents": "Generate Agents"
     },
     "environmentSuggestion": {
+      "eventsAvailable": "Environment Events Available",
+      "suggestionsTitle": "Environmental Event Suggestions",
+      "suggestionsDescription": "Based on recent simulation activity, here are some environmental events that could occur:",
+      "generating": "Generating suggestions...",
+      "eventType": {
+        "weather": "Weather",
+        "emergency": "Emergency",
+        "notification": "Notification",
+        "opinion": "Public Opinion"
+      },
+      "severity": {
+        "mild": "Mild",
+        "moderate": "Moderate",
+        "severe": "Severe"
+      },
+      "apply": "Apply",
+      "skipAll": "Skip All",
+      "dismissAll": "Dismiss All Suggestions",
+      "toggle": {
+        "enable": "Enable dynamic environment events",
+        "disable": "Disable dynamic environment events"
+      },
+      "dynamicEvents": "Dynamic Events",
       "publicOpinion": "Public Opinion",
       "disableDynamicEvents": "Disable dynamic environment events",
       "enableDynamicEvents": "Enable dynamic environment events"
@@ -845,7 +917,8 @@
     },
     "logViewer": {
       "environment": "Environment",
-      "logAttachment": "Log Attachment"
+      "logAttachment": "Log Attachment",
+      "fullSize": "Full Size"
     },
     "multimodalInput": {
       "cropAndUploadSuccess": "Crop and upload successful",
@@ -1102,6 +1175,37 @@
     }
   },
   "store": {
+    "agents": {
+      "chairman": "Chairman",
+      "councilor": "Councilor",
+      "councilProfile": "A council member responsible for urban planning and resource allocation decisions.",
+      "judge": "Judge",
+      "seer": "Seer",
+      "witch": "Witch",
+      "hunter": "Hunter",
+      "werewolf": "Werewolf",
+      "villager": "Villager",
+      "player": "Player",
+      "roleIs": "Role is",
+      "alice": "Alice",
+      "bob": "Bob",
+      "mayor": "Mayor",
+      "merchant": "Merchant",
+      "aliceProfile": "A pragmatic leader focused on village stability. Prioritizes consensus but can appear indecisive at times.",
+      "bobProfile": "An ambitious merchant who puts profit first. Often advocates for deregulation."
+    },
+    "properties": {
+      "influence": "Influence",
+      "tendency": "Tendency",
+      "conservative": "Conservative",
+      "radical": "Radical",
+      "pressure": "Pressure",
+      "alive": "Alive",
+      "suspicion": "Suspicion",
+      "trust": "Trust",
+      "stress": "Stress",
+      "money": "Money"
+    },
     "failedToGenerateSummary": "Failed to generate summary",
     "noApiKey": "No API Key",
     "councilMember": "Council Member",
@@ -1208,6 +1312,20 @@
     "onlyMaxDepth": "Only Max Depth",
     "onlyMaxDepthDesc": "When checked, the system will only advance leaf nodes at the **deepest level** of the simulation tree. Shorter branches that have ended or been abandoned will be ignored.",
     "gotIt": "Got it"
+  },
+  "env": {
+    "statusTime": "[0:00] Status:",
+    "statusHeader": "--- Status ---",
+    "currentPosition": "Current position:",
+    "hungerLevel": "Hunger level:",
+    "energyLevel": "Energy level:",
+    "inventory": "Inventory:",
+    "currentTime": "Current time:",
+    "youAreAt": "You are at ",
+    "youArrivedAt": "You arrived at ",
+    "nearbyAgents": "Nearby agents:",
+    "plain": "plain",
+    "messageLabel": "[Message]"
   },
   "systemTemplates": {
     "normDisruption": {

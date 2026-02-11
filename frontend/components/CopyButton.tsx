@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ClipboardIcon, CheckIcon } from '@radix-ui/react-icons';
 
 export function CopyButton({ text }: { text: string }) {
+    const { t } = useTranslation();
     const [isCopied, setIsCopied] = useState(false);
 
     const copy = async () => {
@@ -38,7 +40,7 @@ export function CopyButton({ text }: { text: string }) {
             }}
         >
             <Icon style={{ width: 14, height: 14 }} />
-            <span>{isCopied ? 'Copied!' : 'Copy'}</span>
+            <span>{isCopied ? t('components.copyButton.copied') : t('components.copyButton.copy')}</span>
         </button>
     );
 }

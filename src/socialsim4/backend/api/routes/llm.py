@@ -23,6 +23,7 @@ class GenerateAgentsRequest(BaseModel):
     description: str
     # 前端 generateAgentsWithAI 里传的 provider_id
     provider_id: Optional[int] = None
+    language: str = "en"  # Default to English
 
 
 class DemographicDimension(BaseModel):
@@ -136,25 +137,53 @@ async def generate_agents(
         )
         llm = create_llm_client(cfg)
 
-        system_prompt = (
-            "You are an agent generator for a social simulation platform. "
-            "Generate a list of diverse agents based on the user's scenario description. "
-            "IMPORTANT: Return ONLY a valid JSON array, no markdown, no explanation, no code blocks. "
-            "Each agent must have: name (string), role (string), profile (string), properties (object)."
-        )
+        # Language-aware prompts
+        is_zh = data.language.lower() == "zh"
 
-        user_prompt = (
-            f"Generate exactly {data.count} diverse agents for this scenario:\n\n"
-            f"{data.description}\n\n"
-            "Requirements:\n"
-            "1. Each agent should have different identity, stance, and personality\n"
-            "2. Return ONLY a JSON array in this exact format:\n"
-            '[\n'
-            '  {"name": "Zhang San", "role": "Village Chief", "profile": "60-year-old respected leader...", "properties": {"trust": 70}},\n'
-            '  {"name": "Li Si", "role": "Merchant", "profile": "45-year-old shrewd businessman...", "properties": {"trust": 45}}\n'
-            ']\n\n'
-            "OUTPUT ONLY THE JSON ARRAY, NO OTHER TEXT:"
-        )
+        if is_zh:
+            system_prompt = (
+                "你是一个社会模拟平台的智能体生成器。"
+                "根据用户提供的场景描述生成多样化的智能体列表。"
+                "重要：只返回有效的 JSON 数组，不要 markdown 格式，不要解释，不要代码块。"
+                "每个智能体必须包含：name（姓名）、role（角色）、profile（描述）、properties（属性对象）。"
+            )
+
+            user_prompt = (
+                f"请为以下场景生成恰好 {data.count} 个多样化的智能体：\n\n"
+                f"{data.description}\n\n"
+                "要求：\n"
+                "1. 每个智能体应有不同的身份、立场和性格\n"
+                "2. 只返回 JSON 数组，格式如下：\n"
+                '[\n'
+                '  {"name": "张三", "role": "村长", "profile": "60岁德高望重的领导者...", "properties": {"信任度": 70}},\n'
+                '  {"name": "李四", "role": "商人", "profile": "45岁精明的生意人...", "properties": {"信任度": 45}}\n'
+                ']\n\n'
+                "只输出 JSON 数组，不要其他文字："
+            )
+            fallback_role = "角色"
+            fallback_profile = "LLM返回格式错误"
+        else:
+            system_prompt = (
+                "You are an agent generator for a social simulation platform. "
+                "Generate a list of diverse agents based on the user's scenario description. "
+                "IMPORTANT: Return ONLY a valid JSON array, no markdown, no explanation, no code blocks. "
+                "Each agent must have: name (string), role (string), profile (string), properties (object)."
+            )
+
+            user_prompt = (
+                f"Generate exactly {data.count} diverse agents for this scenario:\n\n"
+                f"{data.description}\n\n"
+                "Requirements:\n"
+                "1. Each agent should have different identity, stance, and personality\n"
+                "2. Return ONLY a JSON array in this exact format:\n"
+                '[\n'
+                '  {"name": "Zhang San", "role": "Village Chief", "profile": "60-year-old respected leader...", "properties": {"trust": 70}},\n'
+                '  {"name": "Li Si", "role": "Merchant", "profile": "45-year-old shrewd businessman...", "properties": {"trust": 45}}\n'
+                ']\n\n'
+                "OUTPUT ONLY THE JSON ARRAY, NO OTHER TEXT:"
+            )
+            fallback_role = "Role"
+            fallback_profile = "LLM format error"
 
         messages = [
             {"role": "system", "content": system_prompt},
@@ -197,9 +226,9 @@ async def generate_agents(
             # LLM 没按要求返回 JSON 时的兜底，前端依然能跑
             parsed = [
                 {
-                    "name": f"Agent {i+1}",
-                    "role": "角色",
-                    "profile": f"LLM返回格式错误。原始输出: {raw_text[:100]}...",
+                    "name": f"{'智能体' if is_zh else 'Agent'} {i+1}",
+                    "role": fallback_role,
+                    "profile": f"{fallback_profile}。原始输出: {raw_text[:100]}..." if is_zh else f"{fallback_profile}. Raw output: {raw_text[:100]}...",
                     "properties": {},
                 }
                 for i in range(data.count)
@@ -241,8 +270,8 @@ async def generate_agents(
             idx = len(agents)
             agents.append(
                 GeneratedAgent(
-                    name=f"Agent {idx+1}",
-                    role="角色",
+                    name=f"{'智能体' if is_zh else 'Agent'} {idx+1}",
+                    role=fallback_role,
                     profile=data.description,
                     provider=provider.provider or "backend",
                     model=provider.model or "default",
