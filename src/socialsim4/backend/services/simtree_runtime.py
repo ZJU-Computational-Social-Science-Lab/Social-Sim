@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 def _normalize_language(value: str | None) -> str:
     lang = str(value or "").strip()
-    return lang or "Simplified Chinese"
+    return lang or "en"
 
 
 def _is_english_language(lang: str) -> bool:

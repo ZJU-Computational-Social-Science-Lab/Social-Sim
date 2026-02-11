@@ -1313,6 +1313,20 @@
     "onlyMaxDepthDesc": "When checked, the system will only advance leaf nodes at the **deepest level** of the simulation tree. Shorter branches that have ended or been abandoned will be ignored.",
     "gotIt": "Got it"
   },
+  "env": {
+    "statusTime": "[0:00] Status:",
+    "statusHeader": "--- Status ---",
+    "currentPosition": "Current position:",
+    "hungerLevel": "Hunger level:",
+    "energyLevel": "Energy level:",
+    "inventory": "Inventory:",
+    "currentTime": "Current time:",
+    "youAreAt": "You are at ",
+    "youArrivedAt": "You arrived at ",
+    "nearbyAgents": "Nearby agents:",
+    "plain": "plain",
+    "messageLabel": "[Message]"
+  },
   "systemTemplates": {
     "normDisruption": {
       "name": "Norm Disruption",

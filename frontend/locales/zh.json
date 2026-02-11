@@ -1313,6 +1313,20 @@
     "onlyMaxDepthDesc": "如果勾选此项，系统将仅推进位于仿真树**最深层级**的叶子节点。较短的、已经结束或废弃的分支将被忽略。",
     "gotIt": "明白了"
   },
+  "env": {
+    "statusTime": "[0:00] 状态:",
+    "statusHeader": "--- 状态 ---",
+    "currentPosition": "当前位置:",
+    "hungerLevel": "饥饿值:",
+    "energyLevel": "能量值:",
+    "inventory": "物品栏:",
+    "currentTime": "当前时间:",
+    "youAreAt": "你现在位于 ",
+    "youArrivedAt": "你到达了 ",
+    "nearbyAgents": "附近的智能体:",
+    "plain": "平原",
+    "messageLabel": "[消息]"
+  },
   "systemTemplates": {
     "normDisruption": {
       "name": "社会规范的突变",

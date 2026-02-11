@@ -233,19 +233,27 @@ export const translateAgentContent = (text: string): string => {
 
 export const translateEnvText = (content: string): string => {
   if (!content) return '';
+  const t = (key: string) => i18n.t(key);
+  const lang = isZh() ? 'zh' : 'en';
+
   let text = content;
-  text = text.replace('[0:00] Status:', '[0:00] 状态:');
-  text = text.replace('--- Status ---', '--- 状态 ---');
-  text = text.replace('Current position:', '当前位置:');
-  text = text.replace('Hunger level:', '饥饿值:');
-  text = text.replace('Energy level:', '能量值:');
-  text = text.replace('Inventory:', '物品栏:');
-  text = text.replace('Current time:', '当前时间:');
-  text = text.replace(/You are at\s*/g, '你现在位于 ');
-  text = text.replace(/You arrived at\s*/g, '你到达了 ');
-  text = text.replace(/Nearby agents:/g, '附近的智能体:');
-  text = text.replace(/plain\b/g, '平原');
-  text = text.replace('[Message]', '[消息]');
+
+  // Only translate if Chinese
+  if (lang === 'zh') {
+    text = text.replace('[0:00] Status:', t('env.statusTime'));
+    text = text.replace('--- Status ---', t('env.statusHeader'));
+    text = text.replace('Current position:', t('env.currentPosition'));
+    text = text.replace('Hunger level:', t('env.hungerLevel'));
+    text = text.replace('Energy level:', t('env.energyLevel'));
+    text = text.replace('Inventory:', t('env.inventory'));
+    text = text.replace('Current time:', t('env.currentTime'));
+    text = text.replace(/You are at\s*/g, t('env.youAreAt'));
+    text = text.replace(/You arrived at\s*/g, t('env.youArrivedAt'));
+    text = text.replace(/Nearby agents:/g, t('env.nearbyAgents'));
+    text = text.replace(/plain\b/g, t('env.plain'));
+    text = text.replace('[Message]', t('env.messageLabel'));
+  }
+
   return text;
 };
 

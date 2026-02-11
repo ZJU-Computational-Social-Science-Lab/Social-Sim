@@ -230,8 +230,10 @@ export const createSimulationSlice: StateCreator<
               time_scale: finalTimeConfig,
               social_network: template.defaultNetwork || {},
               ...(templateActions.length > 0 && { available_actions: templateActions }),
+              language: i18n.language || 'en',
             },
             agent_config: {
+              language: i18n.language || 'en',
               agents: (finalAgents || []).map((a: any) => ({
                 name: a.name,
                 profile: a.profile,
