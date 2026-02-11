@@ -16,6 +16,7 @@ from typing import Any
 import pytest
 from litestar.testing import TestClient
 from pydantic import SecretStr
+import sqlalchemy
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -37,7 +38,12 @@ from socialsim4.backend.schemas.simulation import (
 TEST_DB_PATH = "test_simulations.db"
 TEST_DB_URL = f"sqlite+aiosqlite:///{TEST_DB_PATH}"
 
-test_engine = create_async_engine(TEST_DB_URL, future=True)
+# Enable WAL mode for better Windows compatibility
+test_engine = create_async_engine(
+    TEST_DB_URL,
+    future=True,
+    connect_args={"check_same_thread": False}
+)
 TestSessionLocal = async_sessionmaker(test_engine, expire_on_commit=False)
 
 TABLES = [
@@ -52,6 +58,8 @@ TABLES = [
 async def _reset_database() -> None:
     """Reset the test database."""
     async with test_engine.begin() as conn:
+        # Enable WAL mode for better Windows file locking behavior
+        await conn.execute(sqlalchemy.text("PRAGMA journal_mode=WAL"))
         await conn.run_sync(lambda sync_conn: Base.metadata.drop_all(bind=sync_conn, tables=TABLES))
         await conn.run_sync(lambda sync_conn: Base.metadata.create_all(bind=sync_conn, tables=TABLES))
 

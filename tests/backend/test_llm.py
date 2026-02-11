@@ -462,7 +462,7 @@ class TestGeminiProvider:
             api_key="test-key",
             model="gemini-pro"
         )
-        client = LLMClient(client)
+        client = LLMClient(config)
 
         messages = [
             {"role": "user", "content": "Hello"}
@@ -486,7 +486,7 @@ class TestGeminiProvider:
             model="gemini-pro-vision",
             supports_vision=True
         )
-        client = LLMClient(client)
+        client = LLMClient(config)
 
         messages = [
             {"role": "user", "content": "What do you see?", "images": ["https://example.com/image.jpg"]}
@@ -509,7 +509,7 @@ class TestGeminiProvider:
             api_key="test-key",
             model="gemini-pro"
         )
-        client = LLMClient(client)
+        client = LLMClient(config)
 
         result = client.completion("Complete this")
 
@@ -525,7 +525,7 @@ class TestGeminiProvider:
             api_key="test-key",
             model="embedding-001"
         )
-        client = LLMClient(client)
+        client = LLMClient(config)
 
         result = client.embedding("test text")
 
@@ -542,7 +542,7 @@ class TestGeminiProvider:
             api_key="test-key",
             model="gemini-pro"
         )
-        client = LLMClient(client)
+        client = LLMClient(config)
         cloned = client.clone()
 
         assert cloned.provider.dialect == "gemini"
