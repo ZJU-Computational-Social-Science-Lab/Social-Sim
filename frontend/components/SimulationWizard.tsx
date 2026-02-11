@@ -142,7 +142,7 @@ export const SimulationWizard: React.FC = () => {
   const [timeUnit, setTimeUnit] = useState<TimeUnit>('hour');
   const [timeStep, setTimeStep] = useState(1);
 
-  const [importMode, setImportMode] = useState<'default' | 'custom' | 'generate'>('default');
+  const [importMode, setImportMode] = useState<'default' | 'custom' | 'generate'>('generate');
   const [customAgents, setCustomAgents] = useState<Agent[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -330,7 +330,7 @@ export const SimulationWizard: React.FC = () => {
     setStep(1);
     setName('');
     setSelectedTemplateId('village');
-    setImportMode('default');
+    setImportMode('generate');
     setCustomAgents([]);
     setImportError(null);
     setGenCount(5);
