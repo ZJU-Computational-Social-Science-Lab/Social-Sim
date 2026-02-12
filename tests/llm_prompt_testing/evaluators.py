@@ -97,7 +97,12 @@ def check_xml_format(output: str) -> Tuple[bool, str]:
     # Check for each expected section
     for marker, section_name in EXPECTED_XML_SECTIONS:
         if marker not in output:
-            failures.append(f"Missing '{section_name}' section (expected marker: '{marker}')")
+            # Check if this is Action-only format (just Action tag, no sections)
+            has_action_tag = "<Action" in output and "/>" in output
+
+            # Only require section if NOT Action-only format
+            if not has_action_tag:
+                failures.append(f"Missing '{section_name}' section (expected marker: '{marker}')")
 
     # Check Action is XML-like
     if "---- Action ---" in output:
