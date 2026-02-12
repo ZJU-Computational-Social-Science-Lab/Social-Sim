@@ -138,3 +138,7 @@ def get_all_model_names() -> List[str]:
 def get_scenarios_for_pattern(pattern: str) -> List[str]:
     """Get scenarios for a given pattern."""
     return SCENARIOS_BY_PATTERN.get(pattern, [])
+
+
+# Global test configuration instance
+test_config = TestConfig()

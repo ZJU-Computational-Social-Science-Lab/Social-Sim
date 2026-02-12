@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from .agents import AgentProfile, get_archetypal_agents, get_domain_specific_agents
+from .agents import AgentProfile, ALL_AGENTS, get_archetypal_agents, get_domain_specific_agents
 from .config import (
     AVAILABLE_MODELS,
     ModelConfig,
@@ -22,6 +22,7 @@ from .csv_reporter import CSVReporter, TestResult
 from .cross_llm_analyzer import apply_cross_llm_status, CrossLLMAnalysis
 from .evaluators import EvaluationResult, evaluate_output
 from .ollama_client import ChatMessage, LLMResponse, OllamaClient
+from .prompt_builder import build_prompt  # New simplified prompt builder
 from .prompt_tuner import PromptTuner
 from .scenarios import ScenarioConfig, get_scenarios_for_pattern
 
@@ -52,6 +53,7 @@ class PatternTestConfig:
 def build_system_prompt(
     scenario: ScenarioConfig,
     agent: AgentProfile,
+    use_simple: bool = True,  # Use simplified prompts by default for 3B-4B models
 ) -> str:
     """
     Build the system prompt for a test.
@@ -379,7 +381,7 @@ class PatternTestRunner:
         self,
         scenarios: Optional[List[str]] = None,
         models: Optional[List[str]] = None,
-        agents: Optional[List[str]] = None,
+        agent_names: Optional[List[str]] = None,  # Renamed to avoid shadowing
     ) -> Dict[str, List[TestResult]]:
         """
         Test all combinations for this pattern.
@@ -387,7 +389,7 @@ class PatternTestRunner:
         Args:
             scenarios: List of scenario IDs to test (default: all)
             models: List of model names to test (default: all)
-            agents: List of agent names to test (default: recommended agents)
+            agent_names: List of agent names to test (default: recommended agents)
 
         Returns:
             Dict mapping scenario ID to list of test results
@@ -402,8 +404,9 @@ class PatternTestRunner:
 
         # Get recommended agents for this pattern
         agents_to_test: List[AgentProfile] = []
-        if agents:
-            agents_to_test = [a for a in agents if a.name in agents]
+        if agent_names:
+            # agent_names is a list of agent names (strings) - look them up in ALL_AGENTS
+            agents_to_test = [ALL_AGENTS.get(name) for name in agent_names if name in ALL_AGENTS]
         else:
             # Use a mix of archetypal and domain-specific agents
             from .agents import create_agent_for_pattern
@@ -479,3 +482,27 @@ def test_pattern(
     """
     runner = PatternTestRunner(pattern)
     return runner.test_all(scenarios=scenarios, models=models, agents=agents)
+
+
+
+# ============================================================================
+# Simplified Prompt Wrapper (overrides original build_system_prompt)
+# ============================================================================
+
+def build_system_prompt_override(
+    scenario: ScenarioConfig,
+    agent: AgentProfile,
+    use_simple: bool = True,
+) -> str:
+    """
+    Wrapper that uses the new simplified prompt builder.
+
+    This function shadows the original build_system_prompt to use
+    the simplified prompt builder for small 3B-4B models.
+    """
+    from .prompt_builder import build_prompt
+    return build_prompt(scenario, agent, use_simple=use_simple)
+
+
+# Monkey-patch the original function
+build_system_prompt = build_system_prompt_override

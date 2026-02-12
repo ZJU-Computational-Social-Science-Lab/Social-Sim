@@ -47,7 +47,7 @@ def test_single_pattern(
     pattern: str,
     scenarios: Optional[List[str]] = None,
     models: Optional[List[str]] = None,
-    agents: Optional[List[str]] = None,
+    agent_names: Optional[List[str]] = None,  # Renamed from agents
 ) -> bool:
     """
     Test a single interaction pattern.
@@ -56,7 +56,7 @@ def test_single_pattern(
         pattern: The pattern name
         scenarios: Optional list of scenario IDs
         models: Optional list of model names
-        agents: Optional list of agent names
+        agent_names: Optional list of agent names
 
     Returns:
         True if testing completed successfully
@@ -71,7 +71,7 @@ def test_single_pattern(
 
     try:
         runner = PatternTestRunner(pattern)
-        results = runner.test_all(scenarios=scenarios, models=models, agents=agents)
+        results = runner.test_all(scenarios=scenarios, models=models, agent_names=agent_names)
 
         total_results = sum(len(r) for r in results.values())
         perfect_results = sum(

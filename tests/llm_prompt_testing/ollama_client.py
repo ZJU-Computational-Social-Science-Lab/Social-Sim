@@ -13,7 +13,7 @@ from typing import Any, List, Optional
 
 import requests
 
-from .config import ollama_config
+from .config import OllamaConfig
 
 logger = logging.getLogger(__name__)
 
@@ -79,10 +79,14 @@ class OllamaClient:
             timeout: Request timeout in seconds (defaults to config)
             max_retries: Maximum retry attempts (defaults to config)
         """
-        self.base_url = (base_url or ollama_config.base_url).rstrip("/")
-        self.timeout = timeout or ollama_config.timeout
-        self.max_retries = max_retries or ollama_config.max_retries
-        self.retry_delay = ollama_config.retry_delay
+        # Use default config values if not provided
+        default_config = OllamaConfig()
+        self.base_url = (base_url or default_config.base_url).rstrip("/")
+        self.timeout = timeout or default_config.timeout
+        self.max_retries = max_retries or default_config.max_retries
+        # Create a retry_delay value (default from config)
+        delay_value = 1.0  # Default if not provided
+        self.retry_delay = delay_value
 
         # Build endpoints
         self._chat_endpoint = f"{self.base_url}/chat/completions"

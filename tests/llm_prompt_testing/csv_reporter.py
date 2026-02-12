@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from .config import test_config, INTERACTION_PATTERNS, SCENARIOS_BY_PATTERN
+from .config import INTERACTION_PATTERNS, SCENARIOS_BY_PATTERN, test_config
 from .evaluators import EvaluationResult
 
 logger = logging.getLogger(__name__)
