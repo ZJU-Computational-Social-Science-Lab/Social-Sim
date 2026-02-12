@@ -227,6 +227,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
           className="w-12 h-12 rounded-full border border-slate-200 object-cover" 
         />
         <div className="flex-1 min-w-0">
+          {/* Name row with model badge */}
           <div className="flex items-center justify-between">
             <h4 className="font-bold text-slate-800 truncate">{agent.name}</h4>
             {/* #10 Model Badge */}
@@ -235,15 +236,15 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
               <span className="font-mono">{agent.llmConfig?.model || t('components.agentPanel.auto')}</span>
             </div>
           </div>
-          <span className="inline-block mt-1 px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full border border-slate-200">
-            {agent.role}
-          </span>
+
+          {/* Profile description directly under name */}
           {isProfileEditing ? (
             <div className="space-y-2 mt-2">
               <textarea
                 value={profileDraft}
                 onChange={(e) => setProfileDraft(e.target.value)}
                 className="w-full text-xs border rounded p-2 focus:ring-1 focus:ring-brand-500 outline-none min-h-[80px]"
+                placeholder={t('components.agentPanel.profilePlaceholder')}
               />
               <MultimodalInput
                 helperText={t('components.agentPanel.uploadHelperText')}
@@ -274,7 +275,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
             <div className="mt-2 flex items-start gap-2">
               <div
                 className="text-xs text-slate-500 leading-relaxed flex-1 markdown-body"
-                dangerouslySetInnerHTML={{ __html: renderProfileHtml(agent.profile) }}
+                dangerouslySetInnerHTML={{ __html: renderProfileHtml(agent.profile || t('components.agentPanel.noProfile')) }}
               />
               <button
                 className="text-slate-400 hover:text-brand-600"
@@ -285,6 +286,11 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
               </button>
             </div>
           )}
+
+          {/* Role badge below description */}
+          <span className="inline-block mt-2 px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full border border-slate-200">
+            {agent.role}
+          </span>
         </div>
       </div>
 
@@ -303,12 +309,21 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
         
         {isPropsOpen && (
           <div className="p-4 grid grid-cols-2 gap-2">
-            {Object.entries(agent.properties).map(([key, value]) => (
+            {Object.entries(agent.properties)
+              .filter(([key]) => !['emotion_enabled', 'archetype_id', 'demographic_attributes', 'internal', '_internal', 'avatarUrl'].includes(key))
+              .map(([key, value]) => (
               <div key={key} className="flex flex-col p-2 bg-slate-50 rounded border">
                 <span className="text-[10px] uppercase text-slate-400 font-bold">{key}</span>
-                <span className="text-sm font-mono font-medium text-slate-700">{value}</span>
+                <span className="text-sm font-mono font-medium text-slate-700">{String(value)}</span>
               </div>
             ))}
+            {Object.entries(agent.properties).filter(([key]) =>
+!['emotion_enabled', 'archetype_id', 'demographic_attributes', 'internal', '_internal', 'avatarUrl'].includes(key)
+            ).length === 0 && (
+              <div className="col-span-2 text-center text-xs text-slate-400 italic py-2">
+                {t('components.agentPanel.noCustomAttributes')}
+              </div>
+            )}
           </div>
         )}
       </div>

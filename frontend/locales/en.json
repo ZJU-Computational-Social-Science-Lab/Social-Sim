@@ -192,7 +192,6 @@
     "config": "Configuration",
     "agents": "Agents",
     "scene": "Scene",
-    "noProfile": "No profile",
     "loadingScenes": "Loading scenes…",
     "fetchScenesError": "Unable to fetch scenes.",
     "basicActions": "Basic actions",
@@ -698,7 +697,10 @@
       "titlePlaceholder": "Title (e.g., Village Covenant)",
       "uploadHelperText": "Drag/upload images will be inserted as markdown links in profile description",
       "saveProfile": "Save profile",
+      "profilePlaceholder": "Enter agent profile...",
+      "noProfile": "No profile",
       "currentAttributes": "Current Attributes",
+      "noCustomAttributes": "No custom attributes",
       "knowledgeBase": "Knowledge Base (RAG)",
       "noKnowledgeDocs": "No knowledge base documents yet",
       "save": "Save",
@@ -1326,6 +1328,65 @@
     "nearbyAgents": "Nearby agents:",
     "plain": "plain",
     "messageLabel": "[Message]"
+  },
+  "experimentBuilder": {
+    "title": "Create New Experiment",
+    "modalTitle": "Create New Experiment",
+    "newExperiment": "New Experiment",
+    "customExperiment": "Custom experiment",
+    "experimentCreated": "Experiment created successfully!",
+    "interactionTypes": {
+      "strategic_decisions": "Strategic Decisions",
+      "opinions_influence": "Opinions & Influence",
+      "network_spread": "Network & Spread",
+      "markets_exchange": "Markets & Exchange",
+      "spatial_movement": "Spatial & Movement",
+      "open_conversation": "Open Conversation"
+    },
+    "agent": {
+      "defaultRole": "Agent",
+      "defaultRolePrompt": "An agent in this simulation",
+      "agentWithOpinion": "Agent with opinion {{opinion}}",
+      "profileGender": "Gender: {{gender}}",
+      "profileAge": " | Age: {{age}}"
+    },
+    "step1": {
+      "title": "Choose interaction patterns for your experiment",
+      "subtitle": "Select one or more patterns that describe interactions you want to study",
+      "strategic_decisions": {
+        "title": "Strategic Decisions",
+        "description": "Study situations where outcomes depend on what others choose",
+        "examples": ["Prisoner's Dilemma", "Stag Hunt", "Public Goods Game"]
+      },
+      "opinions_influence": {
+        "title": "Opinions & Influence",
+        "description": "Model how views shift through social interaction and influence",
+        "examples": ["Opinion Polarization", "Consensus Formation", "Social Influence"]
+      },
+      "network_spread": {
+        "title": "Network & Spread",
+        "description": "Study how ideas, behaviors, or information spread through connections",
+        "examples": ["Information Cascades", "Viral Content", "Network Effects"]
+      },
+      "markets_exchange": {
+        "title": "Markets & Exchange",
+        "description": "Model buying, selling, bidding, and trading",
+        "examples": ["Double Auction", "Common Pool Resources", "Market Design"]
+      },
+      "spatial_movement": {
+        "title": "Spatial & Movement",
+        "description": "Study scenarios where location and proximity matter",
+        "examples": ["Spatial Games", "Segregation", "Territoriality"]
+      },
+      "open_conversation": {
+        "title": "Open Conversation",
+        "description": "Agents simply talk and discuss - no formal structure",
+        "examples": ["Focus Groups", "Deliberation", "Unstructured Discussion"]
+      },
+      "optionalAddons": "Optional Add-ons Available",
+      "optionalAddonsDesc": "Based on your selection, you can add voting, multiple phases, or scripted agents in later steps."
+    },
+    "close": "Close"
   },
   "systemTemplates": {
     "normDisruption": {

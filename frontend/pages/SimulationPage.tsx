@@ -1,5 +1,9 @@
 // frontend/pages/SimulationPage.tsx
 // frontend/pages/SimulationPage.tsx
+
+// MODULE LOAD CHECK - Should appear when SimulationPage loads
+console.log('[SimulationPage.tsx] MODULE LOADED - Page file executed');
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { SimTree } from "../components/SimTree";
@@ -7,6 +11,7 @@ import { Sidebar } from "../components/Sidebar";
 import { LogViewer } from "../components/LogViewer";
 import { ComparisonView } from "../components/ComparisonView";
 import { SimulationWizard } from "../components/SimulationWizard";
+import { ExperimentBuilderModal } from "../components/ExperimentBuilderModal";
 import SyncModal from "../components/SyncModal";
 import { HelpModal } from "../components/HelpModal";
 import { AnalyticsPanel } from "../components/AnalyticsPanel";
@@ -132,7 +137,11 @@ const Header: React.FC = () => {
         <div className="h-4 w-px bg-slate-200 mx-2"></div>
 
         <button
-          onClick={() => toggleWizard(true)}
+          onClick={() => {
+            console.log('[New Simulation Button] CLICKED! Calling toggleWizard(true)');
+            toggleWizard(true);
+            console.log('[New Simulation Button] toggleWizard called, checking store state:', useSimulationStore.getState().isWizardOpen);
+          }}
           className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
         >
           <Plus size={14} /> {t('simPage.newSimulation')}
@@ -371,7 +380,8 @@ const Toolbar: React.FC = () => {
       </div>
 
       {/* Modals */}
-      <SimulationWizard />
+      <ExperimentBuilderModal />
+      {/* <SimulationWizard /> */} {/* Temporarily disabled - using ExperimentBuilderModal instead */}
       <HelpModal />
       <AnalyticsPanel />
       <ExportModal />
@@ -442,12 +452,6 @@ const SimulationPage: React.FC = () => {
                 let agents2: any[] = [];
                 try {
                   const firstNode = nodesRaw2.find((n: any) => Number(n.id) === Number(nodes2[0]?.id));
-
-  React.useEffect(() => {
-    if (engineConfig.mode === 'connected' && hasRestored && isAuthenticated) {
-      loadProviders();
-    }
-  }, [engineConfig.mode, hasRestored, isAuthenticated, loadProviders]);
                   const simSnap2 = firstNode?.sim || {};
                   const latestAgents2 = simSnap2?.agents || re.agents || [];
                   if (Array.isArray(latestAgents2)) {
@@ -722,6 +726,13 @@ const SimulationPage: React.FC = () => {
       }
     })();
   }, [simIdParam, engineConfig.mode, hasRestored, isAuthenticated]);
+
+  // Load providers when in connected mode and authenticated
+  React.useEffect(() => {
+    if (engineConfig.mode === 'connected' && hasRestored && isAuthenticated) {
+      useSimulationStore.getState().loadProviders();
+    }
+  }, [engineConfig.mode, hasRestored, isAuthenticated]);
 
   return (
     <div className="flex flex-col h-screen bg-slate-50">

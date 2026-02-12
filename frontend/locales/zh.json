@@ -192,7 +192,6 @@
     "config": "配置",
     "agents": "智能体",
     "scene": "场景",
-    "noProfile": "无简介",
     "loadingScenes": "正在加载场景…",
     "fetchScenesError": "无法获取场景。",
     "basicActions": "基础动作",
@@ -698,7 +697,10 @@
       "titlePlaceholder": "标题 (如：乡村公约)",
       "uploadHelperText": "拖拽/上传图片将以 markdown 链接插入画像描述",
       "saveProfile": "保存画像",
+      "profilePlaceholder": "输入智能体简介...",
+      "noProfile": "无简介",
       "currentAttributes": "当前状态属性",
+      "noCustomAttributes": "无自定义属性",
       "knowledgeBase": "知识库 (RAG)",
       "noKnowledgeDocs": "暂无知识库文档",
       "save": "保存",
@@ -1326,6 +1328,65 @@
     "nearbyAgents": "附近的智能体:",
     "plain": "平原",
     "messageLabel": "[消息]"
+  },
+  "experimentBuilder": {
+    "title": "创建新实验",
+    "modalTitle": "创建新实验",
+    "newExperiment": "新实验",
+    "customExperiment": "自定义实验",
+    "experimentCreated": "实验创建成功！",
+    "interactionTypes": {
+      "strategic_decisions": "战略决策",
+      "opinions_influence": "观点与影响",
+      "network_spread": "网络与传播",
+      "markets_exchange": "市场与交换",
+      "spatial_movement": "空间与移动",
+      "open_conversation": "开放对话"
+    },
+    "agent": {
+      "defaultRole": "智能体",
+      "defaultRolePrompt": "此模拟中的智能体",
+      "agentWithOpinion": "观点为 {{opinion}} 的智能体",
+      "profileGender": "性别：{{gender}}",
+      "profileAge": " | 年龄：{{age}}"
+    },
+    "step1": {
+      "title": "为您的实验选择交互模式",
+      "subtitle": "选择一个或多个您想要研究的交互模式",
+      "strategic_decisions": {
+        "title": "战略决策",
+        "description": "研究结果取决于他人选择的情况",
+        "examples": ["囚徒困境", "猎鹿博弈", "公共品博弈"]
+      },
+      "opinions_influence": {
+        "title": "观点与影响",
+        "description": "模拟观点如何通过社交互动和影响而转变",
+        "examples": ["观点极化", "共识形成", "社会影响"]
+      },
+      "network_spread": {
+        "title": "网络与传播",
+        "description": "研究想法、行为或信息如何通过连接传播",
+        "examples": ["信息级联", "病毒式内容", "网络效应"]
+      },
+      "markets_exchange": {
+        "title": "市场与交换",
+        "description": "模拟买卖、竞价和交易",
+        "examples": ["双向拍卖", "公共池资源", "市场设计"]
+      },
+      "spatial_movement": {
+        "title": "空间与移动",
+        "description": "研究位置和邻近性很重要的场景",
+        "examples": ["空间博弈", "隔离", "领土性"]
+      },
+      "open_conversation": {
+        "title": "开放对话",
+        "description": "智能体只需交谈和讨论 - 无正式结构",
+        "examples": ["焦点小组", " deliberation", "非结构化讨论"]
+      },
+      "optionalAddons": "可选附加功能",
+      "optionalAddonsDesc": "根据您的选择，您可以在后续步骤中添加投票、多阶段或脚本化智能体。"
+    },
+    "close": "关闭"
   },
   "systemTemplates": {
     "normDisruption": {
