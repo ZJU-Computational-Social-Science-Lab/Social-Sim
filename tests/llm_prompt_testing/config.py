@@ -4,6 +4,7 @@ Configuration management for LLM prompt testing framework.
 Handles Ollama API connection settings, model configurations, and test parameters.
 """
 
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List
@@ -42,13 +43,16 @@ AVAILABLE_MODELS: List[ModelConfig] = [
         display_name="Ministral 3B",
         api_name="ministral-3:3b",
     ),
+    ModelConfig(
+        name="alibayram_smollm3_latest",
+        display_name="Alibayram Smollm3 Latest",
+        api_name="alibayram/smollm3:latest",
+    ),
 ]
 
-# qwen3:4b is excluded due to fundamental incompatibility with structured Action/XML output format
-# The model outputs conversational text instead of the required Action tags, even with
-# extensive prompting and few-shot examples. This appears to be a training/alignment
-# limitation specific to this model variant.
-# Note: If alternative qwen models are available (qwen3:7b, qwen2.5:14b), they may work better.
+# Note: Some smaller models like qwen3:4b, phi4:mini have fundamental incompatibility
+# with Action format (they output conversational text instead of structured Action tags).
+# Alternative small models (qwen3:7b, qwen2.5:14b) may work better for structured output if needed.
 
 
 @dataclass
@@ -116,11 +120,6 @@ SCENARIOS_BY_PATTERN = {
         "design_your_own",
     ],
 }
-
-
-# Global configuration instances
-ollama_config = OllamaConfig()
-test_config = TestConfig()
 
 
 def get_model_by_name(name: str) -> ModelConfig | None:

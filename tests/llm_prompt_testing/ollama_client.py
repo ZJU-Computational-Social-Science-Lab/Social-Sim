@@ -13,7 +13,7 @@ from typing import Any, List, Optional
 
 import requests
 
-from .config import ollama_config, ModelConfig
+from .config import ollama_config
 
 logger = logging.getLogger(__name__)
 
