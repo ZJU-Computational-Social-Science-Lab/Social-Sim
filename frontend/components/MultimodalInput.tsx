@@ -1,5 +1,6 @@
 import React, { useState, useCallback, DragEvent, useId } from 'react';
 import { uploadImage } from '../services/uploads';
+import { useTranslation } from 'react-i18next';
 import { Image as ImageIcon, Loader2, Upload as UploadIcon, X } from 'lucide-react';
 import { useImageCrop, calculateCropOverlay, calculateCropPreviewStyle } from '../hooks/useImageCrop';
 
@@ -25,6 +26,7 @@ export const MultimodalInput: React.FC<Props> = ({
   enableCrop = true,
   enableAltText = true
 }) => {
+  const { t } = useTranslation();
   const [previewUrl, setPreviewUrl] = useState<string | null>(presetUrl);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -46,7 +48,7 @@ export const MultimodalInput: React.FC<Props> = ({
     onCropped: (url) => {
       setPreviewUrl(url);
       onInsert(url, altText || undefined);
-      setStatus({ kind: 'success', message: '裁剪并上传成功' });
+      setStatus({ kind: 'success', message: t('components.multimodalInput.cropAndUploadSuccess') });
     },
     onError: (message) => {
       setStatus({ kind: 'error', message });
@@ -61,11 +63,11 @@ export const MultimodalInput: React.FC<Props> = ({
     const isDoc = DOC_TYPES.includes(file.type);
     const limit = isDoc ? DOC_MAX_BYTES : MEDIA_MAX_BYTES;
     if (file.size > limit) {
-      setError(isDoc ? '文档超过 10MB 限制' : '文件超过 5MB 限制');
+      setError(isDoc ? t('components.multimodalInput.docSizeLimit') : t('components.multimodalInput.fileSizeLimit'));
       return;
     }
     if (file.type && !ALLOWED.includes(file.type)) {
-      setError('仅支持 JPG/PNG/GIF/WEBP/MP3/WAV/OGG/MP4/WEBM/PDF/DOC/DOCX');
+      setError(t('components.multimodalInput.allowedTypes'));
       return;
     }
     setIsUploading(true);
@@ -79,10 +81,10 @@ export const MultimodalInput: React.FC<Props> = ({
       setPreviewUrl(isImage ? asset.url : null);
       setLastUploadedName(file.name);
       onInsert(asset.url, altText || undefined);
-      setSuccess('上传成功');
+      setSuccess(t('components.multimodalInput.uploadSuccess'));
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : '上传失败');
+      setError(err instanceof Error ? err.message : t('components.multimodalInput.uploadFailed'));
     } finally {
       setIsUploading(false);
     }
@@ -121,17 +123,17 @@ export const MultimodalInput: React.FC<Props> = ({
         />
         {isUploading ? (
           <div className="flex items-center gap-2 text-emerald-600">
-            <Loader2 size={16} className="animate-spin" /> 上传中...
+            <Loader2 size={16} className="animate-spin" /> {t('components.multimodalInput.uploading')}
           </div>
         ) : (
           <div className="flex flex-col items-center gap-1">
             <UploadIcon size={18} className="text-slate-400" />
-            <span>拖拽、粘贴或点击上传图片/音频/视频/文档</span>
+            <span>{t('components.multimodalInput.dragDropUpload')}</span>
           </div>
         )}
       </div>
       <div className="text-[11px] text-slate-400">
-        {helperText || (enableCrop ? '支持拖拽/点击上传，提供方形或自由裁剪上传（仅图片）。' : '支持拖拽/点击上传。')}（图片/音频/视频 ≤ 5MB，PDF/Word ≤ 10MB，当前未做杀毒/内容安全，请只上传可信来源）
+        {helperText || (enableCrop ? t('components.multimodalInput.dragDropUploadWithCrop') : t('components.multimodalInput.dragDropUploadSimple'))}{t('components.multimodalInput.sizeWarning')}
       </div>
       {status.kind !== 'idle' && (
         <div className={`text-[11px] ${status.kind === 'error' ? 'text-red-500' : 'text-emerald-600'}`}>
@@ -146,12 +148,12 @@ export const MultimodalInput: React.FC<Props> = ({
       {enableAltText && (
         <div className="space-y-1">
           <label className="text-xs font-semibold text-slate-700">
-            图片描述（可选，用于无障碍访问）
+            {t('components.multimodalInput.imageDescLabel')}
           </label>
           <input
             type="text"
             className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-emerald-400"
-            placeholder="例如：一只坐在公园长椅上的橙色猫"
+            placeholder={t('components.multimodalInput.imageDescPlaceholder')}
             value={altText}
             onChange={(e) => setAltText(e.target.value)}
             maxLength={200}
@@ -165,7 +167,7 @@ export const MultimodalInput: React.FC<Props> = ({
         <div className="relative w-full border rounded bg-black/5" style={{ minHeight: '300px' }}>
           {imageError ? (
             <div className="flex items-center justify-center h-[300px] text-red-500">
-              Image failed to load. URL: {previewUrl}
+              {t('components.multimodalInput.imageLoadError')} {previewUrl}
             </div>
           ) : (
             <img
@@ -203,9 +205,9 @@ export const MultimodalInput: React.FC<Props> = ({
           </button>
           {enableCrop && (
             <div className="bg-white/90 backdrop-blur p-2 flex flex-wrap gap-3 items-center text-[11px] text-slate-700 sticky bottom-0">
-              <label className="flex items-center gap-1">X 起点<input type="range" min="0" max="1" step="0.01" value={cropState.x} onChange={(e) => setCropState({ ...cropState, x: Number(e.target.value) })} /></label>
-              <label className="flex items-center gap-1">Y 起点<input type="range" min="0" max="1" step="0.01" value={cropState.y} onChange={(e) => setCropState({ ...cropState, y: Number(e.target.value) })} /></label>
-              <label className="flex items-center gap-1">模式
+              <label className="flex items-center gap-1">{t('components.multimodalInput.xOrigin')}<input type="range" min="0" max="1" step="0.01" value={cropState.x} onChange={(e) => setCropState({ ...cropState, x: Number(e.target.value) })} /></label>
+              <label className="flex items-center gap-1">{t('components.multimodalInput.yOrigin')}<input type="range" min="0" max="1" step="0.01" value={cropState.y} onChange={(e) => setCropState({ ...cropState, y: Number(e.target.value) })} /></label>
+              <label className="flex items-center gap-1">{t('components.multimodalInput.mode')}
                 <select
                   className="border rounded px-1 py-0.5 text-[11px]"
                   value={cropState.mode}
@@ -214,15 +216,15 @@ export const MultimodalInput: React.FC<Props> = ({
                     setCropState({ ...cropState, mode, scaleY: mode === 'square' ? cropState.scaleX : cropState.scaleY });
                   }}
                 >
-                  <option value="square">方形</option>
-                  <option value="free">自由</option>
+                  <option value="square">{t('components.multimodalInput.square')}</option>
+                  <option value="free">{t('components.multimodalInput.free')}</option>
                 </select>
               </label>
-              <label className="flex items-center gap-1">宽缩放<input type="range" min="1" max="3" step="0.05" value={cropState.scaleX} onChange={(e) => {
+              <label className="flex items-center gap-1">{t('components.multimodalInput.widthScale')}<input type="range" min="1" max="3" step="0.05" value={cropState.scaleX} onChange={(e) => {
                 const val = Number(e.target.value);
                 setCropState({ ...cropState, scaleX: val, scaleY: cropState.mode === 'square' ? val : cropState.scaleY });
               }} /></label>
-              <label className="flex items-center gap-1">高缩放
+              <label className="flex items-center gap-1">{t('components.multimodalInput.heightScale')}
                 <input
                   type="range"
                   min="1"
@@ -240,14 +242,14 @@ export const MultimodalInput: React.FC<Props> = ({
                 <div
                   className="w-16 h-16 rounded border overflow-hidden bg-white"
                   style={calculateCropPreviewStyle(previewUrl, cropState)}
-                  title="裁剪预览"
+                  title={t('components.multimodalInput.cropPreview')}
                 />
                 <button
                   onClick={() => handleCrop(previewUrl)}
                   disabled={isUploading || isCropping}
                   className="px-2 py-1 bg-white border rounded text-[11px] text-slate-700 hover:bg-slate-50 disabled:opacity-60"
                 >
-                  {isCropping ? '裁剪中...' : '裁剪并重新上传'}
+                  {isCropping ? t('components.multimodalInput.cropping') : t('components.multimodalInput.cropAndReupload')}
                 </button>
                 <button
                   onClick={() => {
@@ -258,7 +260,7 @@ export const MultimodalInput: React.FC<Props> = ({
                   }}
                   className="px-2 py-1 border border-red-200 text-red-600 rounded text-[11px] hover:bg-red-50"
                 >
-                  删除图片
+                  {t('components.multimodalInput.deleteImage')}
                 </button>
               </div>
             </div>
@@ -266,7 +268,7 @@ export const MultimodalInput: React.FC<Props> = ({
         </div>
       )}
       {!previewUrl && lastUploadedName && status.kind === 'success' && (
-        <div className="text-[11px] text-slate-600">已上传：{lastUploadedName}</div>
+        <div className="text-[11px] text-slate-600">{t('components.multimodalInput.uploaded')} {lastUploadedName}</div>
       )}
     </div>
   );

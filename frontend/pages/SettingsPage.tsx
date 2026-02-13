@@ -12,14 +12,15 @@ import { Link2Icon, TrashIcon, FilePlusIcon, StarIcon, StarFilledIcon, EyeOpenIc
 
 type Tab = "profile" | "security" | "providers_llm" | "providers_search" | "files";
 
-const capabilityRows = [
+// Helper to get capability rows with translations
+const getCapabilityRows = (t: (key: string) => string) => [
   {
     model: "gpt-4o-mini",
     context: "128k",
     input: "$0.15 / 1M",
     output: "$0.60 / 1M",
     modalities: "Text, Image",
-    note: "Good default for agent turns and bulk actions",
+    note: "settings.providers.modelNote.goodDefault",
   },
   {
     model: "gpt-4o",
@@ -27,7 +28,7 @@ const capabilityRows = [
     input: "$5.00 / 1M",
     output: "$15.00 / 1M",
     modalities: "Text, Image, Audio",
-    note: "Higher quality, handles multimodal logs",
+    note: "settings.providers.modelNote.fastLongContext",
   },
   {
     model: "gemini-1.5-flash",
@@ -35,7 +36,7 @@ const capabilityRows = [
     input: "$0.35 / 1M",
     output: "$1.05 / 1M",
     modalities: "Text, Image, Audio",
-    note: "Fast with long context for synthesis",
+    note: "settings.providers.modelNote.fastLongContext",
   },
   {
     model: "gemini-1.5-pro",
@@ -43,7 +44,7 @@ const capabilityRows = [
     input: "$3.50 / 1M",
     output: "$10.50 / 1M",
     modalities: "Text, Image, Audio",
-    note: "Best quality, use sparingly",
+    note: "settings.providers.modelNote.goodDefault",
   },
 ];
 
@@ -350,8 +351,8 @@ export function SettingsPage() {
                 <AppSelect
                   value={providerDraft.provider}
                   options={[
-                    { value: 'openai', label: 'OpenAI-compatible' },
-                    { value: 'gemini', label: 'Gemini' },
+                    { value: 'openai', label: t('settings.providers.type.openai') },
+                    { value: 'gemini', label: t('settings.providers.type.gemini') },
                   ]}
                   onChange={(val) => setProviderDraft((prev) => ({ ...prev, provider: val, base_url: val === 'openai' ? 'https://api.openai.com/v1' : '' }))}
                   size="small"
@@ -412,7 +413,7 @@ export function SettingsPage() {
               <div className="panel-subtitle" style={{ margin: 0 }}>{t('settings.providers.capabilities.title')}</div>
               <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>{t('settings.providers.capabilities.hint')}</div>
               <div style={{ display: 'grid', gap: '0.5rem' }}>
-                {capabilityRows.map((row) => (
+                {getCapabilityRows(t).map((row) => (
                   <div key={row.model} style={{ border: '1px solid var(--border)', borderRadius: '10px', padding: '0.6rem 0.7rem', background: 'rgba(255,255,255,0.02)', display: 'grid', gap: '0.35rem' }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '0.6rem', flexWrap: 'wrap' }}>
                       <div style={{ minWidth: 0 }}>
@@ -432,7 +433,7 @@ export function SettingsPage() {
                       </div>
                     </div>
                     <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>
-                      {t('settings.providers.capabilities.note')}: {row.note}
+                      {t('settings.providers.capabilities.note')}: {t(row.note)}
                     </div>
                   </div>
                 ))}
@@ -458,14 +459,14 @@ export function SettingsPage() {
               <h2 style={{ margin: 0, fontSize: "0.9rem" }}>{t('settings.providers.setSearchProvider')}</h2>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
                 <label>
-                  Provider
+                  {t('settings.providers.fields.provider')}
                   <AppSelect
                     value={searchDraft.provider}
                     options={[
-                      { value: "ddg", label: "DuckDuckGo" },
-                      { value: "serpapi", label: "SerpAPI" },
-                      { value: "serper", label: "Serper" },
-                      { value: "tavily", label: "Tavily" },
+                      { value: "ddg", label: t('settings.providers.searchEngine.ddg') },
+                      { value: "serpapi", label: t('settings.providers.searchEngine.serpapi') },
+                      { value: "serper", label: t('settings.providers.searchEngine.serper') },
+                      { value: "tavily", label: t('settings.providers.searchEngine.tavily') },
                       { value: "mock", label: "Mock" },
                     ]}
                     onChange={(val) => setSearchDraft((p) => ({ ...p, provider: val }))}
@@ -475,11 +476,11 @@ export function SettingsPage() {
                 {(searchDraft.provider === "serpapi" || searchDraft.provider === "serper" || searchDraft.provider === "tavily") && (
                   <>
                     <label>
-                      Base URL
+                      {t('settings.providers.fields.baseUrl')}
                       <input className="input small" value={searchDraft.base_url} onChange={(e) => setSearchDraft((p) => ({ ...p, base_url: e.target.value }))} />
                     </label>
                     <label>
-                      API Key
+                      {t('settings.providers.fields.apiKey')}
                       <input className="input small" value={searchDraft.api_key} onChange={(e) => setSearchDraft((p) => ({ ...p, api_key: e.target.value }))} />
                     </label>
                   </>
@@ -487,11 +488,11 @@ export function SettingsPage() {
                 {searchDraft.provider === "ddg" && (
                   <>
                     <label>
-                      Region
+                      {t('settings.providers.search.region')}
                       <input className="input small" value={String((searchDraft.config as any).region || "")} onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), region: e.target.value } }))} />
                     </label>
                     <label>
-                      SafeSearch
+                      {t('settings.providers.search.safeSearch')}
                       <input className="input small" value={String((searchDraft.config as any).safesearch || "moderate")} onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), safesearch: e.target.value } }))} />
                     </label>
                   </>
@@ -499,7 +500,7 @@ export function SettingsPage() {
                 {searchDraft.provider === "tavily" && (
                   <>
                     <label>
-                      Search Depth
+                      {t('settings.providers.search.searchDepth')}
                       <AppSelect
                         value={String((searchDraft.config as any).search_depth || "basic")}
                         options={[
@@ -511,7 +512,7 @@ export function SettingsPage() {
                       />
                     </label>
                     <label>
-                      Include Answer
+                      {t('settings.providers.search.includeAnswer')}
                       <input
                         type="checkbox"
                         checked={Boolean((searchDraft.config as any).include_answer || false)}
@@ -519,7 +520,7 @@ export function SettingsPage() {
                       />
                     </label>
                     <label>
-                      Topic
+                      {t('settings.providers.search.topic')}
                       <input
                         className="input small"
                         value={String((searchDraft.config as any).topic || "")}
@@ -527,7 +528,7 @@ export function SettingsPage() {
                       />
                     </label>
                     <label>
-                      Days (time range)
+                      {t('settings.providers.search.days')}
                       <input
                         className="input small"
                         type="number"
@@ -537,7 +538,7 @@ export function SettingsPage() {
                       />
                     </label>
                     <label>
-                      Include Domains (comma-separated)
+                      {t('settings.providers.search.includeDomains')}
                       <input
                         className="input small"
                         value={String((searchDraft.config as any).include_domains || "")}
@@ -545,7 +546,7 @@ export function SettingsPage() {
                       />
                     </label>
                     <label>
-                      Exclude Domains (comma-separated)
+                      {t('settings.providers.search.excludeDomains')}
                       <input
                         className="input small"
                         value={String((searchDraft.config as any).exclude_domains || "")}
@@ -575,7 +576,7 @@ export function SettingsPage() {
                 </button>
                 {searchProvider && (
                   <div style={{ color: "#94a3b8", lineHeight: 1 }}>
-                    Active: {searchProvider.provider}
+                    {t('settings.providers.search.active')}: {searchProvider.provider}
                   </div>
 
                 )}

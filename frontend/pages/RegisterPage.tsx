@@ -56,7 +56,7 @@ export function RegisterPage() {
         const msg = String(first?.msg || first?.message || 'Registration failed');
         setError(msg);
       } else {
-        setError("register_failed");
+        setError(t('auth.register.failed'));
       }
     } finally {
       setLoading(false);

@@ -5,7 +5,11 @@
     "show": "显示",
     "yes": "是",
     "no": "否",
-    "none": "（无）"
+    "none": "（无）",
+    "cancel": "取消",
+    "next": "下一步",
+    "back": "返回",
+    "previous": "上一页"
   },
   "brand": "SocialSim4",
   "nav": {
@@ -44,7 +48,8 @@
     "empty": "还没有模拟，创建一个开始吧。",
     "status": "状态",
     "created": "创建时间",
-    "sceneType": "场景类型"
+    "sceneType": "场景类型",
+    "simulationId": "模拟 #{{id}}"
   },
   "saved": {
     "title": "已保存的模拟",
@@ -63,7 +68,8 @@
       "security": "安全",
       "providers": "提供商",
       "llmProviders": "LLM提供商",
-      "searchProviders": "搜索提供商"
+      "searchProviders": "搜索提供商",
+      "files": "文件管理"
     },
     "profile": {
       "email": "邮箱",
@@ -77,6 +83,20 @@
     },
     "providers": {
       "title": "提供商集成",
+      "type": {
+        "openai": "OpenAI 兼容",
+        "gemini": "Gemini"
+      },
+      "searchEngine": {
+        "ddg": "DuckDuckGo",
+        "serpapi": "SerpAPI",
+        "serper": "Serper",
+        "tavily": "Tavily"
+      },
+      "modelNote": {
+        "goodDefault": "适合智能体回合和批量操作的良好默认值",
+        "fastLongContext": "快速且具有长上下文，适合综合处理"
+      },
       "add": "新增提供商",
       "llmTab": "LLM 提供商",
       "searchTab": "搜索提供商",
@@ -112,7 +132,42 @@
         "modalities": "模态",
         "note": "备注",
         "disclaimer": "费用为 2024 年 12 月参考价（每百万 tokens），请以官方定价为准。"
+      },
+      "search": {
+        "region": "地区",
+        "safeSearch": "安全搜索",
+        "searchDepth": "搜索深度",
+        "includeAnswer": "包含答案",
+        "topic": "主题",
+        "days": "天数（时间范围）",
+        "includeDomains": "包含域名（逗号分隔）",
+        "excludeDomains": "排除域名（逗号分隔）",
+        "active": "当前"
       }
+    },
+    "files": {
+      "title": "文件管理",
+      "description": "管理仿真中使用的上传文件。",
+      "loading": "正在加载文件…",
+      "error": "无法加载文件。",
+      "empty": "没有上传文件。",
+      "table": {
+        "filename": "文件名",
+        "size": "大小",
+        "type": "类型",
+        "created": "创建时间",
+        "actions": "操作"
+      },
+      "delete": "删除",
+      "deleteConfirm": "删除该文件？",
+      "findOrphans": "查找孤立文件",
+      "orphansFound": "找到 {{count}} 个孤立文件",
+      "noOrphans": "未找到孤立文件",
+      "deleteAllOrphans": "删除所有孤立文件",
+      "deleteAllOrphansConfirm": "删除所有 {{count}} 个孤立文件？",
+      "byte": "字节",
+      "kb": "KB",
+      "mb": "GB"
     }
   },
   "wizard": {
@@ -144,6 +199,16 @@
     "allowedActions": "可选动作",
     "emotionEnabled": "启用情绪功能",
     "emotionHint": "开启后，智能体每回合会输出情绪更新。",
+    "sceneType": {
+      "village": "乡村",
+      "council": "议事会",
+      "werewolf": "狼人杀"
+    },
+    "timeConfig": {
+      "startTime": "起始时间",
+      "unit": "时间单位",
+      "step": "步长"
+    },
     "timeUnits": {
       "minute": "分钟",
       "hour": "小时",
@@ -174,6 +239,12 @@
       "council": "创建一个由5名成员组成的议会，每位成员具有不同政策立场与影响力。",
       "werewolf": "创建一个狼人杀9人局的玩家群体画像：法官/上帝、预言家、女巫、猎人、2名狼人、3名平民，并描述性格与策略偏好。"
     },
+    "defaultPrompts": {
+      "village": "创建一个多元化的乡村社区，包含务农者、商人和知识分子。",
+      "council": "创建一个由5名成员组成的议会，每位成员具有不同政策立场与影响力。",
+      "werewolf": "创建一个狼人杀9人局的玩家群体画像：法官/上帝、预言家、女巫、猎人、2名狼人、3名平民，并描述性格与策略偏好。"
+    },
+    "noDescription": "暂无描述",
     "confirmations": {
       "deleteTemplate": "确定要删除这个模板吗？"
     },
@@ -255,7 +326,8 @@
       "attributes": "初始属性",
       "uploadCsvJson": "点击上传 CSV 或 JSON",
       "requiredFields": "必填字段：agent_name, agent_description；其余列将作为属性保留",
-      "parsedAgents": "已解析 {{count}} 个智能体"
+      "parsedAgents": "已解析 {{count}} 个智能体",
+      "noAgentsGenerated": "尚未生成智能体。点击【开始生成】按钮创建智能体。"
     },
     "step3": {
       "ready": "准备就绪",
@@ -299,6 +371,27 @@
     "tabs": {
       "age": "年龄",
       "location": "地区"
+    },
+    "defaults": {
+      "citizen": "公民",
+      "customTemplate": "自定义模板",
+      "provider": "提供商",
+      "traits": {
+        "trust": "信任度",
+        "empathy": "同理心",
+        "assertiveness": "果断性"
+      },
+      "categories": {
+        "urban": "城市",
+        "suburban": "郊区",
+        "rural": "乡村"
+      },
+      "newCategory": "新类别",
+      "ageRanges": {
+        "young": "18-30岁",
+        "middle": "31-50岁",
+        "senior": "51岁以上"
+      }
     }
   },
   "templateBuilder": {
@@ -550,6 +643,15 @@
     "engineConnected": "SocialSim4 引擎",
     "engineStandalone": "独立模式",
     "newSimulation": "新建仿真",
+    "connectedTo": "已连接到 {{endpoint}}",
+    "runningBrowserStandalone": "在浏览器中运行 (Gemini 独立模式)",
+    "socialSim4Engine": "SocialSim4 引擎",
+    "standaloneMode": "独立模式",
+    "networkTopology": "社交网络拓扑",
+    "globalKnowledge": "全局知识库",
+    "timeSettings": "调整时间流速",
+    "saveAsTemplate": "保存为模板",
+    "nodeId": "节点 {{id}}",
     "advance": "推进节点",
     "advancing": "推演中…",
     "branch": "创建分支",
@@ -579,5 +681,686 @@
     "initialNode": "初始状态",
     "round": "系统推进至第 {{round}} 回合",
     "timeLabel": "{{step}} {{unit}}/R"
+  },
+  "components": {
+    "agentPanel": {
+      "modelTooltip": "模型：",
+      "auto": "自动",
+      "noSimulationId": "无模拟 ID",
+      "fileTooLarge": "文件过大。最大大小：10MB",
+      "uploadFailed": "上传失败",
+      "invalidFileType": "无效的文件类型。允许：{{types}}",
+      "knowledgeContent": "知识内容...",
+      "editProfile": "编辑画像",
+      "title": "标题",
+      "edit": "编辑",
+      "delete": "删除",
+      "titlePlaceholder": "标题 (如：乡村公约)",
+      "uploadHelperText": "拖拽/上传图片将以 markdown 链接插入画像描述",
+      "saveProfile": "保存画像",
+      "currentAttributes": "当前状态属性",
+      "knowledgeBase": "知识库 (RAG)",
+      "noKnowledgeDocs": "暂无知识库文档",
+      "save": "保存",
+      "addKnowledge": "添加知识条目",
+      "documentKnowledgeBase": "文档知识库",
+      "uploading": "上传中...",
+      "dragDropUpload": "拖放文件或点击上传",
+      "supportedFormats": "支持：PDF, TXT, DOCX, MD (最大 10MB)",
+      "noUploadedDocs": "暂无上传文档",
+      "textChunks": "个文本块",
+      "shortTermMemory": "短期记忆"
+    },
+    "copyButton": {
+      "copy": "复制",
+      "copied": "已复制"
+    },
+    "comparisonView": {
+      "notBackendNodeError": "选中的节点不是后端节点，无法生成后端对比。请切换到 Connected 模式并加载服务器仿真。",
+      "selectBaselineNode": "请选择基准节点",
+      "selectCompareNode": "请在仿真树中选择第二个节点进行对比。",
+      "selectCompareNodeHint": "点击树状图中的节点即可设定为对比对象 (B)。",
+      "baseline": "基准 (A)",
+      "compare": "对比 (B)",
+      "smartSummary": "智能因果推断",
+      "useLLMForSummary": "使用 LLM 生成摘要",
+      "analyzingDifferences": "正在分析两条时间线的差异...",
+      "diffEvidenceSamples": "差异证据样例",
+      "exampleA": "A 示例",
+      "exampleB": "B 示例",
+      "generateAnalysisReport": "生成分析报告",
+      "nodeAEvents": "节点 A 独有事件",
+      "nodeBEvents": "节点 B 独有事件",
+      "agentDiffs": "差异摘要与代理属性差异",
+      "noAgentDiffs": "未检测到代理属性差异",
+      "dataSourceNote": "数据来自后端对比结果；AI 摘要仅基于上方展示的证据"
+    },
+    "demographicsBuilder": {
+      "generateAgents": "生成智能体"
+    },
+    "environmentSuggestion": {
+      "eventsAvailable": "环境事件可用",
+      "suggestionsTitle": "环境事件建议",
+      "suggestionsDescription": "基于最近的模拟活动，以下是可能发生的环境事件：",
+      "generating": "正在生成建议...",
+      "eventType": {
+        "weather": "天气",
+        "emergency": "紧急情况",
+        "notification": "通知",
+        "opinion": "公众舆论"
+      },
+      "severity": {
+        "mild": "轻微",
+        "moderate": "中度",
+        "severe": "严重"
+      },
+      "apply": "应用",
+      "skipAll": "全部跳过",
+      "dismissAll": "忽略所有建议",
+      "toggle": {
+        "enable": "启用动态环境事件",
+        "disable": "禁用动态环境事件"
+      },
+      "dynamicEvents": "动态事件",
+      "publicOpinion": "公众舆论",
+      "disableDynamicEvents": "禁用动态环境事件",
+      "enableDynamicEvents": "启用动态环境事件"
+    },
+    "experimentDesignModal": {
+      "interventionPlaceholder": "描述具体的干预内容..."
+    },
+    "exportModal": {
+      "confirmExport": "确认导出"
+    },
+    "globalKnowledgePanel": {
+      "title": "全局知识库",
+      "subtitle": "所有代理共享的知识",
+      "noSimulationId": "无模拟 ID",
+      "fileTooLarge": "文件过大。最大大小：10MB",
+      "uploadFailed": "上传失败",
+      "invalidFileType": "文件类型无效。允许的类型：{{types}}",
+      "text": "文本",
+      "uploadDocuments": "上传文档",
+      "uploading": "上传中…",
+      "dragDropUpload": "拖放文件或点击上传",
+      "supportedFormats": "支持：PDF、TXT、DOCX、MD（最大 10MB）",
+      "addTextKnowledge": "添加文本知识",
+      "titlePlaceholder": "标题（可选）",
+      "contentPlaceholder": "知识内容…",
+      "save": "保存",
+      "cancel": "取消",
+      "knowledgeList": "知识列表（{{count}}）",
+      "loading": "加载中…",
+      "noKnowledgeYet": "暂无全局知识",
+      "unnamed": "未命名",
+      "document": "文档",
+      "textChunks": "{{count}} 个文本块"
+    },
+    "guideAssistant": {
+      "insertImage": "插入图片",
+      "title": "平台指引助手",
+      "uploadSuccess": "图片已上传并插入",
+      "uploadFailed": "上传失败",
+      "hostPanelHint": "请查看右侧边栏的「主持控制」标签页。",
+      "openWizard": "打开新建仿真向导",
+      "openNetwork": "打开社交网络编辑器",
+      "openExperiment": "打开实验设计器",
+      "openExport": "打开导出面板",
+      "openAnalytics": "查看统计分析",
+      "openHost": "前往主持控制台",
+      "executeAction": "执行操作",
+      "placeholder": "你想了解什么功能...",
+      "disclaimer": "AI 可能会犯错。请核对重要信息。"
+    },
+    "analyticsPanel": {
+      "title": "数据趋势分析",
+      "metricLabel": "分析指标:",
+      "noAgentData": "暂无智能体数据",
+      "axisLabel": "X轴：回合数 (Round) · Y轴：{{metric}} 数值"
+    },
+    "exportModal": {
+      "title": "导出数据",
+      "selectContent": "1. 选择导出内容",
+      "allLogs": "完整日志记录",
+      "agentData": "智能体画像与状态",
+      "selectFormat": "2. 选择文件格式",
+      "json": "JSON",
+      "excelCsv": "Excel / CSV",
+      "hintAllLogsCsv": "CSV 格式会将日志展平为表格，适合 Excel 分析。",
+      "hintAllLogsJson": "JSON 格式保留完整的嵌套结构，适合程序化处理。",
+      "hintAgentDataCsv": "CSV 格式仅包含智能体基本信息与扁平化属性。",
+      "hintAgentDataJson": "包含智能体完整记忆、历史状态曲线等所有数据。",
+      "cancel": "取消",
+      "generating": "生成中...",
+      "confirmExport": "确认导出"
+    },
+    "guidePrompt": {
+      "systemPrompt": "你是「SocialSim4 Next」社会模拟平台的专家指引助手。\n     你的目标是帮助用户设计实验并导航平台功能。\n     \n     平台功能地图:\n     1. **新建仿真**: 'SimulationWizard' (从村庄/议会/狼人杀等模板创建仿真，导入智能体，AI 生成智能体)。\n     2. **社交网络**: 'NetworkEditor' (定义环形/星形/小世界等拓扑结构以控制信息传播)。\n     3. **实验设计**: 'ExperimentDesigner' (因果推断，A/B 测试，并行分支，对照组)。\n     4. **主持控制**: 'HostPanel' (上帝模式，广播消息，注入环境事件，修改智能体属性)。\n     5. **统计分析**: 'AnalyticsPanel' (智能体属性如信任度/压力随时间变化的折线图)。\n     6. **导出**: 'ExportModal' (以 JSON/CSV/Excel 格式下载日志)。\n     7. **分析报告**: 'ReportModal' (AI 生成的分析报告)。\n     8. **仿真树**: 主要可视化界面。支持『分支』(创建并行时间线)和『推进』(下一回合)。\n     9. **对比**: 'ComparisonView' (对比两个节点/时间线)。\n\n     指引说明:\n     - 分析用户的意图。\n     - 提供简洁的、循序渐进的指南，将用户的目标映射到具体的平台工具。\n     - 如果用户需要打开特定工具，请在回复末尾附加标签，格式为: [[ACTION_NAME]]。\n     - 支持的标签: [[OPEN_WIZARD]], [[OPEN_NETWORK]], [[OPEN_EXPERIMENT]], [[OPEN_EXPORT]], [[OPEN_ANALYTICS]], [[OPEN_HOST]]。\n     - 可以包含多个相关标签，但优先考虑最重要的一个。\n     - 使用 Markdown 格式进行排版。",
+      "defaultResponse": "抱歉，我无法理解您的请求。",
+      "connectionTimeout": "连接 AI 服务超时，请稍后再试。"
+    },
+    "experimentDesignModal": {
+      "title": "因果干预实验设计",
+      "subtitle": "基于节点 <span class=\"font-mono bg-white px-1 rounded border border-indigo-200\">{{displayId}}</span> ({{name}}) 创建平行对照组",
+      "experimentNameLabel": "实验名称",
+      "experimentNamePlaceholder": "例如：高压力环境测试",
+      "pleaseEnterName": "请输入实验名称",
+      "controlGroup": "对照组",
+      "controlGroupDescription": "基准对照，不施加额外干预。",
+      "controlGroupState": "继承当前节点状态与历史记录。",
+      "hintTitle": "💡 提示：",
+      "hintAddVariant": "点击右侧添加实验组。",
+      "hintDefineVariables": "为每个组定义不同的干预变量。",
+      "hintAutoParallel": "系统将自动并行运行所有分支。",
+      "variantPrefix": "实验组",
+      "noInterventions": "暂无干预措施",
+      "instructionType": "全局指令",
+      "propertyType": "修改属性",
+      "environmentType": "环境事件",
+      "selectAgent": "选择智能体...",
+      "imageLabel": "图片 (可选)",
+      "imageHelper": "拖拽/点击上传后将图片以 markdown 链接插入",
+      "propertyPlaceholder": "例如：将信任值降低至 10",
+      "descriptionPlaceholder": "描述具体的干预内容...",
+      "addIntervention": "添加干预项",
+      "addVariant": "添加新的实验组",
+      "cancel": "取消",
+      "startBatch": "启动批量运行 ({{count}} 个分支)",
+      "liveLogPreview": "实时日志预览（最近 {{count}} 条）",
+      "noLogsYet": "暂无日志",
+      "imageUploaded": "图片已上传并插入"
+    },
+    "hostPanel": {
+      "godModeTitle": "主持模式",
+      "godModeDescription": "此处的操作将强制干预当前仿真状态，并立即产生系统日志。请谨慎使用。",
+      "initialEventsEditor": "初始事件编辑器",
+      "aiAdvisor": "AI 环境顾问",
+      "getSuggestions": "获取建议",
+      "logPrefixSystemAnnouncement": "「系统公告」",
+      "logPrefixEnvironmentEvent": "「环境事件」",
+      "getSuggestionsHint": "点击获取建议，让 AI 基于当前局势推荐环境事件。",
+      "fetchSuggestionsFailed": "获取建议失败",
+      "suggestionAdopted": "已采纳环境建议",
+      "adoptEvent": "采纳此事件",
+      "systemBroadcast": "全局广播",
+      "broadcastPlaceholder": "例如：议会现在开始...",
+      "sendBroadcast": "发送公告",
+      "injectEvent": "注入环境事件",
+      "eventPlaceholder": "例如：突发暴雨，通讯中断...",
+      "imageLabel": "图片 (可选)",
+      "imageHelper": "支持拖拽、点击上传，自动插入到事件日志。",
+      "imageUploaded": "图片已上传",
+      "triggerEvent": "触发事件",
+      "modifyState": "强制修改属性",
+      "selectProperty": "选择属性...",
+      "enterNewValue": "输入新值",
+      "updateProperty": "更新属性"
+    },
+    "initialEventsModal": {
+      "title": "初始事件编辑器",
+      "defaultEventTitle": "初始事件",
+      "eventTitlePlaceholder": "事件标题",
+      "eventDescPlaceholder": "事件描述，可包含 markdown",
+      "imageOptional": "图片（可选）",
+      "uploadAutoInsert": "上传后自动插入 markdown 链接，可裁剪",
+      "audioUrl": "音频 URL",
+      "videoUrl": "视频 URL",
+      "audioUrlPlaceholder": "https://example.com/audio.mp3",
+      "videoUrlPlaceholder": "https://example.com/video.mp4",
+      "saveAndInject": "保存并注入",
+      "reset": "重置",
+      "savedEvents": "已保存的初始事件",
+      "noEventsYet": "暂无初始事件",
+      "image": "图片",
+      "audio": "音频",
+      "video": "视频"
+    },
+    "logViewer": {
+      "environment": "环境",
+      "logAttachment": "日志附件",
+      "fullSize": "完整尺寸"
+    },
+    "multimodalInput": {
+      "cropAndUploadSuccess": "裁剪并上传成功",
+      "docSizeLimit": "文档超过 10MB 限制",
+      "fileSizeLimit": "文件超过 5MB 限制",
+      "allowedTypes": "仅支持 JPG/PNG/GIF/WEBP/MP3/WAV/OGG/MP4/WEBM/PDF/DOC/DOCX",
+      "uploadSuccess": "上传成功",
+      "uploadFailed": "上传失败",
+      "uploading": "上传中…",
+      "dragDropUpload": "拖拽、粘贴或点击上传图片/音频/视频/文档",
+      "dragDropUploadWithCrop": "支持拖拽/点击上传，提供方形或自由裁剪上传（仅图片）。",
+      "dragDropUploadSimple": "支持拖拽/点击上传。",
+      "sizeWarning": "（图片/音频/视频 ≤ 5MB，PDF/Word ≤ 10MB，当前未做杀毒/内容安全，请只上传可信来源）",
+      "imageDescLabel": "图片描述（可选，用于无障碍访问）",
+      "imageDescPlaceholder": "例如：一只坐在公园长椅上的橙色猫",
+      "imageLoadError": "图片加载失败。URL：",
+      "xOrigin": "X 起点",
+      "yOrigin": "Y 起点",
+      "mode": "模式",
+      "square": "方形",
+      "free": "自由",
+      "widthScale": "宽缩放",
+      "heightScale": "高缩放",
+      "cropPreview": "裁剪预览",
+      "cropping": "裁剪中…",
+      "cropAndReupload": "裁剪并重新上传",
+      "deleteImage": "删除图片",
+      "uploaded": "已上传："
+    },
+    "navBar": {
+      "toggleTheme": "切换主题"
+    },
+    "simTree": {
+      "title": "仿真树",
+      "selectCompareNode": "请选择对比节点...",
+      "legendHelp": "图例说明",
+      "zoomIn": "放大",
+      "zoomOut": "缩小",
+      "resetView": "重置视角",
+      "deleteNode": "删除选中节点",
+      "confirmDelete": "确定要删除选中的节点及其所有子节点吗？",
+      "baseline": "基准",
+      "compare": "对比",
+      "clickToCompare": "点击节点设为对比对象",
+      "frontier": "前沿",
+      "selected": "选中",
+      "failed": "异常"
+    },
+    "sidebar": {
+      "agents": "智能体",
+      "hostControl": "主持控制"
+    },
+    "logViewer": {
+      "listView": "列表视图",
+      "cardView": "卡片视图",
+      "timelineView": "时间轴视图",
+      "currentBranchFilter": "当前分支路径过滤",
+      "searchPlaceholder": "搜索日志...",
+      "filter": "筛选",
+      "eventTypes": "事件类型",
+      "typeSystem": "系统",
+      "typeAgentMetadata": "智能体元数据",
+      "typeDialogue": "对话",
+      "typeAction": "行动",
+      "typeEnvironment": "环境",
+      "relatedAgents": "相关智能体",
+      "clearAllFilters": "清空所有筛选",
+      "noMatchingLogs": "没有找到匹配的日志",
+      "clearFilters": "清除筛选条件",
+      "noLogsYet": "此节点下暂无活动记录",
+      "showingRecords": "显示 {{count}} 条记录 (当前分支)",
+      "filterActive": "筛选已生效",
+      "audioLink": "音频链接",
+      "videoLink": "视频链接"
+    },
+    "networkEditorModal": {
+      "title": "社交网络拓扑",
+      "description": "定义智能体之间的信息传播路径与可见性边界。",
+      "networkPresets": "网络预设",
+      "selectPresetHint": "选择预设类型，调整参数后生成网络",
+      "parameterSettings": "参数设置",
+      "resetDefaults": "重置默认",
+      "generateNetwork": "生成网络",
+      "random": "随机",
+      "waxman": "地理网络",
+      "fullyConnected": "全连接",
+      "everyoneConnected": "所有人相互连接",
+      "connectionsRandomly": "随机选择连接",
+      "smallWorld": "小世界",
+      "neighborsPlusShortcuts": "邻居加随机捷径",
+      "stochasticBlock": "随机块",
+      "tightGroupsFewBridges": "紧密群体，少量桥梁",
+      "closerAgentsConnectMore": "距离近的智能体连接更多",
+      "corePeriphery": "核心-边缘",
+      "fewHighlyConnected": "少量高度连接的影响者",
+      "holmeKim": "三角聚类",
+      "popularAgentsMoreConnections": "热门智能体获得更多连接",
+      "fractionOfInfluencers": "影响者比例",
+      "connectionProbabilityInfluencers": "影响者连接",
+      "influencerToRegularConnection": "影响者触达",
+      "connectionProbabilityRegular": "普通连接",
+      "connectionsPerNewAgent": "每个体连接数",
+      "probabilityOfTriangles": "形成三角",
+      "maximumDistance": "最大距离",
+      "distanceReduction": "距离惩罚",
+      "probabilityAnyTwoConnect": "连接概率",
+      "agentsPerCommunity": "组大小",
+      "connectionProbabilityWithinGroup": "组内连接",
+      "averageConnectionsOtherGroups": "组间连接",
+      "neighborsEachSide": "环邻居数",
+      "probabilityLongRangeShortcut": "捷径概率",
+      "clear": "清空",
+      "saveTopologySettings": "保存拓扑设置",
+      "saving": "保存中...",
+      "instructions": "操作指南",
+      "instruction1": "选择预设类型并调整参数",
+      "instruction2": "点击「生成网络」应用设置",
+      "instruction3": "点击节点选中（橙色）",
+      "instruction4": "点击另一节点建立/删除连接",
+      "instruction5": "拖拽节点调整布局",
+      "zoomPanHint": "支持滚轮缩放与拖拽平移",
+      "zoomIn": "放大",
+      "zoomOut": "缩小",
+      "resetView": "重置视角",
+      "nodes": "节点",
+      "edges": "边"
+    },
+    "reportModal": {
+      "title": "仿真实验分析报告",
+      "subtitle": "自动分析",
+      "generatedAt": "生成于：",
+      "noReport": "暂无报告",
+      "aiGenerated": "AI 生成",
+      "hideSettings": "隐藏设置",
+      "analysisSettings": "分析设置",
+      "close": "关闭",
+      "sampleLimit": "采样上限（条）",
+      "samplePerRound": "每轮采样",
+      "roundRange": "轮次范围",
+      "clear": "清除",
+      "start": "起始：",
+      "end": "结束：",
+      "singleRoundWarning": "当前只有一个节点/轮次，无法调整范围。",
+      "focusAgents": "焦点智能体（可多选）",
+      "noAgents": "暂无智能体",
+      "enableLLM": "启用 LLM 精炼（需配置 provider）",
+      "settingsApplyNext": "设置将用于下一次「立即生成报告」。",
+      "generateTitle": "生成智能分析报告",
+      "generateDescription": "系统将读取当前实验的日志记录与智能体历史状态，使用大模型生成包含摘要、关键转折、行为分析与改进建议的完整报告。",
+      "analyzing": "正在分析数据…",
+      "generateNow": "立即生成报告",
+      "executiveSummary": "实验摘要",
+      "actionsErrorsBroadcasts": "动作 / 错误 / 广播随轮次",
+      "actions": "动作",
+      "errors": "错误",
+      "broadcasts": "广播",
+      "keyEvents": "关键转折点",
+      "collapse": "收起",
+      "showMore": "展开更多（{{count}} 条）",
+      "suggestions": "后续建议",
+      "agentAnalysis": "智能体行为分析",
+      "multimodalThumbnails": "多模态日志缩略图",
+      "noImageLogs": "暂无图片日志",
+      "exportJson": "导出 JSON",
+      "exportMarkdown": "导出 Markdown",
+      "regenerate": "重新生成"
+    },
+    "simulationWizard": {
+      "customTemplate": "自定义模板",
+      "newCategory": "新类别"
+    },
+    "syncModal": {
+      "title": "手动同步到后端",
+      "syncLogs": "同步日志：",
+      "warningMessage": "操作会将当前仿真覆盖保存到后端同名记录，不会再自动创建草稿，请确认后再执行。",
+      "noLogsYet": "暂无日志，点击下方按钮开始同步。",
+      "copiedToClipboard": "已复制同步日志到剪贴板",
+      "copyFailed": "复制失败",
+      "copyLogs": "复制日志",
+      "downloadLogs": "下载日志",
+      "confirmSaveBackend": "确认将当前仿真保存到后端？这会覆盖同名记录。",
+      "syncing": "同步中…",
+      "startSync": "开始同步",
+      "close": "关闭"
+    },
+    "templateSaveModal": {
+      "title": "保存为模板",
+      "info": "当前包含 <strong>{{count}}</strong> 个智能体、当前时间配置以及场景逻辑将被保存。历史运行日志不会被保存。",
+      "templateName": "模板名称",
+      "namePlaceholder": "例如：高信任度乡村配置",
+      "descriptionOptional": "描述（可选）",
+      "descriptionPlaceholder": "描述此模板的适用场景或特殊配置…",
+      "imageHelper": "可选：上传图片并自动插入为 markdown 链接。当前不支持裁剪。",
+      "imageInserted": "图片已插入描述",
+      "cancel": "取消",
+      "saveTemplate": "保存模板"
+    },
+    "timeSettingsModal": {
+      "title": "时间流速设置",
+      "description": "调整仿真推进时的时间跨度。修改将在下一回合生效，不会影响历史记录。",
+      "perRoundAdvance": "每回合推进",
+      "calibrateStartTime": "校准起始时间（慎用）",
+      "cancel": "取消",
+      "applySettings": "应用设置",
+      "minute": "分钟",
+      "minutes": "分钟",
+      "hour": "小时",
+      "hours": "小时",
+      "day": "天",
+      "days": "天",
+      "week": "周",
+      "weeks": "周",
+      "month": "月",
+      "months": "月",
+      "year": "年",
+      "years": "年"
+    },
+    "useImageCrop": {
+      "cropFailed": "裁剪失败",
+      "failedToGetCanvasContext": "无法获取画布上下文"
+    },
+    "errorBoundary": {
+      "title": "前端运行时出错（不是后端问题）",
+      "instructions": "请把上面这行红字错误信息，或者浏览器控制台（F12 Console）里红色那行，截图或复制给开发团队。"
+    }
+  },
+  "pages": {
+    "docsPage": {
+      "documentation": "文档 / 使用说明",
+      "title": "文档 / 使用说明",
+      "documents": "文档列表",
+      "tutorial": "操作教程",
+      "tutorialTitle": "社会仿真平台操作教程",
+      "loading": "加载文档中...",
+      "error": "文档加载失败"
+    },
+    "simulationPage": {
+      "manualSyncBackend": "手动同步到后端",
+      "runningBrowserStandalone": "在浏览器中运行 (Gemini 独立模式)"
+    },
+    "simulationWizardPage": {
+      "noDescription": "暂无描述"
+    }
+  },
+  "services": {
+    "uploads": {
+      "fileSizeExceedsLimit": "文件大小超过 5MB 限制"
+    }
+  },
+  "store": {
+    "agents": {
+      "chairman": "议长",
+      "councilor": "议员",
+      "councilProfile": "议会成员，负责决策城市规划与资源分配。",
+      "judge": "法官",
+      "seer": "预言家",
+      "witch": "女巫",
+      "hunter": "猎人",
+      "werewolf": "狼人",
+      "villager": "平民",
+      "player": "玩家",
+      "roleIs": "本局游戏身份为",
+      "alice": "爱丽丝村长",
+      "bob": "鲍勃商人",
+      "mayor": "村长",
+      "merchant": "商人",
+      "aliceProfile": "一位务实的领导者，专注于村庄的稳定。她优先考虑共识，但有时会显得优柔寡断。",
+      "bobProfile": "一个雄心勃勃的商人，唯利是图。他经常推动放松管制。"
+    },
+    "properties": {
+      "influence": "影响力",
+      "tendency": "倾向",
+      "conservative": "保守",
+      "radical": "激进",
+      "pressure": "压力值",
+      "alive": "存活状态",
+      "suspicion": "嫌疑度",
+      "trust": "信任值",
+      "stress": "压力值",
+      "money": "资金"
+    },
+    "failedToGenerateSummary": "未能生成摘要",
+    "noApiKey": "无 API 密钥",
+    "councilMember": "议会成员",
+    "eventDescription": "事件描述",
+    "eventContextFit": "为什么此事件适合当前上下文",
+    "unknownAction": "未知动作",
+    "lookAround": "环顾四周",
+    "moveToLocation": "移动到位置",
+    "sendMessage": "发送消息",
+    "gatherResource": "采集资源",
+    "rest": "休息",
+    "yield": "结束本轮发言",
+    "unknown": "未知",
+    "startingReasoning": "开始推理",
+    "reasoningComplete": "完成推理",
+    "action": "动作",
+    "yieldedFloor": "结束本轮发言",
+    "planUpdated": "更新计划",
+    "agentError": "智能体发生错误",
+    "startedAction": "开始执行动作",
+    "performedAction": "执行了动作",
+    "systemEvent": "系统事件",
+    "interactionOccurred": "进行了一次交互",
+    "node": "节点",
+    "defaultSimulationName": "2024年乡村委员会模拟",
+    "guideWelcomeMessage": "你好！我是SocialSim4的智能指引助手。我可以帮你设计实验、推荐功能或解释平台操作。比如，你可以问我：\n\n- \"如何模拟信息在人群中的传播？\"\n- \"我想做一个AB测试实验。\"\n- \"怎么导出分析报告？\"",
+    "simulationCreated": "仿真「{{name}}」创建成功",
+    "failedToCreateSimulation": "后端创建仿真失败",
+    "initialState": "初始状态",
+    "timeConfigUpdated": "时间配置已更新",
+    "networkTopologySaved": "社交网络拓扑已保存",
+    "failedToSaveNetwork": "保存网络失败",
+    "networkTopologyUpdatedLocal": "社交网络拓扑已更新（仅本地）",
+    "templateSaved": "模板保存成功",
+    "onlyConnectedModeCanSave": "仅连接模式可保存到后端",
+    "simulationNotCreatedOnBackend": "当前仿真尚未在后端创建，无法直接覆盖，请先在连接模式创建/加载后再保存",
+    "saveRequestSubmitted": "已提交保存请求，后台处理中",
+    "backendSyncComplete": "后台同步完成",
+    "backendSyncError": "后台同步出错，请查看日志",
+    "manualSyncFailed": "手动同步失败，请查看同步日志",
+    "pleaseLoadSimulationFirst": "请先加载仿真后再生成报告",
+    "reportGenerationComplete": "报告生成完成",
+    "reportGenerationFailed": "报告生成失败，请稍后重试",
+    "noReportToExport": "暂无报告可导出",
+    "exitedSimulation": "已退出当前模拟",
+    "simulationReset": "模拟已重置",
+    "failedToResetSimulation": "重置模拟失败",
+    "simulationDeleted": "模拟已删除",
+    "failedToDeleteSimulation": "删除模拟失败",
+    "initialEventsSaved": "初始事件已保存",
+    "agentAttributesUpdated": "智能体属性已更新",
+    "agentProfileUpdated": "智能体画像已更新",
+    "knowledgeItemAdded": "知识库条目已添加",
+    "knowledgeItemRemoved": "知识库条目已移除",
+    "knowledgeItemUpdated": "知识库条目已更新",
+    "selectedNodeNotBackend": "选中节点不是后端节点",
+    "backendAdvanceFailed": "后端推进失败，回退本地模拟",
+    "simulationAdvanceFailed": "仿真推进失败，请重试",
+    "branch": "分支",
+    "backendBranchFailed": "后端分支失败",
+    "cannotDeleteRoot": "不能删除根节点",
+    "nodeDeleted": "节点已删除",
+    "failedToDeleteNode": "删除节点失败",
+    "role": "角色",
+    "noDescription": "暂无描述",
+    "speaker": "发言人",
+    "moderator": "主持人",
+    "mayor": "市长",
+    "merchant": "商人",
+    "villageHead": "村长",
+    "policyMaker": "政策制定者",
+    "middleLevelExecutive": "中层执行官",
+    "grassrootsRecipient": "基层接收者",
+    "radicalFaction": "激进派",
+    "conservativeFaction": "保守派",
+    "neutralFaction": "中立派",
+    "failedToGenerateSuggestions": "未能生成环境建议",
+    "environmentEventApplied": "环境事件已应用",
+    "failedToApplyEvent": "未能应用环境事件",
+    "failedToDismissSuggestions": "未能忽略建议",
+    "environmentEventsEnabled": "环境事件已启用",
+    "environmentEventsDisabled": "环境事件已禁用",
+    "failedToUpdateEnvironmentSettings": "未能更新环境设置",
+    "guideErrorMissingApiKey": "错误：缺少 API Key。请配置环境变量。",
+    "guideCannotUnderstand": "抱歉，我无法理解您的请求。",
+    "guideConnectionTimeout": "连接 AI 服务超时，请稍后再试。",
+    "loadProvidersFailed": "加载 LLM 提供商失败",
+    "experimentSubmitted": "实验「{{name}}」已提交到后端运行（run_id={{runId}}）",
+    "experimentCompleted": "实验 {{name}} 已完成（run {{status}}）",
+    "failedToStartExperiment": "启动实验失败",
+    "batchExperimentStarted": "批量实验「{{name}}」已启动",
+    "comparisonAnalysisFailed": "比较分析失败"
+  },
+  "helpModal": {
+    "title": "理解「前沿」概念",
+    "whatIsFrontierLeaf": "什么是前沿叶子？",
+    "whatIsFrontierLeafDesc": "「前沿叶子」代表了仿真时间线的最新端点。它们是当前没有任何子节点的节点。",
+    "representsPaths": "代表潜在的未来发展路径。",
+    "advanceOperationStart": "执行「推进」操作的起点。",
+    "frontierNode": "前沿节点",
+    "batchOperations": "批量操作说明",
+    "batchAdvanceAll": "批量推进所有前沿",
+    "batchAdvanceAllDesc": "此命令会识别所有带有蓝色边框的节点（即叶子节点），并同时让它们向前推进一个回合。这对于并行探索多个「如果…会怎样」的场景非常有用。",
+    "onlyMaxDepth": "仅最深层",
+    "onlyMaxDepthDesc": "如果勾选此项，系统将仅推进位于仿真树**最深层级**的叶子节点。较短的、已经结束或废弃的分支将被忽略。",
+    "gotIt": "明白了"
+  },
+  "env": {
+    "statusTime": "[0:00] 状态:",
+    "statusHeader": "--- 状态 ---",
+    "currentPosition": "当前位置:",
+    "hungerLevel": "饥饿值:",
+    "energyLevel": "能量值:",
+    "inventory": "物品栏:",
+    "currentTime": "当前时间:",
+    "youAreAt": "你现在位于 ",
+    "youArrivedAt": "你到达了 ",
+    "nearbyAgents": "附近的智能体:",
+    "plain": "平原",
+    "messageLabel": "[消息]"
+  },
+  "systemTemplates": {
+    "normDisruption": {
+      "name": "社会规范的突变",
+      "description": "常人方法论视角：20个异质代理在突发规范变化中的意义构建与适应。观察从服从→反抗→黑市协议的演化轨迹。"
+    },
+    "norm_disruption": {
+      "name": "社会规范的突变",
+      "description": "常人方法论视角：20个异质代理在突发规范变化中的意义构建与适应。观察从服从→反抗→黑市协议的演化轨迹。"
+    },
+    "policyDiffusion": {
+      "name": "政策传播中的意义磨损",
+      "description": "街头官僚制视角：模拟三层级组织(政府→社区→居民)中政策的重构与异化。验证底层逻辑如何消解宏观规划。"
+    },
+    "policy_diffusion": {
+      "name": "政策传播中的意义磨损",
+      "description": "街头官僚制视角：模拟三层级组织(政府→社区→居民)中政策的重构与异化。验证底层逻辑如何消解宏观规划。"
+    },
+    "polarization": {
+      "name": "极化与数字茧房生成",
+      "description": "回声壁效应视角：20个代理（8激进+8保守+4中立）在推荐算法驱动下的观点极化与群体分裂。追踪情绪传染机制。"
+    },
+    "resourceScarcity": {
+      "name": "稀缺资源下的社会契约",
+      "description": "霍布斯丛林视角：灾后社区中，拥有社会资本的代理能否通过信用契约度过危机，还是陷入大规模欺诈与崩溃？"
+    },
+    "resource_scarcity": {
+      "name": "稀缺资源下的社会契约",
+      "description": "霍布斯丛林视角：灾后社区中，拥有社会资本的代理能否通过信用契约度过危机，还是陷入大规模欺诈与崩溃？"
+    },
+    "village": {
+      "name": "乡村治理",
+      "description": "适用于乡村治理的标准预设场景。"
+    },
+    "council": {
+      "name": "议事会",
+      "description": "5人议会决策模拟。"
+    },
+    "werewolf": {
+      "name": "狼人杀",
+      "description": "9人标准狼人杀局。"
+    }
   }
 }

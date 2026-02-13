@@ -1,11 +1,13 @@
 
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSimulationStore } from '../store';
 import { ArrowRight, Sparkles, Loader2, GitCommit, User } from 'lucide-react';
 import * as d3 from 'd3';
 import * as experimentsApi from '../services/experiments';
 
 export const ComparisonView: React.FC = () => {
+   const { t } = useTranslation();
    const selectedNodeId = useSimulationStore(state => state.selectedNodeId);
    const compareTargetNodeId = useSimulationStore(state => state.compareTargetNodeId);
    const nodes = useSimulationStore(state => state.nodes);
@@ -42,7 +44,7 @@ export const ComparisonView: React.FC = () => {
                       // Show a user-visible notification explaining why compare is skipped
                       const notify = useSimulationStore.getState().addNotification;
                       try {
-                         notify('error', '选中的节点不是后端节点，无法生成后端对比。请切换到 Connected 模式并加载服务器仿真。');
+                         notify('error', t('components.comparisonView.notBackendNodeError'));
                       } catch (e) {
                          // best-effort: ignore
                       }
@@ -64,11 +66,11 @@ export const ComparisonView: React.FC = () => {
       };
    }, [selectedNodeId, compareTargetNodeId, comparisonUseLLM, currentSimulation]);
 
-   if (!nodeA) return <div className="p-8 text-slate-400">请选择基准节点。</div>;
+   if (!nodeA) return <div className="p-8 text-slate-400">{t('components.comparisonView.selectBaselineNode')}</div>;
    if (!nodeB) return <div className="p-8 text-slate-400 text-center flex flex-col items-center justify-center h-full">
        <GitCommit size={48} className="mb-4 text-slate-200" />
-       <p>请在仿真树中选择第二个节点进行对比。</p>
-       <p className="text-xs mt-2">点击树状图中的节点即可设定为对比对象 (B)。</p>
+       <p>{t('components.comparisonView.selectCompareNode')}</p>
+       <p className="text-xs mt-2">{t('components.comparisonView.selectCompareNodeHint')}</p>
    </div>;
 
    const leftEvents = compareData?.only_in_a || [];
@@ -81,17 +83,17 @@ export const ComparisonView: React.FC = () => {
          <div className="bg-white border-b px-6 py-4 flex items-center justify-between shrink-0">
              <div className="flex items-center gap-6 w-full">
                   <div className="flex-1 p-3 bg-blue-50 rounded-lg border border-blue-100 relative">
-                      <div className="text-[10px] text-blue-500 uppercase font-bold mb-1">基准 (A)</div>
+                      <div className="text-[10px] text-blue-500 uppercase font-bold mb-1">{t('components.comparisonView.baseline')}</div>
                       <div className="font-bold text-slate-800">{nodeA.name}</div>
                       <div className="text-xs text-slate-500 font-mono mt-1">{nodeA.display_id}</div>
                   </div>
-            
+
                   <div className="text-slate-300">
                       <ArrowRight size={24} />
                   </div>
 
                   <div className="flex-1 p-3 bg-amber-50 rounded-lg border border-amber-100 relative">
-                      <div className="text-[10px] text-amber-500 uppercase font-bold mb-1">对比 (B)</div>
+                      <div className="text-[10px] text-amber-500 uppercase font-bold mb-1">{t('components.comparisonView.compare')}</div>
                       <div className="font-bold text-slate-800">{nodeB.name}</div>
                       <div className="text-xs text-slate-500 font-mono mt-1">{nodeB.display_id}</div>
                   </div>
@@ -104,32 +106,32 @@ export const ComparisonView: React.FC = () => {
             <div className="bg-white border rounded-xl shadow-sm p-5 relative overflow-hidden">
                 <div className="flex items-center gap-2 mb-3 text-indigo-700 font-bold">
                      <Sparkles size={18} />
-                     <h3>智能因果推断 (Smart Summary)</h3>
+                     <h3>{t('components.comparisonView.smartSummary')}</h3>
                 </div>
                         <div className="bg-slate-50 rounded-lg p-4 text-sm leading-relaxed text-slate-700 min-h-[80px]">
                                <div className="flex items-center justify-end gap-3 mb-3">
                                     <label className="text-xs text-slate-500 flex items-center gap-2">
                                         <input type="checkbox" checked={comparisonUseLLM} onChange={(e) => setComparisonUseLLM(e.target.checked)} />
-                                        使用 LLM 生成摘要
+                                        {t('components.comparisonView.useLLMForSummary')}
                                     </label>
                                </div>
                      {isGenerating ? (
                         <div className="flex items-center gap-2 text-slate-500">
                             <Loader2 size={16} className="animate-spin" />
-                            正在分析两条时间线的差异...
+                            {t('components.comparisonView.analyzingDifferences')}
                         </div>
                      ) : compareData ? (
                         <div>
                            <p className="mb-2">{compareData?.summary}</p>
-                           <div className="text-xs text-slate-400">差异证据样例：</div>
+                           <div className="text-xs text-slate-400">{t('components.comparisonView.diffEvidenceSamples')}:</div>
                            <div className="grid grid-cols-2 gap-2 mt-2 text-[12px]">
-                              <div className="bg-slate-50 p-2 rounded">A 示例：{(leftEvents || []).slice(0,3).map((e:any,i:number)=>(<div key={i}>{String(e.type)}: {String(JSON.stringify(e.data)).slice(0,80)}</div>))}</div>
-                              <div className="bg-slate-50 p-2 rounded">B 示例：{(rightEvents || []).slice(0,3).map((e:any,i:number)=>(<div key={i}>{String(e.type)}: {String(JSON.stringify(e.data)).slice(0,80)}</div>))}</div>
+                              <div className="bg-slate-50 p-2 rounded">{t('components.comparisonView.exampleA')}: {(leftEvents || []).slice(0,3).map((e:any,i:number)=>(<div key={i}>{String(e.type)}: {String(JSON.stringify(e.data)).slice(0,80)}</div>))}</div>
+                              <div className="bg-slate-50 p-2 rounded">{t('components.comparisonView.exampleB')}: {(rightEvents || []).slice(0,3).map((e:any,i:number)=>(<div key={i}>{String(e.type)}: {String(JSON.stringify(e.data)).slice(0,80)}</div>))}</div>
                            </div>
                         </div>
                      ) : (
                         <button onClick={() => generateComparisonAnalysis()} className="text-blue-600 hover:underline text-xs">
-                            生成分析报告
+                            {t('components.comparisonView.generateAnalysisReport')}
                         </button>
                      )}
                 </div>
@@ -142,7 +144,7 @@ export const ComparisonView: React.FC = () => {
                <div className="grid grid-cols-3 gap-2 p-4">
                   {/* Left: Node A events */}
                   <div className="col-span-1 border-r pr-2">
-                     <h4 className="text-xs text-slate-500 mb-2">节点 A 独有事件 ({leftEvents.length})</h4>
+                     <h4 className="text-xs text-slate-500 mb-2">{t('components.comparisonView.nodeAEvents')} ({leftEvents.length})</h4>
                      <div className="space-y-2 max-h-64 overflow-auto p-1">
                         {leftEvents.map((ev:any, idx:number) => (
                            <div key={idx} className="p-2 bg-slate-50 rounded text-[12px]">
@@ -155,9 +157,9 @@ export const ComparisonView: React.FC = () => {
 
                   {/* Middle: Agent diffs & AI summary (already above) */}
                   <div className="col-span-1 px-4">
-                     <h4 className="text-xs text-slate-500 mb-2">差异摘要与代理属性差异</h4>
+                     <h4 className="text-xs text-slate-500 mb-2">{t('components.comparisonView.agentDiffs')}</h4>
                      <div className="space-y-2 max-h-64 overflow-auto text-sm p-1">
-                        {Object.keys(agentDiffs).length === 0 && <div className="text-slate-400">未检测到代理属性差异</div>}
+                        {Object.keys(agentDiffs).length === 0 && <div className="text-slate-400">{t('components.comparisonView.noAgentDiffs')}</div>}
                         {Object.entries(agentDiffs).map(([name, diffs]: any) => (
                            <div key={name} className="bg-slate-50 p-2 rounded mb-2">
                               <div className="font-medium text-slate-700">{name}</div>
@@ -173,7 +175,7 @@ export const ComparisonView: React.FC = () => {
 
                   {/* Right: Node B events */}
                   <div className="col-span-1 border-l pl-2">
-                     <h4 className="text-xs text-slate-500 mb-2">节点 B 独有事件 ({rightEvents.length})</h4>
+                     <h4 className="text-xs text-slate-500 mb-2">{t('components.comparisonView.nodeBEvents')} ({rightEvents.length})</h4>
                      <div className="space-y-2 max-h-64 overflow-auto p-1">
                         {rightEvents.map((ev:any, idx:number) => (
                            <div key={idx} className="p-2 bg-slate-50 rounded text-[12px]">
@@ -187,7 +189,7 @@ export const ComparisonView: React.FC = () => {
             </div>
 
                 <div className="px-5 py-2 bg-slate-50 text-[10px] text-slate-400 text-center">
-                     * 数据来自后端对比结果；AI 摘要仅基于上方展示的证据
+                     * {t('components.comparisonView.dataSourceNote')}
                 </div>
             </div>
       </div>

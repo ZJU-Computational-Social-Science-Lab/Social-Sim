@@ -115,8 +115,8 @@ const Header: React.FC = () => {
           }`}
           title={
             engineConfig.mode === "connected"
-              ? `Connected to ${engineConfig.endpoint}`
-              : "Running in Browser (Gemini Standalone)"
+              ? t('simPage.connectedTo', { endpoint: engineConfig.endpoint })
+              : t('simPage.runningBrowserStandalone')
           }
         >
           {engineConfig.mode === "connected" ? (
@@ -125,8 +125,8 @@ const Header: React.FC = () => {
             <Plug size={14} />
           )}
           {engineConfig.mode === "connected"
-            ? "SocialSim4 Engine"
-            : "Standalone Mode"}
+            ? t('simPage.socialSim4Engine')
+            : t('simPage.standaloneMode')}
         </button>
 
         <div className="h-4 w-px bg-slate-200 mx-2"></div>
@@ -280,7 +280,7 @@ const Toolbar: React.FC = () => {
         <button
           onClick={() => toggleNetworkEditor(true)}
           className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
-          title="社交网络拓扑"
+          title={t('simPage.networkTopology')}
         >
           <Network size={14} />
         </button>
@@ -289,7 +289,7 @@ const Toolbar: React.FC = () => {
         <button
           onClick={() => setGlobalKnowledgeOpen(true)}
           className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
-          title="全局知识库"
+          title={t('simPage.globalKnowledge')}
         >
           <Globe size={14} />
         </button>
@@ -298,7 +298,7 @@ const Toolbar: React.FC = () => {
         <button
           onClick={() => toggleTimeSettings(true)}
           className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
-          title="调整时间流速"
+          title={t('simPage.timeSettings')}
         >
           <Clock size={14} />
           {currentSim && currentSim.timeConfig
@@ -331,14 +331,14 @@ const Toolbar: React.FC = () => {
         <button
           onClick={() => toggleSaveTemplate(true)}
           className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
-          title="保存为模板"
+          title={t('simPage.saveAsTemplate')}
         >
           <Save size={14} />
         </button>
         <button
           onClick={() => useSimulationStore.getState().openSyncModal()}
           className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
-          title="手动同步到后端"
+          title={t('simPage.syncBackend')}
         >
           {t('simPage.syncBackend')}
         </button>
@@ -430,7 +430,7 @@ const SimulationPage: React.FC = () => {
                   id: String(n.id),
                   display_id: String(n.id),
                   parentId: n.parent == null ? null : String(n.parent),
-                  name: `节点 ${n.id}`,
+                  name: t('simPage.nodeId', { id: n.id }),
                   depth: n.depth,
                   isLeaf: (n.depth || 0) === (Math.max(...(nodesRaw2.map((x: any) => x.depth || 0))) || 0),
                   status: 'completed',
@@ -526,7 +526,7 @@ const SimulationPage: React.FC = () => {
                     id: String(n.id),
                     display_id: String(n.id),
                     parentId: pid == null ? null : String(pid),
-                    name: `节点 ${n.id}`,
+                    name: t('simPage.nodeId', { id: n.id }),
                     depth: n.depth,
                     isLeaf,
                     status: running.has(n.id) ? 'running' : 'completed',
@@ -578,7 +578,7 @@ const SimulationPage: React.FC = () => {
                 id: String(n.id),
                 display_id: String(n.id),
                 parentId: n.parent == null ? null : String(n.parent),
-                name: `节点 ${n.id}`,
+                name: t('simPage.nodeId', { id: n.id }),
                 depth: n.depth,
                 isLeaf: (n.depth || 0) === (Math.max(...(nodesRaw.map((x: any) => x.depth || 0))) || 0),
                 status: 'completed',
@@ -638,7 +638,7 @@ const SimulationPage: React.FC = () => {
                       id: String(n.id),
                       display_id: String(n.id),
                       parentId: n.parent == null ? null : String(n.parent),
-                      name: `节点 ${n.id}`,
+                      name: t('simPage.nodeId', { id: n.id }),
                       depth: n.depth,
                       isLeaf: (n.depth || 0) === (Math.max(...(nodesRaw2.map((x: any) => x.depth || 0))) || 0),
                       status: 'completed',

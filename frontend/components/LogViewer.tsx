@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSimulationStore } from '../store';
+import { useTranslation } from 'react-i18next';
 import { LogEntry, ViewMode, SimNode } from '../types';
 import { List, CreditCard, Clock, Filter, Search, X, Check, GitCommit, Image as ImageIcon } from 'lucide-react';
 
@@ -17,6 +18,7 @@ const formatLogTime = (dateStr: string) => {
 };
 
 const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: string; agents?: any[] }> = ({ entry, mode, nodeWorldTime, agents = [] }) => {
+  const { t } = useTranslation();
   const [isImageExpanded, setIsImageExpanded] = useState(false);
 
   const getBorderColor = () => {
@@ -43,17 +45,17 @@ const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: strin
 
   const translateType = (type: string, agentId?: string) => {
     switch(type) {
-      case 'SYSTEM': return '系统';
-      case 'AGENT_SAY': return '对话';
-      case 'AGENT_ACTION': return '行动';
-      case 'AGENT_METADATA': 
-        // 对于 AGENT_METADATA，显示 Agent 名字而不是"系统"
+      case 'SYSTEM': return t('components.logViewer.typeSystem');
+      case 'AGENT_SAY': return t('components.logViewer.typeDialogue');
+      case 'AGENT_ACTION': return t('components.logViewer.typeAction');
+      case 'AGENT_METADATA':
+        // For AGENT_METADATA, show Agent name instead of "system"
         if (agentId && agents.length > 0) {
           const agent = agents.find(a => a.id === agentId);
-          return agent ? agent.name : '智能体';
+          return agent ? agent.name : t('components.logViewer.typeAgentMetadata');
         }
-        return '智能体';
-      case 'ENVIRONMENT': return '环境';
+        return t('components.logViewer.typeAgentMetadata');
+      case 'ENVIRONMENT': return t('components.logViewer.typeEnvironment');
       default: return type;
     }
   };
@@ -68,9 +70,9 @@ const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: strin
           className="relative group cursor-pointer w-fit"
           onClick={() => setIsImageExpanded(true)}
         >
-          <img 
-            src={entry.imageUrl} 
-            alt="Log Attachment" 
+          <img
+            src={entry.imageUrl}
+            alt={t('components.logViewer.logAttachment')}
             className="max-h-48 rounded border border-slate-200 object-cover"
           />
           <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors rounded flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -84,7 +86,7 @@ const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: strin
              e.stopPropagation();
              setIsImageExpanded(false);
           }}>
-             <img src={entry.imageUrl} alt="Full Size" className="max-w-full max-h-full rounded shadow-2xl" />
+             <img src={entry.imageUrl} alt={t('components.logViewer.fullSize')} className="max-w-full max-h-full rounded shadow-2xl" />
              <button className="absolute top-4 right-4 text-white hover:text-slate-300">
                <X size={32} />
              </button>
@@ -98,12 +100,12 @@ const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: strin
     <div className="flex flex-wrap gap-2 mt-2 text-[11px] text-slate-500">
       {entry.audioUrl && (
         <a href={entry.audioUrl} target="_blank" rel="noreferrer" className="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200">
-          音频链接
+          {t('components.logViewer.audioLink')}
         </a>
       )}
       {entry.videoUrl && (
         <a href={entry.videoUrl} target="_blank" rel="noreferrer" className="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200">
-          视频链接
+          {t('components.logViewer.videoLink')}
         </a>
       )}
     </div>
@@ -117,7 +119,7 @@ const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: strin
           {translateType(entry.type, entry.agentId)}
         </span>
         <div className="flex-1">
-          {/* 对于 AGENT_METADATA，不重复显示 agentId，因为已经在标签中显示了 */}
+          {/* For AGENT_METADATA, don't repeat agentId since it's already shown in the badge */}
           {entry.agentId && entry.type !== 'AGENT_METADATA' && (
             <span className="font-bold text-slate-700 mr-2">{entry.agentId}:</span>
           )}
@@ -140,7 +142,7 @@ const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: strin
            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${getBadgeColor()}`}>
             {translateType(entry.type, entry.agentId)}
           </span>
-          {/* 对于 AGENT_METADATA，不重复显示 agentId，因为已经在标签中显示了 */}
+          {/* For AGENT_METADATA, don't repeat agentId since it's already shown in the badge */}
           {entry.agentId && entry.type !== 'AGENT_METADATA' && (
             <span className="text-xs font-bold text-slate-800">{entry.agentId}</span>
           )}
@@ -155,6 +157,7 @@ const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: strin
 };
 
 export const LogViewer: React.FC = () => {
+  const { t } = useTranslation();
   const logs = useSimulationStore(state => state.logs);
   const nodes = useSimulationStore(state => state.nodes);
   const selectedNodeId = useSimulationStore(state => state.selectedNodeId);
@@ -245,24 +248,24 @@ export const LogViewer: React.FC = () => {
       <div className="bg-white border-b px-4 py-2 flex flex-col gap-2 shrink-0 z-20">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border">
-            <button 
+            <button
               onClick={() => setViewMode(ViewMode.LIST)}
               className={`p-1.5 rounded-md transition-all ${viewMode === ViewMode.LIST ? 'bg-white shadow text-brand-600' : 'text-slate-500 hover:text-slate-700'}`}
-              title="列表视图"
+              title={t('components.logViewer.listView')}
             >
               <List size={16} />
             </button>
-            <button 
+            <button
                onClick={() => setViewMode(ViewMode.CARD)}
                className={`p-1.5 rounded-md transition-all ${viewMode === ViewMode.CARD ? 'bg-white shadow text-brand-600' : 'text-slate-500 hover:text-slate-700'}`}
-               title="卡片视图"
+               title={t('components.logViewer.cardView')}
             >
               <CreditCard size={16} />
             </button>
-             <button 
+             <button
                onClick={() => setViewMode(ViewMode.TIMELINE)}
                className={`p-1.5 rounded-md transition-all ${viewMode === ViewMode.TIMELINE ? 'bg-white shadow text-brand-600' : 'text-slate-500 hover:text-slate-700'}`}
-               title="时间轴视图"
+               title={t('components.logViewer.timelineView')}
             >
               <Clock size={16} />
             </button>
@@ -271,13 +274,13 @@ export const LogViewer: React.FC = () => {
           <div className="flex items-center gap-2 flex-1 justify-end">
             <div className="flex items-center gap-1 text-[10px] text-slate-400 bg-slate-50 border px-2 py-1 rounded">
                <GitCommit size={12} />
-               <span>当前分支路径过滤</span>
+               <span>{t('components.logViewer.currentBranchFilter')}</span>
             </div>
-            
+
             <div className="relative max-w-[180px] w-full">
-              <input 
-                type="text" 
-                placeholder="搜索日志..." 
+              <input
+                type="text"
+                placeholder={t('components.logViewer.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-8 pr-3 py-1.5 text-xs border rounded bg-slate-50 focus:bg-white focus:ring-1 focus:ring-brand-500 outline-none transition-all"
@@ -290,12 +293,12 @@ export const LogViewer: React.FC = () => {
               )}
             </div>
 
-            <button 
+            <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium border rounded transition-colors ${isFilterOpen || (hasActiveFilters && !searchQuery) ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
             >
               <Filter size={14} />
-              <span className="hidden sm:inline">筛选</span>
+              <span className="hidden sm:inline">{t('components.logViewer.filter')}</span>
               {(selectedTypes.length > 0 || selectedAgents.length > 0) && (
                 <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-600 text-[9px] text-white">
                   {selectedTypes.length + selectedAgents.length}
@@ -309,21 +312,21 @@ export const LogViewer: React.FC = () => {
         {isFilterOpen && (
           <div className="pt-2 pb-3 border-t mt-1 space-y-3 animate-in slide-in-from-top-2 duration-200">
              <div>
-              <div className="text-[10px] uppercase font-bold text-slate-400 mb-1.5 tracking-wider">事件类型</div>
+              <div className="text-[10px] uppercase font-bold text-slate-400 mb-1.5 tracking-wider">{t('components.logViewer.eventTypes')}</div>
               <div className="flex flex-wrap gap-2">
                 {[
-                  { id: 'SYSTEM', label: '系统' },
-                  { id: 'AGENT_METADATA', label: '智能体元数据' },
-                  { id: 'AGENT_SAY', label: '对话' },
-                  { id: 'AGENT_ACTION', label: '行动' },
-                  { id: 'ENVIRONMENT', label: '环境' },
+                  { id: 'SYSTEM', label: t('components.logViewer.system') },
+                  { id: 'AGENT_METADATA', label: t('components.logViewer.agentMetadata') },
+                  { id: 'AGENT_SAY', label: t('components.logViewer.dialogue') },
+                  { id: 'AGENT_ACTION', label: t('components.logViewer.action') },
+                  { id: 'ENVIRONMENT', label: t('components.logViewer.environment') },
                 ].map(type => (
                   <button
                     key={type.id}
                     onClick={() => toggleType(type.id)}
                     className={`px-2 py-1 rounded text-xs border flex items-center gap-1.5 transition-all ${
-                      selectedTypes.includes(type.id) 
-                        ? 'bg-brand-600 text-white border-brand-600 shadow-sm' 
+                      selectedTypes.includes(type.id)
+                        ? 'bg-brand-600 text-white border-brand-600 shadow-sm'
                         : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
                     }`}
                   >
@@ -337,15 +340,15 @@ export const LogViewer: React.FC = () => {
             {/* Agents */}
             {agents.length > 0 && (
               <div>
-                <div className="text-[10px] uppercase font-bold text-slate-400 mb-1.5 tracking-wider">相关智能体</div>
+                <div className="text-[10px] uppercase font-bold text-slate-400 mb-1.5 tracking-wider">{t('components.logViewer.relatedAgents')}</div>
                 <div className="flex flex-wrap gap-2">
                   {agents.map(agent => (
                     <button
                       key={agent.id}
                       onClick={() => toggleAgent(agent.id)}
                       className={`px-2 py-1 rounded-full text-xs border flex items-center gap-1.5 transition-all pl-1 ${
-                        selectedAgents.includes(agent.id) 
-                          ? 'bg-brand-600 text-white border-brand-600 shadow-sm' 
+                        selectedAgents.includes(agent.id)
+                          ? 'bg-brand-600 text-white border-brand-600 shadow-sm'
                           : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
                       }`}
                     >
@@ -357,13 +360,13 @@ export const LogViewer: React.FC = () => {
                 </div>
               </div>
             )}
-            
+
             <div className="flex justify-end pt-2">
-              <button 
+              <button
                 onClick={clearFilters}
                 className="text-xs text-slate-400 hover:text-slate-600 underline decoration-slate-300 underline-offset-2"
               >
-                清空所有筛选
+                {t('components.logViewer.clearAllFilters')}
               </button>
             </div>
           </div>
@@ -387,14 +390,14 @@ export const LogViewer: React.FC = () => {
         ) : (
           <div className="flex flex-col items-center justify-center h-40 text-slate-400">
             <Search size={32} className="mb-2 opacity-20" />
-            <p className="text-sm">没有找到匹配的日志</p>
+            <p className="text-sm">{t('components.logViewer.noMatchingLogs')}</p>
             {hasActiveFilters && (
               <button onClick={clearFilters} className="mt-2 text-xs text-brand-600 hover:underline">
-                清除筛选条件
+                {t('components.logViewer.clearFilters')}
               </button>
             )}
             {!hasActiveFilters && (
-               <p className="text-xs mt-1 text-slate-300">此节点下暂无活动记录</p>
+               <p className="text-xs mt-1 text-slate-300">{t('components.logViewer.noActivityYet')}</p>
             )}
           </div>
         )}
@@ -402,8 +405,8 @@ export const LogViewer: React.FC = () => {
       
       {/* Footer Info */}
       <div className="bg-slate-50 border-t px-3 py-1 text-[10px] text-slate-400 flex justify-between">
-        <span>显示 {filteredLogs.length} 条记录 (当前分支)</span>
-        {hasActiveFilters && <span>筛选已生效</span>}
+        <span>{t('components.logViewer.showingRecords', { count: filteredLogs.length })}</span>
+        {hasActiveFilters && <span>{t('components.logViewer.filterActive')}</span>}
       </div>
     </div>
   );

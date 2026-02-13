@@ -489,6 +489,15 @@ class SimTree:
         return self.attach(parent_id, [{"op": "advance", "turns": int(turns)}], cid)
 
     def branch(self, parent_id: int, ops: List[dict]) -> int:
+        # For branching (what-if scenarios), we create a SIBLING node, not a child
+        # So we need to find the parent of parent_id and attach there
+        actual_parent_id = self.nodes[parent_id]["parent"]
+
+        # If the node has no parent (it's the root), we can't create a sibling
+        # In this case, fall back to creating a child (original behavior)
+        if actual_parent_id is None:
+            actual_parent_id = parent_id
+
         cid = self.copy_sim(parent_id)
         sim = self.nodes[cid]["sim"]
         for op in ops:
@@ -521,7 +530,8 @@ class SimTree:
 
         # Flush any queued events to logs
         sim.emit_remaining_events()
-        return self.attach(parent_id, ops, cid)
+        # Attach to actual_parent_id instead of parent_id to create a sibling relationship
+        return self.attach(actual_parent_id, ops, cid)
 
     def lca(self, a: int, b: int) -> int:
         da = int(self.nodes[a]["depth"])

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSimulationStore } from '../store';
 import { X, Network, Save, RefreshCw, Hexagon, Circle, Share2, Shuffle, ZoomIn, ZoomOut, Maximize, Move, Users, Waypoints, Target, GitBranch, MapPin, ChevronDown, ChevronRight, Play, Settings2, Loader2 } from 'lucide-react';
 import * as d3 from 'd3';
@@ -67,70 +68,35 @@ const defaultParams: PresetParams = {
 };
 
 // Preset metadata (icons, names, descriptions)
-const presetMeta: Record<string, { icon: React.ElementType; name: string; nameCn: string; description: string }> = {
-  full: {
-    icon: Share2,
-    name: 'Fully Connected',
-    nameCn: '全连接',
-    description: 'Everyone connected to everyone',
-  },
-  random: {
-    icon: Shuffle,
-    name: 'Random',
-    nameCn: '随机',
-    description: 'Connections chosen randomly',
-  },
-  'newman-watts': {
-    icon: Waypoints,
-    name: 'Small World',
-    nameCn: '小世界',
-    description: 'Neighbors plus random shortcuts',
-  },
-  sbm: {
-    icon: Users,
-    name: 'Stochastic Block',
-    nameCn: '随机块',
-    description: 'Tight groups, few bridges',
-  },
-  waxman: {
-    icon: MapPin,
-    name: 'Waxman',
-    nameCn: '地理网络',
-    description: 'Closer agents connect more',
-  },
-  'core-periphery': {
-    icon: Target,
-    name: 'Core-Periphery',
-    nameCn: '核心-边缘',
-    description: 'Few highly connected influencers',
-  },
-  'holme-kim': {
-    icon: GitBranch,
-    name: 'Holme-Kim',
-    nameCn: '三角聚类',
-    description: 'Popular agents get more connections',
-  },
+// Will be initialized with translation keys in the component
+const presetIcons: Record<string, React.ElementType> = {
+  full: Share2,
+  random: Shuffle,
+  'newman-watts': Waypoints,
+  sbm: Users,
+  waxman: MapPin,
+  'core-periphery': Target,
+  'holme-kim': GitBranch,
 };
 
 // Slider component for parameters
 const ParamSlider: React.FC<{
-  label: string;
-  labelCn: string;
+  labelKey: string;
   value: number;
   min: number;
   max: number;
   step: number;
   onChange: (value: number) => void;
   isInteger?: boolean;
-}> = ({ label, labelCn, value, min, max, step, onChange, isInteger }) => {
+}> = ({ labelKey, value, min, max, step, onChange, isInteger }) => {
+  const { t } = useTranslation();
   const displayValue = isInteger ? Math.round(value) : value.toFixed(2);
-  
+
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-medium text-slate-700">{labelCn}</span>
-          <span className="text-[10px] text-slate-400">{label}</span>
+          <span className="text-xs font-medium text-slate-700">{t(`components.networkEditorModal.${labelKey}`)}</span>
         </div>
         <span className="text-xs font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
           {displayValue}
@@ -154,6 +120,7 @@ const ParamSlider: React.FC<{
 };
 
 export const NetworkEditorModal: React.FC = () => {
+  const { t } = useTranslation();
   const isOpen = useSimulationStore(state => state.isNetworkEditorOpen);
   const toggle = useSimulationStore(state => state.toggleNetworkEditor);
   const currentSim = useSimulationStore(state => state.currentSimulation);
@@ -164,6 +131,45 @@ export const NetworkEditorModal: React.FC = () => {
   const [selectedPreset, setSelectedPreset] = useState<PresetType>(null);
   const [params, setParams] = useState<PresetParams>(defaultParams);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Build presetMeta from translations
+  const presetMeta: Record<string, { icon: React.ElementType; name: string; description: string }> = {
+    full: {
+      icon: presetIcons.full,
+      name: t('components.networkEditorModal.fullyConnected'),
+      description: t('components.networkEditorModal.everyoneConnected'),
+    },
+    random: {
+      icon: presetIcons.random,
+      name: t('components.networkEditorModal.random'),
+      description: t('components.networkEditorModal.connectionsRandomly'),
+    },
+    'newman-watts': {
+      icon: presetIcons['newman-watts'],
+      name: t('components.networkEditorModal.smallWorld'),
+      description: t('components.networkEditorModal.neighborsPlusShortcuts'),
+    },
+    sbm: {
+      icon: presetIcons.sbm,
+      name: t('components.networkEditorModal.stochasticBlock'),
+      description: t('components.networkEditorModal.tightGroupsFewBridges'),
+    },
+    waxman: {
+      icon: presetIcons.waxman,
+      name: t('components.networkEditorModal.waxman'),
+      description: t('components.networkEditorModal.closerAgentsConnectMore'),
+    },
+    'core-periphery': {
+      icon: presetIcons['core-periphery'],
+      name: t('components.networkEditorModal.corePeriphery'),
+      description: t('components.networkEditorModal.fewHighlyConnected'),
+    },
+    'holme-kim': {
+      icon: presetIcons['holme-kim'],
+      name: t('components.networkEditorModal.holmeKim'),
+      description: t('components.networkEditorModal.popularAgentsMoreConnections'),
+    },
+  };
   
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -674,22 +680,21 @@ export const NetworkEditorModal: React.FC = () => {
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
             <Settings2 size={12} />
-            参数设置
+            {t('components.networkEditorModal.parameterSettings')}
           </span>
           <button
             onClick={() => resetParams(presetKey)}
             className="text-[10px] text-brand-600 hover:text-brand-700 flex items-center gap-0.5"
           >
             <RefreshCw size={10} />
-            重置默认
+            {t('components.networkEditorModal.resetDefaults')}
           </button>
         </div>
 
         {selectedPreset === 'core-periphery' && (
           <div className="space-y-3">
             <ParamSlider
-              label="Fraction of agents that are influencers"
-              labelCn="影响者比例"
+              labelKey="fractionOfInfluencers"
               value={params['core-periphery'].influencerPercent}
               min={0.05}
               max={0.5}
@@ -697,8 +702,7 @@ export const NetworkEditorModal: React.FC = () => {
               onChange={(v) => updateParam('core-periphery', 'influencerPercent', v)}
             />
             <ParamSlider
-              label="Connection probability between influencers"
-              labelCn="影响者连接"
+              labelKey="connectionProbabilityInfluencers"
               value={params['core-periphery'].influencerConnectivity}
               min={0}
               max={1}
@@ -706,8 +710,7 @@ export const NetworkEditorModal: React.FC = () => {
               onChange={(v) => updateParam('core-periphery', 'influencerConnectivity', v)}
             />
             <ParamSlider
-              label="Influencer to regular agent connection probability"
-              labelCn="影响者触达"
+              labelKey="influencerToRegularConnection"
               value={params['core-periphery'].influencerReach}
               min={0}
               max={1}
@@ -715,8 +718,7 @@ export const NetworkEditorModal: React.FC = () => {
               onChange={(v) => updateParam('core-periphery', 'influencerReach', v)}
             />
             <ParamSlider
-              label="Connection probability between regular agents"
-              labelCn="普通连接"
+              labelKey="connectionProbabilityRegular"
               value={params['core-periphery'].regularConnectivity}
               min={0}
               max={0.5}
@@ -729,8 +731,7 @@ export const NetworkEditorModal: React.FC = () => {
         {selectedPreset === 'holme-kim' && (
           <div className="space-y-3">
             <ParamSlider
-              label="Connections per new agent"
-              labelCn="每个体连接数"
+              labelKey="connectionsPerNewAgent"
               value={params['holme-kim'].newConnections}
               min={1}
               max={10}
@@ -739,8 +740,7 @@ export const NetworkEditorModal: React.FC = () => {
               isInteger
             />
             <ParamSlider
-              label="Probability of forming triangle clusters"
-              labelCn="形成三角"
+              labelKey="probabilityOfTriangles"
               value={params['holme-kim'].clusteringChance}
               min={0}
               max={1}
@@ -753,8 +753,7 @@ export const NetworkEditorModal: React.FC = () => {
         {selectedPreset === 'waxman' && (
           <div className="space-y-3">
             <ParamSlider
-              label="Maximum distance for connections"
-              labelCn="最大距离"
+              labelKey="maximumDistance"
               value={params.waxman.maxDistance}
               min={0.1}
               max={1}
@@ -762,8 +761,7 @@ export const NetworkEditorModal: React.FC = () => {
               onChange={(v) => updateParam('waxman', 'maxDistance', v)}
             />
             <ParamSlider
-              label="How strongly distance reduces connection probability"
-              labelCn="距离惩罚"
+              labelKey="distanceReduction"
               value={params.waxman.distanceEffect}
               min={0.1}
               max={1}
@@ -776,8 +774,7 @@ export const NetworkEditorModal: React.FC = () => {
         {selectedPreset === 'random' && (
           <div className="space-y-3">
             <ParamSlider
-              label="Probability any two agents connect"
-              labelCn="连接概率"
+              labelKey="probabilityAnyTwoConnect"
               value={params.random.connectionChance}
               min={0}
               max={1}
@@ -790,8 +787,7 @@ export const NetworkEditorModal: React.FC = () => {
         {selectedPreset === 'sbm' && (
           <div className="space-y-3">
             <ParamSlider
-              label="Number of agents per community"
-              labelCn="组大小"
+              labelKey="agentsPerCommunity"
               value={params.sbm.groupSize}
               min={2}
               max={20}
@@ -800,8 +796,7 @@ export const NetworkEditorModal: React.FC = () => {
               isInteger
             />
             <ParamSlider
-              label="Connection probability within same group"
-              labelCn="组内连接"
+              labelKey="connectionProbabilityWithinGroup"
               value={params.sbm.withinGroupConnectivity}
               min={0}
               max={1}
@@ -809,8 +804,7 @@ export const NetworkEditorModal: React.FC = () => {
               onChange={(v) => updateParam('sbm', 'withinGroupConnectivity', v)}
             />
             <ParamSlider
-              label="Average connections to other groups"
-              labelCn="组间连接"
+              labelKey="averageConnectionsOtherGroups"
               value={params.sbm.bridgeConnections}
               min={0}
               max={5}
@@ -823,8 +817,7 @@ export const NetworkEditorModal: React.FC = () => {
         {selectedPreset === 'newman-watts' && (
           <div className="space-y-3">
             <ParamSlider
-              label="Neighbors on each side of ring"
-              labelCn="环邻居数"
+              labelKey="neighborsEachSide"
               value={params['newman-watts'].neighborsEachSide}
               min={1}
               max={10}
@@ -833,8 +826,7 @@ export const NetworkEditorModal: React.FC = () => {
               isInteger
             />
             <ParamSlider
-              label="Probability of random long-range shortcuts"
-              labelCn="捷径概率"
+              labelKey="probabilityLongRangeShortcut"
               value={params['newman-watts'].shortcutChance}
               min={0}
               max={0.5}
@@ -850,7 +842,7 @@ export const NetworkEditorModal: React.FC = () => {
           className="w-full py-2 bg-brand-600 text-white text-xs font-medium rounded-lg hover:bg-brand-700 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
         >
           <Play size={12} />
-          生成网络 (Generate)
+          {t('components.networkEditorModal.generateNetwork')}
         </button>
       </div>
     );
@@ -865,9 +857,9 @@ export const NetworkEditorModal: React.FC = () => {
           <div>
             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
               <Network className="text-brand-600" size={20} />
-              社交网络拓扑 (Social Network Topology)
+              {t('components.networkEditorModal.title')}
             </h2>
-            <p className="text-xs text-slate-500 mt-1">定义智能体之间的信息传播路径与可见性边界。</p>
+            <p className="text-xs text-slate-500 mt-1">{t('components.networkEditorModal.description')}</p>
           </div>
           <button onClick={() => toggle(false)} className="text-slate-400 hover:text-slate-600">
             <X size={20} />
@@ -879,25 +871,25 @@ export const NetworkEditorModal: React.FC = () => {
           <div className="w-72 bg-slate-50 border-r p-4 space-y-4 flex flex-col overflow-y-auto">
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                网络预设 (Presets)
+                {t('components.networkEditorModal.networkPresets')}
               </label>
               <p className="text-[10px] text-slate-400 mt-0.5 mb-3">
-                选择预设类型，调整参数后生成网络
+                {t('components.networkEditorModal.selectPresetHint')}
               </p>
-              
+
               {/* Preset Selection Grid */}
               <div className="space-y-1.5">
                 {Object.entries(presetMeta).map(([key, meta]) => {
                   const Icon = meta.icon;
                   const isSelected = selectedPreset === key;
-                  
+
                   return (
                     <button
                       key={key}
                       onClick={() => setSelectedPreset(isSelected ? null : key as PresetType)}
                       className={`w-full p-2.5 rounded-lg border text-left transition-all ${
-                        isSelected 
-                          ? 'bg-brand-50 border-brand-300 ring-1 ring-brand-200' 
+                        isSelected
+                          ? 'bg-brand-50 border-brand-300 ring-1 ring-brand-200'
                           : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                       }`}
                     >
@@ -906,12 +898,9 @@ export const NetworkEditorModal: React.FC = () => {
                           <Icon size={14} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-xs font-medium ${isSelected ? 'text-brand-700' : 'text-slate-700'}`}>
-                              {meta.nameCn}
-                            </span>
-                            <span className="text-[10px] text-slate-400">{meta.name}</span>
-                          </div>
+                          <span className={`text-xs font-medium block ${isSelected ? 'text-brand-700' : 'text-slate-700'}`}>
+                            {meta.name}
+                          </span>
                           <p className="text-[10px] text-slate-400 truncate mt-0.5">
                             {meta.description}
                           </p>
@@ -927,7 +916,7 @@ export const NetworkEditorModal: React.FC = () => {
 
               {/* Quick Actions */}
               <div className="flex gap-2 mt-3">
-                <button 
+                <button
                   onClick={() => {
                     setSelectedPreset('full');
                     applyPreset('full');
@@ -935,14 +924,14 @@ export const NetworkEditorModal: React.FC = () => {
                   className="flex-1 py-1.5 px-2 bg-white border border-slate-200 rounded text-[10px] text-slate-600 hover:bg-slate-50 flex items-center justify-center gap-1"
                 >
                   <Share2 size={10} />
-                  全连接
+                  {t('components.networkEditorModal.fullyConnected')}
                 </button>
-                <button 
-                  onClick={() => setNetwork({})} 
+                <button
+                  onClick={() => setNetwork({})}
                   className="flex-1 py-1.5 px-2 bg-white border border-slate-200 rounded text-[10px] text-slate-500 hover:bg-slate-50 flex items-center justify-center gap-1"
                 >
                   <Circle size={10} />
-                  清空
+                  {t('components.networkEditorModal.clear')}
                 </button>
               </div>
             </div>
@@ -952,35 +941,35 @@ export const NetworkEditorModal: React.FC = () => {
 
             {/* Instructions */}
             <div className="text-xs text-slate-400 leading-relaxed pt-3 border-t mt-auto">
-              <strong className="text-slate-500">操作指南:</strong>
+              <strong className="text-slate-500">{t('components.networkEditorModal.instructions')}:</strong>
               <ul className="list-decimal pl-4 space-y-0.5 mt-1 text-[10px]">
-                <li>选择预设类型并调整参数</li>
-                <li>点击"生成网络"应用设置</li>
-                <li>点击节点选中（橙色）</li>
-                <li>点击另一节点建立/删除连接</li>
-                <li>拖拽节点调整布局</li>
+                <li>{t('components.networkEditorModal.instruction1')}</li>
+                <li>{t('components.networkEditorModal.instruction2')}</li>
+                <li>{t('components.networkEditorModal.instruction3')}</li>
+                <li>{t('components.networkEditorModal.instruction4')}</li>
+                <li>{t('components.networkEditorModal.instruction5')}</li>
               </ul>
               <div className="mt-2 flex items-center gap-1 text-[10px] bg-blue-50 text-blue-600 p-2 rounded">
                 <Move size={12} />
-                <span>支持滚轮缩放与拖拽平移</span>
+                <span>{t('components.networkEditorModal.zoomPanHint')}</span>
               </div>
             </div>
           </div>
-          
+
           {/* Canvas */}
           <div ref={containerRef} className="flex-1 bg-slate-50 relative overflow-hidden group">
             <svg ref={svgRef} className="block w-full h-full"></svg>
-            
+
             {/* Zoom Controls */}
             <div className="absolute top-4 right-4 flex flex-col gap-1 bg-white border rounded shadow-sm p-1">
-              <button onClick={handleZoomIn} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title="放大">
+              <button onClick={handleZoomIn} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('components.networkEditorModal.zoomIn')}>
                 <ZoomIn size={16} />
               </button>
-              <button onClick={handleZoomOut} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title="缩小">
+              <button onClick={handleZoomOut} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('components.networkEditorModal.zoomOut')}>
                 <ZoomOut size={16} />
               </button>
               <div className="h-px bg-slate-200 my-0.5"></div>
-              <button onClick={handleResetZoom} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title="重置视角">
+              <button onClick={handleResetZoom} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('components.networkEditorModal.resetView')}>
                 <Maximize size={16} />
               </button>
             </div>
@@ -989,12 +978,12 @@ export const NetworkEditorModal: React.FC = () => {
             <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm border rounded-lg px-3 py-2 text-[10px] text-slate-600">
               <div className="flex items-center gap-3">
                 <span>
-                  <strong className="text-slate-700">{agents.length}</strong> 节点
+                  <strong className="text-slate-700">{agents.length}</strong> {t('components.networkEditorModal.nodes')}
                 </span>
                 <span>
                   <strong className="text-slate-700">
                     {Object.values(network).reduce((sum, arr) => sum + arr.length, 0)}
-                  </strong> 边
+                  </strong> {t('components.networkEditorModal.edges')}
                 </span>
               </div>
             </div>
@@ -1003,7 +992,7 @@ export const NetworkEditorModal: React.FC = () => {
 
         <div className="px-6 py-4 border-t bg-slate-50 flex justify-end gap-3">
           <button onClick={() => toggle(false)} className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg">
-            取消
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleSave}
@@ -1011,7 +1000,7 @@ export const NetworkEditorModal: React.FC = () => {
             className="px-6 py-2 text-sm bg-brand-600 text-white font-medium hover:bg-brand-700 rounded-lg shadow-sm flex items-center gap-2 disabled:bg-slate-400 disabled:cursor-not-allowed"
           >
             {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            {isSaving ? '保存中...' : '保存拓扑设置'}
+            {isSaving ? t('components.networkEditorModal.saving') : t('components.networkEditorModal.saveTopologySettings')}
           </button>
         </div>
       </div>

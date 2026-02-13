@@ -2,9 +2,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { useSimulationStore } from '../store';
+import { useTranslation } from 'react-i18next';
 import { X, TrendingUp, BarChart2 } from 'lucide-react';
 
 export const AnalyticsPanel: React.FC = () => {
+  const { t } = useTranslation();
   const isOpen = useSimulationStore(state => state.isAnalyticsOpen);
   const toggle = useSimulationStore(state => state.toggleAnalytics);
   const agents = useSimulationStore(state => state.agents);
@@ -182,13 +184,13 @@ export const AnalyticsPanel: React.FC = () => {
         <div className="px-6 py-4 border-b flex justify-between items-center bg-slate-50 shrink-0">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
             <TrendingUp className="text-brand-600" size={20} />
-            数据趋势分析
+            {t('components.analyticsPanel.title')}
           </h2>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500">分析指标:</span>
-              <select 
-                value={selectedMetric} 
+              <span className="text-xs font-semibold text-slate-500">{t('components.analyticsPanel.metricLabel')}</span>
+              <select
+                value={selectedMetric}
                 onChange={(e) => setSelectedMetric(e.target.value)}
                 className="text-xs border rounded px-2 py-1 outline-none focus:ring-1 focus:ring-brand-500 bg-white"
               >
@@ -207,7 +209,7 @@ export const AnalyticsPanel: React.FC = () => {
           {agents.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
               <BarChart2 size={48} className="mb-2 opacity-20" />
-              <p>暂无智能体数据</p>
+              <p>{t('components.analyticsPanel.noAgentData')}</p>
             </div>
           ) : (
              <>
@@ -223,7 +225,7 @@ export const AnalyticsPanel: React.FC = () => {
                  <svg ref={svgRef} className="w-full h-full overflow-visible"></svg>
                </div>
                <p className="text-center text-[10px] text-slate-400 mt-2">
-                 X轴：回合数 (Round) · Y轴：{selectedMetric} 数值
+                 {t('components.analyticsPanel.axisLabel', { metric: selectedMetric })}
                </p>
              </>
           )}

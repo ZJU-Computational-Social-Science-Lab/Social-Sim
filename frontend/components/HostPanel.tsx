@@ -1,11 +1,13 @@
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSimulationStore, fetchEnvironmentSuggestions } from '../store';
 import { Megaphone, CloudLightning, Edit, Save, Sparkles, Loader2, Check, FilePlus } from 'lucide-react';
 import { MultimodalInput } from './MultimodalInput';
 import { InitialEventsModal } from './InitialEventsModal';
 
 export const HostPanel: React.FC = () => {
+   const { t } = useTranslation();
   const agents = useSimulationStore(state => state.agents);
   const logs = useSimulationStore(state => state.logs);
   const injectLog = useSimulationStore(state => state.injectLog);
@@ -28,13 +30,13 @@ export const HostPanel: React.FC = () => {
   
   const handleBroadcast = () => {
     if (!broadcastMsg.trim()) return;
-    injectLog('SYSTEM', `[系统公告] ${broadcastMsg}`);
+    injectLog('SYSTEM', `${t('components.hostPanel.logPrefixSystemAnnouncement')} ${broadcastMsg}`);
     setBroadcastMsg('');
   };
 
   const handleEnvEvent = (text: string = envEvent) => {
     if (!text.trim() && !envImage) return;
-    injectLog('ENVIRONMENT', `[环境事件] ${text}`, envImage || undefined);
+    injectLog('ENVIRONMENT', `${t('components.hostPanel.logPrefixEnvironmentEvent')} ${text}`, envImage || undefined);
     if (text === envEvent) {
        setEnvEvent('');
        setEnvImage(null);
@@ -55,7 +57,7 @@ export const HostPanel: React.FC = () => {
       const results = await fetchEnvironmentSuggestions(logs, agents);
       setSuggestions(results);
     } catch (e) {
-      addNotification('error', '获取建议失败');
+      addNotification('error', t('components.hostPanel.fetchSuggestionsFailed'));
     } finally {
       setIsSuggesting(false);
     }
@@ -65,7 +67,7 @@ export const HostPanel: React.FC = () => {
     handleEnvEvent(eventText);
     // Remove from list
     setSuggestions(prev => prev.filter(s => s.event !== eventText));
-    addNotification('success', '已采纳环境建议');
+    addNotification('success', t('components.hostPanel.suggestionAdopted'));
   };
 
   // Sync prop selection with agent
@@ -76,13 +78,13 @@ export const HostPanel: React.FC = () => {
     <div className="flex flex-col h-full bg-white">
       <div className="p-3 border-b bg-amber-50/50">
          <p className="text-xs text-amber-800 leading-relaxed">
-           <strong>主持模式 (God Mode)</strong>: 此处的操作将强制干预当前仿真状态，并立即产生系统日志。请谨慎使用。
+           <strong>{t('components.hostPanel.godModeTitle')}</strong>: {t('components.hostPanel.godModeDescription')}
          </p>
          <button
            onClick={() => toggleInitialEvents(true)}
            className="mt-2 text-[11px] px-2 py-1 bg-white border border-amber-200 text-amber-700 rounded flex items-center gap-1"
          >
-           <FilePlus size={12} /> 初始事件编辑器
+           <FilePlus size={12} /> {t('components.hostPanel.initialEventsEditor')}
          </button>
       </div>
 
@@ -92,14 +94,14 @@ export const HostPanel: React.FC = () => {
         <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-100">
           <div className="flex justify-between items-center mb-2">
             <label className="text-xs font-bold text-indigo-800 flex items-center gap-1">
-              <Sparkles size={14} /> AI 环境顾问 (Advisor)
+              <Sparkles size={14} /> {t('components.hostPanel.aiAdvisor')}
             </label>
-            <button 
+            <button
               onClick={handleGetSuggestions}
               disabled={isSuggesting}
               className="text-[10px] bg-white border border-indigo-200 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 disabled:opacity-50"
             >
-              {isSuggesting ? <Loader2 size={10} className="animate-spin inline" /> : '获取建议'}
+              {isSuggesting ? <Loader2 size={10} className="animate-spin inline" /> : t('components.hostPanel.getSuggestions')}
             </button>
           </div>
           
@@ -109,18 +111,18 @@ export const HostPanel: React.FC = () => {
                 <div key={i} className="bg-white p-2 rounded border border-indigo-100 text-xs shadow-sm group">
                   <p className="font-bold text-slate-700 mb-1">{s.event}</p>
                   <p className="text-slate-400 text-[10px] mb-2">{s.reason}</p>
-                  <button 
+                  <button
                     onClick={() => handleAdoptSuggestion(s.event)}
                     className="w-full py-1 bg-indigo-50 text-indigo-600 font-bold rounded hover:bg-indigo-100 flex items-center justify-center gap-1 opacity-80 hover:opacity-100"
                   >
-                    <Check size={12} /> 采纳此事件
+                    <Check size={12} /> {t('components.hostPanel.adoptEvent')}
                   </button>
                 </div>
               ))}
             </div>
           ) : (
             <div className="text-center py-4 text-indigo-300 text-xs italic">
-               点击获取建议，让 AI 基于当前局势推荐环境事件。
+               {t('components.hostPanel.getSuggestionsHint')}
             </div>
           )}
         </div>
@@ -130,22 +132,22 @@ export const HostPanel: React.FC = () => {
         {/* Broadcast */}
         <div className="space-y-2">
           <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-            <Megaphone size={14} /> 全局广播 (System Broadcast)
+            <Megaphone size={14} /> {t('components.hostPanel.systemBroadcast')}
           </label>
           <div className="flex gap-2">
             <textarea
               value={broadcastMsg}
               onChange={(e) => setBroadcastMsg(e.target.value)}
-              placeholder="例如：议会现在开始..."
+              placeholder={t('components.hostPanel.broadcastPlaceholder')}
               className="flex-1 text-sm border rounded p-2 focus:ring-1 focus:ring-brand-500 outline-none resize-none h-20"
             />
           </div>
-          <button 
+          <button
             onClick={handleBroadcast}
             disabled={!broadcastMsg}
             className="w-full py-1.5 text-xs bg-slate-800 text-white rounded hover:bg-slate-700 disabled:opacity-50"
           >
-            发送公告
+            {t('components.hostPanel.sendBroadcast')}
           </button>
         </div>
 
@@ -154,33 +156,33 @@ export const HostPanel: React.FC = () => {
         {/* Environment with Multimodal Support #24 */}
         <div className="space-y-2">
           <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-            <CloudLightning size={14} /> 注入环境事件 (Inject Event)
+            <CloudLightning size={14} /> {t('components.hostPanel.injectEvent')}
           </label>
           <div className="flex flex-col gap-2">
             <input
               type="text"
               value={envEvent}
               onChange={(e) => setEnvEvent(e.target.value)}
-              placeholder="例如：突发暴雨，通讯中断..."
+              placeholder={t('components.hostPanel.eventPlaceholder')}
               className="w-full text-sm border rounded px-2 py-1.5 focus:ring-1 focus:ring-emerald-500 outline-none"
             />
-            
+
             <MultimodalInput
-              label="图片 (可选)"
-              helperText="支持拖拽、点击上传，自动插入到事件日志。"
+              label={t('components.hostPanel.imageLabel')}
+              helperText={t('components.hostPanel.imageHelper')}
               presetUrl={envImage}
               onInsert={(url) => {
                setEnvImage(url);
-               addNotification('success', '图片已上传');
+               addNotification('success', t('components.hostPanel.imageUploaded'));
               }}
             />
           </div>
-          <button 
+          <button
             onClick={() => handleEnvEvent()}
             disabled={!envEvent && !envImage}
             className="w-full py-1.5 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50"
           >
-            触发事件
+            {t('components.hostPanel.triggerEvent')}
           </button>
         </div>
 
@@ -189,10 +191,10 @@ export const HostPanel: React.FC = () => {
         {/* State Editing */}
         <div className="space-y-3 bg-slate-50 p-3 rounded-lg border">
           <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-            <Edit size={14} /> 强制修改属性 (Modify State)
+            <Edit size={14} /> {t('components.hostPanel.modifyState')}
           </label>
-          
-          <select 
+
+          <select
             value={selectedAgentId}
             onChange={(e) => {
               setSelectedAgentId(e.target.value);
@@ -204,13 +206,13 @@ export const HostPanel: React.FC = () => {
             {agents.map(a => <option key={a.id} value={a.id}>{a.name} ({a.role})</option>)}
           </select>
 
-          <select 
+          <select
             value={selectedProp}
             onChange={(e) => setSelectedProp(e.target.value)}
             disabled={!selectedAgent}
             className="w-full text-xs border rounded px-2 py-1.5 bg-white disabled:opacity-50"
           >
-            <option value="">选择属性...</option>
+            <option value="">{t('components.hostPanel.selectProperty')}</option>
             {properties.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
 
@@ -218,17 +220,17 @@ export const HostPanel: React.FC = () => {
             type="text"
             value={propValue}
             onChange={(e) => setPropValue(e.target.value)}
-            placeholder="输入新值"
+            placeholder={t('components.hostPanel.enterNewValue')}
             disabled={!selectedProp}
             className="w-full text-xs border rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100"
           />
 
-          <button 
+          <button
             onClick={handleUpdateProp}
             disabled={!selectedProp || !propValue}
             className="w-full py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-1"
           >
-            <Save size={12} /> 更新属性
+            <Save size={12} /> {t('components.hostPanel.updateProperty')}
           </button>
         </div>
 

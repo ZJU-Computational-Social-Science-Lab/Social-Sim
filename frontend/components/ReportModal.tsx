@@ -1,8 +1,10 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useSimulationStore } from '../store';
+import { useTranslation } from 'react-i18next';
 import { X, FileText, Sparkles, Loader2, Calendar, Lightbulb, Users, Target, Download } from 'lucide-react';
 
 export const ReportModal: React.FC = () => {
+  const { t } = useTranslation();
   const isOpen = useSimulationStore(state => state.isReportModalOpen);
   const toggle = useSimulationStore(state => state.toggleReportModal);
   const currentSim = useSimulationStore(state => state.currentSimulation);
@@ -50,14 +52,14 @@ export const ReportModal: React.FC = () => {
           <div>
             <h2 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
               <FileText className="text-indigo-600" size={20} />
-              仿真实验分析报告 (Automated Analysis)
+              {t('components.reportModal.title')} ({t('components.reportModal.subtitle')})
             </h2>
             <p className="text-xs text-indigo-600 mt-1">
-               {report ? `生成于: ${new Date(report.generatedAt).toLocaleString()}` : '暂无报告'}
+               {report ? `${t('components.reportModal.generatedAt')} ${new Date(report.generatedAt).toLocaleString()}` : t('components.reportModal.noReport')}
             </p>
             {report?.refinedByLLM && (
               <span className="inline-flex items-center px-2 py-0.5 mt-1 text-[11px] font-semibold rounded-full bg-indigo-100 text-indigo-700">
-                AI 生成
+                {t('components.reportModal.aiGenerated')}
               </span>
             )}
           </div>
@@ -66,7 +68,7 @@ export const ReportModal: React.FC = () => {
               onClick={() => setShowSettings((v) => !v)}
               className="text-xs px-3 py-1 rounded-lg border border-indigo-200 text-indigo-700 hover:bg-indigo-100"
             >
-              {showSettings ? '隐藏设置' : '分析设置'}
+              {showSettings ? t('components.reportModal.hideSettings') : t('components.reportModal.analysisSettings')}
             </button>
             <button onClick={() => toggle(false)} className="text-slate-400 hover:text-slate-600">
               <X size={20} />
@@ -109,12 +111,12 @@ export const ReportModal: React.FC = () => {
            {showSettings && (
              <div className="w-72 shrink-0 bg-white border rounded-lg shadow-sm p-4 h-fit">
                <div className="flex items-center justify-between mb-3">
-                 <h4 className="text-sm font-bold text-slate-700">分析设置</h4>
-                 <button className="text-xs text-slate-500 hover:text-slate-700" onClick={() => setShowSettings(false)}>关闭</button>
+                 <h4 className="text-sm font-bold text-slate-700">{t('components.reportModal.analysisSettings')}</h4>
+                 <button className="text-xs text-slate-500 hover:text-slate-700" onClick={() => setShowSettings(false)}>{t('components.reportModal.close')}</button>
                </div>
                <div className="space-y-3">
                  <div>
-                   <label className="text-xs text-slate-500">采样上限（条）</label>
+                   <label className="text-xs text-slate-500">{t('components.reportModal.sampleLimit')}</label>
                    <input
                      type="number"
                      value={analysisConfig.maxEvents}
@@ -124,7 +126,7 @@ export const ReportModal: React.FC = () => {
                    />
                  </div>
                  <div>
-                   <label className="text-xs text-slate-500">每轮采样</label>
+                   <label className="text-xs text-slate-500">{t('components.reportModal.samplePerRound')}</label>
                    <input
                      type="number"
                      value={analysisConfig.samplePerRound}
@@ -135,18 +137,18 @@ export const ReportModal: React.FC = () => {
                  </div>
                  <div>
                    <div className="flex items-center justify-between">
-                     <label className="text-xs text-slate-500">轮次范围</label>
+                     <label className="text-xs text-slate-500">{t('components.reportModal.roundRange')}</label>
                      <button
                        className="text-xs text-indigo-600 hover:underline"
                        onClick={() => updateAnalysisConfig({ roundStart: null, roundEnd: null })}
                      >
-                       清除
+                       {t('components.reportModal.clear')}
                      </button>
                    </div>
                    <div className="mt-2 space-y-2 text-xs text-slate-600">
                      <div className="flex justify-between">
-                       <span>起始: {startVal}</span>
-                       <span>结束: {endVal}</span>
+                       <span>{t('components.reportModal.start')} {startVal}</span>
+                       <span>{t('components.reportModal.end')} {endVal}</span>
                      </div>
                      <div className="relative h-10 dual-range">
                        <div className="absolute inset-y-4 left-0 right-0 rounded-full bg-slate-200 pointer-events-none" />
@@ -185,14 +187,14 @@ export const ReportModal: React.FC = () => {
                        />
                      </div>
                      {roundBounds.max === roundBounds.min && (
-                       <p className="text-[11px] text-slate-400">当前只有一个节点/轮次，无法调整范围。</p>
+                       <p className="text-[11px] text-slate-400">{t('components.reportModal.singleRoundWarning')}</p>
                      )}
                    </div>
                 </div>
                 <div>
-                   <label className="text-xs text-slate-500">焦点智能体（可多选）</label>
+                   <label className="text-xs text-slate-500">{t('components.reportModal.focusAgents')}</label>
                    <div className="mt-1 max-h-32 overflow-auto border rounded p-2 space-y-2">
-                     {agentNames.length === 0 && <p className="text-xs text-slate-400">暂无智能体</p>}
+                     {agentNames.length === 0 && <p className="text-xs text-slate-400">{t('components.reportModal.noAgents')}</p>}
                      {agentNames.map((name) => {
                        const checked = analysisConfig.focusAgents.includes(name);
                        return (
@@ -219,9 +221,9 @@ export const ReportModal: React.FC = () => {
                      checked={analysisConfig.enableLLM}
                      onChange={(e) => updateAnalysisConfig({ enableLLM: e.target.checked })}
                    />
-                   启用 LLM 精炼（需配置 provider）
+                   {t('components.reportModal.enableLLM')}
                  </label>
-                 <p className="text-xs text-slate-400">设置将用于下一次"立即生成报告"。</p>
+                 <p className="text-xs text-slate-400">{t('components.reportModal.settingsApplyNext')}</p>
                </div>
              </div>
            )}
@@ -231,8 +233,8 @@ export const ReportModal: React.FC = () => {
                     <Sparkles size={40} className="text-indigo-300" />
                  </div>
                  <div className="text-center max-w-sm">
-                    <h3 className="text-lg font-bold text-slate-700 mb-2">生成智能分析报告</h3>
-                    <p className="text-sm">系统将读取当前实验的日志记录与智能体历史状态，使用大模型生成包含摘要、关键转折、行为分析与改进建议的完整报告。</p>
+                    <h3 className="text-lg font-bold text-slate-700 mb-2">{t('components.reportModal.generateTitle')}</h3>
+                    <p className="text-sm">{t('components.reportModal.generateDescription')}</p>
                  </div>
                  <button
                    onClick={generateReport}
@@ -240,7 +242,7 @@ export const ReportModal: React.FC = () => {
                    className="px-8 py-3 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 hover:shadow-xl transition-all font-bold flex items-center gap-2 disabled:opacity-70 disabled:cursor-wait"
                  >
                     {isGenerating ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
-                    {isGenerating ? '正在分析数据...' : '立即生成报告'}
+                    {isGenerating ? t('components.reportModal.analyzing') : t('components.reportModal.generateNow')}
                  </button>
               </div>
            ) : (
@@ -249,14 +251,14 @@ export const ReportModal: React.FC = () => {
                  <section className="bg-white rounded-xl shadow-sm border p-6">
                     <div className="flex items-center gap-2 text-indigo-700 mb-4 pb-2 border-b">
                        <Target size={20} />
-                       <h3 className="font-bold text-lg">实验摘要 (Executive Summary)</h3>
+                       <h3 className="font-bold text-lg">{t('components.reportModal.executiveSummary')}</h3>
                     </div>
                     <p className="text-slate-700 leading-relaxed whitespace-pre-line">
                        {report.summary}
                     </p>
                     {report.roundStats && report.roundStats.length > 0 && (
                       <div className="mt-6 space-y-3">
-                        <div className="text-xs text-slate-500">动作 / 错误 / 广播随轮次</div>
+                        <div className="text-xs text-slate-500">{t('components.reportModal.actionsErrorsBroadcasts')}</div>
                         <div className="space-y-2">
                           {report.roundStats.map((rs, i) => {
                             const maxVal = Math.max(rs.actions, rs.errors, rs.broadcasts, 1);
@@ -276,15 +278,15 @@ export const ReportModal: React.FC = () => {
                                 </div>
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-2 text-[11px] text-slate-600">
-                                    <span className="w-12 text-emerald-600 font-bold">动作</span>
+                                    <span className="w-12 text-emerald-600 font-bold">{t('components.reportModal.actions')}</span>
                                     {bar(rs.actions, 'bg-emerald-400')}
                                   </div>
                                   <div className="flex items-center gap-2 text-[11px] text-slate-600">
-                                    <span className="w-12 text-rose-600 font-bold">错误</span>
+                                    <span className="w-12 text-rose-600 font-bold">{t('components.reportModal.errors')}</span>
                                     {bar(rs.errors, 'bg-rose-400')}
                                   </div>
                                   <div className="flex items-center gap-2 text-[11px] text-slate-600">
-                                    <span className="w-12 text-indigo-600 font-bold">广播</span>
+                                    <span className="w-12 text-indigo-600 font-bold">{t('components.reportModal.broadcasts')}</span>
                                     {bar(rs.broadcasts, 'bg-indigo-400')}
                                   </div>
                                 </div>
@@ -301,7 +303,7 @@ export const ReportModal: React.FC = () => {
                     <section className="bg-white rounded-xl shadow-sm border p-6">
                       <div className="flex items-center gap-2 text-amber-600 mb-4 pb-2 border-b">
                          <Calendar size={20} />
-                         <h3 className="font-bold text-lg">关键转折点 (Key Events)</h3>
+                         <h3 className="font-bold text-lg">{t('components.reportModal.keyEvents')}</h3>
                       </div>
                       <ul className="space-y-4">
                          {(showAllKeyEvents ? report.keyEvents : report.keyEvents.slice(0, 5)).map((event, i) => (
@@ -318,7 +320,7 @@ export const ReportModal: React.FC = () => {
                            onClick={() => setShowAllKeyEvents((v) => !v)}
                            className="mt-3 text-xs text-amber-700 hover:text-amber-900 underline"
                          >
-                           {showAllKeyEvents ? '收起' : `展开更多 (${report.keyEvents.length - 5} 条)`}
+                           {showAllKeyEvents ? t('components.reportModal.collapse') : t('components.reportModal.showMore', { count: report.keyEvents.length - 5 })}
                          </button>
                        )}
                     </section>
@@ -327,7 +329,7 @@ export const ReportModal: React.FC = () => {
                     <section className="bg-white rounded-xl shadow-sm border p-6">
                        <div className="flex items-center gap-2 text-emerald-600 mb-4 pb-2 border-b">
                           <Lightbulb size={20} />
-                          <h3 className="font-bold text-lg">后续建议 (Suggestions)</h3>
+                          <h3 className="font-bold text-lg">{t('components.reportModal.suggestions')}</h3>
                        </div>
                        <ul className="space-y-2">
                           {report.suggestions.map((s, i) => (
@@ -344,7 +346,7 @@ export const ReportModal: React.FC = () => {
                  <section className="bg-white rounded-xl shadow-sm border p-6">
                     <div className="flex items-center gap-2 text-blue-600 mb-4 pb-2 border-b">
                        <Users size={20} />
-                       <h3 className="font-bold text-lg">智能体行为分析 (Agent Analysis)</h3>
+                       <h3 className="font-bold text-lg">{t('components.reportModal.agentAnalysis')}</h3>
                     </div>
                     <div className="grid grid-cols-1 gap-4">
                        {report.agentAnalysis.map((item, i) => (
@@ -360,7 +362,7 @@ export const ReportModal: React.FC = () => {
                  <section className="bg-white rounded-xl shadow-sm border p-6">
                       <div className="flex items-center gap-2 text-slate-600 mb-4 pb-2 border-b">
                           <FileText size={18} />
-                          <h3 className="font-bold text-lg">多模态日志缩略图</h3>
+                          <h3 className="font-bold text-lg">{t('components.reportModal.multimodalThumbnails')}</h3>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                          {logs.filter(l => l.imageUrl).slice(-12).map((l) => (
@@ -370,7 +372,7 @@ export const ReportModal: React.FC = () => {
                             </div>
                          ))}
                          {logs.filter(l => l.imageUrl).length === 0 && (
-                            <p className="text-xs text-slate-400 col-span-full">暂无图片日志</p>
+                            <p className="text-xs text-slate-400 col-span-full">{t('components.reportModal.noImageLogs')}</p>
                          )}
                       </div>
                  </section>
@@ -385,24 +387,24 @@ export const ReportModal: React.FC = () => {
                 disabled={isGenerating}
                 className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg flex items-center gap-2 disabled:opacity-50"
              >
-                <Download size={16} /> 导出 JSON
+                <Download size={16} /> {t('components.reportModal.exportJson')}
              </button>
              <button
                 onClick={() => exportReport('md')}
                 disabled={isGenerating}
                 className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg flex items-center gap-2 disabled:opacity-50"
              >
-                <Download size={16} /> 导出 Markdown
+                <Download size={16} /> {t('components.reportModal.exportMarkdown')}
              </button>
              <button
                 onClick={generateReport}
                 disabled={isGenerating}
                 className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg flex items-center gap-2 disabled:opacity-50"
              >
-                <Sparkles size={16} /> 重新生成
+                <Sparkles size={16} /> {t('components.reportModal.regenerate')}
              </button>
              <button onClick={() => toggle(false)} className="px-6 py-2 text-sm bg-indigo-600 text-white font-medium hover:bg-indigo-700 rounded-lg shadow-sm">
-                关闭
+                {t('components.reportModal.close')}
              </button>
           </div>
         )}

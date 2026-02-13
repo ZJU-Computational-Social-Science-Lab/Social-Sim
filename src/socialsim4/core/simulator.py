@@ -40,6 +40,9 @@ class Simulator:
         # Dictionary of LLM clients
         self.clients = clients
         self.scene = scene
+        # Set simulator reference on scene if it has set_simulator method
+        if hasattr(scene, 'set_simulator'):
+            scene.set_simulator(self)
         # Track total turns processed (no round concept)
         self.turns = 0
         # max steps per turn

@@ -1,0 +1,847 @@
+[
+  {
+    "text": "社会仿真平台操作教程（Tutorial Doc）",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1. 文档前言",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.1 文档目的",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "本文档为社会仿真在线平台的标准化操作教程，旨在为平台使用者提供清晰、详细的分步操作指导，帮助使用者快速掌握平台访问、登录、核心功能使用及常见操作技巧，确保规范、高效完成各类仿真实验操作。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.2 适用人群",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "本教程适用于所有社会仿真平台使用者（含新手用户、日常使用者），无需具备专业技术基础，跟随步骤操作即可熟练运用平台各项核心功能。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.3 平台概述",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "本平台为在线式社会仿真工具，无需下载安装客户端，通过浏览器即可直接访问使用。核心功能涵盖仿真场景创建、智能体配置、仿真运行与观察、模板管理、数据导出及AI分析等，可满足各类社会仿真实验需求。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2. 前期准备",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2.1 环境要求（在线平台适配）",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "为保障平台正常运行，需满足以下浏览器及设备要求，无需额外安装其他软件：",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "浏览器：推荐谷歌浏览器（Chrome）100.0+、微软Edge浏览器100.0+，不推荐IE浏览器（可能出现功能异常）；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "设备：台式机、笔记本电脑或平板，优先推荐电脑操作（便捷性、适配性更佳）；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "网络：需连接稳定互联网（有线、无线均可），避免网络中断导致操作失败。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2.2 账号与访问准备",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "访问平台前需完成账号注册：进入平台官方访问地址后，点击“注册”按钮，按页面提示填写组织、邮箱、用户名等信息，设置个人账号密码，完成注册即可获取访问权限。特别注意：本项目暂不支持密码找回，请务必妥善牢记账号及密码，避免因密码遗忘无法登录。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2.3 大模型配置",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "在左侧/上侧菜单进入 【配置】->【LLM提供商】 页面。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "选项一：直接调用官方API (需要稳定的国际网络)",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "以OpenAI为例 ：",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1. 前往 OpenAI API keys 页面https://auth.openai.com/log-in并创建您的 API Key。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2. 在本平台配置页面，点击 【新建】。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "3. 填写以下信息：",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "名称：自定义，例如 My-OpenAI。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "提供商：选择 OpenAI。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "API 密钥：粘贴您刚刚创建的 API Key。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "Base URL：通常为 https://api.openai.com/v1。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "模型：输入您计划使用的模型名称，例如 gpt-4o-mini 或 gpt-4-turbo。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "4. 保存并点击 【测试】 验证配置是否成功。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "Gemini (Google AI) 的配置流程类似，请从 Google AI Studiohttps://aistudio.google.com/api-keys 获取 API Key 并在提供商处选择 Gemini。其模型例如 gemini-1.5-flash-latest，通常无需填写 Base URL。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "",
+    "has_image": true,
+    "style": "Normal"
+  },
+  {
+    "text": "选项二：使用API中转站 (推荐中国大陆用户)",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1. 在您选择的API中转站（如 OpenRouter, DMXAPI 等）获取 API Key 和 Base URL。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "API中转站参考，仅罗列、不作选择推荐：",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "OpenRouter：https://openrouter.ai/",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "DMXAPI： https://www.dmxapi.cn/",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "V-API：https://api.v3.cm/",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2. 在本平台配置页面，点击 【新建】。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "3. 填写以下信息：",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "名称：自定义，例如123。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "提供商：务必选择 openai-compatible。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "API 密钥：粘贴中转站提供的 API Key。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "Base URL：粘贴中转站提供的 Base URL，例如 https://openrouter.ai/api/v1。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "模型：从API中转站的模型列表中，完整复制您想使用的模型名称并粘贴于此。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "4. 保存并 【测试】。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "",
+    "has_image": true,
+    "style": "Normal"
+  },
+  {
+    "text": "2.4 配置搜索提供商",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "为了让智能体能够访问外部信息，您也可以配置一个搜索服务提供商。进入 【配置】->【搜索提供商】 页面。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "以 Serper 为例（https://serper.dev/）：",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1. 前往注册账户并获取 API Key。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2. 在本平台配置页面，选择 serper 作为提供商。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "3. 填写以下信息：",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "API 密钥：粘贴您的 Serper API Key。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "Base URL：通常为 https://google.serper.dev/search。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "4. 保存即可。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "其他提供商如 SerpAPI、Tavily 的配置流程与此类似，请根据其官方文档获取相应 API Key 和 Base URL。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "3. 快速上手：新手入门",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "本章节聚焦新手核心操作，快速掌握“注册登录-首次模拟-新建模拟”全流程，无需多余步骤，高效入门平台基础功能。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "3.1 启动首次模拟（目前没有这个功能，建议新设一下）",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.  登录后，在首页找到【开启第一次模拟】按钮，点击进入模拟向导；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2.  全程保持系统默认配置，按页面提示依次点击【下一步】，无需手动修改任何参数；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "3.  向导完成后，点击【进入实验界面】，首个“简单聊天场景”模拟环境创建成功；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "4.  点击左侧控制面板【运行前沿叶子】按钮，启动模拟，在右侧对话窗口观察智能体交互，完成首次基础仿真。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "3.2 新建模拟",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.  完成首次模拟后，在主界面【继续你的工作】区域或实验界面顶部导航栏，点击【新建模拟】；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2.  系统自动调用LLM API，等待1-2秒后，跳转至新建仿真页面；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "3.  可选择系统预设场景（7个，分社会科学、标准仿真两类），或调用个人模板，快速搭建新的仿真实验。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "3.3 模板基础操作",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.  保存模板：选择系统预设场景或自定义配置后，点击【保存为我的模板】，存入个人模板库；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2.  调用模板：新建模拟时，切换至“我的模板”选项卡，选择目标模板，无需重复配置参数。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "4. 案例实操：“政策传播中的意义磨损”仿真实验",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "结合平台核心功能，以“政策传播中的意义磨损”为主题，完成一次完整仿真实验，掌握针对性场景的实操方法，衔接后续实验收尾与进阶操作。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "4.1 第一步：实验基础信息设置",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.  点击“新建模拟”操作，跳转至新建仿真页面后，配置基础信息（可选，不设置则用默认值）；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "",
+    "has_image": true,
+    "style": "Normal"
+  },
+  {
+    "text": "2.  填写实验名称（建议贴合主题，如“政策传播中的意义磨损仿真实验”）；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "3.  选择仿真时长（如120分钟、72小时），点击【确认】完成配置。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "4.2 第二步：智能体生成与配置",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "智能体为仿真核心载体，平台支持3种生成方式，优先推荐贴合本案例的AI批量生成，具体操作如下：",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "方式1：选择模板角色生成（便捷高效）",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.  进入智能体配置页面，点击【选择模板角色】，跳转至模板角色库；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2.  勾选贴合政策传播的角色（政策发布者、基层传播者、普通民众等），调整数量比例后，保存配置。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "",
+    "has_image": true,
+    "style": "Normal"
+  },
+  {
+    "text": "方式2：AI批量生成智能体（推荐，支持大规模配置）",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.  点击【AI批量生成】，进入批量配置界面；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2.  设置智能体统计分布（如年龄、职业占比），添加所需分布维度；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "3.  配置核心初始值（政策认知度、传播意愿等，0-100取值），贴合意义磨损核心变量；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "4.  输入智能体总数，点击【AI批量生成】，预览调整后保存配置。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "",
+    "has_image": true,
+    "style": "Normal"
+  },
+  {
+    "text": "方式3：导入智能体（适合有预设数据场景）",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "按要求填写智能体信息，确保格式一致，上传后完成导入。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "4.3 第三步：推进节点，执行仿真实验",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.  智能体配置完成后，点击【确认创建】，完成实验场景搭建，跳转至实验操作界面；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2.  点击左侧【推进节点】按钮，启动仿真；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "3.  仿真过程中，通过右侧数据面板观察核心变量变化，利用【日志筛选】功能，查阅各类日志及智能体元数据；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "4.  进阶干预（可选）：开启【主持控制】模式，注入全局信息、修改智能体属性、设置环境变量或注入环境事件，灵活调控仿真过程；点击这个按钮，环境变量开始启用。",
+    "has_image": true,
+    "style": "Normal"
+  },
+  {
+    "text": "",
+    "has_image": true,
+    "style": "Normal"
+  },
+  {
+    "text": "5.  仿真推进至预设时长或预期效果后，点击【暂停】或【结束仿真】，完成基础仿真。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "5. 实验收尾与数据管理",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "仿真实验完成后，通过AI分析报告、数据导出、实验保存，完成复盘与备份，为后续迭代优化提供支撑。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "5.1 AI分析报告生成与导出",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.  实验结束后，进入实验详情页或点击顶部【AI分析报告】，进入报告生成页面；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2.  确认需分析的仿真节点，点击【生成分析报告】，AI自动抓取全流程数据进行分析；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "3.  报告生成后可直接查看（含实验摘要、关键转折点、智能体行为分析、优化建议4大核心模块）；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "4.  点击右上角【导出报告】，选择PDF等格式，设置路径后导出至本地存档。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "5.2 实验数据导出与仿真保存",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.  数据导出：点击顶部【数据导出】，选择需导出的日志、智能体行为数据，选择对应格式（Excel/CSV等），确认导出至本地；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2.  仿真保存：点击实验界面右上角【保存实验】，自定义保存名称（建议主题+时间），确认保存；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "3.  后续调取：在主界面【已保存实验】入口，筛选目标实验，可直接调取、修改配置或二次迭代，无需重新搭建场景。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "6. 进阶玩法",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "掌握基础操作与案例实操后，可通过以下进阶玩法，深入探究仿真实验的多样性，提升社会实验科学性与针对性。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "6.1 进阶玩法1：开启随机对照实验",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "通过随机对照实验，探究不同变量对仿真结果的影响，支持多实验组、自定义干预项及反事实实验，具体操作如下：",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "6.1.1 具体操作步骤",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.  进入仿真界面或项目详情页，找到目标节点，点击节点选择【开启随机对照实验】；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2.  填写实验名称，设置1-多个干预项（全局指令、智能体属性干预、环境事件干预）；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "3.  设置多组实验组，需新增分支作为控制组（不添加任何干预项或设置安慰剂）；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "",
+    "has_image": true,
+    "style": "Normal"
+  },
+  {
+    "text": "4.  点击【开启随机对照实验】，系统生成独立运行节点，并行推进至完成；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "5.  开启【对比模式】，系统自动生成对比报告，分析各组节点差异，导出用于复盘。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "6.1.2 拓展玩法与注意事项",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.  拓展玩法：多实验组对比、反事实实验、DIY干预组合，探究多变量交互影响；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2.  注意事项：明确实验假设与单一变量，优先选择初始/中间节点作为目标节点，实验过程中可通过日志筛选查看各组数据。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "6.2 进阶玩法2：智能体的网络拓扑结构设置",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "基于社会网络分析理论，配置智能体信息传播网络拓扑构型，探究不同网络结构对仿真结果的调控作用，具体操作如下：",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "6.2.1 具体操作步骤",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.  进入智能体配置页面，找到【网络拓扑设置】入口，点击开启功能；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "",
+    "has_image": true,
+    "style": "Normal"
+  },
+  {
+    "text": "2.  选择系统预设网络构型（随机、规则、小世界、无标度网络），或切换至自定义构型；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "3.  精细化设置核心参数（节点度、边的属性、网络密度），自定义构型可手动绘制节点与边；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "4.  点击【生成网络】确认效果，【保存拓扑设置】后应用至智能体群体；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "",
+    "has_image": true,
+    "style": "Normal"
+  },
+  {
+    "text": "5.  启动仿真，观察不同网络结构下的传播效率、意义磨损速率，分析调控机制。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "6.2.2 拓展玩法与注意事项",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.  拓展玩法：拓扑构型对比实验、核心节点调控、动态拓扑调整、拓扑模板保存；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2.  注意事项：遵循社会网络分析逻辑，匹配网络复杂度与智能体数量，避免孤立节点，确保参数设置合理。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "6.3 进阶玩法3：全局知识库设置",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "搭建全局知识库，导入文档、文本知识，让智能体交互时实时调用，提升仿真真实性，辅助政策传播类实验，具体操作如下：",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "6.3.1 具体操作步骤",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.  新建仿真时在场景配置环节，或已启动仿真时点击顶部【全局知识库】，进入设置页面；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "",
+    "has_image": true,
+    "style": "Normal"
+  },
+  {
+    "text": "2.  点击【开启全局知识库】，通过“上传文档”“添加文本知识”两种方式导入内容；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "3.  仿真过程中可实时补充、修改知识库内容，无需重启仿真。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "6.3.2 拓展玩法与注意事项",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.  拓展玩法：政策知识库搭建、分类管理、知识库对比实验、知识库模板保存；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2.  注意事项：确保导入知识准确，符合平台文档格式要求，及时生效修改内容，重要知识本地备份。仿真时间的拓展玩法慎用，目前还在测试阶段。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "7. 常见问题与解决方法",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "本章节汇总常见问题及简易解决方法，无需联系技术人员即可自行处理：",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "问题1：平台加载缓慢/卡顿？ 解决方法：检查网络，关闭多余浏览器标签，清除缓存后重新访问；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "问题2：AI批量生成智能体失败？ 解决方法：检查统计分布、初始值设置是否规范，确认智能体数量在平台限制内，网络稳定后重新尝试；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "问题3：仿真节点推进卡住？ 解决方法：检查网络，关闭多余页面，刷新实验界面后重新推进，异常可联系管理员；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "问题4：网络拓扑设置后无法生效？ 解决方法：确认已点击【确认生效】，检查网络复杂度与智能体数量是否匹配，重新配置后尝试；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "问题5：知识库上传失败？ 解决方法：检查文档格式、大小是否符合要求，简化冗余内容后重新上传；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "问题6：AI分析报告生成失败？ 解决方法：确认仿真已正常结束、数据完整，刷新页面后重新生成；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "（待补充：其他常见问题及解决方法，随平台使用场景更新）",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "8. 注意事项与操作规范",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.  请勿同时打开多个相同操作页面，避免数据冲突、操作失败；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2.  仿真运行、数据导入导出等关键操作时，确保网络稳定，请勿中途关闭、刷新页面；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "3.  妥善保管平台仿真数据、操作记录，重要数据及时导出备份；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "4.  严格遵守平台使用规范，请勿上传、发布无关内容，违规可能限制账号权限；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "5.  使用完毕后，点击首页右上角“退出登录”，尤其公共电脑需确保账号安全；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "6.  开展“政策传播中的意义磨损”等针对性实验时，提前规划智能体分布、初始值，提升仿真准确性；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "7.  AI批量生成大规模智能体时，合理设置数量，避免平台卡顿、仿真失败；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "8.  所有进阶操作（对照实验、网络拓扑、知识库），建议先明确实验假设，再逐步配置参数。",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "9. 辅助说明",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "若遇到本教程未覆盖的问题，可通过以下方式获取帮助：",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "1.  联系平台管理员（待补充：管理员联系方式）；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "2.  查看平台首页“帮助中心”模块，获取更详细的功能说明；",
+    "has_image": false,
+    "style": "Normal"
+  },
+  {
+    "text": "3.  发送问题反馈至平台官方邮箱（待补充：官方邮箱），将在1-2个工作日内回复。",
+    "has_image": false,
+    "style": "Normal"
+  }
+]

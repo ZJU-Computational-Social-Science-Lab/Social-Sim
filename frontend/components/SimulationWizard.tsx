@@ -1,39 +1,57 @@
-// frontend/pages/SimulationWizard.tsx
+/**
+ * SimulationWizard component - Main orchestrator for simulation creation wizard.
+ *
+ * This is a refactored version that delegates UI rendering to focused subcomponents
+ * while maintaining complex state management and event handling logic.
+ *
+ * The wizard consists of 3 steps:
+ *   Step 1: Template selection, time configuration, basic info
+ *   Step 2: Agent import/generation (default, AI generate, file import)
+ *   Step 3: Confirmation summary
+ *
+ * Complex features:
+ *   - Template selection with system/custom/custom builder modes
+ *   - Time configuration with multiple units
+ *   - AI agent generation with demographics support
+ *   - CSV/JSON file import for agents
+ *   - LLM provider selection
+ *
+ * Sub-components are imported from ./wizard package:
+ *   - WizardHeader, WizardFooter
+ *   - ProviderSelector, Step1TemplateSelection, Step1TimeConfiguration, Step1BasicInfo
+ *   - Step2ImportModeSelector, Step2DefaultMode, Step3Confirmation
+ */
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  useSimulationStore,
-  generateAgentsWithAI,
-  generateAgentsWithDemographics
-} from '../store';
-import {
-  X,
-  Check,
   Upload,
-  Trash2,
   Users,
-  Bot,
-  Clock,
-  LayoutTemplate,
   Sparkles,
   Loader2,
   Plus,
   Minus,
-  Settings
 } from 'lucide-react';
 import Papa from 'papaparse';
-import { Agent, LLMConfig, TimeUnit, GenericTemplateConfig } from '../types';
+import { Agent, LLMConfig, TimeUnit, GenericTemplateConfig, Template } from '../types';
 import { uploadImage } from '../services/uploads';
 import { TemplateBuilder, createEmptyGenericTemplate } from './TemplateBuilder';
-
-const TIME_UNITS = (t: (key: string) => string): { value: TimeUnit; label: string }[] => [
-  { value: 'minute', label: t('wizard.timeUnits.minute') },
-  { value: 'hour', label: t('wizard.timeUnits.hour') },
-  { value: 'day', label: t('wizard.timeUnits.day') },
-  { value: 'week', label: t('wizard.timeUnits.week') },
-  { value: 'month', label: t('wizard.timeUnits.month') },
-  { value: 'year', label: t('wizard.timeUnits.year') }
-];
+import {
+  generateAgentsWithAI,
+  generateAgentsWithDemographics,
+  useSimulationStore,
+} from '../store';
+import {
+  WizardHeader,
+  WizardFooter,
+  ProviderSelector,
+  Step1TemplateSelection,
+  Step1TimeConfiguration,
+  Step1BasicInfo,
+  Step2ImportModeSelector,
+  Step2DefaultMode,
+  Step3Confirmation,
+} from './wizard';
 
 // =============================================================================
 // Types for Demographic Generation (AgentTorch Integration)
@@ -91,7 +109,7 @@ const generateArchetypes = (demographics: Demographic[]): Archetype[] => {
 };
 
 export const SimulationWizard: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isOpen = useSimulationStore((state) => state.isWizardOpen);
   const toggleWizard = useSimulationStore((state) => state.toggleWizard);
   const addSimulation = useSimulationStore((state) => state.addSimulation);
@@ -106,25 +124,25 @@ export const SimulationWizard: React.FC = () => {
   const setSelectedProvider = useSimulationStore((s) => s.setSelectedProvider);
   const loadProviders = useSimulationStore((s) => s.loadProviders);
 
+  // ============================================================================
+  // State
+  // ============================================================================
+
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
 
-  const [selectedTemplateId, setSelectedTemplateId] =
-    useState<string>('village');
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('village');
   const [activeTab, setActiveTab] = useState<'system' | 'custom'>('system');
 
   // Custom Template Mode
   const [useCustomTemplate, setUseCustomTemplate] = useState(false);
   const [genericTemplate, setGenericTemplate] = useState<GenericTemplateConfig>(createEmptyGenericTemplate());
 
-  const [baseTime, setBaseTime] = useState(
-    new Date().toISOString().slice(0, 16)
-  );
+  const [baseTime, setBaseTime] = useState(new Date().toISOString().slice(0, 16));
   const [timeUnit, setTimeUnit] = useState<TimeUnit>('hour');
   const [timeStep, setTimeStep] = useState(1);
 
-  const [importMode, setImportMode] =
-    useState<'default' | 'custom' | 'generate'>('default');
+  const [importMode, setImportMode] = useState<'default' | 'custom' | 'generate'>('generate');
   const [customAgents, setCustomAgents] = useState<Agent[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -141,20 +159,32 @@ export const SimulationWizard: React.FC = () => {
   const [demographics, setDemographics] = useState<Demographic[]>([]);
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
   const [traits, setTraits] = useState<TraitConfig[]>([
-    { id: generateId(), name: 'Trust', mean: 50, std: 15 },
-    { id: generateId(), name: 'Empathy', mean: 50, std: 15 },
-    { id: generateId(), name: 'Assertiveness', mean: 50, std: 15 }
+    { id: generateId(), name: t('wizard.defaults.traits.trust'), mean: 50, std: 15 },
+    { id: generateId(), name: t('wizard.defaults.traits.empathy'), mean: 50, std: 15 },
+    { id: generateId(), name: t('wizard.defaults.traits.assertiveness'), mean: 50, std: 15 }
   ]);
 
-  // 打开向导时加载 provider 列表
+  // ============================================================================
+  // Effects
+  // ============================================================================
+
+  // Load providers and initialize on open
   useEffect(() => {
     if (isOpen) {
       loadProviders();
       // Initialize demographics on open
       if (demographics.length === 0) {
         setDemographics([
-          { id: generateId(), name: t('wizard.tabs.age'), categories: ['18-30', '31-50', '51+'] },
-          { id: generateId(), name: t('wizard.tabs.location'), categories: ['Urban', 'Suburban', 'Rural'] }
+          { id: generateId(), name: t('wizard.tabs.age'), categories: [
+            t('wizard.defaults.ageRanges.young'),
+            t('wizard.defaults.ageRanges.middle'),
+            t('wizard.defaults.ageRanges.senior')
+          ] },
+          { id: generateId(), name: t('wizard.tabs.location'), categories: [
+            t('wizard.defaults.categories.urban'),
+            t('wizard.defaults.categories.suburban'),
+            t('wizard.defaults.categories.rural')
+          ] }
         ]);
       }
       // Set default description if empty
@@ -165,7 +195,31 @@ export const SimulationWizard: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, loadProviders]);
 
-  // 根据模板自动调整生成描述和数量
+  // Update demographics when language changes
+  useEffect(() => {
+    if (demographics.length >= 2) {
+      setDemographics([
+        { id: demographics[0].id, name: t('wizard.tabs.age'), categories: [
+          t('wizard.defaults.ageRanges.young'),
+          t('wizard.defaults.ageRanges.middle'),
+          t('wizard.defaults.ageRanges.senior')
+        ] },
+        { id: demographics[1].id, name: t('wizard.tabs.location'), categories: [
+          t('wizard.defaults.categories.urban'),
+          t('wizard.defaults.categories.suburban'),
+          t('wizard.defaults.categories.rural')
+        ] }
+      ]);
+    }
+    // Update traits when language changes
+    setTraits([
+      { id: traits[0]?.id || generateId(), name: t('wizard.defaults.traits.trust'), mean: 50, std: 15 },
+      { id: traits[1]?.id || generateId(), name: t('wizard.defaults.traits.empathy'), mean: 50, std: 15 },
+      { id: traits[2]?.id || generateId(), name: t('wizard.defaults.traits.assertiveness'), mean: 50, std: 15 }
+    ]);
+  }, [i18n.language]);
+
+  // Auto-adjust generation description and count based on template
   useEffect(() => {
     const defaults: Record<string, string> = {
       village: t('wizard.templateDefaults.village'),
@@ -188,23 +242,20 @@ export const SimulationWizard: React.FC = () => {
     }
   }, [demographics, useDemographics]);
 
-  const selectedTemplate =
-    savedTemplates.find((t) => t.id === selectedTemplateId) ||
-    savedTemplates[0];
+  // ============================================================================
+  // Derived State
+  // ============================================================================
 
-  // 根据 provider 列表推导一个默认 LLMConfig（标记在 agent 上）
-  const selectedProvider =
-    llmProviders.find((p) => p.id === selectedProviderId) ||
+  const selectedTemplate = savedTemplates.find((tpl) => tpl.id === selectedTemplateId) || savedTemplates[0];
+
+  const defaultLlmConfig: LLMConfig = llmProviders.find((p) => p.id === selectedProviderId) ||
     llmProviders.find((p) => (p as any).is_active || (p as any).is_default) ||
-    llmProviders[0];
-
-  const defaultLlmConfig: LLMConfig = selectedProvider
+    llmProviders[0]
     ? {
-        provider:
-          (selectedProvider as any).name ||
-          (selectedProvider as any).provider ||
+        provider: (llmProviders.find((p) => p.id === selectedProviderId) as any)?.name ||
+          (llmProviders.find((p) => p.id === selectedProviderId) as any)?.provider ||
           'backend',
-        model: (selectedProvider as any).model || 'default'
+        model: (llmProviders.find((p) => p.id === selectedProviderId) as any)?.model || 'default'
       }
     : {
         provider: 'backend',
@@ -212,9 +263,13 @@ export const SimulationWizard: React.FC = () => {
       };
 
   const visionCapable = !!(
-    (selectedProvider as any)?.model &&
-    /vision|gpt-4o|4o-mini|o1|gemini-pro-vision|gemini 1\.5|flash|pro|llava|llama-?3\.2|qwen2-vl/i.test((selectedProvider as any).model)
+    (llmProviders.find((p) => p.id === selectedProviderId) as any)?.model &&
+    /vision|gpt-4o|4o-mini|o1|gemini-pro-vision|gemini 1\.5|flash|pro|llava|llama-?3\.2|qwen2-vl/i.test((llmProviders.find((p) => p.id === selectedProviderId) as any)?.model)
   );
+
+  // ============================================================================
+  // Event Handlers
+  // ============================================================================
 
   const handleEmbedImage = async (file: File | null) => {
     if (!file) return;
@@ -231,19 +286,15 @@ export const SimulationWizard: React.FC = () => {
     }
   };
 
-  if (!isOpen) return null;
-
   const handleFinish = () => {
-    const defaultConfig = defaultLlmConfig;
-    const agentsToUse =
-      importMode === 'custom' || importMode === 'generate'
-        ? customAgents
-        : undefined;
+    const agentsToUse = importMode === 'custom' || importMode === 'generate'
+      ? customAgents
+      : undefined;
 
     if (agentsToUse) {
       agentsToUse.forEach((a) => {
         if (!a.llmConfig) {
-          a.llmConfig = defaultConfig;
+          a.llmConfig = defaultLlmConfig;
         }
       });
     }
@@ -252,17 +303,16 @@ export const SimulationWizard: React.FC = () => {
     const templateToUse = useCustomTemplate
       ? {
           id: genericTemplate.id,
-          name: genericTemplate.name || 'Custom Template',
+          name: genericTemplate.name || t('wizard.defaults.customTemplate'),
           description: genericTemplate.description || '',
           category: 'custom' as const,
-          sceneType: 'generic', // Indicates generic template
+          sceneType: 'generic',
           agents: agentsToUse || [],
           defaultTimeConfig: genericTemplate.defaultTimeConfig || {
             baseTime: new Date(baseTime).toISOString(),
             unit: timeUnit,
             step: timeStep
           },
-          // Store generic template data for backend processing
           genericConfig: genericTemplate
         }
       : selectedTemplate;
@@ -280,7 +330,7 @@ export const SimulationWizard: React.FC = () => {
     setStep(1);
     setName('');
     setSelectedTemplateId('village');
-    setImportMode('default');
+    setImportMode('generate');
     setCustomAgents([]);
     setImportError(null);
     setGenCount(5);
@@ -333,9 +383,7 @@ export const SimulationWizard: React.FC = () => {
           if (!rows || rows.length === 0) {
             throw new Error(t('wizard.errors.csvEmpty'));
           }
-          const firstRow = (rows[0] || []).map((v: any) =>
-            String(v ?? '').trim()
-          );
+          const firstRow = (rows[0] || []).map((v: any) => String(v ?? '').trim());
           const headerLooksLike =
             firstRow.length >= 2 &&
             (firstRow[0] === 'agent_name' ||
@@ -382,18 +430,8 @@ export const SimulationWizard: React.FC = () => {
             return;
           }
           const reservedKeys = new Set([
-            'agent_name',
-            'agent_description',
-            'name',
-            'profile',
-            'id',
-            'role',
-            'avatarUrl',
-            'properties',
-            'history',
-            'memory',
-            'knowledgeBase',
-            'llmConfig'
+            'agent_name', 'agent_description', 'name', 'profile', 'id', 'role',
+            'avatarUrl', 'properties', 'history', 'memory', 'knowledgeBase', 'llmConfig'
           ]);
           const extraAttributes = Object.fromEntries(
             Object.entries(row).filter(([key]) => !reservedKeys.has(key))
@@ -405,10 +443,8 @@ export const SimulationWizard: React.FC = () => {
           agents.push({
             id: row.id || `imported_${Date.now()}_${index}`,
             name,
-            role: row.role || 'Citizen',
-            avatarUrl:
-              row.avatarUrl ||
-              `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
+            role: row.role || t('wizard.defaults.citizen'),
+            avatarUrl: row.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
             profile,
             properties,
             history: row.history || {},
@@ -420,10 +456,9 @@ export const SimulationWizard: React.FC = () => {
         setCustomAgents(agents);
         if (errors.length > 0) {
           const detail = errors.slice(0, 5).join('；');
-          const more =
-            errors.length > 5
-              ? t('wizard.errors.additionalErrors', { count: errors.length - 5 })
-              : '';
+          const more = errors.length > 5
+            ? t('wizard.errors.additionalErrors', { count: errors.length - 5 })
+            : '';
           setImportError(
             t('wizard.errors.importedWithErrors', {
               count: agents.length,
@@ -446,9 +481,10 @@ export const SimulationWizard: React.FC = () => {
     setIsGenerating(true);
     setImportError(null);
     try {
+      const currentLang = (i18n.language || 'en').toLowerCase().startsWith('zh') ? 'zh' : 'en';
+
       let agents: Agent[];
       if (useDemographics) {
-        // Use demographic-based generation
         const archetypeProbs: Record<string, number> = {};
         archetypes.forEach(a => {
           archetypeProbs[a.id] = a.probability;
@@ -458,15 +494,15 @@ export const SimulationWizard: React.FC = () => {
           demographics.map(d => ({ name: d.name, categories: d.categories })),
           archetypeProbs,
           traits.map(tr => ({ name: tr.name, mean: tr.mean, std: tr.std })),
-          'zh',
+          currentLang,
           selectedProviderId ?? undefined
         );
       } else {
-        // Use simple description-based generation
         agents = await generateAgentsWithAI(
           genCount,
           genDesc,
-          selectedProviderId ?? undefined
+          selectedProviderId ?? null,
+          currentLang
         );
       }
       agents.forEach((a) => {
@@ -475,8 +511,9 @@ export const SimulationWizard: React.FC = () => {
       setCustomAgents(agents);
       addNotification('success', t('wizard.messages.generatedAgents', { count: agents.length }));
     } catch (e) {
-      console.error(e);
-      setImportError(t('wizard.messages.generationFailed'));
+      console.error('Agent generation error:', e);
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      setImportError(`${t('wizard.messages.generationFailed')}: ${errorMessage}`);
     } finally {
       setIsGenerating(false);
     }
@@ -484,7 +521,7 @@ export const SimulationWizard: React.FC = () => {
 
   // Demographic management handlers
   const handleAddDemographic = () => {
-    setDemographics([...demographics, { id: generateId(), name: '', categories: [] }]);
+    setDemographics([...demographics, { id: generateId(), name: t('wizard.defaults.newCategory'), categories: [] }]);
   };
 
   const handleRemoveDemographic = (id: string) => {
@@ -516,7 +553,7 @@ export const SimulationWizard: React.FC = () => {
   const handleAddCategory = (demoId: string) => {
     setDemographics(demographics.map(d => {
       if (d.id === demoId) {
-        return { ...d, categories: [...d.categories, 'New Category'] };
+        return { ...d, categories: [...d.categories, t('wizard.defaults.newCategory')] };
       }
       return d;
     }));
@@ -533,7 +570,7 @@ export const SimulationWizard: React.FC = () => {
 
   // Trait management handlers
   const handleAddTrait = () => {
-    setTraits([...traits, { id: generateId(), name: `Trait ${traits.length + 1}`, mean: 50, std: 15 }]);
+    setTraits([...traits, { id: generateId(), name: `${t('wizard.defaults.traits.trust')} ${traits.length + 1}`, mean: 50, std: 15 }]);
   };
 
   const handleRemoveTrait = (id: string) => {
@@ -548,7 +585,6 @@ export const SimulationWizard: React.FC = () => {
 
   // Archetype probability handlers
   const handleUpdateArchetypeProbability = (archId: string, newProb: number) => {
-    // Auto-normalize: when one probability changes, adjust the others proportionally
     const oldProb = archetypes.find(a => a.id === archId)?.probability || 0;
     const currentTotal = archetypes.reduce((sum, a) => sum + a.probability, 0);
     const remainingTotal = currentTotal - oldProb;
@@ -557,7 +593,6 @@ export const SimulationWizard: React.FC = () => {
       if (a.id === archId) {
         return { ...a, probability: Math.max(0, Math.min(1, newProb)) };
       } else if (remainingTotal > 0) {
-        // Scale other probabilities proportionally to maintain sum = 1
         const scale = (1 - newProb) / remainingTotal;
         return { ...a, probability: Math.max(0, a.probability * scale) };
       }
@@ -570,295 +605,79 @@ export const SimulationWizard: React.FC = () => {
     setArchetypes(archetypes.map(a => ({ ...a, probability: a.probability / total })));
   };
 
-  // 点击"下一步"时的处理逻辑：如果没有任何可用模型，提醒一下
+  // Next step with provider check
   const handleNext = () => {
     if (llmProviders.length === 0 || !selectedProviderId) {
       window.alert(`${t('wizard.alerts.noProviderTitle')}${t('wizard.alerts.noProviderMessage')}`);
-      addNotification(
-        'error',
-        t('wizard.alerts.noProviderMessage')
-      );
-      // 这里选择"提示但仍然允许继续下一步"；如果你想阻止继续，可以直接 return;
-      // return;
+      addNotification('error', t('wizard.alerts.noProviderMessage'));
     }
     setStep((s) => s + 1);
   };
+
+  // ============================================================================
+  // Render
+  // ============================================================================
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b flex justify-between items-center bg-slate-50 shrink-0">
-          <div>
-            <h2 className="text-lg font-bold text-slate-800">
-              {t('wizard.titles.createSimulation')}
-            </h2>
-            <div className="flex gap-2 mt-1">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className={`h-1.5 w-8 rounded-full ${
-                    step >= i ? 'bg-brand-500' : 'bg-slate-200'
-                  }`}
-                ></div>
-              ))}
-            </div>
-          </div>
-          <button
-            onClick={() => toggleWizard(false)}
-            className="text-slate-400 hover:text-slate-600"
-          >
-            <X size={20} />
-          </button>
-        </div>
+        <WizardHeader
+          step={step}
+          title={t('wizard.titles.createSimulation')}
+          onClose={() => toggleWizard(false)}
+        />
 
         {/* Body */}
         <div className="p-8 flex-1 overflow-y-auto">
+          {/* STEP 1 */}
           {step === 1 && (
             <div className="space-y-8 max-w-3xl mx-auto">
-              {/* 默认模型配置：使用设置里的 provider */}
-              <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-lg flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-indigo-100 p-2 rounded text-indigo-600">
-                    <Bot size={20} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-indigo-900">
-                      {t('wizard.step1.defaultModelConfig')}
-                    </h3>
-                    <p className="text-xs text-indigo-700">
-                      {t('wizard.step1.selectProviderHint')}
-                    </p>
-                  </div>
-                </div>
+              {/* Provider Selector */}
+              <ProviderSelector
+                providers={llmProviders}
+                selectedProviderId={selectedProviderId}
+                onProviderChange={setSelectedProvider}
+                title={t('wizard.step1.defaultModelConfig')}
+                hint={t('wizard.step1.selectProviderHint')}
+                noProviderOption={t('wizard.alerts.noProviderOption')}
+                defaultProviderText={t('wizard.defaults.provider')}
+              />
 
-                <select
-                  value={selectedProviderId ?? ''}
-                  onChange={(e) =>
-                    setSelectedProvider(
-                      e.target.value ? Number(e.target.value) : null
-                    )
-                  }
-                  className="text-xs border-indigo-200 rounded px-2 py-1.5 focus:ring-indigo-500 min-w-[260px]"
-                >
-                  {llmProviders.length === 0 && (
-                    <option value="">
-                      {t('wizard.alerts.noProviderOption')}
-                    </option>
-                  )}
-                  {llmProviders.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {((p as any).name || (p as any).provider || 'Provider') +
-                        ((p as any).model ? ` · ${(p as any).model}` : '') +
-                        ((p as any).base_url ? ` · ${(p as any).base_url}` : '')}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Template Selection #20 */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                  <LayoutTemplate size={16} /> {t('wizard.step1.selectSceneTemplate')}
-                </label>
-
-                <div className="flex gap-4 border-b border-slate-200 mb-4">
-                  <button
-                    onClick={() => { setActiveTab('system'); setUseCustomTemplate(false); }}
-                    className={`pb-2 text-sm font-medium transition-colors ${
-                      activeTab === 'system' && !useCustomTemplate
-                        ? 'text-brand-600 border-b-2 border-brand-600'
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    {t('wizard.step1.systemPresets')}
-                  </button>
-                  <button
-                    onClick={() => { setActiveTab('custom'); setUseCustomTemplate(false); }}
-                    className={`pb-2 text-sm font-medium transition-colors ${
-                      activeTab === 'custom' && !useCustomTemplate
-                        ? 'text-brand-600 border-b-2 border-brand-600'
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    {t('wizard.step1.myTemplates')}
-                  </button>
-                  <button
-                    onClick={() => { setUseCustomTemplate(true); }}
-                    className={`pb-2 text-sm font-medium transition-colors flex items-center gap-1 ${
-                      useCustomTemplate
-                        ? 'text-purple-600 border-b-2 border-purple-600'
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    <Settings size={14} />
-                    {t('wizard.step1.customTemplateBuilder')}
-                  </button>
-                </div>
-
-                {/* System/Custom Templates */}
-                {!useCustomTemplate && (
-                  <div className="grid grid-cols-3 gap-4">
-                    {savedTemplates.filter((t) => t.category === activeTab)
-                      .length === 0 ? (
-                      <div className="col-span-3 py-8 text-center text-slate-400 bg-slate-50 rounded-lg border border-dashed">
-                        {activeTab === 'custom'
-                          ? t('wizard.step1.noCustomTemplates')
-                          : t('wizard.step1.noSystemTemplates')}
-                      </div>
-                    ) : (
-                      savedTemplates
-                        .filter((t) => t.category === activeTab)
-                        .map((t) => (
-                          <div
-                            key={t.id}
-                            onClick={() => setSelectedTemplateId(t.id)}
-                            className={`p-4 border rounded-lg text-left transition-all cursor-pointer relative group ${
-                              selectedTemplateId === t.id && !useCustomTemplate
-                                ? 'border-brand-500 ring-2 ring-brand-100 bg-brand-50'
-                                : 'hover:border-slate-300 hover:bg-slate-50'
-                            }`}
-                          >
-                            <div className="font-bold text-slate-800">
-                              {t.name}
-                            </div>
-                            <div className="text-xs text-slate-500 mt-1 line-clamp-2">
-                              {t.description}
-                            </div>
-
-                            {t.category === 'custom' && (
-                              <button
-                                onClick={(e) => handleDeleteTemplate(e, t.id)}
-                                className="absolute top-2 right-2 p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            )}
-
-                            {t.category === 'custom' && (
-                              <div className="mt-2 flex items-center gap-1 text-[10px] text-brand-600 bg-brand-100 px-1.5 py-0.5 rounded w-fit">
-                                <Users size={10} /> {t.agents?.length || 0} {t('wizard.agents')}
-                              </div>
-                            )}
-                          </div>
-                        ))
-                    )}
-                  </div>
-                )}
-
-                {/* Custom Template Builder */}
-                {useCustomTemplate && (
-                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Settings className="text-purple-600" size={18} />
-                        <span className="text-sm font-bold text-purple-900">
-                          {t('wizard.step1.customTemplateBuilderTitle')}
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-purple-700 mb-3">
-                      {t('wizard.step1.customTemplateBuilderDesc')}
-                    </p>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                      <div className="bg-white rounded p-2 text-center">
-                        <div className="font-bold text-purple-700">{genericTemplate.coreMechanics.filter(m => m.enabled).length}</div>
-                        <div className="text-slate-500">{t('wizard.step1.enabledMechanisms')}</div>
-                      </div>
-                      <div className="bg-white rounded p-2 text-center">
-                        <div className="font-bold text-purple-700">{genericTemplate.availableActions.length}</div>
-                        <div className="text-slate-500">{t('wizard.step1.availableActions')}</div>
-                      </div>
-                      <div className="bg-white rounded p-2 text-center">
-                        <div className="font-bold text-purple-700">{(genericTemplate.environment.rules?.length || 0)}</div>
-                        <div className="text-slate-500">{t('wizard.step1.environmentRules')}</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              {/* Template Selection */}
+              <Step1TemplateSelection
+                activeTab={activeTab}
+                useCustomTemplate={useCustomTemplate}
+                selectedTemplateId={selectedTemplateId}
+                savedTemplates={savedTemplates}
+                genericTemplate={genericTemplate}
+                onTabChange={setActiveTab}
+                onTemplateSelect={setSelectedTemplateId}
+                onUseCustomTemplate={() => setUseCustomTemplate(true)}
+                onDeleteTemplate={handleDeleteTemplate}
+                t={t}
+              />
 
               {/* Basic Info */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  {t('wizard.step1.experimentName')}
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={t('wizard.placeholders.experimentName')}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-sm"
-                />
-              </div>
+              <Step1BasicInfo
+                name={name}
+                onNameChange={setName}
+                placeholder={t('wizard.placeholders.experimentName')}
+                labelText={t('wizard.step1.experimentName')}
+              />
 
-              {/* Time Configuration #9 */}
-              <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-5">
-                <label className="block text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
-                  <Clock size={16} /> {t('wizard.step1.timeSettings')}
-                </label>
-                <div className="flex items-end gap-4 flex-wrap">
-                  <div className="flex-1 min-w-[180px]">
-                    <span className="text-xs text-indigo-700 mb-1 block font-medium">
-                      {t('wizard.step1.baseWorldTime')}
-                    </span>
-                    <div className="relative">
-                      <input
-                        type="datetime-local"
-                        value={baseTime}
-                        onChange={(e) => setBaseTime(e.target.value)}
-                        className="w-full px-3 py-2 border border-indigo-200 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 bg-white px-3 py-2 border border-indigo-200 rounded">
-                    <span className="text-xs text-indigo-700 whitespace-nowrap">
-                      {t('wizard.step1.advancePerTurn')}
-                    </span>
-                    <input
-                      type="number"
-                      min="1"
-                      value={timeStep}
-                      onChange={(e) =>
-                        setTimeStep(Math.max(1, parseInt(e.target.value)))
-                      }
-                      className="w-14 text-center border-b border-indigo-300 focus:border-indigo-600 outline-none text-sm font-bold"
-                    />
-                    <select
-                      value={timeUnit}
-                      onChange={(e) =>
-                        setTimeUnit(e.target.value as TimeUnit)
-                      }
-                      className="text-sm bg-transparent border-none outline-none font-bold text-slate-700 cursor-pointer"
-                    >
-                      {TIME_UNITS(t).map((u) => (
-                        <option key={u.value} value={u.value}>
-                          {u.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <p className="text-[10px] text-indigo-600 mt-2">
-                  {t('wizard.step1.currentSettingsPreview')}
-                  {(() => {
-                    const d = new Date(baseTime);
-                    const msMap: any = {
-                      minute: 60000,
-                      hour: 3600000,
-                      day: 86400000,
-                      week: 604800000
-                    };
-                    if (msMap[timeUnit]) {
-                      d.setTime(
-                        d.getTime() + msMap[timeUnit] * timeStep * 10
-                      );
-                      return d.toLocaleString();
-                    }
-                    return t('wizard.step1.dynamicCalculation');
-                  })()}
-                </p>
-              </div>
+              {/* Time Configuration */}
+              <Step1TimeConfiguration
+                baseTime={baseTime}
+                timeUnit={timeUnit}
+                timeStep={timeStep}
+                onBaseTimeChange={setBaseTime}
+                onTimeUnitChange={setTimeUnit}
+                onTimeStepChange={setTimeStep}
+                t={t}
+              />
 
               {/* Custom Template Builder - Expanded View */}
               {useCustomTemplate && (
@@ -883,116 +702,42 @@ export const SimulationWizard: React.FC = () => {
             </div>
           )}
 
+          {/* STEP 2 */}
           {step === 2 && (
             <div className="space-y-6 h-full flex flex-col">
-              {/* 默认模型配置：这里保留模型下拉框，使用 provider 列表 */}
-              <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-lg flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-indigo-100 p-2 rounded text-indigo-600">
-                    <Bot size={20} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-indigo-900">
-                      {t('wizard.step2.defaultModelConfig')}
-                    </h3>
-                    <p className="text-xs text-indigo-700">
-                      {t('wizard.step2.selectModelForAgents')}
-                    </p>
-                  </div>
-                </div>
-                <select
-                  value={selectedProviderId ?? ''}
-                  onChange={(e) =>
-                    setSelectedProvider(
-                      e.target.value ? Number(e.target.value) : null
-                    )
-                  }
-                  className="text-xs border-indigo-200 rounded px-2 py-1.5 focus:ring-indigo-500 min-w-[260px]"
-                >
-                  {llmProviders.length === 0 && (
-                    <option value="">
-                      {t('wizard.alerts.noProviderOption')}
-                    </option>
-                  )}
-                  {llmProviders.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {((p as any).name || (p as any).provider || 'Provider') +
-                        ((p as any).model ? ` · ${(p as any).model}` : '') +
-                        ((p as any).base_url ? ` · ${(p as any).base_url}` : '')}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Provider Selector */}
+              <ProviderSelector
+                providers={llmProviders}
+                selectedProviderId={selectedProviderId}
+                onProviderChange={setSelectedProvider}
+                title={t('wizard.step2.defaultModelConfig')}
+                hint={t('wizard.step2.selectModelForAgents')}
+                noProviderOption={t('wizard.alerts.noProviderOption')}
+                defaultProviderText={t('wizard.defaults.provider')}
+              />
 
-              <div className="flex justify-center mb-4">
-                <div className="bg-slate-100 p-1 rounded-lg inline-flex">
-                  <button
-                    onClick={() => setImportMode('default')}
-                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                      importMode === 'default'
-                        ? 'bg-white shadow text-brand-600'
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    {t('wizard.methods.useTemplateAgents')}
-                  </button>
-                  <button
-                    onClick={() => setImportMode('generate')}
-                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2 ${
-                      importMode === 'generate'
-                        ? 'bg-white shadow text-purple-600'
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    <Sparkles size={14} />
-                    {t('wizard.methods.aiBatchGenerate')}
-                  </button>
-                  <button
-                    onClick={() => setImportMode('custom')}
-                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                      importMode === 'custom'
-                        ? 'bg-white shadow text-brand-600'
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    {t('wizard.methods.fileImport')}
-                  </button>
-                </div>
-              </div>
+              {/* Import Mode Selector */}
+              <Step2ImportModeSelector
+                importMode={importMode}
+                onModeChange={(mode) => setImportMode(mode)}
+                defaultText={t('wizard.methods.useTemplateAgents')}
+                generateText={t('wizard.methods.aiBatchGenerate')}
+                customText={t('wizard.methods.fileImport')}
+              />
 
               {/* MODE: DEFAULT */}
               {importMode === 'default' && (
-                <div className="text-center py-10 bg-slate-50 rounded-lg border border-dashed border-slate-300">
-                  <div className="w-16 h-16 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Users size={32} />
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-700">
-                    {t('wizard.step2.usingPresetAgents')}{' '}
-                    <span className="text-brand-600">
-                      {selectedTemplate.name}
-                    </span>{' '}
-                    {t('wizard.step2.customTemplateAgents', { count: selectedTemplate.agents?.length || 0 })}
-                  </h3>
-                  <p className="text-slate-500 mt-2 text-sm max-w-md mx-auto">
-                    {selectedTemplate.category === 'custom'
-                      ? t('wizard.step2.customTemplateAgents', {
-                          count: selectedTemplate.agents?.length || 0
-                        })
-                      : t('wizard.step2.systemTemplateAgents', {
-                          count: selectedTemplate.sceneType === 'council'
-                            ? 5
-                            : selectedTemplate.sceneType === 'werewolf'
-                            ? 9
-                            : 2
-                        })}
-                  </p>
-                </div>
+                <Step2DefaultMode template={selectedTemplate} t={t} />
               )}
 
               {/* MODE: AI GENERATE */}
               {importMode === 'generate' && (
                 <div className="flex-1 flex flex-col gap-4">
-                  <div className={`text-xs p-3 rounded border ${visionCapable ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
+                  <div className={`text-xs p-3 rounded border ${
+                    visionCapable
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                      : 'border-amber-200 bg-amber-50 text-amber-700'
+                  }`}>
                     {visionCapable
                       ? t('wizard.step2.visionSupported')
                       : t('wizard.step2.visionNotSupported')}
@@ -1014,267 +759,61 @@ export const SimulationWizard: React.FC = () => {
 
                   {!useDemographics ? (
                     // Simple Description Mode
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-purple-50 border border-purple-100 p-4 rounded-lg">
-                      <div className="col-span-1">
-                        <label className="block text-xs font-bold text-purple-800 mb-2">
-                          {t('wizard.step2.generateCount')}
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="50"
-                          value={genCount}
-                          onChange={(e) =>
-                            setGenCount(
-                              Math.min(
-                                50,
-                                Math.max(1, parseInt(e.target.value))
-                              )
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-purple-200 rounded text-sm focus:ring-purple-500"
-                        />
-                      </div>
-                      <div className="col-span-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <label className="block text-xs font-bold text-purple-800">
-                            {t('wizard.step2.populationDescription')}
-                          </label>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="file"
-                              ref={imageInputRef}
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0] ?? null;
-                                handleEmbedImage(file);
-                                if (imageInputRef.current) {
-                                  imageInputRef.current.value = '';
-                                }
-                              }}
-                            />
-                            <button
-                              onClick={() => imageInputRef.current?.click()}
-                              disabled={isEmbeddingImage}
-                              className="text-[10px] px-2 py-1 border border-purple-200 rounded text-purple-700 bg-white hover:bg-purple-50 disabled:opacity-60"
-                            >
-                              {isEmbeddingImage ? t('wizard.step2.uploading') : t('wizard.step2.uploadImage')}
-                            </button>
-                          </div>
-                        </div>
-                        <textarea
-                          value={genDesc}
-                          onChange={(e) => setGenDesc(e.target.value)}
-                          className="w-full px-3 py-2 border border-purple-200 rounded text-sm focus:ring-purple-500 h-20 resize-none"
-                          placeholder={t('wizard.step2.generatePlaceholder')}
-                        />
-                      </div>
-                      <div className="col-span-4 flex justify-end">
-                        <button
-                          onClick={handleGenerateAgents}
-                          disabled={isGenerating}
-                          className="px-6 py-2 bg-purple-600 text-white text-sm font-bold rounded-lg hover:bg-purple-700 flex items-center gap-2 disabled:opacity-50"
-                        >
-                          {isGenerating ? (
-                            <Loader2
-                              size={16}
-                              className="animate-spin"
-                            />
-                          ) : (
-                            <Sparkles size={16} />
-                          )}
-                          {t('wizard.step2.startGeneration')}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    // Demographics Mode
-                    <div className="flex-1 flex flex-col gap-4 overflow-y-auto">
-                      {/* Demographics Configuration */}
-                      <div className="border border-slate-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-sm font-bold text-slate-800">{t('wizard.step2.demographics')}</h4>
-                          <button
-                            onClick={handleAddDemographic}
-                            className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded flex items-center gap-1"
-                          >
-                            <Plus size={14} /> {t('wizard.step2.addDimension')}
-                          </button>
-                        </div>
-                        <div className="space-y-3">
-                          {demographics.map((demo, demoIdx) => (
-                            <div key={demo.id} className="border border-slate-200 rounded p-3 bg-slate-50">
-                              <div className="flex items-center gap-2 mb-2">
-                                <input
-                                  type="text"
-                                  value={demo.name}
-                                  onChange={(e) => handleUpdateDemographicName(demo.id, e.target.value)}
-                                  placeholder={t('wizard.step2.dimensionNamePlaceholder')}
-                                  className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm"
-                                />
-                                {demographics.length > 1 && (
-                                  <button
-                                    onClick={() => handleRemoveDemographic(demo.id)}
-                                    className="p-1 text-red-500 hover:bg-red-50 rounded"
-                                  >
-                                    <Minus size={16} />
-                                  </button>
-                                )}
-                              </div>
-                              <div className="space-y-1">
-                                <div className="text-xs text-slate-500">{t('wizard.step2.categoriesLabel')}</div>
-                                {demo.categories.map((cat, catIdx) => (
-                                  <div key={catIdx} className="flex items-center gap-2">
-                                    <input
-                                      type="text"
-                                      value={cat}
-                                      onChange={(e) => handleUpdateCategoryName(demo.id, catIdx, e.target.value)}
-                                      className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm"
-                                    />
-                                    {demo.categories.length > 1 && (
-                                      <button
-                                        onClick={() => handleRemoveCategory(demo.id, catIdx)}
-                                        className="p-1 text-red-400 hover:text-red-600"
-                                      >
-                                        <Minus size={14} />
-                                      </button>
-                                    )}
-                                  </div>
-                                ))}
-                                <button
-                                  onClick={() => handleAddCategory(demo.id)}
-                                  className="text-xs px-2 py-1 bg-slate-200 hover:bg-slate-300 rounded flex items-center gap-1"
-                                >
-                                  <Plus size={12} /> {t('wizard.step2.addCategory')}
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Generated Archetypes Preview with Inline Probability Editing */}
-                      {archetypes.length > 0 && (
-                        <div className="border border-slate-200 rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <div>
-                              <h4 className="text-sm font-bold text-slate-800">{t('wizard.step2.archetypes', { count: archetypes.length })}</h4>
-                              <span className="text-xs text-slate-500">{t('wizard.step2.archetypesHint')}</span>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-xs text-slate-500">{t('wizard.step2.totalProbability')}: <span className={Math.abs(archetypes.reduce((sum, a) => sum + a.probability, 0) - 1.0) < 0.01 ? "text-green-600 font-bold" : "text-amber-600 font-bold"}>{archetypes.reduce((sum, a) => sum + a.probability, 0).toFixed(2)}</span> {t('wizard.step2.shouldBeOne')}</div>
-                              <button
-                                onClick={handleNormalizeProbabilities}
-                                className="text-[10px] px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded mt-1"
-                              >
-                                {t('wizard.step2.normalizeAll')}
-                              </button>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-                            {archetypes.map((arch) => (
-                              <div key={arch.id} className="p-2 bg-slate-50 rounded border border-slate-200 text-xs">
-                                <div className="font-medium text-slate-700 truncate mb-1" title={arch.label}>{arch.label}</div>
-                                <div className="flex items-center gap-2">
-                                  <label className="text-slate-500">{t('wizard.step2.probability')}:</label>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    max="1"
-                                    step="0.01"
-                                    value={arch.probability.toFixed(2)}
-                                    onChange={(e) => handleUpdateArchetypeProbability(arch.id, parseFloat(e.target.value) || 0)}
-                                    className="flex-1 px-1 py-0.5 border border-slate-300 rounded text-xs text-right"
-                                  />
-                                  <span className="text-slate-500">({(arch.probability * 100).toFixed(0)}%)</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                          <p className="text-xs text-slate-500 mt-2">{t('wizard.step2.modifyProbabilityHint')}</p>
-                        </div>
-                      )}
-
-                      {/* Traits Configuration */}
-                      <div className="border border-slate-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-sm font-bold text-slate-800">{t('wizard.step2.traits')}</h4>
-                          <button
-                            onClick={handleAddTrait}
-                            className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded flex items-center gap-1"
-                          >
-                            <Plus size={14} /> {t('wizard.step2.addTrait')}
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          {traits.map((trait) => (
-                            <div key={trait.id} className="border border-slate-200 rounded p-2 bg-slate-50">
-                              <div className="flex items-center gap-2 mb-2">
-                                <input
-                                  type="text"
-                                  value={trait.name}
-                                  onChange={(e) => handleUpdateTrait(trait.id, 'name', e.target.value)}
-                                  className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm font-medium"
-                                />
-                                {traits.length > 1 && (
-                                  <button
-                                    onClick={() => handleRemoveTrait(trait.id)}
-                                    className="p-1 text-red-500 hover:bg-red-50 rounded"
-                                  >
-                                    <Minus size={16} />
-                                  </button>
-                                )}
-                              </div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                  <label className="text-[10px] text-slate-500">{t('wizard.step2.mean')}</label>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    max="100"
-                                    value={trait.mean}
-                                    onChange={(e) => handleUpdateTrait(trait.id, 'mean', parseInt(e.target.value) || 0)}
-                                    className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-[10px] text-slate-500">{t('wizard.step2.std')}</label>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    max="50"
-                                    value={trait.std}
-                                    onChange={(e) => handleUpdateTrait(trait.id, 'std', parseInt(e.target.value) || 0)}
-                                    className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        <p className="text-xs text-slate-500 mt-2">{t('wizard.step2.traitsHint')}</p>
-                      </div>
-
-                      {/* Generation Settings */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                        <div>
-                          <label className="block text-xs font-bold text-blue-800 mb-2">
+                    <div className="flex-1 flex flex-col gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-purple-50 border border-purple-100 p-4 rounded-lg">
+                        <div className="col-span-1">
+                          <label className="block text-xs font-bold text-purple-800 mb-2">
                             {t('wizard.step2.generateCount')}
                           </label>
                           <input
                             type="number"
                             min="1"
+                            max="50"
                             value={genCount}
-                            onChange={(e) => setGenCount(Math.max(1, parseInt(e.target.value) || 1))}
-                            className="w-full px-3 py-2 border border-blue-200 rounded text-sm focus:ring-blue-500"
+                            onChange={(e) => setGenCount(Math.min(50, Math.max(1, parseInt(e.target.value))))}
+                            className="w-full px-3 py-2 border border-purple-200 rounded text-sm focus:ring-purple-500"
                           />
                         </div>
-                        <div className="flex items-end">
+                        <div className="col-span-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="block text-xs font-bold text-purple-800">
+                              {t('wizard.step2.populationDescription')}
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="file"
+                                ref={imageInputRef}
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0] ?? null;
+                                  handleEmbedImage(file);
+                                  if (imageInputRef.current) {
+                                    imageInputRef.current.value = '';
+                                  }
+                                }}
+                              />
+                              <button
+                                onClick={() => imageInputRef.current?.click()}
+                                disabled={isEmbeddingImage}
+                                className="text-[10px] px-2 py-1 border border-purple-200 rounded text-purple-700 bg-white hover:bg-purple-50 disabled:opacity-60"
+                              >
+                                {isEmbeddingImage ? t('wizard.step2.uploading') : t('wizard.step2.uploadImage')}
+                              </button>
+                            </div>
+                          </div>
+                          <textarea
+                            value={genDesc}
+                            onChange={(e) => setGenDesc(e.target.value)}
+                            className="w-full px-3 py-2 border border-purple-200 rounded text-sm focus:ring-purple-500 h-20 resize-none"
+                            placeholder={t('wizard.step2.generatePlaceholder')}
+                          />
+                        </div>
+                        <div className="col-span-4 flex justify-end">
                           <button
                             onClick={handleGenerateAgents}
                             disabled={isGenerating}
-                            className="px-6 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
+                            className="px-6 py-2 bg-purple-600 text-white text-sm font-bold rounded-lg hover:bg-purple-700 flex items-center gap-2 disabled:opacity-50"
                           >
                             {isGenerating ? (
                               <Loader2 size={16} className="animate-spin" />
@@ -1285,270 +824,471 @@ export const SimulationWizard: React.FC = () => {
                           </button>
                         </div>
                       </div>
-                    </div>
-                  )}
 
-                  {importError && (
-                    <div className="p-3 bg-red-50 text-red-700 text-xs rounded border border-red-200">
-                      {importError}
-                    </div>
-                  )}
+                      {importError && (
+                        <div className="p-3 bg-red-50 text-red-700 text-xs rounded border border-red-200">
+                          {importError}
+                        </div>
+                      )}
 
-                  {/* Preview for Generated Agents */}
-                  {customAgents.length > 0 && (
-                    <div className="flex-1 border rounded-lg overflow-hidden flex flex-col bg-white">
-                      <div className="px-4 py-2 bg-slate-50 border-b flex justify-between items-center">
-                        <span className="text-xs font-bold text-slate-700">
-                          {t('wizard.step2.generatedAgents', { count: customAgents.length })}
-                        </span>
-                        <button
-                          onClick={() => setCustomAgents([])}
-                          className="text-xs text-red-500 hover:underline"
-                        >
-                          {t('wizard.step2.clearReset')}
-                        </button>
-                      </div>
-                      <div className="overflow-y-auto flex-1 p-0">
-                        <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-50 sticky top-0 text-slate-500">
-                            <tr>
-                              <th className="px-4 py-2">{t('wizard.step2.name')}</th>
-                              <th className="px-4 py-2">{t('wizard.step2.role')}</th>
-                              <th className="px-4 py-2">{t('wizard.step2.description')}</th>
-                              <th className="px-4 py-2">{t('wizard.step2.attributes')}</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y">
-                            {customAgents.map((a, i) => (
-                              <tr
-                                key={i}
-                                className="hover:bg-slate-50"
-                              >
-                                <td className="px-4 py-2 font-bold">
-                                  {a.name}
-                                </td>
-                                <td className="px-4 py-2">
-                                  {a.role}
-                                </td>
-                                <td
-                                  className="px-4 py-2 max-w-xs truncate"
-                                  title={a.profile}
-                                >
-                                  {a.profile}
-                                </td>
-                                <td className="px-4 py-2 font-mono text-[10px] text-slate-500">
-                                  {JSON.stringify(a.properties)}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                      {/* Preview for Generated Agents */}
+                      {customAgents.length > 0 ? (
+                        <Step2AgentsPreview
+                          agents={customAgents}
+                          onClear={() => setCustomAgents([])}
+                          t={t}
+                        />
+                      ) : (
+                        <div className="text-xs text-slate-500 text-center py-2">
+                          {t('wizard.step2.noAgentsGenerated')}
+                        </div>
+                      )}
                     </div>
+                  ) : (
+                    // Demographics Mode
+                    <Step2DemographicsEditor
+                      demographics={demographics}
+                      archetypes={archetypes}
+                      traits={traits}
+                      useDemographics={useDemographics}
+                      genCount={genCount}
+                      isGenerating={isGenerating}
+                      onAddDemographic={handleAddDemographic}
+                      onRemoveDemographic={handleRemoveDemographic}
+                      onUpdateDemographicName={handleUpdateDemographicName}
+                      onUpdateDemographicCategories={handleUpdateDemographicCategories}
+                      onUpdateCategoryName={handleUpdateCategoryName}
+                      onAddCategory={handleAddCategory}
+                      onRemoveCategory={handleRemoveCategory}
+                      onUpdateArchetypeProbability={handleUpdateArchetypeProbability}
+                      onNormalizeProbabilities={handleNormalizeProbabilities}
+                      onAddTrait={handleAddTrait}
+                      onRemoveTrait={handleRemoveTrait}
+                      onUpdateTrait={handleUpdateTrait}
+                      onSetGenCount={setGenCount}
+                      onGenerateAgents={handleGenerateAgents}
+                      customAgents={customAgents}
+                      setCustomAgents={setCustomAgents}
+                      importError={importError}
+                      t={t}
+                    />
                   )}
                 </div>
               )}
 
               {/* MODE: FILE IMPORT */}
               {importMode === 'custom' && (
-                <div className="flex-1 flex flex-col gap-4">
-                  <div
-                    className="shrink-0"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileUpload}
-                      accept=".json,.csv"
-                      className="hidden"
-                    />
-                    <div className="border-2 border-dashed border-slate-300 hover:border-brand-500 hover:bg-brand-50 rounded-lg p-6 text-center cursor-pointer transition-colors group">
-                      <Upload
-                        className="mx-auto text-slate-400 group-hover:text-brand-500 mb-2"
-                        size={32}
-                      />
-                      <p className="text-sm font-bold text-slate-700 group-hover:text-brand-600">
-                        {t('wizard.step2.uploadCsvJson')}
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">
-                        {t('wizard.step2.requiredFields')}
-                      </p>
-                    </div>
-                  </div>
-                  {importError && (
-                    <div className="p-3 bg-red-50 text-red-700 text-xs rounded border border-red-200">
-                      {importError}
-                    </div>
-                  )}
-                  {customAgents.length > 0 && (
-                    <div className="flex-1 border rounded-lg overflow-hidden flex flex-col bg-white">
-                      <div className="px-4 py-2 bg-slate-50 border-b flex justify-between items-center">
-                        <span className="text-xs font-bold text-slate-700">
-                          {t('wizard.step2.parsedAgents', { count: customAgents.length })}
-                        </span>
-                        <button
-                          onClick={() => setCustomAgents([])}
-                          className="text-xs text-red-500 hover:underline"
-                        >
-                          {t('wizard.step2.clearReset')}
-                        </button>
-                      </div>
-                      <div className="overflow-y-auto flex-1 p-0">
-                        <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-50 sticky top-0 text-slate-500">
-                            <tr>
-                              <th className="px-4 py-2">{t('wizard.step2.name')}</th>
-                              <th className="px-4 py-2">{t('wizard.step2.role')}</th>
-                              <th className="px-4 py-2">{t('wizard.step2.description')}</th>
-                              <th className="px-4 py-2">{t('wizard.step2.attributes')}</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y">
-                            {customAgents.map((a, i) => (
-                              <tr
-                                key={i}
-                                className="hover:bg-slate-50"
-                              >
-                                <td className="px-4 py-2 font-bold">
-                                  {a.name}
-                                </td>
-                                <td className="px-4 py-2">
-                                  {a.role}
-                                </td>
-                                <td
-                                  className="px-4 py-2 max-w-xs truncate"
-                                  title={a.profile}
-                                >
-                                  {a.profile}
-                                </td>
-                                <td className="px-4 py-2 font-mono text-[10px] text-slate-500">
-                                  {JSON.stringify(a.properties)}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <Step2FileImport
+                  fileInputRef={fileInputRef}
+                  customAgents={customAgents}
+                  importError={importError}
+                  onFileUpload={handleFileUpload}
+                  onClearAgents={() => setCustomAgents([])}
+                  t={t}
+                />
               )}
             </div>
           )}
 
+          {/* STEP 3 */}
           {step === 3 && (
-            <div className="space-y-4 text-center py-8">
-              <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check size={32} />
-              </div>
-              <h3 className="text-xl font-bold text-slate-800">
-                {t('wizard.step3.ready')}
-              </h3>
-              <div className="bg-slate-50 rounded-lg p-6 max-w-md mx-auto text-left space-y-3 border">
-                {useCustomTemplate ? (
-                  <>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-500">{t('wizard.step3.templateType')}:</span>
-                      <span className="font-bold text-purple-700">
-                        {t('wizard.step3.customTemplate')}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-500">{t('wizard.step3.templateName')}:</span>
-                      <span className="font-bold text-slate-800">
-                        {genericTemplate.name || t('wizard.step3.unnamed')}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-500">{t('wizard.step3.coreMechanisms')}:</span>
-                      <span className="font-bold text-slate-800">
-                        {genericTemplate.coreMechanics.filter(m => m.enabled).map(m => m.type).join(', ') || t('wizard.step3.none')}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-500">{t('wizard.step3.availableActionsCount')}:</span>
-                      <span className="font-bold text-slate-800">
-                        {genericTemplate.availableActions.length} {t('wizard.step1.availableActions')}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-500">{t('wizard.step3.template')}:</span>
-                      <span className="font-bold text-slate-800">
-                        {selectedTemplate.name}
-                      </span>
-                    </div>
-                    {(importMode === 'custom' || importMode === 'generate') &&
-                      customAgents.length > 0 && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-slate-500">{t('wizard.step3.customAgents')}:</span>
-                          <span className="font-bold text-brand-600">
-                            {customAgents.length} {t('wizard.step3.people')}
-                          </span>
-                        </div>
-                      )}
-                  </>
-                )}
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">{t('wizard.step3.timeFlow')}:</span>
-                  <span className="font-bold text-slate-800">
-                    {t('wizard.step3.perTurn')} {timeStep}{' '}
-                    {
-                      TIME_UNITS(t).find((u) => u.value === timeUnit)
-                        ?.label
-                    }
-                  </span>
-                </div>
-              </div>
-            </div>
+            <Step3Confirmation
+              useCustomTemplate={useCustomTemplate}
+              genericTemplate={genericTemplate}
+              selectedTemplate={selectedTemplate}
+              customAgents={customAgents}
+              timeUnit={timeUnit}
+              timeStep={timeStep}
+              t={t}
+            />
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t bg-slate-50 flex justify-end gap-3 shrink-0">
-          {step > 1 && (
-            <button
-              onClick={() => setStep(step - 1)}
-              className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg"
-            >
-              {t('wizard.footer.previous')}
-            </button>
-          )}
-          {step === 1 && (
-            <button
-              onClick={() => toggleWizard(false)}
-              className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg"
-            >
-              {t('wizard.footer.cancel')}
-            </button>
-          )}
-          {step < 3 && (
-            <button
-              onClick={handleNext}
-              className="px-6 py-2 text-sm bg-brand-600 text-white font-medium hover:bg-brand-700 rounded-lg shadow-sm"
-            >
-              {t('wizard.footer.next')}
-            </button>
-          )}
-          {step === 3 && (
-            <button
-              onClick={handleFinish}
-              className="px-6 py-2 text-sm bg-green-600 text-white font-medium hover:bg-green-700 rounded-lg shadow-sm"
-              disabled={isGeneratingGlobal}
-            >
-              {isGeneratingGlobal ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 size={16} className="animate-spin" /> {t('wizard.footer.saving')}
-                </span>
-              ) : (
-                t('wizard.footer.startSimulation')
-              )}
-            </button>
-          )}
+        <WizardFooter
+          step={step}
+          onCancel={() => toggleWizard(false)}
+          onNext={handleNext}
+          onPrevious={() => setStep(step - 1)}
+          onFinish={handleFinish}
+          isSaving={isGeneratingGlobal}
+          cancelText={t('wizard.footer.cancel')}
+          previousText={t('wizard.footer.previous')}
+          nextText={t('wizard.footer.next')}
+          finishText={t('wizard.footer.startSimulation')}
+          savingText={t('wizard.footer.saving')}
+        />
+      </div>
+    </div>
+  );
+};
+
+// =============================================================================
+// Step 2 Sub-components (defined inline for now, could be extracted)
+// =============================================================================
+
+interface Step2DemographicsEditorProps {
+  demographics: Demographic[];
+  archetypes: Archetype[];
+  traits: TraitConfig[];
+  useDemographics: boolean;
+  genCount: number;
+  isGenerating: boolean;
+  onAddDemographic: () => void;
+  onRemoveDemographic: (id: string) => void;
+  onUpdateDemographicName: (id: string, name: string) => void;
+  onUpdateDemographicCategories: (id: string, categories: string) => void;
+  onUpdateCategoryName: (demoId: string, catIndex: number, value: string) => void;
+  onAddCategory: (demoId: string) => void;
+  onRemoveCategory: (demoId: string, catIndex: number) => void;
+  onUpdateArchetypeProbability: (archId: string, newProb: number) => void;
+  onNormalizeProbabilities: () => void;
+  onAddTrait: () => void;
+  onRemoveTrait: (id: string) => void;
+  onUpdateTrait: (id: string, field: keyof TraitConfig, value: string | number) => void;
+  onSetGenCount: (count: number) => void;
+  onGenerateAgents: () => void;
+  customAgents: Agent[];
+  setCustomAgents: (agents: Agent[]) => void;
+  importError: string | null;
+  t: (key: string) => string;
+}
+
+const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = ({
+  demographics,
+  archetypes,
+  traits,
+  genCount,
+  isGenerating,
+  onAddDemographic,
+  onRemoveDemographic,
+  onUpdateDemographicName,
+  onUpdateDemographicCategories,
+  onUpdateCategoryName,
+  onAddCategory,
+  onRemoveCategory,
+  onUpdateArchetypeProbability,
+  onNormalizeProbabilities,
+  onAddTrait,
+  onRemoveTrait,
+  onUpdateTrait,
+  onSetGenCount,
+  onGenerateAgents,
+  customAgents,
+  setCustomAgents,
+  importError,
+  t,
+}) => {
+  return (
+    <div className="flex-1 flex flex-col gap-4 overflow-y-auto">
+      {/* Demographics Configuration */}
+      <div className="border border-slate-200 rounded-lg p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-sm font-bold text-slate-800">{t('wizard.step2.demographics')}</h4>
+          <button
+            onClick={onAddDemographic}
+            className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded flex items-center gap-1"
+          >
+            <Plus size={14} /> {t('wizard.step2.addDimension')}
+          </button>
         </div>
+        <div className="space-y-3">
+          {demographics.map((demo, demoIdx) => (
+            <div key={demo.id} className="border border-slate-200 rounded p-3 bg-slate-50">
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  type="text"
+                  value={demo.name}
+                  onChange={(e) => onUpdateDemographicName(demo.id, e.target.value)}
+                  placeholder={t('wizard.step2.dimensionNamePlaceholder')}
+                  className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm"
+                />
+                {demographics.length > 1 && (
+                  <button
+                    onClick={() => onRemoveDemographic(demo.id)}
+                    className="p-1 text-red-500 hover:bg-red-50 rounded"
+                  >
+                    <Minus size={16} />
+                  </button>
+                )}
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs text-slate-500">{t('wizard.step2.categoriesLabel')}</div>
+                {demo.categories.map((cat, catIdx) => (
+                  <div key={catIdx} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={cat}
+                      onChange={(e) => onUpdateCategoryName(demo.id, catIdx, e.target.value)}
+                      className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm"
+                    />
+                    {demo.categories.length > 1 && (
+                      <button
+                        onClick={() => onRemoveCategory(demo.id, catIdx)}
+                        className="p-1 text-red-400 hover:text-red-600"
+                      >
+                        <Minus size={14} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  onClick={() => onAddCategory(demo.id)}
+                  className="text-xs px-2 py-1 bg-slate-200 hover:bg-slate-300 rounded flex items-center gap-1"
+                >
+                  <Plus size={12} /> {t('wizard.step2.addCategory')}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Generated Archetypes Preview */}
+      {archetypes.length > 0 && (
+        <div className="border border-slate-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h4 className="text-sm font-bold text-slate-800">{t('wizard.step2.archetypes', { count: archetypes.length })}</h4>
+              <span className="text-xs text-slate-500">{t('wizard.step2.archetypesHint')}</span>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-slate-500">{t('wizard.step2.totalProbability')}: <span className={Math.abs(archetypes.reduce((sum, a) => sum + a.probability, 0) - 1.0) < 0.01 ? "text-green-600 font-bold" : "text-amber-600 font-bold"}>{archetypes.reduce((sum, a) => sum + a.probability, 0).toFixed(2)}</span> {t('wizard.step2.shouldBeOne')}</div>
+              <button
+                onClick={onNormalizeProbabilities}
+                className="text-[10px] px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded mt-1"
+              >
+                {t('wizard.step2.normalizeAll')}
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+            {archetypes.map((arch) => (
+              <div key={arch.id} className="p-2 bg-slate-50 rounded border border-slate-200 text-xs">
+                <div className="font-medium text-slate-700 truncate mb-1" title={arch.label}>{arch.label}</div>
+                <div className="flex items-center gap-2">
+                  <label className="text-slate-500">{t('wizard.step2.probability')}:</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={arch.probability.toFixed(2)}
+                    onChange={(e) => onUpdateArchetypeProbability(arch.id, parseFloat(e.target.value) || 0)}
+                    className="flex-1 px-1 py-0.5 border border-slate-300 rounded text-xs text-right"
+                  />
+                  <span className="text-slate-500">({(arch.probability * 100).toFixed(0)}%)</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500 mt-2">{t('wizard.step2.modifyProbabilityHint')}</p>
+        </div>
+      )}
+
+      {/* Traits Configuration */}
+      <div className="border border-slate-200 rounded-lg p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-sm font-bold text-slate-800">{t('wizard.step2.traits')}</h4>
+          <button
+            onClick={onAddTrait}
+            className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded flex items-center gap-1"
+          >
+            <Plus size={14} /> {t('wizard.step2.addTrait')}
+          </button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {traits.map((trait) => (
+            <div key={trait.id} className="border border-slate-200 rounded p-2 bg-slate-50">
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  type="text"
+                  value={trait.name}
+                  onChange={(e) => onUpdateTrait(trait.id, 'name', e.target.value)}
+                  className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm font-medium"
+                />
+                {traits.length > 1 && (
+                  <button
+                    onClick={() => onRemoveTrait(trait.id)}
+                    className="p-1 text-red-500 hover:bg-red-50 rounded"
+                  >
+                    <Minus size={16} />
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-slate-500">{t('wizard.step2.mean')}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={trait.mean}
+                    onChange={(e) => onUpdateTrait(trait.id, 'mean', parseInt(e.target.value) || 0)}
+                    className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-500">{t('wizard.step2.std')}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={trait.std}
+                    onChange={(e) => onUpdateTrait(trait.id, 'std', parseInt(e.target.value) || 0)}
+                    className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-slate-500 mt-2">{t('wizard.step2.traitsHint')}</p>
+      </div>
+
+      {/* Generation Settings */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50 border border-blue-200 p-4 rounded-lg">
+        <div>
+          <label className="block text-xs font-bold text-blue-800 mb-2">
+            {t('wizard.step2.generateCount')}
+          </label>
+          <input
+            type="number"
+            min="1"
+            value={genCount}
+            onChange={(e) => onSetGenCount(Math.max(1, parseInt(e.target.value) || 1))}
+            className="w-full px-3 py-2 border border-blue-200 rounded text-sm focus:ring-blue-500"
+          />
+        </div>
+        <div className="flex items-end">
+          <button
+            onClick={onGenerateAgents}
+            disabled={isGenerating}
+            className="px-6 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
+          >
+            {isGenerating ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Sparkles size={16} />
+            )}
+            {t('wizard.step2.startGeneration')}
+          </button>
+        </div>
+      </div>
+
+      {importError && (
+        <div className="p-3 bg-red-50 text-red-700 text-xs rounded border border-red-200">
+          {importError}
+        </div>
+      )}
+
+      {/* Preview for Generated Agents */}
+      {customAgents.length > 0 ? (
+        <Step2AgentsPreview
+          agents={customAgents}
+          onClear={() => setCustomAgents([])}
+          t={t}
+        />
+      ) : (
+        <div className="text-xs text-slate-500 text-center py-2">
+          {t('wizard.step2.noAgentsGenerated')}
+        </div>
+      )}
+    </div>
+  );
+};
+
+interface Step2FileImportProps {
+  fileInputRef: React.RefObject<HTMLInputElement>;
+  customAgents: Agent[];
+  importError: string | null;
+  onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onClearAgents: () => void;
+  t: (key: string) => string;
+}
+
+const Step2FileImport: React.FC<Step2FileImportProps> = ({
+  fileInputRef,
+  customAgents,
+  importError,
+  onFileUpload,
+  onClearAgents,
+  t,
+}) => {
+  return (
+    <div className="flex-1 flex flex-col gap-4">
+      <div className="shrink-0" onClick={() => fileInputRef.current?.click()}>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={onFileUpload}
+          accept=".json,.csv"
+          className="hidden"
+        />
+        <div className="border-2 border-dashed border-slate-300 hover:border-brand-500 hover:bg-brand-50 rounded-lg p-6 text-center cursor-pointer transition-colors group">
+          <Upload className="mx-auto text-slate-400 group-hover:text-brand-500 mb-2" size={32} />
+          <p className="text-sm font-bold text-slate-700 group-hover:text-brand-600">
+            {t('wizard.step2.uploadCsvJson')}
+          </p>
+          <p className="text-xs text-slate-500 mt-1">
+            {t('wizard.step2.requiredFields')}
+          </p>
+        </div>
+      </div>
+      {importError && (
+        <div className="p-3 bg-red-50 text-red-700 text-xs rounded border border-red-200">
+          {importError}
+        </div>
+      )}
+      {customAgents.length > 0 && (
+        <Step2AgentsPreview
+          agents={customAgents}
+          onClear={onClearAgents}
+          t={t}
+        />
+      )}
+    </div>
+  );
+};
+
+interface Step2AgentsPreviewProps {
+  agents: Agent[];
+  onClear: () => void;
+  t: (key: string, params?: any) => string;
+}
+
+const Step2AgentsPreview: React.FC<Step2AgentsPreviewProps> = ({ agents, onClear, t }) => {
+  return (
+    <div className="flex-1 border rounded-lg overflow-hidden flex flex-col bg-white">
+      <div className="px-4 py-2 bg-slate-50 border-b flex justify-between items-center">
+        <span className="text-xs font-bold text-slate-700">
+          {t('wizard.step2.generatedAgents', { count: agents.length })}
+        </span>
+        <button onClick={onClear} className="text-xs text-red-500 hover:underline">
+          {t('wizard.step2.clearReset')}
+        </button>
+      </div>
+      <div className="overflow-y-auto flex-1 p-0">
+        <table className="w-full text-left text-xs">
+          <thead className="bg-slate-50 sticky top-0 text-slate-500">
+            <tr>
+              <th className="px-4 py-2">{t('wizard.step2.name')}</th>
+              <th className="px-4 py-2">{t('wizard.step2.role')}</th>
+              <th className="px-4 py-2">{t('wizard.step2.description')}</th>
+              <th className="px-4 py-2">{t('wizard.step2.attributes')}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {agents.map((a, i) => (
+              <tr key={i} className="hover:bg-slate-50">
+                <td className="px-4 py-2 font-bold">{a.name}</td>
+                <td className="px-4 py-2">{a.role}</td>
+                <td className="px-4 py-2 max-w-xs truncate" title={a.profile}>{a.profile}</td>
+                <td className="px-4 py-2 font-mono text-[10px] text-slate-500">{JSON.stringify(a.properties)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

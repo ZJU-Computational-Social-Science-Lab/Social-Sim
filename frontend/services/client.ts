@@ -17,6 +17,24 @@ export const apiClient = axios.create({
   baseURL: `${API_BASE_URL}/`,
 });
 
+// Track token refresh state to prevent race conditions
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value?: any) => void;
+  reject: (reason?: any) => void;
+}>[] = [];
+
+const processQueue = (error: any | null, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 // ---- 拦截器：自动带上 access token，并处理 401 刷新 ----
 apiClient.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
@@ -31,8 +49,28 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const { response, config } = error;
-    if (response?.status === 401 && !(config as any).__isRetryRequest) {
+    const originalRequest = config;
+
+    if (response?.status === 401 && originalRequest && !(originalRequest as any).__isRetryRequest) {
+      // If refresh is already in progress, queue this request
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            if (originalRequest.headers) {
+              (originalRequest.headers as any).Authorization = `Bearer ${token}`;
+            }
+            return apiClient(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
+        }
+
+      isRefreshing = true;
       const refreshToken = useAuthStore.getState().refreshToken;
+
       if (refreshToken) {
         try {
           const refreshResponse = await axios.post(
@@ -43,17 +81,35 @@ apiClient.interceptors.response.use(
             access_token: string;
             refresh_token: string;
           };
+
           useAuthStore.getState().updateTokens(
             data.access_token,
             data.refresh_token,
           );
-          (config as any).__isRetryRequest = true;
-          config.headers = config.headers ?? {};
-          (config.headers as any).Authorization = `Bearer ${data.access_token}`;
-          return apiClient(config);
+
+          processQueue(null, data.access_token);
+
+          (originalRequest as any).__isRetryRequest = true;
+          if (originalRequest.headers) {
+            originalRequest.headers = originalRequest.headers ?? {};
+            (originalRequest.headers as any).Authorization = `Bearer ${data.access_token}`;
+          }
+          return apiClient(originalRequest);
         } catch (refreshError) {
-          useAuthStore.getState().clearSession();
+          processQueue(refreshError, null);
+          // Check if another request already refreshed the token before clearing session
+          const currentToken = useAuthStore.getState().accessToken;
+          if (!currentToken) {
+            useAuthStore.getState().clearSession();
+          }
+          return Promise.reject(refreshError);
+        } finally {
+          isRefreshing = false;
         }
+      } else {
+        // No refresh token available, clear session
+        processQueue(error, null);
+        useAuthStore.getState().clearSession();
       }
     }
     return Promise.reject(error);
