@@ -158,4 +158,4 @@ REFACTORING_PLAN.md
 planning/
 
 # Git worktrees for parallel development
-.worktrees/
+.worktrees/test_results/

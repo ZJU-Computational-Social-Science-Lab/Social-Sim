@@ -1,19 +1,20 @@
 """
 Output evaluation logic for LLM prompt testing.
 
-Provides functions to evaluate LLM outputs against success criteria:
-- XML format validation
+Provides flexible evaluation with multi-format support:
+- JSON/XML/Plain text format parsing
 - Action correctness checking
 - Role alignment evaluation
 - Error/hallucination detection
+- Scoring system instead of strict pass/fail
 """
 
 import logging
 import re
-import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
+from .action_parser import parse_action, ParseResult
 from .agents import AgentProfile
 from .scenarios import ScenarioConfig
 
@@ -22,222 +23,111 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class EvaluationResult:
-    """Result of evaluating an LLM output."""
+    """Result of evaluating an LLM output with flexible scoring."""
 
-    xml_valid: bool
-    action_correct: bool
+    # Core metrics
+    action_extracted: bool  # Successfully extracted an action
+    action_valid: bool  # Action matches valid list
+    format_score: int  # 0-2 (JSON=2, XML=1, text=0)
+
+    # Additional quality metrics
     role_aligned: bool
     no_errors: bool
-    overall_score: int  # 0-4 (count of passing criteria)
+
+    # Tracking
     parsed_action: Optional[str] = None
-    parsed_thoughts: Optional[str] = None
-    parsed_plan: Optional[str] = None
+    parse_method: str = "failed"  # "json", "xml", "text", "keyword", "failed"
+    raw_output: str = ""
+    raw_output_preview: str = ""  # First 200 chars
+
+    # Computed
+    overall_success: bool = False  # Met minimum criteria (action extracted + valid)
     failure_reasons: List[str] = field(default_factory=list)
-    error_message: str = ""
 
     @property
     def is_perfect(self) -> bool:
-        """Check if all criteria passed."""
-        return self.overall_score == 4
+        """Check if all criteria passed with good format."""
+        return (
+            self.action_extracted
+            and self.action_valid
+            and self.role_aligned
+            and self.no_errors
+            and self.format_score >= 1
+        )
+
+    @property
+    def quality_score(self) -> float:
+        """Calculate quality score (0-100)."""
+        score = 0.0
+
+        # Action extraction is most important (40 points)
+        if self.action_extracted:
+            score += 40
+
+        # Action validity (30 points)
+        if self.action_valid:
+            score += 30
+
+        # Format quality (15 points)
+        score += (self.format_score / 2) * 15
+
+        # Role alignment (10 points)
+        if self.role_aligned:
+            score += 10
+
+        # No errors (5 points)
+        if self.no_errors:
+            score += 5
+
+        return score
 
     def to_dict(self) -> dict:
         """Convert to dictionary."""
         return {
-            "xml_valid": self.xml_valid,
-            "action_correct": self.action_correct,
+            "action_extracted": self.action_extracted,
+            "action_valid": self.action_valid,
+            "format_score": self.format_score,
             "role_aligned": self.role_aligned,
             "no_errors": self.no_errors,
-            "overall_score": self.overall_score,
             "parsed_action": self.parsed_action,
-            "parsed_thoughts": self.parsed_thoughts,
-            "parsed_plan": self.parsed_plan,
+            "parse_method": self.parse_method,
+            "overall_success": self.overall_success,
+            "quality_score": self.quality_score,
+            "is_perfect": self.is_perfect,
+            "raw_output_preview": self.raw_output_preview,
             "failure_reasons": self.failure_reasons,
-            "error_message": self.error_message,
         }
 
 
 # ============================================================================
-# XML Format Validation
+# Action Extraction with Multi-Format Parser
 # ============================================================================
 
-EXPECTED_XML_SECTIONS = [
-    ("--- Thoughts ---", "Thoughts"),
-    ("---- Plan ---", "Plan"),
-    ("---- Action ---", "Action"),
-]
-
-
-def check_xml_format(output: str) -> Tuple[bool, str]:
-    """
-    Check if output matches expected XML format.
-
-    Expected format:
-    --- Thoughts ---
-    [thought content]
-
-    ---- Plan ---
-    [plan content]
-
-    ---- Action ---
-    <Action name="...">
-      [params]
-    </Action>
-
-    Args:
-        output: The LLM output to check
-
-    Returns:
-        Tuple of (is_valid, error_message)
-    """
-    if not output or not output.strip():
-        return False, "Empty output"
-
-    failures = []
-
-    # Check for each expected section
-    for marker, section_name in EXPECTED_XML_SECTIONS:
-        if marker not in output:
-            # Check if this is Action-only format (just Action tag, no sections)
-            has_action_tag = "<Action" in output and "/>" in output
-
-            # Only require section if NOT Action-only format
-            if not has_action_tag:
-                failures.append(f"Missing '{section_name}' section (expected marker: '{marker}')")
-
-    # Check Action is XML-like
-    if "---- Action ---" in output:
-        action_section = output.split("---- Action ---")[-1].strip()
-        if not action_section:
-            failures.append("Action section is empty")
-        elif not ("<Action" in action_section or "<action" in action_section.lower()):
-            failures.append("Action section doesn't contain XML action element")
-
-    is_valid = len(failures) == 0
-    error_msg = "; ".join(failures) if failures else ""
-
-    return is_valid, error_msg
-
-
-def parse_xml_sections(output: str) -> Dict[str, str]:
-    """
-    Parse the expected sections from the output.
-
-    Returns:
-        Dict with keys: thoughts, plan, action
-    """
-    result = {"thoughts": None, "plan": None, "action": None}
-
-    try:
-        # Split on section markers
-        parts = output.split("---")
-
-        for part in parts:
-            part = part.strip()
-            if "Thoughts ---" in part or part.startswith("Thoughts"):
-                result["thoughts"] = part.replace("Thoughts ---", "").strip()
-            elif "Plan ---" in part or part.startswith("Plan"):
-                result["plan"] = part.replace("Plan ---", "").strip()
-            elif "Action ---" in part or part.startswith("Action"):
-                result["action"] = part.replace("Action ---", "").strip()
-
-    except Exception as e:
-        logger.warning(f"Error parsing XML sections: {e}")
-
-    return result
-
-
-def extract_action_name(action_section: str) -> Optional[str]:
-    """Extract action name from action XML."""
-    if not action_section:
-        return None
-
-    try:
-        # Try to parse as XML
-        # Remove any XML declarations if present
-        action_section = action_section.strip()
-        if "<?xml" in action_section:
-            action_section = action_section.split("?>", 1)[-1]
-
-        # Find the action element
-        match = re.search(r'<Action\s+name\s*=\s*"([^"]+)"', action_section, re.IGNORECASE)
-        if match:
-            return match.group(1)
-
-        # Try alternative formats
-        match = re.search(r'<Action[^>]*name="([^"]+)"', action_section, re.IGNORECASE)
-        if match:
-            return match.group(1)
-
-        match = re.search(r'<(\w+)', action_section)
-        if match:
-            return match.group(1)
-
-    except Exception as e:
-        logger.warning(f"Error extracting action name: {e}")
-
-    return None
-
-
-# ============================================================================
-# Action Correctness Checking
-# ============================================================================
-
-def check_action_correct(
+def extract_action_from_output(
     output: str,
-    scenario: ScenarioConfig,
-) -> Tuple[bool, str, Optional[str]]:
+    valid_actions: List[str],
+) -> ParseResult:
     """
-    Check if the action taken is correct for the scenario.
+    Extract action from output using the multi-format parser.
 
     Args:
         output: The LLM output
-        scenario: The scenario configuration
+        valid_actions: List of valid action names
 
     Returns:
-        Tuple of (is_correct, reason, parsed_action)
+        ParseResult with action details
     """
-    # First, check if XML is valid enough to extract action
-    is_valid, _ = check_xml_format(output)
-    if not is_valid:
-        return False, "Cannot check action - XML format invalid", None
-
-    # Parse sections
-    sections = parse_xml_sections(output)
-    action_section = sections.get("action", "")
-
-    if not action_section:
-        return False, "No action found in output", None
-
-    # Extract action name
-    action_name = extract_action_name(action_section)
-
-    if not action_name:
-        return False, "Could not extract action name from XML", None
-
-    # Get valid actions for scenario
-    valid_actions = [a.name for a in scenario.actions]
-
     if not valid_actions:
-        # No actions defined, any action is acceptable
-        return True, f"Action '{action_name}' taken (no specific actions defined)", action_name
-
-    # Check if action is valid
-    # Allow partial matches (e.g., "effort_1" matches "effort_1")
-    is_valid = any(
-        action_name.lower() == va.lower()
-        or action_name.lower() in va.lower()
-        or va.lower() in action_name.lower()
-        for va in valid_actions
-    )
-
-    if is_valid:
-        return True, f"Valid action '{action_name}'", action_name
-    else:
-        return (
-            False,
-            f"Invalid action '{action_name}'. Valid options: {valid_actions}",
-            action_name,
+        return ParseResult(
+            success=False,
+            action=None,
+            parse_method="failed",
+            format_score=0,
+            raw_output=output,
+            error_message="No valid actions provided",
         )
+
+    return parse_action(output, valid_actions)
 
 
 # ============================================================================
@@ -265,9 +155,6 @@ def check_role_alignment(
     failures = []
     output_lower = output.lower()
 
-    # Check if output mentions agent's name or role
-    # This is a basic check - real evaluation would be more sophisticated
-
     # Check for personality traits in output
     personality_keywords = {
         "decisive": ["decide", "choose", "will", "must"],
@@ -289,13 +176,17 @@ def check_role_alignment(
                 found_personality_keywords += 1
 
     # Basic check: if the output is empty or too short, fail
-    if len(output.strip()) < 20:
+    if len(output.strip()) < 10:
         failures.append("Output too short to assess role alignment")
 
     # If the output mentions contradictory stances, note it
-    # (This is a simple heuristic)
     if "i don't know" in output_lower and "decisive" in agent_personality:
         failures.append("Agent claims indecision despite being decisive")
+
+    # Check for AI self-reference (breaks character)
+    ai_phrases = ["as an ai", "as a language model", "i am an ai"]
+    if any(phrase in output_lower for phrase in ai_phrases):
+        failures.append("AI self-reference detected (breaks character)")
 
     is_aligned = len(failures) == 0
     return is_aligned, failures
@@ -327,33 +218,13 @@ def check_errors_and_hallucinations(
     error_patterns = [
         ("i cannot", "Agent refuses to act"),
         ("i'm unable", "Agent indicates inability"),
-        ("as an ai", "AI self-reference detected"),
-        ("language model", "AI self-reference detected"),
-        ("i don't have access", "Agent indicates limitation"),
         ("i apologize but", "Agent apologizes for inability"),
         ("<error>", "Error tag in output"),
-        ("could not parse", "Parse error mentioned"),
-        ("invalid input", "Invalid input mentioned"),
     ]
 
     for pattern, description in error_patterns:
         if pattern in output_lower:
             return False, f"Potential issue: {description}"
-
-    # Check for action parameter errors
-    sections = parse_xml_sections(output)
-    action_section = sections.get("action", "")
-
-    if action_section:
-        # Check for malformed XML
-        try:
-            # Basic check - are tags balanced?
-            open_tags = len(re.findall(r'<(\w+)', action_section))
-            close_tags = len(re.findall(r'</(\w+)>', action_section))
-            if open_tags > 0 and open_tags != close_tags:
-                return False, "Unbalanced XML tags in action"
-        except Exception:
-            pass
 
     return True, ""
 
@@ -366,64 +237,76 @@ def evaluate_output(
     output: str,
     scenario: ScenarioConfig,
     agent: AgentProfile,
+    valid_actions: Optional[List[str]] = None,
 ) -> EvaluationResult:
     """
-    Evaluate an LLM output against all success criteria.
+    Evaluate an LLM output with flexible multi-format parsing.
 
     Args:
         output: The LLM output to evaluate
         scenario: The scenario that was tested
         agent: The agent profile that was used
+        valid_actions: List of valid action names (defaults to scenario.actions)
 
     Returns:
         EvaluationResult with all evaluation details
     """
+    # Get valid actions
+    if valid_actions is None:
+        valid_actions = [a.name for a in scenario.actions]
+
+    # Initialize result
     result = EvaluationResult(
-        xml_valid=False,
-        action_correct=False,
+        action_extracted=False,
+        action_valid=False,
+        format_score=0,
         role_aligned=False,
         no_errors=False,
-        overall_score=0,
+        raw_output=output,
+        raw_output_preview=output[:200] if len(output) > 200 else output,
     )
 
-    # 1. Check XML format
-    is_valid, xml_error = check_xml_format(output)
-    result.xml_valid = is_valid
-    if not is_valid:
-        result.failure_reasons.append(f"XML format: {xml_error}")
-    else:
-        result.overall_score += 1
+    # 1. Extract action using multi-format parser
+    parse_result = extract_action_from_output(output, valid_actions)
 
-    # Parse sections for further checks
-    sections = parse_xml_sections(output)
-    result.parsed_thoughts = sections.get("thoughts")
-    result.parsed_plan = sections.get("plan")
+    result.action_extracted = parse_result.success
+    result.parsed_action = parse_result.action
+    result.parse_method = parse_result.parse_method
+    result.format_score = parse_result.format_score
 
-    # 2. Check action correctness
-    action_correct, action_reason, action_name = check_action_correct(output, scenario)
-    result.action_correct = action_correct
-    result.parsed_action = action_name
-    if not action_correct:
-        result.failure_reasons.append(f"Action: {action_reason}")
+    if not parse_result.success:
+        result.failure_reasons.append(f"Action extraction: {parse_result.error_message}")
+        # Return early since action extraction failed
+        result.overall_success = False
+        return result
+
+    # 2. Validate action against allowed actions
+    # The parser already validates, but let's double-check
+    is_valid_action = parse_result.action in valid_actions
+    result.action_valid = is_valid_action
+
+    if not is_valid_action:
+        result.failure_reasons.append(
+            f"Invalid action '{parse_result.action}'. Valid: {valid_actions}"
+        )
     else:
-        result.overall_score += 1
+        result.failure_reasons.append(f"Action '{parse_result.action}' extracted via {parse_result.parse_method}")
 
     # 3. Check role alignment
     role_aligned, role_failures = check_role_alignment(output, agent, scenario)
     result.role_aligned = role_aligned
     if not role_aligned:
         result.failure_reasons.extend([f"Role: {f}" for f in role_failures])
-    else:
-        result.overall_score += 1
 
     # 4. Check for errors/hallucinations
     no_errors, error_msg = check_errors_and_hallucinations(output, scenario, agent)
     result.no_errors = no_errors
-    result.error_message = error_msg
     if not no_errors:
         result.failure_reasons.append(f"Errors: {error_msg}")
-    else:
-        result.overall_score += 1
+
+    # 5. Determine overall success
+    # Minimum criteria: action extracted AND valid
+    result.overall_success = result.action_extracted and result.action_valid
 
     return result
 
@@ -437,12 +320,37 @@ class BatchEvaluationSummary:
     """Summary of evaluating multiple outputs."""
 
     total_evaluations: int = 0
-    perfect_count: int = 0
-    xml_valid_count: int = 0
-    action_correct_count: int = 0
+    successful_parses: int = 0  # Extracted any action
+    valid_actions: int = 0  # Extracted valid action
+    perfect_count: int = 0  # All criteria passed with good format
     role_aligned_count: int = 0
     no_errors_count: int = 0
-    average_score: float = 0.0
+    average_quality_score: float = 0.0
+    average_format_score: float = 0.0
+
+    # Parse method distribution
+    json_count: int = 0
+    xml_count: int = 0
+    text_count: int = 0
+    keyword_count: int = 0
+    failed_count: int = 0
+
+    # Action distribution
+    action_distribution: Dict[str, int] = field(default_factory=dict)
+
+    @property
+    def extraction_rate(self) -> float:
+        """Percentage of outputs where action was extracted."""
+        if self.total_evaluations == 0:
+            return 0.0
+        return (self.successful_parses / self.total_evaluations) * 100
+
+    @property
+    def validity_rate(self) -> float:
+        """Percentage of outputs with valid actions."""
+        if self.total_evaluations == 0:
+            return 0.0
+        return (self.valid_actions / self.total_evaluations) * 100
 
     @property
     def pass_rate(self) -> float:
@@ -456,7 +364,8 @@ def evaluate_batch(
     outputs: List[str],
     scenario: ScenarioConfig,
     agent: AgentProfile,
-) -> List[EvaluationResult]:
+    valid_actions: Optional[List[str]] = None,
+) -> Tuple[List[EvaluationResult], BatchEvaluationSummary]:
     """
     Evaluate multiple outputs.
 
@@ -464,37 +373,139 @@ def evaluate_batch(
         outputs: List of LLM outputs
         scenario: The scenario that was tested
         agent: The agent profile that was used
+        valid_actions: List of valid action names
 
     Returns:
-        List of EvaluationResult objects
+        Tuple of (list of EvaluationResult, BatchEvaluationSummary)
     """
+    if valid_actions is None:
+        valid_actions = [a.name for a in scenario.actions]
+
     results = []
+    summary = BatchEvaluationSummary(total_evaluations=len(outputs))
+
     for output in outputs:
-        result = evaluate_output(output, scenario, agent)
+        result = evaluate_output(output, scenario, agent, valid_actions)
         results.append(result)
 
-    return results
+        # Update summary stats
+        if result.action_extracted:
+            summary.successful_parses += 1
 
+        if result.action_valid:
+            summary.valid_actions += 1
 
-def summarize_batch(results: List[EvaluationResult]) -> BatchEvaluationSummary:
-    """Create a summary of batch evaluation results."""
-    summary = BatchEvaluationSummary(
-        total_evaluations=len(results),
-    )
-
-    for result in results:
         if result.is_perfect:
             summary.perfect_count += 1
-        if result.xml_valid:
-            summary.xml_valid_count += 1
-        if result.action_correct:
-            summary.action_correct_count += 1
+
         if result.role_aligned:
             summary.role_aligned_count += 1
+
         if result.no_errors:
             summary.no_errors_count += 1
 
-    if results:
-        summary.average_score = sum(r.overall_score for r in results) / len(results)
+        # Count parse methods
+        if result.parse_method == "json":
+            summary.json_count += 1
+        elif result.parse_method == "xml":
+            summary.xml_count += 1
+        elif result.parse_method == "text":
+            summary.text_count += 1
+        elif result.parse_method == "keyword":
+            summary.keyword_count += 1
+        else:
+            summary.failed_count += 1
 
-    return summary
+        # Accumulate scores
+        summary.average_quality_score += result.quality_score
+        summary.average_format_score += result.format_score
+
+        # Track action distribution
+        if result.parsed_action:
+            summary.action_distribution[result.parsed_action] = (
+                summary.action_distribution.get(result.parsed_action, 0) + 1
+            )
+
+    # Calculate averages
+    if summary.total_evaluations > 0:
+        summary.average_quality_score /= summary.total_evaluations
+        summary.average_format_score /= summary.total_evaluations
+
+    return results, summary
+
+
+# ============================================================================
+# Format-Specific Evaluation
+# ============================================================================
+
+@dataclass
+class FormatTestResult:
+    """Result of testing a specific format with a specific model."""
+
+    model_name: str
+    format_type: str  # "json", "xml", "text"
+    total_runs: int = 0
+    successful_extractions: int = 0
+    valid_actions: int = 0
+    average_quality_score: float = 0.0
+    average_format_score: float = 0.0
+    success_rate: float = 0.0  # Percentage of valid action extractions
+    meets_target: bool = False  # Meets 85% target
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary."""
+        return {
+            "model_name": self.model_name,
+            "format_type": self.format_type,
+            "total_runs": self.total_runs,
+            "successful_extractions": self.successful_extractions,
+            "valid_actions": self.valid_actions,
+            "average_quality_score": self.average_quality_score,
+            "average_format_score": self.average_format_score,
+            "success_rate": self.success_rate,
+            "meets_target": self.meets_target,
+        }
+
+
+def evaluate_format_test(
+    model_name: str,
+    format_type: str,
+    outputs: List[str],
+    scenario: ScenarioConfig,
+    agent: AgentProfile,
+    target_rate: float = 0.85,
+) -> FormatTestResult:
+    """
+    Evaluate the results of testing a specific format.
+
+    Args:
+        model_name: Name of the model tested
+        format_type: Format type ("json", "xml", "text")
+        outputs: List of LLM outputs
+        scenario: The scenario tested
+        agent: The agent profile used
+        target_rate: Target success rate (default 0.85 = 85%)
+
+    Returns:
+        FormatTestResult with summary statistics
+    """
+    results, summary = evaluate_batch(outputs, scenario, agent)
+
+    result = FormatTestResult(
+        model_name=model_name,
+        format_type=format_type,
+        total_runs=len(outputs),
+        successful_extractions=summary.successful_parses,
+        valid_actions=summary.valid_actions,
+        average_quality_score=summary.average_quality_score,
+        average_format_score=summary.average_format_score,
+    )
+
+    # Calculate success rate (valid action extractions / total runs)
+    if result.total_runs > 0:
+        result.success_rate = (result.valid_actions / result.total_runs) * 100
+
+    # Check if meets target
+    result.meets_target = result.success_rate >= (target_rate * 100)
+
+    return result
