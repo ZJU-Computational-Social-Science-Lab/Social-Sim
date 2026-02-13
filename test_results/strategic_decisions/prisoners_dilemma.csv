@@ -1,2142 +1,463 @@
 pattern,scenario,model,iteration,run_number,agent_type,agent_role,input_prompt,output_raw,xml_valid,action_correct,role_aligned,no_errors,overall_score,parsed_action,parsed_thoughts,parsed_plan,token_count,time_ms,error_message,failure_reasons,prompt_version,cross_llm_status,model_failure_reason,timestamp
-Strategic Decisions,prisoners_dilemma,qwen3:4b,1,1,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
-
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
-
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
+Strategic Decisions,prisoners_dilemma,gemma3:4b-it-qat,1,1,archetypal,Authority,"You are Authority. You are a leader and authority figure. Others look to you for direction and guidance.
 
 Choose your action carefully based on what you think your partner will do.
 
+Available actions: ""cooperate"", ""defect""
+
+--- Thoughts ---
+Decision.
+
+---- Plan ---
+Action.
+
+---- Action ---
+<Action name=""cooperate"" />",No output,True,False,True,True,3,,,,197,4302,,Action: No action found in output,1,FAIL,Action: Could not extract action name from XML; Action: No action found in output,2026-02-13T00:36:55.044945
+Strategic Decisions,prisoners_dilemma,gemma3:4b-it-qat,1,2,archetypal,Authority,"You are Authority. You are a leader and authority figure. Others look to you for direction and guidance.
+
+Choose your action carefully based on what you think your partner will do.
+
+Available actions: ""cooperate"", ""defect""
+
+--- Thoughts ---
+Decision.
+
+---- Plan ---
+Action.
+
+---- Action ---
+<Action name=""cooperate"" />",No output,True,False,True,True,3,,,,203,4389,,Action: No action found in output,1,FAIL,Action: Could not extract action name from XML; Action: No action found in output,2026-02-13T00:36:59.434329
+Strategic Decisions,prisoners_dilemma,gemma3:4b-it-qat,1,3,archetypal,Authority,"You are Authority. You are a leader and authority figure. Others look to you for direction and guidance.
+
+Choose your action carefully based on what you think your partner will do.
+
+Available actions: ""cooperate"", ""defect""
+
+--- Thoughts ---
+Decision.
+
+---- Plan ---
+Action.
+
+---- Action ---
+<Action name=""cooperate"" />",No output,True,False,True,True,3,,,,188,4036,,Action: No action found in output,1,FAIL,Action: Could not extract action name from XML; Action: No action found in output,2026-02-13T00:37:03.470564
+Strategic Decisions,prisoners_dilemma,gemma3:4b-it-qat,2,1,archetypal,Authority,"You are Authority. You are a leader and authority figure. Others look to you for direction and guidance.
+
+Choose your action carefully based on what you think your partner will do.
+
+Available actions: ""cooperate"", ""defect""
+
+--- Thoughts ---
+Decision.
+
+---- Plan ---
+Action.
+
+---- Action ---
+<Action name=""cooperate"" />
 
 Available Actions:
   - cooperate: Remain silent - cooperate with your partner
   - defect: Betray your partner - testify against them
 
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
 
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
 
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
+
+For example, if you choose to cooperate:
 ---- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>",No output,True,False,True,True,3,,Thoughts,,2311,53987,,Action: No action found in output,1,NA,,2026-02-12T18:16:17.765518
-Strategic Decisions,prisoners_dilemma,qwen3:4b,1,2,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
-
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
-
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
+<Action name=""cooperate"" />",No output,True,False,True,True,3,,,,322,5454,,Action: No action found in output,1,FAIL,Action: Could not extract action name from XML; Action: No action found in output,2026-02-13T00:37:08.925537
+Strategic Decisions,prisoners_dilemma,gemma3:4b-it-qat,2,2,archetypal,Authority,"You are Authority. You are a leader and authority figure. Others look to you for direction and guidance.
 
 Choose your action carefully based on what you think your partner will do.
 
+Available actions: ""cooperate"", ""defect""
+
+--- Thoughts ---
+Decision.
+
+---- Plan ---
+Action.
+
+---- Action ---
+<Action name=""cooperate"" />
 
 Available Actions:
   - cooperate: Remain silent - cooperate with your partner
   - defect: Betray your partner - testify against them
 
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
 
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
 
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
+
+For example, if you choose to cooperate:
 ---- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>",No output,True,False,True,True,3,,Thoughts,,2311,71419,,Action: No action found in output,1,NA,,2026-02-12T18:17:29.187642
-Strategic Decisions,prisoners_dilemma,qwen3:4b,1,3,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
-
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
-
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
+<Action name=""cooperate"" />",No output,True,False,True,True,3,,,,332,5665,,Action: No action found in output,1,FAIL,Action: Could not extract action name from XML; Action: No action found in output,2026-02-13T00:37:14.591442
+Strategic Decisions,prisoners_dilemma,gemma3:4b-it-qat,2,3,archetypal,Authority,"You are Authority. You are a leader and authority figure. Others look to you for direction and guidance.
 
 Choose your action carefully based on what you think your partner will do.
 
+Available actions: ""cooperate"", ""defect""
+
+--- Thoughts ---
+Decision.
+
+---- Plan ---
+Action.
+
+---- Action ---
+<Action name=""cooperate"" />
 
 Available Actions:
   - cooperate: Remain silent - cooperate with your partner
   - defect: Betray your partner - testify against them
 
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
 
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
 
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
+
+For example, if you choose to cooperate:
 ---- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>",No output,True,False,True,True,3,,Thoughts,,2311,77773,,Action: No action found in output,1,NA,,2026-02-12T18:18:46.961192
-Strategic Decisions,prisoners_dilemma,qwen3:4b,1,1,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
-
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
-
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
+<Action name=""cooperate"" />",No output,True,False,True,True,3,,,,309,5200,,Action: No action found in output,1,FAIL,Action: Could not extract action name from XML; Action: No action found in output,2026-02-13T00:37:19.792308
+Strategic Decisions,prisoners_dilemma,gemma3:4b-it-qat,3,1,archetypal,Authority,"You are Authority. You are a leader and authority figure. Others look to you for direction and guidance.
 
 Choose your action carefully based on what you think your partner will do.
 
+Available actions: ""cooperate"", ""defect""
+
+--- Thoughts ---
+Decision.
+
+---- Plan ---
+Action.
+
+---- Action ---
+<Action name=""cooperate"" />
 
 Available Actions:
   - cooperate: Remain silent - cooperate with your partner
   - defect: Betray your partner - testify against them
 
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
 
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
 
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
+
+For example, if you choose to cooperate:
 ---- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>",No output,False,False,True,True,2,,,,2311,49511,,XML format: Missing 'Thoughts' section (expected marker: '--- Thoughts ---'); Missing 'Plan' section (expected marker: '---- Plan ---'); Missing 'Action' section (expected marker: '---- Action ---'); Action: Cannot check action - XML format invalid,1,NA,,2026-02-12T18:20:40.736238
-Strategic Decisions,prisoners_dilemma,qwen3:4b,1,2,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
+<Action name=""cooperate"" />
 
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
 
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
+For example, if you choose to cooperate:
+---- Action ---
+<Action name=""cooperate"" />",No output,True,False,True,True,3,,,,371,5835,,Action: No action found in output,1,FAIL,Action: Could not extract action name from XML; Action: No action found in output,2026-02-13T00:37:25.629227
+Strategic Decisions,prisoners_dilemma,gemma3:4b-it-qat,3,2,archetypal,Authority,"You are Authority. You are a leader and authority figure. Others look to you for direction and guidance.
 
 Choose your action carefully based on what you think your partner will do.
 
+Available actions: ""cooperate"", ""defect""
+
+--- Thoughts ---
+Decision.
+
+---- Plan ---
+Action.
+
+---- Action ---
+<Action name=""cooperate"" />
 
 Available Actions:
   - cooperate: Remain silent - cooperate with your partner
   - defect: Betray your partner - testify against them
 
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
 
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
 
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
+
+For example, if you choose to cooperate:
 ---- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>",Potential issue: Agent refuses to act,True,False,True,False,2,,Thoughts,,2311,67645,Potential issue: Agent refuses to act,Action: No action found in output; Errors: Potential issue: Agent refuses to act,1,NA,,2026-02-12T18:21:48.385331
-Strategic Decisions,prisoners_dilemma,qwen3:4b,1,3,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
+<Action name=""cooperate"" />
 
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
 
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
+For example, if you choose to cooperate:
+---- Action ---
+<Action name=""cooperate"" />",No output,True,False,True,True,3,,,,390,6315,,Action: No action found in output,1,FAIL,Action: Could not extract action name from XML; Action: No action found in output,2026-02-13T00:37:31.945514
+Strategic Decisions,prisoners_dilemma,gemma3:4b-it-qat,3,3,archetypal,Authority,"You are Authority. You are a leader and authority figure. Others look to you for direction and guidance.
 
 Choose your action carefully based on what you think your partner will do.
 
+Available actions: ""cooperate"", ""defect""
+
+--- Thoughts ---
+Decision.
+
+---- Plan ---
+Action.
+
+---- Action ---
+<Action name=""cooperate"" />
 
 Available Actions:
   - cooperate: Remain silent - cooperate with your partner
   - defect: Betray your partner - testify against them
 
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
 
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
 
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
+
+For example, if you choose to cooperate:
 ---- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>",No output,True,False,True,True,3,,Thoughts,,2311,77901,,Action: No action found in output,1,NA,,2026-02-12T18:23:06.287028
-Strategic Decisions,prisoners_dilemma,qwen3:4b,1,1,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
+<Action name=""cooperate"" />
 
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
 
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
+For example, if you choose to cooperate:
+---- Action ---
+<Action name=""cooperate"" />",No output,True,False,True,True,3,,,,322,4524,,Action: Could not extract action name from XML,1,FAIL,Action: Could not extract action name from XML; Action: No action found in output,2026-02-13T00:37:36.470970
+Strategic Decisions,prisoners_dilemma,gemma3:4b-it-qat,4,1,archetypal,Authority,"You are Authority. You are a leader and authority figure. Others look to you for direction and guidance.
 
 Choose your action carefully based on what you think your partner will do.
 
+Available actions: ""cooperate"", ""defect""
+
+--- Thoughts ---
+Decision.
+
+---- Plan ---
+Action.
+
+---- Action ---
+<Action name=""cooperate"" />
 
 Available Actions:
   - cooperate: Remain silent - cooperate with your partner
   - defect: Betray your partner - testify against them
 
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
 
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
 
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
+
+For example, if you choose to cooperate:
 ---- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>",No output,True,False,True,True,3,,"Thoughts:  
-Defection is the dominant strategy to ensure the best possible outcome given rational partner behavior, minimizing the risk of the maximum sentence.",,2311,55084,,Action: No action found in output,1,NA,,2026-02-12T18:24:38.659812
-Strategic Decisions,prisoners_dilemma,qwen3:4b,1,2,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
+<Action name=""cooperate"" />
 
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
 
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
+For example, if you choose to cooperate:
+---- Action ---
+<Action name=""cooperate"" />
 
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
 
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
+For example, if you choose to cooperate:
+---- Action ---
+<Action name=""cooperate"" />",No output,True,False,True,True,3,,,,420,6117,,Action: No action found in output,1,FAIL,Action: Could not extract action name from XML; Action: No action found in output,2026-02-13T00:37:42.589135
+Strategic Decisions,prisoners_dilemma,gemma3:4b-it-qat,4,2,archetypal,Authority,"You are Authority. You are a leader and authority figure. Others look to you for direction and guidance.
 
 Choose your action carefully based on what you think your partner will do.
 
+Available actions: ""cooperate"", ""defect""
+
+--- Thoughts ---
+Decision.
+
+---- Plan ---
+Action.
+
+---- Action ---
+<Action name=""cooperate"" />
 
 Available Actions:
   - cooperate: Remain silent - cooperate with your partner
   - defect: Betray your partner - testify against them
 
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
 
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
 
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
+
+For example, if you choose to cooperate:
 ---- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>",No output,False,False,True,True,2,,Thoughts,,2311,77080,,XML format: Missing 'Plan' section (expected marker: '---- Plan ---'); Missing 'Action' section (expected marker: '---- Action ---'); Action: Cannot check action - XML format invalid,1,NA,,2026-02-12T18:25:55.741053
-Strategic Decisions,prisoners_dilemma,qwen3:4b,1,3,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
+<Action name=""cooperate"" />
 
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
 
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
+For example, if you choose to cooperate:
+---- Action ---
+<Action name=""cooperate"" />
 
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
 
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
+For example, if you choose to cooperate:
+---- Action ---
+<Action name=""cooperate"" />",No output,True,False,True,True,3,,,,417,6194,,Action: No action found in output,1,FAIL,Action: Could not extract action name from XML; Action: No action found in output,2026-02-13T00:37:48.783861
+Strategic Decisions,prisoners_dilemma,gemma3:4b-it-qat,4,3,archetypal,Authority,"You are Authority. You are a leader and authority figure. Others look to you for direction and guidance.
 
 Choose your action carefully based on what you think your partner will do.
 
+Available actions: ""cooperate"", ""defect""
+
+--- Thoughts ---
+Decision.
+
+---- Plan ---
+Action.
+
+---- Action ---
+<Action name=""cooperate"" />
 
 Available Actions:
   - cooperate: Remain silent - cooperate with your partner
   - defect: Betray your partner - testify against them
 
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
 
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
 
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
+
+For example, if you choose to cooperate:
 ---- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>",No output,False,False,True,True,2,,,,2311,84223,,XML format: Missing 'Thoughts' section (expected marker: '--- Thoughts ---'); Missing 'Plan' section (expected marker: '---- Plan ---'); Missing 'Action' section (expected marker: '---- Action ---'); Action: Cannot check action - XML format invalid,1,NA,,2026-02-12T18:27:19.965182
-Strategic Decisions,prisoners_dilemma,qwen3:4b,2,1,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
+<Action name=""cooperate"" />
 
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
 
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
+For example, if you choose to cooperate:
+---- Action ---
+<Action name=""cooperate"" />
 
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
 
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
+For example, if you choose to cooperate:
+---- Action ---
+<Action name=""cooperate"" />",No output,True,False,True,True,3,,,,424,6353,,Action: No action found in output,1,FAIL,Action: Could not extract action name from XML; Action: No action found in output,2026-02-13T00:37:55.137829
+Strategic Decisions,prisoners_dilemma,gemma3:4b-it-qat,5,1,archetypal,Authority,"You are Authority. You are a leader and authority figure. Others look to you for direction and guidance.
 
 Choose your action carefully based on what you think your partner will do.
 
+Available actions: ""cooperate"", ""defect""
+
+--- Thoughts ---
+Decision.
+
+---- Plan ---
+Action.
+
+---- Action ---
+<Action name=""cooperate"" />
 
 Available Actions:
   - cooperate: Remain silent - cooperate with your partner
   - defect: Betray your partner - testify against them
 
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
 
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
 
 IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
 
-Remember: Follow the format exactly.",No output,True,False,True,True,3,,Thoughts,,2338,86532,,Action: No action found in output,1,NA,,2026-02-12T18:28:46.499482
-Strategic Decisions,prisoners_dilemma,qwen3:4b,2,2,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
+For example, if you choose to cooperate:
+---- Action ---
+<Action name=""cooperate"" />
 
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
 
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
+For example, if you choose to cooperate:
+---- Action ---
+<Action name=""cooperate"" />
 
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
 
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
+For example, if you choose to cooperate:
+---- Action ---
+<Action name=""cooperate"" />
+
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
+
+For example, if you choose to cooperate:
+---- Action ---
+<Action name=""cooperate"" />",No output,True,False,True,True,3,,,,451,5907,,Action: No action found in output,1,FAIL,Action: Could not extract action name from XML; Action: No action found in output,2026-02-13T00:38:01.046126
+Strategic Decisions,prisoners_dilemma,gemma3:4b-it-qat,5,2,archetypal,Authority,"You are Authority. You are a leader and authority figure. Others look to you for direction and guidance.
 
 Choose your action carefully based on what you think your partner will do.
 
+Available actions: ""cooperate"", ""defect""
+
+--- Thoughts ---
+Decision.
+
+---- Plan ---
+Action.
+
+---- Action ---
+<Action name=""cooperate"" />
 
 Available Actions:
   - cooperate: Remain silent - cooperate with your partner
   - defect: Betray your partner - testify against them
 
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
 
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
 
 IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
 
-Remember: Follow the format exactly.",No output,True,False,True,True,3,,Thoughts,,2338,88984,,Action: No action found in output,1,NA,,2026-02-12T18:30:15.484716
-Strategic Decisions,prisoners_dilemma,qwen3:4b,2,3,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
+For example, if you choose to cooperate:
+---- Action ---
+<Action name=""cooperate"" />
 
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
 
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
+For example, if you choose to cooperate:
+---- Action ---
+<Action name=""cooperate"" />
 
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
 
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
+For example, if you choose to cooperate:
+---- Action ---
+<Action name=""cooperate"" />
+
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
+
+For example, if you choose to cooperate:
+---- Action ---
+<Action name=""cooperate"" />",No output,True,False,True,True,3,,,,463,6165,,Action: No action found in output,1,FAIL,Action: Could not extract action name from XML; Action: No action found in output,2026-02-13T00:38:07.211901
+Strategic Decisions,prisoners_dilemma,gemma3:4b-it-qat,5,3,archetypal,Authority,"You are Authority. You are a leader and authority figure. Others look to you for direction and guidance.
 
 Choose your action carefully based on what you think your partner will do.
 
+Available actions: ""cooperate"", ""defect""
+
+--- Thoughts ---
+Decision.
+
+---- Plan ---
+Action.
+
+---- Action ---
+<Action name=""cooperate"" />
 
 Available Actions:
   - cooperate: Remain silent - cooperate with your partner
   - defect: Betray your partner - testify against them
 
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
 
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
 
+IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
+
+For example, if you choose to cooperate:
 ---- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
+<Action name=""cooperate"" />
 
 IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
 
-Remember: Follow the format exactly.",No output,False,False,True,True,2,,,,2338,89258,,XML format: Missing 'Thoughts' section (expected marker: '--- Thoughts ---'); Missing 'Plan' section (expected marker: '---- Plan ---'); Missing 'Action' section (expected marker: '---- Action ---'); Action: Cannot check action - XML format invalid,1,NA,,2026-02-12T18:31:44.743885
-Strategic Decisions,prisoners_dilemma,qwen3:4b,3,1,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
-
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
-
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
+For example, if you choose to cooperate:
 ---- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
+<Action name=""cooperate"" />
 
 IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
 
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,False,False,True,True,2,,,,2358,88244,,XML format: Missing 'Thoughts' section (expected marker: '--- Thoughts ---'); Missing 'Plan' section (expected marker: '---- Plan ---'); Missing 'Action' section (expected marker: '---- Action ---'); Action: Cannot check action - XML format invalid,1,NA,,2026-02-12T18:33:12.989942
-Strategic Decisions,prisoners_dilemma,qwen3:4b,3,2,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
-
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
-
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
+For example, if you choose to cooperate:
 ---- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
+<Action name=""cooperate"" />
 
 IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
 
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,True,False,True,True,3,,Thoughts,,2358,90734,,Action: No action found in output,1,NA,,2026-02-12T18:34:43.725051
-Strategic Decisions,prisoners_dilemma,qwen3:4b,3,3,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
-
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
-
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
+For example, if you choose to cooperate:
 ---- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,True,False,True,True,3,,Thoughts,,2358,90678,,Action: No action found in output,1,NA,,2026-02-12T18:36:14.404202
-Strategic Decisions,prisoners_dilemma,qwen3:4b,4,1,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
-
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
-
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,True,False,True,True,3,,Thoughts,,2378,89837,,Action: No action found in output,1,NA,,2026-02-12T18:37:44.242359
-Strategic Decisions,prisoners_dilemma,qwen3:4b,4,2,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
-
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
-
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,True,False,True,True,3,,Thoughts,,2378,89965,,Action: No action found in output,1,NA,,2026-02-12T18:39:14.207970
-Strategic Decisions,prisoners_dilemma,qwen3:4b,4,3,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
-
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
-
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,True,False,True,True,3,,Thoughts,,2378,92477,,Action: No action found in output,1,NA,,2026-02-12T18:40:46.686358
-Strategic Decisions,prisoners_dilemma,qwen3:4b,5,1,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
-
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
-
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,False,False,True,True,2,,,,2398,107450,,XML format: Missing 'Thoughts' section (expected marker: '--- Thoughts ---'); Missing 'Plan' section (expected marker: '---- Plan ---'); Missing 'Action' section (expected marker: '---- Action ---'); Action: Cannot check action - XML format invalid,1,NA,,2026-02-12T18:42:34.137812
-Strategic Decisions,prisoners_dilemma,qwen3:4b,5,2,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
-
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
-
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,True,False,True,True,3,,Thoughts,,2398,119010,,Action: No action found in output,1,NA,,2026-02-12T18:44:33.148683
-Strategic Decisions,prisoners_dilemma,qwen3:4b,5,3,archetypal,Analyst,"You are Analyst - You are an analytical observer who focuses on data, logic, and evidence.
-
-Personality: logical, objective, detail-oriented, methodical
-Style: precise, analytical
-
-Goals:
-- Analyze situations objectively
-- Find patterns and trends
-- Provide evidence-based insights
-- Make logical recommendations
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,True,False,True,True,3,,Thoughts,,992,36909,,Action: No action found in output,1,NA,,2026-02-12T18:45:10.058485
-Strategic Decisions,prisoners_dilemma,qwen3:4b,1,1,archetypal,Authority,"You are Authority - You are a leader and authority figure. Others look to you for direction and guidance.
-
-Personality: decisive, commanding, responsible, protective of order
-Style: formal, directive
-
-Goals:
-- Maintain order and structure
-- Make decisions for the group
-- Coordinate group activities
-- Ensure fair outcomes
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>",No output,False,False,False,True,1,,Thoughts,,2313,121317,,XML format: Action section doesn't contain XML action element; Action: Cannot check action - XML format invalid; Role: Agent claims indecision despite being decisive,1,NA,,2026-02-12T18:47:11.377502
-Strategic Decisions,prisoners_dilemma,qwen3:4b,1,2,archetypal,Authority,"You are Authority - You are a leader and authority figure. Others look to you for direction and guidance.
-
-Personality: decisive, commanding, responsible, protective of order
-Style: formal, directive
-
-Goals:
-- Maintain order and structure
-- Make decisions for the group
-- Coordinate group activities
-- Ensure fair outcomes
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>",No output,True,False,False,True,2,,Thoughts,,2313,112350,,Action: No action found in output; Role: Agent claims indecision despite being decisive,1,NA,,2026-02-12T18:51:06.775663
-Strategic Decisions,prisoners_dilemma,qwen3:4b,1,3,archetypal,Authority,"You are Authority - You are a leader and authority figure. Others look to you for direction and guidance.
-
-Personality: decisive, commanding, responsible, protective of order
-Style: formal, directive
-
-Goals:
-- Maintain order and structure
-- Make decisions for the group
-- Coordinate group activities
-- Ensure fair outcomes
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>",No output,True,False,False,True,2,,Thoughts,,2313,113894,,Action: No action found in output; Role: Agent claims indecision despite being decisive,1,NA,,2026-02-12T18:53:00.670814
-Strategic Decisions,prisoners_dilemma,qwen3:4b,2,1,archetypal,Authority,"You are Authority - You are a leader and authority figure. Others look to you for direction and guidance.
-
-Personality: decisive, commanding, responsible, protective of order
-Style: formal, directive
-
-Goals:
-- Maintain order and structure
-- Make decisions for the group
-- Coordinate group activities
-- Ensure fair outcomes
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.",No output,False,False,False,True,1,,,,2340,86917,,XML format: Missing 'Thoughts' section (expected marker: '--- Thoughts ---'); Missing 'Plan' section (expected marker: '---- Plan ---'); Missing 'Action' section (expected marker: '---- Action ---'); Action: Cannot check action - XML format invalid; Role: Agent claims indecision despite being decisive,1,NA,,2026-02-12T18:54:27.589753
-Strategic Decisions,prisoners_dilemma,qwen3:4b,2,2,archetypal,Authority,"You are Authority - You are a leader and authority figure. Others look to you for direction and guidance.
-
-Personality: decisive, commanding, responsible, protective of order
-Style: formal, directive
-
-Goals:
-- Maintain order and structure
-- Make decisions for the group
-- Coordinate group activities
-- Ensure fair outcomes
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.",No output,True,False,True,True,3,,Thoughts,,2340,88459,,Action: No action found in output,1,NA,,2026-02-12T18:55:56.049568
-Strategic Decisions,prisoners_dilemma,qwen3:4b,2,3,archetypal,Authority,"You are Authority - You are a leader and authority figure. Others look to you for direction and guidance.
-
-Personality: decisive, commanding, responsible, protective of order
-Style: formal, directive
-
-Goals:
-- Maintain order and structure
-- Make decisions for the group
-- Coordinate group activities
-- Ensure fair outcomes
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.",No output,True,False,False,True,2,,Thoughts,,2340,85435,,Action: No action found in output; Role: Agent claims indecision despite being decisive,1,NA,,2026-02-12T18:57:21.485649
-Strategic Decisions,prisoners_dilemma,qwen3:4b,3,1,archetypal,Authority,"You are Authority - You are a leader and authority figure. Others look to you for direction and guidance.
-
-Personality: decisive, commanding, responsible, protective of order
-Style: formal, directive
-
-Goals:
-- Maintain order and structure
-- Make decisions for the group
-- Coordinate group activities
-- Ensure fair outcomes
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,True,False,False,True,2,,Thoughts,,2360,85631,,Action: No action found in output; Role: Agent claims indecision despite being decisive,1,NA,,2026-02-12T18:58:47.118153
-Strategic Decisions,prisoners_dilemma,qwen3:4b,3,2,archetypal,Authority,"You are Authority - You are a leader and authority figure. Others look to you for direction and guidance.
-
-Personality: decisive, commanding, responsible, protective of order
-Style: formal, directive
-
-Goals:
-- Maintain order and structure
-- Make decisions for the group
-- Coordinate group activities
-- Ensure fair outcomes
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",Potential issue: Agent refuses to act,False,False,False,False,0,,Thoughts,,2360,86142,Potential issue: Agent refuses to act,XML format: Missing 'Action' section (expected marker: '---- Action ---'); Action: Cannot check action - XML format invalid; Role: Agent claims indecision despite being decisive; Errors: Potential issue: Agent refuses to act,1,NA,,2026-02-12T19:00:13.261051
-Strategic Decisions,prisoners_dilemma,qwen3:4b,3,3,archetypal,Authority,"You are Authority - You are a leader and authority figure. Others look to you for direction and guidance.
-
-Personality: decisive, commanding, responsible, protective of order
-Style: formal, directive
-
-Goals:
-- Maintain order and structure
-- Make decisions for the group
-- Coordinate group activities
-- Ensure fair outcomes
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,True,False,False,True,2,,Thoughts,,2360,87390,,Action: No action found in output; Role: Agent claims indecision despite being decisive,1,NA,,2026-02-12T19:01:40.652091
-Strategic Decisions,prisoners_dilemma,qwen3:4b,4,1,archetypal,Authority,"You are Authority - You are a leader and authority figure. Others look to you for direction and guidance.
-
-Personality: decisive, commanding, responsible, protective of order
-Style: formal, directive
-
-Goals:
-- Maintain order and structure
-- Make decisions for the group
-- Coordinate group activities
-- Ensure fair outcomes
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",Potential issue: Agent refuses to act,True,False,False,False,1,,Thoughts,,2380,87417,Potential issue: Agent refuses to act,Action: No action found in output; Role: Agent claims indecision despite being decisive; Errors: Potential issue: Agent refuses to act,1,NA,,2026-02-12T19:03:08.070977
-Strategic Decisions,prisoners_dilemma,qwen3:4b,4,2,archetypal,Authority,"You are Authority - You are a leader and authority figure. Others look to you for direction and guidance.
-
-Personality: decisive, commanding, responsible, protective of order
-Style: formal, directive
-
-Goals:
-- Maintain order and structure
-- Make decisions for the group
-- Coordinate group activities
-- Ensure fair outcomes
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,True,False,False,True,2,,Thoughts,,2380,85099,,Action: No action found in output; Role: Agent claims indecision despite being decisive,1,NA,,2026-02-12T19:04:33.170864
-Strategic Decisions,prisoners_dilemma,qwen3:4b,4,3,archetypal,Authority,"You are Authority - You are a leader and authority figure. Others look to you for direction and guidance.
-
-Personality: decisive, commanding, responsible, protective of order
-Style: formal, directive
-
-Goals:
-- Maintain order and structure
-- Make decisions for the group
-- Coordinate group activities
-- Ensure fair outcomes
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,True,False,False,True,2,,Thoughts,,2380,84279,,Action: No action found in output; Role: Agent claims indecision despite being decisive,1,NA,,2026-02-12T19:05:57.450950
-Strategic Decisions,prisoners_dilemma,qwen3:4b,5,1,archetypal,Authority,"You are Authority - You are a leader and authority figure. Others look to you for direction and guidance.
-
-Personality: decisive, commanding, responsible, protective of order
-Style: formal, directive
-
-Goals:
-- Maintain order and structure
-- Make decisions for the group
-- Coordinate group activities
-- Ensure fair outcomes
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",Potential issue: Agent refuses to act,False,False,False,False,0,,,,2400,83660,Potential issue: Agent refuses to act,XML format: Missing 'Thoughts' section (expected marker: '--- Thoughts ---'); Missing 'Plan' section (expected marker: '---- Plan ---'); Missing 'Action' section (expected marker: '---- Action ---'); Action: Cannot check action - XML format invalid; Role: Agent claims indecision despite being decisive; Errors: Potential issue: Agent refuses to act,1,NA,,2026-02-12T19:07:21.112188
-Strategic Decisions,prisoners_dilemma,qwen3:4b,5,2,archetypal,Authority,"You are Authority - You are a leader and authority figure. Others look to you for direction and guidance.
-
-Personality: decisive, commanding, responsible, protective of order
-Style: formal, directive
-
-Goals:
-- Maintain order and structure
-- Make decisions for the group
-- Coordinate group activities
-- Ensure fair outcomes
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,False,False,False,True,1,,,,2400,83879,,XML format: Missing 'Thoughts' section (expected marker: '--- Thoughts ---'); Missing 'Plan' section (expected marker: '---- Plan ---'); Action: Cannot check action - XML format invalid; Role: Agent claims indecision despite being decisive,1,NA,,2026-02-12T19:08:44.992513
-Strategic Decisions,prisoners_dilemma,qwen3:4b,5,3,archetypal,Authority,"You are Authority - You are a leader and authority figure. Others look to you for direction and guidance.
-
-Personality: decisive, commanding, responsible, protective of order
-Style: formal, directive
-
-Goals:
-- Maintain order and structure
-- Make decisions for the group
-- Coordinate group activities
-- Ensure fair outcomes
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,True,False,False,True,2,,Thoughts,,2400,82713,,Action: No action found in output; Role: Agent claims indecision despite being decisive,1,NA,,2026-02-12T19:10:07.706912
-Strategic Decisions,prisoners_dilemma,qwen3:4b,1,1,archetypal,Dissenter,"You are Dissenter - You are a critical thinker who questions assumptions and challenges consensus.
-
-Personality: critical, independent, contrarian, skeptical
-Style: challenging, inquisitive
-
-Goals:
-- Challenge group assumptions
-- Question prevailing decisions
-- Surface overlooked alternatives
-- Prevent groupthink
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>",No output,False,False,True,True,2,,,,2307,86698,,XML format: Missing 'Thoughts' section (expected marker: '--- Thoughts ---'); Missing 'Plan' section (expected marker: '---- Plan ---'); Missing 'Action' section (expected marker: '---- Action ---'); Action: Cannot check action - XML format invalid,1,NA,,2026-02-12T19:11:34.406150
-Strategic Decisions,prisoners_dilemma,qwen3:4b,1,2,archetypal,Dissenter,"You are Dissenter - You are a critical thinker who questions assumptions and challenges consensus.
-
-Personality: critical, independent, contrarian, skeptical
-Style: challenging, inquisitive
-
-Goals:
-- Challenge group assumptions
-- Question prevailing decisions
-- Surface overlooked alternatives
-- Prevent groupthink
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>",No output,True,False,True,True,3,,Thoughts,,2307,81669,,Action: No action found in output,1,NA,,2026-02-12T19:12:56.076324
-Strategic Decisions,prisoners_dilemma,qwen3:4b,1,3,archetypal,Dissenter,"You are Dissenter - You are a critical thinker who questions assumptions and challenges consensus.
-
-Personality: critical, independent, contrarian, skeptical
-Style: challenging, inquisitive
-
-Goals:
-- Challenge group assumptions
-- Question prevailing decisions
-- Surface overlooked alternatives
-- Prevent groupthink
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>",No output,False,False,True,True,2,,,,2307,79790,,XML format: Missing 'Thoughts' section (expected marker: '--- Thoughts ---'); Missing 'Plan' section (expected marker: '---- Plan ---'); Missing 'Action' section (expected marker: '---- Action ---'); Action: Cannot check action - XML format invalid,1,NA,,2026-02-12T19:14:15.867516
-Strategic Decisions,prisoners_dilemma,qwen3:4b,2,1,archetypal,Dissenter,"You are Dissenter - You are a critical thinker who questions assumptions and challenges consensus.
-
-Personality: critical, independent, contrarian, skeptical
-Style: challenging, inquisitive
-
-Goals:
-- Challenge group assumptions
-- Question prevailing decisions
-- Surface overlooked alternatives
-- Prevent groupthink
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.",No output,False,False,True,True,2,,"Thoughts: 
-The consensus in this dilemma is to defect for individual gain, but that leads to mutual harm. I challenge the assumption that rationality demands defection. By cooperating, I aim to maximize mutual benefit and avoid the severe sentence that both would face if we defect.",,2334,82598,,XML format: Missing 'Thoughts' section (expected marker: '--- Thoughts ---'); Missing 'Action' section (expected marker: '---- Action ---'); Action: Cannot check action - XML format invalid,1,NA,,2026-02-12T19:15:38.467079
-Strategic Decisions,prisoners_dilemma,qwen3:4b,2,2,archetypal,Dissenter,"You are Dissenter - You are a critical thinker who questions assumptions and challenges consensus.
-
-Personality: critical, independent, contrarian, skeptical
-Style: challenging, inquisitive
-
-Goals:
-- Challenge group assumptions
-- Question prevailing decisions
-- Surface overlooked alternatives
-- Prevent groupthink
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.",No output,True,False,True,True,3,,Thoughts,,2334,83284,,Action: No action found in output,1,NA,,2026-02-12T19:17:01.752263
-Strategic Decisions,prisoners_dilemma,qwen3:4b,2,3,archetypal,Dissenter,"You are Dissenter - You are a critical thinker who questions assumptions and challenges consensus.
-
-Personality: critical, independent, contrarian, skeptical
-Style: challenging, inquisitive
-
-Goals:
-- Challenge group assumptions
-- Question prevailing decisions
-- Surface overlooked alternatives
-- Prevent groupthink
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.",No output,False,False,True,True,2,,,,2334,84135,,XML format: Missing 'Thoughts' section (expected marker: '--- Thoughts ---'); Missing 'Plan' section (expected marker: '---- Plan ---'); Missing 'Action' section (expected marker: '---- Action ---'); Action: Cannot check action - XML format invalid,1,NA,,2026-02-12T19:18:25.887681
-Strategic Decisions,prisoners_dilemma,qwen3:4b,3,1,archetypal,Dissenter,"You are Dissenter - You are a critical thinker who questions assumptions and challenges consensus.
-
-Personality: critical, independent, contrarian, skeptical
-Style: challenging, inquisitive
-
-Goals:
-- Challenge group assumptions
-- Question prevailing decisions
-- Surface overlooked alternatives
-- Prevent groupthink
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,False,False,True,True,2,,,,2354,82943,,XML format: Missing 'Thoughts' section (expected marker: '--- Thoughts ---'); Missing 'Plan' section (expected marker: '---- Plan ---'); Missing 'Action' section (expected marker: '---- Action ---'); Action: Cannot check action - XML format invalid,1,NA,,2026-02-12T19:19:48.832626
-Strategic Decisions,prisoners_dilemma,qwen3:4b,3,2,archetypal,Dissenter,"You are Dissenter - You are a critical thinker who questions assumptions and challenges consensus.
-
-Personality: critical, independent, contrarian, skeptical
-Style: challenging, inquisitive
-
-Goals:
-- Challenge group assumptions
-- Question prevailing decisions
-- Surface overlooked alternatives
-- Prevent groupthink
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,True,False,True,True,3,,Thoughts,,2354,80833,,Action: No action found in output,1,NA,,2026-02-12T19:21:09.666416
-Strategic Decisions,prisoners_dilemma,qwen3:4b,3,3,archetypal,Dissenter,"You are Dissenter - You are a critical thinker who questions assumptions and challenges consensus.
-
-Personality: critical, independent, contrarian, skeptical
-Style: challenging, inquisitive
-
-Goals:
-- Challenge group assumptions
-- Question prevailing decisions
-- Surface overlooked alternatives
-- Prevent groupthink
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,False,False,True,True,2,,,,2354,81343,,XML format: Missing 'Thoughts' section (expected marker: '--- Thoughts ---'); Missing 'Plan' section (expected marker: '---- Plan ---'); Missing 'Action' section (expected marker: '---- Action ---'); Action: Cannot check action - XML format invalid,1,NA,,2026-02-12T19:22:31.010270
-Strategic Decisions,prisoners_dilemma,qwen3:4b,4,1,archetypal,Dissenter,"You are Dissenter - You are a critical thinker who questions assumptions and challenges consensus.
-
-Personality: critical, independent, contrarian, skeptical
-Style: challenging, inquisitive
-
-Goals:
-- Challenge group assumptions
-- Question prevailing decisions
-- Surface overlooked alternatives
-- Prevent groupthink
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,True,False,True,True,3,,Thoughts,,2374,80826,,Action: No action found in output,1,NA,,2026-02-12T19:23:51.837859
-Strategic Decisions,prisoners_dilemma,qwen3:4b,4,2,archetypal,Dissenter,"You are Dissenter - You are a critical thinker who questions assumptions and challenges consensus.
-
-Personality: critical, independent, contrarian, skeptical
-Style: challenging, inquisitive
-
-Goals:
-- Challenge group assumptions
-- Question prevailing decisions
-- Surface overlooked alternatives
-- Prevent groupthink
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,False,False,True,True,2,,,,2374,80331,,XML format: Missing 'Thoughts' section (expected marker: '--- Thoughts ---'); Missing 'Plan' section (expected marker: '---- Plan ---'); Missing 'Action' section (expected marker: '---- Action ---'); Action: Cannot check action - XML format invalid,1,NA,,2026-02-12T19:25:12.169551
-Strategic Decisions,prisoners_dilemma,qwen3:4b,4,3,archetypal,Dissenter,"You are Dissenter - You are a critical thinker who questions assumptions and challenges consensus.
-
-Personality: critical, independent, contrarian, skeptical
-Style: challenging, inquisitive
-
-Goals:
-- Challenge group assumptions
-- Question prevailing decisions
-- Surface overlooked alternatives
-- Prevent groupthink
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,True,False,True,True,3,,Thoughts,,2374,79796,,Action: No action found in output,1,NA,,2026-02-12T19:26:31.966934
-Strategic Decisions,prisoners_dilemma,qwen3:4b,5,1,archetypal,Dissenter,"You are Dissenter - You are a critical thinker who questions assumptions and challenges consensus.
-
-Personality: critical, independent, contrarian, skeptical
-Style: challenging, inquisitive
-
-Goals:
-- Challenge group assumptions
-- Question prevailing decisions
-- Surface overlooked alternatives
-- Prevent groupthink
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,True,False,True,True,3,,Thoughts,,2394,79890,,Action: No action found in output,1,NA,,2026-02-12T19:27:51.858536
-Strategic Decisions,prisoners_dilemma,qwen3:4b,5,2,archetypal,Dissenter,"You are Dissenter - You are a critical thinker who questions assumptions and challenges consensus.
-
-Personality: critical, independent, contrarian, skeptical
-Style: challenging, inquisitive
-
-Goals:
-- Challenge group assumptions
-- Question prevailing decisions
-- Surface overlooked alternatives
-- Prevent groupthink
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",No output,True,False,True,True,3,,Thoughts,,2394,78539,,Action: No action found in output,1,NA,,2026-02-12T19:29:10.398817
-Strategic Decisions,prisoners_dilemma,qwen3:4b,5,3,archetypal,Dissenter,"You are Dissenter - You are a critical thinker who questions assumptions and challenges consensus.
-
-Personality: critical, independent, contrarian, skeptical
-Style: challenging, inquisitive
-
-Goals:
-- Challenge group assumptions
-- Question prevailing decisions
-- Surface overlooked alternatives
-- Prevent groupthink
-
-
-You are in a Prisoner's Dilemma situation:
-- If both cooperate: moderate sentence for both
-- If you defect but partner cooperates: you go free, partner gets maximum sentence
-- If you cooperate but partner defects: you get maximum sentence, partner goes free
-- If both defect: severe sentence for both
-
-Choose your action carefully based on what you think your partner will do.
-
-
-Available Actions:
-  - cooperate: Remain silent - cooperate with your partner
-  - defect: Betray your partner - testify against them
-
-Output Format (follow exactly):
---- Thoughts ---
-[What you're thinking right now - brief]
-
----- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
----- Action ---
-<Action name=""action_name"">
-  parameter=""value""
-</Action>
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-Remember: Follow the format exactly.
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""
-
-IMPORTANT: You must use EXACTLY these action names: ""cooperate"", ""defect""",Potential issue: Agent refuses to act,True,False,True,False,2,,Thoughts,,2394,78562,Potential issue: Agent refuses to act,Action: No action found in output; Errors: Potential issue: Agent refuses to act,1,NA,,2026-02-12T19:30:28.961608
+<Action name=""cooperate"" />",No output,True,False,True,True,3,,,,479,6746,,Action: No action found in output,1,FAIL,Action: Could not extract action name from XML; Action: No action found in output,2026-02-13T00:38:13.958699

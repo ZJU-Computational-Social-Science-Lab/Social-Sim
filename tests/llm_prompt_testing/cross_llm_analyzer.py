@@ -30,7 +30,7 @@ class ModelPerformance:
     action_correct_count: int = 0
     role_aligned_count: int = 0
     no_errors_count: int = 0
-    average_score: float = 0.0
+    _avg_score: float = field(default=0.0, init=False, repr=False)
 
     @property
     def pass_rate(self) -> float:
@@ -45,10 +45,6 @@ class ModelPerformance:
         if self.total_runs == 0:
             return 0.0
         return self._avg_score
-
-    def __post_init__(self):
-        """Calculate derived metrics."""
-        self._avg_score = 0.0
 
 
 @dataclass
@@ -94,9 +90,10 @@ def analyze_model_results(results: List[TestResult]) -> ModelPerformance:
         return ModelPerformance(model_name="unknown")
 
     model_name = results[0].model
+    avg_score = sum(r.overall_score for r in results) / len(results)
     performance = ModelPerformance(model_name=model_name)
     performance.total_runs = len(results)
-    performance._avg_score = sum(r.overall_score for r in results) / len(results)
+    performance._avg_score = avg_score
 
     for result in results:
         if result.overall_score == 4:

@@ -295,7 +295,7 @@ class PatternTestRunner:
             prompt_tuner: Prompt tuner (creates default if None)
         """
         self.pattern = pattern
-        self.ollama_client = ollama_client or OllamaClient()
+        self.ollama_client = ollama_client if ollama_client is not None else OllamaClient()
         self.csv_reporter = csv_reporter or CSVReporter()
         self.prompt_tuner = prompt_tuner or PromptTuner()
 
