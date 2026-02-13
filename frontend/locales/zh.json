@@ -1149,17 +1149,11 @@
     "docsPage": {
       "documentation": "文档 / 使用说明",
       "title": "文档 / 使用说明",
-      "notIntegrated": "SocialSim4 文档暂未集成",
-      "placeholderText": "目前这个部署中，还没有接入原始项目里的 <code>virtual:docs</code> MDX 文档系统，所以这里先提供一个占位页面，避免构建报错。",
-      "youCanStillUse": "你仍然可以正常使用以下功能：",
-      "featureLogin": "登录 / 注册",
-      "featureDashboard": "仪表盘 / 保存的仿真列表",
-      "featureSimulation": "新前端的仿真界面（SocialSim4 Next）",
-      "featureSettings": "设置 里的 API Provider / Search Provider 设置",
-      "futureRestore": "如果以后你想恢复完整的文档系统，我们可以：",
-      "futureStep1": "在 <code>frontend</code> 里增加一个 Vite 插件，自动收集 <code>docs/**/*.mdx</code> 文件，生成 <code>virtual:docs</code> 模块。",
-      "futureStep2": "再把原来的 <code>docsIndex</code> / <code>docsTree</code> 导出接上。",
-      "currentGoal": "当前版本的目标是：<strong>保证系统能完整打包并运行</strong>，不会再因为 <code>virtual:docs</code> 这些开发期虚拟模块而中断构建。"
+      "documents": "文档列表",
+      "tutorial": "操作教程",
+      "tutorialTitle": "社会仿真平台操作教程",
+      "loading": "加载文档中...",
+      "error": "文档加载失败"
     },
     "simulationPage": {
       "manualSyncBackend": "手动同步到后端",
