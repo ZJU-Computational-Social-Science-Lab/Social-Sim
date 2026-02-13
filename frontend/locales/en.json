@@ -1149,17 +1149,11 @@
     "docsPage": {
       "documentation": "Documentation / User Guide",
       "title": "Documentation / User Guide",
-      "notIntegrated": "SocialSim4 Documentation Not Yet Integrated",
-      "placeholderText": "Currently, this deployment has not yet integrated the MDX documentation system with <code>virtual:docs</code> from the original project. This is a placeholder page to avoid build errors.",
-      "youCanStillUse": "You can still use the following features:",
-      "featureLogin": "Login / Register",
-      "featureDashboard": "Dashboard / Saved Simulations",
-      "featureSimulation": "New frontend simulation interface (SocialSim4 Next)",
-      "featureSettings": "API Provider / Search Provider settings in Settings",
-      "futureRestore": "If you want to restore the full documentation system in the future, we can:",
-      "futureStep1": "Add a Vite plugin in <code>frontend</code> to automatically collect <code>docs/**/*.mdx</code> files and generate <code>virtual:docs</code> module.",
-      "futureStep2": "Reconnect the original <code>docsIndex</code> / <code>docsTree</code> exports.",
-      "currentGoal": "Current version goal: <strong>Ensure the system can be fully built and run</strong>, without build interruptions from development-time virtual modules like <code>virtual:docs</code>."
+      "documents": "Documents",
+      "tutorial": "Tutorial",
+      "tutorialTitle": "Social Simulation Platform Operation Tutorial",
+      "loading": "Loading documentation...",
+      "error": "Failed to load documentation"
     },
     "simulationPage": {
       "manualSyncBackend": "Manually sync to backend",
