@@ -8,7 +8,16 @@ Implements Three-Layer Architecture:
 """
 
 # Imports will be added as modules are implemented
+from socialsim4.core.experiment.agent import ExperimentAgent
 from socialsim4.core.experiment.game_configs import GameConfig
+from socialsim4.core.experiment.kernel import (
+    ChoiceAction,
+    ExperimentAction,
+    ExperimentKernel,
+    NumericalAction,
+    SpeakAction,
+    VoteAction,
+)
 from socialsim4.core.experiment.schema_builder import build_schema
 from socialsim4.core.experiment.validation import (
     strip_markdown_fences,
@@ -17,6 +26,13 @@ from socialsim4.core.experiment.validation import (
 )
 
 __all__ = [
+    "ExperimentAgent",
+    "ExperimentAction",
+    "ExperimentKernel",
+    "ChoiceAction",
+    "SpeakAction",
+    "VoteAction",
+    "NumericalAction",
     "GameConfig",
     "build_schema",
     "strip_markdown_fences",
