@@ -24,6 +24,10 @@ from socialsim4.core.experiment.prompt_builder import (
     build_reprompt,
 )
 from socialsim4.core.experiment.schema_builder import build_schema
+from socialsim4.core.experiment.round_context import (
+    RoundContextManager,
+    RoundEvent,
+)
 from socialsim4.core.experiment.validation import (
     strip_markdown_fences,
     strip_think_tags,
@@ -46,4 +50,6 @@ __all__ = [
     "strip_markdown_fences",
     "strip_think_tags",
     "validate_and_clamp",
+    "RoundContextManager",
+    "RoundEvent",
 ]
