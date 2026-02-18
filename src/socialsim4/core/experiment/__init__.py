@@ -18,6 +18,11 @@ from socialsim4.core.experiment.kernel import (
     SpeakAction,
     VoteAction,
 )
+from socialsim4.core.experiment.prompt_builder import (
+    build_agent_description,
+    build_prompt,
+    build_reprompt,
+)
 from socialsim4.core.experiment.schema_builder import build_schema
 from socialsim4.core.experiment.validation import (
     strip_markdown_fences,
@@ -35,6 +40,9 @@ __all__ = [
     "NumericalAction",
     "GameConfig",
     "build_schema",
+    "build_agent_description",
+    "build_prompt",
+    "build_reprompt",
     "strip_markdown_fences",
     "strip_think_tags",
     "validate_and_clamp",
