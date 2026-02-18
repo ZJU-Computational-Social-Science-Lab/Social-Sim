@@ -37,6 +37,10 @@ from socialsim4.core.experiment.controller import (
     ActionResult,
     ExperimentController,
 )
+from socialsim4.core.experiment.runner import (
+    ExperimentRunner,
+    RoundResult,
+)
 
 __all__ = [
     "ExperimentAgent",
@@ -58,4 +62,6 @@ __all__ = [
     "RoundEvent",
     "ActionResult",
     "ExperimentController",
+    "ExperimentRunner",
+    "RoundResult",
 ]
