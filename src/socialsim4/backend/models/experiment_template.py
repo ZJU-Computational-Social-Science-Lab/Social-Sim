@@ -35,7 +35,7 @@ class ExperimentTemplate(TimestampMixin, Base):
     )
 
     # Actions as JSON: [{"name": "cooperate", "description": "...", "parameters": {...}}]
-    actions: Mapped[dict] = mapped_column(JsonType, nullable=False, default=list)
+    actions: Mapped[list] = mapped_column(JsonType, nullable=False, default=list)
 
     # Settings as JSON:
     # {"round_visibility": "simultaneous"|"sequential", "max_rounds": int}

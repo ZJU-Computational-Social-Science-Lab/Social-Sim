@@ -43,11 +43,12 @@ class ExperimentRunRequest(BaseModel):
     """Schema for running an experiment from a template."""
     template_id: int
     agents: list[dict[str, Any]]
+    # TODO: implement llm_config handling in experiment execution
     llm_config: dict[str, Any]
 
 
 class ExperimentRunResponse(BaseModel):
     """Schema for experiment run response."""
-    experiment_id: int
+    experiment_id: str
     status: str
     initial_state: dict[str, Any]
