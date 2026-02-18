@@ -9,6 +9,7 @@ Contains: RoundEvent dataclass, RoundContextManager class.
 
 from dataclasses import dataclass
 from typing import Dict, List, Any
+import asyncio
 import logging
 
 from socialsim4.core.experiment.agent import ExperimentAgent
@@ -151,7 +152,7 @@ Return a concise summary (2-4 sentences). No markdown."""
 
             try:
                 # No JSON mode for summaries - plain text is fine
-                new_summary = await llm_client.chat([{"role": "user", "content": prompt}])
+                new_summary = await asyncio.to_thread(llm_client.chat, [{"role": "user", "content": prompt}])
 
                 # Clean up the response
                 new_summary = new_summary.strip().strip('"\'')
