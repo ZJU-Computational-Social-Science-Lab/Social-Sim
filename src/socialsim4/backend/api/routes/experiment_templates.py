@@ -200,7 +200,7 @@ async def update_template(
         return ExperimentTemplateResponse.model_validate(template)
 
 
-@delete("/templates/{template_id:int}")
+@delete("/templates/{template_id:int}", status_code=200)
 async def delete_template(
     request: Request,
     template_id: int,
