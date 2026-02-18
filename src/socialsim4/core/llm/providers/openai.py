@@ -108,7 +108,8 @@ def openai_chat(
     presence_penalty: float,
     timeout: float,
     allow_vision: bool,
-    safe_urls_func: callable
+    safe_urls_func: callable,
+    json_mode: bool = False,
 ) -> str:
     """
     Perform OpenAI chat completion.
@@ -124,20 +125,27 @@ def openai_chat(
         timeout: Request timeout in seconds
         allow_vision: Whether to process image content
         safe_urls_func: Function to validate media URLs
+        json_mode: If True, enforce JSON output
 
     Returns:
         Generated text response
     """
     normalized_messages = normalize_messages_for_openai(messages, allow_vision, safe_urls_func)
-    resp = client.chat.completions.create(
-        model=model,
-        messages=normalized_messages,
-        frequency_penalty=frequency_penalty,
-        presence_penalty=presence_penalty,
-        max_tokens=max_tokens,
-        temperature=temperature,
-        timeout=timeout,
-    )
+
+    kwargs = {
+        "model": model,
+        "messages": normalized_messages,
+        "frequency_penalty": frequency_penalty,
+        "presence_penalty": presence_penalty,
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+        "timeout": timeout,
+    }
+
+    if json_mode:
+        kwargs["response_format"] = {"type": "json_object"}
+
+    resp = client.chat.completions.create(**kwargs)
     return resp.choices[0].message.content.strip()
 
 

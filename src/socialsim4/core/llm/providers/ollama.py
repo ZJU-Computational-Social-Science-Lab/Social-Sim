@@ -144,7 +144,8 @@ def ollama_chat(
     max_tokens: int,
     timeout: float,
     allow_vision: bool,
-    safe_urls_func: callable
+    safe_urls_func: callable,
+    json_mode: bool = False,
 ) -> str:
     """
     Perform Ollama chat completion.
@@ -159,6 +160,7 @@ def ollama_chat(
         timeout: Request timeout in seconds
         allow_vision: Whether to process image content
         safe_urls_func: Function to validate media URLs
+        json_mode: If True, enforce JSON output
 
     Returns:
         Generated text response
@@ -179,6 +181,10 @@ def ollama_chat(
             "num_predict": max_tokens,
         },
     }
+
+    if json_mode:
+        payload["format"] = "json"
+
     resp = client.post("/api/chat", json=payload, timeout=timeout)
     resp.raise_for_status()
     data = resp.json()

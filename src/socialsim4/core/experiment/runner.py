@@ -169,9 +169,10 @@ class ExperimentRunner:
 
         try:
             # Call LLM (wrap synchronous call for async compatibility)
-            # TODO: Add json_mode=True to LLMClient.chat() in Task 11
             messages = [{"role": "user", "content": prompt}]
-            raw_response = await asyncio.to_thread(self.llm_client.chat, messages)
+            raw_response = await asyncio.to_thread(
+                self.llm_client.chat, messages, json_mode=True
+            )
 
             # Process response through controller (Layer 3)
             result = await self.controller.process_response(

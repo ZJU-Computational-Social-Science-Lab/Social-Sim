@@ -109,7 +109,8 @@ def gemini_chat(
     frequency_penalty: float,
     presence_penalty: float,
     safe_urls_func: callable,
-    allow_vision: bool
+    allow_vision: bool,
+    json_mode: bool = False,
 ) -> str:
     """
     Perform Gemini chat completion.
@@ -125,6 +126,7 @@ def gemini_chat(
         presence_penalty: Presence penalty
         safe_urls_func: Function to validate media URLs
         allow_vision: Whether to process image content
+        json_mode: If True, enforce JSON output
 
     Returns:
         Generated text response
@@ -132,15 +134,21 @@ def gemini_chat(
     from google.genai.types import GenerateContentConfig
 
     contents = normalize_messages_for_gemini(messages, allow_vision, safe_urls_func)
+
+    config_kwargs = {
+        "temperature": temperature,
+        "max_output_tokens": max_tokens,
+        "top_p": top_p,
+        "frequency_penalty": frequency_penalty,
+        "presence_penalty": presence_penalty,
+    }
+
+    if json_mode:
+        config_kwargs["response_mime_type"] = "application/json"
+
     resp = client.generate_content(
         contents=contents,
-        config=GenerateContentConfig(
-            temperature=temperature,
-            max_output_tokens=max_tokens,
-            top_p=top_p,
-            frequency_penalty=frequency_penalty,
-            presence_penalty=presence_penalty,
-        ),
+        config=GenerateContentConfig(**config_kwargs),
     )
 
     if hasattr(resp, "text") and resp.text:
