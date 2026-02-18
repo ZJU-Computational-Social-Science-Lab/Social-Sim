@@ -33,6 +33,10 @@ from socialsim4.core.experiment.validation import (
     strip_think_tags,
     validate_and_clamp,
 )
+from socialsim4.core.experiment.controller import (
+    ActionResult,
+    ExperimentController,
+)
 
 __all__ = [
     "ExperimentAgent",
@@ -52,4 +56,6 @@ __all__ = [
     "validate_and_clamp",
     "RoundContextManager",
     "RoundEvent",
+    "ActionResult",
+    "ExperimentController",
 ]
