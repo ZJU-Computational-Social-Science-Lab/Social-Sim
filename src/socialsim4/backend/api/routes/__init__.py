@@ -9,8 +9,9 @@ from . import (
     scenes,
     simulations,
     search_providers,
-    llm,  # 👈 新增：LLM 相关路由
-    experiments,
+    llm,  # LLM related routes
+    experiments,  # Simulation experiment routes (A/B testing)
+    experiment_templates,  # Experiment template management routes
     uploads,
     environment,  # Dynamic environment routes
 )
@@ -24,10 +25,11 @@ router = Router(
         simulations.router,
         providers.router,
         search_providers.router,
-        llm.router,   # 👈 新增：挂载 /llm 路由（包含 /llm/generate_agents）
+        llm.router,
         experiments.router,
+        experiment_templates.router,  # Experiment template CRUD and run
         uploads.router,
         admin.router,
-        environment.router,  # Dynamic environment suggestions
+        environment.router,
     ],
 )
