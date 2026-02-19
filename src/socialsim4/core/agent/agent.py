@@ -12,13 +12,17 @@ Contains:
 """
 
 import logging
+from pathlib import Path
+from datetime import datetime
 
 from socialsim4.core.config import MAX_REPEAT
+
+# Debug file for agent prompts/responses
+_debug_dir = Path("test_results")
+_debug_dir.mkdir(exist_ok=True)
+_debug_file = _debug_dir / f"agent_debug_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
 from socialsim4.core.memory import ShortTermMemory
 from .parsing import (
-    parse_full_response,
-    parse_emotion_update,
-    parse_plan_update,
     parse_actions,
 )
 from .rag import (
@@ -363,9 +367,27 @@ Use the above context to inform your responses when relevant.
             self.short_memory.append("user", hint)
             ctx.append({"role": "user", "content": hint})
 
+        # Debug: Write prompt to file
+        try:
+            with open(_debug_file, 'a', encoding='utf-8') as f:
+                f.write(f"\n{'='*80}\n")
+                f.write(f"[AGENT PROCESS] {self.name}\n")
+                f.write(f"{'='*80}\n")
+                f.write(f"Scene: {scene.__class__.__name__ if scene else 'None'}\n")
+                f.write(f"Action space: {[getattr(a, 'NAME', str(a)) for a in self.action_space]}\n")
+                f.write(f"\n--- SYSTEM PROMPT ---\n")
+                f.write(system_prompt)
+                f.write(f"\n--- END SYSTEM PROMPT ---\n\n")
+                f.write(f"\n--- CONTEXT MESSAGES ({len(ctx)} total) ---\n")
+                for msg in ctx:
+                    f.write(f"[{msg.get('role')}]: {msg.get('content', '')[:500]}\n")
+                f.write(f"--- END CONTEXT ---\n\n")
+            print(f"[AGENT DEBUG] Wrote prompt for {self.name} to {_debug_file.name}")
+        except Exception as e:
+            print(f"[AGENT DEBUG] Failed to write debug file: {e}")
+
         # Retry loop
         attempts = int(getattr(self, "max_repeat", 0) or 0) + 1
-        plan_update = None
         action_data = []
         llm_output = ""
         success = False
@@ -374,6 +396,18 @@ Use the above context to inform your responses when relevant.
             # Step 1: Call LLM
             try:
                 llm_output = self.call_llm(clients, ctx)
+
+                # Debug: Write LLM output to file
+                try:
+                    with open(_debug_file, 'a', encoding='utf-8') as f:
+                        f.write(f"\n--- LLM OUTPUT ---\n")
+                        f.write(llm_output)
+                        f.write(f"\n--- END LLM OUTPUT ---\n\n")
+                except Exception:
+                    pass
+
+                print(f"[AGENT DEBUG] {self.name} got LLM response: {len(llm_output)} chars")
+
             except Exception as e:
                 self._record_llm_error("llm_call", e, i + 1, i == attempts - 1)
                 if getattr(self, "is_offline", False):
@@ -382,28 +416,20 @@ Use the above context to inform your responses when relevant.
                     continue
                 break
 
-            # Step 2: Parse response
+            # Step 2: Parse response (JSON format)
             try:
-                (
-                    thoughts,
-                    plan,
-                    action_block,
-                    plan_update_block,
-                    emotion_update_block,
-                ) = parse_full_response(llm_output)
+                action_data = parse_actions(llm_output)
 
-                action_data = parse_actions(action_block) or parse_actions(llm_output)
-                plan_update = parse_plan_update(plan_update_block)
+                # Debug: Write parsed actions to file
+                try:
+                    with open(_debug_file, 'a', encoding='utf-8') as f:
+                        f.write(f"\n--- PARSED ACTIONS ---\n")
+                        f.write(f"Parsed action_data: {action_data}\n")
+                        f.write(f"--- END PARSED ACTIONS ---\n\n")
+                except Exception:
+                    pass
 
-                if self.emotion_enabled:
-                    emotion_update = parse_emotion_update(emotion_update_block)
-                    if emotion_update:
-                        self.emotion = emotion_update
-                        if self.log_event:
-                            self.log_event(
-                                "emotion_update",
-                                {"agent": self.name, "emotion": emotion_update},
-                            )
+                print(f"[AGENT DEBUG] {self.name} parsed actions: {action_data}")
 
                 success = True
                 self.consecutive_llm_errors = 0  # Reset on success
@@ -423,10 +449,6 @@ Use the above context to inform your responses when relevant.
         # If failed, return empty
         if not success:
             return {}
-
-        # Apply plan update
-        if plan_update:
-            self._apply_plan_update(plan_update)
 
         # Store LLM output in memory
         self.short_memory.append("assistant", llm_output)

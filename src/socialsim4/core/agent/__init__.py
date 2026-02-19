@@ -24,19 +24,21 @@ __all__ = ["Agent"]
 
 # Re-export parsing functions for any code that imports them
 from .parsing import (
-    parse_full_response,
-    parse_emotion_update,
-    parse_plan_update,
     parse_actions,
 )
 
 from .serialization import serialize_agent, deserialize_agent
-from .registry import ACTION_SPACE_MAP, register_action
+
+# Lazy import ACTION_SPACE_MAP and register_action to avoid circular dependency
+def __getattr__(name):
+    if name in ("ACTION_SPACE_MAP", "register_action"):
+        from .registry import ACTION_SPACE_MAP, register_action
+        if name == "ACTION_SPACE_MAP":
+            return ACTION_SPACE_MAP
+        return register_action
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 __all__.extend([
-    "parse_full_response",
-    "parse_emotion_update",
-    "parse_plan_update",
     "parse_actions",
     "serialize_agent",
     "deserialize_agent",
