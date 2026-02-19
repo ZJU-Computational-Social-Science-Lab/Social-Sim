@@ -1,6 +1,6 @@
 """Preset scenarios for social simulation.
 
-Provides 14 pre-configured scenarios across multiple categories:
+Provides 13 pre-configured scenarios across multiple categories:
 - Game Theory: classic strategic interaction scenarios
 - Discussion: conversation and deliberation scenarios
 - Grid: location-based movement and interaction scenarios
@@ -199,43 +199,6 @@ _OPEN_DISCUSSION: dict[str, Any] = {
         {"id": "speak", "name": "Speak", "description": "Contribute to the discussion"},
         {"id": "respond_to", "name": "Respond To", "description": "Respond directly to another participant"},
         {"id": "ask_question", "name": "Ask Question", "description": "Pose a question to the group"},
-    ],
-}
-
-_EMOTIONAL_CONFLICT: dict[str, Any] = {
-    "id": "emotional_conflict",
-    "name": "Emotional Conflict",
-    "category": "discussion",
-    "description": (
-        "Guided emotional dialogue among participants. Designed to surface "
-        "feelings, address interpersonal issues, and work toward reconciliation "
-        "through structured conversation."
-    ),
-    "parameters": [
-        {
-            "name": "conflict_topic",
-            "type": "string",
-            "default": "",
-            "description": "The issue or topic of conflict",
-        },
-        {
-            "name": "participants",
-            "type": "list",
-            "default": [],
-            "description": "List of participant roles involved",
-        },
-        {
-            "name": "moderation_level",
-            "type": "string",
-            "default": "light",
-            "description": "Level of moderation: light, moderate, or active",
-        },
-    ],
-    "actions": [
-        {"id": "express_feeling", "name": "Express Feeling", "description": "Share emotions openly"},
-        {"id": "acknowledge", "name": "Acknowledge", "description": "Validate another's feelings"},
-        {"id": "propose_solution", "name": "Propose Solution", "description": "Suggest a resolution"},
-        {"id": "agree_compromise", "name": "Agree Compromise", "description": "Accept a proposed solution"},
     ],
 }
 
@@ -540,7 +503,6 @@ _SCENARIOS: list[dict[str, Any]] = [
     _BATTLE_OF_SEXES,
     # Discussion
     _OPEN_DISCUSSION,
-    _EMOTIONAL_CONFLICT,
     _COUNCIL_CHAMBER,
     # Grid
     _VILLAGE,

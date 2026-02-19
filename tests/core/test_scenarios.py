@@ -15,9 +15,9 @@ def test_get_all_returns_list():
 
 
 def test_get_all_contains_expected_count():
-    """Should return exactly 14 scenarios."""
+    """Should return exactly 13 scenarios."""
     result = get_all_scenarios()
-    assert len(result) == 14
+    assert len(result) == 13
 
 
 def test_all_scenarios_have_required_fields():
