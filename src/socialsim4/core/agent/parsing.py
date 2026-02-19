@@ -10,8 +10,10 @@ Contains:
     - parse_emotion_update: Parse emotion from Emotion Update block
     - parse_plan_update: Parse plan update from XML-style tags
     - parse_actions: Parse Action XML block into action dict
+    - parse_agent_response: Extract JSON from LLM output
 """
 
+import json
 import re
 import xml.etree.ElementTree as ET
 
@@ -238,7 +240,7 @@ def parse_plan_update(block: str) -> dict | None:
     return result
 
 
-def parse_actions(action_block: str) -> list:
+def parse_actions_xml(action_block: str) -> list:
     """
     Parse the Action XML block and returns a list of action dicts.
 
@@ -255,7 +257,7 @@ def parse_actions(action_block: str) -> list:
         Returns empty list if no valid action found
 
     Examples:
-        >>> result = parse_actions('<Action name="test"><param>value</param></Action>')
+        >>> result = parse_actions_xml('<Action name="test"><param>value</param></Action>')
         >>> result[0]['action']
         'test'
         >>> result[0]['param']
@@ -314,3 +316,64 @@ def parse_actions(action_block: str) -> list:
             result[tag] = val
 
     return [result]
+
+
+def parse_agent_response(response_text: str) -> dict:
+    """Extract the first valid JSON object from LLM output.
+
+    Handles:
+    - ```json ... ``` code fences
+    - ``` ... ``` code fences
+    - Plain JSON objects
+
+    Returns {} if no valid JSON found.
+
+    Args:
+        response_text: Raw LLM response string
+
+    Returns:
+        Parsed JSON dict, or empty dict if parsing fails
+    """
+    if not response_text:
+        return {}
+
+    # Try code fences first
+    fence_pattern = r'```(?:json)?\s*\n?(.*?)\n?```'
+    matches = re.findall(fence_pattern, response_text, re.DOTALL)
+
+    if matches:
+        for match in matches:
+            try:
+                return json.loads(match.strip())
+            except json.JSONDecodeError:
+                continue
+
+    # Try finding first {...} in text
+    brace_pattern = r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}'
+    matches = re.findall(brace_pattern, response_text, re.DOTALL)
+
+    for match in matches:
+        try:
+            return json.loads(match)
+        except json.JSONDecodeError:
+            continue
+
+    return {}
+
+
+def parse_actions(response_text: str) -> list:
+    """Parse actions from LLM response using JSON format.
+
+    Returns [data] if "action" key present, else [].
+    Maintains compatibility with existing code expecting list return.
+
+    Args:
+        response_text: Raw LLM response string
+
+    Returns:
+        List containing action dict, or empty list
+    """
+    data = parse_agent_response(response_text)
+    if data and 'action' in data:
+        return [data]
+    return []
