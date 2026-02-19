@@ -23,7 +23,7 @@ def serialize_agent(agent) -> dict:
     Convert agent to serializable dictionary.
 
     Deep-copies dict/list fields to avoid sharing across snapshots.
-    Preserves all agent state including memory, plans, knowledge,
+    Preserves all agent state including memory, knowledge,
     documents, and error state.
 
     Args:
@@ -47,9 +47,6 @@ def serialize_agent(agent) -> dict:
     # Deep-copy properties
     props = json.loads(json.dumps(agent.properties))
 
-    # Deep-copy plan state
-    plan = json.loads(json.dumps(agent.plan_state))
-
     # Deep-copy knowledge base
     kb = json.loads(json.dumps(agent.knowledge_base))
 
@@ -68,9 +65,6 @@ def serialize_agent(agent) -> dict:
         "last_history_length": agent.last_history_length,
         "max_repeat": agent.max_repeat,
         "properties": props,
-        "plan_state": plan,
-        "emotion": agent.emotion,
-        "emotion_enabled": agent.emotion_enabled,
         # Knowledge Base (RAG)
         "knowledge_base": kb,
         # Documents (Embedded RAG)
@@ -86,7 +80,7 @@ def deserialize_agent(data: dict, event_handler=None, agent_class=None) -> objec
     """
     Create agent from serialized dictionary.
 
-    Restores all agent state including memory, plans, knowledge,
+    Restores all agent state including memory, knowledge,
     documents, and error state.
 
     Args:
@@ -107,12 +101,6 @@ def deserialize_agent(data: dict, event_handler=None, agent_class=None) -> objec
     raw_props = data.get("properties", {}) or {}
     props = json.loads(json.dumps(raw_props))
 
-    # Handle emotion_enabled: check top-level data, then props, then default to False
-    if "emotion_enabled" in data:
-        props.setdefault("emotion_enabled", data["emotion_enabled"])
-    else:
-        props.setdefault("emotion_enabled", False)
-
     agent = agent_class(
         name=data["name"],
         user_profile=data["user_profile"],
@@ -120,39 +108,22 @@ def deserialize_agent(data: dict, event_handler=None, agent_class=None) -> objec
         initial_instruction=data["initial_instruction"],
         role_prompt=data["role_prompt"],
         language=data.get("language", "en"),
-        action_space=[
-            ACTION_SPACE_MAP[action_name] for action_name in data["action_space"]
-        ],
-        max_repeat=data.get("max_repeat", MAX_REPEAT),
+    action_space=[
+        ACTION_SPACE_MAP[action_name]
+        for action_name in data["action_space"]
+        if action_name in ACTION_SPACE_MAP
+    ],
+    max_repeat=data.get("max_repeat", MAX_REPEAT),
         event_handler=event_handler,
-        # Other properties (including emotion_enabled) from props
+        # Other properties from props
         **props,
     )
-
-    # Restore emotion value
-    agent.emotion = data.get("emotion", "neutral")
-    agent.emotion_enabled = bool(props.get("emotion_enabled", False))
 
     # Restore memory
     agent.short_memory.history = json.loads(
         json.dumps(data.get("short_memory", []))
     )
     agent.last_history_length = data.get("last_history_length", 0)
-
-    # Restore plan state
-    agent.plan_state = json.loads(
-        json.dumps(
-            data.get(
-                "plan_state",
-                {
-                    "goals": [],
-                    "milestones": [],
-                    "strategy": "",
-                    "notes": "",
-                },
-            )
-        )
-    )
 
     # Restore knowledge base
     kb_data = data.get("knowledge_base", [])
