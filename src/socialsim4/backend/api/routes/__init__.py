@@ -7,6 +7,7 @@ from . import (
     config,
     providers,
     scenes,
+    scenarios,
     simulations,
     search_providers,
     llm,  # LLM related routes
@@ -22,6 +23,7 @@ router = Router(
         auth.router,
         config.router,
         scenes.router,
+        scenarios.router,
         simulations.router,
         providers.router,
         search_providers.router,
