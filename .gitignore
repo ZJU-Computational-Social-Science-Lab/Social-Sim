@@ -159,3 +159,15 @@ planning/
 
 # Git worktrees for parallel development
 .worktrees/test_results/
+
+# Test results and debug output
+test_results/
+src/test_results/
+
+# Debug log files
+agent_debug_*.txt
+experiment_debug_*.txt
+*_debug_*.txt
+
+# Temporary files
+nul
