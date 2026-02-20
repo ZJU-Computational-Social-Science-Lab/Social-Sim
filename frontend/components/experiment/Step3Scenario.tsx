@@ -8,7 +8,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useExperimentBuilder } from '../../store/experiment-builder';
-import { Bullet, Plus, X } from 'lucide-react';
+import { Circle, Plus, X } from 'lucide-react';
 
 interface ActionToggleCardProps {
   name: string;
@@ -39,7 +39,7 @@ const ActionToggleCard: React.FC<ActionToggleCardProps> = ({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 flex-1 min-w-0">
-          <Bullet
+          <Circle
             className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
               selected ? 'text-blue-500 fill-blue-500' : 'text-gray-400'
             }`}
