@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import sys
 from typing import Dict
 
 from socialsim4.core.agent import Agent
 from socialsim4.core.event import PublicEvent
 from socialsim4.core.ordering import ControlledOrdering, CycledOrdering, SequentialOrdering
-from socialsim4.core.registry import ACTION_SPACE_MAP, SCENE_ACTIONS, SCENE_MAP
+from socialsim4.core.registry import ACTION_SPACE_MAP, SCENE_ACTIONS, SCENE_MAP, get_scene_class
 from socialsim4.core.simtree import SimTree
 from socialsim4.core.simulator import Simulator
 from socialsim4.core.environment_config import EnvironmentConfig
@@ -15,6 +16,10 @@ from socialsim4.scenarios.basic import make_clients_from_env
 
 
 logger = logging.getLogger(__name__)
+_logging_handler = logging.StreamHandler(sys.stdout)
+_logging_handler.setLevel(logging.DEBUG)
+_logging_handler.setFormatter(logging.Formatter('[SIMTREE RUNTIME] %(message)s'))
+logger.addHandler(_logging_handler)
 
 
 def _normalize_language(value: str | None) -> str:
@@ -45,7 +50,7 @@ def _quiet_logger(event_type: str, data: dict) -> None:
 def _build_tree_for_scene(scene_type: str, clients: dict | None = None) -> SimTree:
     # Normalize scene_type to registry keys (allow aliases like 'village' -> 'village_scene')
     scene_key = scene_type if scene_type in SCENE_MAP else f"{scene_type}_scene"
-    scene_cls = SCENE_MAP.get(scene_key)
+    scene_cls = get_scene_class(scene_key)
     if scene_cls is None:
         raise ValueError(f"Unsupported scene type: {scene_type}")
     active = clients or make_clients_from_env()
@@ -95,6 +100,7 @@ def _apply_agent_config(simulator, agent_config: dict | None):
         agent = agents_list[i]
         selected = [str(a) for a in (cfg.get("action_space") or [])]
         scene_actions = simulator.scene.get_scene_actions(agent) or []
+        print(f"[ACTION_DEBUG] Agent {agent.name}: scene_actions={[getattr(a, 'NAME', a) for a in scene_actions]}, selected={selected}")
         picked = []
         for key in selected:
             act = ACTION_SPACE_MAP.get(key)
@@ -108,6 +114,7 @@ def _apply_agent_config(simulator, agent_config: dict | None):
                 merged.append(act)
                 seen.add(n)
         agent.action_space = merged
+        print(f"[ACTION_DEBUG] Agent {agent.name}: final action_space={[getattr(a, 'NAME', a) for a in agent.action_space]}")
     # Refresh ordering candidates after renames
     simulator.ordering.set_simulation(simulator)
 
@@ -117,12 +124,21 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
     scene_type = sim_record.scene_type
     # Normalize scene_type to registry keys (allow aliases like 'village' -> 'village_scene')
     scene_key = scene_type if scene_type in SCENE_MAP else f"{scene_type}_scene"
-    scene_cls = SCENE_MAP.get(scene_key)
+    scene_cls = get_scene_class(scene_key)
     if scene_cls is None:
         raise ValueError(f"Unsupported scene type: {scene_type}")
 
     cfg = getattr(sim_record, "scene_config", {}) or {}
     name = getattr(sim_record, "name", scene_type)
+
+    # Debug logging to show which scene type is being used
+    logger.debug(f"\n{'='*60}")
+    logger.debug(f"BUILDING TREE FOR SIMULATION: {sim_record.id}")
+    logger.debug(f"Scene type: {scene_type}")
+    logger.debug(f"Scene key: {scene_key}")
+    logger.debug(f"Scene class: {scene_cls.__name__ if hasattr(scene_cls, '__name__') else scene_cls}")
+    logger.debug(f"Scene config: {cfg}")
+    logger.debug(f"{'='*60}\n")
 
     agent_config = getattr(sim_record, "agent_config", {}) or {}
     print(f"[KB-DEBUG] _build_tree_for_sim: agent_config keys: {list(agent_config.keys())}")
@@ -193,6 +209,18 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
             str(cfg.get("initial_event") or ""),
             available_actions=available_actions,
         )
+    elif scene_key == "experiment_template":
+        # ExperimentScene needs template_config with description, actions, settings
+        template_config = {
+            "description": cfg.get("description") or str(cfg.get("initial_event") or ""),
+            "actions": cfg.get("actions") or [],
+            "settings": cfg.get("settings") or {},
+        }
+        scene = scene_cls(
+            name,
+            template_config.get("description") or "",
+            template_config=template_config,
+        )
     else:
         scene = scene_cls(name, str(cfg.get("initial_event") or ""))
 
@@ -210,14 +238,11 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
 
     # Build agents from agent_config
     built_agents = []
-    emotion_enabled = cfg["emotion_enabled"] if ("emotion_enabled" in cfg) else False
     for cfg_agent in items:
         aname = str(cfg_agent.get("name") or "").strip() or "Agent"
         profile = str(cfg_agent.get("profile") or "")
         selected = [str(a) for a in (cfg_agent.get("action_space") or [])]
         props = dict(cfg_agent.get("properties") or {})
-        if "emotion_enabled" not in props:
-            props["emotion_enabled"] = emotion_enabled
         language = _normalize_language(cfg_agent.get("language") or preferred_language)
         # scene common actions from registry (fallback to scene introspection)
         # Use normalized scene_key so short names (e.g., 'village') map correctly.
@@ -309,7 +334,6 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         event_handler=_quiet_logger,
         ordering=ordering,
         max_steps_per_turn=3 if scene_type == "landlord_scene" else 5,
-        emotion_enabled=emotion_enabled,
         environment_config=environment_config,
     )
     # Set global knowledge reference on all agents
