@@ -351,6 +351,34 @@ export const mapBackendEventsToLogs = (
       }
 
       if (role === 'assistant') {
+        // Parse the JSON response from legacy agent
+        let parsed = null;
+        try {
+          // Try to parse as JSON
+          parsed = JSON.parse(raw);
+        } catch {}
+
+        // Check if this is a run_experiment action (verbose legacy wrapper)
+        if (parsed && parsed.action && parsed.action.name === 'run_experiment') {
+          // Skip showing the verbose run_experiment trigger
+          // The actual experiment results will be shown via experiment_action events
+          return null as any;
+        }
+
+        // For other actions, show a cleaner format
+        if (parsed) {
+          const actionName = parsed.action?.name || '';
+          const response = parsed.response || '';
+
+          // If there's a meaningful response, show it
+          if (response && response !== 'Hello! Nice to meet you.' && response !== 'Hello! Nice to meet you') {
+            return { ...base, type: 'AGENT_SAY', agentId, content: response };
+          }
+
+          // Otherwise skip the verbose metadata
+          return null as any;
+        }
+
         const pretty = prettifyAssistantCtx(raw);
         return { ...base, type: 'AGENT_METADATA', agentId, content: pretty || raw || `[智能体回复] ${agentName || ''}` };
       }
@@ -464,6 +492,30 @@ export const mapBackendEventsToLogs = (
 
       const readableAction = translateActionName(actionName);
       const label = actorName ? `${actorName} ${labels.actionEnd} ${readableAction}` : `${pickText('Performed action', '执行了动作')} ${readableAction}`;
+      return { ...base, type: 'AGENT_ACTION', agentId, content: label };
+    }
+
+    // Experiment action - clean format from the new experiment system
+    if (evType === 'experiment_action') {
+      const agentName: string = data.agent || '';
+      const actionName: string = data.action || '';
+      const parameters = data.parameters || {};
+      const summary: string = data.summary || '';
+      const round: number = data.round || 0;
+      const agentId = agentName ? nameToId.get(agentName) : undefined;
+
+      // Build readable label
+      const readableAction = translateActionName(actionName);
+      let label = `Round ${round}: ${agentName} → ${readableAction}`;
+
+      // Add parameters if any
+      if (parameters && Object.keys(parameters).length > 0) {
+        const paramsStr = Object.entries(parameters)
+          .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+          .join(', ');
+        label += ` (${paramsStr})`;
+      }
+
       return { ...base, type: 'AGENT_ACTION', agentId, content: label };
     }
 
