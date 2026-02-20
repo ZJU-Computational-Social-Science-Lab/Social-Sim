@@ -7,7 +7,7 @@ from litestar.response import Response
 from pydantic import ValidationError
 
 from socialsim4.core.agent import Agent
-from socialsim4.core.registry import SCENE_ACTIONS, SCENE_DESCRIPTIONS, SCENE_MAP
+from socialsim4.core.registry import SCENE_ACTIONS, SCENE_DESCRIPTIONS, SCENE_MAP, get_scene_class
 from socialsim4.templates.loader import TemplateLoader
 from socialsim4.templates.schema import GenericTemplate, export_json_schema
 
@@ -150,10 +150,13 @@ def load_all_templates() -> list[dict]:
 async def list_scenes() -> list[dict]:
     """List all available scene types including generic_scene."""
     scenes: list[dict] = []
-    for key, cls in SCENE_MAP.items():
+    for key in SCENE_MAP.keys():
         if key not in PUBLIC_SCENE_KEYS:
             continue
-        scenes.append(scene_config_template(key, cls))
+        scene_cls = get_scene_class(key)
+        if scene_cls is None:
+            continue
+        scenes.append(scene_config_template(key, scene_cls))
     return scenes
 
 
