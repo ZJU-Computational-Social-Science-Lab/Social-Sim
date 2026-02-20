@@ -370,7 +370,19 @@ export const mapBackendEventsToLogs = (
     if (evType === 'action_start') {
       const agentName: string = data.agent || '';
       const actionData = data.action || {};
-      const rawName: string = actionData.action || actionData.name || 'unknown';
+
+      // Handle nested action structure from legacy agent responses
+      let rawName: string = '';
+      if (actionData.action && typeof actionData.action === 'object') {
+        rawName = actionData.action.name || '';
+      } else if (actionData.name) {
+        rawName = actionData.name;
+      } else if (typeof actionData.action === 'string') {
+        rawName = actionData.action;
+      } else {
+        rawName = 'unknown';
+      }
+
       const agentId = agentName ? nameToId.get(agentName) : undefined;
 
       if (rawName === 'yield') {
@@ -432,7 +444,19 @@ export const mapBackendEventsToLogs = (
     if (evType === 'action_end') {
       const actorName: string = data.actor || data.agent || data.name || '';
       const actionData = data.action || {};
-      const actionName: string = actionData.action || actionData.name || '';
+
+      // Handle nested action structure from legacy agent responses
+      // Legacy format: {thoughts, response, action: {name, parameters}, context_update, metadata}
+      // Direct format: {name, parameters}
+      let actionName: string = '';
+      if (actionData.action && typeof actionData.action === 'object') {
+        actionName = actionData.action.name || '';
+      } else if (actionData.name) {
+        actionName = actionData.name;
+      } else if (typeof actionData.action === 'string') {
+        actionName = actionData.action;
+      }
+
       const agentId = actorName ? nameToId.get(actorName) : undefined;
       const isSpeech = actionName === 'send_message' || actionName === 'say';
 
