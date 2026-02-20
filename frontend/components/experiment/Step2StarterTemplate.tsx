@@ -27,7 +27,7 @@ export const Step2StarterTemplate: React.FC = () => {
 
   // Initialize scenario params from defaults
   useEffect(() => {
-    if (selectedScenarioData && Object.keys(scenarioParams).length === 0) {
+    if (selectedScenarioData && selectedScenarioData.parameters && Object.keys(scenarioParams).length === 0) {
       const defaults: Record<string, unknown> = {};
       selectedScenarioData.parameters.forEach((param) => {
         defaults[param.key] = param.default;
