@@ -85,7 +85,6 @@ export const Step4Agents: React.FC = () => {
     label: '',
     count: 1,
     rolePrompt: '',
-    style: 'neutral',
     userProfile: '',
     properties: {},
   });
@@ -165,7 +164,6 @@ export const Step4Agents: React.FC = () => {
       label: '',
       count: 1,
       rolePrompt: '',
-      style: 'neutral',
       userProfile: '',
       properties: {},
     });
@@ -314,7 +312,6 @@ export const Step4Agents: React.FC = () => {
           label: agent.name,
           count: 1,
           rolePrompt: agent.profile,
-          style: 'neutral',
           userProfile: agent.profile,
           properties: {
             avatarUrl: agent.avatarUrl,
@@ -444,9 +441,6 @@ export const Step4Agents: React.FC = () => {
                           {type.userProfile}
                         </p>
                       )}
-                      {type.style !== 'neutral' && (
-                        <span className="text-xs text-gray-500">Style: {type.style}</span>
-                      )}
                     </div>
                     <Button
                       variant="ghost"
@@ -533,7 +527,7 @@ export const Step4Agents: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">CSV Format Example:</label>
               <pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto">
-                <code>name,role_prompt,style,user_profile,opinion</code>
+                <code>name,role_prompt,user_profile,opinion</code>
               </pre>
             </div>
 
