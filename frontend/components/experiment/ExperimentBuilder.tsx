@@ -15,8 +15,6 @@ import { ProgressBar } from '../ui/progress-bar';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { ValidationAlert } from './ValidationAlert';
-import { ExperimentPreview } from './ExperimentPreview';
-
 // Step components
 import { Step1InteractionType } from './Step1InteractionType';
 import { Step2StarterTemplate } from './Step2StarterTemplate';
@@ -131,11 +129,6 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
           <Step5Structure />
         )}
       </Card>
-
-      {/* Experiment Preview (on step 5) */}
-      {currentStep === 5 && (
-        <ExperimentPreview />
-      )}
 
       {/* Navigation */}
       <div className="flex justify-between mt-6">
