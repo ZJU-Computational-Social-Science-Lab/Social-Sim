@@ -1,295 +1,187 @@
 /**
- * Step 5: Structure, Conditions & Preview
+ * Step 5: Prompt Preview
  *
- * Users configure network structure, stopping conditions, turn order,
- * inter-round updates, and preview the final experiment before creating.
+ * Displays a preview of exactly what each agent type will see
+ * at the start of the simulation. This matches the backend's
+ * prompt_builder.py build_prompt() function template.
  */
 
 import React from 'react';
-import { useExperimentBuilder, SuccessConditionType, TurnOrderType, InterRoundUpdateType } from '../../store/experiment-builder';
+import { useExperimentBuilder } from '../../store/experiment-builder';
+import { AlertCircle } from 'lucide-react';
 
-const NETWORK_TYPES = [
-  { id: 'complete', name: 'Everyone talks to everyone', description: 'Complete graph' },
-  { id: 'sbm', name: 'Small clusters', description: 'Stochastic block model - communities' },
-  { id: 'barabasi', name: 'Scale-free', description: 'Hub-and-spoke pattern' },
-  { id: 'custom', name: 'Custom network', description: 'Manually define connections' },
-];
+interface PromptPreviewPanelProps {
+  agentTypeLabel: string;
+  agentTypeProfile: string;
+  agentTypeRolePrompt: string;
+  scenarioDescription: string;
+  availableActions: Array<{ name: string; description: string }>;
+  selectedActionIds: string[];
+}
 
-const SUCCESS_CONDITIONS = [
-  { id: 'fixed_rounds', name: 'Fixed Rounds', description: 'Run for a set number of rounds' },
-  { id: 'convergence', name: 'Convergence', description: 'Stop when agents agree (within tolerance)' },
-  { id: 'unanimity', name: 'Unanimity', description: 'Stop when all agents choose the same' },
-  { id: 'no_conflicts', name: 'No Conflicts', description: 'For graph coloring problems' },
-];
+/**
+ * Component that renders the prompt preview for a single agent type.
+ * Matches the 5-section prompt structure from backend's prompt_builder.py:
+ * 1. Agent Description
+ * 2. Scenario
+ * 3. Available Actions
+ * 4. Context (first round - no previous context)
+ * 5. Output Format (JSON response instruction)
+ */
+const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
+  agentTypeLabel,
+  agentTypeProfile,
+  agentTypeRolePrompt,
+  scenarioDescription,
+  availableActions,
+  selectedActionIds,
+}) => {
+  // Filter actions to only selected ones
+  const selectedActions = availableActions.filter((a) =>
+    selectedActionIds.includes(a.name)
+  );
 
-const TURN_ORDERS = [
-  { id: 'simultaneous', name: 'Simultaneous', description: 'All agents act at once' },
-  { id: 'sequential', name: 'Sequential', description: 'Agents take turns one at a time' },
-  { id: 'random', name: 'Random', description: 'Random order each round' },
-];
+  // Build actions list string
+  const actionsList = selectedActions
+    .map((a) => `- ${a.name}: ${a.description}`)
+    .join('\n  ');
 
-const INTER_ROUND_UPDATES = [
-  { id: 'none', name: 'None', description: 'No changes between rounds' },
-  { id: 'imitate', name: 'Imitation', description: 'Agents copy successful strategies' },
-  { id: 'average', name: 'Averaging', description: 'Opinions shift toward average' },
-  { id: 'reinforce', name: 'Reinforcement', description: 'Successful behaviors reinforced' },
-];
+  // Build the actions string for the response format
+  const actionsForResponse = selectedActions.map((a) => `"${a.name}"`).join(', ');
 
-const AVAILABLE_METRICS = [
-  { id: 'opinion_variance', name: 'Opinion Variance', requires: ['opinion'] },
-  { id: 'cooperation_rate', name: 'Cooperation Rate', requires: ['strategic_choice'] },
-  { id: 'average_payoff', name: 'Average Payoff', requires: ['strategic_choice'] },
-  { id: 'network_density', name: 'Network Density', requires: [] },
-  { id: 'consensus_achieved', name: 'Consensus Achieved', requires: ['opinion', 'strategic_choice'] },
-];
+  return (
+    <div className="border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+      {/* Header */}
+      <div className="bg-gray-200 px-4 py-2 border-b border-gray-300">
+        <span className="text-sm font-semibold text-gray-700">
+          Agent Type: "{agentTypeLabel}"
+        </span>
+      </div>
+
+      {/* Prompt Content */}
+      <div className="p-4 font-mono text-sm text-gray-800 whitespace-pre-wrap bg-white">
+        {/* Section 1: Agent Description */}
+        <div className="mb-4">
+          <span className="text-blue-600">You are</span> {agentTypeLabel}.
+          {agentTypeRolePrompt && (
+            <>
+              {' '}
+              {agentTypeRolePrompt}
+            </>
+          )}
+          {agentTypeProfile && (
+            <>
+              {' '}
+              {agentTypeProfile}
+            </>
+          )}
+        </div>
+
+        {/* Section 2: Scenario */}
+        <div className="mb-4">
+          <div className="font-semibold text-gray-900 mb-1">Scenario:</div>
+          {scenarioDescription || (
+            <span className="text-gray-400 italic">No scenario description provided</span>
+          )}
+        </div>
+
+        {/* Section 3: Available Actions */}
+        <div className="mb-4">
+          <div className="font-semibold text-gray-900 mb-1">Available actions:</div>
+          {selectedActions.length > 0 ? (
+            <div className="pl-2">{actionsList}</div>
+          ) : (
+            <span className="text-gray-400 italic">No actions selected</span>
+          )}
+        </div>
+
+        {/* Section 4: Context */}
+        <div className="mb-4">
+          <div className="font-semibold text-gray-900 mb-1">Context:</div>
+          <div className="pl-2">This is the first round.</div>
+        </div>
+
+        {/* Section 5: Output Format */}
+        <div className="border-t border-gray-200 pt-3 mt-3">
+          <div className="font-semibold text-gray-900 mb-1">Your Response:</div>
+          {selectedActions.length > 0 ? (
+            <div className="pl-2">
+              Respond with only JSON: {`{{"action": "<${actionsForResponse}>"}}`}
+            </div>
+          ) : (
+            <div className="pl-2 text-gray-400 italic">
+              Add actions in Step 3 to see the response format
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const Step5Structure: React.FC = () => {
   const {
-    networkType,
-    networkParams,
-    setNetworkType,
-    successCondition,
-    setSuccessCondition,
-    turnOrder,
-    setTurnOrder,
-    interRoundUpdate,
-    setInterRoundUpdate,
-    metrics,
-    setMetrics,
-    interactionTypes,
     agentTypes,
-    scenario,
+    scenarioDescription,
+    availableActions,
+    selectedActionIds,
   } = useExperimentBuilder();
 
   const totalAgents = agentTypes.reduce((sum, t) => sum + t.count, 0);
 
-  // Condition-specific configs
-  const showTolerance = successCondition.type === 'convergence';
-  const showThresholdRatio = successCondition.type === 'unanimity';
-  const showRequiredValue = successCondition.type === 'unanimity';
-
-  // Get available metrics based on interaction types
-  const availableMetrics = AVAILABLE_METRICS.filter(
-    (m) => !m.requires || m.requires.some((r) => interactionTypes.includes(r as any))
-  );
+  // If no agents defined, show warning
+  if (agentTypes.length === 0) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="text-center max-w-md">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 rounded-full mb-4">
+            <AlertCircle className="w-8 h-8 text-amber-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            No Agents Defined
+          </h3>
+          <p className="text-gray-600">
+            Go back to Step 4 to add agents to your experiment.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Social Structure */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-3">
-          Social Structure
-        </h3>
-        <div className="grid grid-cols-2 gap-3">
-          {NETWORK_TYPES.map((type) => (
-            <button
-              key={type.id}
-              onClick={() => setNetworkType(type.id as any)}
-              className={`
-                p-3 border-2 rounded-lg text-left transition-all bg-white
-                ${networkType === type.id
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300'
-                }
-              `}
-            >
-              <h4 className="font-medium text-gray-900">{type.name}</h4>
-              <p className="text-xs text-gray-600 mt-1">
-                {type.description}
-              </p>
-            </button>
-          ))}
-        </div>
+      {/* Header */}
+      <div className="text-center mb-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          Agent Prompt Preview
+        </h2>
+        <p className="text-sm text-gray-600">
+          This is exactly what each agent type will see at the start of the simulation
+        </p>
       </div>
 
-      {/* Duration & Stopping Condition */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-3">
-          Duration & Stopping Condition
-        </h3>
-
-        <div className="space-y-4">
-          {/* Max Rounds */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Maximum number of rounds
-            </label>
-            <input
-              type="number"
-              min="1"
-              max="1000"
-              value={successCondition.maxRounds}
-              onChange={(e) =>
-                setSuccessCondition({
-                  ...successCondition,
-                  maxRounds: parseInt(e.target.value) || 50,
-                })
-              }
-              className="w-32 px-3 py-2 border border-gray-300 rounded-md bg-white"
-            />
-          </div>
-
-          {/* Stopping Condition */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Stopping condition
-            </label>
-            <select
-              value={successCondition.type}
-              onChange={(e) =>
-                setSuccessCondition({
-                  ...successCondition,
-                  type: e.target.value as SuccessConditionType,
-                })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white"
-            >
-              {SUCCESS_CONDITIONS.map((cond) => (
-                <option key={cond.id} value={cond.id}>
-                  {cond.name} - {cond.description}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Condition-specific configs */}
-          {showTolerance && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Convergence tolerance (how close is agreement?)
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value={successCondition.tolerance || 5}
-                onChange={(e) =>
-                  setSuccessCondition({
-                    ...successCondition,
-                    tolerance: parseFloat(e.target.value) || 5,
-                  })
-                }
-                className="w-24 px-3 py-2 border border-gray-300 rounded-md bg-white"
-              />
-            </div>
-          )}
-
-          {showThresholdRatio && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Required agreement ratio (0-1)
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="1"
-                step="0.1"
-                value={successCondition.thresholdRatio || 1.0}
-                onChange={(e) =>
-                  setSuccessCondition({
-                    ...successCondition,
-                    thresholdRatio: parseFloat(e.target.value) || 1.0,
-                  })
-                }
-                className="w-24 px-3 py-2 border border-gray-300 rounded-md bg-white"
-              />
-            </div>
-          )}
-        </div>
+      {/* Preview Panels for each agent type */}
+      <div className="space-y-6">
+        {agentTypes.map((agentType) => (
+          <PromptPreviewPanel
+            key={agentType.id}
+            agentTypeLabel={agentType.label}
+            agentTypeProfile={agentType.userProfile || ''}
+            agentTypeRolePrompt={agentType.rolePrompt || ''}
+            scenarioDescription={scenarioDescription}
+            availableActions={availableActions}
+            selectedActionIds={selectedActionIds}
+          />
+        ))}
       </div>
 
-      {/* Turn Order */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-3">
-          Turn Order
-        </h3>
-        <div className="grid grid-cols-3 gap-3">
-          {TURN_ORDERS.map((order) => (
-            <button
-              key={order.id}
-              onClick={() =>
-                setTurnOrder({
-                  type: order.id as TurnOrderType,
-                  visibility: order.id === 'sequential' ? 'all_previous' : undefined,
-                })
-              }
-              className={`
-                p-3 border-2 rounded-lg text-center transition-all bg-white
-                ${turnOrder.type === order.id
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300'
-                }
-              `}
-            >
-              <h4 className="font-medium text-gray-900">{order.name}</h4>
-              <p className="text-xs text-gray-600 mt-1">
-                {order.description}
-              </p>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Inter-Round Updates */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-3">
-          Inter-Round Updates
-        </h3>
-        <div className="grid grid-cols-2 gap-3">
-          {INTER_ROUND_UPDATES.map((update) => (
-            <button
-              key={update.id}
-              onClick={() =>
-                setInterRoundUpdate({
-                  type: update.id as InterRoundUpdateType,
-                  probability: 1.0,
-                  mixingRate: 0.5,
-                })
-              }
-              className={`
-                p-3 border-2 rounded-lg text-center transition-all bg-white
-                ${interRoundUpdate.type === update.id
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300'
-                }
-              `}
-            >
-              <h4 className="font-medium text-gray-900">{update.name}</h4>
-              <p className="text-xs text-gray-600 mt-1">
-                {update.description}
-              </p>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Metrics to Collect */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-3">
-          Metrics to Collect
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-          {availableMetrics.map((metric) => (
-            <button
-              key={metric.id}
-              onClick={() => {
-                const newMetrics = metrics.includes(metric.id)
-                  ? metrics.filter((m) => m !== metric.id)
-                  : [...metrics, metric.id];
-                setMetrics(newMetrics);
-              }}
-              className={`
-                p-2 border rounded text-center transition-all text-sm bg-white
-                ${metrics.includes(metric.id)
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-blue-300 text-gray-700'
-                }
-              `}
-            >
-              {metric.name}
-            </button>
-          ))}
+      {/* Summary */}
+      <div className="flex justify-center pt-4">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-800 rounded-lg text-sm">
+          <span className="font-medium">
+            {totalAgents} total agent{totalAgents !== 1 ? 's' : ''} across {agentTypes.length} type
+            {agentTypes.length !== 1 ? 's' : ''}
+          </span>
         </div>
       </div>
     </div>
