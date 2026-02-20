@@ -524,8 +524,6 @@ async def simulation_tree_state(
                     "profile": profile,
                     "role": role,
                     "properties": props,
-                    "emotion": agent.emotion,
-                    "plan_state": agent.plan_state,
                     "short_memory": agent.short_memory.get_all(),
                     "knowledgeBase": kb,
                     "documents": docs,
