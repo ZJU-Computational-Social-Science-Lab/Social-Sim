@@ -9,10 +9,20 @@ The prompt builder constructs structured prompts from:
 5. JSON format instruction
 """
 
+import logging
+import sys
 from typing import Dict, Any, Literal
 
 from socialsim4.core.experiment.agent import ExperimentAgent
 from socialsim4.core.experiment.game_configs import GameConfig
+
+# Configure debug logging to stdout
+logger = logging.getLogger(__name__)
+_handler = logging.StreamHandler(sys.stdout)
+_handler.setLevel(logging.DEBUG)
+_handler.setFormatter(logging.Formatter('[EXPERIMENT PROMPT] %(message)s'))
+logger.addHandler(_handler)
+logger.setLevel(logging.DEBUG)
 
 
 def _interpret_score(value: int) -> str:
@@ -131,7 +141,16 @@ def build_prompt(
 
     sections.append("\nNo markdown. No explanation. Only JSON.")
 
-    return "\n".join(sections)
+    prompt = "\n".join(sections)
+
+    # Log the full prompt for debugging
+    logger.debug(f"\n{'='*60}")
+    logger.debug(f"PROMPT FOR AGENT: {agent.name}")
+    logger.debug(f"{'='*60}")
+    logger.debug(prompt)
+    logger.debug(f"{'='*60}\n")
+
+    return prompt
 
 
 def build_reprompt(

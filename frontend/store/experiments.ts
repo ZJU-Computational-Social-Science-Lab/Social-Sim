@@ -15,6 +15,7 @@ import type { ExperimentVariant, SimulationReport, SocialNetwork, SimNode } from
 import * as experimentsApi from '../services/experiments';
 import type { EnvironmentSuggestion } from '../services/environmentSuggestions';
 import { addTime } from './helpers';
+import i18n from '../i18n';
 
 export interface ExperimentsSlice {
   // Comparison state
@@ -117,19 +118,19 @@ export const createExperimentsSlice: StateCreator<
         const nodeA = Number(state.selectedNodeId);
         const nodeB = Number(state.compareTargetNodeId);
         if (!Number.isFinite(nodeA) || !Number.isFinite(nodeB)) {
-          state.addNotification?.('error', '选中的节点不是后端节点');
+          state.addNotification?.('error', i18n.t('store.selectedNodeNotBackend') || 'Selected node is not a backend node');
           set({ isGenerating: false } as any);
           return;
         }
 
         const useLLM = Boolean(state.comparisonUseLLM);
         const res = await experimentsApi.compareNodes(simId, nodeA, nodeB, useLLM);
-        const summary = res?.summary || (res?.message || '') || '未能生成摘要';
+        const summary = res?.summary || (res?.message || '') || i18n.t('store.failedToGenerateSummary') || 'Failed to generate summary';
         set({ comparisonSummary: summary, isGenerating: false } as any);
       } catch (e) {
         console.error(e);
         set({ isGenerating: false } as any);
-        state.addNotification?.('error', '比较分析失败');
+        state.addNotification?.('error', i18n.t('store.comparisonAnalysisFailed') || 'Comparison analysis failed');
       }
       return;
     }
@@ -138,7 +139,7 @@ export const createExperimentsSlice: StateCreator<
     set({ isGenerating: true } as any);
     setTimeout(() => {
       set({
-        comparisonSummary: '本地演示：两条时间线在若干事件与若干智能体属性上存在差异（仅演示）。',
+        comparisonSummary: i18n.t('store.localDemoComparison') || 'Local demo: two timelines differ in events and agent attributes (demo only).',
         isGenerating: false
       } as any);
     }, 700);
@@ -149,7 +150,11 @@ export const createExperimentsSlice: StateCreator<
     if (!state.currentSimulation || !state.selectedNodeId || state.isGenerating) return;
 
     const parentNode = state.nodes?.find((n: any) => n.id === state.selectedNodeId);
-    if (!parentNode) return;
+    if (!parentNode) {
+      console.error('[advanceSimulation] Selected node not found in nodes:', state.selectedNodeId);
+      state.addNotification?.('error', i18n.t('store.selectedNodeNotFound') || 'Selected node not found');
+      return;
+    }
 
     set({ isGenerating: true } as any);
 
@@ -165,7 +170,8 @@ export const createExperimentsSlice: StateCreator<
         const parentNumeric = Number(state.selectedNodeId);
 
         if (!Number.isFinite(parentNumeric)) {
-          state.addNotification?.('error', '选中节点不是后端节点');
+          console.error('[advanceSimulation] Invalid node ID:', state.selectedNodeId, 'Type:', typeof state.selectedNodeId);
+          state.addNotification?.('error', i18n.t('store.selectedNodeNotBackend') || 'Selected node is not a backend node');
           set({ isGenerating: false } as any);
           return;
         }
@@ -316,7 +322,7 @@ export const createExperimentsSlice: StateCreator<
           nodeId: newNodeId,
           round: newDepth,
           type: 'SYSTEM',
-          content: `时间推进至: ${formatWorldTime(nextWorldTime)} (Round ${newDepth})` + '（离线模式，未执行真实动作）',
+          content: `${i18n.t('store.timeAdvancedTo') || 'Time advanced to'}: ${formatWorldTime(nextWorldTime)} (Round ${newDepth})` + ` (${i18n.t('store.offlineModeNoAction') || 'offline mode, no actual action performed'})`,
           timestamp: newNode.timestamp
         }
       ];
@@ -340,7 +346,7 @@ export const createExperimentsSlice: StateCreator<
     } catch (e) {
       console.error('advanceSimulation failed', e);
       set({ isGenerating: false } as any);
-      state.addNotification?.('error', '推进模拟失败');
+      state.addNotification?.('error', i18n.t('store.simulationAdvanceFailed') || 'Simulation advance failed');
     }
   },
 
@@ -358,12 +364,13 @@ export const createExperimentsSlice: StateCreator<
         const parentNumeric = Number(state.selectedNodeId);
 
         if (!Number.isFinite(parentNumeric)) {
-          state.addNotification?.('error', '选中节点不是后端节点');
+          console.error('[branchSimulation] Invalid node ID:', state.selectedNodeId, 'Type:', typeof state.selectedNodeId);
+          state.addNotification?.('error', i18n.t('store.selectedNodeNotBackend') || 'Selected node is not a backend node');
           return;
         }
 
         // treeBranchPublic expects: (base, id, parent, text, token)
-        const result = await treeBranchPublic(base, state.currentSimulation.id, parentNumeric, '分支', token);
+        const result = await treeBranchPublic(base, state.currentSimulation.id, parentNumeric, i18n.t('store.branch') || 'Branch', token);
 
         if (result?.child !== undefined) {
           // Refresh tree
@@ -372,7 +379,7 @@ export const createExperimentsSlice: StateCreator<
             const nodesMapped = mapGraphToNodes(graph);
             set({ nodes: nodesMapped } as any);
           }
-          state.addNotification?.('success', '分支已创建');
+          state.addNotification?.('success', i18n.t('store.branchCreated') || 'Branch created');
         }
       } else {
         // Standalone mode - create mock branch
@@ -380,14 +387,14 @@ export const createExperimentsSlice: StateCreator<
         const baseNode = state.nodes?.find((n: any) => n.id === state.selectedNodeId);
         if (!baseNode || !baseNode.parentId) {
           // Can't branch from root (no parent)
-          state.addNotification?.('error', '无法从根节点创建分支');
+          state.addNotification?.('error', i18n.t('store.cannotBranchFromRoot') || 'Cannot create branch from root node');
           return;
         }
 
         // Find the parent to create a sibling relationship
         const parentNode = state.nodes?.find((n: any) => n.id === baseNode.parentId);
         if (!parentNode) {
-          state.addNotification?.('error', '无法找到父节点');
+          state.addNotification?.('error', i18n.t('store.cannotFindParentNode') || 'Cannot find parent node');
           return;
         }
 
@@ -399,7 +406,7 @@ export const createExperimentsSlice: StateCreator<
           id: `branch-${Date.now()}`,
           display_id: `${parentNode.display_id}.${nextIndex}`,
           parentId: parentNode.id,  // Same parent as baseNode (sibling relationship)
-          name: '分支: 平行推演',
+          name: `${i18n.t('store.branch') || 'Branch'}: ${i18n.t('store.parallelRun') || 'Parallel Run'}`,
           depth: baseNode.depth,  // Same depth as baseNode (sibling relationship)
           isLeaf: true,
           status: 'pending' as const,
@@ -414,7 +421,7 @@ export const createExperimentsSlice: StateCreator<
             nodeId: newNode.id,
             round: newNode.depth,
             type: 'SYSTEM',
-            content: `创建分支: ${newNode.display_id} (平行推演场景)`,
+            content: `${i18n.t('store.createdBranch') || 'Created branch'}: ${newNode.display_id} (${i18n.t('store.parallelScenario') || 'parallel scenario'})`,
             timestamp: newNode.timestamp
           }
         ];
@@ -424,18 +431,18 @@ export const createExperimentsSlice: StateCreator<
           selectedNodeId: newNode.id,
           logs: [...(s.logs || []), ...newLogs]
         }));
-        state.addNotification?.('success', '分支已创建（本地模式）');
+        state.addNotification?.('success', i18n.t('store.branchCreatedLocalMode') || 'Branch created (local mode)');
       }
     } catch (e) {
       console.error('branchSimulation failed', e);
-      state.addNotification?.('error', '创建分支失败');
+      state.addNotification?.('error', i18n.t('store.backendBranchFailed') || 'Branch creation failed');
     }
   },
 
   deleteNode: async () => {
     const state = get() as any;
     if (!state.currentSimulation || !state.selectedNodeId || state.selectedNodeId === 'root') {
-      state.addNotification?.('error', '无法删除根节点');
+      state.addNotification?.('error', i18n.t('store.cannotDeleteRoot') || 'Cannot delete root node');
       return;
     }
 
@@ -474,10 +481,10 @@ export const createExperimentsSlice: StateCreator<
           selectedNodeId: 'root'
         }));
       }
-      state.addNotification?.('success', '节点已删除');
+      state.addNotification?.('success', i18n.t('store.nodeDeleted') || 'Node deleted');
     } catch (e) {
       console.error('deleteNode failed', e);
-      state.addNotification?.('error', '删除节点失败');
+      state.addNotification?.('error', i18n.t('store.failedToDeleteNode') || 'Failed to delete node');
     }
   },
 
@@ -529,7 +536,7 @@ export const createExperimentsSlice: StateCreator<
           // start the run (background) and poll for completion
           const runRes = await experimentsApi.runExperiment(simId, String(expId), 1);
           const runId = runRes?.run_id || (runRes as any)?.run_id;
-          state.addNotification?.('success', `实验 ${experimentName} 已提交 (run ID: ${runId})`);
+          state.addNotification?.('success', i18n.t('store.experimentSubmitted', { name: experimentName, runId }) || `Experiment "${experimentName}" submitted (run ID: ${runId})`);
 
           // If backend returned immediate node mapping, apply it
           const mapping = (runRes && (runRes as any).node_mapping) || null;
@@ -663,7 +670,7 @@ export const createExperimentsSlice: StateCreator<
           }
         } catch (e) {
           console.error('Experiment error', e);
-          state.addNotification?.('error', '启动实验失败: ' + (e as any).message);
+          state.addNotification?.('error', (i18n.t('store.failedToStartExperiment') || 'Failed to start experiment') + ': ' + (e as any).message);
         }
       })();
       return;
@@ -696,7 +703,7 @@ export const createExperimentsSlice: StateCreator<
       nodes: [...updatedNodes, ...newNodes],
       selectedNodeId: newNodes[0].id
     });
-    state.addNotification?.('success', `批量实验 "${experimentName}" 已启动（本地模式）`);
+    state.addNotification?.('success', i18n.t('store.batchExperimentStarted', { name: experimentName }) || `Batch experiment "${experimentName}" started (local mode)`);
   },
 
   generateReport: async () => {
@@ -804,11 +811,11 @@ export const createExperimentsSlice: StateCreator<
         currentSimulation: s.currentSimulation ? { ...s.currentSimulation, report } : s.currentSimulation,
         isGeneratingReport: false
       }));
-      state.addNotification?.('success', '报告生成完成');
+      state.addNotification?.('success', i18n.t('store.reportGenerationComplete') || 'Report generation complete');
     } catch (e) {
       console.error('generateReport failed', e);
       set({ isGeneratingReport: false } as any);
-      state.addNotification?.('error', '报告生成失败，请稍后重试');
+      state.addNotification?.('error', i18n.t('store.reportGenerationFailed') || 'Report generation failed, please try again later');
     }
   },
 
@@ -816,7 +823,7 @@ export const createExperimentsSlice: StateCreator<
     const state = get() as any;
     const report = state.currentSimulation?.report;
     if (!report) {
-      state.addNotification?.('error', '暂无报告可导出');
+      state.addNotification?.('error', i18n.t('store.noReportToExport') || 'No report to export');
       return;
     }
 
@@ -834,16 +841,16 @@ export const createExperimentsSlice: StateCreator<
 
     // markdown export
     const lines: string[] = [];
-    lines.push(`# 仿真实验分析报告`);
-    lines.push(`生成时间: ${new Date(report.generatedAt).toLocaleString()}`);
-    lines.push(`\n## 摘要\n${report.summary}`);
-    lines.push(`\n## 关键转折`);
+    lines.push(`# ${i18n.t('store.simulationReport') || 'Simulation Experiment Analysis Report'}`);
+    lines.push(`${i18n.t('store.generatedAt') || 'Generated at'}: ${new Date(report.generatedAt).toLocaleString()}`);
+    lines.push(`\n## ${i18n.t('store.summary') || 'Summary'}\n${report.summary}`);
+    lines.push(`\n## ${i18n.t('store.keyEvents') || 'Key Events'}`);
     report.keyEvents.forEach((ev) => {
       lines.push(`- R${ev.round}: ${ev.description}`);
     });
-    lines.push(`\n## 建议`);
+    lines.push(`\n## ${i18n.t('store.suggestions') || 'Suggestions'}`);
     report.suggestions.forEach((sug) => lines.push(`- ${sug}`));
-    lines.push(`\n## 智能体分析`);
+    lines.push(`\n## ${i18n.t('store.agentAnalysis') || 'Agent Analysis'}`);
     report.agentAnalysis.forEach((a) => {
       lines.push(`- **${a.agentName}**: ${a.analysis}`);
     });

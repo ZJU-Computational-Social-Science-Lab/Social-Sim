@@ -4,6 +4,7 @@ API routes for experiment template management and execution.
 Researchers can:
 - Create, list, update, delete experiment templates
 - Run experiments from templates
+- List available action types for template creation
 """
 
 from datetime import datetime, timezone
@@ -20,6 +21,9 @@ from socialsim4.backend.dependencies import extract_bearer_token, resolve_curren
 from socialsim4.backend.models.experiment_template import ExperimentTemplate
 from socialsim4.backend.models.simulation import Simulation
 from socialsim4.backend.schemas.experiment import (
+    ACTION_DESCRIPTIONS,
+    ActionType,
+    AvailableActionTypes,
     ExperimentTemplateCreate,
     ExperimentTemplateResponse,
     ExperimentTemplateUpdate,
@@ -57,6 +61,58 @@ async def get_template_for_owner(
     return template
 
 
+def _convert_action_to_dict(action: Any) -> dict[str, Any]:
+    """Convert an ExperimentAction schema to the dict format expected by the scene.
+
+    Args:
+        action: ExperimentAction from the schema
+
+    Returns:
+        Dict representation compatible with ExperimentScene
+    """
+    # Get the action name - use custom_action_name for custom actions
+    if hasattr(action, "action_type") and action.action_type == ActionType.CUSTOM:
+        action_name = getattr(action, "custom_action_name", "custom")
+    else:
+        action_name = getattr(action, "action_type", "action")
+
+    # Build parameters list
+    parameters = {}
+    if hasattr(action, "parameters") and action.parameters:
+        for param in action.parameters:
+            parameters[param.name] = param.description
+
+    return {
+        "name": action_name,
+        "description": getattr(action, "description", ""),
+        "parameters": parameters,
+    }
+
+
+@get("/action-types")
+async def list_action_types() -> AvailableActionTypes:
+    """
+    List available action types for experiment template creation.
+
+    Returns a list of predefined action types with their descriptions.
+    The frontend can use this to populate action selection dropdowns.
+
+    Returns:
+        AvailableActionTypes with list of actions including value, label, and description
+    """
+    actions_list = [
+        {
+            "value": action.value,
+            "label": action.value.replace("_", " ").title(),
+            "description": ACTION_DESCRIPTIONS.get(action.value, "")
+        }
+        for action in ActionType
+        if action.value != "custom"  # Custom is handled separately in UI
+    ]
+
+    return AvailableActionTypes(actions=actions_list)
+
+
 @post("/templates", status_code=201)
 async def create_template(
     request: Request,
@@ -79,11 +135,17 @@ async def create_template(
     async with get_session() as session:
         current_user = await resolve_current_user(session, token)
 
+        # Convert structured actions to dict format for storage
+        actions_dict = [_convert_action_to_dict(a) for a in data.actions]
+
+        # Convert settings to dict
+        settings_dict = data.settings.model_dump() if hasattr(data.settings, "model_dump") else data.settings
+
         db_template = ExperimentTemplate(
             name=data.name,
             description=data.description,
-            actions=data.actions,
-            settings=data.settings,
+            actions=actions_dict,
+            settings=settings_dict,
             created_by=current_user.id,
         )
         session.add(db_template)
@@ -190,6 +252,20 @@ async def update_template(
 
         # Update fields that are set
         update_data = data.model_dump(exclude_unset=True)
+
+        # Handle actions conversion if provided
+        if "actions" in update_data and update_data["actions"] is not None:
+            actions_dict = [_convert_action_to_dict(a) for a in data.actions]
+            template.actions = actions_dict
+            del update_data["actions"]
+
+        # Handle settings conversion if provided
+        if "settings" in update_data and update_data["settings"] is not None:
+            settings_dict = data.settings.model_dump() if hasattr(data.settings, "model_dump") else data.settings
+            template.settings = settings_dict
+            del update_data["settings"]
+
+        # Apply remaining updates
         for field, value in update_data.items():
             setattr(template, field, value)
 
@@ -253,8 +329,9 @@ async def run_experiment(
                       or access denied
 
     Note:
-        This endpoint creates a simulation record. The actual experiment
-        execution is handled by the background experiment runner service.
+        This endpoint creates a simulation record using the new
+        Three-Layer Architecture experiment platform. The experiment
+        runs when the simulation is started via the simulator.
     """
     token = extract_bearer_token(request)
     async with get_session() as session:
@@ -264,16 +341,15 @@ async def run_experiment(
         template = await get_template_for_owner(session, current_user.id, data.template_id)
 
         # Create simulation record from template
-        # TODO: Integrate with existing simulation system for full execution
         from socialsim4.backend.services.simulations import generate_simulation_id
 
         simulation_id = generate_simulation_id()
 
-        # Build scene_config from template
+        # Build scene_config from template for ExperimentScene
         scene_config = {
             "description": template.description,
-            "actions": template.actions,
-            "settings": template.settings,
+            "actions": [a.model_dump() for a in template.actions],
+            "settings": template.settings.model_dump() if hasattr(template.settings, "model_dump") else template.settings,
         }
 
         simulation = Simulation(
@@ -283,11 +359,23 @@ async def run_experiment(
             scene_type="experiment_template",
             scene_config=scene_config,
             agent_config={"agents": data.agents},
-            status="draft",
+            status="running",  # Set to running so the tree can be loaded
         )
         session.add(simulation)
         await session.commit()
         await session.refresh(simulation)
+
+        # Load the tree into registry so it's ready to run
+        from socialsim4.backend.api.routes.simulations.helpers import get_tree_record
+
+        try:
+            record = await get_tree_record(simulation, session, current_user.id)
+            # Mark the root node as running
+            record.running.add(0)
+        except Exception as e:
+            # If tree loading fails, still return the simulation
+            # The frontend can retry by starting the simulation
+            pass
 
         return ExperimentRunResponse(
             experiment_id=simulation.id,
@@ -296,6 +384,8 @@ async def run_experiment(
                 "simulation_id": simulation.id,
                 "template_id": template.id,
                 "scene_config": scene_config,
+                "max_rounds": scene_config["settings"].get("max_rounds", 10),
+                "round_visibility": scene_config["settings"].get("round_visibility", "simultaneous"),
             },
         )
 
@@ -303,6 +393,7 @@ async def run_experiment(
 router = Router(
     path="/experiment-templates",
     route_handlers=[
+        list_action_types,
         create_template,
         list_templates,
         get_template,

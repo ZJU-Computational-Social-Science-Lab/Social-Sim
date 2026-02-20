@@ -196,7 +196,8 @@ export const createSimulationSlice: StateCreator<
     }
 
     // Apply custom template actions to agents if present
-    const templateActions = (template as any).genericConfig?.availableActions || [];
+    // Note: ExperimentBuilderModal sets 'actions' (not 'availableActions')
+    const templateActions = (template as any).genericConfig?.actions || [];
     if (templateActions.length > 0 && finalAgents) {
       finalAgents = finalAgents.map(agent => ({
         ...agent,
@@ -220,18 +221,42 @@ export const createSimulationSlice: StateCreator<
             village: 'village_scene',
             council: 'council_scene',
             werewolf: 'werewolf_scene',
-            generic: 'generic_scene'
+            generic: 'generic_scene',
+            experiment: 'experiment_template'
           };
           const backendSceneType = mapSceneType[template.sceneType] || template.sceneType;
 
+          // Determine if this is an experiment template (has structured actions)
+          const isExperimentTemplate = backendSceneType === 'experiment_template' ||
+            (templateActions.length > 0 && templateActions.some((a: any) => a.action_type));
+
+          // For experiment templates, use the new structured action format
+          const sceneConfig: any = {
+            time_scale: finalTimeConfig,
+            social_network: template.defaultNetwork || {},
+            language: i18n.language || 'en',
+          };
+
+          if (isExperimentTemplate && templateActions.length > 0) {
+            // Use the new experiment template format
+            sceneConfig.description = template.genericConfig?.description || name || 'Experiment';
+            sceneConfig.actions = templateActions.map((action: any) => ({
+              action_type: action.action_type || action,
+              name: action.name || action,
+              description: action.description || `${action} action`,
+            }));
+            sceneConfig.settings = {
+              round_visibility: template.genericConfig?.round_visibility || 'simultaneous',
+              max_rounds: template.genericConfig?.max_rounds || 50,
+            };
+          } else if (templateActions.length > 0) {
+            // Legacy format
+            sceneConfig.available_actions = templateActions;
+          }
+
           const payload: any = {
-            scene_type: backendSceneType,
-            scene_config: {
-              time_scale: finalTimeConfig,
-              social_network: template.defaultNetwork || {},
-              ...(templateActions.length > 0 && { available_actions: templateActions }),
-              language: i18n.language || 'en',
-            },
+            scene_type: isExperimentTemplate ? 'experiment_template' : backendSceneType,
+            scene_config: sceneConfig,
             agent_config: {
               language: i18n.language || 'en',
               agents: (finalAgents || []).map((a: any) => ({
@@ -244,7 +269,9 @@ export const createSimulationSlice: StateCreator<
                 history: a.history || {},
                 memory: a.memory || [],
                 knowledgeBase: a.knowledgeBase || [],
-                action_space: Array.isArray(a.action_space) ? a.action_space : ['send_message']
+                // For experiment templates, use empty action_space (scene provides actions dynamically)
+                // For other scenes, use the agent's action_space or default to ['send_message']
+                action_space: isExperimentTemplate ? [] : (Array.isArray(a.action_space) ? a.action_space : ['send_message'])
               }))
             },
             llm_provider_id: state.selectedProviderId ?? state.currentProviderId ?? undefined,
@@ -255,7 +282,9 @@ export const createSimulationSlice: StateCreator<
 
           try {
             await startSimulation(base, sim.id, token);
-          } catch {}
+          } catch (e) {
+            console.error('[addSimulation] Failed to start simulation:', e);
+          }
 
           const newSim: Simulation = {
             id: sim.id,
@@ -273,17 +302,36 @@ export const createSimulationSlice: StateCreator<
             agents: finalAgents || [],
             logs: [],
             rawEvents: [],
-            timeConfig: finalTimeConfig
+            timeConfig: finalTimeConfig,
+            // Reset nodes and selectedNodeId before loading the graph
+            nodes: [],
+            selectedNodeId: null
           });
 
-          const graph = await getTreeGraph(base, sim.id, token);
-          if (graph) {
+          // Retry fetching the tree graph with exponential backoff
+          // The backend might need time to initialize the tree after starting the simulation
+          const maxRetries = 5;
+          const baseDelay = 500;
+          let graph: any = null;
+          for (let attempt = 0; attempt < maxRetries; attempt++) {
+            graph = await getTreeGraph(base, sim.id, token);
+            if (graph && graph.root != null) {
+              break;
+            }
+            if (attempt < maxRetries - 1) {
+              await new Promise(r => setTimeout(r, baseDelay * Math.pow(2, attempt)));
+            }
+          }
+
+          if (graph && graph.root != null) {
             const { mapGraphToNodes } = await import('./helpers');
             const nodesMapped = mapGraphToNodes(graph);
             set({
               nodes: nodesMapped,
-              selectedNodeId: graph.root != null ? String(graph.root) : nodesMapped[0]?.id ?? null
+              selectedNodeId: String(graph.root)
             });
+          } else {
+            console.error('[addSimulation] Failed to fetch tree graph after retries');
           }
 
           // Close the wizard

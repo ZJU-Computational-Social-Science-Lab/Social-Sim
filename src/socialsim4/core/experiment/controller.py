@@ -11,8 +11,11 @@ The controller implements the validation layer:
 
 import json
 import logging
+import sys
 from dataclasses import dataclass
 from typing import Dict, Any, Literal, Optional
+from pathlib import Path
+from datetime import datetime
 
 from socialsim4.core.experiment.agent import ExperimentAgent
 from socialsim4.core.experiment.game_configs import GameConfig
@@ -28,6 +31,13 @@ from socialsim4.core.llm.client import LLMClient
 
 
 logger = logging.getLogger(__name__)
+
+# Debug file for full prompts/responses (shared with runner)
+_debug_dir = Path("test_results")
+_debug_dir.mkdir(exist_ok=True)
+# Find the most recent debug file from runner
+_debug_files = sorted(_debug_dir.glob("experiment_debug_*.txt"), key=lambda x: x.stat().st_mtime, reverse=True)
+_debug_file = _debug_files[0] if _debug_files else _debug_dir / "experiment_debug.txt"
 
 
 @dataclass
@@ -98,11 +108,31 @@ class ExperimentController:
         Returns:
             ActionResult with outcome
         """
+        # Write to debug file
+        with open(_debug_file, 'a', encoding='utf-8') as f:
+            f.write(f"\n[CONTROLLER] Processing response from {agent.name}\n")
+            f.write(f"[CONTROLLER] output_field: {game_config.output_field}\n")
+            f.write(f"[CONTROLLER] allowed actions: {game_config.actions}\n")
+
+        print(f"\n[CONTROLLER] Processing response from {agent.name}")
+
         # Step 1: Clean and parse JSON
         cleaned = strip_think_tags(strip_markdown_fences(raw_json))
+
+        with open(_debug_file, 'a', encoding='utf-8') as f:
+            f.write(f"[CONTROLLER] Cleaned JSON: {cleaned}\n")
+
         try:
             parsed = json.loads(cleaned)
+
+            with open(_debug_file, 'a', encoding='utf-8') as f:
+                f.write(f"[CONTROLLER] Parsed JSON: {parsed}\n")
+
+            print(f"[CONTROLLER] Parsed OK, action={parsed.get(game_config.output_field)}")
         except json.JSONDecodeError as e:
+            with open(_debug_file, 'a', encoding='utf-8') as f:
+                f.write(f"[CONTROLLER] ERROR: Failed to parse JSON: {e}\n")
+            print(f"[CONTROLLER] ERROR: Failed to parse JSON")
             logger.error(f"Failed to parse JSON from {agent.name}: {e}")
             return ActionResult(
                 success=False,
@@ -118,6 +148,10 @@ class ExperimentController:
         # Step 2: Validate against game config
         validated = validate_and_clamp(parsed, game_config)
         if validated is None:
+            with open(_debug_file, 'a', encoding='utf-8') as f:
+                f.write(f"[CONTROLLER] ERROR: Validation failed - action not in allowed set\n")
+                f.write(f"[CONTROLLER] Parsed action field: {parsed.get(game_config.output_field, '')}\n")
+            print(f"[CONTROLLER] ERROR: Validation failed")
             logger.error(f"Validation failed for {agent.name}: {parsed}")
             return ActionResult(
                 success=False,
@@ -132,6 +166,11 @@ class ExperimentController:
 
         # Step 3: Extract action
         action_value = validated.get(game_config.output_field)
+
+        with open(_debug_file, 'a', encoding='utf-8') as f:
+            f.write(f"[CONTROLLER] Extracted action: {action_value}\n\n")
+
+        print(f"[CONTROLLER] Extracted action: {action_value}")
         summary = f"{agent.name} chose {action_value}"
 
         # Step 4: Record in context

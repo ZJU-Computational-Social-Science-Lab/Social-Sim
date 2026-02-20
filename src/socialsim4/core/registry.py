@@ -40,6 +40,7 @@ from .scenes.landlord_scene import LandlordPokerScene
 from .scenes.simple_chat_scene import SimpleChatScene
 from .scenes.village_scene import VillageScene
 from .scenes.werewolf_scene import WerewolfScene
+# Note: ExperimentScene and RunExperimentAction are imported lazily to avoid circular import
 from socialsim4.templates.loader import GenericScene
 
 ACTION_SPACE_MAP = {
@@ -85,6 +86,20 @@ ACTION_SPACE_MAP = {
     "no_double": NoDoubleAction(),
 }
 
+# Lazy loading for RunExperimentAction to avoid circular import
+def _get_run_experiment_action():
+    from .scenes.experiment_scene import RunExperimentAction
+    return RunExperimentAction()
+
+# Add run_experiment action after defining the lazy loader
+ACTION_SPACE_MAP["run_experiment"] = _get_run_experiment_action()
+
+# Lazy loading for ExperimentScene to avoid circular import
+def _get_experiment_scene():
+    from .scenes.experiment_scene import ExperimentScene
+    return ExperimentScene
+
+
 SCENE_MAP = {
     "simple_chat_scene": SimpleChatScene,
     "emotional_conflict_scene": SimpleChatScene,
@@ -93,7 +108,27 @@ SCENE_MAP = {
     "werewolf_scene": WerewolfScene,
     "landlord_scene": LandlordPokerScene,
     "generic_scene": GenericScene,
+    "experiment_template": _get_experiment_scene,
 }
+
+
+def get_scene_class(scene_key: str):
+    """Get a scene class from SCENE_MAP, handling lazy loading.
+
+    Args:
+        scene_key: The key to look up in SCENE_MAP
+
+    Returns:
+        The scene class (callable if it was a lazy loader)
+    """
+    scene_cls = SCENE_MAP.get(scene_key)
+    if scene_cls is None:
+        return None
+    # If it's a callable (lazy loader), call it to get the actual class
+    if callable(scene_cls) and not isinstance(scene_cls, type):
+        return scene_cls()
+    return scene_cls
+
 
 ORDERING_MAP = _ORDERING_MAP
 
@@ -146,6 +181,10 @@ SCENE_ACTIONS: dict[str, dict[str, list[str]]] = {
             "call_landlord", "rob_landlord", "pass", "play_cards", "double", "no_double",
         ],
     },
+    "experiment_template": {
+        "basic": ["run_experiment"],
+        "allowed": [],
+    },
 }
 
 # Scene descriptions for selection UI and docs
@@ -157,4 +196,5 @@ SCENE_DESCRIPTIONS: dict[str, str] = {
     "werewolf_scene": "Social deduction game with night/day phases and role-specific actions (moderated flow).",
     "landlord_scene": "Dou Dizhu (Landlord) card game flow with bidding, playing, and scoring stages.",
     "generic_scene": "A flexible scene type composed from template configuration. Supports custom mechanics and semantic actions.",
+    "experiment_template": "Social science experiment using Three-Layer Architecture (constrained decoding, structured prompts, validation). Supports custom actions and simultaneous/sequential rounds.",
 }

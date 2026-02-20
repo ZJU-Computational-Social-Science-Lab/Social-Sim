@@ -1299,7 +1299,22 @@
     "experimentCompleted": "Experiment {{name}} completed (run {{status}})",
     "failedToStartExperiment": "Failed to start experiment",
     "batchExperimentStarted": "Batch experiment \"{{name}}\" started",
-    "comparisonAnalysisFailed": "Comparison analysis failed"
+    "comparisonAnalysisFailed": "Comparison analysis failed",
+    "selectedNodeNotFound": "Selected node not found in the simulation tree. Please try refreshing the simulation.",
+    "localDemoComparison": "Local demo: two timelines differ in events and agent attributes (demo only).",
+    "timeAdvancedTo": "Time advanced to",
+    "offlineModeNoAction": "offline mode, no actual action performed",
+    "branchCreated": "Branch created",
+    "parallelRun": "Parallel Run",
+    "createdBranch": "Created branch",
+    "parallelScenario": "parallel scenario",
+    "branchCreatedLocalMode": "Branch created (local mode)",
+    "cannotBranchFromRoot": "Cannot create branch from root node",
+    "cannotFindParentNode": "Cannot find parent node",
+    "simulationReport": "Simulation Experiment Analysis Report",
+    "generatedAt": "Generated at",
+    "keyEvents": "Key Events",
+    "suggestions": "Suggestions"
   },
   "helpModal": {
     "title": "Understanding the Frontier Concept",
