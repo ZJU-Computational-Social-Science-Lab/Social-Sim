@@ -68,6 +68,8 @@ class ExperimentScene(Scene):
         name: str,
         initial_event: str,
         template_config: dict[str, Any] | None = None,
+        current_round: int = 0,
+        first_agent_name: str | None = None,
     ):
         """Initialize the experiment scene.
 
@@ -78,13 +80,18 @@ class ExperimentScene(Scene):
                 - description: Scenario description
                 - actions: List of action definitions
                 - settings: Game settings (round_visibility, max_rounds)
+            current_round: Current round number (for deserialization)
+            first_agent_name: Name of first agent (for deserialization)
         """
         super().__init__(name, initial_event)
         self.template_config = template_config or {}
 
-        # Round tracking
-        self._current_round = 0
+        # Round tracking - restore from serialization if provided
+        self._current_round = current_round
         self._max_rounds = self.template_config.get("settings", {}).get("max_rounds", 10)
+
+        # Restore first agent name if provided (prevents re-giving RunExperimentAction)
+        self._first_agent_name = first_agent_name
 
         # Lazy-initialized components (created on first run)
         self._runner: Optional[ExperimentRunner] = None
@@ -132,8 +139,12 @@ class ExperimentScene(Scene):
         return []
 
     def parse_and_handle_action(self, action_data: dict, agent: Agent, simulator: Simulator):
-        """Handle experiment-specific actions."""
-        action_name = action_data.get("action")
+        """Handle experiment-specific actions.
+
+        Args:
+            action_data: Action dict with 'name' and optional 'parameters' keys
+        """
+        action_name = action_data.get("name", action_data.get("action"))
 
         if action_name == "run_experiment":
             result = asyncio.run(self.run_one_round(simulator))
@@ -375,6 +386,7 @@ class ExperimentScene(Scene):
         return {
             "template_config": self.template_config,
             "current_round": self._current_round,
+            "first_agent_name": self._first_agent_name,
         }
 
     @classmethod
@@ -382,4 +394,6 @@ class ExperimentScene(Scene):
         """Parse config dict and return kwargs for the constructor."""
         return {
             "template_config": config.get("template_config", {}),
+            "current_round": config.get("current_round", 0),
+            "first_agent_name": config.get("first_agent_name"),
         }
