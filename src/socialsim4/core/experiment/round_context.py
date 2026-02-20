@@ -102,6 +102,25 @@ class RoundContextManager:
         """
         return self._summaries.get(agent_name, "")
 
+    def set_initial_context(self, context_summary: str) -> None:
+        """Set the same initial context for all agents.
+
+        This is called when running single rounds incrementally,
+        to set the context built from previous rounds.
+
+        Args:
+            context_summary: Context summary to set for all agents
+        """
+        # Get all agent names that might have been registered
+        # If we don't have names yet, store as default for new agents
+        self._default_context = context_summary
+
+        # Update existing summaries
+        if hasattr(self, '_summaries'):
+            for agent_name in list(self._summaries.keys()):
+                if context_summary:
+                    self._summaries[agent_name] = context_summary
+
     async def update_summaries(
         self,
         llm_client: LLMClient,

@@ -10,8 +10,11 @@ The runner manages the main experiment loop:
 
 import asyncio
 import logging
+import sys
 from typing import List, Dict, Any, Literal
 from dataclasses import dataclass
+from pathlib import Path
+from datetime import datetime
 
 from socialsim4.core.experiment.agent import ExperimentAgent
 from socialsim4.core.experiment.game_configs import GameConfig
@@ -21,8 +24,18 @@ from socialsim4.core.experiment.round_context import RoundContextManager
 from socialsim4.core.experiment.prompt_builder import build_prompt
 from socialsim4.core.llm.client import LLMClient
 
-
+# Configure debug logging to stdout
 logger = logging.getLogger(__name__)
+_handler = logging.StreamHandler(sys.stdout)
+_handler.setLevel(logging.DEBUG)
+_handler.setFormatter(logging.Formatter('[EXPERIMENT RUNNER] %(message)s'))
+logger.addHandler(_handler)
+logger.setLevel(logging.DEBUG)
+
+# Debug file for full prompts/responses (won't be truncated)
+_debug_dir = Path("test_results")
+_debug_dir.mkdir(exist_ok=True)
+_debug_file = _debug_dir / f"experiment_debug_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
 
 
 @dataclass
@@ -153,6 +166,42 @@ class ExperimentRunner:
             completed=len(actions) == len(self.agents)
         )
 
+    async def _run_single_round(
+        self, round_num: int, context_summary: str
+    ) -> RoundResult:
+        """Run a single round with provided context summary.
+
+        This method is called by ExperimentScene to run one round at a time
+        (instead of running all rounds in a loop). It uses the context summary
+        built from previous rounds.
+
+        Args:
+            round_num: The round number to run
+            context_summary: Context summary from previous rounds
+
+        Returns:
+            RoundResult with all agent actions for this round
+        """
+        # Set context summary for all agents before running the round
+        self.context_manager.set_initial_context(context_summary)
+
+        self.current_round = round_num
+        logger.info(f"Starting round {round_num}")
+
+        if self.round_visibility == "simultaneous":
+            round_result = await self._run_simultaneous_round(round_num)
+        else:
+            round_result = await self._run_sequential_round(round_num)
+
+        # Update context summaries after the round
+        await self.context_manager.update_summaries(
+            self.llm_client, self.agents, round_num
+        )
+
+        logger.info(f"Round {round_num} complete: {len(round_result.actions)} actions")
+
+        return round_result
+
     async def _prompt_agent(self, agent: ExperimentAgent, round_num: int) -> ActionResult:
         """Prompt a single agent and process their response.
 
@@ -167,6 +216,25 @@ class ExperimentRunner:
         context = self.context_manager.get_context(agent.name)
         prompt = build_prompt(agent, self.game_config, context)
 
+        # Write to debug file (won't be truncated)
+        with open(_debug_file, 'a', encoding='utf-8') as f:
+            f.write(f"\n{'='*80}\n")
+            f.write(f"[AGENT INPUT] {agent.name} - Round {round_num}\n")
+            f.write(f"{'='*80}\n")
+            f.write(f"Agent properties: {agent.get_properties_dict()}\n")
+            f.write(f"Game config: actions={self.game_config.actions}, type={self.game_config.action_type}\n")
+            f.write(f"\n--- PROMPT ---\n")
+            f.write(prompt)
+            f.write(f"\n--- END PROMPT ---\n\n")
+
+        # Print summary to console
+        print(f"\n[AGENT INPUT] {agent.name} - Round {round_num}")
+        print(f"Prompt length: {len(prompt)} chars")
+        print(f"See test_results/ for full prompt")
+
+        logger.debug(f"Prompting agent {agent.name} for round {round_num}")
+        logger.debug(f"Game config: actions={self.game_config.actions}, type={self.game_config.action_type}")
+
         try:
             # Call LLM (wrap synchronous call for async compatibility)
             messages = [{"role": "user", "content": prompt}]
@@ -174,15 +242,55 @@ class ExperimentRunner:
                 self.llm_client.chat, messages, json_mode=True
             )
 
+            # Write raw response to debug file
+            with open(_debug_file, 'a', encoding='utf-8') as f:
+                f.write(f"\n{'='*80}\n")
+                f.write(f"[AGENT OUTPUT] {agent.name} - Round {round_num}\n")
+                f.write(f"{'='*80}\n")
+                f.write(f"Raw LLM response:\n{raw_response}\n")
+                f.write(f"{'='*80}\n\n")
+
+            # Print summary to console
+            print(f"[AGENT OUTPUT] {agent.name} - Round {round_num}")
+            print(f"Response length: {len(raw_response)} chars")
+            print(f"First 200 chars: {raw_response[:200]}")
+
+            logger.debug(f"Raw response from {agent.name}: {raw_response[:200]}...")
+
             # Process response through controller (Layer 3)
             result = await self.controller.process_response(
                 raw_response, agent, self.game_config,
                 self.llm_client, round_num
             )
 
+            # Write processed result to debug file
+            with open(_debug_file, 'a', encoding='utf-8') as f:
+                f.write(f"\n[PROCESSED RESULT] {agent.name}\n")
+                f.write(f"  action: {result.action_name}\n")
+                f.write(f"  success: {result.success}\n")
+                f.write(f"  skipped: {result.skipped}\n")
+                f.write(f"  summary: {result.summary}\n")
+                if result.error:
+                    f.write(f"  error: {result.error}\n")
+                f.write("\n")
+
+            # Print summary to console
+            print(f"[PROCESSED RESULT] {agent.name}")
+            print(f"  action: {result.action_name}")
+            print(f"  success: {result.success}")
+            print(f"  skipped: {result.skipped}")
+            print()
+
+            logger.debug(f"Processed result: action={result.action_name}, success={result.success}, skipped={result.skipped}")
+            if result.error:
+                logger.debug(f"Error: {result.error}")
+
             return result
 
         except Exception as e:
+            with open(_debug_file, 'a', encoding='utf-8') as f:
+                f.write(f"\n[ERROR] Agent {agent.name} failed: {e}\n\n")
+            print(f"\n[ERROR] Agent {agent.name} failed: {e}\n")
             logger.error(f"Error prompting agent {agent.name}: {e}")
             return ActionResult(
                 success=False,
