@@ -50,93 +50,112 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
     }
   };
 
-  const handleComplete = (config: unknown) => {
+  const handleComplete = () => {
     // Get experiment builder state
     const state = useExperimentBuilder.getState();
 
-    // Convert interaction types to simulation name
-    const interactionTypes = state.interactionTypes || [];
-    const nameParts = interactionTypes.map((t_id) => (t(`experimentBuilder.interactionTypes.${t_id}`) as string || t_id).trim());
-    const name = nameParts.length > 0
-      ? nameParts.slice(0, 3).join(' + ') + (nameParts.length > 3 ? '...' : '')
-      : t('experimentBuilder.newExperiment');
+    // Create simulation name from scenario
+    const scenarioName = state.selectedScenarioData?.name || t('experimentBuilder.newExperiment');
+    const scenarioDescription = state.scenarioDescription || '';
+
+    // Build a descriptive name
+    let name = scenarioName;
+    if (scenarioDescription) {
+      // Truncate description if too long
+      const maxDescLength = 30;
+      const description = scenarioDescription.length > maxDescLength
+        ? scenarioDescription.substring(0, maxDescLength) + '...'
+        : scenarioDescription;
+      name = `${scenarioName} - ${description}`;
+    }
 
     // Convert agent types to simulation agent format
     const convertAgentToSimulationAgent = (agentType: any, index: number) => {
       const count = agentType.count || 1;
       const props = agentType.properties || {};
+      const agents = [];
 
-      // Determine profile: use userProfile for demographic agents, rolePrompt for manual agents
-      let profile = '';
-      let role = t('experimentBuilder.agent.defaultRole');
-      let rolePrompt = agentType.rolePrompt || t('experimentBuilder.agent.defaultRolePrompt');
+      for (let i = 0; i < count; i++) {
+        // Use rolePrompt as the profile/description
+        const profile = agentType.rolePrompt || t('experimentBuilder.agent.defaultRolePrompt');
+        const role = agentType.rolePrompt || '';
 
-      // Check if this is a demographic-generated agent
-      if (agentType.id && agentType.id.startsWith('demo-agent')) {
-        // Demographic agents: use userProfile (contains generated description)
-        profile = agentType.userProfile || '';
+        // Determine unique ID and name for each agent instance
+        const suffix = count > 1 ? ` ${i + 1}` : '';
+        const idSuffix = count > 1 ? `-${i}` : '';
 
-        // Build role from demographic properties
-        if (props.gender && props.age_group) {
-          role = `${props.gender} ${props.age_group}`;
-        } else if (props.opinion !== undefined) {
-          role = t('experimentBuilder.agent.agentWithOpinion', { opinion: props.opinion });
-        }
+        // Use avatarUrl from properties if available, otherwise generate one
+        const avatarUrl = props.avatarUrl ||
+          `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(agentType.label || 'agent') + i}`;
 
-        rolePrompt = role;
-      } else {
-        // Manual agents: use rolePrompt as the profile/description
-        profile = agentType.rolePrompt || '';
+        // Get LLM config
+        const selectedProvider = state.llmProviders.find((p) => p.id === state.selectedProviderId);
+        const llmConfig = selectedProvider
+          ? {
+              provider: selectedProvider.provider,
+              model: selectedProvider.model || 'default',
+            }
+          : {
+              provider: 'backend',
+              model: 'default',
+            };
+
+        agents.push({
+          name: agentType.label + suffix,
+          id: agentType.id + idSuffix,
+          role: role,
+          rolePrompt: profile,
+          avatarUrl: avatarUrl,
+          llmConfig: llmConfig,
+          properties: props,
+          history: {},
+          memory: [],
+          knowledgeBase: [],
+        });
       }
 
-      // Use avatarUrl from properties if available, otherwise generate one
-      const avatarUrl = props.avatarUrl ||
-        `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(agentType.label || 'agent')}`;
-
-      // LLM config - use selected provider from experiment builder state
-      const selectedProvider = state.llmProviders.find((p) => p.id === state.selectedProviderId);
-      const llmConfig = selectedProvider
-        ? {
-            provider: selectedProvider.provider,
-            model: selectedProvider.model || 'default',
-          }
-        : {
-            provider: 'backend',
-            model: 'default',
-          };
-
-      return {
-        name: agentType.label,
-        id: agentType.id,
-        role: role,
-        rolePrompt: rolePrompt,
-        avatarUrl: avatarUrl,
-        profile: profile,
-        llmConfig: llmConfig,
-        properties: props,
-        history: {},
-        memory: [],
-        knowledgeBase: [],
-      };
+      return agents;
     };
 
     // Create custom agents array from agent types
-    const customAgents = state.agentTypes.map(convertAgentToSimulationAgent);
+    const customAgents = state.agentTypes.flatMap(convertAgentToSimulationAgent);
+
+    // Build action list from selectedActionIds
+    const selectedActions = state.selectedActionIds || [];
+
+    // Get scenario for backend
+    const scenarioData = state.selectedScenarioData;
+
+    // Build generic config based on new experiment builder state
+    const genericConfig: any = {
+      description: scenarioDescription || t('experimentBuilder.customExperiment'),
+      scenarioId: state.selectedScenarioId || 'custom',
+      actions: selectedActions,
+    };
+
+    // Determine if this uses the new Three-Layer Architecture
+    // (strategic_decisions or any scenario with structured actions)
+    const isNewArchitecture = scenarioData?.category === 'game_theory' ||
+                             scenarioData?.category === 'discussion' ||
+                             scenarioData?.category === 'grid' ||
+                             scenarioData?.category === 'social_dynamics' ||
+                             scenarioData?.category === 'social_deduction';
 
     addSimulation(
       name,
       {
         id: 'experiment-template',
         name: name,
-        description: state.scenario || t('experimentBuilder.customExperiment'),
-        category: 'custom' as const,
-        sceneType: 'generic',
+        description: scenarioDescription || t('experimentBuilder.customExperiment'),
+        category: (scenarioData?.category || 'custom') as const,
+        sceneType: isNewArchitecture ? 'experiment' : 'generic',
         agents: customAgents,
         defaultTimeConfig: {
           baseTime: new Date().toISOString(),
           unit: 'hour' as const,
           step: 1,
         },
+        genericConfig: genericConfig,
       },
       undefined,
       undefined
@@ -145,7 +164,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
     addNotification('success', t('experimentBuilder.experimentCreated'));
 
     if (onComplete) {
-      onComplete(config);
+      onComplete({});
     } else {
       handleClose();
     }
