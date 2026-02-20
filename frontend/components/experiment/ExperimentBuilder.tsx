@@ -10,7 +10,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { useExperimentBuilder } from '../../store/experiment-builder';
+import { useExperimentBuilder, STEPS } from '../../store/experiment-builder';
 import { ProgressBar } from '../ui/progress-bar';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
@@ -23,14 +23,6 @@ import { Step2StarterTemplate } from './Step2StarterTemplate';
 import { Step3Scenario } from './Step3Scenario';
 import { Step4Agents } from './Step4Agents';
 import { Step5Structure } from './Step5Structure';
-
-const STEPS = [
-  { id: 1, title: 'Interaction Patterns', description: 'Choose interaction patterns' },
-  { id: 2, title: 'Starter Template', description: 'Optional template to speed up' },
-  { id: 3, title: 'Scenario & Mechanics', description: 'Configure your experiment' },
-  { id: 4, title: 'Agent Design', description: 'Define your agents' },
-  { id: 5, title: 'Structure & Review', description: 'Finalize and preview' },
-];
 
 interface ExperimentBuilderProps {
   onComplete?: (config: unknown) => void;
@@ -45,6 +37,10 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
     currentStep,
     completedSteps,
     interactionTypes,
+    selectedScenarioId,
+    scenarioDescription,
+    selectedActionIds,
+    agentTypes,
     nextStep,
     prevStep,
     setCurrentStep,
@@ -74,15 +70,17 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
     // Step-specific validation
     switch (currentStep) {
       case 1:
-        return interactionTypes.length > 0;
+        return selectedScenarioId !== null;
       case 2:
-        return true; // Optional step
+        return scenarioDescription.trim() !== '';
       case 3:
-        return true; // Will be validated
+        return selectedActionIds.length >= 1;
       case 4:
-        return true; // Will be validated
+        // Total agent count >= 1
+        const totalAgents = agentTypes.reduce((sum, type) => sum + (type.count || 0), 0);
+        return totalAgents >= 1;
       case 5:
-        return true; // Final review
+        return true; // Review page - always allowed
       default:
         return false;
     }
