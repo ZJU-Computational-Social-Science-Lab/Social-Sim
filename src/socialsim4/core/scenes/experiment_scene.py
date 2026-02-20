@@ -129,13 +129,20 @@ class ExperimentScene(Scene):
 
         All agents contribute to each round, but only the first agent
         needs the trigger action.
+
+        The first agent is determined once per scene instance and
+        consistently gets RunExperimentAction on every turn.
         """
+        # Track the first agent - only they get the RunExperimentAction
         if self._first_agent_name is None:
             self._first_agent_name = agent.name
-            logger.debug(f"[EXPERIMENT SCENE] First agent is {agent.name}, giving them RunExperimentAction")
+            logger.debug(f"[EXPERIMENT SCENE] First agent set to {agent.name}, giving them RunExperimentAction")
+
+        if agent.name == self._first_agent_name and not self.is_complete():
+            logger.debug(f"[EXPERIMENT SCENE] {agent.name} is first agent, giving RunExperimentAction (round {self._current_round}/{self._max_rounds})")
             return [RunExperimentAction()]
 
-        logger.debug(f"[EXPERIMENT SCENE] Agent {agent.name} is not first, no actions given")
+        logger.debug(f"[EXPERIMENT SCENE] Agent {agent.name} is not first or scene complete, no actions given")
         return []
 
     def parse_and_handle_action(self, action_data: dict, agent: Agent, simulator: Simulator):
