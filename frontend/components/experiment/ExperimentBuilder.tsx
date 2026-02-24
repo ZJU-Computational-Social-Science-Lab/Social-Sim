@@ -9,7 +9,7 @@
  * 5. Set structure, conditions, and review
  */
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useExperimentBuilder, STEPS } from '../../store/experiment-builder';
 import { ProgressBar } from '../ui/progress-bar';
 import { Button } from '../ui/button';
@@ -34,28 +34,28 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
   const {
     currentStep,
     completedSteps,
-    interactionTypes,
     selectedScenarioId,
     scenarioDescription,
     selectedActionIds,
     agentTypes,
     nextStep,
     prevStep,
-    setCurrentStep,
     validate,
+    clearValidationErrors,
     reset,
   } = useExperimentBuilder();
 
-  // Validate on mount and when step changes
-  useEffect(() => {
-    validate();
-  }, [currentStep]);
-
   const handleNext = () => {
+    const errors = validate();
+    if (Object.keys(errors).length > 0) {
+      // Stay on current step, errors visible via ValidationAlert
+      return;
+    }
     nextStep();
   };
 
   const handleBack = () => {
+    clearValidationErrors();
     prevStep();
   };
 
