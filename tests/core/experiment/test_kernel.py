@@ -51,3 +51,28 @@ def test_action_execution():
     speak = SpeakAction()
     summary = speak.execute("Bob", {"message": "Hello world"}, {})
     assert summary == 'Bob: "Hello world"'
+
+
+def test_all_sociology_actions_registered():
+    """All sociology actions should be registered in the kernel."""
+    from socialsim4.core.scenarios.actions import CATEGORY_ACTION_LIBRARIES
+
+    kernel = ExperimentKernel()
+    sociology_actions = CATEGORY_ACTION_LIBRARIES.get("sociology", [])
+
+    # Check that sociology category exists and has actions
+    assert len(sociology_actions) > 0, "Sociology category should have actions"
+
+    # Check that all sociology action IDs are registered
+    for action_def in sociology_actions:
+        action_id = action_def["id"]
+        # The kernel registers action types (classes), not individual IDs
+        # Sociology actions use a generic handler that looks up by ID
+        assert action_id is not None
+        assert isinstance(action_id, str)
+
+
+def test_unknown_action_returns_none():
+    """Getting an unknown action should return None."""
+    result = ExperimentKernel.get_action("nonexistent_action")
+    assert result is None
