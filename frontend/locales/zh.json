@@ -61,6 +61,34 @@
     "loading": "加载中…",
     "error": "无法加载模拟。"
   },
+  "scenario": {
+    "category": {
+      "game_theory": "博弈论",
+      "social_dynamics": "社会动力学",
+      "discussion": "讨论",
+      "grid_world": "网格世界",
+      "social_deduction": "社会推理",
+      "sociology": "社会学"
+    },
+    "sociology": {
+      "social_norm_disruption": {
+        "name": "社会规范破坏",
+        "description": "一项新规则突然强加给群体。具有不同社会地位和性格的代理人必须决定如何应对。"
+      },
+      "policy_erosion": {
+        "name": "政策意义侵蚀",
+        "description": "一项政策在三层层级结构的顶部宣布。每一层决定如何解释和传递它。"
+      },
+      "echo_chamber": {
+        "name": "回声室",
+        "description": "代理人持有从强烈进步到强烈保守的观点。观察观点漂移和信息茧房。"
+      },
+      "resource_scarcity": {
+        "name": "资源稀缺",
+        "description": "灾后社区面临资源稀缺。代理人决定是分享、交易还是为了个人利益而背叛。"
+      }
+    }
+  },
   "settings": {
     "title": "设置",
     "tabs": {
@@ -635,7 +663,99 @@
     "send_message": "发送消息",
     "gather_resource": "采集资源",
     "rest": "休息",
-    "yield": "结束本轮发言"
+    "yield": "结束本轮发言",
+    "comply_publicly": {
+      "description": "公开接受并遵守规范或指令",
+      "execute": "{agent_name} 公开遵守了规范"
+    },
+    "comply_covertly_resist": {
+      "description": "形式上遵守但私下规避",
+      "execute": "{agent_name} 公开遵守但私下抵制"
+    },
+    "resist_openly": {
+      "description": "公开拒绝或挑战规范",
+      "execute": "{agent_name} 公开抵制规范"
+    },
+    "persuade_others": {
+      "description": "说服他人采纳你的立场",
+      "execute": "{agent_name} 试图说服他人"
+    },
+    "form_coalition": {
+      "description": "与志同道合者组织起来",
+      "execute": "{agent_name} 组建了联盟"
+    },
+    "transmit_faithfully": {
+      "description": "完全按原样传递政策",
+      "execute": "{agent_name} 忠实地传达了政策"
+    },
+    "reinterpret_downward": {
+      "description": "在向下传递时调整政策",
+      "execute": "{agent_name} 重新解读了政策"
+    },
+    "comply_directive": {
+      "description": "接受并执行上级指令",
+      "execute": "{agent_name} 遵守了指令"
+    },
+    "resist_quietly": {
+      "description": "形式上遵守但避免实际执行",
+      "execute": "{agent_name} 悄悄抵制"
+    },
+    "report_up": {
+      "description": "向更高层级的当局升级障碍",
+      "execute": "{agent_name} 向上报告"
+    },
+    "create_workaround": {
+      "description": "建立绕过正式规则的非正式路径",
+      "execute": "{agent_name} 创建了变通方法"
+    },
+    "express_opinion": {
+      "description": "分享你当前的观点",
+      "execute": "{agent_name} 表达了意见"
+    },
+    "reinforce_ingroup": {
+      "description": "与相似观点接触并放大",
+      "execute": "{agent_name} 强化了群体内部"
+    },
+    "challenge_outgroup": {
+      "description": "积极反对相反观点",
+      "execute": "{agent_name} 挑战外部群体观点"
+    },
+    "seek_common_ground": {
+      "description": "在观点分歧中寻找共同价值观",
+      "execute": "{agent_name} 寻求共同点"
+    },
+    "share_content": {
+      "description": "分享强化你立场的信息",
+      "execute": "{agent_name} 分享了内容"
+    },
+    "disengage": {
+      "description": "退出与相反观点的接触",
+      "execute": "{agent_name} 退出接触"
+    },
+    "share_resources": {
+      "description": "将部分资源给另一个代理",
+      "execute": "{agent_name} 分享了资源"
+    },
+    "hoard": {
+      "description": "保留所有资源给自己",
+      "execute": "{agent_name} 囤积了资源"
+    },
+    "propose_trade": {
+      "description": "提议交换资源",
+      "execute": "{agent_name} 提议交易"
+    },
+    "form_contract": {
+      "description": "提议正式的合作协议",
+      "execute": "{agent_name} 形成了合同"
+    },
+    "honor_contract": {
+      "description": "履行现有协议",
+      "execute": "{agent_name} 遵守了合同"
+    },
+    "defect_from_contract": {
+      "description": "为了个人利益违反协议",
+      "execute": "{agent_name} 违反了合同"
+    }
   },
   "simPage": {
     "noSimulation": "未选择仿真",
@@ -1147,6 +1267,20 @@
       "instructions": "请把上面这行红字错误信息，或者浏览器控制台（F12 Console）里红色那行，截图或复制给开发团队。"
     }
   },
+  "param": {
+    "uiHint": {
+      "slider": "滑块",
+      "percentage": "百分比",
+      "textarea": "文本区域",
+      "text": "文本输入",
+      "select": "选择",
+      "toggle": "切换",
+      "list": "列表",
+      "multiselect": "多选",
+      "key_value": "键值对",
+      "drag_list": "拖动列表"
+    }
+  },
   "pages": {
     "docsPage": {
       "documentation": "文档 / 使用说明",
@@ -1386,7 +1520,25 @@
       "optionalAddons": "可选附加功能",
       "optionalAddonsDesc": "根据您的选择，您可以在后续步骤中添加投票、多阶段或脚本化智能体。"
     },
-    "close": "关闭"
+    "close": "关闭",
+    "roundSettings": {
+      "title": "回合设置",
+      "roundVisibility": {
+        "label": "回合可见性",
+        "simultaneous": "同时（所有人同时决定）",
+        "sequential": "顺序（逐一进行）"
+      },
+      "turnOrder": {
+        "label": "行动顺序",
+        "fixed": "固定",
+        "random": "随机"
+      }
+    },
+    "promptPreview": {
+      "title": "示例代理提示词",
+      "note": "所有 {n} 个代理类型接收相同的场景、行动和输出格式。只有代理描述不同。",
+      "otherTypes": "其他代理类型"
+    }
   },
   "systemTemplates": {
     "normDisruption": {
