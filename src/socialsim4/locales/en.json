@@ -1,0 +1,38 @@
+{
+  "error": {
+    "simulation": {
+      "not_found": "Simulation not found"
+    }
+  },
+  "agent": {
+    "joined": "{name} joined the simulation"
+  },
+  "scenario": {
+    "category": {
+      "game_theory": "Game Theory",
+      "social_dynamics": "Social Dynamics",
+      "discussion": "Discussion",
+      "grid_world": "Grid World",
+      "social_deduction": "Social Deduction",
+      "sociology": "Sociology"
+    }
+  },
+  "actions": {
+    "comply_publicly": {
+      "description": "Visibly accept and follow the norm or directive",
+      "execute": "{agent_name} publicly complied with the norm"
+    },
+    "resist_openly": {
+      "description": "Openly refuse or challenge the norm",
+      "execute": "{agent_name} openly resisted the norm"
+    },
+    "express_opinion": {
+      "description": "Share your current viewpoint",
+      "execute": "{agent_name} expressed their opinion"
+    },
+    "share_resources": {
+      "description": "Give some of your resources to another agent",
+      "execute": "{agent_name} shared resources"
+    }
+  }
+}
