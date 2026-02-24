@@ -4,9 +4,13 @@
  * Displays a preview of exactly what each agent type will see
  * at the start of the simulation. This matches the backend's
  * prompt_builder.py build_prompt() function template.
+ *
+ * Shows only the first agent type as full preview panel,
+ * with remaining types shown as compact list.
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useExperimentBuilder } from '../../store/experiment-builder';
 import { AlertCircle } from 'lucide-react';
 
@@ -120,6 +124,7 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
 };
 
 export const Step5Structure: React.FC = () => {
+  const { t } = useTranslation();
   const {
     agentTypes,
     scenarioDescription,
@@ -148,41 +153,60 @@ export const Step5Structure: React.FC = () => {
     );
   }
 
+  const firstAgentType = agentTypes[0];
+  const remainingAgentTypes = agentTypes.slice(1);
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="text-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
-          Agent Prompt Preview
-        </h2>
-        <p className="text-sm text-gray-600">
-          This is exactly what each agent type will see at the start of the simulation
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-blue-900">
+          {t('experiment.promptPreview.title')} (Agent Type: {firstAgentType.label})
+        </h3>
+        <p className="text-sm text-blue-700 mt-1">
+          {t('experiment.promptPreview.note', { n: agentTypes.length })}
         </p>
       </div>
 
-      {/* Preview Panels for each agent type */}
-      <div className="space-y-6">
-        {agentTypes.map((agentType) => (
-          <PromptPreviewPanel
-            key={agentType.id}
-            agentTypeLabel={agentType.label}
-            agentTypeProfile={agentType.userProfile || ''}
-            agentTypeRolePrompt={agentType.rolePrompt || ''}
-            scenarioDescription={scenarioDescription}
-            availableActions={availableActions}
-            selectedActionIds={selectedActionIds}
-          />
-        ))}
-      </div>
+      {/* Full preview for first agent type */}
+      <PromptPreviewPanel
+        agentTypeLabel={firstAgentType.label}
+        agentTypeProfile={firstAgentType.userProfile || ''}
+        agentTypeRolePrompt={firstAgentType.rolePrompt || ''}
+        scenarioDescription={scenarioDescription}
+        availableActions={availableActions}
+        selectedActionIds={selectedActionIds}
+      />
+
+      {/* Compact list for remaining agent types */}
+      {remainingAgentTypes.length > 0 && (
+        <div className="border-t pt-4">
+          <h4 className="font-medium text-gray-700 mb-3">
+            {t('experiment.promptPreview.otherTypes')}
+          </h4>
+          <div className="space-y-2">
+            {remainingAgentTypes.map(type => (
+              <div key={type.id} className="bg-gray-50 rounded p-3">
+                <div className="font-medium">{type.label}</div>
+                {type.rolePrompt && (
+                  <div className="text-sm text-gray-600 mt-1">
+                    Role: {type.rolePrompt}
+                  </div>
+                )}
+                {type.userProfile && (
+                  <div className="text-sm text-gray-600 mt-1">
+                    Profile: {type.userProfile}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Summary */}
-      <div className="flex justify-center pt-4">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-800 rounded-lg text-sm">
-          <span className="font-medium">
-            {totalAgents} total agent{totalAgents !== 1 ? 's' : ''} across {agentTypes.length} type
-            {agentTypes.length !== 1 ? 's' : ''}
-          </span>
-        </div>
+      <div className="text-sm text-gray-500">
+        {totalAgents} total agents across {agentTypes.length} types
       </div>
     </div>
   );
