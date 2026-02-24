@@ -53,6 +53,27 @@ Once both servers are running:
 
 ---
 
+## Debug Logs
+
+When you run experiments, the backend creates detailed debug logs showing:
+
+- **LLM Input**: The full prompt sent to the LLM, broken into 5 sections:
+  1. Agent Description
+  2. Scenario
+  3. Available Actions
+  4. Context
+  5. JSON Output Requirement
+
+- **LLM Output**: The raw response from the LLM
+
+- **Follow-up Prompts**: If an action requires parameters (like "talk"), the follow-up prompt is logged
+
+**Log Location:** `test_results/experiment_debug_YYYYMMDD_HHMMSS.txt`
+
+**Console Output:** Summaries are also printed to the backend terminal with key info.
+
+---
+
 ## Adding Ollama Model
 
 ### Step 1: Make sure Ollama is running
