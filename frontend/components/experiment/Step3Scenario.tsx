@@ -2,11 +2,13 @@
  * Step 3: Action Selector
  *
  * Displays available actions as toggle cards.
+ * Shows all category actions when scenario has category_actions.
  * Users can enable/disable actions and add custom actions for custom scenarios.
- * All actions are selected by default, with a minimum of 1 required.
+ * At least one action must be selected.
  */
 
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useExperimentBuilder } from '../../store/experiment-builder';
 import { Circle, Plus, X } from 'lucide-react';
 
@@ -92,6 +94,7 @@ interface CustomAction {
 }
 
 export const Step3Scenario: React.FC = () => {
+  const { t } = useTranslation();
   const {
     selectedScenarioData,
     availableActions,
@@ -108,11 +111,16 @@ export const Step3Scenario: React.FC = () => {
   const [newActionDescription, setNewActionDescription] = useState('');
 
   // Initialize available actions from scenario data
+  // Use category_actions if available, otherwise fall back to scenario.actions
   useEffect(() => {
     if (selectedScenarioData) {
-      setAvailableActions(selectedScenarioData.actions);
-      // Initialize selectedActionIds with all actions (selected by default)
-      setSelectedActionIds(selectedScenarioData.actions.map((a) => a.name));
+      // Use category_actions if available, otherwise use scenario.actions
+      const actionsToShow = selectedScenarioData.category_actions || selectedScenarioData.actions;
+      setAvailableActions(actionsToShow);
+
+      // Use default_action_ids if available, otherwise select all actions by default
+      const defaultIds = selectedScenarioData.default_action_ids || actionsToShow.map((a) => a.name);
+      setSelectedActionIds(defaultIds);
     }
   }, [selectedScenarioData, setAvailableActions, setSelectedActionIds]);
 
@@ -170,6 +178,12 @@ export const Step3Scenario: React.FC = () => {
         <p className="text-sm text-gray-600 mt-1">
           Choose what actions agents can take. At least one action must be selected.
         </p>
+        {selectedScenarioData?.category_actions && (
+          <p className="text-xs text-gray-500 mt-2">
+            Showing all available actions for the {selectedScenarioData.category} category.
+            This scenario starts with a pre-selected set of actions.
+          </p>
+        )}
       </div>
 
       {/* Validation Error */}
