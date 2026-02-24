@@ -14,7 +14,6 @@ import { useExperimentBuilder, STEPS } from '../../store/experiment-builder';
 import { ProgressBar } from '../ui/progress-bar';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
-import { ValidationAlert } from './ValidationAlert';
 // Step components
 import { Step1InteractionType } from './Step1InteractionType';
 import { Step2StarterTemplate } from './Step2StarterTemplate';
@@ -40,22 +39,14 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
     agentTypes,
     nextStep,
     prevStep,
-    validate,
-    clearValidationErrors,
-    reset,
   } = useExperimentBuilder();
 
   const handleNext = () => {
-    const isValid = validate();
-    if (!isValid) {
-      // Stay on current step, errors visible via ValidationAlert
-      return;
-    }
+    if (!canProceed()) return;
     nextStep();
   };
 
   const handleBack = () => {
-    clearValidationErrors();
     prevStep();
   };
 
@@ -107,9 +98,6 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
           steps={STEPS}
         />
       </div>
-
-      {/* Validation Alerts */}
-      <ValidationAlert />
 
       {/* Step Content */}
       <Card className="mb-6">
