@@ -17,15 +17,17 @@ class GameConfig:
         description: Full rules/payoffs description
         action_type: Type of action - "discrete" (enum) or "integer" (range)
         actions: List of valid action names (for discrete type)
+        action_descriptions: Dict mapping action names to descriptions (Bug A fix)
         output_field: JSON field name for the action
         min: Minimum value (for integer type)
         max: Maximum value (for integer type)
-        payoff_summary: Optional payoff description
+        payoff_summary: Optional payoff description (Bug B fix)
     """
     name: str
     description: str
     action_type: Literal["discrete", "integer"]
     actions: list[str]
+    action_descriptions: dict[str, str] | None = None  # Bug A: Action descriptions
     output_field: str = "action"
     min: int = 0
     max: int = 10
@@ -45,6 +47,10 @@ PRISONERS_DILEMMA = GameConfig(
     ),
     action_type="discrete",
     actions=["cooperate", "defect"],
+    action_descriptions={
+        "cooperate": "Remain silent and cooperate with your partner",
+        "defect": "Betray your partner and testify against them"
+    },
     payoff_summary="Your payoff depends on both your choice and your partner's choice.",
 )
 

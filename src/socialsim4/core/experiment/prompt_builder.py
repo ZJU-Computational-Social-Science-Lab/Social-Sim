@@ -111,16 +111,31 @@ def build_prompt(
     """
     sections = []
 
-    # Section 1: Agent Description
+    # Section 1: Agent Description (including role_prompt if present - Bug C)
     agent_desc = build_agent_description(agent.get_properties_dict())
     sections.append(agent_desc)
 
-    # Section 2: Scenario
-    sections.append(f"\n## Scenario\n{game_config.description}")
+    # Bug C: Add role_prompt if present
+    if hasattr(agent, 'role_prompt') and agent.role_prompt:
+        sections.append(f"\n{agent.role_prompt}")
 
-    # Section 3: Available Actions
+    # Section 2: Scenario (including payoff_summary if present - Bug B)
+    scenario_text = game_config.description
+    if game_config.payoff_summary:
+        scenario_text += f"\n\n{game_config.payoff_summary}"
+    sections.append(f"\n## Scenario\n{scenario_text}")
+
+    # Section 3: Available Actions (using descriptions - Bug A)
     if game_config.action_type == "discrete":
-        actions_list = "\n".join(f"- {a}: {a}" for a in game_config.actions)
+        if game_config.action_descriptions:
+            # Bug A: Use action descriptions instead of "cooperate: cooperate"
+            actions_list = "\n".join(
+                f"- {a}: {game_config.action_descriptions.get(a, a)}"
+                for a in game_config.actions
+            )
+        else:
+            # Fallback to action name only if no descriptions available
+            actions_list = "\n".join(f"- {a}" for a in game_config.actions)
         sections.append(f"\n## Available Actions\n{actions_list}")
     else:  # integer
         sections.append(f"\n## Your Action\nChoose a value from {game_config.min} to {game_config.max}.")

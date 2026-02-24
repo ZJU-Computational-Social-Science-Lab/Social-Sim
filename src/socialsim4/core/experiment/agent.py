@@ -24,11 +24,13 @@ class ExperimentAgent:
         name: Agent's display name
         properties: Demographic properties (age, profession, traits, etc.)
         llm_config: Which LLM provider/model to use for this agent
+        role_prompt: Optional role-specific prompt (Bug C fix)
     """
 
     name: str
     properties: Dict[str, Any]
     llm_config: LLMConfig
+    role_prompt: str | None = None  # Bug C: Optional role-specific prompt
 
     def get_properties_dict(self) -> Dict[str, Any]:
         """Return properties as dict for prompt builder."""

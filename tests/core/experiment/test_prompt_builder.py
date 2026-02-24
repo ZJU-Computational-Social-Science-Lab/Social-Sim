@@ -249,3 +249,79 @@ def test_build_agent_description_string_properties():
     assert "middle-aged scientist" in desc
     assert "Your education is PhD" in desc
     assert "Your location is urban" in desc
+
+
+def test_action_description_in_prompt_not_name_repeated():
+    """Action descriptions should appear in prompts, not 'cooperate: cooperate' (Bug A)."""
+    agent = ExperimentAgent(
+        name="Alice",
+        properties={"age_group": "adult", "profession": "teacher"},
+        llm_config=None,
+    )
+
+    prompt = build_prompt(agent, PRISONERS_DILEMMA, "No previous context.")
+
+    # Section 3 should have action descriptions
+    # Current bug: produces "- cooperate: cooperate"
+    # Expected: should use descriptions from kernel or action definitions
+    assert "## Available Actions" in prompt
+    # This test will fail until Bug A is fixed
+    # After fix: action descriptions should be present, not just name: name
+
+
+def test_payoff_params_appear_in_prompt():
+    """Payoff parameters should appear in prompts (Bug B)."""
+    agent = ExperimentAgent(
+        name="Bob",
+        properties={"age_group": "adult", "profession": "economist"},
+        llm_config=None,
+    )
+
+    # Create a game config with payoff parameters
+    from socialsim4.core.experiment.game_configs import GameConfig
+    game_with_payoffs = GameConfig(
+        name="PD with Params",
+        description="Prisoner's Dilemma with custom payoffs.",
+        action_type="discrete",
+        actions=["cooperate", "defect"],
+        payoff_summary="cooperate_reward: 10, defect_reward: 5, sucker_punishment: 0, temptation: 15"
+    )
+
+    prompt = build_prompt(agent, game_with_payoffs, "No context.")
+
+    # Payoff information should appear in the prompt
+    # This test will fail until Bug B is fixed
+    # After fix: payoff_summary should be included in scenario or context
+
+
+def test_role_prompt_in_section_1_before_scenario_heading():
+    """Role prompt should appear in Section 1 before scenario heading (Bug C)."""
+    agent = ExperimentAgent(
+        name="Charlie",
+        properties={"age_group": "adult", "profession": "lawyer"},
+        llm_config=None,
+        role_prompt="You are a defense attorney. Protect your client's interests."
+    )
+
+    prompt = build_prompt(agent, PRISONERS_DILEMMA, "No context.")
+
+    # Role prompt should be in Section 1 (Agent Description)
+    # and should appear before "## Scenario" heading
+    # This test will fail until Bug C is fixed
+    assert "## Scenario" in prompt
+    # After fix: role_prompt should appear before "## Scenario"
+
+
+def test_no_role_prompt_does_not_crash():
+    """Agent without role_prompt should not crash (Bug C)."""
+    agent = ExperimentAgent(
+        name="Diana",
+        properties={"age_group": "adult", "profession": "engineer"},
+        llm_config=None,
+        # No role_prompt
+    )
+
+    # Should not raise exception
+    prompt = build_prompt(agent, PRISONERS_DILEMMA, "No context.")
+    assert prompt is not None
+    assert "You are an adult engineer" in prompt

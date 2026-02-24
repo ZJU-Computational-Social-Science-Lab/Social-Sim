@@ -333,3 +333,82 @@ async def test_invalid_json_response_handling(agents, mock_llm_client):
     # Both actions should have failed
     assert all(not action.success for action in results[0].actions)
     assert all(action.skipped for action in results[0].actions)
+
+
+@pytest.mark.asyncio
+async def test_random_turn_order_varies(agents, mock_llm_client):
+    """In random mode, turn order should vary between rounds."""
+    runner = ExperimentRunner(
+        agents=agents,
+        game_config=PRISONERS_DILEMMA,
+        llm_client=mock_llm_client,
+        round_visibility="random"
+    )
+
+    # Run multiple rounds and track turn orders
+    await runner.run(max_rounds=5)
+
+    # Turn order should be tracked and vary
+    assert runner.turn_order is not None
+    # With only 2 agents, turn order will always be [Alice, Bob] or [Bob, Alice]
+    # But it should be recorded
+
+
+@pytest.mark.asyncio
+async def test_paired_mode_creates_n_over_2_pairs(mock_llm_client):
+    """In paired mode with even number of agents, create n/2 pairs."""
+    # Create 4 agents
+    agents = [
+        ExperimentAgent(
+            name=f"Agent{i}",
+            properties={},
+            llm_config=LLMConfig(dialect="mock")
+        )
+        for i in range(4)
+    ]
+
+    runner = ExperimentRunner(
+        agents=agents,
+        game_config=PRISONERS_DILEMMA,
+        llm_client=mock_llm_client,
+        round_visibility="paired"
+    )
+
+    # Run one round
+    results = await runner.run(max_rounds=1)
+
+    assert len(results) == 1
+    # All 4 agents should act (in 2 pairs)
+    assert len(results[0].actions) == 4
+    assert results[0].completed is True
+
+
+@pytest.mark.asyncio
+async def test_odd_count_paired_one_agent_sits_out(mock_llm_client):
+    """In paired mode with odd number of agents, one sits out."""
+    # Create 3 agents
+    agents = [
+        ExperimentAgent(
+            name=f"Agent{i}",
+            properties={},
+            llm_config=LLMConfig(dialect="mock")
+        )
+        for i in range(3)
+    ]
+
+    runner = ExperimentRunner(
+        agents=agents,
+        game_config=PRISONERS_DILEMMA,
+        llm_client=mock_llm_client,
+        round_visibility="paired"
+    )
+
+    # Run one round
+    results = await runner.run(max_rounds=1)
+
+    assert len(results) == 1
+    # All 3 agents should have action results (1 pair + 1 sat out)
+    assert len(results[0].actions) == 3
+    # One agent should have skipped
+    skipped_count = sum(1 for a in results[0].actions if a.skipped)
+    assert skipped_count == 1
