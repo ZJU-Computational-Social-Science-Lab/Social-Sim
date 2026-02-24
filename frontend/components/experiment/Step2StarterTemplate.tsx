@@ -157,13 +157,13 @@ export const Step2StarterTemplate: React.FC = () => {
       {hasParameters && (
         <div className="border-t pt-4 mt-4">
           <h3 className="font-medium mb-3">
-            {t('experiment.roundSettings.title')}
+            {t('experimentBuilder.roundSettings.title')}
           </h3>
 
           <div className="space-y-3">
             <div>
               <label className="block text-sm font-medium mb-1">
-                {t('experiment.roundSettings.roundVisibility.label')}
+                {t('experimentBuilder.roundSettings.roundVisibility.label')}
               </label>
               <select
                 value={localRoundVisibility}
@@ -175,10 +175,10 @@ export const Step2StarterTemplate: React.FC = () => {
                 className="w-full px-3 py-2 border rounded-lg"
               >
                 <option value="simultaneous">
-                  {t('experiment.roundSettings.roundVisibility.simultaneous')}
+                  {t('experimentBuilder.roundSettings.roundVisibility.simultaneous')}
                 </option>
                 <option value="sequential">
-                  {t('experiment.roundSettings.roundVisibility.sequential')}
+                  {t('experimentBuilder.roundSettings.roundVisibility.sequential')}
                 </option>
               </select>
             </div>
@@ -186,7 +186,7 @@ export const Step2StarterTemplate: React.FC = () => {
             {localRoundVisibility === 'sequential' && (
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  {t('experiment.roundSettings.turnOrder.label')}
+                  {t('experimentBuilder.roundSettings.turnOrder.label')}
                 </label>
                 <select
                   value={localTurnOrder}
@@ -198,10 +198,10 @@ export const Step2StarterTemplate: React.FC = () => {
                   className="w-full px-3 py-2 border rounded-lg"
                 >
                   <option value="fixed">
-                    {t('experiment.roundSettings.turnOrder.fixed')}
+                    {t('experimentBuilder.roundSettings.turnOrder.fixed')}
                   </option>
                   <option value="random">
-                    {t('experiment.roundSettings.turnOrder.random')}
+                    {t('experimentBuilder.roundSettings.turnOrder.random')}
                   </option>
                 </select>
               </div>

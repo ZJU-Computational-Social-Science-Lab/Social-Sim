@@ -576,6 +576,20 @@ export async function generateAgentsWithDemographics(
   providerId?: string | number
 ): Promise<Agent[]> {
   const { apiClient } = await import('../services/client');
+
+  // Validate inputs before sending request
+  if (!traits || traits.length === 0) {
+    throw new Error("At least one trait (e.g., Trust, Empathy) is required. Please add traits with mean and standard deviation values.");
+  }
+  if (!demographics || demographics.length === 0) {
+    throw new Error("At least one demographic dimension (e.g., Age, Political View) is required. Please add demographics with categories.");
+  }
+  for (const demo of demographics) {
+    if (!demo.categories || demo.categories.length === 0) {
+      throw new Error(`Demographic '${demo.name}' must have at least one category.`);
+    }
+  }
+
   const body = {
     total_agents: totalAgents,
     demographics,

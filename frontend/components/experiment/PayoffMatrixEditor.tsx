@@ -42,7 +42,7 @@ export default function PayoffMatrixEditor({
 
   return (
     <div className="space-y-4">
-      <div className="text-sm text-gray-600">
+      <div className="text-sm text-gray-700">
         {matrixMeta.symmetric
           ? 'Symmetric payoff matrix: both players receive the same payoff for each outcome.'
           : 'Asymmetric payoff matrix: row player and column player may receive different payoffs.'}
@@ -52,9 +52,9 @@ export default function PayoffMatrixEditor({
         <table className="border-collapse">
           <thead>
             <tr>
-              <th className="border p-2 bg-gray-100"></th>
+              <th className="border p-2 bg-gray-200 text-gray-900 font-semibold"></th>
               {matrixMeta.cols.map(col => (
-                <th key={col} className="border p-2 bg-gray-100 min-w-32">
+                <th key={col} className="border p-2 bg-gray-200 text-gray-900 font-semibold min-w-32">
                   {formatActionName(col)}
                 </th>
               ))}
@@ -63,7 +63,7 @@ export default function PayoffMatrixEditor({
           <tbody>
             {matrixMeta.rows.map(row => (
               <tr key={row}>
-                <th className="border p-2 bg-gray-100 min-w-32">
+                <th className="border p-2 bg-gray-200 text-gray-900 font-semibold min-w-32">
                   {formatActionName(row)}
                 </th>
                 {matrixMeta.cols.map(col => {
@@ -72,7 +72,7 @@ export default function PayoffMatrixEditor({
                   const value = parameters[paramKey] ?? 0;
 
                   return (
-                    <td key={col} className="border p-2">
+                    <td key={col} className="border p-2 bg-white">
                       {matrixMeta.symmetric ? (
                         <input
                           type="number"
@@ -81,11 +81,11 @@ export default function PayoffMatrixEditor({
                             onChange(paramKey, parseFloat(e.target.value) || 0)
                           }
                           disabled={disabled}
-                          className="w-20 px-2 py-1 border rounded text-center"
+                          className="w-20 px-2 py-1 border border-gray-300 rounded text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       ) : (
                         <div className="flex items-center gap-1">
-                          <div className="text-xs text-gray-500">Row:</div>
+                          <div className="text-xs text-gray-700 font-medium">Row:</div>
                           <input
                             type="number"
                             value={parameters[`${paramKey}_row`] ?? value}
@@ -93,9 +93,9 @@ export default function PayoffMatrixEditor({
                               onChange(`${paramKey}_row`, parseFloat(e.target.value) || 0)
                             }
                             disabled={disabled}
-                            className="w-16 px-1 py-1 border rounded text-center text-sm"
+                            className="w-16 px-1 py-1 border border-gray-300 rounded text-center text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
-                          <div className="text-xs text-gray-500">Col:</div>
+                          <div className="text-xs text-gray-700 font-medium">Col:</div>
                           <input
                             type="number"
                             value={parameters[`${paramKey}_col`] ?? value}
@@ -103,7 +103,7 @@ export default function PayoffMatrixEditor({
                               onChange(`${paramKey}_col`, parseFloat(e.target.value) || 0)
                             }
                             disabled={disabled}
-                            className="w-16 px-1 py-1 border rounded text-center text-sm"
+                            className="w-16 px-1 py-1 border border-gray-300 rounded text-center text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
                       )}
@@ -116,7 +116,7 @@ export default function PayoffMatrixEditor({
         </table>
       </div>
 
-      <div className="text-xs text-gray-500">
+      <div className="text-xs text-gray-600">
         These payoff values are injected into each agent's prompt.
       </div>
     </div>

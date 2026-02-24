@@ -158,12 +158,26 @@ export const useExperimentBuilder = create<ExperimentBuilderState & ExperimentBu
   },
 
   // Step 1: Scenario selection
-  setSelectedScenarioId: (id) => set({ selectedScenarioId: id }),
+  setSelectedScenarioId: (id) => set((state) => {
+    // Clear scenario error if now valid
+    const newErrors = { ...state.validationErrors };
+    if (id && newErrors.scenario) {
+      delete newErrors.scenario;
+    }
+    return { selectedScenarioId: id, validationErrors: newErrors };
+  }),
 
   setSelectedScenarioData: (data) => set({ selectedScenarioData: data }),
 
   // Step 2: Scenario configuration
-  setScenarioDescription: (description) => set({ scenarioDescription: description }),
+  setScenarioDescription: (description) => set((state) => {
+    // Clear description error if now valid
+    const newErrors = { ...state.validationErrors };
+    if (description.trim() && newErrors.description) {
+      delete newErrors.description;
+    }
+    return { scenarioDescription: description, validationErrors: newErrors };
+  }),
 
   setScenarioParams: (params) => set({ scenarioParams: params }),
 
@@ -174,7 +188,14 @@ export const useExperimentBuilder = create<ExperimentBuilderState & ExperimentBu
   // Step 3: Actions
   setAvailableActions: (actions) => set({ availableActions: actions }),
 
-  setSelectedActionIds: (ids) => set({ selectedActionIds: ids }),
+  setSelectedActionIds: (ids) => set((state) => {
+    // Clear actions error if now valid
+    const newErrors = { ...state.validationErrors };
+    if (ids.length > 0 && newErrors.actions) {
+      delete newErrors.actions;
+    }
+    return { selectedActionIds: ids, validationErrors: newErrors };
+  }),
 
   toggleActionId: (id) => {
     const current = get().selectedActionIds;
@@ -191,18 +212,39 @@ export const useExperimentBuilder = create<ExperimentBuilderState & ExperimentBu
   addAgentType: (agentType) => {
     const types = [...get().agentTypes];
     types.push({ ...agentType, id: agentType.id || uuidv4() });
-    set({ agentTypes: types });
+    set((state) => {
+      // Clear agents error if now valid
+      const newErrors = { ...state.validationErrors };
+      const totalAgents = types.reduce((sum, t) => sum + (t.count || 0), 0);
+      if (totalAgents > 0 && newErrors.agents) {
+        delete newErrors.agents;
+      }
+      return { agentTypes: types, validationErrors: newErrors };
+    });
   },
 
   removeAgentType: (id) => {
-    set({ agentTypes: get().agentTypes.filter((t) => t.id !== id) });
+    set((state) => {
+      const types = state.agentTypes.filter((t) => t.id !== id);
+      const newErrors = { ...state.validationErrors };
+      // Don't clear agents error on remove - only check on add
+      return { agentTypes: types, validationErrors: newErrors };
+    });
   },
 
   updateAgentType: (id, updates) => {
-    const types = get().agentTypes.map((t) =>
-      t.id === id ? { ...t, ...updates } : t
-    );
-    set({ agentTypes: types });
+    set((state) => {
+      const types = state.agentTypes.map((t) =>
+        t.id === id ? { ...t, ...updates } : t
+      );
+      // Clear agents error if now valid
+      const newErrors = { ...state.validationErrors };
+      const totalAgents = types.reduce((sum, t) => sum + (t.count || 0), 0);
+      if (totalAgents > 0 && newErrors.agents) {
+        delete newErrors.agents;
+      }
+      return { agentTypes: types, validationErrors: newErrors };
+    });
   },
 
   loadProviders: async () => {

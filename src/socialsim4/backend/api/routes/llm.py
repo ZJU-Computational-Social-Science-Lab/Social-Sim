@@ -353,7 +353,16 @@ async def generate_agents_demographics(
 
             # Traits are required
             if not data.traits:
-                raise RuntimeError("Traits are required for demographic generation")
+                raise ValueError("Traits are required for demographic generation. Please add at least one trait (e.g., Trust, Empathy) with mean and standard deviation values.")
+
+            # Demographics are required
+            if not data.demographics:
+                raise ValueError("Demographics are required for demographic generation. Please add at least one demographic dimension (e.g., Age, Political View).")
+
+            # Validate each demographic has categories
+            for demo in data.demographics:
+                if not demo.categories or len(demo.categories) == 0:
+                    raise ValueError(f"Demographic '{demo.name}' must have at least one category.")
 
             # Convert Pydantic models to dicts for llm.py function
             demographics_dicts = [
@@ -367,14 +376,24 @@ async def generate_agents_demographics(
             ]
 
             # 🎯 Call the integrated AgentTorch function from llm.py
-            agents_data = generate_agents_with_archetypes(
-                total_agents=data.total_agents,
-                demographics=demographics_dicts,
-                archetype_probabilities=data.archetype_probabilities,
-                traits=traits_dicts,
-                llm_client=llm,
-                language=data.language
-            )
+            try:
+                agents_data = generate_agents_with_archetypes(
+                    total_agents=data.total_agents,
+                    demographics=demographics_dicts,
+                    archetype_probabilities=data.archetype_probabilities,
+                    traits=traits_dicts,
+                    llm_client=llm,
+                    language=data.language
+                )
+            except ValueError as ve:
+                # Re-raise ValueError with more context
+                raise ValueError(f"Agent generation validation failed: {ve}")
+            except RuntimeError as re:
+                # LLM or JSON parsing error
+                raise RuntimeError(f"LLM agent generation failed: {re}")
+            except Exception as e:
+                # Unexpected error during generation
+                raise RuntimeError(f"Unexpected error during agent generation: {e}")
 
             # Convert to GeneratedAgent response models
             agents: List[GeneratedAgent] = []
@@ -396,9 +415,18 @@ async def generate_agents_demographics(
 
             logger.info(f"Generated {len(agents)} agents using demographic modeling")
             return agents
-    except Exception as e:
-        logger.error(f"Error in generate_agents_demographics: {e}", exc_info=True)
+    except ValueError as e:
+        # Validation errors - return 400 with clear message
+        logger.warning(f"Validation error in generate_agents_demographics: {e}")
         raise
+    except RuntimeError as e:
+        # LLM errors - return 500 with error message
+        logger.error(f"LLM error in generate_agents_demographics: {e}")
+        raise
+    except Exception as e:
+        # Unexpected errors
+        logger.error(f"Unexpected error in generate_agents_demographics: {e}", exc_info=True)
+        raise RuntimeError(f"Failed to generate agents: {e}")
 
 
 # 暴露 /llm 前缀的 Router
