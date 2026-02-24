@@ -95,6 +95,7 @@ interface ExperimentBuilderActions {
 
   // Validation
   validate: () => boolean;
+  clearValidationErrors: () => void;
 
   // Reset
   reset: () => void;
@@ -241,6 +242,8 @@ export const useExperimentBuilder = create<ExperimentBuilderState & ExperimentBu
     set({ validationErrors: errors });
     return Object.keys(errors).length === 0;
   },
+
+  clearValidationErrors: () => set({ validationErrors: {} }),
 
   // Reset
   reset: () => set(initialState),
