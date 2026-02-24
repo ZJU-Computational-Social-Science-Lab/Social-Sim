@@ -414,7 +414,7 @@ export const Step4Agents: React.FC = () => {
 
           {/* Agent Types List */}
           {agentTypes.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">No agent types defined yet</p>
+            <p className="text-sm text-gray-600 text-center py-4">No agent types defined yet</p>
           ) : (
             <div className="space-y-2">
               {agentTypes.map((type) => {
@@ -434,7 +434,7 @@ export const Step4Agents: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-gray-900">{type.label}</span>
-                        <span className="text-sm text-gray-500">({type.count})</span>
+                        <span className="text-sm text-gray-600">({type.count})</span>
                       </div>
                       {type.userProfile && (
                         <p className="text-xs text-gray-600 truncate mt-1" title={type.userProfile}>

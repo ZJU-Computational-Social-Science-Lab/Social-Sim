@@ -106,7 +106,7 @@ export const ActionSelector: React.FC<ActionSelectorProps> = ({
       {/* Selected Actions Display */}
       <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md min-h-[60px] bg-gray-50">
         {selectedActions.length === 0 ? (
-          <span className="text-sm text-gray-400">
+          <span className="text-sm text-gray-600">
             {loading ? 'Loading actions...' : 'Select actions below...'}
           </span>
         ) : (
@@ -178,7 +178,7 @@ export const ActionSelector: React.FC<ActionSelectorProps> = ({
                       <div className={`font-medium text-sm ${isSelected ? 'text-green-700' : 'text-gray-900'}`}>
                         {action.label}
                       </div>
-                      <div className={`text-xs ${isSelected ? 'text-green-600' : 'text-gray-500'}`}>
+                      <div className={`text-xs ${isSelected ? 'text-green-600' : 'text-gray-600'}`}>
                         {action.description}
                       </div>
                     </span>

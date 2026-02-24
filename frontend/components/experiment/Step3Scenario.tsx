@@ -179,7 +179,7 @@ export const Step3Scenario: React.FC = () => {
           Choose what actions agents can take. At least one action must be selected.
         </p>
         {selectedScenarioData?.category_actions && (
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-gray-600 mt-2">
             Showing all available actions for the {selectedScenarioData.category} category.
             This scenario starts with a pre-selected set of actions.
           </p>
@@ -197,7 +197,7 @@ export const Step3Scenario: React.FC = () => {
       <div className="space-y-3">
         {allActions.length === 0 ? (
           <div className="p-8 text-center border border-dashed border-gray-300 rounded-lg">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-600">
               No actions available. Please select a scenario first or add custom actions.
             </p>
           </div>

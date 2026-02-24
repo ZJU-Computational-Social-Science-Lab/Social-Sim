@@ -105,7 +105,7 @@ interface ExperimentBuilderActions {
   reset: () => void;
 }
 
-const initialState: ExperimentBuilderState = {
+const getInitialState = (): ExperimentBuilderState => ({
   currentStep: 1,
   completedSteps: new Set(),
   selectedScenarioId: null,
@@ -121,7 +121,9 @@ const initialState: ExperimentBuilderState = {
   llmProviders: [],
   selectedProviderId: null,
   validationErrors: {},
-};
+});
+
+const initialState: ExperimentBuilderState = getInitialState();
 
 export const STEPS = [
   { id: 1, title: 'Choose Scenario', description: 'Pick a preset or start blank' },
@@ -297,6 +299,6 @@ export const useExperimentBuilder = create<ExperimentBuilderState & ExperimentBu
 
   clearValidationErrors: () => set({ validationErrors: {} }),
 
-  // Reset
-  reset: () => set(initialState),
+  // Reset - use function to create fresh state each time
+  reset: () => set(getInitialState()),
 }));

@@ -21,7 +21,7 @@ from socialsim4.core.experiment.game_configs import GameConfig
 from socialsim4.core.experiment.kernel import ExperimentKernel
 from socialsim4.core.experiment.controller import ExperimentController, ActionResult
 from socialsim4.core.experiment.round_context import RoundContextManager
-from socialsim4.core.experiment.prompt_builder import build_prompt
+from socialsim4.core.experiment.prompt_builder import build_prompt, build_reprompt
 from socialsim4.core.llm.client import LLMClient
 from socialsim4.core.context_builder import build_context_summary
 
@@ -372,25 +372,51 @@ class ExperimentRunner:
         Returns:
             ActionResult from processing the response
         """
-        # Build prompt with current context
+        # Build prompt with current context (with section markers for debugging)
         context = self.context_manager.get_context(agent.name)
-        prompt = build_prompt(agent, self.game_config, context)
+        prompt = build_prompt(agent, self.game_config, context, include_section_markers=True)
 
         # Write to debug file (won't be truncated)
         with open(_debug_file, 'a', encoding='utf-8') as f:
+            f.write(f"\n{'#'*80}\n")
+            f.write(f"# LLM DEBUG LOG - {datetime.now().isoformat()}\n")
+            f.write(f"{'#'*80}\n\n")
+            f.write(f"## AGENT: {agent.name}\n")
+            f.write(f"## ROUND: {round_num}\n")
+            f.write(f"## VISIBILITY MODE: {self.round_visibility}\n\n")
+            f.write(f"--- AGENT PROPERTIES ---\n")
+            for k, v in agent.get_properties_dict().items():
+                f.write(f"  {k}: {v}\n")
+            f.write(f"\n--- GAME CONFIG ---\n")
+            f.write(f"  scenario: {self.game_config.description[:100]}...\n")
+            f.write(f"  actions: {self.game_config.actions}\n")
+            f.write(f"  action_type: {self.game_config.action_type}\n")
+            f.write(f"  output_field: {self.game_config.output_field}\n")
+            if self.game_config.action_descriptions:
+                f.write(f"  action_descriptions: {self.game_config.action_descriptions}\n")
+            f.write(f"\n--- CONTEXT (filtered for this agent) ---\n")
+            f.write(f"{context[:500]}...\n" if len(context) > 500 else f"{context}\n")
             f.write(f"\n{'='*80}\n")
-            f.write(f"[AGENT INPUT] {agent.name} - Round {round_num}\n")
-            f.write(f"{'='*80}\n")
-            f.write(f"Agent properties: {agent.get_properties_dict()}\n")
-            f.write(f"Game config: actions={self.game_config.actions}, type={self.game_config.action_type}\n")
-            f.write(f"\n--- PROMPT ---\n")
+            f.write(f"FULL PROMPT SENT TO LLM\n")
+            f.write(f"{'='*80}\n\n")
             f.write(prompt)
-            f.write(f"\n--- END PROMPT ---\n\n")
+            f.write(f"\n\n{'='*80}\n")
+            f.write(f"END OF PROMPT\n")
+            f.write(f"{'='*80}\n\n")
 
         # Print summary to console
-        print(f"\n[AGENT INPUT] {agent.name} - Round {round_num}")
-        print(f"Prompt length: {len(prompt)} chars")
-        print(f"See test_results/ for full prompt")
+        print(f"\n{'='*60}")
+        print(f"[LLM INPUT] {agent.name} - Round {round_num}")
+        print(f"{'='*60}")
+        print(f"Prompt has 5 sections:")
+        print(f"  1. Agent Description")
+        print(f"  2. Scenario")
+        print(f"  3. Available Actions ({len(self.game_config.actions)} actions)")
+        print(f"  4. Context ({len(context)} chars)")
+        print(f"  5. JSON Output Requirement")
+        print(f"Total prompt length: {len(prompt)} chars")
+        print(f"Debug file: {_debug_file}")
+        print(f"{'='*60}")
 
         logger.debug(f"Prompting agent {agent.name} for round {round_num}")
         logger.debug(f"Game config: actions={self.game_config.actions}, type={self.game_config.action_type}")
@@ -405,15 +431,21 @@ class ExperimentRunner:
             # Write raw response to debug file
             with open(_debug_file, 'a', encoding='utf-8') as f:
                 f.write(f"\n{'='*80}\n")
-                f.write(f"[AGENT OUTPUT] {agent.name} - Round {round_num}\n")
-                f.write(f"{'='*80}\n")
-                f.write(f"Raw LLM response:\n{raw_response}\n")
+                f.write(f"LLM RAW RESPONSE\n")
+                f.write(f"{'='*80}\n\n")
+                f.write(raw_response)
+                f.write(f"\n\n{'='*80}\n")
+                f.write(f"END OF RESPONSE\n")
                 f.write(f"{'='*80}\n\n")
 
             # Print summary to console
-            print(f"[AGENT OUTPUT] {agent.name} - Round {round_num}")
+            print(f"\n{'='*60}")
+            print(f"[LLM OUTPUT] {agent.name} - Round {round_num}")
+            print(f"{'='*60}")
             print(f"Response length: {len(raw_response)} chars")
-            print(f"First 200 chars: {raw_response[:200]}")
+            print(f"First 300 chars:")
+            print(f"{raw_response[:300]}")
+            print(f"{'='*60}")
 
             logger.debug(f"Raw response from {agent.name}: {raw_response[:200]}...")
 
@@ -425,17 +457,17 @@ class ExperimentRunner:
 
             # Write processed result to debug file
             with open(_debug_file, 'a', encoding='utf-8') as f:
-                f.write(f"\n[PROCESSED RESULT] {agent.name}\n")
+                f.write(f"\n--- PROCESSED RESULT ---\n")
                 f.write(f"  action: {result.action_name}\n")
                 f.write(f"  success: {result.success}\n")
                 f.write(f"  skipped: {result.skipped}\n")
                 f.write(f"  summary: {result.summary}\n")
                 if result.error:
                     f.write(f"  error: {result.error}\n")
-                f.write("\n")
+                f.write("\n" + "-"*80 + "\n\n")
 
             # Print summary to console
-            print(f"[PROCESSED RESULT] {agent.name}")
+            print(f"\n[PROCESSED RESULT] {agent.name}")
             print(f"  action: {result.action_name}")
             print(f"  success: {result.success}")
             print(f"  skipped: {result.skipped}")
@@ -449,7 +481,10 @@ class ExperimentRunner:
 
         except Exception as e:
             with open(_debug_file, 'a', encoding='utf-8') as f:
-                f.write(f"\n[ERROR] Agent {agent.name} failed: {e}\n\n")
+                f.write(f"\n{'!'*80}\n")
+                f.write(f"ERROR\n")
+                f.write(f"{'!'*80}\n")
+                f.write(f"Agent {agent.name} failed: {e}\n\n")
             print(f"\n[ERROR] Agent {agent.name} failed: {e}\n")
             logger.error(f"Error prompting agent {agent.name}: {e}")
             return ActionResult(

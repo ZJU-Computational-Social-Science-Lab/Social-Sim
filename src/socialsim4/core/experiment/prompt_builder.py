@@ -97,7 +97,8 @@ def build_agent_description(agent_properties: Dict[str, Any]) -> str:
 def build_prompt(
     agent: ExperimentAgent,
     game_config: GameConfig,
-    context_summary: str
+    context_summary: str,
+    include_section_markers: bool = False
 ) -> str:
     """Build the 5-section structured prompt.
 
@@ -105,6 +106,7 @@ def build_prompt(
         agent: The agent acting
         game_config: Game/scenario configuration
         context_summary: Cumulative context summary for this agent
+        include_section_markers: If True, add explicit section markers for debugging
 
     Returns:
         Complete prompt string
@@ -113,6 +115,8 @@ def build_prompt(
 
     # Section 1: Agent Description (including role_prompt if present - Bug C)
     agent_desc = build_agent_description(agent.get_properties_dict())
+    if include_section_markers:
+        sections.append("=== SECTION 1: AGENT DESCRIPTION ===")
     sections.append(agent_desc)
 
     # Bug C: Add role_prompt if present
@@ -123,9 +127,13 @@ def build_prompt(
     scenario_text = game_config.description
     if game_config.payoff_summary:
         scenario_text += f"\n\n{game_config.payoff_summary}"
+    if include_section_markers:
+        sections.append("\n=== SECTION 2: SCENARIO ===")
     sections.append(f"\n## Scenario\n{scenario_text}")
 
     # Section 3: Available Actions (using descriptions - Bug A)
+    if include_section_markers:
+        sections.append("\n=== SECTION 3: AVAILABLE ACTIONS ===")
     if game_config.action_type == "discrete":
         if game_config.action_descriptions:
             # Bug A: Use action descriptions instead of "cooperate: cooperate"
@@ -141,12 +149,16 @@ def build_prompt(
         sections.append(f"\n## Your Action\nChoose a value from {game_config.min} to {game_config.max}.")
 
     # Section 4: Context
+    if include_section_markers:
+        sections.append("\n=== SECTION 4: CONTEXT ===")
     if context_summary:
         sections.append(f"\n## Context\n{context_summary}")
     else:
         sections.append("\n## Context\nThis is the first round - no previous context.")
 
     # Section 5: Output Format
+    if include_section_markers:
+        sections.append("\n=== SECTION 5: JSON OUTPUT REQUIREMENT ===")
     field = game_config.output_field
     if game_config.action_type == "discrete":
         actions_str = ", ".join(f'"{a}"' for a in game_config.actions)
@@ -174,7 +186,8 @@ def build_reprompt(
     context_summary: str,
     chosen_action: str,
     parameter_schema: Dict[str, Any],
-    mode: Literal["json", "plain_text"] = "json"
+    mode: Literal["json", "plain_text"] = "json",
+    include_section_markers: bool = False
 ) -> str:
     """Build a re-prompt for collecting missing parameters.
 
@@ -185,18 +198,36 @@ def build_reprompt(
         chosen_action: The action the agent chose
         parameter_schema: JSON schema of required parameters
         mode: json or plain_text
+        include_section_markers: If True, add explicit section markers for debugging
 
     Returns:
         Re-prompt string
     """
     # Reuse the base prompt (all 5 sections)
-    base_prompt = build_prompt(agent, game_config, context_summary)
+    base_prompt = build_prompt(agent, game_config, context_summary, include_section_markers)
 
-    # Add re-prompt instruction
+    # Add re-prompt instruction with section marker
+    if include_section_markers:
+        reprompt_header = "\n=== FOLLOW-UP PROMPT (Action Requires Parameters) ==="
+    else:
+        reprompt_header = ""
+
     if mode == "json":
         params_desc = ", ".join(f'"{k}": <{v.get("description", k)}>' for k, v in parameter_schema.items())
-        reprompt = f"\n\nYou chose to {chosen_action}. This action requires parameters.\nRespond ONLY with valid JSON: {{\"action\": \"{chosen_action}\", {params_desc}}}"
+        reprompt = f"{reprompt_header}\n\nYou chose to {chosen_action}. This action requires parameters.\nRespond ONLY with valid JSON: {{\"action\": \"{chosen_action}\", {params_desc}}}"
     else:  # plain_text
-        reprompt = f"\n\nYou chose to {chosen_action}. Please provide your response.\nYour response:"
+        reprompt = f"{reprompt_header}\n\nYou chose to {chosen_action}. Please provide your response.\nYour response:"
 
-    return base_prompt + reprompt
+    full_prompt = base_prompt + reprompt
+
+    # Log the follow-up prompt
+    if include_section_markers:
+        logger.debug(f"\n{'='*60}")
+        logger.debug(f"FOLLOW-UP PROMPT FOR AGENT: {agent.name}")
+        logger.debug(f"CHOSEN ACTION: {chosen_action}")
+        logger.debug(f"REQUIRED PARAMS: {list(parameter_schema.keys())}")
+        logger.debug(f"{'='*60}")
+        logger.debug(full_prompt)
+        logger.debug(f"{'='*60}\n")
+
+    return full_prompt

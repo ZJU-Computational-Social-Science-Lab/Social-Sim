@@ -194,7 +194,7 @@ export const Step1InteractionType: React.FC = () => {
 
       {!loading && !error && scenarios.length === 0 && (
         <div className="flex items-center justify-center py-12">
-          <p className="text-sm text-gray-500">No scenarios available</p>
+          <p className="text-sm text-gray-600">No scenarios available</p>
         </div>
       )}
 
@@ -223,7 +223,7 @@ export const Step1InteractionType: React.FC = () => {
                     <span className="font-medium">
                       {t(`scenario.category.${category}`)}
                     </span>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-gray-600">
                       {categoryScenarios.length} scenarios
                     </span>
                   </div>

@@ -161,10 +161,10 @@ export const Step5Structure: React.FC = () => {
       {/* Header */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h3 className="text-lg font-semibold text-blue-900">
-          {t('experiment.promptPreview.title')} (Agent Type: {firstAgentType.label})
+          {t('experimentBuilder.promptPreview.title')} (Agent Type: {firstAgentType.label})
         </h3>
         <p className="text-sm text-blue-700 mt-1">
-          {t('experiment.promptPreview.note', { n: agentTypes.length })}
+          {t('experimentBuilder.promptPreview.note', { n: agentTypes.length })}
         </p>
       </div>
 
@@ -182,7 +182,7 @@ export const Step5Structure: React.FC = () => {
       {remainingAgentTypes.length > 0 && (
         <div className="border-t pt-4">
           <h4 className="font-medium text-gray-700 mb-3">
-            {t('experiment.promptPreview.otherTypes')}
+            {t('experimentBuilder.promptPreview.otherTypes')}
           </h4>
           <div className="space-y-2">
             {remainingAgentTypes.map(type => (
@@ -205,7 +205,7 @@ export const Step5Structure: React.FC = () => {
       )}
 
       {/* Summary */}
-      <div className="text-sm text-gray-500">
+      <div className="text-sm text-gray-600">
         {totalAgents} total agents across {agentTypes.length} types
       </div>
     </div>

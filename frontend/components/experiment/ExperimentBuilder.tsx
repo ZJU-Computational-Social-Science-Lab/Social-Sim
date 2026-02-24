@@ -46,8 +46,8 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
   } = useExperimentBuilder();
 
   const handleNext = () => {
-    const errors = validate();
-    if (Object.keys(errors).length > 0) {
+    const isValid = validate();
+    if (!isValid) {
       // Stay on current step, errors visible via ValidationAlert
       return;
     }

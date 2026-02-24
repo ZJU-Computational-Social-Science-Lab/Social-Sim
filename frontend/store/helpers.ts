@@ -330,7 +330,9 @@ export const mapBackendEventsToLogs = (
       agentError: pickText('Agent error', '智能体发生错误'),
       actionStart: pickText('Started action', '开始执行动作'),
       actionEnd: pickText('performed action', '执行了动作'),
-      systemEvent: pickText('System event', '系统事件')
+      systemEvent: pickText('System event', '系统事件'),
+      agentResponse: pickText('Agent response', 'Agent responded'),
+      choseAction: (agent: string, action: string) => pickText(`${agent} chose ${action}`, `${agent} 选择了 ${action}`)
     };
 
     // Agent context delta
@@ -380,7 +382,7 @@ export const mapBackendEventsToLogs = (
         }
 
         const pretty = prettifyAssistantCtx(raw);
-        return { ...base, type: 'AGENT_METADATA', agentId, content: pretty || raw || `[智能体回复] ${agentName || ''}` };
+        return { ...base, type: 'AGENT_METADATA', agentId, content: pretty || raw || labels.agentResponse };
       }
 
       return { ...base, type: 'SYSTEM', content: raw || `[agent_ctx_delta] ${agentName || ''}` };
@@ -502,18 +504,42 @@ export const mapBackendEventsToLogs = (
       const parameters = data.parameters || {};
       const summary: string = data.summary || '';
       const round: number = data.round || 0;
+      const skipped: boolean = data.skipped || false;
       const agentId = agentName ? nameToId.get(agentName) : undefined;
 
       // Build readable label
       const readableAction = translateActionName(actionName);
-      let label = `Round ${round}: ${agentName} → ${readableAction}`;
 
-      // Add parameters if any
+      // Use summary if available (it contains action result info)
+      if (summary) {
+        // summary already contains "Agent chose action" format from backend
+        return { ...base, type: 'AGENT_ACTION', agentId, content: summary };
+      }
+
+      // Otherwise build our own label
+      let label: string;
+      if (skipped) {
+        label = pickText(
+          `Round ${round}: ${agentName} - skipped turn`,
+          `第${round}轮: ${agentName} - 跳过回合`
+        );
+      } else {
+        label = pickText(
+          `Round ${round}: ${agentName} chose ${readableAction}`,
+          `第${round}轮: ${agentName} 选择了 ${readableAction}`
+        );
+      }
+
+      // Add parameters if any meaningful ones exist
       if (parameters && Object.keys(parameters).length > 0) {
-        const paramsStr = Object.entries(parameters)
-          .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+        // Filter out empty parameters
+        const meaningfulParams = Object.entries(parameters)
+          .filter(([k, v]) => v !== null && v !== undefined && v !== '')
+          .map(([k, v]) => `${k}=${typeof v === 'string' ? v : JSON.stringify(v)}`)
           .join(', ');
-        label += ` (${paramsStr})`;
+        if (meaningfulParams) {
+          label += ` (${meaningfulParams})`;
+        }
       }
 
       return { ...base, type: 'AGENT_ACTION', agentId, content: label };

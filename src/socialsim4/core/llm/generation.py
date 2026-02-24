@@ -91,7 +91,8 @@ def add_gaussian_noise(value: float, std_dev: float, min_val: float = 0, max_val
 def generate_archetype_template(
     archetype: Dict[str, Any],
     llm_client,
-    language: str = "en"
+    language: str = "en",
+    max_retries: int = 2
 ) -> Dict[str, Any]:
     """
     Make ONE LLM call to get description and roles for an archetype.
@@ -103,12 +104,10 @@ def generate_archetype_template(
         archetype: Archetype dict with attributes and label
         llm_client: LLM client for generation
         language: Language code ("en" or "zh")
+        max_retries: Number of retries on failure (default: 2)
 
     Returns:
         Dict with "description" (str) and "roles" (List[str])
-
-    Raises:
-        RuntimeError: If LLM response is invalid or cannot be parsed
     """
     attrs_str = ", ".join(f"{k}: {v}" for k, v in archetype["attributes"].items())
 
@@ -132,47 +131,71 @@ JSON only, no other text."""
         {"role": "user", "content": prompt}
     ]
 
-    response = llm_client.chat(messages)
+    last_error = None
+    for attempt in range(max_retries + 1):
+        try:
+            response = llm_client.chat(messages)
 
-    # Debug logging
-    print(f"[DEBUG] Archetype: {attrs_str}")
-    print(f"[DEBUG] LLM Response: {response[:500]}...")
+            # Debug logging
+            print(f"[DEBUG] Archetype: {attrs_str} (attempt {attempt + 1})")
+            print(f"[DEBUG] LLM Response: {response[:500] if response else 'EMPTY'}...")
 
-    # Strip markdown code blocks if present
-    cleaned = response.strip()
-    if cleaned.startswith("```"):
-        cleaned = re.sub(r'^```(?:json)?\s*', '', cleaned)
-        cleaned = re.sub(r'\s*```$', '', cleaned)
+            # Check for empty response
+            if not response or not response.strip():
+                raise RuntimeError("LLM returned empty response")
 
-    # Try to parse JSON from response
-    json_match = re.search(r'\{[\s\S]*\}', cleaned)
-    if not json_match:
-        print(f"[ERROR] No JSON found in response for archetype {attrs_str}")
-        print(f"[ERROR] Cleaned response: {cleaned}")
-        raise RuntimeError(f"No JSON found in LLM response for archetype {attrs_str}. Response: {cleaned[:200]}")
+            # Strip markdown code blocks if present
+            cleaned = response.strip()
+            if cleaned.startswith("```"):
+                cleaned = re.sub(r'^```(?:json)?\s*', '', cleaned)
+                cleaned = re.sub(r'\s*```$', '', cleaned)
 
-    try:
-        parsed = json.loads(json_match.group())
-    except json.JSONDecodeError as e:
-        print(f"[ERROR] JSON parse error for archetype {attrs_str}: {e}")
-        print(f"[ERROR] JSON string: {json_match.group()[:200]}")
-        raise RuntimeError(f"Failed to parse JSON for archetype {attrs_str}: {e}")
+            # Try to parse JSON from response
+            json_match = re.search(r'\{[\s\S]*\}', cleaned)
+            if not json_match:
+                raise RuntimeError(f"No JSON found in response. Cleaned: {cleaned[:200]}")
 
-    # Validate required fields
-    if "description" not in parsed or not isinstance(parsed["description"], str):
-        raise RuntimeError(f"Missing or invalid 'description' for archetype {attrs_str}. Got keys: {list(parsed.keys())}")
-    if "roles" not in parsed or not isinstance(parsed["roles"], list) or len(parsed["roles"]) == 0:
-        raise RuntimeError(f"Missing or invalid 'roles' for archetype {attrs_str}. Got: {parsed.get('roles')}")
+            parsed = json.loads(json_match.group())
 
-    # Validate roles are strings
-    for i, r in enumerate(parsed["roles"]):
-        if not isinstance(r, str):
-            raise RuntimeError(f"Role {i} must be a string, got {type(r).__name__} for archetype {attrs_str}")
+            # Validate required fields
+            if "description" not in parsed or not isinstance(parsed["description"], str):
+                raise RuntimeError(f"Missing or invalid 'description'. Got keys: {list(parsed.keys())}")
+            if "roles" not in parsed or not isinstance(parsed["roles"], list) or len(parsed["roles"]) == 0:
+                raise RuntimeError(f"Missing or invalid 'roles'. Got: {parsed.get('roles')}")
 
-    return {
-        "description": parsed["description"],
-        "roles": parsed["roles"]
-    }
+            # Validate roles are strings
+            for i, r in enumerate(parsed["roles"]):
+                if not isinstance(r, str):
+                    raise RuntimeError(f"Role {i} must be a string, got {type(r).__name__}")
+
+            # Success! Return the parsed template
+            return {
+                "description": parsed["description"],
+                "roles": parsed["roles"]
+            }
+
+        except (RuntimeError, json.JSONDecodeError) as e:
+            last_error = e
+            print(f"[WARN] Attempt {attempt + 1} failed for archetype {attrs_str}: {e}")
+            if attempt < max_retries:
+                print(f"[INFO] Retrying... ({attempt + 1}/{max_retries})")
+            continue
+
+    # All retries exhausted - return a fallback template instead of crashing
+    print(f"[ERROR] All retries exhausted for archetype {attrs_str}")
+    print(f"[INFO] Using fallback template for {attrs_str}")
+
+    # Return a sensible fallback
+    if language == "zh":
+        return {
+            "description": f"一个来自{attrs_str}的人",
+            "roles": ["居民", "工作者", "学生", "自由职业者", "退休人员"]
+        }
+    else:
+        return {
+            "description": f"A person from {attrs_str}",
+            "roles": ["Resident", "Worker", "Student", "Freelancer", "Retiree"]
+        }
 
 
 def generate_agents_with_archetypes(
