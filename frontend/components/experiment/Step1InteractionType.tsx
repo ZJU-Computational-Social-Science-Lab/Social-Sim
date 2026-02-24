@@ -17,22 +17,22 @@ interface ScenarioCardProps {
   t: (key: string) => string;
 }
 
-const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  game_theory: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
-  discussion: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-  grid: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
-  social_dynamics: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
-  social_deduction: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
-  custom: { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200' },
-};
+const CATEGORY_ORDER = [
+  'game_theory',
+  'social_dynamics',
+  'discussion',
+  'grid_world',
+  'social_deduction',
+  'sociology'
+] as const;
 
-const CATEGORY_LABELS: Record<string, string> = {
-  game_theory: 'Game Theory',
-  discussion: 'Discussion',
-  grid: 'Grid World',
-  social_dynamics: 'Social Dynamics',
-  social_deduction: 'Social Deduction',
-  custom: 'Custom',
+const CATEGORY_COLORS: Record<string, string> = {
+  game_theory: '#3b82f6',
+  social_dynamics: '#8b5cf6',
+  discussion: '#10b981',
+  grid_world: '#f59e0b',
+  social_deduction: '#ef4444',
+  sociology: '#ec4899'
 };
 
 const ScenarioCard: React.FC<ScenarioCardProps> = ({
@@ -41,9 +41,6 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({
   onClick,
   t,
 }) => {
-  const colors = CATEGORY_COLORS[scenario.category] || CATEGORY_COLORS.custom;
-  const categoryLabel = CATEGORY_LABELS[scenario.category] || scenario.category;
-
   return (
     <button
       onClick={onClick}
@@ -61,14 +58,6 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({
             <h3 className="font-semibold text-gray-900 truncate">
               {scenario.name}
             </h3>
-            <span
-              className={`
-                text-xs px-2 py-0.5 rounded-full border whitespace-nowrap
-                ${colors.bg} ${colors.text} ${colors.border}
-              `}
-            >
-              {categoryLabel}
-            </span>
           </div>
           <p className="text-sm text-gray-600 line-clamp-2">
             {scenario.description}
@@ -102,6 +91,7 @@ export const Step1InteractionType: React.FC = () => {
   const [scenarios, setScenarios] = useState<ScenarioData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchScenarios = async () => {
@@ -119,6 +109,28 @@ export const Step1InteractionType: React.FC = () => {
 
     fetchScenarios();
   }, []);
+
+  const toggleCategory = (category: string) => {
+    setOpenCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
+      return next;
+    });
+  };
+
+  // Auto-expand selected scenario's category
+  useEffect(() => {
+    if (selectedScenarioId) {
+      const scenario = scenarios.find(s => s.id === selectedScenarioId);
+      if (scenario) {
+        setOpenCategories(prev => new Set(prev).add(scenario.category));
+      }
+    }
+  }, [selectedScenarioId, scenarios]);
 
   const handleSelectScenario = (scenario: ScenarioData) => {
     setSelectedScenarioId(scenario.id);
@@ -187,16 +199,60 @@ export const Step1InteractionType: React.FC = () => {
       )}
 
       {!loading && !error && scenarios.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {scenarios.map((scenario) => (
-            <ScenarioCard
-              key={scenario.id}
-              scenario={scenario}
-              selected={selectedScenarioId === scenario.id}
-              onClick={() => handleSelectScenario(scenario)}
-              t={t}
-            />
-          ))}
+        <div className="space-y-4">
+          {CATEGORY_ORDER.map(category => {
+            const categoryScenarios = scenarios.filter(s => s.category === category);
+            if (categoryScenarios.length === 0) return null;
+
+            const isOpen = openCategories.has(category);
+            const color = CATEGORY_COLORS[category] || '#6b7280';
+
+            return (
+              <div key={category} className="border rounded-lg">
+                <button
+                  onClick={() => toggleCategory(category)}
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
+                >
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="px-2 py-1 rounded text-xs font-medium text-white"
+                      style={{ backgroundColor: color }}
+                    >
+                      {t(`scenario.category.${category}`)}
+                    </span>
+                    <span className="font-medium">
+                      {t(`scenario.category.${category}`)}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      {categoryScenarios.length} scenarios
+                    </span>
+                  </div>
+                  <svg
+                    className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {isOpen && (
+                  <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {categoryScenarios.map(scenario => (
+                      <ScenarioCard
+                        key={scenario.id}
+                        scenario={scenario}
+                        selected={selectedScenarioId === scenario.id}
+                        onClick={() => handleSelectScenario(scenario)}
+                        t={t}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
