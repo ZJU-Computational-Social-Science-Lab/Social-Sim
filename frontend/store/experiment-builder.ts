@@ -50,6 +50,8 @@ export interface ExperimentBuilderState {
   // Step 2: Scenario configuration
   scenarioDescription: string;
   scenarioParams: Record<string, unknown>;
+  roundVisibility: 'simultaneous' | 'sequential';
+  turnOrder: 'fixed' | 'random';
 
   // Step 3: Actions
   availableActions: ActionDef[];
@@ -79,6 +81,8 @@ interface ExperimentBuilderActions {
   // Step 2: Scenario configuration
   setScenarioDescription: (description: string) => void;
   setScenarioParams: (params: Record<string, unknown>) => void;
+  setRoundVisibility: (visibility: 'simultaneous' | 'sequential') => void;
+  setTurnOrder: (order: 'fixed' | 'random') => void;
 
   // Step 3: Actions
   setAvailableActions: (actions: ActionDef[]) => void;
@@ -108,6 +112,8 @@ const initialState: ExperimentBuilderState = {
   selectedScenarioData: null,
   scenarioDescription: '',
   scenarioParams: {},
+  roundVisibility: 'simultaneous',
+  turnOrder: 'fixed',
   availableActions: [],
   selectedActionIds: [],
   agentMode: 'manual',
@@ -160,6 +166,10 @@ export const useExperimentBuilder = create<ExperimentBuilderState & ExperimentBu
   setScenarioDescription: (description) => set({ scenarioDescription: description }),
 
   setScenarioParams: (params) => set({ scenarioParams: params }),
+
+  setRoundVisibility: (visibility) => set({ roundVisibility: visibility }),
+
+  setTurnOrder: (order) => set({ turnOrder: order }),
 
   // Step 3: Actions
   setAvailableActions: (actions) => set({ availableActions: actions }),

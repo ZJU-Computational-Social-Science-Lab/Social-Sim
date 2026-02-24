@@ -7,6 +7,12 @@ export interface ScenarioParam {
   label: string;
   type: 'number' | 'text';
   default: unknown;
+  ui_hint?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  options?: string[];
+  placeholder?: string;
 }
 
 export interface ActionDef {
@@ -19,8 +25,18 @@ export interface ScenarioData {
   name: string;
   category: string;
   description: string;
+  interaction_mode?: 'simultaneous' | 'paired' | 'sequential';
+  display_type?: 'payoff_matrix' | 'params';
+  matrix_meta?: {
+    symmetric: boolean;
+    rows: string[];
+    cols: string[];
+    cells: Record<string, string>;
+  };
   parameters: ScenarioParam[];
   actions: ActionDef[];
+  category_actions?: ActionDef[];
+  default_action_ids?: string[];
 }
 
 const API_BASE = '/api';
