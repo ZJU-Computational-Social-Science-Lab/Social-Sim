@@ -56,9 +56,11 @@ class RoundResult:
 class ExperimentRunner:
     """Orchestrates round-based experiment execution.
 
-    The runner handles the main experiment loop, supporting both:
+    The runner handles the main experiment loop, supporting:
     - Simultaneous: All agents decide without seeing each other's choices
     - Sequential: Agents decide one at a time, seeing previous choices
+    - Random: Agents decide in shuffled order, seeing previous choices
+    - Paired: Agents are randomly paired each round, play within pairs
     """
 
     def __init__(
@@ -67,7 +69,7 @@ class ExperimentRunner:
         game_config: GameConfig,
         llm_client: LLMClient,
         kernel: ExperimentKernel | None = None,
-        round_visibility: Literal["simultaneous", "sequential", "random"] = "simultaneous"
+        round_visibility: Literal["simultaneous", "sequential", "random", "paired"] = "simultaneous"
     ):
         """Initialize the experiment runner.
 
@@ -87,7 +89,8 @@ class ExperimentRunner:
         self.context_manager = RoundContextManager()
         self.controller = ExperimentController(self.kernel, self.context_manager)
         self.current_round = 0
-        self.turn_order: List[str] | None = None  # Store shuffled order for random mode
+        self.turn_order: List[str] | None = None  # Store shuffled order for random/paired mode
+        self.scores: Dict[str, int] = {}  # Track cumulative scores per agent (for paired mode)
 
     async def run(self, max_rounds: int) -> List[RoundResult]:
         """Run the experiment for a specified number of rounds.
@@ -108,6 +111,8 @@ class ExperimentRunner:
                 round_result = await self._run_simultaneous_round(round_num)
             elif self.round_visibility == "random":
                 round_result = await self._run_random_round(round_num)
+            elif self.round_visibility == "paired":
+                round_result = await self._run_paired_round(round_num)
             else:  # sequential
                 round_result = await self._run_sequential_round(round_num)
 
@@ -201,6 +206,97 @@ class ExperimentRunner:
             completed=len(actions) == len(self.agents)
         )
 
+    async def _run_paired_round(self, round_num: int) -> RoundResult:
+        """Run a round where agents are randomly paired.
+
+        Each round:
+        1. Shuffle agents randomly
+        2. Form pairs (agent[0] vs agent[1], agent[2] vs agent[3], etc.)
+        3. If odd number of agents, one sits out
+        4. Each pair plays simultaneously (within the pair, they don't see each other's choices)
+        5. Track cumulative scores per agent
+
+        Cumulative scores are stored in self.scores and can be used for
+        payoff calculations or tournament-style scenarios.
+        """
+        import random
+
+        # Shuffle agent order for this round
+        self.turn_order = [agent.name for agent in self.agents]
+        random.shuffle(self.turn_order)
+
+        logger.debug(f"Paired mode - shuffled order for round {round_num}: {self.turn_order}")
+
+        # Create a mapping from name to agent
+        agent_map = {agent.name: agent for agent in self.agents}
+
+        # Form pairs and track who sits out
+        pairs = []
+        sat_out = None
+
+        for i in range(0, len(self.turn_order), 2):
+            if i + 1 < len(self.turn_order):
+                pairs.append((self.turn_order[i], self.turn_order[i + 1]))
+            else:
+                sat_out = self.turn_order[i]
+
+        if sat_out:
+            logger.debug(f"Agent {sat_out} sits out this round (odd number of agents)")
+
+        # Execute each pair simultaneously (within the pair)
+        all_actions = []
+
+        for pair_idx, (agent1_name, agent2_name) in enumerate(pairs):
+            logger.debug(f"Pair {pair_idx + 1}: {agent1_name} vs {agent2_name}")
+
+            # Get the agents for this pair
+            agent1 = agent_map[agent1_name]
+            agent2 = agent_map[agent2_name]
+
+            # Prompt both agents in parallel (simultaneous within the pair)
+            tasks = [
+                self._prompt_agent(agent1, round_num),
+                self._prompt_agent(agent2, round_num)
+            ]
+            pair_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            for result in pair_results:
+                if isinstance(result, Exception):
+                    logger.error(f"Agent in pair failed: {result}")
+                    continue
+                all_actions.append(result)
+
+        # Handle sat-out agent (they don't act this round)
+        if sat_out:
+            # Add a skipped action for the sat-out agent
+            sat_out_agent = agent_map[sat_out]
+            all_actions.append(ActionResult(
+                success=False,
+                action_name="",
+                parameters={},
+                summary=f"{sat_out} sat out this round (odd number of agents)",
+                agent_name=sat_out,
+                round_num=round_num,
+                skipped=True,
+                error="Sat out due to odd number of agents"
+            ))
+
+        # Update cumulative scores (basic implementation - can be extended)
+        # This is a simple version - actual scoring would depend on game logic
+        for action in all_actions:
+            if not action.skipped and action.agent_name not in self.scores:
+                self.scores[action.agent_name] = 0
+            # Score updates would be handled by game-specific logic
+            # This is just a placeholder for tracking
+
+        logger.debug(f"Paired round {round_num} complete: {len(all_actions)} actions across {len(pairs)} pairs")
+
+        return RoundResult(
+            round_num=round_num,
+            actions=all_actions,
+            completed=len([a for a in all_actions if not a.skipped]) == len(self.agents)
+        )
+
     async def _run_single_round(
         self, round_num: int, context_summary: str, round_history: list = None
     ) -> RoundResult:
@@ -225,9 +321,11 @@ class ExperimentRunner:
             for agent in self.agents:
                 # Determine visibility mode for this agent
                 # Sequential and random modes allow agents to see earlier agents' actions
+                # Paired mode shows only previous rounds (agents see their pairings)
                 if self.round_visibility in ("sequential", "random"):
                     visibility_mode = "sequential"
                 else:
+                    # simultaneous and paired modes show only previous rounds
                     visibility_mode = "previous_rounds"
 
                 # Build per-agent context using filtered history
@@ -250,6 +348,8 @@ class ExperimentRunner:
             round_result = await self._run_simultaneous_round(round_num)
         elif self.round_visibility == "random":
             round_result = await self._run_random_round(round_num)
+        elif self.round_visibility == "paired":
+            round_result = await self._run_paired_round(round_num)
         else:  # sequential
             round_result = await self._run_sequential_round(round_num)
 
