@@ -17,7 +17,6 @@ def build_echo_chamber_sim(
     num_agents: int = 20,
     opinion_distribution: str = "balanced",  # "balanced", "polarized", "random"
     connection_homogeneity: float = 0.7,  # 0=random, 1=similar only connect
-    max_rounds: int = 5,
 ) -> ExperimentScene:
     """Build an Echo Chamber scenario.
 
@@ -26,10 +25,12 @@ def build_echo_chamber_sim(
         num_agents: Total number of agents
         opinion_distribution: How opinions are distributed initially
         connection_homogeneity: How similar agents must be to connect (0-1)
-        max_rounds: Maximum number of rounds to run
 
     Returns:
         ExperimentScene configured for echo chamber dynamics
+
+    Note:
+        Runs indefinitely; controlled by SimTree 'advance node' operation.
     """
     from socialsim4.core.scenarios.actions import CATEGORY_ACTION_LIBRARIES
 
@@ -80,7 +81,6 @@ Observe how opinions shift over time and whether echo chambers form."""
         'description': description,
         'actions': actions_config,
         'settings': {
-            'max_rounds': max_rounds,
             'round_visibility': 'simultaneous',
         }
     }

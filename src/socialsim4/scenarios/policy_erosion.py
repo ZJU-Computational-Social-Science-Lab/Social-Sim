@@ -16,7 +16,6 @@ def build_policy_erosion_sim(
     clients: Dict[str, object] | None = None,
     num_agents_per_tier: int = 5,
     policy_text: str = "All employees must complete mandatory training by Friday",
-    max_rounds: int = 3,
 ) -> ExperimentScene:
     """Build a Policy Meaning Erosion scenario.
 
@@ -24,10 +23,12 @@ def build_policy_erosion_sim(
         clients: LLM clients for agent inference
         num_agents_per_tier: Number of agents in each of the 3 tiers
         policy_text: The original policy announced at the top
-        max_rounds: Maximum number of rounds to run
 
     Returns:
         ExperimentScene configured for policy erosion
+
+    Note:
+        Runs indefinitely; controlled by SimTree 'advance node' operation.
     """
     from socialsim4.core.scenarios.actions import CATEGORY_ACTION_LIBRARIES
 
@@ -84,7 +85,6 @@ You can:
         'description': description,
         'actions': actions_config,
         'settings': {
-            'max_rounds': max_rounds,
             'round_visibility': 'sequential',  # Each tier acts in order
         }
     }

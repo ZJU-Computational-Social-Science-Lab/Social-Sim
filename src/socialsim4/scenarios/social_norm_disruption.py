@@ -17,7 +17,6 @@ def build_social_norm_disruption_sim(
     num_agents: int = 20,
     norm_strength: float = 0.8,
     agent_status_distribution: str = "mixed",  # "high_status", "low_status", "mixed"
-    max_rounds: int = 5,
 ) -> ExperimentScene:
     """Build a Social Norm Disruption scenario.
 
@@ -26,10 +25,12 @@ def build_social_norm_disruption_sim(
         num_agents: Number of agents in the simulation
         norm_strength: How strongly the norm is enforced (0-1)
         agent_status_distribution: Distribution of agent social statuses
-        max_rounds: Maximum number of rounds to run
 
     Returns:
         ExperimentScene configured for social norm disruption
+
+    Note:
+        Runs indefinitely; controlled by SimTree 'advance node' operation.
     """
     from socialsim4.core.scenarios.actions import CATEGORY_ACTION_LIBRARIES
 
@@ -75,7 +76,6 @@ Consider your social status, temperament, and personal values when deciding."""
         'description': description,
         'actions': actions_config,
         'settings': {
-            'max_rounds': max_rounds,
             'round_visibility': 'simultaneous',
         }
     }

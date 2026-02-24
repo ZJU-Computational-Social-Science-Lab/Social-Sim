@@ -17,7 +17,6 @@ def build_resource_scarcity_sim(
     num_agents: int = 15,
     resource_amount: int = 100,  # Total units of scarce resource
     initial_distribution: str = "equal",  # "equal", "random", "skewed"
-    max_rounds: int = 5,
 ) -> ExperimentScene:
     """Build a Resource Scarcity scenario.
 
@@ -26,10 +25,12 @@ def build_resource_scarcity_sim(
         num_agents: Number of agents in the community
         resource_amount: Total units of the scarce resource
         initial_distribution: How resources are distributed initially
-        max_rounds: Maximum number of rounds to run
 
     Returns:
         ExperimentScene configured for resource scarcity dilemma
+
+    Note:
+        Runs indefinitely; controlled by SimTree 'advance node' operation.
     """
     from socialsim4.core.scenarios.actions import CATEGORY_ACTION_LIBRARIES
 
@@ -86,7 +87,6 @@ The goal is to survive while maintaining social relationships."""
         'description': description,
         'actions': actions_config,
         'settings': {
-            'max_rounds': max_rounds,
             'round_visibility': 'simultaneous',
         }
     }
