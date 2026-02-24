@@ -61,6 +61,34 @@
     "loading": "Loading…",
     "error": "Unable to load simulations."
   },
+  "scenario": {
+    "category": {
+      "game_theory": "Game Theory",
+      "social_dynamics": "Social Dynamics",
+      "discussion": "Discussion",
+      "grid_world": "Grid World",
+      "social_deduction": "Social Deduction",
+      "sociology": "Sociology"
+    },
+    "sociology": {
+      "social_norm_disruption": {
+        "name": "Social Norm Disruption",
+        "description": "A new rule is suddenly imposed on the group. Agents with different social status and temperament must decide how to respond."
+      },
+      "policy_erosion": {
+        "name": "Policy Meaning Erosion",
+        "description": "A policy is announced at the top of a three-tier hierarchy. Each tier decides how to interpret and pass it on."
+      },
+      "echo_chamber": {
+        "name": "Echo Chamber",
+        "description": "Agents hold opinions ranging from strongly progressive to strongly conservative. Observe opinion drift and information silos."
+      },
+      "resource_scarcity": {
+        "name": "Resource Scarcity",
+        "description": "A post-disaster community faces scarce resources. Agents decide whether to share, trade, or defect for personal gain."
+      }
+    }
+  },
   "settings": {
     "title": "Settings",
     "tabs": {
@@ -635,7 +663,99 @@
     "send_message": "Send message",
     "gather_resource": "Gather resources",
     "rest": "Rest",
-    "yield": "Yield"
+    "yield": "Yield",
+    "comply_publicly": {
+      "description": "Visibly accept and follow the norm or directive",
+      "execute": "{agent_name} publicly complied with the norm"
+    },
+    "comply_covertly_resist": {
+      "description": "Formally comply while privately circumventing",
+      "execute": "{agent_name} complied publicly but resisted privately"
+    },
+    "resist_openly": {
+      "description": "Openly refuse or challenge the norm",
+      "execute": "{agent_name} openly resisted the norm"
+    },
+    "persuade_others": {
+      "description": "Convince others to adopt your position",
+      "execute": "{agent_name} tried to persuade others"
+    },
+    "form_coalition": {
+      "description": "Organize with like-minded others",
+      "execute": "{agent_name} formed a coalition"
+    },
+    "transmit_faithfully": {
+      "description": "Pass the policy on exactly as received",
+      "execute": "{agent_name} transmitted the policy faithfully"
+    },
+    "reinterpret_downward": {
+      "description": "Adapt the policy when passing it down",
+      "execute": "{agent_name} reinterpreted the policy"
+    },
+    "comply_directive": {
+      "description": "Accept and implement the instruction from above",
+      "execute": "{agent_name} complied with the directive"
+    },
+    "resist_quietly": {
+      "description": "Formally comply but avoid real implementation",
+      "execute": "{agent_name} quietly resisted"
+    },
+    "report_up": {
+      "description": "Escalate an obstacle to a higher authority",
+      "execute": "{agent_name} reported up the chain"
+    },
+    "create_workaround": {
+      "description": "Build an informal path around the official rule",
+      "execute": "{agent_name} created a workaround"
+    },
+    "express_opinion": {
+      "description": "Share your current viewpoint",
+      "execute": "{agent_name} expressed their opinion"
+    },
+    "reinforce_ingroup": {
+      "description": "Engage with and amplify similar viewpoints",
+      "execute": "{agent_name} reinforced their in-group"
+    },
+    "challenge_outgroup": {
+      "description": "Actively argue against opposing views",
+      "execute": "{agent_name} challenged out-group views"
+    },
+    "seek_common_ground": {
+      "description": "Find shared values across opinion divides",
+      "execute": "{agent_name} sought common ground"
+    },
+    "share_content": {
+      "description": "Share information reinforcing your position",
+      "execute": "{agent_name} shared content"
+    },
+    "disengage": {
+      "description": "Withdraw from engagement with opposing views",
+      "execute": "{agent_name} disengaged"
+    },
+    "share_resources": {
+      "description": "Give some of your resources to another agent",
+      "execute": "{agent_name} shared resources"
+    },
+    "hoard": {
+      "description": "Keep all resources for yourself",
+      "execute": "{agent_name} hoarded resources"
+    },
+    "propose_trade": {
+      "description": "Offer to exchange resources",
+      "execute": "{agent_name} proposed a trade"
+    },
+    "form_contract": {
+      "description": "Propose a formal cooperative agreement",
+      "execute": "{agent_name} formed a contract"
+    },
+    "honor_contract": {
+      "description": "Fulfill an existing agreement",
+      "execute": "{agent_name} honored their contract"
+    },
+    "defect_from_contract": {
+      "description": "Break an agreement for personal gain",
+      "execute": "{agent_name} defected from their contract"
+    }
   },
   "simPage": {
     "noSimulation": "No simulation selected",
@@ -1147,6 +1267,20 @@
       "instructions": "Please copy or screenshot the red error message above, or the red line in the browser console (F12), and share it with the development team."
     }
   },
+  "param": {
+    "uiHint": {
+      "slider": "Slider",
+      "percentage": "Percentage",
+      "textarea": "Text Area",
+      "text": "Text Input",
+      "select": "Select",
+      "toggle": "Toggle",
+      "list": "List",
+      "multiselect": "Multi-select",
+      "key_value": "Key-Value Pairs",
+      "drag_list": "Drag List"
+    }
+  },
   "pages": {
     "docsPage": {
       "documentation": "Documentation / User Guide",
@@ -1401,7 +1535,25 @@
       "optionalAddons": "Optional Add-ons Available",
       "optionalAddonsDesc": "Based on your selection, you can add voting, multiple phases, or scripted agents in later steps."
     },
-    "close": "Close"
+    "close": "Close",
+    "roundSettings": {
+      "title": "Round Settings",
+      "roundVisibility": {
+        "label": "Round Visibility",
+        "simultaneous": "Simultaneous (all decide at once)",
+        "sequential": "Sequential (one at a time)"
+      },
+      "turnOrder": {
+        "label": "Turn Order",
+        "fixed": "Fixed",
+        "random": "Random"
+      }
+    },
+    "promptPreview": {
+      "title": "Example Agent Prompt",
+      "note": "All {n} agent type(s) receive the same scenario, actions, and output format. Only the agent description changes.",
+      "otherTypes": "Other agent types"
+    }
   },
   "systemTemplates": {
     "normDisruption": {
