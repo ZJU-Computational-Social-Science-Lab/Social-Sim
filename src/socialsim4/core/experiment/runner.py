@@ -67,7 +67,7 @@ class ExperimentRunner:
         game_config: GameConfig,
         llm_client: LLMClient,
         kernel: ExperimentKernel | None = None,
-        round_visibility: Literal["simultaneous", "sequential"] = "simultaneous"
+        round_visibility: Literal["simultaneous", "sequential", "random"] = "simultaneous"
     ):
         """Initialize the experiment runner.
 
@@ -87,6 +87,7 @@ class ExperimentRunner:
         self.context_manager = RoundContextManager()
         self.controller = ExperimentController(self.kernel, self.context_manager)
         self.current_round = 0
+        self.turn_order: List[str] | None = None  # Store shuffled order for random mode
 
     async def run(self, max_rounds: int) -> List[RoundResult]:
         """Run the experiment for a specified number of rounds.
@@ -105,7 +106,9 @@ class ExperimentRunner:
 
             if self.round_visibility == "simultaneous":
                 round_result = await self._run_simultaneous_round(round_num)
-            else:
+            elif self.round_visibility == "random":
+                round_result = await self._run_random_round(round_num)
+            else:  # sequential
                 round_result = await self._run_sequential_round(round_num)
 
             results.append(round_result)
@@ -167,6 +170,37 @@ class ExperimentRunner:
             completed=len(actions) == len(self.agents)
         )
 
+    async def _run_random_round(self, round_num: int) -> RoundResult:
+        """Run a round where agents decide in random order.
+
+        Each agent sees previous agents' choices from this round.
+        The order is shuffled at the start of each round.
+        """
+        import random
+
+        # Shuffle agent order for this round
+        self.turn_order = [agent.name for agent in self.agents]
+        random.shuffle(self.turn_order)
+
+        logger.debug(f"Random turn order for round {round_num}: {self.turn_order}")
+
+        # Create a mapping from name to agent
+        agent_map = {agent.name: agent for agent in self.agents}
+
+        actions = []
+        for agent_name in self.turn_order:
+            agent = agent_map[agent_name]
+            result = await self._prompt_agent(agent, round_num)
+            actions.append(result)
+            # Action is recorded by controller.process_response(),
+            # making it immediately visible to the next agent
+
+        return RoundResult(
+            round_num=round_num,
+            actions=actions,
+            completed=len(actions) == len(self.agents)
+        )
+
     async def _run_single_round(
         self, round_num: int, context_summary: str, round_history: list = None
     ) -> RoundResult:
@@ -190,7 +224,8 @@ class ExperimentRunner:
         if round_history:
             for agent in self.agents:
                 # Determine visibility mode for this agent
-                if self.round_visibility == "sequential":
+                # Sequential and random modes allow agents to see earlier agents' actions
+                if self.round_visibility in ("sequential", "random"):
                     visibility_mode = "sequential"
                 else:
                     visibility_mode = "previous_rounds"
@@ -210,9 +245,12 @@ class ExperimentRunner:
             # Fallback to shared context if no round_history provided
             self.context_manager.set_initial_context(context_summary)
 
+        # Run the round with appropriate visibility mode
         if self.round_visibility == "simultaneous":
             round_result = await self._run_simultaneous_round(round_num)
-        else:
+        elif self.round_visibility == "random":
+            round_result = await self._run_random_round(round_num)
+        else:  # sequential
             round_result = await self._run_sequential_round(round_num)
 
         # Update context summaries after the round
