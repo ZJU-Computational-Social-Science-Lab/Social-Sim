@@ -251,12 +251,14 @@ class ExperimentScene(Scene):
                     "actions": actions_list
                 })
 
+            # Build fallback context summary for compatibility
             context_summary = build_context_summary(round_history, max_rounds=5)
 
             # Run ONE round using the runner's internal method
             round_result = await self._runner._run_single_round(
                 round_num=round_num,
-                context_summary=context_summary
+                context_summary=context_summary,
+                round_history=round_history
             )
 
             self._all_results.append(round_result)

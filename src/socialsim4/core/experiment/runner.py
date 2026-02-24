@@ -23,6 +23,7 @@ from socialsim4.core.experiment.controller import ExperimentController, ActionRe
 from socialsim4.core.experiment.round_context import RoundContextManager
 from socialsim4.core.experiment.prompt_builder import build_prompt
 from socialsim4.core.llm.client import LLMClient
+from socialsim4.core.context_builder import build_context_summary
 
 # Configure debug logging to stdout
 logger = logging.getLogger(__name__)
@@ -167,26 +168,47 @@ class ExperimentRunner:
         )
 
     async def _run_single_round(
-        self, round_num: int, context_summary: str
+        self, round_num: int, context_summary: str, round_history: list = None
     ) -> RoundResult:
         """Run a single round with provided context summary.
 
-        This method is called by ExperimentScene to run one round at a time
-        (instead of running all rounds in a loop). It uses the context summary
-        built from previous rounds.
+        This method is called by ExperimentScene to run one round at a time.
+        It builds per-agent context based on visibility settings.
 
         Args:
             round_num: The round number to run
-            context_summary: Context summary from previous rounds
+            context_summary: Shared context summary from previous rounds (fallback)
+            round_history: Full round history for per-agent context filtering
 
         Returns:
             RoundResult with all agent actions for this round
         """
-        # Set context summary for all agents before running the round
-        self.context_manager.set_initial_context(context_summary)
-
         self.current_round = round_num
         logger.info(f"Starting round {round_num}")
+
+        # Build per-agent context summaries if round_history is provided
+        if round_history:
+            for agent in self.agents:
+                # Determine visibility mode for this agent
+                if self.round_visibility == "sequential":
+                    visibility_mode = "sequential"
+                else:
+                    visibility_mode = "previous_rounds"
+
+                # Build per-agent context using filtered history
+                agent_context = build_context_summary(
+                    round_history,
+                    max_rounds=5,
+                    for_agent=agent.name,
+                    visibility_mode=visibility_mode
+                )
+
+                # Set per-agent context in context manager
+                self.context_manager._summaries[agent.name] = agent_context
+
+        elif context_summary:
+            # Fallback to shared context if no round_history provided
+            self.context_manager.set_initial_context(context_summary)
 
         if self.round_visibility == "simultaneous":
             round_result = await self._run_simultaneous_round(round_num)
