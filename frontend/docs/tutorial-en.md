@@ -50,7 +50,7 @@ Navigate to **Configuration** -> **LLM providers** from the left/top menu.
 
 The Gemini (Google AI) configuration process is similar. Obtain an API Key from Google AI Studio at https://aistudio.google.com/api-keys and select Gemini as the provider. Models include gemini-1.5-flash-latest, and usually no Base URL is required.
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-1.png)
+![Tutorial Screenshot - LLM Provider Configuration](/tutorial/01-overview.png)
 
 **Option 2: Use API Relay Station (Recommended for Users in Mainland China)**
 
@@ -70,7 +70,7 @@ The Gemini (Google AI) configuration process is similar. Obtain an API Key from 
    - **Model**: From the relay station's model list, fully copy the model name you want to use and paste it here
 4. Save and click "Test connectivity".
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-2.png)
+![Tutorial Screenshot - API Relay Configuration](/tutorial/02-dashboard.png)
 
 ### 2.4 Configure Search Provider
 
@@ -117,7 +117,7 @@ Combining the platform's core features, complete a full simulation experiment wi
 
 1. After clicking "New Simulation" and redirecting to the new simulation page, configure basic information (optional, default values will be used if not set);
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-3.png)
+![Tutorial Screenshot - New Simulation Settings](/tutorial/03-new-simulation.png)
 
 2. Fill in the experiment name (recommended to match the theme, such as "Meaning Decay in Policy Communication Simulation Experiment");
 3. Select simulation duration (such as 120 minutes, 72 hours), click **[Confirm]** to complete configuration.
@@ -131,7 +131,7 @@ Agents are the core carrier of simulation. The platform supports 3 generation me
 1. Enter the agent configuration page, click "Use Template Agents" to jump to the template character library;
 2. Check the characters that fit policy communication (policy publishers, grassroots communicators, ordinary people, etc.), adjust the quantity ratio, and save the configuration.
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-4.png)
+![Tutorial Screenshot - Template Characters](/tutorial/04-agent-generation.png)
 
 **Method 2: AI Batch Generate Agents (Recommended, Supports Large-Scale Configuration)**
 
@@ -140,7 +140,7 @@ Agents are the core carrier of simulation. The platform supports 3 generation me
 3. Configure core initial values (policy awareness, willingness to communicate, etc., with values 0-100) to match the core variables of meaning decay;
 4. Enter the total number of agents, click "Start Generating", preview and adjust, then save the configuration.
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-5.png)
+![Tutorial Screenshot - AI Batch Generate](/tutorial/05-simulation-view.png)
 
 **Method 3: Import Agents (Suitable for Scenarios with Preset Data)**
 
@@ -152,9 +152,9 @@ Fill in agent information as required, ensure consistent format, and complete th
 2. Click the "Advance node" button on the left to start the simulation;
 3. During the simulation, observe changes in core variables through the data panel on the right, and use the "Filter" function to view various logs and agent metadata;
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-6.png)
+![Tutorial Screenshot - Simulation Interface](/tutorial/06-host-panel.png)
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-7.png)
+![Tutorial Screenshot - Agent Interactions](/tutorial/07-experiment-design.png)
 
 4. After the simulation advances to the preset duration or expected effect, you can continue advancing nodes or create branches for comparative experiments.
 
@@ -189,7 +189,7 @@ Through controlled experiments, explore the impact of different variables on sim
 2. Fill in the experiment name, set 1 or more intervention items (global instructions, agent attribute interventions, environmental event interventions);
 3. Set multiple experiment groups. You need to add a branch as a control group (without any intervention items or with a placebo);
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-8.png)
+![Tutorial Screenshot - Experiment Design](/tutorial/08-analytics.png)
 
 4. Click "Start Batch Run", and the system will generate independently running nodes that advance in parallel until completion;
 5. Enable "Compare mode (Diff)", and the system will automatically generate a comparison report to analyze differences between groups and export for review.
@@ -207,13 +207,13 @@ Based on social network analysis theory, configure the agent information propaga
 
 1. Enter the simulation interface, click "Social Network Topology" at the top to enable the network editor;
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-9.png)
+![Tutorial Screenshot - Network Topology Editor](/tutorial/09-network-topology.png)
 
 2. Select system preset network configurations (random, small-world, scale-free, core-periphery, etc.), or switch to custom configuration;
 3. Finely configure core parameters (node degree, edge properties, network density). Custom configuration allows manual drawing of nodes and edges;
 4. Click "Generate Network" to confirm the effect, and after "Save topology settings", apply to the agent population;
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-10.png)
+![Tutorial Screenshot - Network Configuration](/tutorial/10-export-reports.png)
 
 5. Start the simulation and observe propagation efficiency and meaning decay rate under different network structures to analyze regulatory mechanisms.
 
