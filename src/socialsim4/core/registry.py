@@ -40,7 +40,7 @@ from .scenes.landlord_scene import LandlordPokerScene
 from .scenes.simple_chat_scene import SimpleChatScene
 from .scenes.village_scene import VillageScene
 from .scenes.werewolf_scene import WerewolfScene
-# Note: ExperimentScene and RunExperimentAction are imported lazily to avoid circular import
+from socialsim4.core.experiment.scene import ExperimentScene
 from socialsim4.templates.loader import GenericScene
 
 ACTION_SPACE_MAP = {
@@ -86,19 +86,6 @@ ACTION_SPACE_MAP = {
     "no_double": NoDoubleAction(),
 }
 
-# Lazy loading for RunExperimentAction to avoid circular import
-def _get_run_experiment_action():
-    from .scenes.experiment_scene import RunExperimentAction
-    return RunExperimentAction()
-
-# Add run_experiment action after defining the lazy loader
-ACTION_SPACE_MAP["run_experiment"] = _get_run_experiment_action()
-
-# Lazy loading for ExperimentScene to avoid circular import
-def _get_experiment_scene():
-    from .scenes.experiment_scene import ExperimentScene
-    return ExperimentScene
-
 
 SCENE_MAP = {
     "simple_chat_scene": SimpleChatScene,
@@ -108,7 +95,7 @@ SCENE_MAP = {
     "werewolf_scene": WerewolfScene,
     "landlord_scene": LandlordPokerScene,
     "generic_scene": GenericScene,
-    "experiment_template": _get_experiment_scene,
+    "experiment_template": ExperimentScene,
 }
 
 
@@ -182,7 +169,7 @@ SCENE_ACTIONS: dict[str, dict[str, list[str]]] = {
         ],
     },
     "experiment_template": {
-        "basic": ["run_experiment"],
+        "basic": [],
         "allowed": [],
     },
 }
