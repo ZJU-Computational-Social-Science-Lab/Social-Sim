@@ -7,6 +7,7 @@ import os
 from socialsim4.core.event import PublicEvent
 from socialsim4.core.simulator import Simulator
 from socialsim4.services.llm_client_pool import LLMClientPool
+from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +129,10 @@ class SimTree:
 
         # 1) 通过 serialize -> deserialize 克隆 simulator
         snap = sim.serialize()
-        sim_clone = Simulator.deserialize(snap, root_clients, log_handler=None)
+        if isinstance(sim, ExperimentRunnerAdapter):
+            sim_clone = ExperimentRunnerAdapter.deserialize(snap, root_clients, log_handler=None)
+        else:
+            sim_clone = Simulator.deserialize(snap, root_clients, log_handler=None)
 
         # 2) 克隆点的 event_queue 必须是“干净”的
         sim_clone.reset_event_queue()

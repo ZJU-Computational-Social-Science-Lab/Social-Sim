@@ -79,6 +79,33 @@ class ExperimentRunnerAdapter:
         """Collect events for SimTree."""
         self.events.append({"type": event_type, "data": data})
 
+    def serialize(self) -> dict:
+        """Serialize for SimTree compatibility."""
+        return {
+            "agents": {},  # No legacy agents
+            "scene": {
+                "type": "experiment_template",
+                "config": self.scene.serialize_config(),
+            },
+            "max_steps_per_turn": 5,
+            "ordering": "sequential",
+            "ordering_state": {},
+            "event_queue": [],
+            "turns": self.scene.current_round,
+            "environment_config": None,
+            "_suggestions_viewed_turn": None,
+        }
+
+    @classmethod
+    def deserialize(cls, data: dict, clients: dict, log_handler=None):
+        """Deserialize for SimTree compatibility."""
+        scene_data = data["scene"]["config"]
+        scene = ExperimentScene.deserialize_config(scene_data)
+
+        adapter = cls(scene, clients)
+        adapter.scene.current_round = data.get("turns", 0)
+        return adapter
+
 
 def _build_tree_for_scene(scene_type: str, clients: dict | None = None) -> SimTree:
     # Normalize scene_type to registry keys (allow aliases like 'village' -> 'village_scene')
