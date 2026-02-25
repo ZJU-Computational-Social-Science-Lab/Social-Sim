@@ -243,17 +243,23 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
             available_actions=available_actions,
         )
     elif scene_key == "experiment_template":
-        # ExperimentScene needs template_config with description, actions, settings
-        template_config = {
-            "description": cfg.get("description") or str(cfg.get("initial_event") or ""),
-            "actions": cfg.get("actions") or [],
-            "settings": cfg.get("settings") or {},
-        }
-        scene = scene_cls(
-            name,
-            template_config.get("description") or "",
-            template_config=template_config,
+        # ExperimentScene - standalone, no legacy Simulator needed
+        config = ExperimentConfig(
+            agents=agent_config.get("agents", []),
+            actions=cfg.get("actions", []),
+            parameters=cfg.get("parameters", {}),
+            description=cfg.get("description", ""),
+            scenario_id=cfg.get("scenario_id", "custom"),
+            round_visibility=cfg.get("round_visibility", "simultaneous"),
         )
+        scene = ExperimentScene(config)
+
+        # Use adapter instead of full Simulator
+        adapter = ExperimentRunnerAdapter(scene, clients or make_clients_from_env())
+
+        logger.debug(f"Created ExperimentScene with adapter: {config.scenario_id}")
+
+        return SimTree.new(adapter, adapter.clients)
     else:
         scene = scene_cls(name, str(cfg.get("initial_event") or ""))
 
