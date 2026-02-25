@@ -279,6 +279,7 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
             scenario_id=cfg.get("scenario_id", "custom"),
             round_visibility=cfg.get("round_visibility", "simultaneous"),
         )
+        logger.debug(f"[EXPERIMENT] Creating ExperimentConfig with parameters: {cfg.get('parameters', {})}")
         scene = ExperimentScene(config)
 
         # Use adapter instead of full Simulator

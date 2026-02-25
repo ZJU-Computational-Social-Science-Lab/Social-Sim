@@ -165,16 +165,21 @@ class ExperimentScene:
     def _build_payoff_summary(self) -> str:
         """Build payoff_summary from scenario parameters."""
         params = self.config.parameters
+        logger.debug(f"[PAYOFF] parameters: {params}")
+
         if not params:
+            logger.debug("[PAYOFF] No parameters, returning empty")
             return ""
 
         cooperate_reward = params.get("cooperate_reward")
         sucker_penalty = params.get("sucker_penalty")
         temptation_reward = params.get("temptation_reward")
         defect_penalty = params.get("defect_penalty")
+        logger.debug(f"[PAYOFF] cooperate_reward={cooperate_reward}, sucker_penalty={sucker_penalty}, temptation_reward={temptation_reward}, defect_penalty={defect_penalty}")
 
         # Require all 4 values
         if None in [cooperate_reward, sucker_penalty, temptation_reward, defect_penalty]:
+            logger.debug("[PAYOFF] Missing at least one parameter, returning empty")
             return ""
 
         return f"""Payoff Table (from your perspective):
