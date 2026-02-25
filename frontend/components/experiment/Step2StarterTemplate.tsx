@@ -10,7 +10,70 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useExperimentBuilder } from '../../store/experiment-builder';
 import ParameterField from './ParameterField';
-import PayoffMatrixEditor from './PayoffMatrixEditor';
+
+// Simplified Payoff Input Component
+interface PayoffInputProps {
+  value: { cooperate_reward?: number; defect_penalty?: number };
+  onChange: (value: { cooperate_reward: number; defect_penalty: number }) => void;
+}
+
+function PayoffInput({ value, onChange }: PayoffInputProps) {
+  const cooperateReward = value.cooperate_reward ?? 3;
+  const defectPenalty = value.defect_penalty ?? 1;
+
+  // Auto-derive temptation and sucker values
+  const temptation = cooperateReward + 2;
+  const sucker = Math.max(0, cooperateReward - 3);
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Reward for mutual cooperation
+        </label>
+        <input
+          type="number"
+          value={cooperateReward}
+          onChange={(e) => onChange({
+            cooperate_reward: parseInt(e.target.value) || 3,
+            defect_penalty: defectPenalty,
+          })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Years saved when both players choose cooperate
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Penalty for mutual defection
+        </label>
+        <input
+          type="number"
+          value={defectPenalty}
+          onChange={(e) => onChange({
+            cooperate_reward: cooperateReward,
+            defect_penalty: parseInt(e.target.value) || 1,
+          })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Years saved when both players choose defect
+        </p>
+      </div>
+
+      <div className="bg-gray-50 p-3 rounded-md text-sm">
+        <p className="font-medium text-gray-700 mb-2">Auto-calculated:</p>
+        <p>• Temptation (defect vs cooperate): <strong>{temptation}</strong></p>
+        <p>• Sucker (cooperate vs defect): <strong>{sucker}</strong></p>
+        <p className="text-xs text-gray-500 mt-2">
+          Standard PD constraint: T &gt; R &gt; P &gt; S
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export const Step2StarterTemplate: React.FC = () => {
   const { t } = useTranslation();
@@ -61,6 +124,14 @@ export const Step2StarterTemplate: React.FC = () => {
     setScenarioParams({ ...scenarioParams, [key]: value });
   };
 
+  const handlePayoffChange = (value: { cooperate_reward: number; defect_penalty: number }) => {
+    setScenarioParams({
+      ...scenarioParams,
+      cooperate_reward: value.cooperate_reward,
+      defect_penalty: value.defect_penalty,
+    });
+  };
+
   const getParamValue = (param: { key: string; default: unknown }) => {
     return scenarioParams[param.key] !== undefined
       ? scenarioParams[param.key]
@@ -106,12 +177,11 @@ export const Step2StarterTemplate: React.FC = () => {
         />
       </div>
 
-      {/* Dynamic Parameter Fields or Payoff Matrix */}
+      {/* Dynamic Parameter Fields or Payoff Input */}
       {selectedScenarioData.display_type === 'payoff_matrix' ? (
-        <PayoffMatrixEditor
-          matrixMeta={selectedScenarioData.matrix_meta!}
-          parameters={scenarioParams as Record<string, number>}
-          onChange={handleParamChange}
+        <PayoffInput
+          value={scenarioParams as { cooperate_reward?: number; defect_penalty?: number }}
+          onChange={handlePayoffChange}
         />
       ) : hasParameters ? (
         <div className="space-y-4">
