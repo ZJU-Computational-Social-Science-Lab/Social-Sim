@@ -11,65 +11,102 @@ import { useTranslation } from 'react-i18next';
 import { useExperimentBuilder } from '../../store/experiment-builder';
 import ParameterField from './ParameterField';
 
-// Simplified Payoff Input Component
+// Payoff Input Component - 4 explicit inputs
 interface PayoffInputProps {
-  value: { cooperate_reward?: number; defect_penalty?: number };
-  onChange: (value: { cooperate_reward: number; defect_penalty: number }) => void;
+  value: {
+    cooperate_reward?: number;
+    sucker_penalty?: number;
+    temptation_reward?: number;
+    defect_penalty?: number;
+  };
+  onChange: (value: {
+    cooperate_reward: number;
+    sucker_penalty: number;
+    temptation_reward: number;
+    defect_penalty: number;
+  }) => void;
 }
 
 function PayoffInput({ value, onChange }: PayoffInputProps) {
-  const cooperateReward = value.cooperate_reward ?? 3;
-  const defectPenalty = value.defect_penalty ?? 1;
-
-  // Auto-derive temptation and sucker values
-  const temptation = cooperateReward + 2;
-  const sucker = Math.max(0, cooperateReward - 3);
-
   return (
     <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Reward for mutual cooperation
-        </label>
-        <input
-          type="number"
-          value={cooperateReward}
-          onChange={(e) => onChange({
-            cooperate_reward: parseInt(e.target.value) || 3,
-            defect_penalty: defectPenalty,
-          })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-        />
-        <p className="text-xs text-gray-500 mt-1">
-          Years saved when both players choose cooperate
-        </p>
+      <div className="bg-blue-50 p-3 rounded-md text-sm mb-4">
+        <p className="font-medium text-blue-800 mb-2">Your Payoffs (years saved):</p>
+        <p className="text-blue-700 text-xs">Fill in what YOU get based on YOUR choice and THEIR choice.</p>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Penalty for mutual defection
-        </label>
-        <input
-          type="number"
-          value={defectPenalty}
-          onChange={(e) => onChange({
-            cooperate_reward: cooperateReward,
-            defect_penalty: parseInt(e.target.value) || 1,
-          })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-        />
-        <p className="text-xs text-gray-500 mt-1">
-          Years saved when both players choose defect
-        </p>
-      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            You Cooperate, They Cooperate
+          </label>
+          <input
+            type="number"
+            value={value.cooperate_reward ?? 3}
+            onChange={(e) => onChange({
+              ...value,
+              cooperate_reward: parseInt(e.target.value) || 3,
+              sucker_penalty: value.sucker_penalty ?? 0,
+              temptation_reward: value.temptation_reward ?? 5,
+              defect_penalty: value.defect_penalty ?? 1,
+            })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          />
+        </div>
 
-      <div className="bg-gray-50 p-3 rounded-md text-sm">
-        <p className="font-medium text-gray-700 mb-2">Auto-calculated:</p>
-        <p>• Temptation (defect vs cooperate): <strong>{temptation}</strong></p>
-        <p>• Sucker (cooperate vs defect): <strong>{sucker}</strong></p>
-        <p className="text-xs text-gray-500 mt-2">
-          Standard PD constraint: T &gt; R &gt; P &gt; S
-        </p>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            You Cooperate, They Defect
+          </label>
+          <input
+            type="number"
+            value={value.sucker_penalty ?? 0}
+            onChange={(e) => onChange({
+              ...value,
+              cooperate_reward: value.cooperate_reward ?? 3,
+              sucker_penalty: parseInt(e.target.value) || 0,
+              temptation_reward: value.temptation_reward ?? 5,
+              defect_penalty: value.defect_penalty ?? 1,
+            })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            You Defect, They Cooperate
+          </label>
+          <input
+            type="number"
+            value={value.temptation_reward ?? 5}
+            onChange={(e) => onChange({
+              ...value,
+              cooperate_reward: value.cooperate_reward ?? 3,
+              sucker_penalty: value.sucker_penalty ?? 0,
+              temptation_reward: parseInt(e.target.value) || 5,
+              defect_penalty: value.defect_penalty ?? 1,
+            })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            You Defect, They Defect
+          </label>
+          <input
+            type="number"
+            value={value.defect_penalty ?? 1}
+            onChange={(e) => onChange({
+              ...value,
+              cooperate_reward: value.cooperate_reward ?? 3,
+              sucker_penalty: value.sucker_penalty ?? 0,
+              temptation_reward: value.temptation_reward ?? 5,
+              defect_penalty: parseInt(e.target.value) || 1,
+            })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          />
+        </div>
       </div>
     </div>
   );
@@ -124,10 +161,17 @@ export const Step2StarterTemplate: React.FC = () => {
     setScenarioParams({ ...scenarioParams, [key]: value });
   };
 
-  const handlePayoffChange = (value: { cooperate_reward: number; defect_penalty: number }) => {
+  const handlePayoffChange = (value: {
+    cooperate_reward: number;
+    sucker_penalty: number;
+    temptation_reward: number;
+    defect_penalty: number;
+  }) => {
     setScenarioParams({
       ...scenarioParams,
       cooperate_reward: value.cooperate_reward,
+      sucker_penalty: value.sucker_penalty,
+      temptation_reward: value.temptation_reward,
       defect_penalty: value.defect_penalty,
     });
   };

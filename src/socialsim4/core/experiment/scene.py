@@ -169,20 +169,18 @@ class ExperimentScene:
             return ""
 
         cooperate_reward = params.get("cooperate_reward")
+        sucker_penalty = params.get("sucker_penalty")
+        temptation_reward = params.get("temptation_reward")
         defect_penalty = params.get("defect_penalty")
 
-        if cooperate_reward is None or defect_penalty is None:
-            # Not a payoff-based scenario
+        # Require all 4 values
+        if None in [cooperate_reward, sucker_penalty, temptation_reward, defect_penalty]:
             return ""
-
-        # Auto-derive for symmetric games
-        temptation = cooperate_reward + 2
-        sucker = max(0, cooperate_reward - 3)
 
         return f"""Payoff Table (from your perspective):
 - If you COOPERATE and they cooperate: {cooperate_reward} years saved
-- If you COOPERATE and they defect: {sucker} years saved (sucker's payoff)
-- If you DEFECT and they cooperate: {temptation} years saved (temptation)
+- If you COOPERATE and they defect: {sucker_penalty} years saved (sucker's payoff)
+- If you DEFECT and they cooperate: {temptation_reward} years saved (temptation)
 - If you DEFECT and they defect: {defect_penalty} years saved"""
 
     def _build_context_summary(self) -> str:
