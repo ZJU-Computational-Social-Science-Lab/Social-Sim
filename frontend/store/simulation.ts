@@ -249,6 +249,7 @@ export const createSimulationSlice: StateCreator<
               round_visibility: template.genericConfig?.round_visibility || 'simultaneous',
               max_rounds: template.genericConfig?.max_rounds || 50,
             };
+            sceneConfig.parameters = template.genericConfig?.parameters || {};
           } else if (templateActions.length > 0) {
             // Legacy format
             sceneConfig.available_actions = templateActions;
