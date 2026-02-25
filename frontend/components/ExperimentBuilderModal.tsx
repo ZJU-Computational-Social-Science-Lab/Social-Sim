@@ -120,17 +120,25 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
     // Create custom agents array from agent types
     const customAgents = state.agentTypes.flatMap(convertAgentToSimulationAgent);
 
-    // Build action list from selectedActionIds
-    const selectedActions = state.selectedActionIds || [];
+    // Build action list with full objects (including descriptions)
+    const allAvailableActions = state.availableActions || [];
+    const selectedActionObjects = allAvailableActions.filter(
+      (a: any) => state.selectedActionIds.includes(a.name)
+    );
 
     // Get scenario for backend
     const scenarioData = state.selectedScenarioData;
 
-    // Build generic config based on new experiment builder state
+    // Build generic config with full action objects and parameters
     const genericConfig: any = {
       description: scenarioDescription || t('experimentBuilder.customExperiment'),
       scenarioId: state.selectedScenarioId || 'custom',
-      actions: selectedActions,
+      actions: selectedActionObjects.map((a: any) => ({
+        name: a.name,
+        description: a.description || a.name,
+      })),
+      parameters: state.scenarioParams || {},
+      round_visibility: state.roundVisibility || 'simultaneous',
     };
 
     // Determine if this uses the new Three-Layer Architecture
