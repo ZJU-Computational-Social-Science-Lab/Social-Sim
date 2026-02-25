@@ -13,6 +13,8 @@ from socialsim4.core.simtree import SimTree
 from socialsim4.core.simulator import Simulator
 from socialsim4.core.environment_config import EnvironmentConfig
 from socialsim4.scenarios.basic import make_clients_from_env
+from socialsim4.core.experiment.config import ExperimentConfig
+from socialsim4.core.experiment.scene import ExperimentScene
 
 
 logger = logging.getLogger(__name__)
@@ -45,6 +47,37 @@ class SimTreeRecord:
 
 def _quiet_logger(event_type: str, data: dict) -> None:
     return
+
+
+class ExperimentRunnerAdapter:
+    """Minimal adapter so ExperimentScene works with SimTree.
+
+    Provides the interface SimTree expects (.run(), .agents, .clients)
+    without requiring a full Simulator with legacy Agents.
+    """
+
+    def __init__(self, scene: ExperimentScene, clients: dict):
+        self.scene = scene
+        self.clients = clients
+        self.agents = {}  # Empty dict - no legacy agents
+        self.events: list[dict] = []
+        self._llm_client = clients.get("chat")
+
+    def run(self, max_turns: int = 1) -> None:
+        """Run experiment rounds (each 'turn' = one round)."""
+        import asyncio
+
+        if not self.scene.runner:
+            self.scene.initialize(self._llm_client)
+
+        for _ in range(max_turns):
+            if self.scene.is_complete():
+                break
+            asyncio.run(self.scene.run_round(self._emit_event))
+
+    def _emit_event(self, event_type: str, data: dict) -> None:
+        """Collect events for SimTree."""
+        self.events.append({"type": event_type, "data": data})
 
 
 def _build_tree_for_scene(scene_type: str, clients: dict | None = None) -> SimTree:
