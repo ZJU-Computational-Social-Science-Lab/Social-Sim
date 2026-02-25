@@ -106,6 +106,10 @@ class ExperimentRunnerAdapter:
         adapter.scene.current_round = data.get("turns", 0)
         return adapter
 
+    def reset_event_queue(self) -> None:
+        """No-op for SimTree compatibility (adapter has no event queue)."""
+        pass
+
 
 def _build_tree_for_scene(scene_type: str, clients: dict | None = None) -> SimTree:
     # Normalize scene_type to registry keys (allow aliases like 'village' -> 'village_scene')

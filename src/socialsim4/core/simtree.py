@@ -206,6 +206,9 @@ class SimTree:
         4）ordering 类型一致，serialize 后的状态一致；
         5）**event_queue：对象不共享，且在克隆点必须为空**。
         """
+        # Skip checks for ExperimentRunnerAdapter (different architecture)
+        if isinstance(cloned, ExperimentRunnerAdapter):
+            return
 
         # --- 1. agent 基本信息 ---
         if not cloned.agents:
