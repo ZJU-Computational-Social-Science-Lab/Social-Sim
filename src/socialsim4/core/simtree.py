@@ -1,13 +1,15 @@
 import json
 import asyncio
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TYPE_CHECKING
 import os
 
 from socialsim4.core.event import PublicEvent
 from socialsim4.core.simulator import Simulator
 from socialsim4.services.llm_client_pool import LLMClientPool
-from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
+
+if TYPE_CHECKING:
+    from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +131,8 @@ class SimTree:
 
         # 1) 通过 serialize -> deserialize 克隆 simulator
         snap = sim.serialize()
+        # Lazy import to avoid circular dependency
+        from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
         if isinstance(sim, ExperimentRunnerAdapter):
             sim_clone = ExperimentRunnerAdapter.deserialize(snap, root_clients, log_handler=None)
         else:
@@ -186,7 +190,12 @@ class SimTree:
 
         # Simulator.serialize 已经用 deepcopy 做了深拷贝，这里不再做 json roundtrip
         snap = base_sim.serialize()
-        sim_copy = Simulator.deserialize(snap, branch_clients, log_handler=None)
+        # Lazy import to avoid circular dependency
+        from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
+        if isinstance(base_sim, ExperimentRunnerAdapter):
+            sim_copy = ExperimentRunnerAdapter.deserialize(snap, branch_clients, log_handler=None)
+        else:
+            sim_copy = Simulator.deserialize(snap, branch_clients, log_handler=None)
 
         # 先清空 clone 的 event_queue，再做一次完整自检
         sim_copy.reset_event_queue()
@@ -207,6 +216,8 @@ class SimTree:
         5）**event_queue：对象不共享，且在克隆点必须为空**。
         """
         # Skip checks for ExperimentRunnerAdapter (different architecture)
+        # Lazy import to avoid circular dependency
+        from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
         if isinstance(cloned, ExperimentRunnerAdapter):
             return
 

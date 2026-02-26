@@ -55,16 +55,18 @@ def _get_article(word: str) -> str:
     return "an" if word.lower().startswith(vowels) else "a"
 
 
-def build_agent_description(agent_properties: Dict[str, Any]) -> str:
+def build_agent_description(agent_properties: Dict[str, Any], role_prompt: str = None) -> str:
     """Build agent description section from demographic properties.
 
-    Formats numeric traits with interpretation brackets:
+    If role_prompt is provided, it takes precedence and is used as the entire description.
+    Otherwise, formats numeric traits with interpretation brackets:
     - 0-33 -> (low)
     - 34-66 -> (moderate)
     - 67-100 -> (high)
 
     Args:
         agent_properties: Dict of demographic properties
+        role_prompt: Optional role prompt to use instead of demographic description
 
     Returns:
         Formatted agent description string
@@ -73,6 +75,10 @@ def build_agent_description(agent_properties: Dict[str, Any]) -> str:
         >>> build_agent_description({"age_group": "young adult", "social_capital": 82})
         "You are a young adult person. Your social_capital score is 82/100 (high)."
     """
+    # If role_prompt exists, use it as the entire description
+    if role_prompt:
+        return role_prompt
+
     parts = []
 
     # Start with identity
@@ -113,15 +119,11 @@ def build_prompt(
     """
     sections = []
 
-    # Section 1: Agent Description (including role_prompt if present - Bug C)
-    agent_desc = build_agent_description(agent.get_properties_dict())
+    # Section 1: Agent Description (role_prompt takes precedence if present)
+    agent_desc = build_agent_description(agent.get_properties_dict(), getattr(agent, 'role_prompt', None))
     if include_section_markers:
         sections.append("=== SECTION 1: AGENT DESCRIPTION ===")
     sections.append(agent_desc)
-
-    # Bug C: Add role_prompt if present
-    if hasattr(agent, 'role_prompt') and agent.role_prompt:
-        sections.append(f"\n{agent.role_prompt}")
 
     # Section 2: Scenario (including payoff_summary if present - Bug B)
     scenario_text = game_config.description
@@ -162,9 +164,9 @@ def build_prompt(
     field = game_config.output_field
     if game_config.action_type == "discrete":
         actions_str = ", ".join(f'"{a}"' for a in game_config.actions)
-        sections.append(f'\n## Your Response\nRespond ONLY with valid JSON: {{"reasoning": "one sentence", "{field}": "<{actions_str}>"}}')
+        sections.append(f'\n## Your Response\nRespond ONLY with valid JSON: {{"{field}": "<{actions_str}>"}}')
     else:  # integer
-        sections.append(f'\n## Your Response\nRespond ONLY with valid JSON: {{"reasoning": "one sentence", "{field}": <integer from {game_config.min}-{game_config.max}>}}')
+        sections.append(f'\n## Your Response\nRespond ONLY with valid JSON: {{"{field}": <integer from {game_config.min}-{game_config.max}>}}')
 
     sections.append("\nNo markdown. No explanation. Only JSON.")
 

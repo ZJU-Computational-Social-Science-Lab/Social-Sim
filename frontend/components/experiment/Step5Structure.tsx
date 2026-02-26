@@ -19,6 +19,7 @@ interface PromptPreviewPanelProps {
   agentTypeProfile: string;
   agentTypeRolePrompt: string;
   scenarioDescription: string;
+  scenarioParams: Record<string, unknown>;
   availableActions: Array<{ name: string; description: string }>;
   selectedActionIds: string[];
 }
@@ -37,6 +38,7 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
   agentTypeProfile,
   agentTypeRolePrompt,
   scenarioDescription,
+  scenarioParams,
   availableActions,
   selectedActionIds,
 }) => {
@@ -52,6 +54,11 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
 
   // Build the actions string for the response format
   const actionsForResponse = selectedActions.map((a) => `"${a.name}"`).join(', ');
+
+  // Format parameter key for display (snake_case to Title Case)
+  const formatParamKey = (key: string): string => {
+    return key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+  };
 
   return (
     <div className="border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50">
@@ -88,6 +95,18 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
             <span className="text-gray-400 italic">No scenario description provided</span>
           )}
         </div>
+
+        {/* Section 2b: Game Parameters */}
+        {Object.keys(scenarioParams).length > 0 && (
+          <div className="mb-4">
+            <div className="font-semibold text-gray-900 mb-1">Game Parameters:</div>
+            <div className="pl-2">
+              {Object.entries(scenarioParams).map(([key, value]) => (
+                <div key={key}>- {formatParamKey(key)}: {String(value)}</div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Section 3: Available Actions */}
         <div className="mb-4">
@@ -128,6 +147,7 @@ export const Step5Structure: React.FC = () => {
   const {
     agentTypes,
     scenarioDescription,
+    scenarioParams,
     availableActions,
     selectedActionIds,
   } = useExperimentBuilder();
@@ -174,6 +194,7 @@ export const Step5Structure: React.FC = () => {
         agentTypeProfile={firstAgentType.userProfile || ''}
         agentTypeRolePrompt={firstAgentType.rolePrompt || ''}
         scenarioDescription={scenarioDescription}
+        scenarioParams={scenarioParams}
         availableActions={availableActions}
         selectedActionIds={selectedActionIds}
       />

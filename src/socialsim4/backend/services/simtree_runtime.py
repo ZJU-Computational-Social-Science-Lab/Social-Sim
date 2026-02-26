@@ -62,6 +62,7 @@ class ExperimentRunnerAdapter:
         self.agents = {}  # Empty dict - no legacy agents
         self.events: list[dict] = []
         self._llm_client = clients.get("chat")
+        self.log_event = None  # Will be set by SimTree._attach_log_handler
 
     def run(self, max_turns: int = 1) -> None:
         """Run experiment rounds (each 'turn' = one round)."""
@@ -76,8 +77,11 @@ class ExperimentRunnerAdapter:
             asyncio.run(self.scene.run_round(self._emit_event))
 
     def _emit_event(self, event_type: str, data: dict) -> None:
-        """Collect events for SimTree."""
+        """Collect events for SimTree and emit to log handler."""
         self.events.append({"type": event_type, "data": data})
+        # Also emit to log handler if set (for UI logs display)
+        if self.log_event is not None:
+            self.log_event(event_type, data)
 
     def serialize(self) -> dict:
         """Serialize for SimTree compatibility."""
@@ -107,6 +111,10 @@ class ExperimentRunnerAdapter:
         return adapter
 
     def reset_event_queue(self) -> None:
+        """No-op for SimTree compatibility (adapter has no event queue)."""
+        pass
+
+    def emit_remaining_events(self) -> None:
         """No-op for SimTree compatibility (adapter has no event queue)."""
         pass
 

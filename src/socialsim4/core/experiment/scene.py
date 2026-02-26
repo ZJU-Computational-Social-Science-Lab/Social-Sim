@@ -61,7 +61,8 @@ class ExperimentScene:
                 name=a["name"],
                 properties=a.get("properties", {}),
                 llm_config=a.get("llm_config", {}),
-                role_prompt=a.get("role_prompt")
+                # Accept multiple field names for compatibility (camelCase from frontend, snake_case from backend)
+                role_prompt=a.get("role_prompt") or a.get("rolePrompt") or a.get("profile")
             )
             for a in self.config.agents
         ]
@@ -152,6 +153,9 @@ class ExperimentScene:
         if not action_names:
             action_names = [a.get("name", "unknown") for a in self.config.actions if a.get("name")]
 
+        # Get payoff parameters
+        params = self.config.parameters or {}
+
         return GameConfig(
             name=self.config.scenario_id,
             description=self.config.description,
@@ -159,11 +163,20 @@ class ExperimentScene:
             actions=action_names if action_names else ["cooperate", "defect"],
             action_descriptions=action_descriptions or None,
             payoff_summary=self._build_payoff_summary(),
-            output_field="action"
+            output_field="action",
+            cooperate_reward=params.get("cooperate_reward"),
+            sucker_penalty=params.get("sucker_penalty"),
+            temptation_reward=params.get("temptation_reward"),
+            defect_penalty=params.get("defect_penalty"),
         )
 
     def _build_payoff_summary(self) -> str:
-        """Build payoff_summary from scenario parameters."""
+        """Build payoff_summary from scenario parameters - GENERIC version.
+
+        Handles all game types:
+        - Prisoner's Dilemma: Uses formatted payoff table
+        - Other games: Generic parameter display
+        """
         params = self.config.parameters
         logger.debug(f"[PAYOFF] parameters: {params}")
 
@@ -171,22 +184,27 @@ class ExperimentScene:
             logger.debug("[PAYOFF] No parameters, returning empty")
             return ""
 
-        cooperate_reward = params.get("cooperate_reward")
-        sucker_penalty = params.get("sucker_penalty")
-        temptation_reward = params.get("temptation_reward")
-        defect_penalty = params.get("defect_penalty")
-        logger.debug(f"[PAYOFF] cooperate_reward={cooperate_reward}, sucker_penalty={sucker_penalty}, temptation_reward={temptation_reward}, defect_penalty={defect_penalty}")
+        # Check if this is a Prisoner's Dilemma style game (has all 4 PD params)
+        pd_params = ["cooperate_reward", "sucker_penalty", "temptation_reward", "defect_penalty"]
+        has_all_pd = all(params.get(p) is not None for p in pd_params)
 
-        # Require all 4 values
-        if None in [cooperate_reward, sucker_penalty, temptation_reward, defect_penalty]:
-            logger.debug("[PAYOFF] Missing at least one parameter, returning empty")
-            return ""
+        if has_all_pd:
+            # Use the PD-specific format
+            return f"""Payoff Table (from your perspective):
+- If you COOPERATE and they cooperate: {params['cooperate_reward']} years saved
+- If you COOPERATE and they defect: {params['sucker_penalty']} years saved (sucker's payoff)
+- If you DEFECT and they cooperate: {params['temptation_reward']} years saved (temptation)
+- If you DEFECT and they defect: {params['defect_penalty']} years saved"""
 
-        return f"""Payoff Table (from your perspective):
-- If you COOPERATE and they cooperate: {cooperate_reward} years saved
-- If you COOPERATE and they defect: {sucker_penalty} years saved (sucker's payoff)
-- If you DEFECT and they cooperate: {temptation_reward} years saved (temptation)
-- If you DEFECT and they defect: {defect_penalty} years saved"""
+        # Generic parameter display for other game types
+        lines = ["Game Parameters:"]
+        for key, value in params.items():
+            if value is not None:
+                # Format key nicely (snake_case to Title Case)
+                label = key.replace("_", " ").title()
+                lines.append(f"- {label}: {value}")
+
+        return "\n".join(lines)
 
     def _build_context_summary(self) -> str:
         """Build context summary from round history."""

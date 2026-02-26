@@ -128,6 +128,83 @@ class ExperimentRunner:
 
         return results
 
+    def _record_action_to_agent(self, result: ActionResult) -> None:
+        """Record an action result to the agent's history.
+
+        Args:
+            result: The action result to record
+        """
+        for agent in self.agents:
+            if agent.name == result.agent_name:
+                agent.action_history.append({
+                    "round": result.round_num,
+                    "action": result.action_name,
+                    "success": result.success,
+                    "skipped": result.skipped,
+                    "summary": result.summary,
+                })
+                break
+
+    def _calculate_scores(self, round_actions: List[ActionResult]) -> None:
+        """Calculate and update scores based on game outcomes.
+
+        For Prisoner's Dilemma style games with 2 players:
+        - Both cooperate: both get cooperate_reward (R)
+        - One cooperates, one defects: cooperator gets sucker_penalty (S), defector gets temptation_reward (T)
+        - Both defect: both get defect_penalty (P)
+
+        Args:
+            round_actions: List of action results from the round
+        """
+        # Only calculate if we have payoff parameters
+        if self.game_config.cooperate_reward is None:
+            return
+
+        # Get all non-skipped actions
+        valid_actions = [a for a in round_actions if not a.skipped]
+        if len(valid_actions) < 2:
+            return
+
+        # Build action map
+        action_map = {a.agent_name: a.action_name.lower() for a in valid_actions}
+        agents = list(action_map.keys())
+
+        # For 2-player games, calculate pairwise scores
+        if len(agents) == 2:
+            a1, a2 = agents[0], agents[1]
+            act1, act2 = action_map[a1], action_map[a2]
+
+            # Find the agents to update their scores
+            agent_objs = {a.name: a for a in self.agents}
+
+            # Prisoner's Dilemma scoring
+            if act1 == "cooperate" and act2 == "cooperate":
+                # Both cooperate: R, R
+                if a1 in agent_objs:
+                    agent_objs[a1].score += self.game_config.cooperate_reward or 0
+                if a2 in agent_objs:
+                    agent_objs[a2].score += self.game_config.cooperate_reward or 0
+            elif act1 == "cooperate" and act2 == "defect":
+                # a1 is sucker, a2 is tempter: S, T
+                if a1 in agent_objs:
+                    agent_objs[a1].score += self.game_config.sucker_penalty or 0
+                if a2 in agent_objs:
+                    agent_objs[a2].score += self.game_config.temptation_reward or 0
+            elif act1 == "defect" and act2 == "cooperate":
+                # a1 is tempter, a2 is sucker: T, S
+                if a1 in agent_objs:
+                    agent_objs[a1].score += self.game_config.temptation_reward or 0
+                if a2 in agent_objs:
+                    agent_objs[a2].score += self.game_config.sucker_penalty or 0
+            else:
+                # Both defect: P, P
+                if a1 in agent_objs:
+                    agent_objs[a1].score += self.game_config.defect_penalty or 0
+                if a2 in agent_objs:
+                    agent_objs[a2].score += self.game_config.defect_penalty or 0
+
+            logger.debug(f"Scores updated: {a1}={agent_objs[a1].score}, {a2}={agent_objs[a2].score}")
+
     async def _run_simultaneous_round(self, round_num: int) -> RoundResult:
         """Run a round where all agents decide simultaneously.
 
@@ -147,6 +224,11 @@ class ExperimentRunner:
                 logger.error(f"Agent failed: {result}")
                 continue
             actions.append(result)
+            # Record action to agent's history
+            self._record_action_to_agent(result)
+
+        # Calculate scores based on actions
+        self._calculate_scores(actions)
 
         return RoundResult(
             round_num=round_num,
@@ -166,8 +248,13 @@ class ExperimentRunner:
         for agent in self.agents:
             result = await self._prompt_agent(agent, round_num)
             actions.append(result)
+            # Record action to agent's history
+            self._record_action_to_agent(result)
             # Action is already recorded by controller.process_response(),
             # making it immediately visible to the next agent
+
+        # Calculate scores based on actions
+        self._calculate_scores(actions)
 
         return RoundResult(
             round_num=round_num,
@@ -197,8 +284,13 @@ class ExperimentRunner:
             agent = agent_map[agent_name]
             result = await self._prompt_agent(agent, round_num)
             actions.append(result)
+            # Record action to agent's history
+            self._record_action_to_agent(result)
             # Action is recorded by controller.process_response(),
             # making it immediately visible to the next agent
+
+        # Calculate scores based on actions
+        self._calculate_scores(actions)
 
         return RoundResult(
             round_num=round_num,
@@ -265,12 +357,14 @@ class ExperimentRunner:
                     logger.error(f"Agent in pair failed: {result}")
                     continue
                 all_actions.append(result)
+                # Record action to agent's history
+                self._record_action_to_agent(result)
 
         # Handle sat-out agent (they don't act this round)
         if sat_out:
             # Add a skipped action for the sat-out agent
             sat_out_agent = agent_map[sat_out]
-            all_actions.append(ActionResult(
+            skipped_result = ActionResult(
                 success=False,
                 action_name="",
                 parameters={},
@@ -279,15 +373,18 @@ class ExperimentRunner:
                 round_num=round_num,
                 skipped=True,
                 error="Sat out due to odd number of agents"
-            ))
+            )
+            all_actions.append(skipped_result)
+            # Record skipped action to agent's history
+            self._record_action_to_agent(skipped_result)
 
-        # Update cumulative scores (basic implementation - can be extended)
-        # This is a simple version - actual scoring would depend on game logic
+        # Calculate scores based on actions (for paired mode, scores are calculated per-pair)
+        self._calculate_scores(all_actions)
+
+        # Also update the legacy scores dict for backwards compatibility
         for action in all_actions:
             if not action.skipped and action.agent_name not in self.scores:
                 self.scores[action.agent_name] = 0
-            # Score updates would be handled by game-specific logic
-            # This is just a placeholder for tracking
 
         logger.debug(f"Paired round {round_num} complete: {len(all_actions)} actions across {len(pairs)} pairs")
 
@@ -427,6 +524,26 @@ class ExperimentRunner:
             raw_response = await asyncio.to_thread(
                 self.llm_client.chat, messages, json_mode=True
             )
+
+            # Handle empty response gracefully (e.g., Qwen3 via Ollama returns 0 chars)
+            if not raw_response or not raw_response.strip():
+                logger.error(f"Empty response from LLM for {agent.name}")
+                with open(_debug_file, 'a', encoding='utf-8') as f:
+                    f.write(f"\n{'!'*80}\n")
+                    f.write(f"EMPTY RESPONSE\n")
+                    f.write(f"{'!'*80}\n")
+                    f.write(f"Agent {agent.name} received empty response from LLM\n\n")
+                print(f"\n[ERROR] Empty LLM response for {agent.name}\n")
+                return ActionResult(
+                    agent_name=agent.name,
+                    action_name="skip",
+                    parameters={"reasoning": "LLM returned empty response"},
+                    summary="Skipped - LLM returned empty response",
+                    success=False,
+                    skipped=True,
+                    round_num=round_num,
+                    error="Empty LLM response"
+                )
 
             # Write raw response to debug file
             with open(_debug_file, 'a', encoding='utf-8') as f:

@@ -507,28 +507,57 @@ async def simulation_tree_state(
         simulator = node["sim"]
         agents = []
 
-        for name, agent in simulator.agents.items():
-            props = dict(agent.properties)
-            role = props.get("role") or getattr(agent, "role_prompt", "") or ""
-            if role and "role" not in props:
-                props["role"] = role
-            profile = agent.user_profile or props.get("profile") or props.get("description") or ""
-            kb = getattr(agent, "knowledge_base", [])
-            docs = getattr(agent, "documents", {})
+        # Handle ExperimentRunnerAdapter differently - agents are in scene.agents
+        from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
+        if isinstance(simulator, ExperimentRunnerAdapter):
+            for agent in simulator.scene.agents:
+                props = dict(agent.properties)
+                role = agent.role_prompt or props.get("role") or ""
+                if role and "role" not in props:
+                    props["role"] = role
+                profile = props.get("profile") or props.get("description") or ""
+                kb = getattr(agent, "knowledge_base", [])
+                docs = getattr(agent, "documents", {})
+                action_history = getattr(agent, "action_history", [])
+                score = getattr(agent, "score", 0)
 
-            logger.debug(f"Agent '{name}' has {len(kb)} KB items, {len(docs)} documents")
+                logger.debug(f"Agent '{agent.name}' has {len(kb)} KB items, {len(docs)} documents, {len(action_history)} actions, score={score}")
 
-            agents.append(
-                {
-                    "name": name,
+                agents.append({
+                    "name": agent.name,
                     "profile": profile,
                     "role": role,
                     "properties": props,
-                    "short_memory": agent.short_memory.get_all(),
+                    "short_memory": action_history,  # Map action_history to short_memory for frontend
                     "knowledgeBase": kb,
                     "documents": docs,
-                }
-            )
+                    "score": score,
+                })
+            turns = simulator.scene.current_round
+        else:
+            for name, agent in simulator.agents.items():
+                props = dict(agent.properties)
+                role = props.get("role") or getattr(agent, "role_prompt", "") or ""
+                if role and "role" not in props:
+                    props["role"] = role
+                profile = agent.user_profile or props.get("profile") or props.get("description") or ""
+                kb = getattr(agent, "knowledge_base", [])
+                docs = getattr(agent, "documents", {})
+
+                logger.debug(f"Agent '{name}' has {len(kb)} KB items, {len(docs)} documents")
+
+                agents.append(
+                    {
+                        "name": name,
+                        "profile": profile,
+                        "role": role,
+                        "properties": props,
+                        "short_memory": agent.short_memory.get_all(),
+                        "knowledgeBase": kb,
+                        "documents": docs,
+                    }
+                )
+            turns = simulator.turns
 
         # Include scene_config for social_network access
         scene_config = sim.scene_config or {}
@@ -537,7 +566,7 @@ async def simulation_tree_state(
         logger.debug(f"returning scene_config with social_network: {social_network}")
 
         return {
-            "turns": simulator.turns,
+            "turns": turns,
             "agents": agents,
             "scene_config": scene_config
         }

@@ -111,13 +111,21 @@ async def get_simulation_state(simulation_id: str, db, user_id: int) -> Optional
         }
 
     # Update simulator's config to match database (sync toggle state)
-    simulator.environment_config.enabled = environment_enabled
+    # Only update environment_config if it exists (not all simulators have it)
+    if hasattr(simulator, 'environment_config') and simulator.environment_config is not None:
+        simulator.environment_config.enabled = environment_enabled
 
-    logger.info(f"Simulation {simulation_id}: turns={simulator.turns}, config_enabled={environment_enabled} (from db)")
+    # Get turns from simulator or scene (ExperimentRunnerAdapter uses scene.current_round)
+    turns = getattr(simulator, 'turns', None)
+    if turns is None and hasattr(simulator, 'scene'):
+        turns = getattr(simulator.scene, 'current_round', 0)
+    turns = turns or 0
+
+    logger.info(f"Simulation {simulation_id}: turns={turns}, config_enabled={environment_enabled} (from db)")
 
     return {
-        "turns": simulator.turns,
-        "config": simulator.environment_config.serialize(),
+        "turns": turns,
+        "config": simulator.environment_config.serialize() if hasattr(simulator, 'environment_config') and simulator.environment_config else EnvironmentConfig(enabled=environment_enabled).serialize(),
         "_suggestions_viewed_intervals": record._suggestions_viewed_intervals,
         "clients": simulator.clients,
         "node_id": current_node_id,
