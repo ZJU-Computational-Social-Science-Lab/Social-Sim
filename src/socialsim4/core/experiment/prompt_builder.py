@@ -55,10 +55,15 @@ def _get_article(word: str) -> str:
     return "an" if word.lower().startswith(vowels) else "a"
 
 
-def build_agent_description(agent_properties: Dict[str, Any], role_prompt: str = None) -> str:
+def build_agent_description(
+    agent_properties: Dict[str, Any],
+    role_prompt: str = None,
+    agent_name: str = ""
+) -> str:
     """Build agent description section from demographic properties.
 
     If role_prompt is provided, it takes precedence and is used as the entire description.
+    If properties are empty (manual agent), uses agent_name as identity.
     Otherwise, formats numeric traits with interpretation brackets:
     - 0-33 -> (low)
     - 34-66 -> (moderate)
@@ -67,11 +72,14 @@ def build_agent_description(agent_properties: Dict[str, Any], role_prompt: str =
     Args:
         agent_properties: Dict of demographic properties
         role_prompt: Optional role prompt to use instead of demographic description
+        agent_name: Agent name used as identity fallback for manual agents
 
     Returns:
         Formatted agent description string
 
     Example:
+        >>> build_agent_description({}, agent_name="Psychology Student")
+        "You are Psychology Student."
         >>> build_agent_description({"age_group": "young adult", "social_capital": 82})
         "You are a young adult person. Your social_capital score is 82/100 (high)."
     """
@@ -79,22 +87,30 @@ def build_agent_description(agent_properties: Dict[str, Any], role_prompt: str =
     if role_prompt:
         return role_prompt
 
+    # Skip internal bookkeeping keys that don't describe the agent
+    _skip_keys = {"avatarUrl", "archetype_id", "demographic_attributes"}
+    meaningful_props = {k: v for k, v in agent_properties.items() if k not in _skip_keys}
+
+    # Manual agent: no meaningful properties → use name directly
+    if not meaningful_props:
+        return f"You are {agent_name}." if agent_name else "You are a participant."
+
     parts = []
 
     # Start with identity
-    age_group = agent_properties.get("age_group", "adult")
-    profession = agent_properties.get("profession", "person")
+    age_group = meaningful_props.get("age_group", "adult")
+    profession = meaningful_props.get("profession", "person")
     article = _get_article(age_group)
     parts.append(f"You are {article} {age_group} {profession}.")
 
     # Add numeric traits with interpretation
-    for key, value in agent_properties.items():
+    for key, value in meaningful_props.items():
         if key in ["age_group", "profession"]:
             continue  # Already handled
         if isinstance(value, (int, float)):
             interpretation = _interpret_score(int(value))
             parts.append(f"Your {key} score is {value}/100 ({interpretation}).")
-        elif isinstance(value, str):
+        elif isinstance(value, str) and value:
             parts.append(f"Your {key} is {value}.")
 
     return " ".join(parts)
@@ -119,8 +135,13 @@ def build_prompt(
     """
     sections = []
 
-    # Section 1: Agent Description (role_prompt takes precedence if present)
-    agent_desc = build_agent_description(agent.get_properties_dict(), getattr(agent, 'role_prompt', None))
+    # Section 1: Agent Description (role_prompt takes precedence if present;
+    # manual agents with no properties fall back to their name)
+    agent_desc = build_agent_description(
+        agent.get_properties_dict(),
+        role_prompt=getattr(agent, 'role_prompt', None),
+        agent_name=agent.name
+    )
     if include_section_markers:
         sections.append("=== SECTION 1: AGENT DESCRIPTION ===")
     sections.append(agent_desc)

@@ -245,30 +245,39 @@ class ExperimentController:
         action_name = initial_result.action_name
         debug_file = _get_current_debug_file()
 
-        # Check if this action requires a follow-up prompt
+        # Check if this action requires a follow-up prompt.
+        # action_schemas format: {action_name: {"schema": param_schema, "mode": "json"|"plain_text"}}
         if action_schemas and action_name in action_schemas:
-            param_schema = action_schemas[action_name]
+            schema_info = action_schemas[action_name]
+            # Support both flat {param: schema} and wrapped {"schema": ..., "mode": ...} formats
+            if "schema" in schema_info:
+                param_schema = schema_info["schema"]
+                followup_mode = schema_info.get("mode", "json")
+            else:
+                param_schema = schema_info
+                followup_mode = "json"
 
             with open(debug_file, 'a', encoding='utf-8') as f:
                 f.write(f"\n{'='*80}\n")
                 f.write(f"FOLLOW-UP PROMPT REQUIRED\n")
                 f.write(f"{'='*80}\n")
                 f.write(f"  action: {action_name}\n")
+                f.write(f"  mode: {followup_mode}\n")
                 f.write(f"  required params: {list(param_schema.keys())}\n")
 
-            print(f"\n[CONTROLLER] Action '{action_name}' requires follow-up prompt")
+            print(f"\n[CONTROLLER] Action '{action_name}' requires follow-up prompt (mode={followup_mode})")
 
             # Get context for follow-up
             context = self.context_manager.get_context(agent.name)
 
-            # Build follow-up prompt
+            # Build follow-up prompt using the action's parameter mode
             followup_prompt = build_reprompt(
                 agent=agent,
                 game_config=game_config,
                 context_summary=context,
                 chosen_action=action_name,
                 parameter_schema=param_schema,
-                mode="json",
+                mode=followup_mode,
                 include_section_markers=True
             )
 
@@ -281,10 +290,10 @@ class ExperimentController:
             print(f"[CONTROLLER] Sending follow-up prompt to {agent.name}")
 
             try:
-                # Send follow-up prompt
+                # Send follow-up prompt; use json_mode only for json-type follow-ups
                 messages = [{"role": "user", "content": followup_prompt}]
                 followup_response = await asyncio.to_thread(
-                    llm_client.chat, messages, json_mode=True
+                    llm_client.chat, messages, json_mode=(followup_mode == "json")
                 )
 
                 # Log the follow-up response
@@ -297,12 +306,15 @@ class ExperimentController:
 
                 print(f"[CONTROLLER] Received follow-up response from {agent.name}")
 
-                # Parse the follow-up response
-                cleaned = strip_think_tags(strip_markdown_fences(followup_response))
-                parsed_followup = json.loads(cleaned)
-
-                # Extract parameters
-                parameters = {k: parsed_followup.get(k) for k in param_schema.keys() if k in parsed_followup}
+                # Parse the follow-up response based on mode
+                if followup_mode == "plain_text":
+                    # Plain text response (e.g., Speak action): store the whole string as "message"
+                    parameters = {"message": followup_response.strip()}
+                else:
+                    # JSON response: parse and extract expected parameters
+                    cleaned = strip_think_tags(strip_markdown_fences(followup_response))
+                    parsed_followup = json.loads(cleaned)
+                    parameters = {k: parsed_followup.get(k) for k in param_schema.keys() if k in parsed_followup}
 
                 # Update summary with parameters
                 param_str = ", ".join(f"{k}={v}" for k, v in parameters.items())

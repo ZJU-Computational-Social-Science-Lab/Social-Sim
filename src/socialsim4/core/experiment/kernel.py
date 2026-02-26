@@ -215,6 +215,27 @@ class ExperimentKernel:
             return False
         return bool(action_class.parameter_schema())
 
+    @classmethod
+    def get_action_schemas(cls) -> Dict[str, Dict[str, Any]]:
+        """Return a mapping of action name → parameter schema for all registered actions that need parameters.
+
+        Used by the runner to pass to process_response_with_followup() so that
+        actions like Speak and Vote automatically trigger a follow-up prompt.
+
+        Returns:
+            Dict mapping action names to their parameter schemas.
+            Only includes actions that have non-empty parameter schemas.
+        """
+        schemas = {}
+        for name, action_class in cls._action_registry.items():
+            schema = action_class.parameter_schema()
+            if schema:
+                schemas[name] = {
+                    "schema": schema,
+                    "mode": action_class.parameter_mode(),
+                }
+        return schemas
+
 
 # Register built-in action types at module load
 ExperimentKernel.register("choice", ChoiceAction)

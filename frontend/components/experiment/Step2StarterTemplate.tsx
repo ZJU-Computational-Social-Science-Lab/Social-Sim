@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { useExperimentBuilder } from '../../store/experiment-builder';
 import ParameterField from './ParameterField';
 
-// Payoff Input Component - 4 explicit inputs
+// Payoff Input Component - 4 explicit inputs with dynamic action labels
 interface PayoffInputProps {
   value: {
     cooperate_reward?: number;
@@ -19,6 +19,8 @@ interface PayoffInputProps {
     temptation_reward?: number;
     defect_penalty?: number;
   };
+  actionA?: string;  // label for first action (e.g., "Cooperate", "Stag", "Study")
+  actionB?: string;  // label for second action (e.g., "Defect", "Hare", "Cheat")
   onChange: (value: {
     cooperate_reward: number;
     sucker_penalty: number;
@@ -27,83 +29,71 @@ interface PayoffInputProps {
   }) => void;
 }
 
-function PayoffInput({ value, onChange }: PayoffInputProps) {
+function PayoffInput({ value, actionA = 'Action 1', actionB = 'Action 2', onChange }: PayoffInputProps) {
+  const defaults = { cooperate_reward: 3, sucker_penalty: 0, temptation_reward: 5, defect_penalty: 1 };
+
+  const update = (key: keyof typeof defaults, raw: string) => {
+    onChange({
+      cooperate_reward: value.cooperate_reward ?? defaults.cooperate_reward,
+      sucker_penalty: value.sucker_penalty ?? defaults.sucker_penalty,
+      temptation_reward: value.temptation_reward ?? defaults.temptation_reward,
+      defect_penalty: value.defect_penalty ?? defaults.defect_penalty,
+      [key]: parseInt(raw) || defaults[key],
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="bg-blue-50 p-3 rounded-md text-sm mb-4">
-        <p className="font-medium text-blue-800 mb-2">Your Payoffs (years saved):</p>
-        <p className="text-blue-700 text-xs">Fill in what YOU get based on YOUR choice and THEIR choice.</p>
+        <p className="font-medium text-blue-800 mb-2">Your Payoffs:</p>
+        <p className="text-blue-700 text-xs">Fill in what YOU receive based on YOUR choice and THEIR choice.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            You Cooperate, They Cooperate
+            You: {actionA} / They: {actionA}
           </label>
           <input
             type="number"
-            value={value.cooperate_reward ?? 3}
-            onChange={(e) => onChange({
-              ...value,
-              cooperate_reward: parseInt(e.target.value) || 3,
-              sucker_penalty: value.sucker_penalty ?? 0,
-              temptation_reward: value.temptation_reward ?? 5,
-              defect_penalty: value.defect_penalty ?? 1,
-            })}
+            value={value.cooperate_reward ?? defaults.cooperate_reward}
+            onChange={(e) => update('cooperate_reward', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            You Cooperate, They Defect
+            You: {actionA} / They: {actionB}
           </label>
           <input
             type="number"
-            value={value.sucker_penalty ?? 0}
-            onChange={(e) => onChange({
-              ...value,
-              cooperate_reward: value.cooperate_reward ?? 3,
-              sucker_penalty: parseInt(e.target.value) || 0,
-              temptation_reward: value.temptation_reward ?? 5,
-              defect_penalty: value.defect_penalty ?? 1,
-            })}
+            value={value.sucker_penalty ?? defaults.sucker_penalty}
+            onChange={(e) => update('sucker_penalty', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            You Defect, They Cooperate
+            You: {actionB} / They: {actionA}
           </label>
           <input
             type="number"
-            value={value.temptation_reward ?? 5}
-            onChange={(e) => onChange({
-              ...value,
-              cooperate_reward: value.cooperate_reward ?? 3,
-              sucker_penalty: value.sucker_penalty ?? 0,
-              temptation_reward: parseInt(e.target.value) || 5,
-              defect_penalty: value.defect_penalty ?? 1,
-            })}
+            value={value.temptation_reward ?? defaults.temptation_reward}
+            onChange={(e) => update('temptation_reward', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            You Defect, They Defect
+            You: {actionB} / They: {actionB}
           </label>
           <input
             type="number"
-            value={value.defect_penalty ?? 1}
-            onChange={(e) => onChange({
-              ...value,
-              cooperate_reward: value.cooperate_reward ?? 3,
-              sucker_penalty: value.sucker_penalty ?? 0,
-              temptation_reward: value.temptation_reward ?? 5,
-              defect_penalty: parseInt(e.target.value) || 1,
-            })}
+            value={value.defect_penalty ?? defaults.defect_penalty}
+            onChange={(e) => update('defect_penalty', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
@@ -225,6 +215,8 @@ export const Step2StarterTemplate: React.FC = () => {
       {selectedScenarioData.display_type === 'payoff_matrix' ? (
         <PayoffInput
           value={scenarioParams as { cooperate_reward?: number; defect_penalty?: number }}
+          actionA={selectedScenarioData.actions?.[0]?.name}
+          actionB={selectedScenarioData.actions?.[1]?.name}
           onChange={handlePayoffChange}
         />
       ) : hasParameters ? (

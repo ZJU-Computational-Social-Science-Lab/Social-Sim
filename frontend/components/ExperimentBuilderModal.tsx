@@ -104,9 +104,9 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
           name: agentType.label + suffix,
           id: agentType.id + idSuffix,
           role: role,
-          rolePrompt: profile,
+          role_prompt: profile,
           avatarUrl: avatarUrl,
-          llmConfig: llmConfig,
+          llm_config: llmConfig,
           properties: props,
           history: {},
           memory: [],
@@ -132,7 +132,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
     // Build generic config with full action objects and parameters
     const genericConfig: any = {
       description: scenarioDescription || t('experimentBuilder.customExperiment'),
-      scenarioId: state.selectedScenarioId || 'custom',
+      scenario_id: state.selectedScenarioId || 'custom',
       actions: selectedActionObjects.map((a: any) => ({
         name: a.name,
         description: a.description || a.name,

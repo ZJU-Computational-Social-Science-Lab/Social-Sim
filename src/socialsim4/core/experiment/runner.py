@@ -11,7 +11,7 @@ The runner manages the main experiment loop:
 import asyncio
 import logging
 import sys
-from typing import List, Dict, Any, Literal
+from typing import List, Dict, Any, Literal, Optional
 from dataclasses import dataclass
 from pathlib import Path
 from datetime import datetime
@@ -47,10 +47,12 @@ class RoundResult:
         round_num: Round number
         actions: List of action results from all agents
         completed: Whether all agents completed the round
+        payoffs: Per-agent payoffs earned this round (None if not applicable)
     """
     round_num: int
     actions: List[ActionResult]
     completed: bool
+    payoffs: Optional[Dict[str, int]] = None
 
 
 class ExperimentRunner:
@@ -145,7 +147,7 @@ class ExperimentRunner:
                 })
                 break
 
-    def _calculate_scores(self, round_actions: List[ActionResult]) -> None:
+    def _calculate_scores(self, round_actions: List[ActionResult]) -> Dict[str, int]:
         """Calculate and update scores based on game outcomes.
 
         For Prisoner's Dilemma style games with 2 players:
@@ -155,15 +157,20 @@ class ExperimentRunner:
 
         Args:
             round_actions: List of action results from the round
+
+        Returns:
+            Dict mapping agent name to payoff earned this round (empty if not applicable)
         """
+        round_payoffs: Dict[str, int] = {}
+
         # Only calculate if we have payoff parameters
         if self.game_config.cooperate_reward is None:
-            return
+            return round_payoffs
 
         # Get all non-skipped actions
         valid_actions = [a for a in round_actions if not a.skipped]
         if len(valid_actions) < 2:
-            return
+            return round_payoffs
 
         # Build action map
         action_map = {a.agent_name: a.action_name.lower() for a in valid_actions}
@@ -180,30 +187,42 @@ class ExperimentRunner:
             # Prisoner's Dilemma scoring
             if act1 == "cooperate" and act2 == "cooperate":
                 # Both cooperate: R, R
+                p = self.game_config.cooperate_reward or 0
                 if a1 in agent_objs:
-                    agent_objs[a1].score += self.game_config.cooperate_reward or 0
+                    agent_objs[a1].score += p
                 if a2 in agent_objs:
-                    agent_objs[a2].score += self.game_config.cooperate_reward or 0
+                    agent_objs[a2].score += p
+                round_payoffs = {a1: p, a2: p}
             elif act1 == "cooperate" and act2 == "defect":
                 # a1 is sucker, a2 is tempter: S, T
+                s = self.game_config.sucker_penalty or 0
+                t = self.game_config.temptation_reward or 0
                 if a1 in agent_objs:
-                    agent_objs[a1].score += self.game_config.sucker_penalty or 0
+                    agent_objs[a1].score += s
                 if a2 in agent_objs:
-                    agent_objs[a2].score += self.game_config.temptation_reward or 0
+                    agent_objs[a2].score += t
+                round_payoffs = {a1: s, a2: t}
             elif act1 == "defect" and act2 == "cooperate":
                 # a1 is tempter, a2 is sucker: T, S
+                t = self.game_config.temptation_reward or 0
+                s = self.game_config.sucker_penalty or 0
                 if a1 in agent_objs:
-                    agent_objs[a1].score += self.game_config.temptation_reward or 0
+                    agent_objs[a1].score += t
                 if a2 in agent_objs:
-                    agent_objs[a2].score += self.game_config.sucker_penalty or 0
+                    agent_objs[a2].score += s
+                round_payoffs = {a1: t, a2: s}
             else:
                 # Both defect: P, P
+                p = self.game_config.defect_penalty or 0
                 if a1 in agent_objs:
-                    agent_objs[a1].score += self.game_config.defect_penalty or 0
+                    agent_objs[a1].score += p
                 if a2 in agent_objs:
-                    agent_objs[a2].score += self.game_config.defect_penalty or 0
+                    agent_objs[a2].score += p
+                round_payoffs = {a1: p, a2: p}
 
             logger.debug(f"Scores updated: {a1}={agent_objs[a1].score}, {a2}={agent_objs[a2].score}")
+
+        return round_payoffs
 
     async def _run_simultaneous_round(self, round_num: int) -> RoundResult:
         """Run a round where all agents decide simultaneously.
@@ -228,12 +247,13 @@ class ExperimentRunner:
             self._record_action_to_agent(result)
 
         # Calculate scores based on actions
-        self._calculate_scores(actions)
+        round_payoffs = self._calculate_scores(actions)
 
         return RoundResult(
             round_num=round_num,
             actions=actions,
-            completed=len(actions) == len(self.agents)
+            completed=len(actions) == len(self.agents),
+            payoffs=round_payoffs if round_payoffs else None
         )
 
     async def _run_sequential_round(self, round_num: int) -> RoundResult:
@@ -254,12 +274,13 @@ class ExperimentRunner:
             # making it immediately visible to the next agent
 
         # Calculate scores based on actions
-        self._calculate_scores(actions)
+        round_payoffs = self._calculate_scores(actions)
 
         return RoundResult(
             round_num=round_num,
             actions=actions,
-            completed=len(actions) == len(self.agents)
+            completed=len(actions) == len(self.agents),
+            payoffs=round_payoffs if round_payoffs else None
         )
 
     async def _run_random_round(self, round_num: int) -> RoundResult:
@@ -290,12 +311,13 @@ class ExperimentRunner:
             # making it immediately visible to the next agent
 
         # Calculate scores based on actions
-        self._calculate_scores(actions)
+        round_payoffs = self._calculate_scores(actions)
 
         return RoundResult(
             round_num=round_num,
             actions=actions,
-            completed=len(actions) == len(self.agents)
+            completed=len(actions) == len(self.agents),
+            payoffs=round_payoffs if round_payoffs else None
         )
 
     async def _run_paired_round(self, round_num: int) -> RoundResult:
@@ -379,7 +401,7 @@ class ExperimentRunner:
             self._record_action_to_agent(skipped_result)
 
         # Calculate scores based on actions (for paired mode, scores are calculated per-pair)
-        self._calculate_scores(all_actions)
+        round_payoffs = self._calculate_scores(all_actions)
 
         # Also update the legacy scores dict for backwards compatibility
         for action in all_actions:
@@ -391,7 +413,8 @@ class ExperimentRunner:
         return RoundResult(
             round_num=round_num,
             actions=all_actions,
-            completed=len([a for a in all_actions if not a.skipped]) == len(self.agents)
+            completed=len([a for a in all_actions if not a.skipped]) == len(self.agents),
+            payoffs=round_payoffs if round_payoffs else None
         )
 
     async def _run_single_round(
@@ -566,10 +589,16 @@ class ExperimentRunner:
 
             logger.debug(f"Raw response from {agent.name}: {raw_response[:200]}...")
 
-            # Process response through controller (Layer 3)
-            result = await self.controller.process_response(
+            # Process response through controller (Layer 3).
+            # Use process_response_with_followup so actions that need extra
+            # parameters (e.g., Speak → what do you want to say?) trigger a
+            # second prompt automatically. Falls back gracefully for simple
+            # game-theory actions that have no follow-up schema.
+            action_schemas = self.kernel.get_action_schemas() if self.kernel else {}
+            result = await self.controller.process_response_with_followup(
                 raw_response, agent, self.game_config,
-                self.llm_client, round_num
+                self.llm_client, round_num,
+                action_schemas=action_schemas
             )
 
             # Write processed result to debug file
