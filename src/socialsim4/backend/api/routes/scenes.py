@@ -33,6 +33,24 @@ SYSTEM_TEMPLATES_DIR = Path(__file__).parent.parent.parent.parent / "templates"
 
 
 def scene_config_template(scene_key: str, scene_cls) -> dict:
+    # Special handling for ExperimentScene - it has a different constructor
+    if scene_key == "experiment_template":
+        return {
+            "type": scene_key,
+            "name": "ExperimentScene",
+            "description": SCENE_DESCRIPTIONS.get(scene_key, ""),
+            "config_schema": {
+                "agents": [],
+                "actions": [],
+                "parameters": {},
+                "description": "",
+                "scenario_id": "custom",
+                "round_visibility": "simultaneous",
+            },
+            "allowed_actions": [],
+            "basic_actions": [],
+        }
+
     scene = scene_cls("preview", "")
     config_schema = scene.serialize_config() or {}
 

@@ -262,7 +262,8 @@ export const createSimulationSlice: StateCreator<
               language: i18n.language || 'en',
               agents: (finalAgents || []).map((a: any) => ({
                 name: a.name,
-                profile: a.profile,
+                profile: a.profile || a.rolePrompt,  // FIX: Fall back to rolePrompt if profile is undefined
+                rolePrompt: a.rolePrompt,            // ADD: Pass rolePrompt explicitly for experiment templates
                 role: a.role,
                 avatarUrl: a.avatarUrl,
                 llmConfig: a.llmConfig,

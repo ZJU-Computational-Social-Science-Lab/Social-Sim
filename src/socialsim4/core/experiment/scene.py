@@ -60,8 +60,10 @@ class ExperimentScene:
             ExperimentAgent(
                 name=a["name"],
                 properties=a.get("properties", {}),
-                llm_config=a.get("llm_config", {}),
-                role_prompt=a.get("role_prompt")
+                # Accept camelCase llmConfig from frontend as well as snake_case llm_config
+                llm_config=a.get("llm_config") or a.get("llmConfig") or {},
+                # Accept multiple field names for compatibility (camelCase from frontend, snake_case from backend)
+                role_prompt=a.get("role_prompt") or a.get("rolePrompt") or a.get("profile")
             )
             for a in self.config.agents
         ]
@@ -109,7 +111,7 @@ class ExperimentScene:
         )
 
         # Update history for next round's context
-        self._history.append({
+        history_entry: dict = {
             "round": round_num,
             "actions": [
                 {
@@ -120,7 +122,10 @@ class ExperimentScene:
                 }
                 for a in result.actions
             ]
-        })
+        }
+        if result.payoffs:
+            history_entry["payoffs"] = result.payoffs
+        self._history.append(history_entry)
 
         # Emit events for frontend
         for action in result.actions:
@@ -152,18 +157,39 @@ class ExperimentScene:
         if not action_names:
             action_names = [a.get("name", "unknown") for a in self.config.actions if a.get("name")]
 
+        # Get payoff parameters
+        params = self.config.parameters or {}
+
+        # Build supplementary prompt text: payoff table + sociology params
+        supplementary_parts = []
+        payoff_text = self._build_payoff_summary()
+        if payoff_text:
+            supplementary_parts.append(payoff_text)
+        params_text = self._build_params_section()
+        if params_text:
+            supplementary_parts.append(params_text)
+
         return GameConfig(
             name=self.config.scenario_id,
             description=self.config.description,
             action_type="discrete",
             actions=action_names if action_names else ["cooperate", "defect"],
             action_descriptions=action_descriptions or None,
-            payoff_summary=self._build_payoff_summary(),
-            output_field="action"
+            payoff_summary="\n\n".join(supplementary_parts),
+            output_field="action",
+            cooperate_reward=params.get("cooperate_reward"),
+            sucker_penalty=params.get("sucker_penalty"),
+            temptation_reward=params.get("temptation_reward"),
+            defect_penalty=params.get("defect_penalty"),
         )
 
     def _build_payoff_summary(self) -> str:
-        """Build payoff_summary from scenario parameters."""
+        """Build payoff_summary from scenario parameters - GENERIC version.
+
+        Handles all game types:
+        - Prisoner's Dilemma: Uses formatted payoff table
+        - Other games: Generic parameter display
+        """
         params = self.config.parameters
         logger.debug(f"[PAYOFF] parameters: {params}")
 
@@ -171,22 +197,92 @@ class ExperimentScene:
             logger.debug("[PAYOFF] No parameters, returning empty")
             return ""
 
-        cooperate_reward = params.get("cooperate_reward")
-        sucker_penalty = params.get("sucker_penalty")
-        temptation_reward = params.get("temptation_reward")
-        defect_penalty = params.get("defect_penalty")
-        logger.debug(f"[PAYOFF] cooperate_reward={cooperate_reward}, sucker_penalty={sucker_penalty}, temptation_reward={temptation_reward}, defect_penalty={defect_penalty}")
+        # Check if this is a Prisoner's Dilemma style game (has all 4 PD params)
+        pd_params = ["cooperate_reward", "sucker_penalty", "temptation_reward", "defect_penalty"]
+        has_all_pd = all(params.get(p) is not None for p in pd_params)
 
-        # Require all 4 values
-        if None in [cooperate_reward, sucker_penalty, temptation_reward, defect_penalty]:
-            logger.debug("[PAYOFF] Missing at least one parameter, returning empty")
+        if has_all_pd:
+            # Use the PD-specific format
+            return f"""Payoff Table (from your perspective):
+- If you COOPERATE and they cooperate: {params['cooperate_reward']} years saved
+- If you COOPERATE and they defect: {params['sucker_penalty']} years saved (sucker's payoff)
+- If you DEFECT and they cooperate: {params['temptation_reward']} years saved (temptation)
+- If you DEFECT and they defect: {params['defect_penalty']} years saved"""
+
+        # Generic parameter display for other game types
+        lines = ["Game Parameters:"]
+        for key, value in params.items():
+            if value is not None:
+                # Format key nicely (snake_case to Title Case)
+                label = key.replace("_", " ").title()
+                lines.append(f"- {label}: {value}")
+
+        return "\n".join(lines)
+
+    def _build_params_section(self) -> str:
+        """Translate non-payoff scenario parameters into natural language for the prompt.
+
+        Provides curated, human-readable descriptions for sociology scenario
+        parameters so agents understand their environment without needing to
+        interpret raw parameter values.
+        """
+        params = self.config.parameters
+        scenario_id = self.config.scenario_id
+        if not params:
             return ""
 
-        return f"""Payoff Table (from your perspective):
-- If you COOPERATE and they cooperate: {cooperate_reward} years saved
-- If you COOPERATE and they defect: {sucker_penalty} years saved (sucker's payoff)
-- If you DEFECT and they cooperate: {temptation_reward} years saved (temptation)
-- If you DEFECT and they defect: {defect_penalty} years saved"""
+        lines = []
+
+        if scenario_id == "social_norm_disruption":
+            norm_description = params.get("norm_description", "")
+            norm_strength = params.get("norm_strength")
+            if norm_description:
+                lines.append(f"The norm or rule in effect: \"{norm_description}\"")
+            if norm_strength is not None:
+                strength_val = float(norm_strength)
+                if strength_val <= 0.33:
+                    label = "weakly"
+                elif strength_val <= 0.66:
+                    label = "moderately"
+                else:
+                    label = "strongly"
+                lines.append(f"This norm is {label} enforced in the group.")
+
+        elif scenario_id == "policy_erosion":
+            policy_text = params.get("policy_text", "")
+            tier_labels = params.get("tier_labels", "")
+            if policy_text:
+                lines.append(f"The policy being transmitted is: \"{policy_text}\"")
+            if tier_labels:
+                lines.append(f"The hierarchy levels (top to bottom): {tier_labels}.")
+
+        elif scenario_id == "echo_chamber":
+            topic = params.get("topic", "")
+            opinion_distribution = params.get("opinion_distribution", "")
+            if topic:
+                lines.append(f"The discussion topic is: \"{topic}\"")
+            if opinion_distribution:
+                dist_map = {
+                    "balanced": "The group's opinions are currently balanced.",
+                    "polarized": "The group's opinions are currently polarized into opposing camps.",
+                    "random": "The group's opinions are currently distributed randomly.",
+                }
+                lines.append(dist_map.get(opinion_distribution, f"Opinion distribution: {opinion_distribution}."))
+
+        elif scenario_id == "resource_scarcity":
+            resource_amount = params.get("resource_amount")
+            initial_distribution = params.get("initial_distribution", "")
+            if resource_amount is not None:
+                lines.append(f"There are {resource_amount} units of shared resource available to the group.")
+            if initial_distribution:
+                dist_map = {
+                    "equal": "Resources are currently distributed equally among all members.",
+                    "random": "Resources are currently distributed randomly among members.",
+                    "skewed": "Resources are currently distributed unevenly, with some members holding much more than others.",
+                }
+                lines.append(dist_map.get(initial_distribution, f"Initial distribution: {initial_distribution}."))
+
+        return "\n".join(lines)
 
     def _build_context_summary(self) -> str:
         """Build context summary from round history."""
@@ -198,7 +294,16 @@ class ExperimentScene:
             round_num = entry["round"]
             actions = entry["actions"]
             action_strs = [f"{a['agent']}: {a['action']}" for a in actions]
-            lines.append(f"Round {round_num}: {', '.join(action_strs)}")
+            line = f"Round {round_num}: {', '.join(action_strs)}"
+            # Include per-round payoffs if present (game theory scenarios)
+            if entry.get("payoffs"):
+                payoff_strs = [f"{name} +{pts}" for name, pts in entry["payoffs"].items()]
+                line += f". Payoffs: {', '.join(payoff_strs)}"
+                # Show cumulative scores for this agent
+                agent_scores = {a.name: a.score for a in self.agents}
+                score_strs = [f"{name}: {pts}" for name, pts in agent_scores.items()]
+                line += f". Running total: {', '.join(score_strs)}"
+            lines.append(line)
 
         return "Previous rounds:\n" + "\n".join(lines)
 

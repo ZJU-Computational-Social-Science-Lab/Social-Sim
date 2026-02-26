@@ -96,6 +96,10 @@ class ExperimentAction(BaseModel):
 
 class ExperimentSettings(BaseModel):
     """Schema for experiment settings."""
+    scenario_id: str = Field(
+        default="custom",
+        description="Scenario type identifier (e.g., 'prisoners_dilemma', 'stag_hunt', 'public_goods')"
+    )
     round_visibility: str = Field(
         default="simultaneous",
         description="How agents see each other's choices: 'simultaneous' or 'sequential'"
@@ -103,6 +107,24 @@ class ExperimentSettings(BaseModel):
     max_rounds: int = Field(
         default=10,
         description="Maximum number of rounds to run"
+    )
+
+    # Payoff parameters for Prisoner's Dilemma style games
+    cooperate_reward: int | None = Field(
+        default=None,
+        description="Payoff when both cooperate (R)"
+    )
+    sucker_penalty: int | None = Field(
+        default=None,
+        description="Payoff when you cooperate, they defect (S)"
+    )
+    temptation_reward: int | None = Field(
+        default=None,
+        description="Payoff when you defect, they cooperate (T)"
+    )
+    defect_penalty: int | None = Field(
+        default=None,
+        description="Payoff when both defect (P)"
     )
 
 

@@ -346,10 +346,17 @@ async def run_experiment(
         simulation_id = generate_simulation_id()
 
         # Build scene_config from template for ExperimentScene
+        settings_dict = template.settings.model_dump() if hasattr(template.settings, "model_dump") else template.settings
         scene_config = {
             "description": template.description,
             "actions": [a.model_dump() for a in template.actions],
-            "settings": template.settings.model_dump() if hasattr(template.settings, "model_dump") else template.settings,
+            "parameters": {
+                # Pass ALL non-reserved settings as parameters (generic approach)
+                k: v for k, v in settings_dict.items()
+                if k not in ["round_visibility", "max_rounds", "scenario_id"]
+            },
+            "scenario_id": settings_dict.get("scenario_id", "custom"),
+            "round_visibility": settings_dict.get("round_visibility", "simultaneous"),
         }
 
         simulation = Simulation(
@@ -384,8 +391,8 @@ async def run_experiment(
                 "simulation_id": simulation.id,
                 "template_id": template.id,
                 "scene_config": scene_config,
-                "max_rounds": scene_config["settings"].get("max_rounds", 10),
-                "round_visibility": scene_config["settings"].get("round_visibility", "simultaneous"),
+                "max_rounds": settings_dict.get("max_rounds", 10),
+                "round_visibility": settings_dict.get("round_visibility", "simultaneous"),
             },
         )
 

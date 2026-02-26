@@ -22,6 +22,10 @@ class GameConfig:
         min: Minimum value (for integer type)
         max: Maximum value (for integer type)
         payoff_summary: Optional payoff description (Bug B fix)
+        cooperate_reward: Payoff when both cooperate (R)
+        sucker_penalty: Payoff when you cooperate, they defect (S)
+        temptation_reward: Payoff when you defect, they cooperate (T)
+        defect_penalty: Payoff when both defect (P)
     """
     name: str
     description: str
@@ -32,6 +36,11 @@ class GameConfig:
     min: int = 0
     max: int = 10
     payoff_summary: str = ""
+    # Payoff parameters for Prisoner's Dilemma style games
+    cooperate_reward: int | None = None
+    sucker_penalty: int | None = None
+    temptation_reward: int | None = None
+    defect_penalty: int | None = None
 
 
 # Predefined game configs for the 6 social science patterns

@@ -171,6 +171,20 @@ def ollama_chat(
         if allow_vision and m.get("images"):
             m["images"] = encode_images(m.get("images"), client, safe_urls_func)
 
+    # For json_mode with Ollama, add prompt-based JSON instruction
+    # Some models (Qwen3, Gemma 3) don't properly support "format": "json"
+    # and return empty responses. Prompt-based instruction is more reliable.
+    if json_mode and msgs:
+        # Prepend JSON instruction to the last user message
+        for i in range(len(msgs) - 1, -1, -1):
+            if msgs[i].get("role") == "user":
+                original_content = msgs[i].get("content", "")
+                msgs[i]["content"] = (
+                    "IMPORTANT: You must respond with ONLY valid JSON, no markdown, no explanation.\n\n"
+                    + original_content
+                )
+                break
+
     payload = {
         "model": model,
         "messages": msgs,
@@ -182,8 +196,9 @@ def ollama_chat(
         },
     }
 
-    if json_mode:
-        payload["format"] = "json"
+    # Note: We don't use payload["format"] = "json" because some Ollama models
+    # (Qwen3, Gemma 3) return empty responses with this setting.
+    # Prompt-based JSON instruction is more reliable.
 
     resp = client.post("/api/chat", json=payload, timeout=timeout)
     resp.raise_for_status()
