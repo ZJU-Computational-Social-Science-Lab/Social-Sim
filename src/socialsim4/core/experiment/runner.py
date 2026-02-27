@@ -17,6 +17,7 @@ from pathlib import Path
 from datetime import datetime
 
 from socialsim4.core.experiment.agent import ExperimentAgent
+from socialsim4.core.experiment.information_model import InformationModel
 from socialsim4.core.experiment.game_configs import GameConfig
 from socialsim4.core.experiment.kernel import ExperimentKernel
 from socialsim4.core.experiment.controller import ExperimentController, ActionResult
@@ -71,7 +72,8 @@ class ExperimentRunner:
         game_config: GameConfig,
         llm_client: LLMClient,
         kernel: ExperimentKernel | None = None,
-        round_visibility: Literal["simultaneous", "sequential", "random", "paired"] = "simultaneous"
+        round_visibility: Literal["simultaneous", "sequential", "random", "paired"] = "simultaneous",
+        information_model: "InformationModel | None" = None,
     ):
         """Initialize the experiment runner.
 
@@ -81,18 +83,29 @@ class ExperimentRunner:
             llm_client: LLM client for prompts and context updates
             kernel: Action registry (uses default if None)
             round_visibility: How agents see each other's choices
+            information_model: Optional InformationModel for structured context
         """
         self.agents = agents
         self.game_config = game_config
         self.llm_client = llm_client
         self.kernel = kernel or ExperimentKernel()
         self.round_visibility = round_visibility
+        self.information_model = information_model
+        self.scene_state: Dict[str, Any] = {}  # shared mutable ref; update via set_scene_state()
 
-        self.context_manager = RoundContextManager()
+        self.context_manager = RoundContextManager(
+            information_model=information_model,
+            scene_state=self.scene_state,
+            all_agent_names=[a.name for a in agents],
+        )
         self.controller = ExperimentController(self.kernel, self.context_manager)
         self.current_round = 0
         self.turn_order: List[str] | None = None  # Store shuffled order for random/paired mode
         self.scores: Dict[str, int] = {}  # Track cumulative scores per agent (for paired mode)
+
+    def set_scene_state(self, state: Dict[str, Any]) -> None:
+        """Merge new state into scene_state. context_manager holds the same reference."""
+        self.scene_state.update(state)
 
     async def run(self, max_rounds: int) -> List[RoundResult]:
         """Run the experiment for a specified number of rounds.
@@ -250,6 +263,19 @@ class ExperimentRunner:
         # Calculate scores based on actions
         round_payoffs = self._calculate_scores(actions)
 
+        # Record to context with observers and payoffs (done after scores are known
+        # so payoff can be stored with the event; simultaneous = no mid-round visibility)
+        for result in actions:
+            if not result.skipped:
+                self.context_manager.record_action_with_observers(
+                    agent_name=result.agent_name,
+                    action_name=result.action_name,
+                    parameters=result.parameters,
+                    round_num=round_num,
+                    summary=result.summary,
+                    payoff=round_payoffs.get(result.agent_name),
+                )
+
         return RoundResult(
             round_num=round_num,
             actions=actions,
@@ -271,8 +297,16 @@ class ExperimentRunner:
             actions.append(result)
             # Record action to agent's history
             self._record_action_to_agent(result)
-            # Action is already recorded by controller.process_response(),
-            # making it immediately visible to the next agent
+            # Record to context immediately so the next agent can observe it
+            if not result.skipped:
+                self.context_manager.record_action_with_observers(
+                    agent_name=result.agent_name,
+                    action_name=result.action_name,
+                    parameters=result.parameters,
+                    round_num=round_num,
+                    summary=result.summary,
+                    payoff=None,  # payoff unknown until round ends
+                )
 
         # Calculate scores based on actions
         round_payoffs = self._calculate_scores(actions)
@@ -308,8 +342,16 @@ class ExperimentRunner:
             actions.append(result)
             # Record action to agent's history
             self._record_action_to_agent(result)
-            # Action is recorded by controller.process_response(),
-            # making it immediately visible to the next agent
+            # Record to context immediately so the next agent can observe it
+            if not result.skipped:
+                self.context_manager.record_action_with_observers(
+                    agent_name=result.agent_name,
+                    action_name=result.action_name,
+                    parameters=result.parameters,
+                    round_num=round_num,
+                    summary=result.summary,
+                    payoff=None,  # payoff unknown until round ends
+                )
 
         # Calculate scores based on actions
         round_payoffs = self._calculate_scores(actions)
@@ -404,6 +446,18 @@ class ExperimentRunner:
         # Calculate scores based on actions (for paired mode, scores are calculated per-pair)
         round_payoffs = self._calculate_scores(all_actions)
 
+        # Record to context with observers and payoffs (after scores are known)
+        for result in all_actions:
+            if not result.skipped:
+                self.context_manager.record_action_with_observers(
+                    agent_name=result.agent_name,
+                    action_name=result.action_name,
+                    parameters=result.parameters,
+                    round_num=round_num,
+                    summary=result.summary,
+                    payoff=round_payoffs.get(result.agent_name),
+                )
+
         # Also update the legacy scores dict for backwards compatibility
         for action in all_actions:
             if not action.skipped and action.agent_name not in self.scores:
@@ -494,8 +548,8 @@ class ExperimentRunner:
             ActionResult from processing the response
         """
         # Build prompt with current context (with section markers for debugging)
-        context = self.context_manager.get_context(agent.name)
-        prompt = build_prompt(agent, self.game_config, context, include_section_markers=True)
+        context = self.context_manager.get_context_for_agent(agent.name, agent_score=agent.score)
+        prompt = build_prompt(agent, self.game_config, context, include_section_markers=True, information_model=self.information_model)
 
         # Write to debug file (won't be truncated)
         with open(_debug_file, 'a', encoding='utf-8') as f:
