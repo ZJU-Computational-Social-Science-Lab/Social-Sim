@@ -55,6 +55,34 @@ def _get_article(word: str) -> str:
     return "an" if word.lower().startswith(vowels) else "a"
 
 
+def truncate_context_to_budget(context: str, budget_chars: int) -> str:
+    """Truncate context to fit within a character budget.
+
+    Preserves whole lines, dropping from the middle to keep first and last content.
+    Returns context unchanged if budget_chars is 0 (no limit).
+
+    Args:
+        context: Context string to truncate
+        budget_chars: Maximum number of characters (0 = no limit)
+
+    Returns:
+        Truncated context string, or original if within budget
+    """
+    if budget_chars <= 0 or len(context) <= budget_chars:
+        return context
+    lines = context.split("\n")
+    result = []
+    chars = 0
+    for line in lines:
+        needed = len(line) + (1 if result else 0)
+        if chars + needed > budget_chars:
+            result.append("... (earlier rounds omitted)")
+            break
+        result.append(line)
+        chars += needed
+    return "\n".join(result)
+
+
 def build_agent_description(
     agent_properties: Dict[str, Any],
     role_prompt: str = None,
@@ -120,7 +148,9 @@ def build_prompt(
     agent: ExperimentAgent,
     game_config: GameConfig,
     context_summary: str,
-    include_section_markers: bool = False
+    include_section_markers: bool = False,
+    *,
+    information_model=None,
 ) -> str:
     """Build the 5-section structured prompt.
 
@@ -174,8 +204,13 @@ def build_prompt(
     # Section 4: Context
     if include_section_markers:
         sections.append("\n=== SECTION 4: CONTEXT ===")
-    if context_summary:
-        sections.append(f"\n## Context\n{context_summary}")
+    budget = getattr(information_model, 'context_budget_chars', 0)
+    display_context = (
+        truncate_context_to_budget(context_summary, budget)
+        if context_summary else ""
+    )
+    if display_context:
+        sections.append(f"\n## Context\n{display_context}")
     else:
         sections.append("\n## Context\nThis is the first round - no previous context.")
 
@@ -210,7 +245,9 @@ def build_reprompt(
     chosen_action: str,
     parameter_schema: Dict[str, Any],
     mode: Literal["json", "plain_text"] = "json",
-    include_section_markers: bool = False
+    include_section_markers: bool = False,
+    *,
+    information_model=None,
 ) -> str:
     """Build a re-prompt for collecting missing parameters.
 
@@ -227,7 +264,7 @@ def build_reprompt(
         Re-prompt string
     """
     # Reuse the base prompt (all 5 sections)
-    base_prompt = build_prompt(agent, game_config, context_summary, include_section_markers)
+    base_prompt = build_prompt(agent, game_config, context_summary, include_section_markers, information_model=information_model)
 
     # Add re-prompt instruction with section marker
     if include_section_markers:
