@@ -7,8 +7,8 @@ with the round's events, creating a running narrative of what happened.
 Contains: RoundEvent dataclass, RoundContextManager class.
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Any
+from dataclasses import dataclass, field
+from typing import Dict, List, Any, Optional
 import asyncio
 import logging
 
@@ -29,12 +29,20 @@ class RoundEvent:
         parameters: Action parameters
         round_num: Which round this occurred in
         summary: Human-readable summary
+        observed_by: List of agents who observe this event (default: [agent_name])
+        payoff: Optional payoff earned this round
     """
     agent_name: str
     action_name: str
     parameters: Dict[str, Any]
     round_num: int
     summary: str
+    observed_by: List[str] = field(default_factory=list)
+    payoff: Optional[int] = None
+
+    def __post_init__(self):
+        if not self.observed_by:
+            self.observed_by = [self.agent_name]
 
 
 class RoundContextManager:
@@ -45,14 +53,26 @@ class RoundContextManager:
     on round_visibility setting).
     """
 
-    def __init__(self, initial_contexts: Dict[str, str] | None = None):
+    def __init__(
+        self,
+        initial_contexts: Dict[str, str] | None = None,
+        information_model=None,
+        scene_state: Dict[str, Any] | None = None,
+        all_agent_names: List[str] | None = None,
+    ):
         """Initialize context manager.
 
         Args:
             initial_contexts: Optional starting contexts for each agent
+            information_model: InformationModel for structured context building
+            scene_state: Mutable scene state dict (shared reference with runner)
+            all_agent_names: All agent names in the experiment
         """
         self._summaries: Dict[str, str] = initial_contexts or {}
         self._round_events: List[RoundEvent] = []
+        self.information_model = information_model
+        self.scene_state: Dict[str, Any] = scene_state if scene_state is not None else {}
+        self.all_agent_names: List[str] = all_agent_names or []
 
     def record_action(
         self,
@@ -60,7 +80,9 @@ class RoundContextManager:
         action_name: str,
         parameters: Dict[str, Any],
         round_num: int,
-        summary: str
+        summary: str,
+        observed_by: List[str] | None = None,
+        payoff: int | None = None,
     ) -> None:
         """Record an action for context tracking.
 
@@ -70,15 +92,76 @@ class RoundContextManager:
             parameters: Action parameters
             round_num: Current round number
             summary: Human-readable summary
+            observed_by: Agents who observe this event (default: [agent_name])
+            payoff: Optional payoff earned this round
         """
         event = RoundEvent(
             agent_name=agent_name,
             action_name=action_name,
             parameters=parameters,
             round_num=round_num,
-            summary=summary
+            summary=summary,
+            observed_by=observed_by or [],
+            payoff=payoff,
         )
         self._round_events.append(event)
+
+    def record_action_with_observers(
+        self,
+        agent_name: str,
+        action_name: str,
+        parameters: Dict[str, Any],
+        round_num: int,
+        summary: str,
+        payoff: int | None = None,
+    ) -> None:
+        """Record an action, computing observed_by from the stored InformationModel.
+
+        If no information_model is stored, only the acting agent observes themselves.
+        """
+        if self.information_model and self.all_agent_names:
+            observed_by = self.information_model.get_observers(
+                for_agent=agent_name,
+                scene_state=self.scene_state,
+                all_agent_names=self.all_agent_names,
+                round_num=round_num,
+            )
+        else:
+            observed_by = [agent_name]
+        self.record_action(
+            agent_name=agent_name,
+            action_name=action_name,
+            parameters=parameters,
+            round_num=round_num,
+            summary=summary,
+            observed_by=observed_by,
+            payoff=payoff,
+        )
+
+    def get_context_for_agent(self, agent_name: str, agent_score: int | None = None) -> str:
+        """Build structured context for an agent, filtered by observation scope.
+
+        If information_model is set, uses build_structured_context() for deterministic,
+        budget-bounded output. Otherwise falls back to get_context() (legacy path).
+
+        Args:
+            agent_name: Agent to build context for
+            agent_score: Agent's cumulative score (shown if info_model.include_scores)
+        """
+        if self.information_model is None:
+            return self.get_context(agent_name)
+
+        # Deferred import avoids circular dependency
+        from socialsim4.core.context_builder import build_structured_context
+        visible_events = [
+            e for e in self._round_events if agent_name in e.observed_by
+        ]
+        return build_structured_context(
+            for_agent=agent_name,
+            events=visible_events,
+            info_model=self.information_model,
+            agent_score=agent_score,
+        )
 
     def get_round_events(self, round_num: int) -> List[RoundEvent]:
         """Get all events for a specific round.
