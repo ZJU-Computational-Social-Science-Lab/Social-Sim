@@ -189,15 +189,6 @@ class ExperimentController:
         print(f"[CONTROLLER] Extracted action: {action_value}")
         summary = f"{agent.name} chose {action_value}"
 
-        # Step 4: Record in context
-        self.context_manager.record_action(
-            agent_name=agent.name,
-            action_name=action_value,
-            parameters={},
-            round_num=round_num,
-            summary=summary
-        )
-
         return ActionResult(
             success=True,
             action_name=action_value,
@@ -319,15 +310,6 @@ class ExperimentController:
                 # Update summary with parameters
                 param_str = ", ".join(f"{k}={v}" for k, v in parameters.items())
                 summary = f"{agent.name} chose {action_name} ({param_str})"
-
-                # Update context with parameters
-                self.context_manager.record_action(
-                    agent_name=agent.name,
-                    action_name=action_name,
-                    parameters=parameters,
-                    round_num=round_num,
-                    summary=summary
-                )
 
                 return ActionResult(
                     success=True,
