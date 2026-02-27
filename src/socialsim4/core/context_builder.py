@@ -1,4 +1,11 @@
-"""Build context summaries from round history."""
+"""
+Context builder utilities for experiment history.
+
+Provides functions to build context summaries from round history,
+with support for visibility filtering and structured output.
+
+Contains: build_context_summary, build_structured_context
+"""
 
 from typing import Dict, Any, List, Optional
 
@@ -147,7 +154,7 @@ def _filter_round_history(
 def build_structured_context(
     for_agent: str,
     events: list,
-    info_model,
+    info_model: "InformationModel",
     agent_score: "int | None" = None,
 ) -> str:
     """Build deterministic, budget-bounded structured context for an agent.

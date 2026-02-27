@@ -6,7 +6,7 @@ and how to format context. INFORMATION_MODEL_MAP in registry.py maps scene
 keys to InformationModel instances.
 """
 from __future__ import annotations
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Callable, List, Optional
 
 

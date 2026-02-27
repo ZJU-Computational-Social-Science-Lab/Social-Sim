@@ -8,12 +8,15 @@ Contains: RoundEvent dataclass, RoundContextManager class.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, TYPE_CHECKING
 import asyncio
 import logging
 
 from socialsim4.core.experiment.agent import ExperimentAgent
 from socialsim4.core.llm.client import LLMClient
+
+if TYPE_CHECKING:
+    from socialsim4.core.experiment.information_model import InformationModel
 
 
 logger = logging.getLogger(__name__)
@@ -56,7 +59,7 @@ class RoundContextManager:
     def __init__(
         self,
         initial_contexts: Dict[str, str] | None = None,
-        information_model=None,
+        information_model: "InformationModel | None" = None,
         scene_state: Dict[str, Any] | None = None,
         all_agent_names: List[str] | None = None,
     ):
