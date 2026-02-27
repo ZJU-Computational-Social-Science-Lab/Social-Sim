@@ -110,9 +110,11 @@ def _filter_round_history(
         actions = round_data["actions"]
 
         if visibility_mode == "previous_rounds":
-            # Show all actions from previous rounds, but not current round
-            # This is used when agents in simultaneous mode shouldn't see each other
-            if round_num < max(r["round"] for r in round_history):
+            # Show all actions from previous rounds
+            # round_history contains only completed rounds, so current round = max + 1
+            # This is used when agents in simultaneous/paired mode shouldn't see current round
+            current_round = max(r["round"] for r in round_history) + 1
+            if round_num < current_round:
                 filtered.append(round_data)
         elif visibility_mode == "sequential":
             # In sequential mode, agents see:
@@ -140,3 +142,73 @@ def _filter_round_history(
             filtered.append(round_data)
 
     return filtered
+
+
+def build_structured_context(
+    for_agent: str,
+    events: list,
+    info_model,
+    agent_score: "int | None" = None,
+) -> str:
+    """Build deterministic, budget-bounded structured context for an agent.
+
+    Tiered history: recent_window rounds of full detail, optionally with
+    round 1 always kept (primacy_keep=True). Applies payoff_template when set.
+
+    Args:
+        for_agent: Agent receiving the context (used to identify "my" action)
+        events: Pre-filtered RoundEvent list (caller must filter by observed_by)
+        info_model: InformationModel controlling window/primacy/template
+        agent_score: Agent's cumulative score (shown if info_model.include_scores)
+
+    Returns:
+        Formatted context string
+    """
+    if not events:
+        return "This is the first round."
+
+    # Group events by round
+    rounds_seen = sorted(set(e.round_num for e in events))
+    events_by_round: Dict[int, list] = {r: [] for r in rounds_seen}
+    for e in events:
+        events_by_round[e.round_num].append(e)
+
+    # Determine which rounds to show (recent window + optional primacy)
+    max_round = max(rounds_seen)
+    cutoff = max_round - info_model.recent_window + 1
+    included = [r for r in rounds_seen if r >= cutoff]
+    if info_model.primacy_keep and rounds_seen and rounds_seen[0] < cutoff:
+        included = [rounds_seen[0]] + included
+
+    lines = []
+    for r in sorted(set(included)):
+        round_events = events_by_round.get(r, [])
+        if not round_events:
+            continue
+
+        my_event = next((e for e in round_events if e.agent_name == for_agent), None)
+        other_events = [e for e in round_events if e.agent_name != for_agent]
+
+        if info_model.payoff_template and my_event is not None:
+            # Template IS the complete line — no round prefix added separately
+            partner_action = other_events[0].action_name if other_events else ""
+            line = info_model.payoff_template.format(
+                N=r,
+                my_action=my_event.action_name,
+                partner_action=partner_action,
+                payoff=my_event.payoff if my_event.payoff is not None else "",
+            )
+        else:
+            parts = []
+            if my_event:
+                parts.append(f"I {my_event.action_name}")
+            for e in other_events:
+                parts.append(f"{e.agent_name} {e.action_name}")
+            line = f"Round {r}: {', '.join(parts)}." if parts else f"Round {r}: (no actions)"
+
+        lines.append(line)
+
+    if agent_score is not None and info_model.include_scores:
+        lines.append(f"My score: {agent_score}")
+
+    return "\n".join(lines)
