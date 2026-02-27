@@ -7,6 +7,7 @@ from typing import Dict
 
 from socialsim4.core.agent import Agent
 from socialsim4.core.event import PublicEvent
+from socialsim4.core.registry import get_information_model
 from socialsim4.core.ordering import ControlledOrdering, CycledOrdering, SequentialOrdering
 from socialsim4.core.registry import ACTION_SPACE_MAP, SCENE_ACTIONS, SCENE_MAP, get_scene_class
 from socialsim4.core.simtree import SimTree

@@ -70,12 +70,16 @@ class ExperimentScene:
 
         logger.debug(f"Created {len(self.agents)} ExperimentAgents")
 
+        # Get InformationModel from registry (deferred import to avoid circular dependency)
+        from socialsim4.core.registry import get_information_model
+
         # Create the runner
         self.runner = ExperimentRunner(
             agents=self.agents,
             game_config=self._create_game_config(),
             llm_client=llm_client,
-            round_visibility=self.config.round_visibility
+            round_visibility=self.config.round_visibility,
+            information_model=get_information_model(self.config.scenario_id),
         )
 
         logger.debug("ExperimentRunner initialized")
