@@ -254,7 +254,7 @@ export function SettingsPage() {
           <div className="panel-title">{t('settings.providers.title')}</div>
           {activeTab === 'providers_llm' && (
             (() => {
-              const activeProv = (providersQuery.data || []).find((p) => Boolean((p.config as any)?.active));
+              const activeProv = (providersQuery.data || []).find((p) => p.is_active);
               const name = activeProv ? activeProv.name : '-';
               return (
                 <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>
@@ -273,7 +273,7 @@ export function SettingsPage() {
               {providersQuery.isLoading && <div>{t('settings.providers.loading')}</div>}
               {providersQuery.error && <div style={{ color: "#f87171" }}>{t('settings.providers.error')}</div>}
               {(providersQuery.data ?? []).map((provider, idx) => {
-                const active = Boolean((provider.config as any)?.active);
+                const active = provider.is_active;
                 return (
                   <div key={provider.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', padding: '0.5rem 0' }}>
                     <div style={{ minWidth: 0 }}>

@@ -141,6 +141,7 @@ class ExperimentRunner:
                 agent.action_history.append({
                     "round": result.round_num,
                     "action": result.action_name,
+                    "content": f"Round {result.round_num}: chose {result.action_name}",
                     "success": result.success,
                     "skipped": result.skipped,
                     "summary": result.summary,

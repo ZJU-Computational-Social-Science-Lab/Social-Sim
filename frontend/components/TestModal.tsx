@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { X } from 'lucide-react';
 import { useSimulationStore } from '../store';
 
 export const TestModal: React.FC = () => {
@@ -47,7 +48,6 @@ export const TestModal: React.FC = () => {
         </div>
       </div>
     </div>
-  </div>
   );
 };
 

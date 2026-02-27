@@ -17,10 +17,10 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { I18nextProvider } from 'i18next';
+import { I18nextProvider } from 'react-i18next';
 import { SimulationWizard } from '../SimulationWizard';
-import { useSimulationStore } from '../../store';
-import { vi } from 'vitest';
+import { useSimulationStore, AppState } from '../../store';
+import { vi, describe, test, expect, beforeEach } from 'vitest';
 
 // Mock i18next
 const i18n = {
@@ -189,7 +189,8 @@ vi.mock('papaparse', () => ({
   parse: vi.fn(),
 }));
 
-const mockStore = {
+// Base mock store with only the properties we need for tests
+const baseMockStore = {
   isWizardOpen: false,
   toggleWizard: vi.fn(),
   addSimulation: vi.fn(),
@@ -225,6 +226,10 @@ const mockStore = {
   loadProviders: vi.fn(),
 };
 
+// Helper to create a typed mock store with overrides
+const createMockStore = (overrides: Partial<AppState> = {}): AppState =>
+  ({ ...baseMockStore, ...overrides }) as AppState;
+
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <I18nextProvider i18n={i18n}>{children}</I18nextProvider>
 );
@@ -232,7 +237,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 describe('SimulationWizard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useSimulationStore).mockImplementation((selector) => selector(mockStore));
+    vi.mocked(useSimulationStore).mockImplementation((selector) => selector(createMockStore()));
   });
 
   // =========================================================================
@@ -247,7 +252,7 @@ describe('SimulationWizard', () => {
 
     test('should render modal when wizard is open', () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
       expect(screen.getByText('Create Simulation')).toBeInTheDocument();
@@ -255,7 +260,7 @@ describe('SimulationWizard', () => {
 
     test('should render step indicators', () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
       // Step indicators are rendered as divs with specific classes
@@ -271,7 +276,7 @@ describe('SimulationWizard', () => {
   describe('Step Navigation', () => {
     test('should show Next and Cancel buttons on step 1', () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
       expect(screen.getByText('Cancel')).toBeInTheDocument();
@@ -280,7 +285,7 @@ describe('SimulationWizard', () => {
 
     test('should show Previous and Next buttons on step 2', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -296,7 +301,7 @@ describe('SimulationWizard', () => {
 
     test('should show Start Simulation button on step 3', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -312,12 +317,12 @@ describe('SimulationWizard', () => {
 
     test('should call toggleWizard when Cancel is clicked', () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
       fireEvent.click(screen.getByText('Cancel'));
-      expect(mockStore.toggleWizard).toHaveBeenCalledWith(false);
+      expect(baseMockStore.toggleWizard).toHaveBeenCalledWith(false);
     });
   });
 
@@ -328,7 +333,7 @@ describe('SimulationWizard', () => {
   describe('Step 1 - Template Selection', () => {
     test('should render template selection tabs', () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -339,7 +344,7 @@ describe('SimulationWizard', () => {
 
     test('should show system templates by default', () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -349,7 +354,7 @@ describe('SimulationWizard', () => {
 
     test('should switch to custom templates tab', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -362,7 +367,7 @@ describe('SimulationWizard', () => {
 
     test('should show delete button for custom templates', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -383,7 +388,7 @@ describe('SimulationWizard', () => {
   describe('Step 1 - Time Configuration', () => {
     test('should render time settings', () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -394,7 +399,7 @@ describe('SimulationWizard', () => {
 
     test('should update time unit selection', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -411,7 +416,7 @@ describe('SimulationWizard', () => {
 
     test('should update time step value', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -435,7 +440,7 @@ describe('SimulationWizard', () => {
   describe('Step 1 - Experiment Name', () => {
     test('should render experiment name input', () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -445,7 +450,7 @@ describe('SimulationWizard', () => {
 
     test('should update experiment name value', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -464,7 +469,7 @@ describe('SimulationWizard', () => {
   describe('Step 2 - Import Modes', () => {
     test('should render import mode buttons', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -479,7 +484,7 @@ describe('SimulationWizard', () => {
 
     test('should switch to generate mode', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -497,7 +502,7 @@ describe('SimulationWizard', () => {
 
     test('should switch to file import mode', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -520,7 +525,7 @@ describe('SimulationWizard', () => {
   describe('Step 2 - AI Generation', () => {
     test('should render demographics toggle', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       const { generateAgentsWithDemographics } = require('../../store');
       generateAgentsWithDemographics.mockResolvedValue([]);
@@ -540,7 +545,7 @@ describe('SimulationWizard', () => {
 
     test('should toggle demographics mode', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -567,7 +572,7 @@ describe('SimulationWizard', () => {
   describe('Step 2 - Demographics Management', () => {
     test('should render default demographics', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -590,7 +595,7 @@ describe('SimulationWizard', () => {
 
     test('should show archetypes preview when demographics exist', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -621,7 +626,7 @@ describe('SimulationWizard', () => {
   describe('Step 2 - Traits Management', () => {
     test('should render default traits', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -649,7 +654,7 @@ describe('SimulationWizard', () => {
   describe('Step 2 - File Import', () => {
     test('should render file upload area', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -673,7 +678,7 @@ describe('SimulationWizard', () => {
   describe('Step 3 - Confirmation', () => {
     test('should show ready message', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -689,7 +694,7 @@ describe('SimulationWizard', () => {
 
     test('should show summary information', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -714,7 +719,7 @@ describe('SimulationWizard', () => {
   describe('Form Submission', () => {
     test('should call addSimulation when finishing', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -736,12 +741,12 @@ describe('SimulationWizard', () => {
         fireEvent.click(finishButton);
       });
 
-      expect(mockStore.addSimulation).toHaveBeenCalled();
+      expect(baseMockStore.addSimulation).toHaveBeenCalled();
     });
 
     test('should reset form after submission', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -774,7 +779,7 @@ describe('SimulationWizard', () => {
   describe('Provider Selection', () => {
     test('should render provider selector', () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -784,12 +789,11 @@ describe('SimulationWizard', () => {
 
     test('should show no provider message when no providers available', () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({
-          ...mockStore,
+        selector(createMockStore({
           isWizardOpen: true,
           llmProviders: [],
           selectedProviderId: null,
-        })
+        }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -804,11 +808,10 @@ describe('SimulationWizard', () => {
   describe('Vision Model Detection', () => {
     test('should show vision supported message for vision-capable model', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({
-          ...mockStore,
+        selector(createMockStore({
           isWizardOpen: true,
           selectedProviderId: 1,
-        })
+        }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -826,11 +829,10 @@ describe('SimulationWizard', () => {
 
     test('should show vision not supported message for non-vision model', async () => {
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({
-          ...mockStore,
+        selector(createMockStore({
           isWizardOpen: true,
           selectedProviderId: 2, // Ollama llama3 - no vision by default
-        })
+        }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -855,7 +857,7 @@ describe('SimulationWizard', () => {
       window.confirm = vi.fn(() => true);
 
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -880,7 +882,7 @@ describe('SimulationWizard', () => {
       window.confirm = vi.fn(() => false);
 
       vi.mocked(useSimulationStore).mockImplementation((selector) =>
-        selector({ ...mockStore, isWizardOpen: true })
+        selector(createMockStore({ isWizardOpen: true }))
       );
       render(<SimulationWizard />, { wrapper });
 
@@ -898,7 +900,7 @@ describe('SimulationWizard', () => {
         }
       });
 
-      expect(mockStore.deleteTemplate).not.toHaveBeenCalled();
+      expect(baseMockStore.deleteTemplate).not.toHaveBeenCalled();
     });
   });
 });

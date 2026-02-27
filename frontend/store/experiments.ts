@@ -242,6 +242,7 @@ export const createExperimentsSlice: StateCreator<
           if (!ev || typeof ev !== 'object') return `prim:${String(ev)}`;
           const evType = ev.type || ev.event_type || 'unknown';
           const data = ev.data || {};
+          const agent = data.agent || '';
 
           // For system_broadcast events, use text and sender as unique key
           if (evType === 'system_broadcast') {
@@ -251,8 +252,15 @@ export const createExperimentsSlice: StateCreator<
             return `${evType}:${eventType}:${sender}:${text}`;
           }
 
+          // For experiment_action events, include round number to distinguish actions across rounds
+          // (data.action is a plain string like "cooperate", not an object)
+          if (evType === 'experiment_action') {
+            const round = data.round !== undefined ? String(data.round) : '';
+            const agentAction = typeof data.action === 'string' ? data.action : '';
+            return `${evType}:${agent}:${agentAction}:round${round}`;
+          }
+
           // Use type, agent, content, time, and action to generate unique key
-          const agent = data.agent || '';
           const content = typeof data.content === 'string' ? data.content.substring(0, 100) : '';
           const time = data.time || '';
           const action = data.action?.action || data.action?.name || '';

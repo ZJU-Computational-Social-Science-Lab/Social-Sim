@@ -1,3 +1,18 @@
+"""
+LLM provider configuration API routes.
+
+Handles CRUD operations for user LLM provider configurations including
+OpenAI, Gemini, Ollama, and mock providers. Supports provider testing,
+activation, and credential management.
+
+Contains:
+    - list_providers: GET all providers for current user
+    - create_provider: POST create new provider
+    - update_provider: PATCH update provider
+    - delete_provider: DELETE provider
+    - test_provider: POST test provider connectivity
+    - activate_provider: POST set provider as active
+"""
 from datetime import datetime, timezone
 
 from litestar import Router, delete, get, patch, post
@@ -22,6 +37,7 @@ def _serialize_provider(provider: ProviderConfig) -> ProviderBase:
         model=provider.model,
         base_url=provider.base_url,
         has_api_key=bool(provider.api_key),
+        is_active=bool((provider.config or {}).get("active")),
         last_test_status=provider.last_test_status,
         last_tested_at=provider.last_tested_at,
         last_error=provider.last_error,
@@ -157,10 +173,13 @@ async def activate_provider(request: Request, provider_id: int) -> Message:
         )
         providers = result.scalars().all()
         for p in providers:
+            # Preserve existing config when toggling active status
+            cfg = dict(p.config or {})
             if p.id == provider.id:
-                p.config = {"active": True}
+                cfg["active"] = True
             else:
-                p.config = {}
+                cfg["active"] = False
+            p.config = cfg
         await session.commit()
         return Message(message="Activated provider")
 

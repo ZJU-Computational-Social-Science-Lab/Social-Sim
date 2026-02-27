@@ -106,7 +106,7 @@ def test_state_snapshot_ignored_when_none():
 
 
 def test_simultaneous_context_shows_own_action():
-    """In simultaneous mode, agents see their own actions (Bug D)."""
+    """In simultaneous mode, agents see their own previous round actions."""
     history = [
         {
             "round": 1,
@@ -116,38 +116,38 @@ def test_simultaneous_context_shows_own_action():
             ]
         }
     ]
-    # For Alice in simultaneous mode
+    # For Alice in simultaneous mode with Round 1 history
+    # Round 1 is a completed round, so it should be visible
     result = build_context_summary(
         history,
         for_agent="Alice",
         visibility_mode="previous_rounds"
     )
-    # Alice should see her own action
+    # Alice should see Round 1 actions (it's a previous round)
     assert "Alice" in result or "Cooperate" in result
 
 
-def test_simultaneous_context_excludes_individual_other_agents():
-    """In simultaneous mode, agents don't see individual other agents' choices (Bug D)."""
+def test_simultaneous_context_shows_previous_rounds():
+    """In previous_rounds mode, agents see completed rounds (Bug 2 fix)."""
     history = [
         {
             "round": 1,
             "actions": [
                 {"agent": "Alice", "action": "Cooperate"},
                 {"agent": "Bob", "action": "Defect"},
-                {"agent": "Charlie", "action": "Cooperate"},
             ]
         }
     ]
-    # In previous_rounds mode (simultaneous), show only previous rounds
-    # Current round is excluded because we're in the same round
+    # When running Round 2, Round 1 is in history as a completed round
+    # previous_rounds mode should show it
     result = build_context_summary(
         history,
         for_agent="Alice",
         visibility_mode="previous_rounds"
     )
-    # With only round 1 (current), should not show individual actions
-    # Because previous_rounds mode excludes current round
-    assert "This is the first round" in result or result == "This is the first round."
+    # Round 1 should be visible as a previous round
+    assert "Round 1:" in result
+    assert "Alice" in result or "Cooperate" in result
 
 
 def test_context_size_bounded_regardless_of_agent_count():
@@ -169,9 +169,8 @@ def test_context_size_bounded_regardless_of_agent_count():
     # Should have all agents in the round (within the round)
 
 
-def test_paired_context_shows_only_own_pair():
-    """In paired mode, agents should only see their pairing history (Bug D)."""
-    # This is a simplified test - actual pairing logic would be more complex
+def test_paired_context_shows_previous_rounds():
+    """In paired mode, agents see previous rounds (uses previous_rounds visibility)."""
     history = [
         {
             "round": 1,
@@ -183,12 +182,12 @@ def test_paired_context_shows_only_own_pair():
             ]
         }
     ]
-    # For Alice in paired mode - she should only see her pair (Bob)
-    # Since paired mode uses previous_rounds visibility
+    # For Alice in paired mode - uses previous_rounds visibility
+    # Round 1 is a completed round, so it should be visible
     result = build_context_summary(
         history,
         for_agent="Alice",
         visibility_mode="previous_rounds"
     )
-    # Should return first round message (current round excluded)
-    assert "This is the first round" in result or result == "This is the first round."
+    # Round 1 should be visible as a previous round
+    assert "Round 1:" in result

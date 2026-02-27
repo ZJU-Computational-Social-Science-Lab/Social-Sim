@@ -202,12 +202,12 @@ class ExperimentScene:
         has_all_pd = all(params.get(p) is not None for p in pd_params)
 
         if has_all_pd:
-            # Use the PD-specific format
+            # Use the PD-specific format with generic "points" terminology
             return f"""Payoff Table (from your perspective):
-- If you COOPERATE and they cooperate: {params['cooperate_reward']} years saved
-- If you COOPERATE and they defect: {params['sucker_penalty']} years saved (sucker's payoff)
-- If you DEFECT and they cooperate: {params['temptation_reward']} years saved (temptation)
-- If you DEFECT and they defect: {params['defect_penalty']} years saved"""
+- If you COOPERATE and they cooperate: {params['cooperate_reward']} points
+- If you COOPERATE and they defect: {params['sucker_penalty']} points (sucker's payoff)
+- If you DEFECT and they cooperate: {params['temptation_reward']} points (temptation)
+- If you DEFECT and they defect: {params['defect_penalty']} points"""
 
         # Generic parameter display for other game types
         lines = ["Game Parameters:"]
