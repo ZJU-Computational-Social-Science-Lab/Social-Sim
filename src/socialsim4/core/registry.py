@@ -174,6 +174,69 @@ SCENE_ACTIONS: dict[str, dict[str, list[str]]] = {
     },
 }
 
+# ---------------------------------------------------------------------------
+# Information Model Registry (mirrors SCENE_MAP pattern for the info layer)
+# ---------------------------------------------------------------------------
+
+import random as _random
+from typing import List, Tuple
+from socialsim4.core.experiment.information_model import InformationModel
+
+
+def pair_agents_randomly(agents: List[str], round_num: int) -> List[Tuple[str, str]]:
+    """Deterministically pair agents by round_num seed (no global state side-effects)."""
+    rng = _random.Random(round_num)
+    shuffled = list(agents)
+    rng.shuffle(shuffled)
+    return [(shuffled[i], shuffled[i + 1]) for i in range(0, len(shuffled) - 1, 2)]
+
+
+def werewolf_visibility_scope(
+    agent: str, state: dict, all_agents: List[str]
+) -> List[str]:
+    """Mafia members see each other; villagers see only themselves."""
+    roles = state.get("roles", {})
+    if roles.get(agent) == "mafia":
+        return [a for a, r in roles.items() if r == "mafia"]
+    return [agent]
+
+
+INFORMATION_MODEL_MAP: dict = {
+    # Scene keys must exactly match SCENE_MAP keys
+    "simple_chat_scene": InformationModel(scope_type="all", recent_window=5),
+    "emotional_conflict_scene": InformationModel(scope_type="all", recent_window=5),
+    "council_scene": InformationModel(scope_type="all", recent_window=5),
+    "village_scene": InformationModel(
+        scope_type="neighborhood",
+        # NOTE: proximity_scope requires state["_agent_positions"] to be populated
+        # by the runtime. Defaults to social_network fallback until that is wired.
+        recent_window=5,
+    ),
+    "werewolf_scene": InformationModel(
+        scope_type="role_based",
+        scope_fn=werewolf_visibility_scope,
+        recent_window=5,
+    ),
+    "landlord_scene": InformationModel(scope_type="all", recent_window=3),
+    "generic_scene": InformationModel(scope_type="all", recent_window=3),
+    "experiment_template": InformationModel(scope_type="all", recent_window=3),
+    # Scenario-level keys (used when scene_type == scenario id)
+    "prisoners_dilemma": InformationModel(
+        scope_type="pair",
+        pairing_fn=pair_agents_randomly,
+        recent_window=3,
+        payoff_template="Round {N}: {my_action} vs {partner_action} → {payoff} pts",
+    ),
+    "public_goods": InformationModel(scope_type="all", recent_window=3),
+    # Fallback for unknown scene types
+    "_default": InformationModel(scope_type="all", recent_window=3),
+}
+
+
+def get_information_model(scene_type: str) -> InformationModel:
+    """Return the InformationModel for a scene type, with _default fallback."""
+    return INFORMATION_MODEL_MAP.get(scene_type, INFORMATION_MODEL_MAP["_default"])
+
 # Scene descriptions for selection UI and docs
 SCENE_DESCRIPTIONS: dict[str, str] = {
     "simple_chat_scene": "Open chat room with optional web tools. Agents converse naturally; use search/page tools when needed.",
