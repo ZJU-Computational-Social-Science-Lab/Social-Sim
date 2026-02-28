@@ -117,7 +117,11 @@ def build_agent_description(
 
     # Skip internal bookkeeping keys that don't describe the agent
     _skip_keys = {"avatarUrl", "archetype_id", "demographic_attributes"}
-    meaningful_props = {k: v for k, v in agent_properties.items() if k not in _skip_keys}
+    # Also filter out empty string values - they don't provide meaningful information
+    meaningful_props = {
+        k: v for k, v in agent_properties.items()
+        if k not in _skip_keys and v is not None and v != ""
+    }
 
     # Manual agent: no meaningful properties → use name directly
     if not meaningful_props:
@@ -127,7 +131,11 @@ def build_agent_description(
 
     # Identity-related properties that define who the agent is
     _identity_keys = {"age_group", "profession", "role", "occupation"}
-    has_identity = any(k in meaningful_props for k in _identity_keys)
+    # Only consider identity as present if the value is non-empty
+    has_identity = any(
+        k in meaningful_props and meaningful_props.get(k)
+        for k in _identity_keys
+    )
 
     if has_identity:
         # Build identity from available fields
