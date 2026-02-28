@@ -227,15 +227,28 @@ INFORMATION_MODEL_MAP: dict = {
         recent_window=3,
         payoff_template="Round {N}: {my_action} vs {partner_action} → {payoff} pts",
     ),
+    # Aliases for frontend compatibility (frontend may use hyphens)
+    "prisoners-dilemma": InformationModel(
+        scope_type="pair",
+        pairing_fn=pair_agents_randomly,
+        recent_window=3,
+        payoff_template="Round {N}: {my_action} vs {partner_action} → {payoff} pts",
+    ),
     "public_goods": InformationModel(scope_type="all", recent_window=3),
+    "public-goods": InformationModel(scope_type="all", recent_window=3),
     # Fallback for unknown scene types
     "_default": InformationModel(scope_type="all", recent_window=3),
 }
 
 
 def get_information_model(scene_type: str) -> InformationModel:
-    """Return the InformationModel for a scene type, with _default fallback."""
-    return INFORMATION_MODEL_MAP.get(scene_type, INFORMATION_MODEL_MAP["_default"])
+    """Return the InformationModel for a scene type, with _default fallback.
+
+    Normalizes hyphens to underscores for lookup (frontend uses 'prisoners-dilemma',
+    backend uses 'prisoners_dilemma').
+    """
+    normalized = scene_type.replace("-", "_")
+    return INFORMATION_MODEL_MAP.get(normalized, INFORMATION_MODEL_MAP["_default"])
 
 # Scene descriptions for selection UI and docs
 SCENE_DESCRIPTIONS: dict[str, str] = {

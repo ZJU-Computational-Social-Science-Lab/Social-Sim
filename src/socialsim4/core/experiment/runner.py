@@ -200,16 +200,18 @@ class ExperimentRunner:
                 })
                 break
 
-    def _calculate_scores(self, round_actions: List[ActionResult]) -> Dict[str, int]:
+    def _calculate_scores(self, round_actions: List[ActionResult], pairs: List[tuple] = None) -> Dict[str, int]:
         """Calculate and update scores based on game outcomes.
 
-        For Prisoner's Dilemma style games with 2 players:
+        For Prisoner's Dilemma style games:
         - Both cooperate: both get cooperate_reward (R)
         - One cooperates, one defects: cooperator gets sucker_penalty (S), defector gets temptation_reward (T)
         - Both defect: both get defect_penalty (P)
 
         Args:
             round_actions: List of action results from the round
+            pairs: Optional list of (agent1_name, agent2_name) tuples for paired mode.
+                   If not provided, all agents play against each other (2-agent case).
 
         Returns:
             Dict mapping agent name to payoff earned this round (empty if not applicable)
@@ -227,53 +229,58 @@ class ExperimentRunner:
 
         # Build action map
         action_map = {a.agent_name: a.action_name.lower() for a in valid_actions}
-        agents = list(action_map.keys())
 
-        # For 2-player games, calculate pairwise scores
-        if len(agents) == 2:
-            a1, a2 = agents[0], agents[1]
-            act1, act2 = action_map[a1], action_map[a2]
+        # Find the agents to update their scores
+        agent_objs = {a.name: a for a in self.agents}
 
-            # Find the agents to update their scores
-            agent_objs = {a.name: a for a in self.agents}
+        def calculate_pair_payoff(a1: str, a2: str) -> tuple:
+            """Calculate payoff for a single pair. Returns (payoff_a1, payoff_a2)."""
+            act1 = action_map.get(a1, "").lower()
+            act2 = action_map.get(a2, "").lower()
 
-            # Prisoner's Dilemma scoring
             if act1 == "cooperate" and act2 == "cooperate":
                 # Both cooperate: R, R
                 p = self.game_config.cooperate_reward or 0
-                if a1 in agent_objs:
-                    agent_objs[a1].score += p
-                if a2 in agent_objs:
-                    agent_objs[a2].score += p
-                round_payoffs = {a1: p, a2: p}
+                return p, p
             elif act1 == "cooperate" and act2 == "defect":
                 # a1 is sucker, a2 is tempter: S, T
                 s = self.game_config.sucker_penalty or 0
                 t = self.game_config.temptation_reward or 0
-                if a1 in agent_objs:
-                    agent_objs[a1].score += s
-                if a2 in agent_objs:
-                    agent_objs[a2].score += t
-                round_payoffs = {a1: s, a2: t}
+                return s, t
             elif act1 == "defect" and act2 == "cooperate":
                 # a1 is tempter, a2 is sucker: T, S
                 t = self.game_config.temptation_reward or 0
                 s = self.game_config.sucker_penalty or 0
-                if a1 in agent_objs:
-                    agent_objs[a1].score += t
-                if a2 in agent_objs:
-                    agent_objs[a2].score += s
-                round_payoffs = {a1: t, a2: s}
+                return t, s
             else:
                 # Both defect: P, P
                 p = self.game_config.defect_penalty or 0
-                if a1 in agent_objs:
-                    agent_objs[a1].score += p
-                if a2 in agent_objs:
-                    agent_objs[a2].score += p
-                round_payoffs = {a1: p, a2: p}
+                return p, p
 
-            logger.debug(f"Scores updated: {a1}={agent_objs[a1].score}, {a2}={agent_objs[a2].score}")
+        # If pairs are provided (paired mode), calculate per-pair
+        if pairs:
+            for a1, a2 in pairs:
+                if a1 in action_map and a2 in action_map:
+                    p1, p2 = calculate_pair_payoff(a1, a2)
+                    if a1 in agent_objs:
+                        agent_objs[a1].score += p1
+                    if a2 in agent_objs:
+                        agent_objs[a2].score += p2
+                    round_payoffs[a1] = p1
+                    round_payoffs[a2] = p2
+                    logger.debug(f"Pair scores: {a1}={p1}, {a2}={p2}")
+        else:
+            # Single pair mode (2 agents total)
+            agents = list(action_map.keys())
+            if len(agents) == 2:
+                a1, a2 = agents[0], agents[1]
+                p1, p2 = calculate_pair_payoff(a1, a2)
+                if a1 in agent_objs:
+                    agent_objs[a1].score += p1
+                if a2 in agent_objs:
+                    agent_objs[a2].score += p2
+                round_payoffs = {a1: p1, a2: p2}
+                logger.debug(f"Scores updated: {a1}={agent_objs[a1].score}, {a2}={agent_objs[a2].score}")
 
         return round_payoffs
 
@@ -483,7 +490,7 @@ class ExperimentRunner:
             self._record_action_to_agent(skipped_result)
 
         # Calculate scores based on actions (for paired mode, scores are calculated per-pair)
-        round_payoffs = self._calculate_scores(all_actions)
+        round_payoffs = self._calculate_scores(all_actions, pairs=pairs)
 
         # Record to context with observers and payoffs (after scores are known)
         for result in all_actions:
