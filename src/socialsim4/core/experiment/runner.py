@@ -107,6 +107,50 @@ class ExperimentRunner:
         """Merge new state into scene_state. context_manager holds the same reference."""
         self.scene_state.update(state)
 
+    def _replay_history_to_events(self, round_history: list) -> None:
+        """Replay round_history into context_manager._round_events.
+
+        This populates _round_events from persisted history so that
+        get_context_for_agent() (which reads _round_events when information_model
+        is set) has data to build structured context.
+
+        Args:
+            round_history: List of round entries with "round", "actions", and optional "payoffs"
+        """
+        for entry in round_history:
+            entry_round = entry.get("round", 0)
+            payoffs = entry.get("payoffs", {})
+
+            for action in entry.get("actions", []):
+                agent_name = action.get("agent", "")
+                action_name = action.get("action", "")
+                parameters = action.get("parameters", {})
+                summary = action.get("summary", f"{agent_name} chose {action_name}")
+                agent_payoff = payoffs.get(agent_name)
+
+                # Determine who observed this action using InformationModel
+                if self.information_model:
+                    observed_by = self.information_model.get_observers(
+                        for_agent=agent_name,
+                        scene_state=self.scene_state,
+                        all_agent_names=[a.name for a in self.agents],
+                        round_num=entry_round,
+                    )
+                else:
+                    observed_by = [agent_name]
+
+                self.context_manager.record_action(
+                    agent_name=agent_name,
+                    action_name=action_name,
+                    parameters=parameters,
+                    round_num=entry_round,
+                    summary=summary,
+                    observed_by=observed_by,
+                    payoff=agent_payoff,
+                )
+
+        logger.debug(f"Replayed {len(round_history)} rounds of history to _round_events")
+
     async def run(self, max_rounds: int) -> List[RoundResult]:
         """Run the experiment for a specified number of rounds.
 
@@ -132,11 +176,6 @@ class ExperimentRunner:
                 round_result = await self._run_sequential_round(round_num)
 
             results.append(round_result)
-
-            # Update context summaries after the round
-            await self.context_manager.update_summaries(
-                self.llm_client, self.agents, round_num
-            )
 
             # Emit round completion event (could hook into websocket)
             logger.info(f"Round {round_num} complete: {len(round_result.actions)} actions")
@@ -491,28 +530,10 @@ class ExperimentRunner:
         self.current_round = round_num
         logger.info(f"Starting round {round_num}")
 
-        # Build per-agent context summaries if round_history is provided
+        # Populate _round_events from round_history so get_context_for_agent()
+        # (which reads from _round_events when information_model is set) has data
         if round_history:
-            for agent in self.agents:
-                # Determine visibility mode for this agent
-                # Sequential and random modes allow agents to see earlier agents' actions
-                # Paired mode shows only previous rounds (agents see their pairings)
-                if self.round_visibility in ("sequential", "random"):
-                    visibility_mode = "sequential"
-                else:
-                    # simultaneous and paired modes show only previous rounds
-                    visibility_mode = "previous_rounds"
-
-                # Build per-agent context using filtered history
-                agent_context = build_context_summary(
-                    round_history,
-                    max_rounds=5,
-                    for_agent=agent.name,
-                    visibility_mode=visibility_mode
-                )
-
-                # Set per-agent context in context manager
-                self.context_manager._summaries[agent.name] = agent_context
+            self._replay_history_to_events(round_history)
 
         elif context_summary:
             # Fallback to shared context if no round_history provided
@@ -527,11 +548,6 @@ class ExperimentRunner:
             round_result = await self._run_paired_round(round_num)
         else:  # sequential
             round_result = await self._run_sequential_round(round_num)
-
-        # Update context summaries after the round
-        await self.context_manager.update_summaries(
-            self.llm_client, self.agents, round_num
-        )
 
         logger.info(f"Round {round_num} complete: {len(round_result.actions)} actions")
 

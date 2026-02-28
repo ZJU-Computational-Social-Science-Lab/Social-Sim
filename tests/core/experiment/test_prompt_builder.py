@@ -76,14 +76,29 @@ def test_build_agent_description_low_score():
 
 
 def test_build_agent_description_defaults():
-    """Missing properties get defaults."""
+    """When no identity properties exist but other props do, show only traits (no 'adult person' fallback)."""
     props = {
         "social_capital": 50,
     }
     desc = build_agent_description(props)
 
-    # Should default to "adult person"
-    assert "adult person" in desc
+    # Should NOT default to "adult person" - that was a bug
+    # Instead, it should only show the numeric traits
+    assert "adult person" not in desc
+    assert "social_capital score is 50/100 (moderate)" in desc
+
+
+def test_build_agent_description_uses_name_when_no_identity():
+    """When no identity props but agent_name provided, use agent name as identity."""
+    props = {
+        "social_capital": 75,
+    }
+    desc = build_agent_description(props, agent_name="Psychology Student 1")
+
+    # Should use agent name as identity
+    assert "You are Psychology Student 1" in desc
+    assert "adult person" not in desc
+    assert "social_capital score is 75/100 (high)" in desc
 
 
 def test_build_prompt_discrete():
@@ -115,7 +130,7 @@ def test_build_prompt_discrete():
     # Section 5: Output Format
     assert "## Your Response" in prompt
     assert "Respond ONLY with valid JSON" in prompt
-    assert '"reasoning"' in prompt
+    # PRISONERS_DILEMMA.output_field is "action", so the JSON format is {"action": "..."}
     assert '"action"' in prompt
     assert "No markdown. No explanation. Only JSON." in prompt
 
