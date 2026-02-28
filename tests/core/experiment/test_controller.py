@@ -127,8 +127,12 @@ async def test_think_tags_stripped_before_parse():
 
 
 @pytest.mark.asyncio
-async def test_action_recorded_in_context_manager():
-    """Successful actions should be recorded in context manager."""
+async def test_action_result_contains_required_fields():
+    """Controller should return ActionResult with all required fields for recording.
+
+    Note: Recording to context_manager happens in the runner, not the controller.
+    The controller's job is to validate and return an ActionResult.
+    """
     kernel = ExperimentKernel()
     context_manager = RoundContextManager()
     controller = ExperimentController(kernel, context_manager)
@@ -144,8 +148,10 @@ async def test_action_recorded_in_context_manager():
         raw_json, agent, PRISONERS_DILEMMA, None, round_num=2
     )
 
-    # Verify the action was recorded
-    events = context_manager.get_round_events(2)
-    assert len(events) == 1
-    assert events[0].agent_name == "Frank"
-    assert events[0].action_name == "defect"
+    # Verify the ActionResult has all fields needed for recording
+    assert result.success is True
+    assert result.agent_name == "Frank"
+    assert result.action_name == "defect"
+    assert result.round_num == 2
+    assert result.summary == "Frank chose defect"
+    assert result.skipped is False

@@ -125,15 +125,32 @@ def build_agent_description(
 
     parts = []
 
-    # Start with identity
-    age_group = meaningful_props.get("age_group", "adult")
-    profession = meaningful_props.get("profession", "person")
-    article = _get_article(age_group)
-    parts.append(f"You are {article} {age_group} {profession}.")
+    # Identity-related properties that define who the agent is
+    _identity_keys = {"age_group", "profession", "role", "occupation"}
+    has_identity = any(k in meaningful_props for k in _identity_keys)
+
+    if has_identity:
+        # Build identity from available fields
+        age_group = meaningful_props.get("age_group")
+        profession = meaningful_props.get("profession") or meaningful_props.get("role") or meaningful_props.get("occupation")
+
+        if age_group and profession:
+            article = _get_article(age_group)
+            parts.append(f"You are {article} {age_group} {profession}.")
+        elif age_group:
+            article = _get_article(age_group)
+            parts.append(f"You are {article} {age_group}.")
+        elif profession:
+            article = _get_article(profession)
+            parts.append(f"You are {article} {profession}.")
+    else:
+        # No identity properties - use agent name as identity
+        if agent_name:
+            parts.append(f"You are {agent_name}.")
 
     # Add numeric traits with interpretation
     for key, value in meaningful_props.items():
-        if key in ["age_group", "profession"]:
+        if key in _identity_keys:
             continue  # Already handled
         if isinstance(value, (int, float)):
             interpretation = _interpret_score(int(value))

@@ -215,6 +215,11 @@ class RoundContextManager:
     ) -> None:
         """Update all agent summaries after a round.
 
+        DEPRECATED: This method is no longer called by the runner. The structured
+        context builder (build_structured_context) now provides deterministic,
+        budget-bounded output without LLM calls. This method is kept for backward
+        compatibility but should not be used in new code.
+
         Each agent gets an LLM-generated summary of what happened.
         The summary is cumulative - it includes previous context plus new events.
 

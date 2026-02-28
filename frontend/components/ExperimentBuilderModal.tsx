@@ -76,9 +76,8 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
       const agents = [];
 
       for (let i = 0; i < count; i++) {
-        // Use rolePrompt as the profile/description
-        const profile = agentType.rolePrompt || t('experimentBuilder.agent.defaultRolePrompt');
-        const role = agentType.rolePrompt || '';
+        // Only use rolePrompt if explicitly provided - let backend handle identity from name
+        const rolePrompt = agentType.rolePrompt?.trim() || null;
 
         // Determine unique ID and name for each agent instance
         const suffix = count > 1 ? ` ${i + 1}` : '';
@@ -103,8 +102,8 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
         agents.push({
           name: agentType.label + suffix,
           id: agentType.id + idSuffix,
-          role: role,
-          role_prompt: profile,
+          role: rolePrompt || '',
+          role_prompt: rolePrompt,  // null if not provided - backend will use agent name
           avatarUrl: avatarUrl,
           llm_config: llmConfig,
           properties: props,
