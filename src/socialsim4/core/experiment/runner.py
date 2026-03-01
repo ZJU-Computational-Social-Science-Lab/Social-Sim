@@ -117,6 +117,12 @@ class ExperimentRunner:
         Args:
             round_history: List of round entries with "round", "actions", and optional "payoffs"
         """
+        # Reset agent scores before rebuilding from history so we don't
+        # double-count when this method is called on a reused runner.
+        agent_objs = {a.name: a for a in self.agents}
+        for agent in self.agents:
+            agent.score = 0
+
         for entry in round_history:
             entry_round = entry.get("round", 0)
             payoffs = entry.get("payoffs", {})
@@ -148,6 +154,11 @@ class ExperimentRunner:
                     observed_by=observed_by,
                     payoff=agent_payoff,
                 )
+
+            # Restore cumulative scores from this round's historical payoffs
+            for agent_name, payoff in payoffs.items():
+                if agent_name in agent_objs:
+                    agent_objs[agent_name].score += payoff
 
         logger.debug(f"Replayed {len(round_history)} rounds of history to _round_events")
 
