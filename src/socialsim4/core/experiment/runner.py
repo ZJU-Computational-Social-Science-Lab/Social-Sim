@@ -306,8 +306,16 @@ class ExperimentRunner:
             # Record action to agent's history
             self._record_action_to_agent(result)
 
-        # Calculate scores based on actions
-        round_payoffs = self._calculate_scores(actions)
+        # Calculate scores - use InformationModel's pairing_fn if available so
+        # n-agent games calculate per-pair payoffs correctly.
+        pairs = None
+        if (self.information_model and
+                self.information_model.scope_type == "pair" and
+                self.information_model.pairing_fn):
+            pairs = self.information_model.pairing_fn(
+                [a.name for a in self.agents], round_num
+            )
+        round_payoffs = self._calculate_scores(actions, pairs=pairs)
 
         # Record to context with observers and payoffs (done after scores are known
         # so payoff can be stored with the event; simultaneous = no mid-round visibility)
@@ -399,8 +407,16 @@ class ExperimentRunner:
                     payoff=None,  # payoff unknown until round ends
                 )
 
-        # Calculate scores based on actions
-        round_payoffs = self._calculate_scores(actions)
+        # Calculate scores - use InformationModel's pairing_fn if available so
+        # n-agent games calculate per-pair payoffs correctly.
+        pairs = None
+        if (self.information_model and
+                self.information_model.scope_type == "pair" and
+                self.information_model.pairing_fn):
+            pairs = self.information_model.pairing_fn(
+                [a.name for a in self.agents], round_num
+            )
+        round_payoffs = self._calculate_scores(actions, pairs=pairs)
 
         return RoundResult(
             round_num=round_num,

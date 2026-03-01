@@ -71,7 +71,24 @@ class ExperimentScene:
         logger.debug(f"Created {len(self.agents)} ExperimentAgents")
 
         # Get InformationModel from registry (deferred import to avoid circular dependency)
-        from socialsim4.core.registry import get_information_model
+        from socialsim4.core.registry import get_information_model, pair_agents_randomly
+        from socialsim4.core.experiment.information_model import InformationModel
+
+        information_model = get_information_model(self.config.scenario_id)
+
+        # If the registry returned a generic "all" scope but this is a pairwise game
+        # (more than 2 agents with PD-style payoffs), upgrade to pair scope so each
+        # agent only sees their own game's results, not other pairs' actions.
+        params = self.config.parameters or {}
+        pd_keys = ["cooperate_reward", "sucker_penalty", "temptation_reward", "defect_penalty"]
+        has_pd_payoffs = all(params.get(k) is not None for k in pd_keys)
+        if information_model.scope_type == "all" and len(self.agents) > 2 and has_pd_payoffs:
+            information_model = InformationModel(
+                scope_type="pair",
+                pairing_fn=pair_agents_randomly,
+                recent_window=information_model.recent_window,
+                payoff_template="Round {N}: I {my_action}, partner {partner_action} → {payoff} pts",
+            )
 
         # Create the runner
         self.runner = ExperimentRunner(
@@ -79,7 +96,7 @@ class ExperimentScene:
             game_config=self._create_game_config(),
             llm_client=llm_client,
             round_visibility=self.config.round_visibility,
-            information_model=get_information_model(self.config.scenario_id),
+            information_model=information_model,
         )
 
         logger.debug("ExperimentRunner initialized")
