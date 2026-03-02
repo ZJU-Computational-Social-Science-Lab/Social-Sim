@@ -88,6 +88,14 @@ export const ExperimentDesignModal: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, nodes, variants, baseNode?.id]);
 
+  // Handle case where modal is open but no valid base node is selected
+  useEffect(() => {
+    if (isOpen && !baseNode) {
+      addNotification('error', t('store.selectNodeFirst') || 'Please select a simulation node first');
+      toggle(false);
+    }
+  }, [isOpen, baseNode, addNotification, t, toggle]);
+
   if (!isOpen || !baseNode) return null;
 
   const handleAddVariant = () => {

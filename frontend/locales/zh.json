@@ -1398,6 +1398,7 @@
     "knowledgeItemRemoved": "知识库条目已移除",
     "knowledgeItemUpdated": "知识库条目已更新",
     "selectedNodeNotBackend": "选中节点不是后端节点",
+    "selectNodeFirst": "请先在模拟树中选择一个节点",
     "backendAdvanceFailed": "后端推进失败，回退本地模拟",
     "simulationAdvanceFailed": "仿真推进失败，请重试",
     "branch": "分支",

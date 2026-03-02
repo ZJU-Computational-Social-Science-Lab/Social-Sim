@@ -386,7 +386,10 @@ async def simulation_tree_branch(
         sim, record = await get_simulation_and_tree_any(session, simulation_id)
         tree = record.tree
 
-        cid = tree.branch(int(data.parent), [dict(op) for op in data.ops])
+        try:
+            cid = tree.branch(int(data.parent), [dict(op) for op in data.ops])
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Tree node not found")
         node = tree.nodes[cid]
 
         broadcast_tree_event(

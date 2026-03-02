@@ -167,13 +167,18 @@ export const createExperimentsSlice: StateCreator<
         const base = state.engineConfig.endpoint;
         const token = state.engineConfig.token;
         const simId = state.currentSimulation.id;
-        const parentNumeric = Number(state.selectedNodeId);
+        let parentNumeric = Number(state.selectedNodeId);
 
         if (!Number.isFinite(parentNumeric)) {
-          console.error('[advanceSimulation] Invalid node ID:', state.selectedNodeId, 'Type:', typeof state.selectedNodeId);
-          state.addNotification?.('error', i18n.t('store.selectedNodeNotBackend') || 'Selected node is not a backend node');
-          set({ isGenerating: false } as any);
-          return;
+          // Try to fall back to the first numeric node (root)
+          const fallback = (state.nodes || []).find((n: any) => Number.isFinite(Number(n.id)));
+          if (fallback) {
+            parentNumeric = Number(fallback.id);
+          } else {
+            state.addNotification?.('error', i18n.t('store.selectNodeFirst') || 'Please select a node in the simulation tree first');
+            set({ isGenerating: false } as any);
+            return;
+          }
         }
 
         const res = await treeAdvanceChain(base, simId, parentNumeric, 1, token);
@@ -369,12 +374,17 @@ export const createExperimentsSlice: StateCreator<
 
         const base = state.engineConfig.endpoint;
         const token = state.engineConfig.token;
-        const parentNumeric = Number(state.selectedNodeId);
+        let parentNumeric = Number(state.selectedNodeId);
 
         if (!Number.isFinite(parentNumeric)) {
-          console.error('[branchSimulation] Invalid node ID:', state.selectedNodeId, 'Type:', typeof state.selectedNodeId);
-          state.addNotification?.('error', i18n.t('store.selectedNodeNotBackend') || 'Selected node is not a backend node');
-          return;
+          // Try to fall back to the first numeric node (root)
+          const fallback = (state.nodes || []).find((n: any) => Number.isFinite(Number(n.id)));
+          if (fallback) {
+            parentNumeric = Number(fallback.id);
+          } else {
+            state.addNotification?.('error', i18n.t('store.selectNodeFirst') || 'Please select a node in the simulation tree first');
+            return;
+          }
         }
 
         // treeBranchPublic expects: (base, id, parent, text, token)
@@ -473,7 +483,9 @@ export const createExperimentsSlice: StateCreator<
           state.engineConfig.token
         );
         if (graph) {
-          set({ nodes: mapGraphToNodes(graph) });
+          const updatedNodes = mapGraphToNodes(graph);
+          const rootNode = updatedNodes.find((n: any) => !n.parentId);
+          set({ nodes: updatedNodes, selectedNodeId: rootNode?.id ?? null });
         }
       } else {
         // Standalone mode - remove node and children
@@ -538,7 +550,9 @@ export const createExperimentsSlice: StateCreator<
               worldTime: nextWorldTime,
               meta: { placeholder_exp_id: String(expId), variant_index: idx },
             }));
-            return { nodes: [...updatedNodes, ...newNodes], selectedNodeId: newNodes[0]?.id ?? null } as any;
+            // Keep selectedNodeId on the parent (base) node - it's a real backend node with numeric ID
+            // Don't switch to placeholder nodes which have non-numeric IDs like 'exp-1234567890-0'
+            return { nodes: [...updatedNodes, ...newNodes] } as any;
           });
 
           // start the run (background) and poll for completion
