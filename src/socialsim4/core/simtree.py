@@ -509,6 +509,8 @@ class SimTree:
     def branch(self, parent_id: int, ops: List[dict]) -> int:
         # For branching (what-if scenarios), we create a SIBLING node, not a child
         # So we need to find the parent of parent_id and attach there
+        if parent_id not in self.nodes:
+            raise KeyError(f"Node {parent_id} not found in tree")
         actual_parent_id = self.nodes[parent_id]["parent"]
 
         # If the node has no parent (it's the root), we can't create a sibling
