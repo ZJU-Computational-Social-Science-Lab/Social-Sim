@@ -388,8 +388,12 @@ async def simulation_tree_branch(
 
         try:
             cid = tree.branch(int(data.parent), [dict(op) for op in data.ops])
-        except KeyError:
+        except KeyError as e:
+            logger.warning(f"Branch failed - node not found: {e}")
             raise HTTPException(status_code=404, detail="Tree node not found")
+        except Exception as e:
+            logger.exception(f"Branch failed with unexpected error: {e}")
+            raise HTTPException(status_code=500, detail=f"Branch operation failed: {e}")
         node = tree.nodes[cid]
 
         broadcast_tree_event(

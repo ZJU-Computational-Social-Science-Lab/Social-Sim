@@ -474,6 +474,10 @@ class SimTree:
     # ---------- 节点操作 ----------
 
     def attach(self, parent_id: int, ops: List[dict], cid: int) -> int:
+        if parent_id not in self.nodes:
+            raise KeyError(f"Parent node {parent_id} not found in tree")
+        if cid not in self.nodes:
+            raise KeyError(f"Child node {cid} not found in tree")
         parent = self.nodes[parent_id]
         node = self.nodes[cid]
         node["parent"] = parent_id

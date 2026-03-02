@@ -119,6 +119,20 @@ class ExperimentRunnerAdapter:
         """No-op for SimTree compatibility (adapter has no event queue)."""
         pass
 
+    def broadcast(self, event) -> None:
+        """Broadcast a public event to the experiment scene.
+
+        Args:
+            event: PublicEvent or similar event object with text attribute
+        """
+        # For experiment scenes, broadcast emits as a public event
+        if hasattr(event, "text"):
+            self._emit_event("public_broadcast", {"text": event.text})
+        elif hasattr(event, "__dict__"):
+            self._emit_event("public_broadcast", event.__dict__)
+        else:
+            self._emit_event("public_broadcast", {"data": str(event)})
+
 
 def _build_tree_for_scene(scene_type: str, clients: dict | None = None) -> SimTree:
     # Normalize scene_type to registry keys (allow aliases like 'village' -> 'village_scene')
