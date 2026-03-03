@@ -15,11 +15,12 @@ def test_build_schema_discrete():
     schema = build_schema(PRISONERS_DILEMMA)
 
     assert schema["type"] == "object"
-    assert "reasoning" in schema["properties"]
     assert "action" in schema["properties"]
     assert schema["properties"]["action"]["type"] == "string"
     assert schema["properties"]["action"]["enum"] == ["cooperate", "defect"]
     assert schema["required"] == ["action"]
+    # No reasoning field - prompts explicitly say "No reasoning"
+    assert "reasoning" not in schema["properties"]
 
 
 def test_build_schema_integer():
@@ -27,7 +28,8 @@ def test_build_schema_integer():
     schema = build_schema(MINIMUM_EFFORT)
 
     assert schema["type"] == "object"
-    assert "reasoning" in schema["properties"]
     assert "effort" in schema["properties"]
     assert schema["properties"]["effort"]["type"] == "integer"
     assert schema["required"] == ["effort"]
+    # No reasoning field - prompts explicitly say "No reasoning"
+    assert "reasoning" not in schema["properties"]

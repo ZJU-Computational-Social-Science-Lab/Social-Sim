@@ -23,6 +23,7 @@ from socialsim4.core.experiment.kernel import ExperimentKernel
 from socialsim4.core.experiment.controller import ExperimentController, ActionResult
 from socialsim4.core.experiment.round_context import RoundContextManager
 from socialsim4.core.experiment.prompt_builder import build_prompt, build_reprompt
+from socialsim4.core.experiment.action_handler import ActionHandler
 from socialsim4.core.llm.client import LLMClient
 from socialsim4.core.context_builder import build_context_summary
 
@@ -99,6 +100,7 @@ class ExperimentRunner:
             all_agent_names=[a.name for a in agents],
         )
         self.controller = ExperimentController(self.kernel, self.context_manager)
+        self.action_handler = ActionHandler()
         self.current_round = 0
         self.turn_order: List[str] | None = None  # Store shuffled order for random/paired mode
         self.scores: Dict[str, int] = {}  # Track cumulative scores per agent (for paired mode)
@@ -106,6 +108,26 @@ class ExperimentRunner:
     def set_scene_state(self, state: Dict[str, Any]) -> None:
         """Merge new state into scene_state. context_manager holds the same reference."""
         self.scene_state.update(state)
+
+    def execute_action(
+        self,
+        action_name: str,
+        agent_name: str,
+        params: dict,
+        state: "ExperimentState",
+    ) -> dict:
+        """Execute an action using the ActionHandler.
+
+        Args:
+            action_name: Name of action to execute
+            agent_name: Agent performing the action
+            params: Action parameters
+            state: ExperimentState to modify
+
+        Returns:
+            Result dict with success status
+        """
+        return self.action_handler.execute(action_name, agent_name, params, state)
 
     def _replay_history_to_events(self, round_history: list) -> None:
         """Replay round_history into context_manager._round_events.
@@ -665,7 +687,7 @@ class ExperimentRunner:
                 return ActionResult(
                     agent_name=agent.name,
                     action_name="skip",
-                    parameters={"reasoning": "LLM returned empty response"},
+                    parameters={"error": "LLM returned empty response"},
                     summary="Skipped - LLM returned empty response",
                     success=False,
                     skipped=True,

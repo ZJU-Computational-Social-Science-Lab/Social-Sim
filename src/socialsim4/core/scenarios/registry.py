@@ -430,6 +430,192 @@ CUSTOM: Dict[str, Any] = {
 }
 
 # ============================================================================
+# Spatial Prisoner's Dilemma
+# ============================================================================
+
+SPATIAL_PD: Dict[str, Any] = {
+    "id": "spatial_pd",
+    "name": "Spatial Prisoner's Dilemma",
+    "category": "game_theory",
+    "description": "Agents arranged on a grid play Prisoner's Dilemma with their immediate neighbors. You can see your neighbors' last choices. Your payoff is the sum of outcomes with all adjacent agents.",
+    "interaction_mode": "simultaneous",
+    "display_type": "params",
+    "parameters": [
+        {
+            "id": "grid_width",
+            "key": "grid_width",
+            "label": "Grid Width",
+            "type": "integer",
+            "default": 5,
+            "ui_hint": "slider",
+            "min": 3,
+            "max": 10,
+        },
+        {
+            "id": "grid_height",
+            "key": "grid_height",
+            "label": "Grid Height",
+            "type": "integer",
+            "default": 5,
+            "ui_hint": "slider",
+            "min": 3,
+            "max": 10,
+        },
+        {
+            "id": "cooperate_reward",
+            "key": "cooperate_reward",
+            "label": "Both Cooperate",
+            "type": "integer",
+            "default": 3,
+            "ui_hint": "number",
+            "min": 0,
+            "max": 10,
+        },
+        {
+            "id": "sucker_penalty",
+            "key": "sucker_penalty",
+            "label": "You Cooperate, They Defect",
+            "type": "integer",
+            "default": 0,
+            "ui_hint": "number",
+            "min": 0,
+            "max": 10,
+        },
+        {
+            "id": "temptation_reward",
+            "key": "temptation_reward",
+            "label": "You Defect, They Cooperate",
+            "type": "integer",
+            "default": 5,
+            "ui_hint": "number",
+            "min": 0,
+            "max": 10,
+        },
+        {
+            "id": "defect_penalty",
+            "key": "defect_penalty",
+            "label": "Both Defect",
+            "type": "integer",
+            "default": 1,
+            "ui_hint": "number",
+            "min": 0,
+            "max": 10,
+        },
+    ],
+    "actions": [
+        {"id": "cooperate", "name": "Cooperate", "description": "Work together with neighbors"},
+        {"id": "defect", "name": "Defect", "description": "Act selfishly against neighbors"},
+    ],
+    "state_schema": {
+        "spatial": {"width": 5, "height": 5},
+        "visibility": "neighbors",
+    },
+}
+
+# ============================================================================
+# Public Goods Game
+# ============================================================================
+
+PUBLIC_GOODS: Dict[str, Any] = {
+    "id": "public_goods",
+    "name": "Public Goods Game",
+    "category": "game_theory",
+    "description": "Each agent has tokens and decides how much to contribute to a shared pool. The pool is multiplied and distributed equally among all agents, regardless of contribution.",
+    "interaction_mode": "simultaneous",
+    "display_type": "params",
+    "parameters": [
+        {
+            "id": "initial_tokens",
+            "key": "initial_tokens",
+            "label": "Initial Tokens",
+            "type": "integer",
+            "default": 20,
+            "ui_hint": "slider",
+            "min": 10,
+            "max": 50,
+        },
+        {
+            "id": "multiplier",
+            "key": "multiplier",
+            "label": "Pool Multiplier",
+            "type": "number",
+            "default": 1.5,
+            "ui_hint": "slider",
+            "min": 1.0,
+            "max": 3.0,
+        },
+        {
+            "id": "num_rounds",
+            "key": "num_rounds",
+            "label": "Number of Rounds",
+            "type": "integer",
+            "default": 10,
+            "ui_hint": "slider",
+            "min": 1,
+            "max": 20,
+        },
+    ],
+    "actions": [
+        {"id": "contribute", "name": "Contribute", "description": "Contribute some tokens to the pool"},
+    ],
+    "state_schema": {
+        "extensions": {"pools": {"main": 0}},
+        "resources": {"tokens": 20},
+    },
+}
+
+# ============================================================================
+# Graph Coloring
+# ============================================================================
+
+GRAPH_COLORING: Dict[str, Any] = {
+    "id": "graph_coloring",
+    "name": "Graph Coloring",
+    "category": "game_theory",
+    "description": "Agents are nodes in a graph and must choose a color. No two adjacent nodes should have the same color. Agents can see their neighbors' current colors.",
+    "interaction_mode": "sequential",
+    "display_type": "params",
+    "parameters": [
+        {
+            "id": "num_colors",
+            "key": "num_colors",
+            "label": "Number of Colors",
+            "type": "integer",
+            "default": 3,
+            "ui_hint": "slider",
+            "min": 2,
+            "max": 5,
+        },
+        {
+            "id": "graph_type",
+            "key": "graph_type",
+            "label": "Graph Type",
+            "type": "string",
+            "default": "random",
+            "ui_hint": "select",
+            "options": ["random", "grid", "cycle", "complete"],
+        },
+        {
+            "id": "edge_probability",
+            "key": "edge_probability",
+            "label": "Edge Probability (random)",
+            "type": "number",
+            "default": 0.3,
+            "ui_hint": "slider",
+            "min": 0.1,
+            "max": 0.9,
+        },
+    ],
+    "actions": [
+        {"id": "choose_color", "name": "Choose Color", "description": "Select a color for your node"},
+    ],
+    "state_schema": {
+        "extensions": {"colors": {}, "graph": {"edges": []}},
+        "visibility": "neighbors",
+    },
+}
+
+# ============================================================================
 # Registry
 # ============================================================================
 
@@ -444,6 +630,9 @@ ALL_SCENARIOS: List[Dict[str, Any]] = [
     OPEN_DISCUSSION,
     GRID_WORLD,
     WEREWOLF,
+    SPATIAL_PD,
+    PUBLIC_GOODS,
+    GRAPH_COLORING,
     CUSTOM,
 ]
 

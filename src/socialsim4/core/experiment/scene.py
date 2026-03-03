@@ -12,6 +12,7 @@ from socialsim4.core.experiment.config import ExperimentConfig
 from socialsim4.core.experiment.agent import ExperimentAgent
 from socialsim4.core.experiment.runner import ExperimentRunner, RoundResult
 from socialsim4.core.experiment.game_configs import GameConfig
+from socialsim4.core.experiment.state import ExperimentState, AgentState
 from socialsim4.core.llm.client import LLMClient
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ class ExperimentScene:
         self.llm_client: LLMClient | None = None
         self.current_round = 0
         self._history: list[dict[str, Any]] = []
+        self.state: ExperimentState = ExperimentState()
 
         logger.debug(f"ExperimentScene initialized: {config.scenario_id}")
 
@@ -69,6 +71,9 @@ class ExperimentScene:
         ]
 
         logger.debug(f"Created {len(self.agents)} ExperimentAgents")
+
+        # Initialize experiment state
+        self._initialize_state()
 
         # Get InformationModel from registry (deferred import to avoid circular dependency)
         from socialsim4.core.registry import get_information_model, pair_agents_randomly
@@ -153,7 +158,6 @@ class ExperimentScene:
             event_emitter("experiment_action", {
                 "agent": action.agent_name,
                 "action": action.action_name,
-                "reasoning": action.parameters.get("reasoning", ""),
                 "round": round_num,
                 "success": action.success,
                 "skipped": action.skipped,
@@ -162,6 +166,33 @@ class ExperimentScene:
         logger.info(f"Round {round_num} complete: {len(result.actions)} actions")
 
         return result
+
+    def _initialize_state(self) -> None:
+        """Initialize ExperimentState from config.
+
+        Creates AgentState for each agent and applies state_schema extensions.
+        Called during initialize() after agents are created.
+        """
+        # Create AgentState for each agent
+        for agent_config in self.config.agents:
+            name = agent_config.get("name", "")
+            if not name:
+                continue
+
+            agent_state = AgentState(
+                score=0,
+                position=agent_config.get("position"),
+                resources=agent_config.get("resources", {}),
+                properties=agent_config.get("properties", {}),
+            )
+            self.state.agents[name] = agent_state
+
+        # Apply state_schema extensions
+        if self.config.state_schema:
+            if "extensions" in self.config.state_schema:
+                self.state.extensions.update(self.config.state_schema["extensions"])
+
+        logger.debug(f"Initialized state for {len(self.state.agents)} agents")
 
     def _create_game_config(self) -> GameConfig:
         """Create GameConfig from config data."""
@@ -224,11 +255,12 @@ class ExperimentScene:
 
         if has_all_pd:
             # Use the PD-specific format with generic "points" terminology
-            return f"""Payoff Table (from your perspective):
-- If you COOPERATE and they cooperate: {params['cooperate_reward']} points
-- If you COOPERATE and they defect: {params['sucker_penalty']} points (sucker's payoff)
-- If you DEFECT and they cooperate: {params['temptation_reward']} points (temptation)
-- If you DEFECT and they defect: {params['defect_penalty']} points"""
+            # No meta-commentary - just the raw payoffs
+            return f"""Payoff Table:
+- You cooperate, they cooperate: {params['cooperate_reward']} points
+- You cooperate, they defect: {params['sucker_penalty']} points
+- You defect, they cooperate: {params['temptation_reward']} points
+- You defect, they defect: {params['defect_penalty']} points"""
 
         # Generic parameter display for other game types
         lines = ["Game Parameters:"]

@@ -12,7 +12,6 @@ def build_schema(game_config: GameConfig) -> dict:
     """Build JSON schema from game config for constrained decoding.
 
     The schema enforces output structure at the API level:
-    - A "reasoning" field for the model's thinking (decoupled from output)
     - The action field with enum constraints for discrete actions
     - The action field as integer for numeric actions
 
@@ -26,15 +25,12 @@ def build_schema(game_config: GameConfig) -> dict:
         {
             "type": "object",
             "properties": {
-                "reasoning": {"type": "string"},
                 "action": {"type": "string", "enum": ["cooperate", "defect"]}
             },
             "required": ["action"]
         }
     """
-    properties = {
-        "reasoning": {"type": "string"}  # Always include reasoning field
-    }
+    properties = {}
     required = []
 
     field = game_config.output_field
