@@ -74,8 +74,8 @@ PRISONERS_DILEMMA: Dict[str, Any] = {
         },
     ],
     "actions": [
-        {"id": "cooperate", "name": "Cooperate", "description": "Remain silent and cooperate"},
-        {"id": "defect", "name": "Defect", "description": "Betray your partner"},
+        {"id": "cooperate", "name": "Cooperate", "description": "Work together with your partner"},
+        {"id": "defect", "name": "Defect", "description": "Pursue your own interest"},
     ],
 }
 
@@ -504,7 +504,7 @@ SPATIAL_PD: Dict[str, Any] = {
     ],
     "actions": [
         {"id": "cooperate", "name": "Cooperate", "description": "Work together with neighbors"},
-        {"id": "defect", "name": "Defect", "description": "Act selfishly against neighbors"},
+        {"id": "defect", "name": "Defect", "description": "Act independently"},
     ],
     "state_schema": {
         "spatial": {"width": 5, "height": 5},

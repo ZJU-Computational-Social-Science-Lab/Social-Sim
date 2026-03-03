@@ -244,10 +244,13 @@ def build_prompt(
         sections.append("\n=== SECTION 5: JSON OUTPUT REQUIREMENT ===")
     field = game_config.output_field
     if game_config.action_type == "discrete":
-        actions_str = ", ".join(f'"{a}"' for a in game_config.actions)
-        sections.append(f'\n## Your Response\nRespond ONLY with valid JSON: {{"{field}": "<{actions_str}>"}}')
+        # List all valid actions clearly
+        actions_formatted = ", ".join(f'"{a}"' for a in game_config.actions)
+        sections.append(f'\n## Your Response\nValid actions: {actions_formatted}')
+        sections.append(f'Respond with ONLY JSON: {{"{field}": "<action>"}}')
     else:  # integer
-        sections.append(f'\n## Your Response\nRespond ONLY with valid JSON: {{"{field}": <integer from {game_config.min}-{game_config.max}>}}')
+        sections.append(f'\n## Your Response\nChoose a number from {game_config.min} to {game_config.max}.')
+        sections.append(f'Respond with ONLY JSON: {{"{field}": <number>}}')
 
     sections.append("\nNo markdown. No explanation. Only JSON.")
 
