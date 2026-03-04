@@ -212,6 +212,12 @@ class ExperimentScene:
         # Get payoff parameters
         params = self.config.parameters or {}
 
+        # Handle configurable choices for coordination games (e.g., graph_coloring)
+        if self.config.scenario_id == "graph_coloring":
+            choices_str = params.get("choices", "red, blue, green")
+            action_names = [c.strip() for c in choices_str.split(",")]
+            action_descriptions = {c: f"Choose {c}" for c in action_names}
+
         # Build supplementary prompt text: payoff table + sociology params
         supplementary_parts = []
         payoff_text = self._build_payoff_summary()
@@ -229,6 +235,8 @@ class ExperimentScene:
             action_descriptions=action_descriptions or None,
             payoff_summary="\n\n".join(supplementary_parts),
             output_field="action",
+            payoff_type=params.get("payoff_type", "matrix"),
+            grouping_mode=params.get("grouping_mode", "pairwise"),
             cooperate_reward=params.get("cooperate_reward"),
             sucker_penalty=params.get("sucker_penalty"),
             temptation_reward=params.get("temptation_reward"),
