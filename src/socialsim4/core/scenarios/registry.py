@@ -645,12 +645,15 @@ def get_all_scenarios() -> List[Dict[str, Any]]:
     """
     scenarios = []
     for scenario in ALL_SCENARIOS:
+        # Copy scenario to avoid mutating original
+        scenario_copy = scenario.copy()
+
         # Add category_actions for sociology scenarios
-        if scenario.get("category_actions") and isinstance(scenario["category_actions"], str):
-            category = scenario["category_actions"]
+        if scenario_copy.get("category_actions") and isinstance(scenario_copy["category_actions"], str):
+            category = scenario_copy["category_actions"]
             if category in CATEGORY_ACTION_LIBRARIES:
-                scenario["category_actions"] = CATEGORY_ACTION_LIBRARIES[category]
-        scenarios.append(scenario)
+                scenario_copy["category_actions"] = CATEGORY_ACTION_LIBRARIES[category]
+        scenarios.append(scenario_copy)
     return scenarios
 
 
