@@ -28,6 +28,7 @@ from socialsim4.core.experiment.validation import (
     strip_markdown_fences,
     strip_think_tags,
     validate_and_clamp,
+    extract_json,
 )
 from socialsim4.core.llm.client import LLMClient
 
@@ -132,8 +133,8 @@ class ExperimentController:
 
         print(f"\n[CONTROLLER] Processing response from {agent.name}")
 
-        # Step 1: Clean and parse JSON
-        cleaned = strip_think_tags(strip_markdown_fences(raw_json))
+        # Step 1: Extract and parse JSON (handles trailing content from some models)
+        cleaned = extract_json(raw_json)
 
         with open(debug_file, 'a', encoding='utf-8') as f:
             f.write(f"  cleaned JSON: {cleaned[:200]}...\n" if len(cleaned) > 200 else f"  cleaned JSON: {cleaned}\n")
