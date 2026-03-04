@@ -18,6 +18,8 @@ PRISONERS_DILEMMA: Dict[str, Any] = {
     "name": "Prisoner's Dilemma",
     "category": "game_theory",
     "description": "Two suspects are arrested and held separately. Each must decide whether to betray the other or remain silent. Your payoff depends on both your choice and your partner's choice.",
+    "grouping_mode": "pairwise",
+    "payoff_type": "matrix",
     "interaction_mode": "simultaneous",
     "display_type": "payoff_matrix",
     "matrix_meta": {
@@ -84,6 +86,8 @@ BATTLE_OF_THE_SEXES: Dict[str, Any] = {
     "name": "Battle of the Sexes",
     "category": "game_theory",
     "description": "A couple wants to coordinate on an evening activity. One prefers opera, the other prefers football. They get positive payoff if they coordinate, but each prefers their own activity.",
+    "grouping_mode": "pairwise",
+    "payoff_type": "matrix",
     "interaction_mode": "simultaneous",
     "display_type": "payoff_matrix",
     "matrix_meta": {
@@ -130,6 +134,8 @@ STAG_HUNT: Dict[str, Any] = {
     "name": "Stag Hunt",
     "category": "game_theory",
     "description": "Hunters must all choose stag (high reward) or hare (safe but low reward). Stag requires everyone to cooperate. If even one person chooses hare, the stag escapes and stag hunters get nothing.",
+    "grouping_mode": "group",
+    "payoff_type": "matrix",
     "interaction_mode": "simultaneous",
     "display_type": "payoff_matrix",
     "matrix_meta": {
@@ -180,6 +186,8 @@ SOCIAL_NORM_DISRUPTION: Dict[str, Any] = {
     "name": "Social Norm Disruption",
     "category": "sociology",
     "description": "A new rule is suddenly imposed on the group. Agents with different social status and temperament must decide how to respond.",
+    "grouping_mode": "group",
+    "payoff_type": "none",
     "interaction_mode": "simultaneous",
     "display_type": "params",
     "parameters": [
@@ -211,6 +219,8 @@ POLICY_EROSION: Dict[str, Any] = {
     "name": "Policy Meaning Erosion",
     "category": "sociology",
     "description": "A 3-tier hierarchy must transmit a policy from top to bottom. At each level, subordinates may reinterpret or resist the directive.",
+    "grouping_mode": "individual",
+    "payoff_type": "none",
     "interaction_mode": "sequential",
     "display_type": "params",
     "parameters": [
@@ -243,6 +253,8 @@ ECHO_CHAMBER: Dict[str, Any] = {
     "name": "Echo Chamber",
     "category": "sociology",
     "description": "Agents with initial opinions interact and share information. They prefer connections with similar views, leading to potential polarization.",
+    "grouping_mode": "neighbor",
+    "payoff_type": "none",
     "interaction_mode": "simultaneous",
     "display_type": "params",
     "parameters": [
@@ -274,6 +286,8 @@ RESOURCE_SCARCITY: Dict[str, Any] = {
     "name": "Resource Scarcity",
     "category": "sociology",
     "description": "A community has limited resources. Agents must decide whether to cooperate by sharing or compete by hoarding. Tests trust and collective action.",
+    "grouping_mode": "group",
+    "payoff_type": "none",
     "interaction_mode": "simultaneous",
     "display_type": "params",
     "parameters": [
@@ -311,6 +325,8 @@ OPEN_DISCUSSION: Dict[str, Any] = {
     "name": "Open Discussion",
     "category": "discussion",
     "description": "Agents discuss a topic freely. No structured decisions - just conversation.",
+    "grouping_mode": "individual",
+    "payoff_type": "none",
     "interaction_mode": "simultaneous",
     "display_type": "params",
     "parameters": [
@@ -343,6 +359,8 @@ GRID_WORLD: Dict[str, Any] = {
     "name": "Grid World",
     "category": "grid_world",
     "description": "Agents move on a grid, collecting resources and observing their environment.",
+    "grouping_mode": "neighbor",
+    "payoff_type": "none",
     "interaction_mode": "simultaneous",
     "display_type": "params",
     "parameters": [
@@ -384,6 +402,8 @@ WEREWOLF: Dict[str, Any] = {
     "name": "Werewolf",
     "category": "social_deduction",
     "description": "A social deduction game where villagers try to identify werewolves among them while werewolves try to eliminate villagers at night.",
+    "grouping_mode": "role_based",
+    "payoff_type": "none",
     "interaction_mode": "sequential",
     "display_type": "params",
     "parameters": [
@@ -423,93 +443,12 @@ CUSTOM: Dict[str, Any] = {
     "name": "Custom Scenario",
     "category": "discussion",
     "description": "Build your own custom experiment from scratch.",
+    "grouping_mode": "individual",
+    "payoff_type": "none",
     "interaction_mode": "simultaneous",
     "display_type": "params",
     "parameters": [],
     "actions": [],
-}
-
-# ============================================================================
-# Spatial Prisoner's Dilemma
-# ============================================================================
-
-SPATIAL_PD: Dict[str, Any] = {
-    "id": "spatial_pd",
-    "name": "Spatial Prisoner's Dilemma",
-    "category": "game_theory",
-    "description": "Agents arranged on a grid play Prisoner's Dilemma with their immediate neighbors. You can see your neighbors' last choices. Your payoff is the sum of outcomes with all adjacent agents.",
-    "interaction_mode": "simultaneous",
-    "display_type": "params",
-    "parameters": [
-        {
-            "id": "grid_width",
-            "key": "grid_width",
-            "label": "Grid Width",
-            "type": "integer",
-            "default": 5,
-            "ui_hint": "slider",
-            "min": 3,
-            "max": 10,
-        },
-        {
-            "id": "grid_height",
-            "key": "grid_height",
-            "label": "Grid Height",
-            "type": "integer",
-            "default": 5,
-            "ui_hint": "slider",
-            "min": 3,
-            "max": 10,
-        },
-        {
-            "id": "cooperate_reward",
-            "key": "cooperate_reward",
-            "label": "Both Cooperate",
-            "type": "integer",
-            "default": 3,
-            "ui_hint": "number",
-            "min": 0,
-            "max": 10,
-        },
-        {
-            "id": "sucker_penalty",
-            "key": "sucker_penalty",
-            "label": "You Cooperate, They Defect",
-            "type": "integer",
-            "default": 0,
-            "ui_hint": "number",
-            "min": 0,
-            "max": 10,
-        },
-        {
-            "id": "temptation_reward",
-            "key": "temptation_reward",
-            "label": "You Defect, They Cooperate",
-            "type": "integer",
-            "default": 5,
-            "ui_hint": "number",
-            "min": 0,
-            "max": 10,
-        },
-        {
-            "id": "defect_penalty",
-            "key": "defect_penalty",
-            "label": "Both Defect",
-            "type": "integer",
-            "default": 1,
-            "ui_hint": "number",
-            "min": 0,
-            "max": 10,
-        },
-    ],
-    "actions": [
-        {"id": "cooperate", "name": "Cooperate", "description": "Work together with neighbors"},
-        {"id": "defect", "name": "Defect", "description": "Act independently"},
-    ],
-    "state_schema": {
-        "spatial": {"width": 5, "height": 5},
-        "visibility": "neighbors",
-    },
 }
 
 # ============================================================================
@@ -521,6 +460,8 @@ PUBLIC_GOODS: Dict[str, Any] = {
     "name": "Public Goods Game",
     "category": "game_theory",
     "description": "Each agent has tokens and decides how much to contribute to a shared pool. The pool is multiplied and distributed equally among all agents, regardless of contribution.",
+    "grouping_mode": "group",
+    "payoff_type": "pool",
     "interaction_mode": "simultaneous",
     "display_type": "params",
     "parameters": [
@@ -573,6 +514,8 @@ GRAPH_COLORING: Dict[str, Any] = {
     "name": "Graph Coloring",
     "category": "game_theory",
     "description": "Agents are nodes in a graph and must choose a color. No two adjacent nodes should have the same color. Agents can see their neighbors' current colors.",
+    "grouping_mode": "neighbor",
+    "payoff_type": "feedback",
     "interaction_mode": "sequential",
     "display_type": "params",
     "parameters": [
@@ -630,7 +573,6 @@ ALL_SCENARIOS: List[Dict[str, Any]] = [
     OPEN_DISCUSSION,
     GRID_WORLD,
     WEREWOLF,
-    SPATIAL_PD,
     PUBLIC_GOODS,
     GRAPH_COLORING,
     CUSTOM,
