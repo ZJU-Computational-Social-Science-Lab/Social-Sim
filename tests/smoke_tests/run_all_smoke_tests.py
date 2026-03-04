@@ -1,0 +1,549 @@
+"""
+Run all smoke tests with all models.
+
+This script provides a convenient way to run all scenario smoke tests
+with one or more Ollama models. Output files are written to
+test_results/scenario_smoke_tests/ for human and LLM review.
+
+Usage:
+    # Run with default model (phi4-mini:latest)
+    python -m tests.smoke_tests.run_all_smoke_tests
+
+    # Run with specific models
+    python -m tests.smoke_tests.run_all_smoke_tests --models "phi4-mini:latest" "qwen3:4b-instruct-2507-q4_K_M"
+
+    # Run specific scenarios
+    python -m tests.smoke_tests.run_all_smoke_tests --scenarios prisoners_dilemma stag_hunt
+
+    # Run with all available models
+    python -m tests.smoke_tests.run_all_smoke_tests --all-models
+
+    # Quick test (single model, single scenario)
+    python -m tests.smoke_tests.run_all_smoke_tests --quick
+"""
+
+import asyncio
+import argparse
+import sys
+from pathlib import Path
+from datetime import datetime
+from typing import List, Dict, Any
+
+# Add project root to path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from socialsim4.core.llm_config import LLMConfig
+from socialsim4.core.llm import create_llm_client
+from socialsim4.core.experiment.agent import ExperimentAgent
+from socialsim4.core.experiment.game_configs import GameConfig
+from socialsim4.core.experiment.runner import ExperimentRunner, RoundResult
+from socialsim4.core.scenarios.registry import get_scenario
+
+
+def convert_scenario_to_game_config(scenario_id: str) -> GameConfig:
+    """Convert scenario registry metadata to GameConfig.
+
+    This matches how the backend API converts scenarios for ExperimentRunner.
+
+    Args:
+        scenario_id: Scenario identifier (e.g., "prisoners_dilemma")
+
+    Returns:
+        GameConfig ready for ExperimentRunner
+    """
+    scenario = get_scenario(scenario_id)
+
+    return GameConfig(
+        name=scenario.id,
+        description=scenario.description,
+        action_type="discrete",
+        actions=scenario.actions,
+        action_descriptions=scenario.action_descriptions or {},
+        payoff_summary=scenario.payoff_summary or "",
+        payoff_type=scenario.payoff_type,
+        grouping_mode=scenario.grouping_mode,
+        payoff_config=scenario.payoff_config or {},
+    )
+
+# Available models
+OLLAMA_MODELS = [
+    "alibayram/hunyuan:4b",
+    "qwen3:4b-instruct-2507-q4_K_M",
+    "phi4-mini:latest",
+    "gemma3:4b-it-qat",
+]
+
+DEFAULT_MODEL = "phi4-mini:latest"
+
+# Scenario registry
+SCENARIO_BUILDERS = {
+    "prisoners_dilemma": "build_pd_test",
+    "battle_of_sexes": "build_bos_test",
+    "stag_hunt": "build_stag_hunt_test",
+    "public_goods": "build_public_goods_test",
+    "graph_coloring": "build_graph_coloring_test",
+    "open_discussion": "build_open_discussion_test",
+    "social_norm_disruption": "build_social_norm_test",
+    "policy_erosion": "build_policy_erosion_test",
+    "echo_chamber": "build_echo_chamber_test",
+    "resource_scarcity": "build_resource_scarcity_test",
+    "grid_world": "build_grid_world_test",
+    "werewolf": "build_werewolf_test",
+}
+
+
+class SmokeTestRunner:
+    """Runner for scenario smoke tests."""
+
+    def __init__(self, output_dir: Path):
+        self.output_dir = output_dir
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.results: List[Dict[str, Any]] = []
+
+    def create_llm_client(self, model: str):
+        """Create LLM client for model."""
+        config = LLMConfig(
+            dialect="ollama",
+            model=model,
+            base_url="http://localhost:11434",
+            temperature=0.7,
+            max_tokens=512,
+        )
+        return create_llm_client(config)
+
+    def write_output(
+        self,
+        scenario_id: str,
+        model: str,
+        test_name: str,
+        config: Dict[str, Any],
+        round_results: List[RoundResult],
+        final_scores: Dict[str, int],
+        errors: List[str],
+    ):
+        """Write test output to file."""
+        # Sanitize model name for filename
+        model_safe = model.replace("/", "_").replace(":", "-")
+        filename = f"{scenario_id}_{model_safe}_{test_name}.txt"
+        filepath = self.output_dir / filename
+
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write("=" * 80 + "\n")
+            f.write(f"SCENARIO: {scenario_id}\n")
+            f.write(f"MODEL: {model}\n")
+            f.write(f"TEST: {test_name}\n")
+            f.write("=" * 80 + "\n\n")
+
+            f.write("CONFIGURATION:\n")
+            for key, value in config.items():
+                f.write(f"  {key}: {value}\n")
+            f.write("\n")
+
+            for round_result in round_results:
+                f.write("=" * 80 + "\n")
+                f.write(f"ROUND {round_result.round_num}\n")
+                f.write("=" * 80 + "\n")
+
+                for action in round_result.actions:
+                    payoff = round_result.payoffs.get(action.agent_name) if round_result.payoffs else None
+                    payoff_str = f" → {payoff}" if payoff is not None else ""
+                    params_str = f"({action.parameters})" if action.parameters else ""
+                    f.write(f"  {action.agent_name}: {action.action_name}{params_str}{payoff_str}\n")
+
+                f.write("\n")
+
+            f.write("=" * 80 + "\n")
+            f.write("SUMMARY\n")
+            f.write("=" * 80 + "\n")
+            f.write(f"Final scores: {final_scores}\n")
+            f.write(f"Errors: {errors if errors else 'None'}\n")
+            f.write(f"Timestamp: {datetime.now().isoformat()}\n")
+
+        print(f"  Output: {filepath}")
+
+    async def run_test(
+        self,
+        scenario_id: str,
+        model: str,
+        test_name: str,
+        game_config: GameConfig,
+        agents: List[ExperimentAgent],
+        max_rounds: int = 1,
+        round_visibility: str = "simultaneous",
+        config_extra: Dict[str, Any] = None,
+    ):
+        """Run a single test."""
+        print(f"\nRunning: {scenario_id} / {model} / {test_name}")
+
+        llm_client = self.create_llm_client(model)
+
+        runner = ExperimentRunner(
+            agents=agents,
+            game_config=game_config,
+            llm_client=llm_client,
+            round_visibility=round_visibility,
+        )
+
+        try:
+            round_results = await runner.run(max_rounds)
+
+            final_scores = {agent.name: agent.score for agent in agents}
+            errors = []
+            for rr in round_results:
+                for action in rr.actions:
+                    if action.error:
+                        errors.append(f"Round {rr.round_num} - {action.agent_name}: {action.error}")
+
+            config = {
+                "model": model,
+                "agents": [a.name for a in agents],
+                "actions": game_config.actions,
+                "payoff_type": game_config.payoff_type,
+                "grouping_mode": game_config.grouping_mode,
+                **(config_extra or {}),
+            }
+
+            self.write_output(scenario_id, model, test_name, config, round_results, final_scores, errors)
+
+            success = len(errors) == 0
+            self.results.append({
+                "scenario": scenario_id,
+                "model": model,
+                "test": test_name,
+                "success": success,
+                "errors": errors,
+            })
+
+            status = "✓ PASS" if success else "✗ FAIL"
+            print(f"  {status}")
+
+            return success
+
+        except Exception as e:
+            print(f"  ✗ ERROR: {e}")
+            self.results.append({
+                "scenario": scenario_id,
+                "model": model,
+                "test": test_name,
+                "success": False,
+                "errors": [str(e)],
+            })
+            return False
+
+    def print_summary(self):
+        """Print summary of all test results."""
+        print("\n" + "=" * 80)
+        print("SMOKE TEST SUMMARY")
+        print("=" * 80)
+
+        passed = sum(1 for r in self.results if r["success"])
+        failed = len(self.results) - passed
+
+        print(f"Total: {len(self.results)} tests")
+        print(f"Passed: {passed}")
+        print(f"Failed: {failed}")
+
+        if failed > 0:
+            print("\nFailed tests:")
+            for r in self.results:
+                if not r["success"]:
+                    print(f"  - {r['scenario']}/{r['model']}/{r['test']}")
+                    for err in r["errors"]:
+                        print(f"      {err}")
+
+        return failed == 0
+
+
+# =============================================================================
+# Test Builders
+# =============================================================================
+
+def build_pd_test():
+    """Build Prisoner's Dilemma test."""
+    from tests.smoke_tests.test_game_theory import build_pd_config
+    from socialsim4.core.llm_config import LLMConfig
+
+    config = build_pd_config()
+    llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    agents = [
+        ExperimentAgent(name="Alice", properties={}, llm_config=llm_config, role_prompt="You are Alice."),
+        ExperimentAgent(name="Bob", properties={}, llm_config=llm_config, role_prompt="You are Bob."),
+    ]
+
+    return config, agents, "two_agents"
+
+
+def build_bos_test():
+    """Build Battle of Sexes test."""
+    from tests.smoke_tests.test_game_theory import build_bos_config
+    from socialsim4.core.llm_config import LLMConfig
+
+    config = build_bos_config()
+    llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    agents = [
+        ExperimentAgent(name="Partner1", properties={}, llm_config=llm_config, role_prompt="You prefer opera."),
+        ExperimentAgent(name="Partner2", properties={}, llm_config=llm_config, role_prompt="You prefer football."),
+    ]
+
+    return config, agents, "coordination"
+
+
+def build_stag_hunt_test():
+    """Build Stag Hunt test."""
+    from tests.smoke_tests.test_game_theory import build_stag_hunt_config
+    from socialsim4.core.llm_config import LLMConfig
+
+    config = build_stag_hunt_config()
+    llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    agents = [
+        ExperimentAgent(name="Hunter1", properties={}, llm_config=llm_config, role_prompt="You are Hunter1."),
+        ExperimentAgent(name="Hunter2", properties={}, llm_config=llm_config, role_prompt="You are Hunter2."),
+        ExperimentAgent(name="Hunter3", properties={}, llm_config=llm_config, role_prompt="You are Hunter3."),
+    ]
+
+    return config, agents, "group"
+
+
+def build_public_goods_test():
+    """Build Public Goods test."""
+    from tests.smoke_tests.test_game_theory import build_public_goods_config
+    from socialsim4.core.llm_config import LLMConfig
+
+    config = build_public_goods_config()
+    llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    agents = [
+        ExperimentAgent(name="Player1", properties={}, llm_config=llm_config, role_prompt="You are Player1."),
+        ExperimentAgent(name="Player2", properties={}, llm_config=llm_config, role_prompt="You are Player2."),
+        ExperimentAgent(name="Player3", properties={}, llm_config=llm_config, role_prompt="You are Player3."),
+    ]
+
+    return config, agents, "pool"
+
+
+def build_graph_coloring_test():
+    """Build Graph Coloring test."""
+    from tests.smoke_tests.test_coordination import build_graph_coloring_config
+    from socialsim4.core.llm_config import LLMConfig
+
+    config = build_graph_coloring_config()
+    llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    agents = [
+        ExperimentAgent(name="NodeA", properties={}, llm_config=llm_config, role_prompt="You are Node A."),
+        ExperimentAgent(name="NodeB", properties={}, llm_config=llm_config, role_prompt="You are Node B."),
+        ExperimentAgent(name="NodeC", properties={}, llm_config=llm_config, role_prompt="You are Node C."),
+    ]
+
+    return config, agents, "basic"
+
+
+def build_open_discussion_test():
+    """Build Open Discussion test."""
+    from tests.smoke_tests.test_discussion import build_open_discussion_config
+    from socialsim4.core.llm_config import LLMConfig
+
+    config = build_open_discussion_config("What is the most important quality in a friend?")
+    llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    agents = [
+        ExperimentAgent(name="Alice", properties={}, llm_config=llm_config, role_prompt="You are Alice."),
+        ExperimentAgent(name="Bob", properties={}, llm_config=llm_config, role_prompt="You are Bob."),
+        ExperimentAgent(name="Carol", properties={}, llm_config=llm_config, role_prompt="You are Carol."),
+    ]
+
+    return config, agents, "basic"
+
+
+def build_social_norm_test():
+    """Build Social Norm Disruption test."""
+    from tests.smoke_tests.test_sociology import build_social_norm_config
+    from socialsim4.core.llm_config import LLMConfig
+
+    config = build_social_norm_config()
+    llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    agents = [
+        ExperimentAgent(name="HighStatus", properties={}, llm_config=llm_config, role_prompt="You are high-status."),
+        ExperimentAgent(name="LowStatus", properties={}, llm_config=llm_config, role_prompt="You are low-status."),
+    ]
+
+    return config, agents, "basic"
+
+
+def build_policy_erosion_test():
+    """Build Policy Erosion test."""
+    from tests.smoke_tests.test_sociology import build_policy_erosion_config
+    from socialsim4.core.llm_config import LLMConfig
+
+    config = build_policy_erosion_config()
+    llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    agents = [
+        ExperimentAgent(name="Executive", properties={}, llm_config=llm_config, role_prompt="You are the executive."),
+        ExperimentAgent(name="Manager", properties={}, llm_config=llm_config, role_prompt="You are the manager."),
+        ExperimentAgent(name="Worker", properties={}, llm_config=llm_config, role_prompt="You are the worker."),
+    ]
+
+    return config, agents, "sequential"
+
+
+def build_echo_chamber_test():
+    """Build Echo Chamber test."""
+    from tests.smoke_tests.test_sociology import build_echo_chamber_config
+    from socialsim4.core.llm_config import LLMConfig
+
+    config = build_echo_chamber_config()
+    llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    agents = [
+        ExperimentAgent(name="ProAgent", properties={}, llm_config=llm_config, role_prompt="You support the topic."),
+        ExperimentAgent(name="AntiAgent", properties={}, llm_config=llm_config, role_prompt="You oppose the topic."),
+    ]
+
+    return config, agents, "neighbor"
+
+
+def build_resource_scarcity_test():
+    """Build Resource Scarcity test."""
+    from tests.smoke_tests.test_sociology import build_resource_scarcity_config
+    from socialsim4.core.llm_config import LLMConfig
+
+    config = build_resource_scarcity_config()
+    llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    agents = [
+        ExperimentAgent(name="Community1", properties={}, llm_config=llm_config, role_prompt="You value cooperation."),
+        ExperimentAgent(name="Community2", properties={}, llm_config=llm_config, role_prompt="You are practical."),
+        ExperimentAgent(name="Individualist", properties={}, llm_config=llm_config, role_prompt="You prioritize yourself."),
+    ]
+
+    return config, agents, "sharing"
+
+
+def build_grid_world_test():
+    """Build Grid World test."""
+    from tests.smoke_tests.test_grid_world import build_grid_world_config
+    from socialsim4.core.llm_config import LLMConfig
+
+    config = build_grid_world_config()
+    llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    agents = [
+        ExperimentAgent(name="Explorer1", properties={}, llm_config=llm_config, role_prompt="You are an explorer."),
+        ExperimentAgent(name="Explorer2", properties={}, llm_config=llm_config, role_prompt="You are a gatherer."),
+    ]
+
+    return config, agents, "movement"
+
+
+def build_werewolf_test():
+    """Build Werewolf test."""
+    from tests.smoke_tests.test_werewolf import build_werewolf_config
+    from socialsim4.core.llm_config import LLMConfig
+
+    config = build_werewolf_config()
+    llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    agents = [
+        ExperimentAgent(name="Villager1", properties={}, llm_config=llm_config, role_prompt="You are a villager."),
+        ExperimentAgent(name="Villager2", properties={}, llm_config=llm_config, role_prompt="You are a villager."),
+        ExperimentAgent(name="Werewolf", properties={}, llm_config=llm_config, role_prompt="You are a werewolf."),
+    ]
+
+    return config, agents, "voting"
+
+
+# =============================================================================
+# Main Entry Point
+# =============================================================================
+
+async def main():
+    parser = argparse.ArgumentParser(description="Run scenario smoke tests")
+    parser.add_argument(
+        "--models",
+        nargs="+",
+        default=[DEFAULT_MODEL],
+        help="Models to test with",
+    )
+    parser.add_argument(
+        "--scenarios",
+        nargs="+",
+        default=list(SCENARIO_BUILDERS.keys()),
+        help="Scenarios to test",
+    )
+    parser.add_argument(
+        "--all-models",
+        action="store_true",
+        help="Test with all available models",
+    )
+    parser.add_argument(
+        "--quick",
+        action="store_true",
+        help="Quick test (single model, single scenario)",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("test_results/scenario_smoke_tests"),
+        help="Output directory for test results",
+    )
+
+    args = parser.parse_args()
+
+    # Determine models
+    if args.all_models:
+        models = OLLAMA_MODELS
+    elif args.quick:
+        models = [DEFAULT_MODEL]
+        args.scenarios = ["prisoners_dilemma"]
+    else:
+        models = args.models
+
+    print("=" * 80)
+    print("SCENARIO SMOKE TESTS")
+    print("=" * 80)
+    print(f"Models: {models}")
+    print(f"Scenarios: {args.scenarios}")
+    print(f"Output: {args.output_dir}")
+    print("=" * 80)
+
+    runner = SmokeTestRunner(args.output_dir)
+
+    # Run tests
+    for scenario_id in args.scenarios:
+        if scenario_id not in SCENARIO_BUILDERS:
+            print(f"Unknown scenario: {scenario_id}")
+            continue
+
+        builder_name = SCENARIO_BUILDERS[scenario_id]
+        builder = globals().get(builder_name)
+
+        if not builder:
+            print(f"Builder not found: {builder_name}")
+            continue
+
+        for model in models:
+            try:
+                game_config, agents, test_name = builder()
+                await runner.run_test(
+                    scenario_id=scenario_id,
+                    model=model,
+                    test_name=test_name,
+                    game_config=game_config,
+                    agents=agents,
+                )
+            except Exception as e:
+                print(f"Error running {scenario_id} with {model}: {e}")
+
+    # Print summary
+    success = runner.print_summary()
+
+    return 0 if success else 1
+
+
+if __name__ == "__main__":
+    sys.exit(asyncio.run(main()))
