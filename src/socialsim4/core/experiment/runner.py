@@ -111,26 +111,6 @@ class ExperimentRunner:
         """Merge new state into scene_state. context_manager holds the same reference."""
         self.scene_state.update(state)
 
-    def execute_action(
-        self,
-        action_name: str,
-        agent_name: str,
-        params: dict,
-        state: "ExperimentState",
-    ) -> dict:
-        """Execute an action using the ActionHandler.
-
-        Args:
-            action_name: Name of action to execute
-            agent_name: Agent performing the action
-            params: Action parameters
-            state: ExperimentState to modify
-
-        Returns:
-            Result dict with success status
-        """
-        return self.action_handler.execute(action_name, agent_name, params, state)
-
     def _replay_history_to_events(self, round_history: list) -> None:
         """Replay round_history into context_manager._round_events.
 
