@@ -121,3 +121,33 @@ def test_empty_round_list():
     manager.record_action("Alice", "cooperate", {}, 1, "Alice cooperated")
 
     assert manager.get_round_events(2) == []
+
+
+def test_round_event_has_feedback_field():
+    """RoundEvent should have a feedback field for coordination games."""
+    event = RoundEvent(
+        round_num=1,
+        agent_name="Alice",
+        action_name="red",
+        parameters={},
+        summary="Alice chose red",
+        observed_by=["Alice", "Bob"],
+        payoff=0,
+        feedback="Coordinated with Bob (both chose red)",
+    )
+
+    assert event.feedback == "Coordinated with Bob (both chose red)"
+
+
+def test_round_event_feedback_defaults_to_none():
+    """RoundEvent feedback should default to None."""
+    event = RoundEvent(
+        round_num=1,
+        agent_name="Alice",
+        action_name="cooperate",
+        parameters={},
+        summary="Alice cooperated",
+        observed_by=["Alice"],
+    )
+
+    assert event.feedback is None
