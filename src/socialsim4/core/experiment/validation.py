@@ -4,6 +4,7 @@ Validation layer for LLM outputs (Layer 3 of Three-Layer Architecture).
 Handles fuzzy matching, clamping, and parsing edge cases for small models.
 """
 
+import json
 import re
 from typing import Optional
 
@@ -56,8 +57,6 @@ def extract_json(text: str) -> str:
     Returns:
         Extracted JSON string, or original text if no valid JSON found
     """
-    import json
-
     text = text.strip()
 
     # First strip markdown fences and think tags
