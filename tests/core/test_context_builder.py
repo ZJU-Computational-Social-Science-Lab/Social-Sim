@@ -191,3 +191,141 @@ def test_paired_context_shows_previous_rounds():
     )
     # Round 1 should be visible as a previous round
     assert "Round 1:" in result
+
+
+class TestCoordinationFeedbackInContext:
+    """Test that coordination feedback appears in agent context."""
+
+    def test_feedback_shown_in_structured_context(self):
+        """build_structured_context should include feedback field from events."""
+        from socialsim4.core.context_builder import build_structured_context
+        from socialsim4.core.experiment.round_context import RoundEvent
+        from socialsim4.core.experiment.information_model import InformationModel
+
+        events = [
+            RoundEvent(
+                round_num=1,
+                agent_name="Alice",
+                action_name="red",
+                parameters={},
+                summary="Alice chose red",
+                observed_by=["Alice", "Bob"],
+                payoff=None,
+                feedback="Coordinated with: Bob (both red)",
+            ),
+        ]
+
+        info_model = InformationModel(
+            scope_type="neighborhood",
+            pairing_fn=None,
+            include_scores=False,
+            recent_window=5,
+        )
+
+        context = build_structured_context(
+            for_agent="Alice",
+            events=events,
+            info_model=info_model,
+            agent_score=None,
+        )
+
+        assert "red" in context
+        assert "Coordinated with: Bob" in context
+
+    def test_no_score_shown_for_feedback_games(self):
+        """build_structured_context should NOT show score for feedback-type games."""
+        from socialsim4.core.context_builder import build_structured_context
+        from socialsim4.core.experiment.round_context import RoundEvent
+        from socialsim4.core.experiment.information_model import InformationModel
+
+        events = [
+            RoundEvent(
+                round_num=1,
+                agent_name="Alice",
+                action_name="red",
+                parameters={},
+                summary="Alice chose red",
+                observed_by=["Alice"],
+                payoff=None,
+                feedback="No neighbors to compare with.",
+            ),
+        ]
+
+        info_model = InformationModel(
+            scope_type="neighborhood",
+            pairing_fn=None,
+            include_scores=False,  # This should prevent score display
+            recent_window=5,
+        )
+
+        context = build_structured_context(
+            for_agent="Alice",
+            events=events,
+            info_model=info_model,
+            agent_score=0,  # Score exists but shouldn't be shown
+        )
+
+        # Should NOT show score for feedback games
+        assert "score" not in context.lower()
+
+    def test_feedback_with_neighbors_shown(self):
+        """Feedback context should show neighbor choices and feedback."""
+        from socialsim4.core.context_builder import build_structured_context
+        from socialsim4.core.experiment.round_context import RoundEvent
+        from socialsim4.core.experiment.information_model import InformationModel
+
+        events = [
+            RoundEvent(
+                round_num=1,
+                agent_name="Alice",
+                action_name="red",
+                parameters={},
+                summary="Alice chose red",
+                observed_by=["Alice", "Bob", "Charlie"],
+                payoff=None,
+                feedback="Coordinated with: Bob (both red). Conflicted with: Charlie (you red, they blue).",
+            ),
+            RoundEvent(
+                round_num=1,
+                agent_name="Bob",
+                action_name="red",
+                parameters={},
+                summary="Bob chose red",
+                observed_by=["Alice", "Bob", "Charlie"],
+                payoff=None,
+                feedback=None,
+            ),
+            RoundEvent(
+                round_num=1,
+                agent_name="Charlie",
+                action_name="blue",
+                parameters={},
+                summary="Charlie chose blue",
+                observed_by=["Alice", "Bob", "Charlie"],
+                payoff=None,
+                feedback=None,
+            ),
+        ]
+
+        info_model = InformationModel(
+            scope_type="neighborhood",
+            pairing_fn=None,
+            include_scores=False,
+            recent_window=5,
+        )
+
+        context = build_structured_context(
+            for_agent="Alice",
+            events=events,
+            info_model=info_model,
+            agent_score=None,
+        )
+
+        # Should show Alice's choice
+        assert "I chose red" in context
+        # Should show neighbor choices
+        assert "Bob chose red" in context
+        assert "Charlie chose blue" in context
+        # Should show feedback
+        assert "Coordinated with: Bob" in context
+        assert "Conflicted with: Charlie" in context

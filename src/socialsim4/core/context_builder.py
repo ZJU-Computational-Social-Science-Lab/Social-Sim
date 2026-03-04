@@ -205,6 +205,15 @@ def build_structured_context(
                 partner_action=partner_action,
                 payoff=my_event.payoff if my_event.payoff is not None else "",
             )
+        elif my_event is not None and my_event.feedback is not None:
+            # Feedback-type games: show action + coordination feedback
+            parts = [f"Round {r}: I chose {my_event.action_name}."]
+            # Show what neighbors chose
+            for e in other_events:
+                parts.append(f"{e.agent_name} chose {e.action_name}")
+            # Add coordination feedback
+            parts.append(f"→ {my_event.feedback}")
+            line = " ".join(parts)
         else:
             parts = []
             if my_event:
