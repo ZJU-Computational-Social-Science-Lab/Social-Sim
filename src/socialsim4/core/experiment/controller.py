@@ -304,7 +304,7 @@ class ExperimentController:
                     parameters = {"message": followup_response.strip()}
                 else:
                     # JSON response: parse and extract expected parameters
-                    cleaned = strip_think_tags(strip_markdown_fences(followup_response))
+                    cleaned = extract_json(followup_response)
                     parsed_followup = json.loads(cleaned)
                     parameters = {k: parsed_followup.get(k) for k in param_schema.keys() if k in parsed_followup}
 
