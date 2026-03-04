@@ -158,7 +158,7 @@ REFACTORING_PLAN.md
 planning/
 
 # Git worktrees for parallel development
-.worktrees/test_results/
+.worktrees/
 
 # Test results and debug output
 test_results/
