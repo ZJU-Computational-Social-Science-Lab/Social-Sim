@@ -623,20 +623,6 @@ class ExperimentRunner:
             f.write(f"END OF PROMPT\n")
             f.write(f"{'='*80}\n\n")
 
-        # Print summary to console
-        print(f"\n{'='*60}")
-        print(f"[LLM INPUT] {agent.name} - Round {round_num}")
-        print(f"{'='*60}")
-        print(f"Prompt has 5 sections:")
-        print(f"  1. Agent Description")
-        print(f"  2. Scenario")
-        print(f"  3. Available Actions ({len(self.game_config.actions)} actions)")
-        print(f"  4. Context ({len(context)} chars)")
-        print(f"  5. JSON Output Requirement")
-        print(f"Total prompt length: {len(prompt)} chars")
-        print(f"Debug file: {_debug_file}")
-        print(f"{'='*60}")
-
         logger.debug(f"Prompting agent {agent.name} for round {round_num}")
         logger.debug(f"Game config: actions={self.game_config.actions}, type={self.game_config.action_type}")
 
@@ -655,7 +641,6 @@ class ExperimentRunner:
                     f.write(f"EMPTY RESPONSE\n")
                     f.write(f"{'!'*80}\n")
                     f.write(f"Agent {agent.name} received empty response from LLM\n\n")
-                print(f"\n[ERROR] Empty LLM response for {agent.name}\n")
                 return ActionResult(
                     agent_name=agent.name,
                     action_name="skip",
@@ -677,14 +662,7 @@ class ExperimentRunner:
                 f.write(f"END OF RESPONSE\n")
                 f.write(f"{'='*80}\n\n")
 
-            # Print summary to console
-            print(f"\n{'='*60}")
-            print(f"[LLM OUTPUT] {agent.name} - Round {round_num}")
-            print(f"{'='*60}")
-            print(f"Response length: {len(raw_response)} chars")
-            print(f"First 300 chars:")
-            print(f"{raw_response[:300]}")
-            print(f"{'='*60}")
+            logger.debug(f"LLM response for {agent.name}: {len(raw_response)} chars")
 
             logger.debug(f"Raw response from {agent.name}: {raw_response[:200]}...")
 
@@ -711,13 +689,6 @@ class ExperimentRunner:
                     f.write(f"  error: {result.error}\n")
                 f.write("\n" + "-"*80 + "\n\n")
 
-            # Print summary to console
-            print(f"\n[PROCESSED RESULT] {agent.name}")
-            print(f"  action: {result.action_name}")
-            print(f"  success: {result.success}")
-            print(f"  skipped: {result.skipped}")
-            print()
-
             logger.debug(f"Processed result: action={result.action_name}, success={result.success}, skipped={result.skipped}")
             if result.error:
                 logger.debug(f"Error: {result.error}")
@@ -730,7 +701,6 @@ class ExperimentRunner:
                 f.write(f"ERROR\n")
                 f.write(f"{'!'*80}\n")
                 f.write(f"Agent {agent.name} failed: {e}\n\n")
-            print(f"\n[ERROR] Agent {agent.name} failed: {e}\n")
             logger.error(f"Error prompting agent {agent.name}: {e}")
             return ActionResult(
                 success=False,
