@@ -283,12 +283,10 @@ class SmokeTestRunner:
 # =============================================================================
 
 def build_pd_test():
-    """Build Prisoner's Dilemma test."""
-    from tests.smoke_tests.test_game_theory import build_pd_config
-    from socialsim4.core.llm_config import LLMConfig
-
-    config = build_pd_config()
+    """Build Prisoner's Dilemma test using scenario registry."""
     llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    config = convert_scenario_to_game_config("prisoners_dilemma")
 
     agents = [
         ExperimentAgent(name="Alice", properties={}, llm_config=llm_config, role_prompt="You are Alice."),
@@ -299,12 +297,10 @@ def build_pd_test():
 
 
 def build_bos_test():
-    """Build Battle of Sexes test."""
-    from tests.smoke_tests.test_game_theory import build_bos_config
-    from socialsim4.core.llm_config import LLMConfig
-
-    config = build_bos_config()
+    """Build Battle of Sexes test using scenario registry."""
     llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    config = convert_scenario_to_game_config("battle_of_the_sexes")
 
     agents = [
         ExperimentAgent(name="Partner1", properties={}, llm_config=llm_config, role_prompt="You prefer opera."),
@@ -315,12 +311,10 @@ def build_bos_test():
 
 
 def build_stag_hunt_test():
-    """Build Stag Hunt test."""
-    from tests.smoke_tests.test_game_theory import build_stag_hunt_config
-    from socialsim4.core.llm_config import LLMConfig
-
-    config = build_stag_hunt_config()
+    """Build Stag Hunt test using scenario registry."""
     llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    config = convert_scenario_to_game_config("stag_hunt")
 
     agents = [
         ExperimentAgent(name="Hunter1", properties={}, llm_config=llm_config, role_prompt="You are Hunter1."),
@@ -332,12 +326,10 @@ def build_stag_hunt_test():
 
 
 def build_public_goods_test():
-    """Build Public Goods test."""
-    from tests.smoke_tests.test_game_theory import build_public_goods_config
-    from socialsim4.core.llm_config import LLMConfig
-
-    config = build_public_goods_config()
+    """Build Public Goods test using scenario registry."""
     llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    config = convert_scenario_to_game_config("public_goods")
 
     agents = [
         ExperimentAgent(name="Player1", properties={}, llm_config=llm_config, role_prompt="You are Player1."),
@@ -349,12 +341,10 @@ def build_public_goods_test():
 
 
 def build_graph_coloring_test():
-    """Build Graph Coloring test."""
-    from tests.smoke_tests.test_coordination import build_graph_coloring_config
-    from socialsim4.core.llm_config import LLMConfig
-
-    config = build_graph_coloring_config()
+    """Build Graph Coloring test using scenario registry."""
     llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    config = convert_scenario_to_game_config("graph_coloring")
 
     agents = [
         ExperimentAgent(name="NodeA", properties={}, llm_config=llm_config, role_prompt="You are Node A."),
@@ -366,12 +356,10 @@ def build_graph_coloring_test():
 
 
 def build_open_discussion_test():
-    """Build Open Discussion test."""
-    from tests.smoke_tests.test_discussion import build_open_discussion_config
-    from socialsim4.core.llm_config import LLMConfig
-
-    config = build_open_discussion_config("What is the most important quality in a friend?")
+    """Build Open Discussion test using scenario registry."""
     llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    config = convert_scenario_to_game_config("open_discussion")
 
     agents = [
         ExperimentAgent(name="Alice", properties={}, llm_config=llm_config, role_prompt="You are Alice."),
@@ -383,12 +371,10 @@ def build_open_discussion_test():
 
 
 def build_social_norm_test():
-    """Build Social Norm Disruption test."""
-    from tests.smoke_tests.test_sociology import build_social_norm_config
-    from socialsim4.core.llm_config import LLMConfig
-
-    config = build_social_norm_config()
+    """Build Social Norm Disruption test using scenario registry."""
     llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    config = convert_scenario_to_game_config("social_norm_disruption")
 
     agents = [
         ExperimentAgent(name="HighStatus", properties={}, llm_config=llm_config, role_prompt="You are high-status."),
@@ -399,12 +385,10 @@ def build_social_norm_test():
 
 
 def build_policy_erosion_test():
-    """Build Policy Erosion test."""
-    from tests.smoke_tests.test_sociology import build_policy_erosion_config
-    from socialsim4.core.llm_config import LLMConfig
-
-    config = build_policy_erosion_config()
+    """Build Policy Erosion test using scenario registry."""
     llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    config = convert_scenario_to_game_config("policy_erosion")
 
     agents = [
         ExperimentAgent(name="Executive", properties={}, llm_config=llm_config, role_prompt="You are the executive."),
@@ -416,12 +400,10 @@ def build_policy_erosion_test():
 
 
 def build_echo_chamber_test():
-    """Build Echo Chamber test."""
-    from tests.smoke_tests.test_sociology import build_echo_chamber_config
-    from socialsim4.core.llm_config import LLMConfig
-
-    config = build_echo_chamber_config()
+    """Build Echo Chamber test using scenario registry."""
     llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    config = convert_scenario_to_game_config("echo_chamber")
 
     agents = [
         ExperimentAgent(name="ProAgent", properties={}, llm_config=llm_config, role_prompt="You support the topic."),
@@ -432,12 +414,10 @@ def build_echo_chamber_test():
 
 
 def build_resource_scarcity_test():
-    """Build Resource Scarcity test."""
-    from tests.smoke_tests.test_sociology import build_resource_scarcity_config
-    from socialsim4.core.llm_config import LLMConfig
-
-    config = build_resource_scarcity_config()
+    """Build Resource Scarcity test using scenario registry."""
     llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    config = convert_scenario_to_game_config("resource_scarcity")
 
     agents = [
         ExperimentAgent(name="Community1", properties={}, llm_config=llm_config, role_prompt="You value cooperation."),
@@ -449,12 +429,10 @@ def build_resource_scarcity_test():
 
 
 def build_grid_world_test():
-    """Build Grid World test."""
-    from tests.smoke_tests.test_grid_world import build_grid_world_config
-    from socialsim4.core.llm_config import LLMConfig
-
-    config = build_grid_world_config()
+    """Build Grid World test using scenario registry."""
     llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    config = convert_scenario_to_game_config("grid_world")
 
     agents = [
         ExperimentAgent(name="Explorer1", properties={}, llm_config=llm_config, role_prompt="You are an explorer."),
@@ -465,12 +443,10 @@ def build_grid_world_test():
 
 
 def build_werewolf_test():
-    """Build Werewolf test."""
-    from tests.smoke_tests.test_werewolf import build_werewolf_config
-    from socialsim4.core.llm_config import LLMConfig
-
-    config = build_werewolf_config()
+    """Build Werewolf test using scenario registry."""
     llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    config = convert_scenario_to_game_config("werewolf")
 
     agents = [
         ExperimentAgent(name="Villager1", properties={}, llm_config=llm_config, role_prompt="You are a villager."),
