@@ -236,6 +236,17 @@ INFORMATION_MODEL_MAP: dict = {
     ),
     "public_goods": InformationModel(scope_type="all", recent_window=3),
     "public-goods": InformationModel(scope_type="all", recent_window=3),
+    # Graph Coloring - neighbor-based coordination with feedback (no scores)
+    "graph_coloring": InformationModel(
+        scope_type="neighborhood",
+        recent_window=5,
+        include_scores=False,  # No scores for feedback-type games
+    ),
+    "graph-coloring": InformationModel(
+        scope_type="neighborhood",
+        recent_window=5,
+        include_scores=False,
+    ),
     # Fallback for unknown scene types
     "_default": InformationModel(scope_type="all", recent_window=3),
 }
