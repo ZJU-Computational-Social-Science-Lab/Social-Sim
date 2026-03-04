@@ -148,3 +148,133 @@ class TestGraphGrouping:
         group_sets = [set(g) for g in groups]
         assert {"Alice", "Bob"} in group_sets
         assert {"Charlie"} in group_sets
+
+
+class TestMatrixPayoffPairwise:
+    """Test matrix payoff calculation for pairwise mode."""
+
+    @pytest.fixture
+    def engine(self):
+        return PayoffEngine()
+
+    @pytest.fixture
+    def pd_config(self):
+        """Standard PD payoff matrix."""
+        return {
+            "matrix": {
+                "cooperate_cooperate": {"value": 3},
+                "cooperate_defect": {"row": 0, "col": 5},
+                "defect_cooperate": {"row": 5, "col": 0},
+                "defect_defect": {"value": 1},
+            }
+        }
+
+    @pytest.fixture
+    def pd_actions_both_cooperate(self):
+        return [
+            ActionResult(
+                agent_name="Alice", action_name="cooperate",
+                parameters={}, summary="", success=True, skipped=False, round_num=1,
+            ),
+            ActionResult(
+                agent_name="Bob", action_name="cooperate",
+                parameters={}, summary="", success=True, skipped=False, round_num=1,
+            ),
+        ]
+
+    @pytest.fixture
+    def pd_actions_mixed(self):
+        """Alice cooperates, Bob defects."""
+        return [
+            ActionResult(
+                agent_name="Alice", action_name="cooperate",
+                parameters={}, summary="", success=True, skipped=False, round_num=1,
+            ),
+            ActionResult(
+                agent_name="Bob", action_name="defect",
+                parameters={}, summary="", success=True, skipped=False, round_num=1,
+            ),
+        ]
+
+    def test_both_cooperate_symmetric_payoff(self, engine, pd_config, pd_actions_both_cooperate):
+        """Both cooperate -> both get 3."""
+        graph = {"edges": [("Alice", "Bob")]}
+        result = engine.calculate_round_payoffs(
+            payoff_type="matrix",
+            actions=pd_actions_both_cooperate,
+            config=pd_config,
+            grouping_mode="pairwise",
+            graph=graph,
+        )
+
+        assert result["Alice"] == 3
+        assert result["Bob"] == 3
+
+    def test_mixed_choices_asymmetric_payoff(self, engine, pd_config, pd_actions_mixed):
+        """Alice cooperates, Bob defects -> Alice gets 0, Bob gets 5."""
+        graph = {"edges": [("Alice", "Bob")]}
+        result = engine.calculate_round_payoffs(
+            payoff_type="matrix",
+            actions=pd_actions_mixed,
+            config=pd_config,
+            grouping_mode="pairwise",
+            graph=graph,
+        )
+
+        assert result["Alice"] == 0
+        assert result["Bob"] == 5
+
+    def test_both_defect_symmetric_payoff(self, engine, pd_config):
+        """Both defect -> both get 1."""
+        actions = [
+            ActionResult(
+                agent_name="Alice", action_name="defect",
+                parameters={}, summary="", success=True, skipped=False, round_num=1,
+            ),
+            ActionResult(
+                agent_name="Bob", action_name="defect",
+                parameters={}, summary="", success=True, skipped=False, round_num=1,
+            ),
+        ]
+        graph = {"edges": [("Alice", "Bob")]}
+
+        result = engine.calculate_round_payoffs(
+            payoff_type="matrix",
+            actions=actions,
+            config=pd_config,
+            grouping_mode="pairwise",
+            graph=graph,
+        )
+
+        assert result["Alice"] == 1
+        assert result["Bob"] == 1
+
+    def test_four_agents_two_pairs(self, engine, pd_config):
+        """Four agents form two pairs, each pair calculates independently."""
+        actions = [
+            ActionResult(agent_name="Alice", action_name="cooperate",
+                        parameters={}, summary="", success=True, skipped=False, round_num=1),
+            ActionResult(agent_name="Bob", action_name="defect",
+                        parameters={}, summary="", success=True, skipped=False, round_num=1),
+            ActionResult(agent_name="Charlie", action_name="cooperate",
+                        parameters={}, summary="", success=True, skipped=False, round_num=1),
+            ActionResult(agent_name="Diana", action_name="cooperate",
+                        parameters={}, summary="", success=True, skipped=False, round_num=1),
+        ]
+        # Alice-Bob pair, Charlie-Diana pair
+        graph = {"edges": [("Alice", "Bob"), ("Charlie", "Diana")]}
+
+        result = engine.calculate_round_payoffs(
+            payoff_type="matrix",
+            actions=actions,
+            config=pd_config,
+            grouping_mode="pairwise",
+            graph=graph,
+        )
+
+        # Alice cooperates, Bob defects -> Alice 0, Bob 5
+        assert result["Alice"] == 0
+        assert result["Bob"] == 5
+        # Both cooperate -> both 3
+        assert result["Charlie"] == 3
+        assert result["Diana"] == 3

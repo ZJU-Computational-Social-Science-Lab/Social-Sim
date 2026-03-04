@@ -136,8 +136,74 @@ class PayoffEngine:
         grouping_mode: str,
         graph: Dict[str, Any] | None,
     ) -> Dict[str, int]:
-        """Calculate payoffs using matrix lookup."""
-        # Placeholder - will be implemented in Task 3
+        """Calculate payoffs using matrix lookup.
+
+        Handles both pairwise and group modes.
+        """
+        if graph is None:
+            graph = {"edges": []}
+
+        payoffs = {}
+        action_map = {
+            a.agent_name: a.action_name.lower()
+            for a in actions if not a.skipped
+        }
+        agent_names = list(action_map.keys())
+
+        if grouping_mode == "pairwise":
+            pairs = self.get_pairs_from_graph(graph, agent_names)
+            payoffs = self._calculate_matrix_payoffs_pairwise(
+                actions, config, pairs, action_map
+            )
+        elif grouping_mode == "group":
+            groups = self.get_groups_from_graph(graph, agent_names)
+            payoffs = self._calculate_matrix_payoffs_group(
+                actions, config, groups, action_map
+            )
+
+        return payoffs
+
+    def _calculate_matrix_payoffs_pairwise(
+        self,
+        actions: List[ActionResult],
+        config: Dict[str, Any],
+        pairs: List[Tuple[str, str]],
+        action_map: Dict[str, str],
+    ) -> Dict[str, int]:
+        """Calculate payoffs for pairwise matrix games."""
+        payoffs = {}
+        matrix = config.get("matrix", {})
+
+        for agent1, agent2 in pairs:
+            choice1 = action_map.get(agent1)
+            choice2 = action_map.get(agent2)
+
+            if not choice1 or not choice2:
+                continue
+
+            key = f"{choice1}_{choice2}"
+            cell = matrix.get(key, {"value": 0})
+
+            if "value" in cell:
+                # Symmetric: both get same
+                payoffs[agent1] = cell["value"]
+                payoffs[agent2] = cell["value"]
+            else:
+                # Asymmetric: row/col payoffs
+                payoffs[agent1] = cell.get("row", 0)
+                payoffs[agent2] = cell.get("col", 0)
+
+        return payoffs
+
+    def _calculate_matrix_payoffs_group(
+        self,
+        actions: List[ActionResult],
+        config: Dict[str, Any],
+        groups: List[List[str]],
+        action_map: Dict[str, str],
+    ) -> Dict[str, int]:
+        """Calculate payoffs for group matrix games (placeholder)."""
+        # Will be implemented in Task 4
         return {}
 
     def _calculate_pool_payoffs(
