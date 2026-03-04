@@ -278,3 +278,111 @@ class TestMatrixPayoffPairwise:
         # Both cooperate -> both 3
         assert result["Charlie"] == 3
         assert result["Diana"] == 3
+
+
+class TestMatrixPayoffGroupThreshold:
+    """Test matrix payoff for group mode with threshold (Stag Hunt)."""
+
+    @pytest.fixture
+    def engine(self):
+        return PayoffEngine()
+
+    @pytest.fixture
+    def stag_hunt_config(self):
+        """Stag Hunt threshold configuration."""
+        return {
+            "group_payoff_mode": "threshold",
+            "threshold_action": "stag",
+            "threshold_reward": 5,
+            "threshold_failure": 0,
+            "safe_reward": 1,
+        }
+
+    @pytest.fixture
+    def all_stag_actions(self):
+        return [
+            ActionResult(agent_name="Alice", action_name="stag",
+                        parameters={}, summary="", success=True, skipped=False, round_num=1),
+            ActionResult(agent_name="Bob", action_name="stag",
+                        parameters={}, summary="", success=True, skipped=False, round_num=1),
+            ActionResult(agent_name="Charlie", action_name="stag",
+                        parameters={}, summary="", success=True, skipped=False, round_num=1),
+        ]
+
+    @pytest.fixture
+    def mixed_actions(self):
+        """Two stag, one hare."""
+        return [
+            ActionResult(agent_name="Alice", action_name="stag",
+                        parameters={}, summary="", success=True, skipped=False, round_num=1),
+            ActionResult(agent_name="Bob", action_name="stag",
+                        parameters={}, summary="", success=True, skipped=False, round_num=1),
+            ActionResult(agent_name="Charlie", action_name="hare",
+                        parameters={}, summary="", success=True, skipped=False, round_num=1),
+        ]
+
+    @pytest.fixture
+    def all_hare_actions(self):
+        return [
+            ActionResult(agent_name="Alice", action_name="hare",
+                        parameters={}, summary="", success=True, skipped=False, round_num=1),
+            ActionResult(agent_name="Bob", action_name="hare",
+                        parameters={}, summary="", success=True, skipped=False, round_num=1),
+            ActionResult(agent_name="Charlie", action_name="hare",
+                        parameters={}, summary="", success=True, skipped=False, round_num=1),
+        ]
+
+    def test_all_stag_gets_threshold_reward(self, engine, stag_hunt_config, all_stag_actions):
+        """All choose stag -> everyone gets threshold_reward (5)."""
+        graph = {"edges": [
+            ("Alice", "Bob"), ("Bob", "Charlie"), ("Alice", "Charlie")
+        ]}
+
+        result = engine.calculate_round_payoffs(
+            payoff_type="matrix",
+            actions=all_stag_actions,
+            config=stag_hunt_config,
+            grouping_mode="group",
+            graph=graph,
+        )
+
+        assert result["Alice"] == 5
+        assert result["Bob"] == 5
+        assert result["Charlie"] == 5
+
+    def test_mixed_choices_stag_gets_failure(self, engine, stag_hunt_config, mixed_actions):
+        """Not all stag -> stag choosers get threshold_failure (0), hare gets safe (1)."""
+        graph = {"edges": [
+            ("Alice", "Bob"), ("Bob", "Charlie"), ("Alice", "Charlie")
+        ]}
+
+        result = engine.calculate_round_payoffs(
+            payoff_type="matrix",
+            actions=mixed_actions,
+            config=stag_hunt_config,
+            grouping_mode="group",
+            graph=graph,
+        )
+
+        # Alice and Bob chose stag but Charlie chose hare
+        assert result["Alice"] == 0  # threshold_failure
+        assert result["Bob"] == 0    # threshold_failure
+        assert result["Charlie"] == 1  # safe_reward
+
+    def test_all_hare_gets_safe_reward(self, engine, stag_hunt_config, all_hare_actions):
+        """All choose hare -> everyone gets safe_reward (1)."""
+        graph = {"edges": [
+            ("Alice", "Bob"), ("Bob", "Charlie"), ("Alice", "Charlie")
+        ]}
+
+        result = engine.calculate_round_payoffs(
+            payoff_type="matrix",
+            actions=all_hare_actions,
+            config=stag_hunt_config,
+            grouping_mode="group",
+            graph=graph,
+        )
+
+        assert result["Alice"] == 1
+        assert result["Bob"] == 1
+        assert result["Charlie"] == 1

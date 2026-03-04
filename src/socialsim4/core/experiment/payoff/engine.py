@@ -202,9 +202,32 @@ class PayoffEngine:
         groups: List[List[str]],
         action_map: Dict[str, str],
     ) -> Dict[str, int]:
-        """Calculate payoffs for group matrix games (placeholder)."""
-        # Will be implemented in Task 4
-        return {}
+        """Calculate payoffs for group matrix games.
+
+        Supports threshold mode for games like Stag Hunt.
+        """
+        payoffs = {}
+
+        if config.get("group_payoff_mode") != "threshold":
+            return payoffs
+
+        threshold_action = config.get("threshold_action", "cooperate")
+        threshold_reward = config.get("threshold_reward", 5)
+        threshold_failure = config.get("threshold_failure", 0)
+        safe_reward = config.get("safe_reward", 1)
+
+        for group in groups:
+            choices = [action_map.get(a) for a in group if a in action_map]
+            all_chose_target = all(c == threshold_action for c in choices)
+
+            for agent in group:
+                choice = action_map.get(agent)
+                if choice == threshold_action:
+                    payoffs[agent] = threshold_reward if all_chose_target else threshold_failure
+                else:
+                    payoffs[agent] = safe_reward
+
+        return payoffs
 
     def _calculate_pool_payoffs(
         self,
