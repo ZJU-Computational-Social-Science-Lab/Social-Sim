@@ -338,16 +338,6 @@ OPEN_DISCUSSION: Dict[str, Any] = {
             "default": "What should we have for lunch?",
             "ui_hint": "textarea",
         },
-        {
-            "id": "max_turns",
-            "key": "max_turns",
-            "label": "Maximum Turns",
-            "type": "integer",
-            "default": 10,
-            "ui_hint": "slider",
-            "min": 5,
-            "max": 30,
-        },
     ],
     "actions": [
         {"id": "speak", "name": "Speak", "description": "Say something to the group"},
@@ -484,16 +474,6 @@ PUBLIC_GOODS: Dict[str, Any] = {
             "ui_hint": "slider",
             "min": 1.0,
             "max": 3.0,
-        },
-        {
-            "id": "num_rounds",
-            "key": "num_rounds",
-            "label": "Number of Rounds",
-            "type": "integer",
-            "default": 10,
-            "ui_hint": "slider",
-            "min": 1,
-            "max": 20,
         },
     ],
     "actions": [
