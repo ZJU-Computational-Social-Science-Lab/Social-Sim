@@ -25,6 +25,7 @@ from socialsim4.core.experiment.round_context import RoundContextManager
 from socialsim4.core.experiment.prompt_builder import build_prompt, build_reprompt
 from socialsim4.core.experiment.action_handler import ActionHandler
 from socialsim4.core.experiment.payoff.engine import PayoffEngine
+from socialsim4.core.experiment.feedback.builder import CoordinationFeedbackBuilder
 from socialsim4.core.llm.client import LLMClient
 from socialsim4.core.context_builder import build_context_summary
 
@@ -103,6 +104,7 @@ class ExperimentRunner:
         self.controller = ExperimentController(self.kernel, self.context_manager)
         self.action_handler = ActionHandler()
         self.payoff_engine = PayoffEngine()
+        self.feedback_builder = CoordinationFeedbackBuilder()
         self.current_round = 0
         self.turn_order: List[str] | None = None  # Store shuffled order for random/paired mode
         self.scores: Dict[str, int] = {}  # Track cumulative scores per agent (for paired mode)
@@ -269,6 +271,44 @@ class ExperimentRunner:
 
         return round_payoffs
 
+    def _generate_coordination_feedback(
+        self,
+        agent_name: str,
+        agent_choice: str,
+        round_actions: List[ActionResult],
+    ) -> str:
+        """Generate coordination feedback for an agent based on neighbor choices.
+
+        Args:
+            agent_name: The agent to generate feedback for
+            agent_choice: What the agent chose
+            round_actions: All actions from this round
+
+        Returns:
+            Human-readable feedback string
+        """
+        # Get neighbors from graph
+        graph = self.scene_state.get("graph", {})
+        edges = graph.get("edges", [])
+
+        # Find this agent's neighbors
+        neighbors = []
+        for a, b in edges:
+            if a == agent_name:
+                neighbors.append(b)
+            elif b == agent_name:
+                neighbors.append(a)
+
+        # Build choices dict from round actions
+        all_choices = {a.agent_name: a.action_name for a in round_actions if not a.skipped}
+
+        return self.feedback_builder.build_feedback(
+            agent_name=agent_name,
+            agent_choice=agent_choice,
+            neighbors=neighbors,
+            all_choices=all_choices,
+        )
+
     async def _run_simultaneous_round(self, round_num: int) -> RoundResult:
         """Run a round where all agents decide simultaneously.
 
@@ -314,6 +354,20 @@ class ExperimentRunner:
                     summary=result.summary,
                     payoff=round_payoffs.get(result.agent_name),
                 )
+
+        # Add coordination feedback for feedback-type games
+        if self.game_config.payoff_type == "feedback":
+            for result in actions:
+                if not result.skipped:
+                    feedback = self._generate_coordination_feedback(
+                        result.agent_name,
+                        result.action_name,
+                        actions,
+                    )
+                    # Update the recorded event with feedback
+                    for event in self.context_manager._round_events:
+                        if event.agent_name == result.agent_name and event.round_num == round_num:
+                            event.feedback = feedback
 
         return RoundResult(
             round_num=round_num,
