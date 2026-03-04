@@ -53,16 +53,40 @@ def convert_scenario_to_game_config(scenario_id: str) -> GameConfig:
     """
     scenario = get_scenario(scenario_id)
 
+    # Extract action IDs and descriptions from actions list
+    actions = [a["id"] for a in scenario["actions"]]
+    action_descriptions = {a["id"]: a["description"] for a in scenario["actions"]}
+
+    # Build payoff_config from matrix_meta if available
+    payoff_config = {}
+    if "matrix_meta" in scenario:
+        matrix = scenario["matrix_meta"]
+        cells = matrix.get("cells", {})
+        payoff_config = {
+            "matrix": {
+                "cooperate_cooperate": {"value": cells.get("cooperate_cooperate", {}).get("row", 3)},
+                "cooperate_defect": {
+                    "row": cells.get("cooperate_defect", {}).get("row", 0),
+                    "col": cells.get("cooperate_defect", {}).get("col", 5),
+                },
+                "defect_cooperate": {
+                    "row": cells.get("defect_cooperate", {}).get("row", 5),
+                    "col": cells.get("defect_cooperate", {}).get("col", 0),
+                },
+                "defect_defect": {"value": cells.get("defect_defect", {}).get("row", 1)},
+            }
+        }
+
     return GameConfig(
-        name=scenario.id,
-        description=scenario.description,
+        name=scenario["id"],
+        description=scenario["description"],
         action_type="discrete",
-        actions=scenario.actions,
-        action_descriptions=scenario.action_descriptions or {},
-        payoff_summary=scenario.payoff_summary or "",
-        payoff_type=scenario.payoff_type,
-        grouping_mode=scenario.grouping_mode,
-        payoff_config=scenario.payoff_config or {},
+        actions=actions,
+        action_descriptions=action_descriptions,
+        payoff_summary=scenario.get("description", ""),
+        payoff_type=scenario["payoff_type"],
+        grouping_mode=scenario["grouping_mode"],
+        payoff_config=payoff_config,
     )
 
 # Available models
