@@ -24,6 +24,7 @@ from socialsim4.core.experiment.controller import ExperimentController, ActionRe
 from socialsim4.core.experiment.round_context import RoundContextManager
 from socialsim4.core.experiment.prompt_builder import build_prompt, build_reprompt
 from socialsim4.core.experiment.action_handler import ActionHandler
+from socialsim4.core.experiment.payoff.engine import PayoffEngine
 from socialsim4.core.llm.client import LLMClient
 from socialsim4.core.context_builder import build_context_summary
 
@@ -101,6 +102,7 @@ class ExperimentRunner:
         )
         self.controller = ExperimentController(self.kernel, self.context_manager)
         self.action_handler = ActionHandler()
+        self.payoff_engine = PayoffEngine()
         self.current_round = 0
         self.turn_order: List[str] | None = None  # Store shuffled order for random/paired mode
         self.scores: Dict[str, int] = {}  # Track cumulative scores per agent (for paired mode)
@@ -233,13 +235,8 @@ class ExperimentRunner:
                 })
                 break
 
-    def _calculate_scores(self, round_actions: List[ActionResult], pairs: List[tuple] = None) -> Dict[str, int]:
-        """Calculate and update scores based on game outcomes.
-
-        For Prisoner's Dilemma style games:
-        - Both cooperate: both get cooperate_reward (R)
-        - One cooperates, one defects: cooperator gets sucker_penalty (S), defector gets temptation_reward (T)
-        - Both defect: both get defect_penalty (P)
+    def _calculate_scores(self, round_actions: List[ActionResult], pairs: List[tuple] = None) -> Dict[str, int | float]:
+        """Calculate and update scores based on game outcomes using PayoffEngine.
 
         Args:
             round_actions: List of action results from the round
@@ -249,71 +246,46 @@ class ExperimentRunner:
         Returns:
             Dict mapping agent name to payoff earned this round (empty if not applicable)
         """
-        round_payoffs: Dict[str, int] = {}
+        # Get payoff_type from game_config
+        payoff_type = getattr(self.game_config, 'payoff_type', 'none')
 
-        # Only calculate if we have payoff parameters
-        if self.game_config.cooperate_reward is None:
-            return round_payoffs
-
-        # Get all non-skipped actions
-        valid_actions = [a for a in round_actions if not a.skipped]
-        if len(valid_actions) < 2:
-            return round_payoffs
-
-        # Build action map
-        action_map = {a.agent_name: a.action_name.lower() for a in valid_actions}
-
-        # Find the agents to update their scores
-        agent_objs = {a.name: a for a in self.agents}
-
-        def calculate_pair_payoff(a1: str, a2: str) -> tuple:
-            """Calculate payoff for a single pair. Returns (payoff_a1, payoff_a2)."""
-            act1 = action_map.get(a1, "").lower()
-            act2 = action_map.get(a2, "").lower()
-
-            if act1 == "cooperate" and act2 == "cooperate":
-                # Both cooperate: R, R
-                p = self.game_config.cooperate_reward or 0
-                return p, p
-            elif act1 == "cooperate" and act2 == "defect":
-                # a1 is sucker, a2 is tempter: S, T
-                s = self.game_config.sucker_penalty or 0
-                t = self.game_config.temptation_reward or 0
-                return s, t
-            elif act1 == "defect" and act2 == "cooperate":
-                # a1 is tempter, a2 is sucker: T, S
-                t = self.game_config.temptation_reward or 0
-                s = self.game_config.sucker_penalty or 0
-                return t, s
-            else:
-                # Both defect: P, P
-                p = self.game_config.defect_penalty or 0
-                return p, p
-
-        # If pairs are provided (paired mode), calculate per-pair
+        # Build graph from pairs if available
+        graph = None
         if pairs:
-            for a1, a2 in pairs:
-                if a1 in action_map and a2 in action_map:
-                    p1, p2 = calculate_pair_payoff(a1, a2)
-                    if a1 in agent_objs:
-                        agent_objs[a1].score += p1
-                    if a2 in agent_objs:
-                        agent_objs[a2].score += p2
-                    round_payoffs[a1] = p1
-                    round_payoffs[a2] = p2
-                    logger.debug(f"Pair scores: {a1}={p1}, {a2}={p2}")
-        else:
-            # Single pair mode (2 agents total)
-            agents = list(action_map.keys())
-            if len(agents) == 2:
-                a1, a2 = agents[0], agents[1]
-                p1, p2 = calculate_pair_payoff(a1, a2)
-                if a1 in agent_objs:
-                    agent_objs[a1].score += p1
-                if a2 in agent_objs:
-                    agent_objs[a2].score += p2
-                round_payoffs = {a1: p1, a2: p2}
-                logger.debug(f"Scores updated: {a1}={agent_objs[a1].score}, {a2}={agent_objs[a2].score}")
+            graph = {"edges": pairs}
+
+        # Get payoff_config from game_config
+        payoff_config = getattr(self.game_config, 'payoff_config', {})
+
+        # Fallback: Build config from legacy fields if payoff_config is empty
+        if not payoff_config and self.game_config.cooperate_reward is not None:
+            payoff_config = {
+                "matrix": {
+                    "cooperate_cooperate": {"value": self.game_config.cooperate_reward or 0},
+                    "cooperate_defect": {"row": self.game_config.sucker_penalty or 0, "col": self.game_config.temptation_reward or 0},
+                    "defect_cooperate": {"row": self.game_config.temptation_reward or 0, "col": self.game_config.sucker_penalty or 0},
+                    "defect_defect": {"value": self.game_config.defect_penalty or 0},
+                }
+            }
+
+        # Get grouping_mode from game_config
+        grouping_mode = getattr(self.game_config, 'grouping_mode', 'pairwise')
+
+        # Calculate payoffs using PayoffEngine
+        round_payoffs = self.payoff_engine.calculate_round_payoffs(
+            payoff_type=payoff_type,
+            actions=round_actions,
+            config=payoff_config,
+            grouping_mode=grouping_mode,
+            graph=graph,
+        )
+
+        # Update agent scores
+        agent_objs = {a.name: a for a in self.agents}
+        for agent_name, payoff in round_payoffs.items():
+            if agent_name in agent_objs:
+                agent_objs[agent_name].score += int(payoff)
+                logger.debug(f"Score updated: {agent_name}={agent_objs[agent_name].score}")
 
         return round_payoffs
 
