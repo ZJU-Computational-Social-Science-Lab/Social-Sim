@@ -234,6 +234,40 @@ class PayoffEngine:
         actions: List[ActionResult],
         config: Dict[str, Any],
     ) -> Dict[str, int | float]:
-        """Calculate payoffs for contribution games."""
-        # Placeholder - will be implemented in Task 5
-        return {}
+        """Calculate payoffs for contribution games.
+
+        Formula: payoff = (initial_tokens - contribution) + (total_contributions * multiplier / n)
+
+        This equals: tokens_kept + share_of_pool
+
+        Config:
+            multiplier: float (e.g., 1.5)
+            initial_tokens: int (starting tokens per agent)
+        """
+        payoffs = {}
+        total_contribution = 0
+        contributions = {}
+
+        for action in actions:
+            if not action.skipped:
+                if action.action_name == "contribute":
+                    amount = action.parameters.get("amount", 0)
+                else:
+                    amount = 0  # Non-contribute actions contribute 0
+                contributions[action.agent_name] = amount
+                total_contribution += amount
+
+        num_agents = len([a for a in actions if not a.skipped])
+        if num_agents == 0:
+            return payoffs
+
+        multiplier = config.get("multiplier", 1.5)
+        initial_tokens = config.get("initial_tokens", 20)
+
+        pool_return = (total_contribution * multiplier) / num_agents
+
+        for agent_name, contribution in contributions.items():
+            tokens_kept = initial_tokens - contribution
+            payoffs[agent_name] = round(tokens_kept + pool_return, 2)
+
+        return payoffs

@@ -386,3 +386,102 @@ class TestMatrixPayoffGroupThreshold:
         assert result["Alice"] == 1
         assert result["Bob"] == 1
         assert result["Charlie"] == 1
+
+
+class TestPoolPayoff:
+    """Test pool payoff calculation (Public Goods Game)."""
+
+    @pytest.fixture
+    def engine(self):
+        return PayoffEngine()
+
+    @pytest.fixture
+    def pool_config(self):
+        return {
+            "multiplier": 1.5,
+            "initial_tokens": 20,
+        }
+
+    def contribute_action(self, agent_name, amount):
+        return ActionResult(
+            agent_name=agent_name,
+            action_name="contribute",
+            parameters={"amount": amount},
+            summary=f"{agent_name} contributed {amount}",
+            success=True,
+            skipped=False,
+            round_num=1,
+        )
+
+    def test_pool_calculation_basic(self, engine, pool_config):
+        """3 agents: contribute 0, 10, 20 -> verify correct payoffs.
+
+        Formula: payoff = (initial_tokens - contribution) + (total * multiplier / n)
+
+        Total = 0 + 10 + 20 = 30
+        Pool return = 30 * 1.5 / 3 = 15
+
+        Agent A (0): 20 + 15 = 35
+        Agent B (10): 10 + 15 = 25
+        Agent C (20): 0 + 15 = 15
+        """
+        actions = [
+            self.contribute_action("Alice", 0),
+            self.contribute_action("Bob", 10),
+            self.contribute_action("Charlie", 20),
+        ]
+
+        result = engine.calculate_round_payoffs(
+            payoff_type="pool",
+            actions=actions,
+            config=pool_config,
+            grouping_mode="group",
+        )
+
+        assert result["Alice"] == 35.0
+        assert result["Bob"] == 25.0
+        assert result["Charlie"] == 15.0
+
+    def test_pool_all_contribute_same(self, engine, pool_config):
+        """All contribute 10 -> all get same payoff.
+
+        Total = 30
+        Pool return = 30 * 1.5 / 3 = 15
+        Each: (20 - 10) + 15 = 25
+        """
+        actions = [
+            self.contribute_action("Alice", 10),
+            self.contribute_action("Bob", 10),
+            self.contribute_action("Charlie", 10),
+        ]
+
+        result = engine.calculate_round_payoffs(
+            payoff_type="pool",
+            actions=actions,
+            config=pool_config,
+            grouping_mode="group",
+        )
+
+        assert result["Alice"] == 25.0
+        assert result["Bob"] == 25.0
+        assert result["Charlie"] == 25.0
+
+    def test_pool_free_rider_advantage(self, engine, pool_config):
+        """Free rider (contribute 0) gets higher payoff than contributor.
+
+        This is the dilemma of public goods games.
+        """
+        actions = [
+            self.contribute_action("FreeRider", 0),
+            self.contribute_action("Contributor", 20),
+        ]
+
+        result = engine.calculate_round_payoffs(
+            payoff_type="pool",
+            actions=actions,
+            config=pool_config,
+            grouping_mode="group",
+        )
+
+        # Free rider should get more
+        assert result["FreeRider"] > result["Contributor"]
