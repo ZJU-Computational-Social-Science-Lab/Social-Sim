@@ -799,7 +799,15 @@
     "node": "节点 {{id}}",
     "initialNode": "初始状态",
     "round": "系统推进至第 {{round}} 回合",
-    "timeLabel": "{{step}} {{unit}}/R"
+    "timeLabel": "{{step}} {{unit}}/R",
+    "resetSimulation": "重置仿真",
+    "deleteSimulation": "删除仿真",
+    "confirmReset": "确认重置当前仿真？这会清空本地图和日志。",
+    "confirmDelete": "确认删除当前仿真？在连接模式下会从后端删除该记录。",
+    "resetSuccess": "仿真已重置",
+    "resetFail": "重置仿真失败",
+    "deleteSuccess": "仿真已删除",
+    "deleteFail": "删除仿真失败"
   },
   "components": {
     "agentPanel": {

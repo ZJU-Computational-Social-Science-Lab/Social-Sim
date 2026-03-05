@@ -39,7 +39,11 @@ def strip_think_tags(text: str) -> str:
     Returns:
         Text with think tags removed
     """
-    return re.sub(r'<\|thinking\|>.*?<\|/thinking\|>\s*', '', text, flags=re.DOTALL).strip()
+    cleaned = re.sub(r'<\|thinking\|>.*?<\|/thinking\|>\s*', '', text, flags=re.DOTALL)
+    cleaned = re.sub(r'JSON<think>.*?</think>\s*', '', cleaned, flags=re.DOTALL)
+    cleaned = re.sub(r'<think>.*?</think>\s*', '', cleaned, flags=re.DOTALL)
+    cleaned = re.sub(r'^[A-Za-z]+<think>.*?</think>\s*', '', cleaned, flags=re.DOTALL)
+    return cleaned.strip()
 
 
 def validate_and_clamp(result: dict, game_config: GameConfig) -> Optional[dict]:

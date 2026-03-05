@@ -75,3 +75,20 @@ export async function getSimState(base: string, id: string, node: number, token?
 export async function getRehydrate(base: string, id: string, token?: string): Promise<any> {
   return await httpGet<any>(base, `/simulations/${id}/rehydrate`, token);
 }
+
+export async function applyNodeOverrides(
+  base: string,
+  id: string,
+  node: number,
+  overrides: Array<{
+    name: string;
+    language?: string;
+    llm_config?: Record<string, unknown>;
+    knowledge_base?: any[];
+    documents?: Record<string, unknown>;
+    properties?: Record<string, unknown>;
+  }>,
+  token?: string,
+): Promise<{ ok: boolean }> {
+  return await httpPost<{ ok: boolean }>(base, `/simulations/${id}/tree/sim/${node}/overrides`, { overrides }, token);
+}

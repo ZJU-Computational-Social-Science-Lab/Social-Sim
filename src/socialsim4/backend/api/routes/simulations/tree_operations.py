@@ -35,6 +35,7 @@ from socialsim4.backend.schemas.simtree import (
     SimulationTreeAdvanceFrontierPayload,
     SimulationTreeAdvanceMultiPayload,
     SimulationTreeBranchPayload,
+    SimulationTreeAgentOverridePayload,
 )
 
 from .helpers import (
@@ -539,6 +540,7 @@ async def simulation_tree_state(
                     "knowledgeBase": kb,
                     "documents": docs,
                     "score": score,
+                    "llmConfig": props.get("llm_config") or {},
                 })
             turns = simulator.scene.current_round
         else:
@@ -562,6 +564,7 @@ async def simulation_tree_state(
                         "short_memory": agent.short_memory.get_all(),
                         "knowledgeBase": kb,
                         "documents": docs,
+                        "llmConfig": props.get("llm_config") or {},
                     }
                 )
             turns = simulator.turns
@@ -577,6 +580,25 @@ async def simulation_tree_state(
             "agents": agents,
             "scene_config": scene_config
         }
+
+
+@post("/{simulation_id:str}/tree/sim/{node_id:int}/overrides")
+async def simulation_tree_apply_overrides(
+    request: Request,
+    simulation_id: str,
+    node_id: int,
+    data: SimulationTreeAgentOverridePayload,
+) -> dict:
+    async with get_session() as session:
+        sim, record = await get_simulation_and_tree_any(session, simulation_id)
+        tree = record.tree
+
+        tree.apply_agent_overrides(int(node_id), [ov.model_dump() for ov in data.overrides])
+
+        sim.latest_state = tree.serialize()
+        await session.commit()
+
+        return {"ok": True}
 
 
 @get("/{simulation_id:str}/tree/sim/{node_id:int}/test-knowledge")

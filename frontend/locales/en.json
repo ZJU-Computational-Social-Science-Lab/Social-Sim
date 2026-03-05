@@ -799,7 +799,15 @@
     "node": "Node {{id}}",
     "initialNode": "Initial state",
     "round": "System advanced to round {{round}}",
-    "timeLabel": "{{step}} {{unit}}/R"
+    "timeLabel": "{{step}} {{unit}}/R",
+    "resetSimulation": "Reset simulation",
+    "deleteSimulation": "Delete simulation",
+    "confirmReset": "Reset this simulation? This clears local graph and logs.",
+    "confirmDelete": "Delete this simulation? This removes the record from backend in connected mode.",
+    "resetSuccess": "Simulation reset",
+    "resetFail": "Failed to reset simulation",
+    "deleteSuccess": "Simulation deleted",
+    "deleteFail": "Failed to delete simulation"
   },
   "components": {
     "agentPanel": {

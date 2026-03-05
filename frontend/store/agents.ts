@@ -13,6 +13,37 @@
 import { StateCreator } from 'zustand';
 import type { Agent, KnowledgeItem, InitialEventItem, LogEntry } from '../types';
 
+async function persistOverrides(
+  get: () => any,
+  agentName: string,
+  payload: {
+    language?: string;
+    llm_config?: Record<string, unknown>;
+    knowledge_base?: KnowledgeItem[];
+    documents?: Record<string, unknown>;
+    properties?: Record<string, unknown>;
+  }
+) {
+  const state = get();
+  const mode = state.engineConfig?.mode;
+  if (mode !== 'connected') return;
+
+  const sim = state.currentSimulation;
+  const nodeId = state.selectedNodeId;
+  const base = state.engineConfig?.endpoint;
+  const token = (state.engineConfig as any)?.token;
+
+  if (!sim || nodeId == null || !base) return;
+
+  const { applyNodeOverrides } = await import('../services/simulationTree');
+  const nodeNum = Number(nodeId);
+  if (!Number.isFinite(nodeNum)) return;
+
+  await applyNodeOverrides(base, sim.id, nodeNum, [
+    { name: agentName, ...payload }
+  ], token).catch(() => undefined);
+}
+
 export interface AgentsSlice {
   // State
   agents: Agent[];
@@ -56,11 +87,20 @@ export const createAgentsSlice: StateCreator<
     }));
 
     const agentName = get().agents.find((a) => a.id === agentId)?.name || agentId;
+    const agent = get().agents.find((a) => a.id === agentId);
     // Access injectLog and addNotification via get() - they exist in other slices
     const injectLog = (get() as any).injectLog;
     const addNotification = (get() as any).addNotification;
     injectLog?.('HOST_INTERVENTION', `Host 修改了 ${agentName} 的属性 [${property}] 为 ${value}`);
     addNotification?.('success', '智能体属性已更新');
+
+    if (agent) {
+      const payload: any = { properties: { ...agent.properties, [property]: value } };
+      if (property === 'language') {
+        payload.language = value;
+      }
+      persistOverrides(get, agent.name, payload);
+    }
   },
 
   updateAgentProfile: (agentId, profile) => {
@@ -85,10 +125,16 @@ export const createAgentsSlice: StateCreator<
       })
     }));
     const agentName = get().agents.find((a) => a.id === agentId)?.name || agentId;
+    const agent = get().agents.find((a) => a.id === agentId);
     const injectLog = (get() as any).injectLog;
     const addNotification = (get() as any).addNotification;
     injectLog?.('HOST_INTERVENTION', `Host 给 ${agentName} 添加了知识: ${item.title}`);
     addNotification?.('success', '知识已添加');
+
+    if (agent) {
+      const kb = [...(agent.knowledgeBase || []), item];
+      persistOverrides(get, agent.name, { knowledge_base: kb });
+    }
   },
 
   removeKnowledgeFromAgent: (agentId, itemId) => {
@@ -102,6 +148,12 @@ export const createAgentsSlice: StateCreator<
     }));
     const addNotification = (get() as any).addNotification;
     addNotification?.('success', '知识已移除');
+
+    const agent = get().agents.find((a) => a.id === agentId);
+    if (agent) {
+      const kb = (agent.knowledgeBase || []).filter((k) => k.id !== itemId);
+      persistOverrides(get, agent.name, { knowledge_base: kb });
+    }
   },
 
   updateKnowledgeInAgent: (agentId, itemId, updates) => {
@@ -120,6 +172,14 @@ export const createAgentsSlice: StateCreator<
     }));
     const addNotification = (get() as any).addNotification;
     addNotification?.('success', '知识已更新');
+
+    const agent = get().agents.find((a) => a.id === agentId);
+    if (agent) {
+      const kb = (agent.knowledgeBase || []).map((k) =>
+        k.id === itemId ? { ...k, ...updates } : k
+      );
+      persistOverrides(get, agent.name, { knowledge_base: kb });
+    }
   },
 
   // Initial events actions
