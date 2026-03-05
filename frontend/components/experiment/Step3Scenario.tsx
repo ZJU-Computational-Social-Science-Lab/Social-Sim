@@ -112,6 +112,11 @@ export const Step3Scenario: React.FC = () => {
   const [newActionName, setNewActionName] = useState('');
   const [newActionDescription, setNewActionDescription] = useState('');
 
+  // Check if actions are dynamically generated
+  const generatorParam = selectedScenarioData?.parameters?.find(
+    (p) => p.generates_actions === true
+  );
+
   /**
    * Generate actions from a choices parameter value.
    * Parses comma-separated choices and creates action definitions.
@@ -241,6 +246,17 @@ export const Step3Scenario: React.FC = () => {
           </p>
         )}
       </div>
+
+      {/* Dynamic actions info */}
+      {generatorParam && (
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-700">
+            <strong>Dynamic Actions:</strong> These actions are generated from the
+            "{generatorParam.label}" parameter. Edit it in Step 2 to change the
+            available choices.
+          </p>
+        </div>
+      )}
 
       {/* Validation Error */}
       {validationErrors.actions && (
