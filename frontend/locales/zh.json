@@ -446,6 +446,7 @@
       "landlord": "斗地主"
     },
     "actions": {
+      "chooseAction": "选择{{action}}",
       "send_message": "向所有参与者发送消息",
       "talk_to": "与附近的人交谈",
       "speak": "发言",

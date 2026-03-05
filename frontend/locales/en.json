@@ -446,6 +446,7 @@
       "landlord": "Landlord"
     },
     "actions": {
+      "chooseAction": "Choose {{action}}",
       "send_message": "Post a message to all participants",
       "talk_to": "Say something to a nearby person",
       "speak": "Say something",

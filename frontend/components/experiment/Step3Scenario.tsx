@@ -94,22 +94,6 @@ interface CustomAction {
   description: string;
 }
 
-/**
- * Generate actions from a choices parameter value.
- * Parses comma-separated choices and creates action definitions.
- */
-function generateActionsFromChoices(choicesValue: string): ActionDef[] {
-  const choices = choicesValue
-    .split(',')
-    .map((c) => c.trim())
-    .filter(Boolean);
-
-  return choices.map((choice) => ({
-    name: choice,
-    description: `Choose ${choice}`,
-  }));
-}
-
 export const Step3Scenario: React.FC = () => {
   const { t } = useTranslation();
   const {
@@ -127,6 +111,22 @@ export const Step3Scenario: React.FC = () => {
   const [showAddAction, setShowAddAction] = useState(false);
   const [newActionName, setNewActionName] = useState('');
   const [newActionDescription, setNewActionDescription] = useState('');
+
+  /**
+   * Generate actions from a choices parameter value.
+   * Parses comma-separated choices and creates action definitions.
+   */
+  const generateActionsFromChoices = (choicesValue: string): ActionDef[] => {
+    const choices = choicesValue
+      .split(',')
+      .map((c) => c.trim())
+      .filter(Boolean);
+
+    return choices.map((choice) => ({
+      name: choice,
+      description: t('experimentBuilder.actions.chooseAction', { action: choice }),
+    }));
+  };
 
   // Initialize available actions from scenario data
   // Use category_actions if available, otherwise fall back to scenario.actions
@@ -149,9 +149,22 @@ export const Step3Scenario: React.FC = () => {
         const generatedActions = generateActionsFromChoices(paramValue);
         setAvailableActions(generatedActions);
 
-        // Select all generated actions by default
-        const defaultIds = generatedActions.map((a) => a.name);
-        setSelectedActionIds(defaultIds);
+        // Preserve existing selections for actions that still exist
+        const existingSelectedIds = selectedActionIds.filter((id) =>
+          generatedActions.some((a) => a.name === id)
+        );
+        // Find new actions that weren't in the previous list
+        const newActionIds = generatedActions
+          .filter((a) => !availableActions.some((prev) => prev.name === a.name))
+          .map((a) => a.name);
+
+        if (existingSelectedIds.length === 0 && newActionIds.length > 0) {
+          // First time or no existing selections - select all
+          setSelectedActionIds(generatedActions.map((a) => a.name));
+        } else {
+          // Preserve existing + add new
+          setSelectedActionIds([...existingSelectedIds, ...newActionIds]);
+        }
       } else {
         // Use category_actions if available, otherwise use scenario.actions
         const actionsToShow =
@@ -164,6 +177,7 @@ export const Step3Scenario: React.FC = () => {
         setSelectedActionIds(defaultIds);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedScenarioData, scenarioParams, setAvailableActions, setSelectedActionIds]);
 
   const isCustom = selectedScenarioData?.id === 'custom';
