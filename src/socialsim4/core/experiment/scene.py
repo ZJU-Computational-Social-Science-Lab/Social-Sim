@@ -214,7 +214,7 @@ class ExperimentScene:
 
         # Handle configurable choices for coordination games (e.g., coordination_game)
         if self.config.scenario_id in ("coordination_game", "graph_coloring"):
-            choices_str = params.get("choices", "red, blue, green")
+            choices_str = params.get("choices") or params.get("Choices") or "red, blue, green"
             action_names = [c.strip() for c in choices_str.split(",")]
             action_descriptions = {c: f"Choose {c}" for c in action_names}
 
