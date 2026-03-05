@@ -25,6 +25,7 @@ class ExperimentConfig:
     agents: list[dict[str, Any]]
     actions: list[dict[str, Any]]
     parameters: dict[str, Any] = field(default_factory=dict)
+    state_schema: dict[str, Any] = field(default_factory=dict)
     description: str = ""
     scenario_id: str = "custom"
     round_visibility: str = "simultaneous"  # simultaneous | sequential | paired

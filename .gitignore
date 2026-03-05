@@ -131,6 +131,9 @@ node_modules
 storage/
 socialsim.db
 socialsim4.db
+*.db
+*.db-shm
+*.db-wal
 *.pdf
 stats.sh
 .DS_Store
@@ -158,7 +161,7 @@ REFACTORING_PLAN.md
 planning/
 
 # Git worktrees for parallel development
-.worktrees/test_results/
+.worktrees/
 
 # Test results and debug output
 test_results/

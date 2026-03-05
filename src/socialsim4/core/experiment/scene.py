@@ -12,6 +12,7 @@ from socialsim4.core.experiment.config import ExperimentConfig
 from socialsim4.core.experiment.agent import ExperimentAgent
 from socialsim4.core.experiment.runner import ExperimentRunner, RoundResult
 from socialsim4.core.experiment.game_configs import GameConfig
+from socialsim4.core.experiment.state import ExperimentState, AgentState
 from socialsim4.core.llm.client import LLMClient
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ class ExperimentScene:
         self.llm_client: LLMClient | None = None
         self.current_round = 0
         self._history: list[dict[str, Any]] = []
+        self.state: ExperimentState = ExperimentState()
 
         logger.debug(f"ExperimentScene initialized: {config.scenario_id}")
 
@@ -69,6 +71,9 @@ class ExperimentScene:
         ]
 
         logger.debug(f"Created {len(self.agents)} ExperimentAgents")
+
+        # Initialize experiment state
+        self._initialize_state()
 
         # Get InformationModel from registry (deferred import to avoid circular dependency)
         from socialsim4.core.registry import get_information_model, pair_agents_randomly
@@ -153,7 +158,6 @@ class ExperimentScene:
             event_emitter("experiment_action", {
                 "agent": action.agent_name,
                 "action": action.action_name,
-                "reasoning": action.parameters.get("reasoning", ""),
                 "round": round_num,
                 "success": action.success,
                 "skipped": action.skipped,
@@ -162,6 +166,33 @@ class ExperimentScene:
         logger.info(f"Round {round_num} complete: {len(result.actions)} actions")
 
         return result
+
+    def _initialize_state(self) -> None:
+        """Initialize ExperimentState from config.
+
+        Creates AgentState for each agent and applies state_schema extensions.
+        Called during initialize() after agents are created.
+        """
+        # Create AgentState for each agent
+        for agent_config in self.config.agents:
+            name = agent_config.get("name", "")
+            if not name:
+                continue
+
+            agent_state = AgentState(
+                score=0,
+                position=agent_config.get("position"),
+                resources=agent_config.get("resources", {}),
+                properties=agent_config.get("properties", {}),
+            )
+            self.state.agents[name] = agent_state
+
+        # Apply state_schema extensions
+        if self.config.state_schema:
+            if "extensions" in self.config.state_schema:
+                self.state.extensions.update(self.config.state_schema["extensions"])
+
+        logger.debug(f"Initialized state for {len(self.state.agents)} agents")
 
     def _create_game_config(self) -> GameConfig:
         """Create GameConfig from config data."""
@@ -181,6 +212,35 @@ class ExperimentScene:
         # Get payoff parameters
         params = self.config.parameters or {}
 
+        # Handle configurable choices for coordination games (e.g., coordination_game)
+        if self.config.scenario_id in ("coordination_game", "graph_coloring"):
+            choices_str = params.get("choices") or params.get("Choices") or "red, blue, green"
+            action_names = [c.strip() for c in choices_str.split(",")]
+            action_descriptions = {c: f"Choose {c}" for c in action_names}
+
+        # Override action names/descriptions from parameterized action_1/action_2 if provided
+        if params.get("action_1") and params.get("action_2"):
+            a1 = params["action_1"]
+            a2 = params["action_2"]
+            action_names = [a1.lower(), a2.lower()]
+            action_descriptions = {
+                a1.lower(): params.get("action_1_description", a1),
+                a2.lower(): params.get("action_2_description", a2),
+            }
+
+        # Build description: use description_template if present on the scenario
+        description = self.config.description
+        try:
+            from socialsim4.core.scenarios.registry import get_scenario as _get_scenario
+            _scenario = _get_scenario(self.config.scenario_id)
+            if _scenario and "description_template" in _scenario and params.get("action_1") and params.get("action_2"):
+                description = _scenario["description_template"].format(
+                    action_1=params["action_1"],
+                    action_2=params["action_2"],
+                )
+        except Exception:
+            pass
+
         # Build supplementary prompt text: payoff table + sociology params
         supplementary_parts = []
         payoff_text = self._build_payoff_summary()
@@ -190,18 +250,59 @@ class ExperimentScene:
         if params_text:
             supplementary_parts.append(params_text)
 
+        # Build payoff_config from scenario registry metadata
+        payoff_config = {}
+        scenario_id = self.config.scenario_id
+        try:
+            _scenario_for_payoff = _scenario if '_scenario' in dir() else None
+            if _scenario_for_payoff is None:
+                from socialsim4.core.scenarios.registry import get_scenario as _get_scenario2
+                _scenario_for_payoff = _get_scenario2(scenario_id)
+            if _scenario_for_payoff and "matrix_meta" in _scenario_for_payoff:
+                cells = _scenario_for_payoff["matrix_meta"].get("cells", {})
+                # Remap matrix keys if action names were customized
+                if params.get("action_1") and params.get("action_2"):
+                    a1_key = params["action_1"].lower()
+                    a2_key = params["action_2"].lower()
+                    # Get the original action ids from registry actions
+                    orig_actions = [a["id"] for a in _scenario_for_payoff.get("actions", [])]
+                    if len(orig_actions) >= 2:
+                        orig_a1, orig_a2 = orig_actions[0], orig_actions[1]
+                        remapped = {}
+                        for cell_key, cell_val in cells.items():
+                            new_key = cell_key.replace(orig_a1, a1_key).replace(orig_a2, a2_key)
+                            remapped[new_key] = cell_val
+                        cells = remapped
+                payoff_config = {"matrix": cells}
+            if _scenario_for_payoff and _scenario_for_payoff.get("grouping_mode") == "group" and _scenario_for_payoff.get("payoff_type") == "matrix":
+                _defaults = {p["id"]: p["default"] for p in _scenario_for_payoff.get("parameters", [])}
+                if "stag_reward" in _defaults:
+                    a1_key = params.get("action_1", "stag").lower()
+                    payoff_config = {
+                        "group_payoff_mode": "threshold",
+                        "threshold_action": a1_key,
+                        "threshold_reward": params.get("stag_reward", _defaults["stag_reward"]),
+                        "threshold_failure": 0,
+                        "safe_reward": params.get("hare_reward", _defaults["hare_reward"]),
+                    }
+        except Exception:
+            pass
+
         return GameConfig(
             name=self.config.scenario_id,
-            description=self.config.description,
+            description=description,
             action_type="discrete",
             actions=action_names if action_names else ["cooperate", "defect"],
             action_descriptions=action_descriptions or None,
             payoff_summary="\n\n".join(supplementary_parts),
             output_field="action",
+            payoff_type=params.get("payoff_type", "matrix"),
+            grouping_mode=params.get("grouping_mode", "pairwise"),
             cooperate_reward=params.get("cooperate_reward"),
             sucker_penalty=params.get("sucker_penalty"),
             temptation_reward=params.get("temptation_reward"),
             defect_penalty=params.get("defect_penalty"),
+            payoff_config=payoff_config,
         )
 
     def _build_payoff_summary(self) -> str:
@@ -224,11 +325,12 @@ class ExperimentScene:
 
         if has_all_pd:
             # Use the PD-specific format with generic "points" terminology
-            return f"""Payoff Table (from your perspective):
-- If you COOPERATE and they cooperate: {params['cooperate_reward']} points
-- If you COOPERATE and they defect: {params['sucker_penalty']} points (sucker's payoff)
-- If you DEFECT and they cooperate: {params['temptation_reward']} points (temptation)
-- If you DEFECT and they defect: {params['defect_penalty']} points"""
+            # No meta-commentary - just the raw payoffs
+            return f"""Payoff Table:
+- You cooperate, they cooperate: {params['cooperate_reward']} points
+- You cooperate, they defect: {params['sucker_penalty']} points
+- You defect, they cooperate: {params['temptation_reward']} points
+- You defect, they defect: {params['defect_penalty']} points"""
 
         # Generic parameter display for other game types
         lines = ["Game Parameters:"]

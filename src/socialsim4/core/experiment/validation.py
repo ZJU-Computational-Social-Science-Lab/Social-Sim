@@ -4,6 +4,7 @@ Validation layer for LLM outputs (Layer 3 of Three-Layer Architecture).
 Handles fuzzy matching, clamping, and parsing edge cases for small models.
 """
 
+import json
 import re
 from typing import Optional
 
@@ -44,6 +45,54 @@ def strip_think_tags(text: str) -> str:
     cleaned = re.sub(r'<think>.*?</think>\s*', '', cleaned, flags=re.DOTALL)
     cleaned = re.sub(r'^[A-Za-z]+<think>.*?</think>\s*', '', cleaned, flags=re.DOTALL)
     return cleaned.strip()
+
+
+def extract_json(text: str) -> str:
+    """Extract the first valid JSON object from text, ignoring trailing content.
+
+    Handles cases where LLMs output:
+    - {"action": "cooperate"}</im_end|></answer>
+    - ```json\n{"action": "cooperate"}\n```\n</answer>
+    - {"action": "cooperate"}\nSome explanation text
+
+    Args:
+        text: Raw model output
+
+    Returns:
+        Extracted JSON string, or original text if no valid JSON found
+    """
+    text = text.strip()
+
+    # First strip markdown fences and think tags
+    text = strip_markdown_fences(text)
+    text = strip_think_tags(text)
+    text = text.strip()
+
+    # Try to find JSON object boundaries by tracking braces
+    brace_depth = 0
+    start_idx = None
+
+    for i in range(len(text)):
+        if text[i] == '{':
+            if start_idx is None:
+                start_idx = i
+            brace_depth += 1
+        elif text[i] == '}':
+            brace_depth -= 1
+            if brace_depth == 0 and start_idx is not None:
+                # Found complete JSON object
+                json_str = text[start_idx:i+1]
+                # Validate it's parseable
+                try:
+                    json.loads(json_str)
+                    return json_str
+                except json.JSONDecodeError:
+                    # Not valid JSON, keep looking
+                    start_idx = None
+                    continue
+
+    # Fallback: return original text (will fail in controller with clear error)
+    return text
 
 
 def validate_and_clamp(result: dict, game_config: GameConfig) -> Optional[dict]:

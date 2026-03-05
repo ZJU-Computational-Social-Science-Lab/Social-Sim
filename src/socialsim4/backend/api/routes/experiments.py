@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from typing import Any, List
 from pydantic import BaseModel
 from litestar import post, get, Router
@@ -20,6 +22,8 @@ from socialsim4.backend.services.experiment_runner import (
     start_experiment_run_background,
 )
 from socialsim4.backend.models.experiment import Experiment
+
+logger = logging.getLogger(__name__)
 
 
 class VariantSpec(BaseModel):

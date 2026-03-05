@@ -4,8 +4,8 @@ Game configuration for experiment prompts.
 Adapted from tests/llm_prompt_testing/prompt_v2/game_configs.py
 """
 
-from dataclasses import dataclass
-from typing import Literal
+from dataclasses import dataclass, field
+from typing import Literal, Any
 
 
 @dataclass
@@ -26,6 +26,9 @@ class GameConfig:
         sucker_penalty: Payoff when you cooperate, they defect (S)
         temptation_reward: Payoff when you defect, they cooperate (T)
         defect_penalty: Payoff when both defect (P)
+        grouping_mode: How agents are grouped - "pairwise", "group", "neighbor", "individual"
+        payoff_type: Type of payoff - "matrix", "pool", "feedback", "none"
+        payoff_config: Configuration for payoff calculation
     """
     name: str
     description: str
@@ -41,6 +44,10 @@ class GameConfig:
     sucker_penalty: int | None = None
     temptation_reward: int | None = None
     defect_penalty: int | None = None
+    # New fields for generic payoff system
+    grouping_mode: str = "pairwise"
+    payoff_type: str = "matrix"
+    payoff_config: dict[str, Any] = field(default_factory=dict)
 
 
 # Predefined game configs for the 6 social science patterns

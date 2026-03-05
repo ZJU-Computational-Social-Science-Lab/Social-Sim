@@ -34,6 +34,7 @@ class RoundEvent:
         summary: Human-readable summary
         observed_by: List of agents who observe this event (default: [agent_name])
         payoff: Optional payoff earned this round
+        feedback: Optional coordination feedback for feedback-based games
     """
     agent_name: str
     action_name: str
@@ -42,6 +43,7 @@ class RoundEvent:
     summary: str
     observed_by: List[str] = field(default_factory=list)
     payoff: Optional[int] = None
+    feedback: Optional[str] = None  # Coordination feedback text
 
     def __post_init__(self):
         if not self.observed_by:

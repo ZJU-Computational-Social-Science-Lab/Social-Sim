@@ -6,6 +6,7 @@ import pytest
 
 from socialsim4.core.experiment.game_configs import PRISONERS_DILEMMA, MINIMUM_EFFORT
 from socialsim4.core.experiment.validation import (
+    extract_json,
     strip_markdown_fences,
     strip_think_tags,
     validate_and_clamp,
@@ -196,3 +197,70 @@ def test_validate_consensus_game_range():
     result = {"value": 50}  # In range
     validated = validate_and_clamp(result, CONSENSUS_GAME)
     assert validated["value"] == 50
+
+
+# Tests for extract_json function
+def test_extract_json_plain():
+    """Extract plain JSON object."""
+    result = extract_json('{"action": "cooperate"}')
+    assert result == '{"action": "cooperate"}'
+
+
+def test_extract_json_with_trailing_tokens():
+    """Extract JSON with trailing model-specific tokens."""
+    result = extract_json('{"action": "cooperate"}</im_end|></answer>')
+    assert result == '{"action": "cooperate"}'
+
+
+def test_extract_json_with_trailing_text():
+    """Extract JSON with trailing explanation text."""
+    result = extract_json('{"action": "cooperate"}\nSome explanation text')
+    assert result == '{"action": "cooperate"}'
+
+
+def test_extract_json_with_markdown_fences():
+    """Extract JSON from markdown fence with trailing tokens."""
+    result = extract_json('```json\n{"action": "cooperate"}\n```\n</answer>')
+    assert result == '{"action": "cooperate"}'
+
+
+def test_extract_json_with_think_tags():
+    """Extract JSON after stripping think tags."""
+    result = extract_json('<|thinking|>Let me think...<|/thinking|>\n{"action": "cooperate"}')
+    assert result == '{"action": "cooperate"}'
+
+
+def test_extract_json_nested():
+    """Extract nested JSON object."""
+    result = extract_json('{"action": "cooperate", "metadata": {"reason": "trust"}}')
+    assert result == '{"action": "cooperate", "metadata": {"reason": "trust"}}'
+
+
+def test_extract_json_nested_with_trailing():
+    """Extract nested JSON with trailing content."""
+    result = extract_json('{"outer": {"inner": "value"}}\n</answer>')
+    assert result == '{"outer": {"inner": "value"}}'
+
+
+def test_extract_json_invalid_returns_original():
+    """Return original text when no valid JSON found."""
+    result = extract_json('not json at all')
+    assert result == 'not json at all'
+
+
+def test_extract_json_empty_object():
+    """Extract empty JSON object."""
+    result = extract_json('{}')
+    assert result == '{}'
+
+
+def test_extract_json_with_whitespace():
+    """Extract JSON with surrounding whitespace."""
+    result = extract_json('  \n  {"action": "cooperate"}  \n  ')
+    assert result == '{"action": "cooperate"}'
+
+
+def test_extract_json_multiple_objects():
+    """Extract first valid JSON when multiple objects present."""
+    result = extract_json('{"first": 1}{"second": 2}')
+    assert result == '{"first": 1}'

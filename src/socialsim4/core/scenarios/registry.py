@@ -18,6 +18,8 @@ PRISONERS_DILEMMA: Dict[str, Any] = {
     "name": "Prisoner's Dilemma",
     "category": "game_theory",
     "description": "Two suspects are arrested and held separately. Each must decide whether to betray the other or remain silent. Your payoff depends on both your choice and your partner's choice.",
+    "grouping_mode": "pairwise",
+    "payoff_type": "matrix",
     "interaction_mode": "simultaneous",
     "display_type": "payoff_matrix",
     "matrix_meta": {
@@ -31,6 +33,7 @@ PRISONERS_DILEMMA: Dict[str, Any] = {
             "defect_defect": {"row": 3, "col": 3},
         }
     },
+    "description_template": "Two agents choose between {action_1} or {action_2}. Payoff depends on both choices.",
     "parameters": [
         {
             "id": "cooperate_reward",
@@ -72,10 +75,42 @@ PRISONERS_DILEMMA: Dict[str, Any] = {
             "min": 0,
             "max": 10,
         },
+        {
+            "id": "action_1",
+            "key": "action_1",
+            "label": "Action 1 Name",
+            "type": "string",
+            "default": "Cooperate",
+            "ui_hint": "text",
+        },
+        {
+            "id": "action_1_description",
+            "key": "action_1_description",
+            "label": "Action 1 Description",
+            "type": "string",
+            "default": "Work together with your partner",
+            "ui_hint": "text",
+        },
+        {
+            "id": "action_2",
+            "key": "action_2",
+            "label": "Action 2 Name",
+            "type": "string",
+            "default": "Defect",
+            "ui_hint": "text",
+        },
+        {
+            "id": "action_2_description",
+            "key": "action_2_description",
+            "label": "Action 2 Description",
+            "type": "string",
+            "default": "Pursue your own interest",
+            "ui_hint": "text",
+        },
     ],
     "actions": [
-        {"id": "cooperate", "name": "Cooperate", "description": "Remain silent and cooperate"},
-        {"id": "defect", "name": "Defect", "description": "Betray your partner"},
+        {"id": "cooperate", "name": "Cooperate", "description": "Work together with your partner"},
+        {"id": "defect", "name": "Defect", "description": "Pursue your own interest"},
     ],
 }
 
@@ -84,6 +119,8 @@ BATTLE_OF_THE_SEXES: Dict[str, Any] = {
     "name": "Battle of the Sexes",
     "category": "game_theory",
     "description": "A couple wants to coordinate on an evening activity. One prefers opera, the other prefers football. They get positive payoff if they coordinate, but each prefers their own activity.",
+    "grouping_mode": "pairwise",
+    "payoff_type": "matrix",
     "interaction_mode": "simultaneous",
     "display_type": "payoff_matrix",
     "matrix_meta": {
@@ -97,13 +134,14 @@ BATTLE_OF_THE_SEXES: Dict[str, Any] = {
             "football_football": {"row": 1, "col": 3},
         }
     },
+    "description_template": "Two agents coordinate. One prefers {action_1}, the other {action_2}.",
     "parameters": [
         {
             "id": "preferred_mispreferred",
             "key": "preferred_mispreferred",
             "label": "Preferred / Mispreferred Payoff",
             "type": "integer",
-            "default": "3",
+            "default": 3,
             "ui_hint": "slider",
             "min": 1,
             "max": 5,
@@ -113,10 +151,42 @@ BATTLE_OF_THE_SEXES: Dict[str, Any] = {
             "key": "mispreferred_payoff",
             "label": "Mispreferred Alone Payoff",
             "type": "integer",
-            "default": "0",
+            "default": 0,
             "ui_hint": "slider",
             "min": 0,
             "max": 5,
+        },
+        {
+            "id": "action_1",
+            "key": "action_1",
+            "label": "Action 1 Name",
+            "type": "string",
+            "default": "Opera",
+            "ui_hint": "text",
+        },
+        {
+            "id": "action_1_description",
+            "key": "action_1_description",
+            "label": "Action 1 Description",
+            "type": "string",
+            "default": "Go to the opera",
+            "ui_hint": "text",
+        },
+        {
+            "id": "action_2",
+            "key": "action_2",
+            "label": "Action 2 Name",
+            "type": "string",
+            "default": "Football",
+            "ui_hint": "text",
+        },
+        {
+            "id": "action_2_description",
+            "key": "action_2_description",
+            "label": "Action 2 Description",
+            "type": "string",
+            "default": "Go to the football game",
+            "ui_hint": "text",
         },
     ],
     "actions": [
@@ -130,6 +200,8 @@ STAG_HUNT: Dict[str, Any] = {
     "name": "Stag Hunt",
     "category": "game_theory",
     "description": "Hunters must all choose stag (high reward) or hare (safe but low reward). Stag requires everyone to cooperate. If even one person chooses hare, the stag escapes and stag hunters get nothing.",
+    "grouping_mode": "group",
+    "payoff_type": "matrix",
     "interaction_mode": "simultaneous",
     "display_type": "payoff_matrix",
     "matrix_meta": {
@@ -143,6 +215,7 @@ STAG_HUNT: Dict[str, Any] = {
             "hare_hare": {"value": 1},
         }
     },
+    "description_template": "Group chooses {action_1} (risky, high reward if all cooperate) or {action_2} (safe, lower reward).",
     "parameters": [
         {
             "id": "stag_reward",
@@ -164,6 +237,38 @@ STAG_HUNT: Dict[str, Any] = {
             "min": 0,
             "max": 5,
         },
+        {
+            "id": "action_1",
+            "key": "action_1",
+            "label": "Action 1 Name",
+            "type": "string",
+            "default": "Stag",
+            "ui_hint": "text",
+        },
+        {
+            "id": "action_1_description",
+            "key": "action_1_description",
+            "label": "Action 1 Description",
+            "type": "string",
+            "default": "Hunt the stag (requires all to cooperate)",
+            "ui_hint": "text",
+        },
+        {
+            "id": "action_2",
+            "key": "action_2",
+            "label": "Action 2 Name",
+            "type": "string",
+            "default": "Hare",
+            "ui_hint": "text",
+        },
+        {
+            "id": "action_2_description",
+            "key": "action_2_description",
+            "label": "Action 2 Description",
+            "type": "string",
+            "default": "Hunt the hare (safe but lower reward)",
+            "ui_hint": "text",
+        },
     ],
     "actions": [
         {"id": "stag", "name": "Stag", "description": "Hunt the stag (requires all to cooperate)"},
@@ -180,6 +285,8 @@ SOCIAL_NORM_DISRUPTION: Dict[str, Any] = {
     "name": "Social Norm Disruption",
     "category": "sociology",
     "description": "A new rule is suddenly imposed on the group. Agents with different social status and temperament must decide how to respond.",
+    "grouping_mode": "group",
+    "payoff_type": "none",
     "interaction_mode": "simultaneous",
     "display_type": "params",
     "parameters": [
@@ -211,6 +318,8 @@ POLICY_EROSION: Dict[str, Any] = {
     "name": "Policy Meaning Erosion",
     "category": "sociology",
     "description": "A 3-tier hierarchy must transmit a policy from top to bottom. At each level, subordinates may reinterpret or resist the directive.",
+    "grouping_mode": "individual",
+    "payoff_type": "none",
     "interaction_mode": "sequential",
     "display_type": "params",
     "parameters": [
@@ -243,6 +352,8 @@ ECHO_CHAMBER: Dict[str, Any] = {
     "name": "Echo Chamber",
     "category": "sociology",
     "description": "Agents with initial opinions interact and share information. They prefer connections with similar views, leading to potential polarization.",
+    "grouping_mode": "neighbor",
+    "payoff_type": "none",
     "interaction_mode": "simultaneous",
     "display_type": "params",
     "parameters": [
@@ -274,6 +385,8 @@ RESOURCE_SCARCITY: Dict[str, Any] = {
     "name": "Resource Scarcity",
     "category": "sociology",
     "description": "A community has limited resources. Agents must decide whether to cooperate by sharing or compete by hoarding. Tests trust and collective action.",
+    "grouping_mode": "group",
+    "payoff_type": "none",
     "interaction_mode": "simultaneous",
     "display_type": "params",
     "parameters": [
@@ -311,6 +424,8 @@ OPEN_DISCUSSION: Dict[str, Any] = {
     "name": "Open Discussion",
     "category": "discussion",
     "description": "Agents discuss a topic freely. No structured decisions - just conversation.",
+    "grouping_mode": "individual",
+    "payoff_type": "none",
     "interaction_mode": "simultaneous",
     "display_type": "params",
     "parameters": [
@@ -321,16 +436,6 @@ OPEN_DISCUSSION: Dict[str, Any] = {
             "type": "string",
             "default": "What should we have for lunch?",
             "ui_hint": "textarea",
-        },
-        {
-            "id": "max_turns",
-            "key": "max_turns",
-            "label": "Maximum Turns",
-            "type": "integer",
-            "default": 10,
-            "ui_hint": "slider",
-            "min": 5,
-            "max": 30,
         },
     ],
     "actions": [
@@ -343,6 +448,8 @@ GRID_WORLD: Dict[str, Any] = {
     "name": "Grid World",
     "category": "grid_world",
     "description": "Agents move on a grid, collecting resources and observing their environment.",
+    "grouping_mode": "neighbor",
+    "payoff_type": "none",
     "interaction_mode": "simultaneous",
     "display_type": "params",
     "parameters": [
@@ -384,6 +491,8 @@ WEREWOLF: Dict[str, Any] = {
     "name": "Werewolf",
     "category": "social_deduction",
     "description": "A social deduction game where villagers try to identify werewolves among them while werewolves try to eliminate villagers at night.",
+    "grouping_mode": "role_based",
+    "payoff_type": "none",
     "interaction_mode": "sequential",
     "display_type": "params",
     "parameters": [
@@ -423,10 +532,99 @@ CUSTOM: Dict[str, Any] = {
     "name": "Custom Scenario",
     "category": "discussion",
     "description": "Build your own custom experiment from scratch.",
+    "grouping_mode": "individual",
+    "payoff_type": "none",
     "interaction_mode": "simultaneous",
     "display_type": "params",
     "parameters": [],
     "actions": [],
+}
+
+# ============================================================================
+# Public Goods Game
+# ============================================================================
+
+PUBLIC_GOODS: Dict[str, Any] = {
+    "id": "public_goods",
+    "name": "Public Goods Game",
+    "category": "game_theory",
+    "description": "Each agent has tokens and decides how much to contribute to a shared pool. The pool is multiplied and distributed equally among all agents, regardless of contribution.",
+    "grouping_mode": "group",
+    "payoff_type": "pool",
+    "interaction_mode": "simultaneous",
+    "display_type": "params",
+    "parameters": [
+        {
+            "id": "initial_tokens",
+            "key": "initial_tokens",
+            "label": "Initial Tokens",
+            "type": "integer",
+            "default": 20,
+            "ui_hint": "slider",
+            "min": 10,
+            "max": 50,
+        },
+        {
+            "id": "multiplier",
+            "key": "multiplier",
+            "label": "Pool Multiplier",
+            "type": "number",
+            "default": 1.5,
+            "ui_hint": "slider",
+            "min": 1.0,
+            "max": 3.0,
+        },
+    ],
+    "actions": [
+        {"id": "contribute", "name": "Contribute", "description": "Contribute some tokens to the pool"},
+    ],
+    "state_schema": {
+        "extensions": {"pools": {"main": 0}},
+        "resources": {"tokens": 20},
+    },
+}
+
+# ============================================================================
+# Graph Coloring
+# ============================================================================
+
+COORDINATION_GAME: Dict[str, Any] = {
+    "id": "coordination_game",
+    "name": "Coordination Game",
+    "category": "game_theory",
+    "description": "You and your neighbors each pick an option. You can see what your neighbors chose in previous rounds.",
+    "grouping_mode": "neighbor",
+    "payoff_type": "feedback",
+    "interaction_mode": "sequential",
+    "display_type": "params",
+    "parameters": [
+        {
+            "id": "choices",
+            "key": "choices",
+            "label": "Available Choices",
+            "type": "string",
+            "default": "red, blue, green",
+            "ui_hint": "text",
+            "description": "Comma-separated list of choices agents can pick from",
+        },
+        {
+            "id": "goal",
+            "key": "goal",
+            "label": "Coordination Goal",
+            "type": "string",
+            "default": "differ",
+            "ui_hint": "select",
+            "options": ["match", "differ"],
+            "description": "Whether agents should try to match or differ from their neighbors",
+        },
+    ],
+    "actions": [
+        {"id": "choose", "name": "Choose", "description": "Select an option from the available choices"},
+    ],
+    "state_schema": {
+        "extensions": {"choices": {}, "graph": {"edges": []}},
+        "visibility": "neighbors",
+    },
 }
 
 # ============================================================================
@@ -444,6 +642,8 @@ ALL_SCENARIOS: List[Dict[str, Any]] = [
     OPEN_DISCUSSION,
     GRID_WORLD,
     WEREWOLF,
+    PUBLIC_GOODS,
+    COORDINATION_GAME,
     CUSTOM,
 ]
 
@@ -456,12 +656,15 @@ def get_all_scenarios() -> List[Dict[str, Any]]:
     """
     scenarios = []
     for scenario in ALL_SCENARIOS:
+        # Copy scenario to avoid mutating original
+        scenario_copy = scenario.copy()
+
         # Add category_actions for sociology scenarios
-        if scenario.get("category_actions") and isinstance(scenario["category_actions"], str):
-            category = scenario["category_actions"]
+        if scenario_copy.get("category_actions") and isinstance(scenario_copy["category_actions"], str):
+            category = scenario_copy["category_actions"]
             if category in CATEGORY_ACTION_LIBRARIES:
-                scenario["category_actions"] = CATEGORY_ACTION_LIBRARIES[category]
-        scenarios.append(scenario)
+                scenario_copy["category_actions"] = CATEGORY_ACTION_LIBRARIES[category]
+        scenarios.append(scenario_copy)
     return scenarios
 
 
@@ -472,15 +675,14 @@ def get_scenario(scenario_id: str) -> Dict[str, Any] | None:
         scenario_id: The unique scenario identifier
 
     Returns:
-        Scenario dict, or None if not found.
+        A copy of the scenario dict, or None if not found.
     """
     for scenario in ALL_SCENARIOS:
         if scenario["id"] == scenario_id:
-            # Add category_actions if needed
+            scenario = scenario.copy()
             if scenario.get("category_actions") and isinstance(scenario["category_actions"], str):
                 category = scenario["category_actions"]
                 if category in CATEGORY_ACTION_LIBRARIES:
-                    scenario = scenario.copy()
                     scenario["category_actions"] = CATEGORY_ACTION_LIBRARIES[category]
             return scenario
     return None

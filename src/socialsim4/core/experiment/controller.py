@@ -28,6 +28,7 @@ from socialsim4.core.experiment.validation import (
     strip_markdown_fences,
     strip_think_tags,
     validate_and_clamp,
+    extract_json,
 )
 from socialsim4.core.llm.client import LLMClient
 
@@ -132,8 +133,8 @@ class ExperimentController:
 
         print(f"\n[CONTROLLER] Processing response from {agent.name}")
 
-        # Step 1: Clean and parse JSON
-        cleaned = strip_think_tags(strip_markdown_fences(raw_json))
+        # Step 1: Extract and parse JSON (handles trailing content from some models)
+        cleaned = extract_json(raw_json)
 
         # If the model prepends junk before the first JSON object, trim to the
         # outermost braces to keep parsing strict while tolerating prefixes.
@@ -337,7 +338,7 @@ class ExperimentController:
                     parameters = {"message": followup_response.strip()}
                 else:
                     # JSON response: parse and extract expected parameters
-                    cleaned = strip_think_tags(strip_markdown_fences(followup_response))
+                    cleaned = extract_json(followup_response)
                     parsed_followup = json.loads(cleaned)
                     parameters = {k: parsed_followup.get(k) for k in param_schema.keys() if k in parsed_followup}
 
