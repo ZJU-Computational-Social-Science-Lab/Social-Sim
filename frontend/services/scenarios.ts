@@ -13,6 +13,7 @@ export interface ScenarioParam {
   step?: number;
   options?: string[];
   placeholder?: string;
+  generates_actions?: boolean;  // Flag indicating this parameter generates actions
 }
 
 export interface ActionDef {
