@@ -10,18 +10,12 @@ The prompt builder constructs structured prompts from:
 """
 
 import logging
-import sys
 from typing import Dict, Any, Literal
 
 from socialsim4.core.experiment.agent import ExperimentAgent
 from socialsim4.core.experiment.game_configs import GameConfig
 
-# Configure debug logging to stdout
 logger = logging.getLogger(__name__)
-_handler = logging.StreamHandler(sys.stdout)
-_handler.setLevel(logging.DEBUG)
-_handler.setFormatter(logging.Formatter('[EXPERIMENT PROMPT] %(message)s'))
-logger.addHandler(_handler)
 logger.setLevel(logging.DEBUG)
 
 

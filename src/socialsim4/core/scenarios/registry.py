@@ -33,6 +33,7 @@ PRISONERS_DILEMMA: Dict[str, Any] = {
             "defect_defect": {"row": 3, "col": 3},
         }
     },
+    "description_template": "Two agents choose between {action_1} or {action_2}. Payoff depends on both choices.",
     "parameters": [
         {
             "id": "cooperate_reward",
@@ -74,6 +75,38 @@ PRISONERS_DILEMMA: Dict[str, Any] = {
             "min": 0,
             "max": 10,
         },
+        {
+            "id": "action_1",
+            "key": "action_1",
+            "label": "Action 1 Name",
+            "type": "string",
+            "default": "Cooperate",
+            "ui_hint": "text",
+        },
+        {
+            "id": "action_1_description",
+            "key": "action_1_description",
+            "label": "Action 1 Description",
+            "type": "string",
+            "default": "Work together with your partner",
+            "ui_hint": "text",
+        },
+        {
+            "id": "action_2",
+            "key": "action_2",
+            "label": "Action 2 Name",
+            "type": "string",
+            "default": "Defect",
+            "ui_hint": "text",
+        },
+        {
+            "id": "action_2_description",
+            "key": "action_2_description",
+            "label": "Action 2 Description",
+            "type": "string",
+            "default": "Pursue your own interest",
+            "ui_hint": "text",
+        },
     ],
     "actions": [
         {"id": "cooperate", "name": "Cooperate", "description": "Work together with your partner"},
@@ -101,6 +134,7 @@ BATTLE_OF_THE_SEXES: Dict[str, Any] = {
             "football_football": {"row": 1, "col": 3},
         }
     },
+    "description_template": "Two agents coordinate. One prefers {action_1}, the other {action_2}.",
     "parameters": [
         {
             "id": "preferred_mispreferred",
@@ -121,6 +155,38 @@ BATTLE_OF_THE_SEXES: Dict[str, Any] = {
             "ui_hint": "slider",
             "min": 0,
             "max": 5,
+        },
+        {
+            "id": "action_1",
+            "key": "action_1",
+            "label": "Action 1 Name",
+            "type": "string",
+            "default": "Opera",
+            "ui_hint": "text",
+        },
+        {
+            "id": "action_1_description",
+            "key": "action_1_description",
+            "label": "Action 1 Description",
+            "type": "string",
+            "default": "Go to the opera",
+            "ui_hint": "text",
+        },
+        {
+            "id": "action_2",
+            "key": "action_2",
+            "label": "Action 2 Name",
+            "type": "string",
+            "default": "Football",
+            "ui_hint": "text",
+        },
+        {
+            "id": "action_2_description",
+            "key": "action_2_description",
+            "label": "Action 2 Description",
+            "type": "string",
+            "default": "Go to the football game",
+            "ui_hint": "text",
         },
     ],
     "actions": [
@@ -149,6 +215,7 @@ STAG_HUNT: Dict[str, Any] = {
             "hare_hare": {"value": 1},
         }
     },
+    "description_template": "Group chooses {action_1} (risky, high reward if all cooperate) or {action_2} (safe, lower reward).",
     "parameters": [
         {
             "id": "stag_reward",
@@ -169,6 +236,38 @@ STAG_HUNT: Dict[str, Any] = {
             "ui_hint": "slider",
             "min": 0,
             "max": 5,
+        },
+        {
+            "id": "action_1",
+            "key": "action_1",
+            "label": "Action 1 Name",
+            "type": "string",
+            "default": "Stag",
+            "ui_hint": "text",
+        },
+        {
+            "id": "action_1_description",
+            "key": "action_1_description",
+            "label": "Action 1 Description",
+            "type": "string",
+            "default": "Hunt the stag (requires all to cooperate)",
+            "ui_hint": "text",
+        },
+        {
+            "id": "action_2",
+            "key": "action_2",
+            "label": "Action 2 Name",
+            "type": "string",
+            "default": "Hare",
+            "ui_hint": "text",
+        },
+        {
+            "id": "action_2_description",
+            "key": "action_2_description",
+            "label": "Action 2 Description",
+            "type": "string",
+            "default": "Hunt the hare (safe but lower reward)",
+            "ui_hint": "text",
         },
     ],
     "actions": [
@@ -489,11 +588,11 @@ PUBLIC_GOODS: Dict[str, Any] = {
 # Graph Coloring
 # ============================================================================
 
-GRAPH_COLORING: Dict[str, Any] = {
-    "id": "graph_coloring",
-    "name": "Graph Coloring",
+COORDINATION_GAME: Dict[str, Any] = {
+    "id": "coordination_game",
+    "name": "Coordination Game",
     "category": "game_theory",
-    "description": "Agents are nodes in a graph and must choose an option. Try to choose differently from your neighbors. You can see your neighbors' current choices.",
+    "description": "You and your neighbors each pick an option. You can see what your neighbors chose in previous rounds.",
     "grouping_mode": "neighbor",
     "payoff_type": "feedback",
     "interaction_mode": "sequential",
@@ -508,9 +607,16 @@ GRAPH_COLORING: Dict[str, Any] = {
             "ui_hint": "text",
             "description": "Comma-separated list of choices agents can pick from",
         },
-        # REMOVED: graph_type - graphs come from frontend via NetworkEditorModal
-        # REMOVED: edge_probability - graphs come from frontend
-        # REMOVED: num_colors - replaced by configurable choices
+        {
+            "id": "goal",
+            "key": "goal",
+            "label": "Coordination Goal",
+            "type": "string",
+            "default": "differ",
+            "ui_hint": "select",
+            "options": ["match", "differ"],
+            "description": "Whether agents should try to match or differ from their neighbors",
+        },
     ],
     "actions": [
         {"id": "choose", "name": "Choose", "description": "Select an option from the available choices"},
@@ -537,7 +643,7 @@ ALL_SCENARIOS: List[Dict[str, Any]] = [
     GRID_WORLD,
     WEREWOLF,
     PUBLIC_GOODS,
-    GRAPH_COLORING,
+    COORDINATION_GAME,
     CUSTOM,
 ]
 
@@ -569,15 +675,14 @@ def get_scenario(scenario_id: str) -> Dict[str, Any] | None:
         scenario_id: The unique scenario identifier
 
     Returns:
-        Scenario dict, or None if not found.
+        A copy of the scenario dict, or None if not found.
     """
     for scenario in ALL_SCENARIOS:
         if scenario["id"] == scenario_id:
-            # Add category_actions if needed
+            scenario = scenario.copy()
             if scenario.get("category_actions") and isinstance(scenario["category_actions"], str):
                 category = scenario["category_actions"]
                 if category in CATEGORY_ACTION_LIBRARIES:
-                    scenario = scenario.copy()
                     scenario["category_actions"] = CATEGORY_ACTION_LIBRARIES[category]
             return scenario
     return None
