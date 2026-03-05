@@ -236,7 +236,7 @@ INFORMATION_MODEL_MAP: dict = {
     ),
     "public_goods": InformationModel(scope_type="all", recent_window=3),
     "public-goods": InformationModel(scope_type="all", recent_window=3),
-    # Graph Coloring - neighbor-based coordination with feedback (no scores)
+    # Graph Coloring / Coordination Game - neighbor-based coordination with feedback (no scores)
     "graph_coloring": InformationModel(
         scope_type="neighborhood",
         recent_window=5,
@@ -247,6 +247,24 @@ INFORMATION_MODEL_MAP: dict = {
         recent_window=5,
         include_scores=False,
     ),
+    "coordination_game": InformationModel(
+        scope_type="neighborhood",
+        recent_window=5,
+        include_scores=False,
+    ),
+    "coordination-game": InformationModel(
+        scope_type="neighborhood",
+        recent_window=5,
+        include_scores=False,
+    ),
+    # Sociology scenarios - no payoff scores to show
+    "social_norm_disruption": InformationModel(scope_type="all", recent_window=3, include_scores=False),
+    "policy_erosion": InformationModel(scope_type="all", recent_window=3, include_scores=False),
+    "echo_chamber": InformationModel(scope_type="neighborhood", recent_window=3, include_scores=False),
+    "resource_scarcity": InformationModel(scope_type="all", recent_window=3, include_scores=False),
+    "open_discussion": InformationModel(scope_type="all", recent_window=3, include_scores=False),
+    "werewolf": InformationModel(scope_type="all", recent_window=3, include_scores=False),
+    "grid_world": InformationModel(scope_type="neighborhood", recent_window=3, include_scores=False),
     # Fallback for unknown scene types
     "_default": InformationModel(scope_type="all", recent_window=3),
 }

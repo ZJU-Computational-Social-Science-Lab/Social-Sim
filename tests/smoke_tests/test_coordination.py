@@ -1,7 +1,7 @@
 """
 Smoke tests for coordination scenarios with real Ollama LLM.
 
-Tests Graph Coloring scenario with neighbor-based visibility and feedback payoffs.
+Tests Coordination Game scenario with neighbor-based visibility and feedback payoffs.
 """
 
 import asyncio
@@ -21,10 +21,10 @@ from tests.smoke_tests.utils import (
 )
 
 
-def build_graph_coloring_config() -> GameConfig:
-    """Build Graph Coloring game config."""
+def build_coordination_game_config() -> GameConfig:
+    """Build Coordination Game config."""
     return GameConfig(
-        name="graph_coloring",
+        name="coordination_game",
         description=(
             "You are a node in a graph and must choose a color (red, blue, or green). "
             "No two adjacent nodes should have the same color. "
@@ -43,13 +43,13 @@ def build_graph_coloring_config() -> GameConfig:
 
 
 # =============================================================================
-# Graph Coloring Tests
+# Coordination Game Tests
 # =============================================================================
 
 @pytest.mark.asyncio
-async def test_graph_coloring_basic(default_llm_client, output_dir):
-    """Test Graph Coloring with 3 agents in a triangle graph."""
-    game_config = build_graph_coloring_config()
+async def test_coordination_game_basic(default_llm_client, output_dir):
+    """Test Coordination Game with 3 agents in a triangle graph."""
+    game_config = build_coordination_game_config()
     llm_config = LLMConfig(dialect="ollama", model="phi4-mini:latest", base_url="http://localhost:11434")
 
     agents = [
@@ -68,10 +68,10 @@ async def test_graph_coloring_basic(default_llm_client, output_dir):
         context_budget_chars=0,
     )
 
-    filename = f"graph_coloring_phi4-mini_basic.txt"
+    filename = f"coordination_game_phi4-mini_basic.txt"
     filepath = output_dir / filename
 
-    with SmokeTestOutput(filepath, "graph_coloring", "phi4-mini", "basic") as out:
+    with SmokeTestOutput(filepath, "coordination_game", "phi4-mini", "basic") as out:
         out.write_config({
             "grouping_mode": "neighbor",
             "payoff_type": "feedback",
@@ -112,9 +112,9 @@ async def test_graph_coloring_basic(default_llm_client, output_dir):
 
 
 @pytest.mark.asyncio
-async def test_graph_coloring_no_scores(default_llm_client, output_dir):
-    """Verify that Graph Coloring shows NO score in agent context."""
-    game_config = build_graph_coloring_config()
+async def test_coordination_game_no_scores(default_llm_client, output_dir):
+    """Verify that Coordination Game shows NO score in agent context."""
+    game_config = build_coordination_game_config()
     llm_config = LLMConfig(dialect="ollama", model="phi4-mini:latest", base_url="http://localhost:11434")
 
     agents = [
@@ -130,10 +130,10 @@ async def test_graph_coloring_no_scores(default_llm_client, output_dir):
         context_budget_chars=0,
     )
 
-    filename = f"graph_coloring_phi4-mini_no_scores.txt"
+    filename = f"coordination_game_phi4-mini_no_scores.txt"
     filepath = output_dir / filename
 
-    with SmokeTestOutput(filepath, "graph_coloring", "phi4-mini", "no_scores") as out:
+    with SmokeTestOutput(filepath, "coordination_game", "phi4-mini", "no_scores") as out:
         out.write_config({
             "grouping_mode": "neighbor",
             "payoff_type": "feedback",
@@ -171,8 +171,8 @@ async def test_graph_coloring_no_scores(default_llm_client, output_dir):
 
 
 @pytest.mark.asyncio
-async def test_graph_coloring_shows_feedback(default_llm_client, output_dir):
-    """Verify that Graph Coloring shows coordination feedback, NOT scores.
+async def test_coordination_game_shows_feedback(default_llm_client, output_dir):
+    """Verify that Coordination Game shows coordination feedback, NOT scores.
 
     This test verifies:
     1. Feedback is generated for each agent based on neighbor choices
@@ -182,7 +182,7 @@ async def test_graph_coloring_shows_feedback(default_llm_client, output_dir):
     # Use configurable choices
     choices = ["red", "blue", "green"]
     game_config = GameConfig(
-        name="graph_coloring",
+        name="coordination_game",
         description="Choose a color different from your neighbors.",
         action_type="discrete",
         actions=choices,
@@ -208,10 +208,10 @@ async def test_graph_coloring_shows_feedback(default_llm_client, output_dir):
         recent_window=5,
     )
 
-    filename = "graph_coloring_phi4-mini_feedback.txt"
+    filename = "coordination_game_phi4-mini_feedback.txt"
     filepath = output_dir / filename
 
-    with SmokeTestOutput(filepath, "graph_coloring", "phi4-mini", "feedback") as out:
+    with SmokeTestOutput(filepath, "coordination_game", "phi4-mini", "feedback") as out:
         out.write_config({
             "grouping_mode": "neighbor",
             "payoff_type": "feedback",
@@ -252,6 +252,6 @@ async def test_graph_coloring_shows_feedback(default_llm_client, output_dir):
         for event in events:
             if event.round_num == 2:  # Second round has neighbor context
                 assert event.feedback is not None, "Feedback should be generated for feedback-type games"
-                out.write_line(f"  Feedback for {event.agent_name}: {event.feedback}")
+                out.file.write(f"  Feedback for {event.agent_name}: {event.feedback}\n")
 
     assert len(round_results) == 2

@@ -53,29 +53,39 @@ def convert_scenario_to_game_config(scenario_id: str) -> GameConfig:
     """
     scenario = get_scenario(scenario_id)
 
-    # Extract action IDs and descriptions from actions list
-    actions = [a["id"] for a in scenario["actions"]]
-    action_descriptions = {a["id"]: a["description"] for a in scenario["actions"]}
+    # Extract parameter defaults (including custom action names if set)
+    _params = {p["id"]: p["default"] for p in scenario.get("parameters", [])}
 
-    # Build payoff_config from matrix_meta if available
+    # Use parameterized action names if defined, else use registry action IDs
+    if _params.get("action_1") and _params.get("action_2"):
+        a1 = _params["action_1"].lower()
+        a2 = _params["action_2"].lower()
+        actions = [a1, a2]
+        action_descriptions = {
+            a1: _params.get("action_1_description", a1),
+            a2: _params.get("action_2_description", a2),
+        }
+    else:
+        actions = [a["id"] for a in scenario["actions"]]
+        action_descriptions = {a["id"]: a["description"] for a in scenario["actions"]}
+
+    # Build payoff_config from matrix_meta if available (generic — pass all cells as-is)
     payoff_config = {}
     if "matrix_meta" in scenario:
-        matrix = scenario["matrix_meta"]
-        cells = matrix.get("cells", {})
-        payoff_config = {
-            "matrix": {
-                "cooperate_cooperate": {"value": cells.get("cooperate_cooperate", {}).get("row", 3)},
-                "cooperate_defect": {
-                    "row": cells.get("cooperate_defect", {}).get("row", 0),
-                    "col": cells.get("cooperate_defect", {}).get("col", 5),
-                },
-                "defect_cooperate": {
-                    "row": cells.get("defect_cooperate", {}).get("row", 5),
-                    "col": cells.get("defect_cooperate", {}).get("col", 0),
-                },
-                "defect_defect": {"value": cells.get("defect_defect", {}).get("row", 1)},
+        cells = scenario["matrix_meta"].get("cells", {})
+        payoff_config = {"matrix": cells}
+
+    # Stag Hunt uses threshold group payoff instead of a raw matrix
+    if scenario.get("grouping_mode") == "group" and scenario.get("payoff_type") == "matrix":
+        if "stag_reward" in _params:
+            threshold_action = _params.get("action_1", "stag").lower()
+            payoff_config = {
+                "group_payoff_mode": "threshold",
+                "threshold_action": threshold_action,
+                "threshold_reward": _params["stag_reward"],
+                "threshold_failure": 0,
+                "safe_reward": _params["hare_reward"],
             }
-        }
 
     return GameConfig(
         name=scenario["id"],
@@ -105,7 +115,7 @@ SCENARIO_BUILDERS = {
     "battle_of_sexes": "build_bos_test",
     "stag_hunt": "build_stag_hunt_test",
     "public_goods": "build_public_goods_test",
-    "graph_coloring": "build_graph_coloring_test",
+    "coordination_game": "build_coordination_game_test",
     "open_discussion": "build_open_discussion_test",
     "social_norm_disruption": "build_social_norm_test",
     "policy_erosion": "build_policy_erosion_test",
@@ -340,11 +350,11 @@ def build_public_goods_test():
     return config, agents, "pool"
 
 
-def build_graph_coloring_test():
-    """Build Graph Coloring test using scenario registry."""
+def build_coordination_game_test():
+    """Build Coordination Game test using scenario registry."""
     llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
 
-    config = convert_scenario_to_game_config("graph_coloring")
+    config = convert_scenario_to_game_config("coordination_game")
 
     agents = [
         ExperimentAgent(name="NodeA", properties={}, llm_config=llm_config, role_prompt="You are Node A."),

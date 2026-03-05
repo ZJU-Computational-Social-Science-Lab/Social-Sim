@@ -10,7 +10,6 @@ The runner manages the main experiment loop:
 
 import asyncio
 import logging
-import sys
 from typing import List, Dict, Any, Literal, Optional
 from dataclasses import dataclass
 from pathlib import Path
@@ -29,12 +28,7 @@ from socialsim4.core.experiment.feedback.builder import CoordinationFeedbackBuil
 from socialsim4.core.llm.client import LLMClient
 from socialsim4.core.context_builder import build_context_summary
 
-# Configure debug logging to stdout
 logger = logging.getLogger(__name__)
-_handler = logging.StreamHandler(sys.stdout)
-_handler.setLevel(logging.DEBUG)
-_handler.setFormatter(logging.Formatter('[EXPERIMENT RUNNER] %(message)s'))
-logger.addHandler(_handler)
 logger.setLevel(logging.DEBUG)
 
 # Debug file for full prompts/responses (won't be truncated)
@@ -112,6 +106,10 @@ class ExperimentRunner:
     def set_scene_state(self, state: Dict[str, Any]) -> None:
         """Merge new state into scene_state. context_manager holds the same reference."""
         self.scene_state.update(state)
+
+    def execute_action(self, action_name, agent_name, params, state):
+        """Delegate action execution to ActionHandler."""
+        return self.action_handler.execute(action_name, agent_name, params, state)
 
     def _replay_history_to_events(self, round_history: list) -> None:
         """Replay round_history into context_manager._round_events.
@@ -266,10 +264,29 @@ class ExperimentRunner:
         agent_objs = {a.name: a for a in self.agents}
         for agent_name, payoff in round_payoffs.items():
             if agent_name in agent_objs:
-                agent_objs[agent_name].score += int(payoff)
+                agent_objs[agent_name].score += round(payoff, 2)
                 logger.debug(f"Score updated: {agent_name}={agent_objs[agent_name].score}")
 
         return round_payoffs
+
+    def _apply_coordination_feedback(self, actions: List[ActionResult], round_num: int) -> None:
+        """Apply coordination feedback for feedback-type games to all round modes.
+
+        Generates neighbor-based feedback for each agent and stores it on the
+        corresponding round event so the next prompt includes it.
+        """
+        if self.game_config.payoff_type != "feedback":
+            return
+        for result in actions:
+            if not result.skipped:
+                feedback = self._generate_coordination_feedback(
+                    result.agent_name,
+                    result.action_name,
+                    actions,
+                )
+                for event in self.context_manager._round_events:
+                    if event.agent_name == result.agent_name and event.round_num == round_num:
+                        event.feedback = feedback
 
     def _generate_coordination_feedback(
         self,
@@ -355,19 +372,7 @@ class ExperimentRunner:
                     payoff=round_payoffs.get(result.agent_name),
                 )
 
-        # Add coordination feedback for feedback-type games
-        if self.game_config.payoff_type == "feedback":
-            for result in actions:
-                if not result.skipped:
-                    feedback = self._generate_coordination_feedback(
-                        result.agent_name,
-                        result.action_name,
-                        actions,
-                    )
-                    # Update the recorded event with feedback
-                    for event in self.context_manager._round_events:
-                        if event.agent_name == result.agent_name and event.round_num == round_num:
-                            event.feedback = feedback
+        self._apply_coordination_feedback(actions, round_num)
 
         return RoundResult(
             round_num=round_num,
@@ -403,6 +408,8 @@ class ExperimentRunner:
 
         # Calculate scores based on actions
         round_payoffs = self._calculate_scores(actions)
+
+        self._apply_coordination_feedback(actions, round_num)
 
         return RoundResult(
             round_num=round_num,
@@ -456,6 +463,8 @@ class ExperimentRunner:
                 [a.name for a in self.agents], round_num
             )
         round_payoffs = self._calculate_scores(actions, pairs=pairs)
+
+        self._apply_coordination_feedback(actions, round_num)
 
         return RoundResult(
             round_num=round_num,
@@ -565,6 +574,8 @@ class ExperimentRunner:
                 self.scores[action.agent_name] = 0
 
         logger.debug(f"Paired round {round_num} complete: {len(all_actions)} actions across {len(pairs)} pairs")
+
+        self._apply_coordination_feedback(all_actions, round_num)
 
         return RoundResult(
             round_num=round_num,

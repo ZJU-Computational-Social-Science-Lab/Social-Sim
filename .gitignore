@@ -131,6 +131,9 @@ node_modules
 storage/
 socialsim.db
 socialsim4.db
+*.db
+*.db-shm
+*.db-wal
 *.pdf
 stats.sh
 .DS_Store
