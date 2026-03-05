@@ -154,6 +154,7 @@ class SimTree:
             "ops": [],
             "sim": sim_clone,
             "logs": root_logs,
+            "meta": {},
         }
 
         # Attach log handler so future events at root accumulate into root logs
@@ -311,6 +312,7 @@ class SimTree:
         # Prepare a new node with inherited logs snapshot; parent/ops assigned later
         nid = self._next_id()
         parent_logs = list(self.nodes[node_id].get("logs", []))
+        parent_meta = json.loads(json.dumps(self.nodes[node_id].get("meta", {})))
         # Deep copy parent's logs so child does not share dict references
         child_logs: List[dict] = json.loads(json.dumps(parent_logs))
         node = {
@@ -321,7 +323,7 @@ class SimTree:
             "ops": [],
             "sim": sim_copy,
             "logs": child_logs,
-            "meta": {},
+            "meta": parent_meta,
         }
 
         self._attach_log_handler(nid, sim_copy, child_logs)
@@ -450,7 +452,13 @@ class SimTree:
             edge_type = item.get("edge_type")
             ops = item.get("ops") or []
             sim_data = item.get("sim") or {}
-            sim = Simulator.deserialize(sim_data, clients, log_handler=None)
+            scene_type = (sim_data.get("scene") or {}).get("type")
+            if scene_type == "experiment_template":
+                from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
+
+                sim = ExperimentRunnerAdapter.deserialize(sim_data, clients, log_handler=None)
+            else:
+                sim = Simulator.deserialize(sim_data, clients, log_handler=None)
             logs = list(item.get("logs") or [])
             node = {
                 "id": nid,
@@ -556,6 +564,49 @@ class SimTree:
         sim.emit_remaining_events()
         # Attach to actual_parent_id instead of parent_id to create a sibling relationship
         return self.attach(actual_parent_id, ops, cid)
+
+    def apply_agent_overrides(self, node_id: int, overrides: List[dict]) -> None:
+        if node_id not in self.nodes:
+            raise KeyError(f"Node {node_id} not found in tree")
+
+        node = self.nodes[node_id]
+        sim: Simulator = node["sim"]
+        meta = node.setdefault("meta", {})
+        agent_overrides = meta.setdefault("agent_overrides", {})
+
+        for item in overrides:
+            name = item["name"]
+            agent = sim.agents[name]
+
+            current = dict(agent_overrides.get(name, {}))
+
+            if "language" in item:
+                agent.language = item["language"]
+                current["language"] = item["language"]
+
+            if "llm_config" in item:
+                llm_cfg = json.loads(json.dumps(item["llm_config"]))
+                agent.properties["llm_config"] = llm_cfg
+                current["llm_config"] = llm_cfg
+
+            if "knowledge_base" in item:
+                kb = json.loads(json.dumps(item["knowledge_base"]))
+                agent.knowledge_base = kb
+                current["knowledge_base"] = kb
+
+            if "documents" in item:
+                docs = json.loads(json.dumps(item["documents"]))
+                agent.documents = docs
+                current["documents"] = docs
+
+            if "properties" in item:
+                props = item["properties"]
+                for k, v in props.items():
+                    agent.properties[k] = v
+                merged = dict(agent.properties)
+                current["properties"] = merged
+
+            agent_overrides[name] = current
 
     def lca(self, a: int, b: int) -> int:
         da = int(self.nodes[a]["depth"])

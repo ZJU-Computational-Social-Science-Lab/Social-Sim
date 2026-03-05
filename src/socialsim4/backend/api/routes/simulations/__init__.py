@@ -45,6 +45,7 @@ def create_router() -> Router:
             lifecycle.resume_simulation,
             lifecycle.reset_simulation,
             lifecycle.copy_simulation,
+            lifecycle.rehydrate_simulation,
             # Snapshot operations
             snapshots.create_snapshot,
             snapshots.list_snapshots,

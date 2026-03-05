@@ -1,3 +1,11 @@
+/*
+ * Global styles for the SocialSim4 frontend.
+ * Key exports: theme tokens, layout primitives, panel styling, and form control variants.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 * {
   box-sizing: border-box;
 }

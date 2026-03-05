@@ -4,11 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { copySimulation as apiCopySimulation, deleteSimulation as apiDeleteSimulation, listSimulations, resumeSimulation as apiResumeSimulation, type Simulation } from "../services/simulations";
 import { useTranslation } from "react-i18next";
 import { TitleCard } from "../components/TitleCard";
+import { useSimulationStore } from "../store";
 
 export function SavedSimulationsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const loadSimulationById = useSimulationStore((s) => s.loadSimulationById);
   const simulationsQuery = useQuery({ queryKey: ["simulations"], queryFn: () => listSimulations() });
 
   const copySimulation = useMutation({
@@ -21,7 +23,8 @@ export function SavedSimulationsPage() {
 
   const resumeSimulation = useMutation({
     mutationFn: async (simulationSlug: string) => apiResumeSimulation(simulationSlug),
-    onSuccess: (_, simulationSlug) => {
+    onSuccess: async (_, simulationSlug) => {
+      await loadSimulationById(simulationSlug);
       navigate(`/simulations/${simulationSlug}`);
     },
   });

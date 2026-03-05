@@ -50,6 +50,8 @@ import {
   Zap,
   LogOut,
   Globe,
+  RotateCcw,
+  Trash2,
 } from "lucide-react";
 
 // ---------------- Header ----------------
@@ -62,6 +64,9 @@ const Header: React.FC = () => {
   const hasRestored = useAuthStore((s) => s.hasRestored);
   const loadProviders = useSimulationStore((state) => state.loadProviders);
   const setEngineMode = useSimulationStore((state) => state.setEngineMode);
+  const resetSimulation = useSimulationStore((state) => state.resetSimulation);
+  const deleteSimulation = useSimulationStore((state) => state.deleteSimulation);
+  const isGenerating = useSimulationStore((state) => state.isGenerating);
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.clearSession);
   const { t } = useTranslation();
@@ -146,6 +151,34 @@ const Header: React.FC = () => {
         >
           <Plus size={14} /> {t('simPage.newSimulation')}
         </button>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (window.confirm(t('simPage.confirmReset'))) {
+                resetSimulation();
+              }
+            }}
+            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+            title={t('simPage.resetSimulation')}
+            disabled={isGenerating}
+          >
+            <RotateCcw size={14} />
+          </button>
+
+          <button
+            onClick={() => {
+              if (window.confirm(t('simPage.confirmDelete'))) {
+                deleteSimulation();
+              }
+            }}
+            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-red-600 hover:text-red-700 hover:border-red-300 text-xs font-medium rounded shadow-sm transition-all"
+            title={t('simPage.deleteSimulation')}
+            disabled={isGenerating}
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
         <Link to="/settings" className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md">
           <Settings size={18} />
         </Link>
@@ -203,6 +236,8 @@ const Toolbar: React.FC = () => {
   );
   const branchSimulation = useSimulationStore((state) => state.branchSimulation);
   const isGenerating = useSimulationStore((state) => state.isGenerating);
+  const resetSimulation = useSimulationStore((state) => state.resetSimulation);
+  const deleteSimulation = useSimulationStore((state) => state.deleteSimulation);
 
   const isCompareMode = useSimulationStore((state) => state.isCompareMode);
   const toggleCompareMode = useSimulationStore(
@@ -410,6 +445,13 @@ const SimulationPage: React.FC = () => {
   React.useEffect(() => {
     (async () => {
       if (!simIdParam) return;
+
+      // Connected mode: load from backend and exit early
+      if (engineConfig.mode === 'connected') {
+        if (!hasRestored || !isAuthenticated) return;
+        await useSimulationStore.getState().loadSimulationById(String(simIdParam));
+        return;
+      }
       // read engineConfig from hook above so effect re-runs when mode changes
       // If we're in connected mode, wait until auth restoration has completed
       if (engineConfig.mode === 'connected' && !hasRestored) {
@@ -506,13 +548,20 @@ const SimulationPage: React.FC = () => {
           }
           if (!sim) return;
 
-          // If backend connected mode is available, prefer live graph/state/events
-          if (engineConfig.mode === 'connected') {
-            try {
-              const graph = await getTreeGraph(engineConfig.endpoint, sim.id, token).catch(() => null);
-              const simState = await getSimState(engineConfig.endpoint, sim.id, token).catch(() => null);
-              const events = await getSimEvents(engineConfig.endpoint, sim.id, graph?.root ?? null, token).catch(() => []);
+          // Prefer live graph/state/events whenever the backend is reachable
+          try {
+            const base = engineConfig.endpoint;
+            const liveToken = (engineConfig as any).token;
+            const graph = await getTreeGraph(base, sim.id, liveToken).catch(() => null);
+            const rootId = graph?.root ?? null;
+            const simState = rootId != null
+              ? await getSimState(base, sim.id, rootId, liveToken).catch(() => null)
+              : null;
+            const events = rootId != null
+              ? await getSimEvents(base, sim.id, rootId, liveToken).catch(() => [])
+              : [];
 
+            if (graph && simState) {
               const mapGraphToNodes = (graph: any) => {
                 const parentMap = new Map<number, number | null>();
                 const childrenSet = new Set<number>();
@@ -541,9 +590,9 @@ const SimulationPage: React.FC = () => {
                 });
               };
 
-              const nodes = graph ? mapGraphToNodes(graph) : [];
+              const nodes = mapGraphToNodes(graph);
 
-              const agents = (simState?.agents || []).map((a: any, idx: number) => ({
+              const agents = (simState.agents || []).map((a: any, idx: number) => ({
                 id: `a-${idx}-${a.name}`,
                 name: a.name,
                 role: a.role || '',
@@ -552,7 +601,7 @@ const SimulationPage: React.FC = () => {
                 llmConfig: { provider: 'mock', model: 'default' },
                 properties: {},
                 history: {},
-                memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simState?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
+                memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simState.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
                 knowledgeBase: a.knowledgeBase || []
               }));
 
@@ -562,15 +611,87 @@ const SimulationPage: React.FC = () => {
               useSimulationStore.setState({
                 currentSimulation: { ...sim, socialNetwork },
                 nodes,
-                selectedNodeId: graph && graph.root != null ? String(graph.root) : nodes[0]?.id ?? null,
+                selectedNodeId: rootId != null ? String(rootId) : nodes[0]?.id ?? null,
                 agents: agents,
                 rawEvents: events || []
               } as any);
               return;
-            } catch (e) {
-              // fall through to latest_state fallback
-              console.warn('Failed to fetch live graph/state/events, falling back to latest_state', e);
             }
+          } catch (e) {
+            // fall through to latest_state fallback
+            console.warn('Failed to fetch live graph/state/events, falling back to latest_state', e);
+          }
+
+          // Fallback 1: try server-side rehydrate snapshot (graph + sim)
+          try {
+            const re = await getRehydrate(engineConfig.endpoint, sim.id, token).catch(() => null);
+            if (re && typeof re === 'object') {
+              const nodesRaw2 = (re.nodes || []) as any[];
+              const nodes2 = nodesRaw2.map((n: any) => ({
+                id: String(n.id),
+                display_id: String(n.id),
+                parentId: n.parent == null ? null : String(n.parent),
+                name: t('simPage.nodeId', { id: n.id }),
+                depth: n.depth,
+                isLeaf: (n.depth || 0) === (Math.max(...(nodesRaw2.map((x: any) => x.depth || 0))) || 0),
+                status: 'completed',
+                timestamp: new Date().toLocaleTimeString(),
+                worldTime: new Date().toISOString(),
+                meta: n.meta || {}
+              }));
+
+              let agents2: any[] = [];
+              try {
+                const firstNode = nodesRaw2.find((n: any) => Number(n.id) === Number(nodes2[0]?.id));
+                const simSnap2 = firstNode?.sim || {};
+                const latestAgents2 = simSnap2?.agents || re.agents || [];
+                if (Array.isArray(latestAgents2)) {
+                  agents2 = latestAgents2.map((a: any, idx: number) => ({
+                    id: `a-${idx}-${a.name}`,
+                    name: a.name,
+                    role: a.role || (a.properties || {}).role || '',
+                    avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
+                    profile: '',
+                    llmConfig: { provider: 'mock', model: 'default' },
+                    properties: a.properties || {},
+                    history: {},
+                    memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
+                    knowledgeBase: a.knowledgeBase || []
+                  }));
+                } else if (latestAgents2 && typeof latestAgents2 === 'object') {
+                  agents2 = Object.keys(latestAgents2).map((k: string, idx: number) => {
+                    const a = (latestAgents2 as any)[k] || {};
+                    return {
+                      id: `a-${idx}-${a.name || k}`,
+                      name: a.name || k,
+                      role: a.role || (a.properties || {}).role || '',
+                      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || k)}`,
+                      profile: '',
+                      llmConfig: { provider: 'mock', model: 'default' },
+                      properties: a.properties || {},
+                      history: {},
+                      memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
+                      knowledgeBase: a.knowledgeBase || []
+                    };
+                  });
+                }
+              } catch (e) {
+                console.warn('rehydrate parsing failed', e);
+              }
+
+              if (nodes2.length > 0) {
+                useSimulationStore.setState({
+                  currentSimulation: sim,
+                  nodes: nodes2,
+                  selectedNodeId: nodes2[0]?.id ?? null,
+                  agents: agents2,
+                  rawEvents: []
+                } as any);
+                return;
+              }
+            }
+          } catch (e) {
+            console.warn('rehydrate fallback failed', e);
           }
 
           // Fallback: if backend not connected or live fetch failed, try to use persisted latest_state
@@ -713,6 +834,19 @@ const SimulationPage: React.FC = () => {
                 agents: agents,
                 rawEvents: []
               } as any);
+
+              // Attempt to restore events/logs for the selected node when backend is reachable
+              const base = engineConfig.endpoint;
+              const selectedNodeNumeric = nodes[0]?.id ? Number(nodes[0].id) : null;
+              if (selectedNodeNumeric != null && Number.isFinite(selectedNodeNumeric)) {
+                try {
+                  const events = await getSimEvents(base, sim.id, selectedNodeNumeric, token).catch(() => []);
+                  useSimulationStore.setState({ rawEvents: events || [] } as any);
+                } catch (e) {
+                  console.warn('latest_state events fetch failed', e);
+                }
+              }
+
               return;
             }
           } catch (e) {

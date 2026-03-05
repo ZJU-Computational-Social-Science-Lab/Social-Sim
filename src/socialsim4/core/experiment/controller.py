@@ -136,6 +136,14 @@ class ExperimentController:
         # Step 1: Extract and parse JSON (handles trailing content from some models)
         cleaned = extract_json(raw_json)
 
+        # If the model prepends junk before the first JSON object, trim to the
+        # outermost braces to keep parsing strict while tolerating prefixes.
+        if "{" in cleaned and "}" in cleaned:
+            start = cleaned.find("{")
+            end = cleaned.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                cleaned = cleaned[start:end + 1]
+
         with open(debug_file, 'a', encoding='utf-8') as f:
             f.write(f"  cleaned JSON: {cleaned[:200]}...\n" if len(cleaned) > 200 else f"  cleaned JSON: {cleaned}\n")
 
@@ -147,20 +155,46 @@ class ExperimentController:
 
             print(f"[CONTROLLER] Parsed OK, action={parsed.get(game_config.output_field)}")
         except json.JSONDecodeError as e:
-            with open(debug_file, 'a', encoding='utf-8') as f:
-                f.write(f"  ERROR: Failed to parse JSON: {e}\n")
-            print(f"[CONTROLLER] ERROR: Failed to parse JSON")
-            logger.error(f"Failed to parse JSON from {agent.name}: {e}")
-            return ActionResult(
-                success=False,
-                action_name="",
-                parameters={},
-                summary="",
-                agent_name=agent.name,
-                round_num=round_num,
-                skipped=True,
-                error=f"Invalid JSON: {e}"
-            )
+            # Try to salvage the first JSON-looking object in the text.
+            import re
+            match = re.search(r'\{[^{}]*\}', cleaned, re.DOTALL)
+            if match:
+                candidate = match.group(0)
+                try:
+                    parsed = json.loads(candidate)
+                    with open(debug_file, 'a', encoding='utf-8') as f:
+                        f.write(f"  parsed via salvage: {parsed}\n")
+                    print(f"[CONTROLLER] Parsed via salvage, action={parsed.get(game_config.output_field)}")
+                except json.JSONDecodeError as e2:
+                    with open(debug_file, 'a', encoding='utf-8') as f:
+                        f.write(f"  ERROR: Failed to parse JSON after salvage: {e2}\n")
+                    print(f"[CONTROLLER] ERROR: Failed to parse JSON after salvage")
+                    logger.error(f"Failed to parse JSON from {agent.name}: {e2}")
+                    return ActionResult(
+                        success=False,
+                        action_name="",
+                        parameters={},
+                        summary="",
+                        agent_name=agent.name,
+                        round_num=round_num,
+                        skipped=True,
+                        error=f"Invalid JSON: {e2}"
+                    )
+            else:
+                with open(debug_file, 'a', encoding='utf-8') as f:
+                    f.write(f"  ERROR: Failed to parse JSON: {e}\n")
+                print(f"[CONTROLLER] ERROR: Failed to parse JSON")
+                logger.error(f"Failed to parse JSON from {agent.name}: {e}")
+                return ActionResult(
+                    success=False,
+                    action_name="",
+                    parameters={},
+                    summary="",
+                    agent_name=agent.name,
+                    round_num=round_num,
+                    skipped=True,
+                    error=f"Invalid JSON: {e}"
+                )
 
         # Step 2: Validate against game config
         validated = validate_and_clamp(parsed, game_config)

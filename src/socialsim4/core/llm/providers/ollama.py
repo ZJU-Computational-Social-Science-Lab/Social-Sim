@@ -200,12 +200,29 @@ def ollama_chat(
     # (Qwen3, Gemma 3) return empty responses with this setting.
     # Prompt-based JSON instruction is more reliable.
 
-    resp = client.post("/api/chat", json=payload, timeout=timeout)
-    resp.raise_for_status()
-    data = resp.json()
-    message = data.get("message") or {}
-    content = message.get("content") or data.get("response") or ""
-    return str(content).strip()
+    def _post(body):
+        resp = client.post("/api/chat", json=body, timeout=timeout)
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get("error"):
+            raise ValueError(f"Ollama error: {data.get('error')}")
+        message = data.get("message") or {}
+        content = message.get("content") or data.get("response") or ""
+        return str(content).strip()
+
+    content = _post(payload)
+
+    # Fallback: some models still return empty content; try explicit JSON format once
+    if not content:
+        if json_mode:
+            payload_with_format = dict(payload)
+            payload_with_format["format"] = "json"
+            content = _post(payload_with_format)
+
+    if not content:
+        raise ValueError("Ollama returned empty response")
+
+    return content
 
 
 def ollama_completion(

@@ -62,8 +62,12 @@ class ExperimentRunnerAdapter:
         self.clients = clients
         self.agents = {}  # Empty dict - no legacy agents
         self.events: list[dict] = []
-        self._llm_client = clients.get("chat")
+        self._llm_client = clients.get("chat") or clients.get("default")
         self.log_event = None  # Will be set by SimTree._attach_log_handler
+
+        # Pre-initialize to populate scene.agents so UI can render agent cards without running a round
+        if self._llm_client is not None and not self.scene.agents:
+            self.scene.initialize(self._llm_client)
 
     def run(self, max_turns: int = 1) -> None:
         """Run experiment rounds (each 'turn' = one round)."""
@@ -511,7 +515,15 @@ class SimTreeRegistry:
             record = self._records.get(key)
             if record is not None:
                 return record
-            tree = await asyncio.to_thread(_build_tree_for_sim, sim_record, clients)
+            # 优先使用最新持久化的 latest_state 进行恢复；否则重新构建
+            if getattr(sim_record, "latest_state", None):
+                try:
+                    tree = SimTree.deserialize(sim_record.latest_state, clients or make_clients_from_env())
+                except Exception:
+                    logger.exception("Failed to deserialize latest_state, fallback to rebuild")
+                    tree = await asyncio.to_thread(_build_tree_for_sim, sim_record, clients)
+            else:
+                tree = await asyncio.to_thread(_build_tree_for_sim, sim_record, clients)
             record = SimTreeRecord(tree)
             loop = asyncio.get_running_loop()
             tree.attach_event_loop(loop)
