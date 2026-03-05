@@ -56,8 +56,9 @@ def convert_scenario_to_game_config(scenario_id: str) -> GameConfig:
     # Extract parameter defaults (including custom action names if set)
     _params = {p["id"]: p["default"] for p in scenario.get("parameters", [])}
 
-    # Use parameterized action names if defined, else use registry action IDs
+    # Priority: 1) parameterized actions, 2) category_actions with defaults, 3) direct actions
     if _params.get("action_1") and _params.get("action_2"):
+        # Game theory scenarios with customizable action names
         a1 = _params["action_1"].lower()
         a2 = _params["action_2"].lower()
         actions = [a1, a2]
@@ -65,9 +66,20 @@ def convert_scenario_to_game_config(scenario_id: str) -> GameConfig:
             a1: _params.get("action_1_description", a1),
             a2: _params.get("action_2_description", a2),
         }
+    elif scenario.get("category_actions") and scenario.get("default_action_ids"):
+        # Sociology scenarios using category action libraries
+        category_actions = scenario["category_actions"]
+        default_ids = scenario["default_action_ids"]
+        actions = default_ids
+        action_descriptions = {
+            a["id"]: a["description"]
+            for a in category_actions
+            if a["id"] in default_ids
+        }
     else:
-        actions = [a["id"] for a in scenario["actions"]]
-        action_descriptions = {a["id"]: a["description"] for a in scenario["actions"]}
+        # Direct actions from registry
+        actions = [a["id"] for a in scenario.get("actions", [])]
+        action_descriptions = {a["id"]: a["description"] for a in scenario.get("actions", [])}
 
     # Build payoff_config from matrix_meta if available (generic — pass all cells as-is)
     payoff_config = {}
@@ -112,6 +124,7 @@ DEFAULT_MODEL = "phi4-mini:latest"
 # Scenario registry
 SCENARIO_BUILDERS = {
     "prisoners_dilemma": "build_pd_test",
+    "pd_multiround": "build_pd_multiround_test",
     "battle_of_sexes": "build_bos_test",
     "stag_hunt": "build_stag_hunt_test",
     "public_goods": "build_public_goods_test",
@@ -223,10 +236,31 @@ class SmokeTestRunner:
 
             final_scores = {agent.name: agent.score for agent in agents}
             errors = []
+            warnings = []
+            action_counts = {}
+
             for rr in round_results:
                 for action in rr.actions:
+                    # Track action errors
                     if action.error:
                         errors.append(f"Round {rr.round_num} - {action.agent_name}: {action.error}")
+
+                    # Track action diversity
+                    action_name = action.action_name
+                    action_counts[action_name] = action_counts.get(action_name, 0) + 1
+
+                    # Validate action is in allowed set
+                    if game_config.actions and action_name not in game_config.actions:
+                        errors.append(
+                            f"Round {rr.round_num} - {action.agent_name}: "
+                            f"Action '{action_name}' not in allowed set {game_config.actions}"
+                        )
+
+            # Validate payoffs for matrix games
+            if game_config.payoff_type == "matrix":
+                total_payoff = sum(final_scores.values())
+                if total_payoff == 0:
+                    warnings.append("Payoffs all zero - matrix calculation may not be working")
 
             config = {
                 "model": model,
@@ -246,10 +280,15 @@ class SmokeTestRunner:
                 "test": test_name,
                 "success": success,
                 "errors": errors,
+                "warnings": warnings,
+                "action_diversity": len(action_counts),
+                "total_rounds": len(round_results),
+                "final_scores": final_scores,
             })
 
             status = "✓ PASS" if success else "✗ FAIL"
-            print(f"  {status}")
+            warning_str = f" (warnings: {len(warnings)})" if warnings else ""
+            print(f"  {status}{warning_str}")
 
             return success
 
@@ -272,10 +311,18 @@ class SmokeTestRunner:
 
         passed = sum(1 for r in self.results if r["success"])
         failed = len(self.results) - passed
+        total_warnings = sum(len(r.get("warnings", [])) for r in self.results)
 
         print(f"Total: {len(self.results)} tests")
         print(f"Passed: {passed}")
         print(f"Failed: {failed}")
+        print(f"Warnings: {total_warnings}")
+
+        # Show action diversity stats
+        diversity_stats = [r.get("action_diversity", 0) for r in self.results if r.get("success")]
+        if diversity_stats:
+            avg_diversity = sum(diversity_stats) / len(diversity_stats)
+            print(f"Avg action diversity: {avg_diversity:.1f} unique actions per test")
 
         if failed > 0:
             print("\nFailed tests:")
@@ -284,6 +331,14 @@ class SmokeTestRunner:
                     print(f"  - {r['scenario']}/{r['model']}/{r['test']}")
                     for err in r["errors"]:
                         print(f"      {err}")
+
+        if total_warnings > 0:
+            print("\nWarnings:")
+            for r in self.results:
+                if r.get("warnings"):
+                    print(f"  - {r['scenario']}/{r['model']}/{r['test']}")
+                    for warn in r["warnings"]:
+                        print(f"      {warn}")
 
         return failed == 0
 
@@ -467,6 +522,30 @@ def build_werewolf_test():
     return config, agents, "voting"
 
 
+def build_pd_multiround_test():
+    """Build multi-round Prisoner's Dilemma test for context verification."""
+    llm_config = LLMConfig(dialect="ollama", model="", base_url="http://localhost:11434")
+
+    config = convert_scenario_to_game_config("prisoners_dilemma")
+
+    agents = [
+        ExperimentAgent(
+            name="Alice",
+            properties={},
+            llm_config=llm_config,
+            role_prompt="You are Alice. Remember what happened in previous rounds."
+        ),
+        ExperimentAgent(
+            name="Bob",
+            properties={},
+            llm_config=llm_config,
+            role_prompt="You are Bob. Remember what happened in previous rounds."
+        ),
+    ]
+
+    return config, agents, "two_rounds"
+
+
 # =============================================================================
 # Main Entry Point
 # =============================================================================
@@ -536,6 +615,9 @@ async def main():
             print(f"Builder not found: {builder_name}")
             continue
 
+        # Determine max_rounds based on scenario
+        max_rounds = 2 if "multiround" in scenario_id else 1
+
         for model in models:
             try:
                 game_config, agents, test_name = builder()
@@ -545,6 +627,7 @@ async def main():
                     test_name=test_name,
                     game_config=game_config,
                     agents=agents,
+                    max_rounds=max_rounds,
                 )
             except Exception as e:
                 print(f"Error running {scenario_id} with {model}: {e}")
