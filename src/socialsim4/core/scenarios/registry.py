@@ -606,6 +606,7 @@ COORDINATION_GAME: Dict[str, Any] = {
             "default": "red, blue, green",
             "ui_hint": "text",
             "description": "Comma-separated list of choices agents can pick from",
+            "generates_actions": True,
         },
         {
             "id": "goal",
@@ -618,9 +619,7 @@ COORDINATION_GAME: Dict[str, Any] = {
             "description": "Whether agents should try to match or differ from their neighbors",
         },
     ],
-    "actions": [
-        {"id": "choose", "name": "Choose", "description": "Select an option from the available choices"},
-    ],
+    "actions": [],
     "state_schema": {
         "extensions": {"choices": {}, "graph": {"edges": []}},
         "visibility": "neighbors",
