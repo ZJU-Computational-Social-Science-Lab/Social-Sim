@@ -251,9 +251,8 @@ export const Step3Scenario: React.FC = () => {
       {generatorParam && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-700">
-            <strong>Dynamic Actions:</strong> These actions are generated from the
-            "{generatorParam.label}" parameter. Edit it in Step 2 to change the
-            available choices.
+            <strong>{t('experimentBuilder.dynamicActionsInfo.title')}</strong>{' '}
+            {t('experimentBuilder.dynamicActionsInfo.message', { paramLabel: generatorParam.label })}
           </p>
         </div>
       )}

@@ -1563,6 +1563,13 @@
       "title": "Example Agent Prompt",
       "note": "All {n} agent type(s) receive the same scenario, actions, and output format. Only the agent description changes.",
       "otherTypes": "Other agent types"
+    },
+    "actions": {
+      "chooseAction": "Choose {{action}}"
+    },
+    "dynamicActionsInfo": {
+      "title": "Dynamic Actions:",
+      "message": "These actions are generated from the \"{{paramLabel}}\" parameter. Edit it in Step 2 to change the available choices."
     }
   },
   "systemTemplates": {

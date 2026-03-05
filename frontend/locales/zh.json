@@ -1548,6 +1548,13 @@
       "title": "示例代理提示词",
       "note": "所有 {n} 个代理类型接收相同的场景、行动和输出格式。只有代理描述不同。",
       "otherTypes": "其他代理类型"
+    },
+    "actions": {
+      "chooseAction": "选择 {{action}}"
+    },
+    "dynamicActionsInfo": {
+      "title": "动态动作：",
+      "message": "这些动作是从"{{paramLabel}}"参数生成的。在步骤2中编辑它以更改可用选项。"
     }
   },
   "systemTemplates": {
