@@ -42,6 +42,7 @@ class ExperimentScene:
         self.llm_client: LLMClient | None = None
         self.current_round = 0
         self._history: list[dict[str, Any]] = []
+        self._pending_host_messages: list[str] = []
         self.state: ExperimentState = ExperimentState()
 
         logger.debug(f"ExperimentScene initialized: {config.scenario_id}")
@@ -65,7 +66,8 @@ class ExperimentScene:
                 # Accept camelCase llmConfig from frontend as well as snake_case llm_config
                 llm_config=a.get("llm_config") or a.get("llmConfig") or {},
                 # Accept multiple field names for compatibility (camelCase from frontend, snake_case from backend)
-                role_prompt=a.get("role_prompt") or a.get("rolePrompt") or a.get("profile")
+                role_prompt=a.get("role_prompt") or a.get("rolePrompt") or a.get("profile"),
+                knowledge_base=list(a.get("knowledgeBase") or a.get("knowledge_base") or []),
             )
             for a in self.config.agents
         ]
@@ -104,6 +106,10 @@ class ExperimentScene:
             information_model=information_model,
         )
 
+        # Wire social network graph to runner's scene_state
+        if self.config.social_network:
+            self.runner.set_scene_state({"graph": self.config.social_network})
+
         logger.debug("ExperimentRunner initialized")
 
     async def run_round(self, event_emitter: Callable[[str, dict], None]) -> RoundResult:
@@ -123,6 +129,11 @@ class ExperimentScene:
 
         self.current_round += 1
         round_num = self.current_round
+
+        # Flush pending host messages into runner for this round
+        if self._pending_host_messages:
+            self.runner.pending_host_messages = list(self._pending_host_messages)
+            self._pending_host_messages.clear()
 
         logger.info(f"Running round {round_num}")
 
@@ -433,6 +444,10 @@ class ExperimentScene:
     def is_complete(self) -> bool:
         """Check if experiment has natural end (most don't)."""
         return False  # Run forever via SimTree control
+
+    def inject_host_message(self, message: str) -> None:
+        """Queue a host message to be injected into all agents' context on the next round."""
+        self._pending_host_messages.append(message)
 
     def serialize_config(self) -> dict:
         """Serialize for SimTree persistence."""

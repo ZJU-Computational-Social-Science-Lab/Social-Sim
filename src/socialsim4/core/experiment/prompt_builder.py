@@ -170,6 +170,8 @@ def build_prompt(
     include_section_markers: bool = False,
     *,
     information_model=None,
+    kb_context: str = "",
+    neighbor_context: str = "",
 ) -> str:
     """Build the 5-section structured prompt.
 
@@ -219,6 +221,18 @@ def build_prompt(
         sections.append(f"\n## Available Actions\n{actions_list}")
     else:  # integer
         sections.append(f"\n## Your Action\nChoose a value from {game_config.min} to {game_config.max}.")
+
+    # Section 3.5: Social Network Neighbors (if provided)
+    if neighbor_context:
+        if include_section_markers:
+            sections.append("\n=== SECTION 3.5: SOCIAL NETWORK ===")
+        sections.append(f"\n## Your Social Network\n{neighbor_context}")
+
+    # Section 3.6: Knowledge Base (if agent has relevant knowledge)
+    if kb_context:
+        if include_section_markers:
+            sections.append("\n=== SECTION 3.6: KNOWLEDGE BASE ===")
+        sections.append(f"\n{kb_context}")
 
     # Section 4: Context
     if include_section_markers:
@@ -270,6 +284,8 @@ def build_reprompt(
     include_section_markers: bool = False,
     *,
     information_model=None,
+    kb_context: str = "",
+    neighbor_context: str = "",
 ) -> str:
     """Build a re-prompt for collecting missing parameters.
 
@@ -286,7 +302,7 @@ def build_reprompt(
         Re-prompt string
     """
     # Reuse the base prompt (all 5 sections)
-    base_prompt = build_prompt(agent, game_config, context_summary, include_section_markers, information_model=information_model)
+    base_prompt = build_prompt(agent, game_config, context_summary, include_section_markers, information_model=information_model, kb_context=kb_context, neighbor_context=neighbor_context)
 
     # Add re-prompt instruction with section marker
     if include_section_markers:

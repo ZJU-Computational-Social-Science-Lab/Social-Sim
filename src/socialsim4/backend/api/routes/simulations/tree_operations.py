@@ -808,3 +808,43 @@ If you don't have specific information about this, say so."""
             "question": question,
             "responses": results
         }
+
+
+@post("/{simulation_id:str}/tree/sim/{node_id:int}/inject-message")
+async def inject_host_message(
+    request: Request,
+    simulation_id: str,
+    node_id: int,
+    data: dict,
+) -> dict:
+    """
+    Inject a host message into all agents' context for the next round.
+
+    POST body: {"message": "ANNOUNCEMENT: Please reconsider your strategy."}
+
+    The message is prepended to every agent's context when the next round runs.
+    Only available for experiment_template simulations (ExperimentRunnerAdapter).
+
+    Raises:
+        HTTPException 400: if message is empty or simulation is not experiment type
+        HTTPException 404: if node not found
+    """
+    message = data.get("message", "").strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="message is required")
+
+    async with get_session() as session:
+        _, record = await get_simulation_and_tree_any(session, simulation_id)
+        node = record.tree.nodes.get(int(node_id))
+
+        if node is None:
+            raise HTTPException(status_code=404, detail="Tree node not found")
+
+        simulator = node["sim"]
+        from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
+        if not isinstance(simulator, ExperimentRunnerAdapter):
+            raise HTTPException(status_code=400, detail="inject-message only supported for experiment simulations")
+
+        simulator.inject_host_message(message)
+
+    return {"status": "queued", "message": message}

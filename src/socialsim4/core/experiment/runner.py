@@ -102,6 +102,7 @@ class ExperimentRunner:
         self.current_round = 0
         self.turn_order: List[str] | None = None  # Store shuffled order for random/paired mode
         self.scores: Dict[str, int] = {}  # Track cumulative scores per agent (for paired mode)
+        self.pending_host_messages: list[str] = []  # Injected by host before each round
 
     def set_scene_state(self, state: Dict[str, Any]) -> None:
         """Merge new state into scene_state. context_manager holds the same reference."""
@@ -357,6 +358,15 @@ class ExperimentRunner:
             pairs = self.information_model.pairing_fn(
                 [a.name for a in self.agents], round_num
             )
+        # Fallback: Create default pairs for pairwise grouping_mode
+        elif self.game_config.grouping_mode == "pairwise":
+            agent_names = [a.name for a in self.agents]
+            if len(agent_names) >= 2:
+                # For 2 agents: single pair
+                # For 4+ agents: pair sequentially (A-B, C-D, etc.)
+                pairs = []
+                for i in range(0, len(agent_names) - 1, 2):
+                    pairs.append((agent_names[i], agent_names[i + 1]))
         round_payoffs = self._calculate_scores(actions, pairs=pairs)
 
         # Record to context with observers and payoffs (done after scores are known
@@ -601,6 +611,9 @@ class ExperimentRunner:
             RoundResult with all agent actions for this round
         """
         self.current_round = round_num
+        # Capture host messages for this round then clear so they don't repeat
+        self._round_host_messages: list[str] = list(self.pending_host_messages)
+        self.pending_host_messages = []
         logger.info(f"Starting round {round_num}")
 
         # Populate _round_events from round_history so get_context_for_agent()
@@ -638,7 +651,25 @@ class ExperimentRunner:
         """
         # Build prompt with current context (with section markers for debugging)
         context = self.context_manager.get_context_for_agent(agent.name, agent_score=agent.score)
-        prompt = build_prompt(agent, self.game_config, context, include_section_markers=True, information_model=self.information_model)
+
+        # Prepend host messages to context
+        round_host_msgs = getattr(self, '_round_host_messages', [])
+        if round_host_msgs:
+            host_block = "\n".join(f"[HOST MESSAGE]: {m}" for m in round_host_msgs)
+            context = f"{host_block}\n\n{context}" if context else host_block
+
+        # Build KB context from agent's knowledge base (keyword match against context)
+        kb_context = agent.get_knowledge_context(query=context[:200] if context else "", max_items=3)
+
+        # Build neighbor context from social graph
+        neighbor_context = ""
+        graph = self.scene_state.get("graph", {})
+        edges = graph.get("edges", [])
+        if edges:
+            neighbors = [b for a, b in edges if a == agent.name] + [a for a, b in edges if b == agent.name]
+            if neighbors:
+                neighbor_context = f"Your social network neighbors: {', '.join(neighbors)}."
+        prompt = build_prompt(agent, self.game_config, context, include_section_markers=True, information_model=self.information_model, kb_context=kb_context, neighbor_context=neighbor_context)
 
         # Write to debug file (won't be truncated)
         with open(_debug_file, 'a', encoding='utf-8') as f:

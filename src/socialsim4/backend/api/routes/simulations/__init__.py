@@ -60,6 +60,7 @@ def create_router() -> Router:
             tree_operations.simulation_tree_state,
             tree_operations.test_agent_knowledge,
             tree_operations.ask_agents_question,
+            tree_operations.inject_host_message,
             # WebSocket handlers
             websocket_handlers.simulation_tree_events_ws,
             websocket_handlers.simulation_tree_node_events_ws,

@@ -133,6 +133,14 @@ class ExperimentRunnerAdapter:
         else:
             self._emit_event("public_broadcast", {"data": str(event)})
 
+    def inject_host_message(self, message: str) -> None:
+        """Inject a host message into all agents' context for the next round.
+
+        Args:
+            message: Host message text to inject
+        """
+        self.scene.inject_host_message(message)
+
 
 def _build_tree_for_scene(scene_type: str, clients: dict | None = None) -> SimTree:
     # Normalize scene_type to registry keys (allow aliases like 'village' -> 'village_scene')
@@ -305,6 +313,7 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
             description=cfg.get("description", ""),
             scenario_id=cfg.get("scenario_id", "custom"),
             round_visibility=cfg.get("round_visibility", "simultaneous"),
+            social_network=cfg.get("social_network") or {},
         )
         logger.debug(f"[EXPERIMENT] Creating ExperimentConfig with parameters: {cfg.get('parameters', {})}")
         scene = ExperimentScene(config)

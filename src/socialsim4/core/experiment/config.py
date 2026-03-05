@@ -29,3 +29,4 @@ class ExperimentConfig:
     description: str = ""
     scenario_id: str = "custom"
     round_visibility: str = "simultaneous"  # simultaneous | sequential | paired
+    social_network: dict = field(default_factory=dict)  # Graph topology: {"edges": [["Alice","Bob"], ...]}
