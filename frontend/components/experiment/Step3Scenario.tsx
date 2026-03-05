@@ -11,6 +11,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useExperimentBuilder } from '../../store/experiment-builder';
 import { Circle, Plus, X } from 'lucide-react';
+import { ActionDef } from '../../services/scenarios';
 
 interface ActionToggleCardProps {
   name: string;
@@ -93,10 +94,27 @@ interface CustomAction {
   description: string;
 }
 
+/**
+ * Generate actions from a choices parameter value.
+ * Parses comma-separated choices and creates action definitions.
+ */
+function generateActionsFromChoices(choicesValue: string): ActionDef[] {
+  const choices = choicesValue
+    .split(',')
+    .map((c) => c.trim())
+    .filter(Boolean);
+
+  return choices.map((choice) => ({
+    name: choice,
+    description: `Choose ${choice}`,
+  }));
+}
+
 export const Step3Scenario: React.FC = () => {
   const { t } = useTranslation();
   const {
     selectedScenarioData,
+    scenarioParams,
     availableActions,
     selectedActionIds,
     setAvailableActions,
@@ -112,17 +130,41 @@ export const Step3Scenario: React.FC = () => {
 
   // Initialize available actions from scenario data
   // Use category_actions if available, otherwise fall back to scenario.actions
+  // If a parameter has generates_actions=true, generate actions from that parameter
   useEffect(() => {
     if (selectedScenarioData) {
-      // Use category_actions if available, otherwise use scenario.actions
-      const actionsToShow = selectedScenarioData.category_actions || selectedScenarioData.actions;
-      setAvailableActions(actionsToShow);
+      // Check if any parameter generates actions
+      const generatorParam = selectedScenarioData.parameters?.find(
+        (p) => p.generates_actions === true
+      );
 
-      // Use default_action_ids if available, otherwise select all actions by default
-      const defaultIds = selectedScenarioData.default_action_ids || actionsToShow.map((a) => a.name);
-      setSelectedActionIds(defaultIds);
+      if (generatorParam) {
+        // Get the current value of the generating parameter
+        const paramValue =
+          (scenarioParams[generatorParam.key] as string) ||
+          (generatorParam.default as string) ||
+          '';
+
+        // Generate actions from the parameter value
+        const generatedActions = generateActionsFromChoices(paramValue);
+        setAvailableActions(generatedActions);
+
+        // Select all generated actions by default
+        const defaultIds = generatedActions.map((a) => a.name);
+        setSelectedActionIds(defaultIds);
+      } else {
+        // Use category_actions if available, otherwise use scenario.actions
+        const actionsToShow =
+          selectedScenarioData.category_actions || selectedScenarioData.actions || [];
+        setAvailableActions(actionsToShow);
+
+        // Use default_action_ids if available, otherwise select all actions by default
+        const defaultIds =
+          selectedScenarioData.default_action_ids || actionsToShow.map((a) => a.name);
+        setSelectedActionIds(defaultIds);
+      }
     }
-  }, [selectedScenarioData, setAvailableActions, setSelectedActionIds]);
+  }, [selectedScenarioData, scenarioParams, setAvailableActions, setSelectedActionIds]);
 
   const isCustom = selectedScenarioData?.id === 'custom';
 
