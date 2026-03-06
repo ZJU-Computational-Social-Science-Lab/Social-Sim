@@ -685,7 +685,37 @@ class ExperimentRunner:
         debug_buffer.append(f"{'#'*80}\n\n")
         debug_buffer.append(f"## AGENT: {agent.name}\n")
         debug_buffer.append(f"## ROUND: {round_num}\n")
-        debug_buffer.append(f"## VISIBILITY MODE: {self.round_visibility}\n\n")
+        debug_buffer.append(f"## VISIBILITY MODE: {self.round_visibility}\n")
+
+        # --- NETWORK VISIBILITY DEBUG ---
+        if self.information_model and self.information_model.scope_type in ("neighborhood", "neighbor"):
+            debug_buffer.append(f"\n--- NETWORK VISIBILITY ---\n")
+            graph = self.scene_state.get("graph", {})
+            edges = graph.get("edges", [])
+            if edges:
+                # Build a map of agent -> neighbors
+                neighbor_map = {}
+                for a, b in edges:
+                    if a not in neighbor_map:
+                        neighbor_map[a] = []
+                    if b not in neighbor_map:
+                        neighbor_map[b] = []
+                    neighbor_map[a].append(b)
+                    neighbor_map[b].append(a)
+                # Show each agent's connections
+                for agent_obj in sorted(self.agents, key=lambda x: neighbor_map.get(agent_obj.name, [])):
+                    neighbor_names = sorted(neighbor_map[agent_obj.name])
+                    debug_buffer.append(f"  {agent_obj.name}: connected to {neighbor_names}\n")
+            else:
+                debug_buffer.append(f"  (No network edges configured)\n")
+
+        # --- PAIRINGS (for paired games) ---
+        if self.information_model and self.information_model.scope_type == "pair" and self.information_model.pairing_fn:
+            debug_buffer.append(f"\n--- ROUND {round_num} PAIRINGS ---\n")
+            pairs = self.information_model.pairing_fn([a.name for a in self.agents], round_num)
+            for a, b in pairs:
+                debug_buffer.append(f"  {a} paired with {b}\n")
+
         debug_buffer.append(f"--- AGENT PROPERTIES ---\n")
         for k, v in agent.get_properties_dict().items():
             debug_buffer.append(f"  {k}: {v}\n")

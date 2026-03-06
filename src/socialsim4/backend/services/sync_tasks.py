@@ -42,6 +42,11 @@ def run_sync_task(self, simulation_id: Optional[str], user_id: Optional[int], pa
                 agent_config = payload.get('agent_config') or payload.get('agentConfig') or {}
                 social_network = payload.get('social_network') or payload.get('socialNetwork') or {}
 
+                # Merge social_network into scene_config
+                if social_network:
+                    scene_config = {**scene_config, social_network: social_network}
+                    logger.debug(f"[sync_tasks] Merging social_network into scene_config: {social_network}")
+
                 # determine create vs update
                 sim = None
                 if simulation_id:

@@ -1,5 +1,5 @@
 /**
- * Step 5: Prompt Preview
+ * Step 6: Prompt Preview
  *
  * Displays a preview of exactly what each agent type will see
  * at the start of the simulation. This matches the backend's
@@ -142,7 +142,7 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
   );
 };
 
-export const Step5Structure: React.FC = () => {
+export const Step6Structure: React.FC = () => {
   const { t } = useTranslation();
   const {
     agentTypes,

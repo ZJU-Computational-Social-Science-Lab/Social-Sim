@@ -128,7 +128,12 @@ class ExperimentScene:
         else:
             logger.warning("No social network configured for this experiment")
 
-        logger.debug(f"ExperimentRunner initialized: scenario_id={self.config.scenario_id}, scope_type={information_model.scope_type}, include_scores={information_model.include_scores}")
+        logger.debug(f"ExperimentRunner initialized:")
+        logger.debug(f"  scenario_id={self.config.scenario_id}")
+        logger.debug(f"  scope_type={information_model.scope_type}")
+        logger.debug(f"  include_scores={information_model.include_scores}")
+        logger.debug(f"  round_visibility={self.config.round_visibility}")
+        logger.debug(f"  agents={len(self.agents)}")
 
     async def run_round(self, event_emitter: Callable[[str, dict], None]) -> RoundResult:
         """Run exactly ONE round of the experiment.

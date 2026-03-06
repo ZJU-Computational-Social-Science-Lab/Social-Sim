@@ -1,12 +1,13 @@
 /**
  * Main Experiment Builder Component
  *
- * 5-step wizard for creating social science experiments:
+ * 6-step wizard for creating social science experiments:
  * 1. Select interaction patterns
  * 2. Choose starter template (optional)
  * 3. Configure scenario and mechanics
  * 4. Design agents
- * 5. Set structure, conditions, and review
+ * 5. Configure network
+ * 6. Set structure, conditions, and review
  */
 
 import React from 'react';
@@ -19,7 +20,8 @@ import { Step1InteractionType } from './Step1InteractionType';
 import { Step2StarterTemplate } from './Step2StarterTemplate';
 import { Step3Scenario } from './Step3Scenario';
 import { Step4Agents } from './Step4Agents';
-import { Step5Structure } from './Step5Structure';
+import { Step5Network } from './Step5Network';
+import { Step6Structure } from './Step6Structure';
 
 interface ExperimentBuilderProps {
   onComplete?: (config: unknown) => void;
@@ -37,6 +39,7 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
     scenarioDescription,
     selectedActionIds,
     agentTypes,
+    socialNetwork,
     nextStep,
     prevStep,
   } = useExperimentBuilder();
@@ -52,7 +55,10 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
 
   const handleComplete = () => {
     const state = useExperimentBuilder.getState();
-    onComplete?.(state);
+    onComplete?.({
+      ...state,
+      socialNetwork, // Include network in config
+    });
   };
 
   const canProceed = () => {
@@ -69,6 +75,9 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
         const totalAgents = agentTypes.reduce((sum, type) => sum + (type.count || 0), 0);
         return totalAgents >= 1;
       case 5:
+        // Network step - optional, can proceed even without connections
+        return true;
+      case 6:
         return true; // Review page - always allowed
       default:
         return false;
@@ -76,6 +85,8 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
   };
 
   const canGoBack = () => currentStep > 1;
+
+  const isLastStep = currentStep === 6;
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -85,7 +96,7 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
           Create New Experiment
         </h1>
         <p className="text-gray-600 mt-1">
-          Design your social science experiment in 5 steps
+          Design your social science experiment in 6 steps
         </p>
       </div>
 
@@ -93,7 +104,7 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
       <div className="mb-8">
         <ProgressBar
           current={currentStep}
-          total={5}
+          total={6}
           completed={Array.from(completedSteps)}
           steps={STEPS}
         />
@@ -114,7 +125,10 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
           <Step4Agents />
         )}
         {currentStep === 5 && (
-          <Step5Structure />
+          <Step5Network />
+        )}
+        {currentStep === 6 && (
+          <Step6Structure />
         )}
       </Card>
 
@@ -133,7 +147,7 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
             Cancel
           </Button>
 
-          {currentStep < 5 ? (
+          {currentStep < 6 ? (
             <Button onClick={handleNext} disabled={!canProceed()}>
               Next →
             </Button>

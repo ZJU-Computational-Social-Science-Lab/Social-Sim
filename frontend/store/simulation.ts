@@ -668,7 +668,10 @@ export const createSimulationSlice: StateCreator<
 
     try {
       const { updateSimulation: updateSimApi } = await import('../services/simulations');
-      await updateSimApi(currentSim.id, { socialNetwork: network });
+      // Send social_network inside scene_config, not as a top-level socialNetwork field
+      // The SimulationUpdate schema has scene_config field but the frontend was sending
+      // a wrong key that gets silently ignored
+      await updateSimApi(currentSim.id, { scene_config: { social_network: network } });
 
       set((state) => ({
         currentSimulation: state.currentSimulation

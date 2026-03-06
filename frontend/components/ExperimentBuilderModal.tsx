@@ -163,6 +163,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
           step: 1,
         },
         genericConfig: genericConfig,
+        defaultNetwork: state.socialNetwork || {},
       },
       undefined,
       undefined

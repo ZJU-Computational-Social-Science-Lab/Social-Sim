@@ -73,7 +73,7 @@ class InformationModel:
                         return [for_agent, a]
             return [for_agent]
 
-        if self.scope_type == "neighborhood":
+        if self.scope_type in ("neighborhood", "neighbor"):
             if self.scope_fn:
                 neighbors = self.scope_fn(for_agent, scene_state, all_agent_names)
             else:

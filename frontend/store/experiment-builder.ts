@@ -40,8 +40,8 @@ export interface ManualAgentType {
 
 export interface ExperimentBuilderState {
   // Current step
-  currentStep: 1 | 2 | 3 | 4 | 5;
-  completedSteps: Set<1 | 2 | 3 | 4 | 5>;
+  currentStep: 1 | 2 | 3 | 4 | 5 | 6;
+  completedSteps: Set<1 | 2 | 3 | 4 | 5 | 6>;
 
   // Step 1: Scenario selection
   selectedScenarioId: string | null;
@@ -63,16 +63,19 @@ export interface ExperimentBuilderState {
   llmProviders: LLMProvider[];
   selectedProviderId: number | null;
 
+  // Step 5: Network Configuration
+  socialNetwork: SocialNetwork;
+
   // Validation
   validationErrors: Record<string, string>;
 }
 
 interface ExperimentBuilderActions {
   // Navigation
-  setCurrentStep: (step: 1 | 2 | 3 | 4 | 5) => void;
+  setCurrentStep: (step: 1 | 2 | 3 | 4 | 5 | 6) => void;
   nextStep: () => void;
   prevStep: () => void;
-  markStepComplete: (step: 1 | 2 | 3 | 4 | 5) => void;
+  markStepComplete: (step: 1 | 2 | 3 | 4 | 5 | 6) => void;
 
   // Step 1: Scenario selection
   setSelectedScenarioId: (id: string | null) => void;
@@ -97,6 +100,9 @@ interface ExperimentBuilderActions {
   loadProviders: () => Promise<void>;
   setSelectedProviderId: (id: number | null) => void;
 
+  // Step 5: Network Configuration
+  setSocialNetwork: (network: SocialNetwork) => void;
+
   // Validation
   validate: () => boolean;
   clearValidationErrors: () => void;
@@ -120,6 +126,7 @@ const getInitialState = (): ExperimentBuilderState => ({
   agentTypes: [],
   llmProviders: [],
   selectedProviderId: null,
+  socialNetwork: {},
   validationErrors: {},
 });
 
@@ -127,10 +134,11 @@ const initialState: ExperimentBuilderState = getInitialState();
 
 export const STEPS = [
   { id: 1, title: 'Choose Scenario', description: 'Pick a preset or start blank' },
-  { id: 2, title: 'Configure Scenario', description: 'Set description and parameters' },
-  { id: 3, title: 'Select Actions', description: 'Choose what agents can do' },
-  { id: 4, title: 'Create Agents', description: 'Define who participates' },
-  { id: 5, title: 'Review', description: 'Preview what agents will see' },
+    { id: 2, title: 'Configure Scenario', description: 'Set description and parameters' },
+    { id: 3, title: 'Select Actions', description: 'Choose what agents can do' },
+    { id: 4, title: 'Create Agents', description: 'Define who participates' },
+    { id: 5, title: 'Network', description: 'Configure social connections' },
+    { id: 6, title: 'Review', description: 'Preview what agents will see' },
 ];
 
 export const useExperimentBuilder = create<ExperimentBuilderState & ExperimentBuilderActions>((set, get) => ({
@@ -141,15 +149,15 @@ export const useExperimentBuilder = create<ExperimentBuilderState & ExperimentBu
 
   nextStep: () => {
     const current = get().currentStep;
-    if (current < 5) {
-      set({ currentStep: (current + 1) as 1 | 2 | 3 | 4 | 5 });
+    if (current < 6) {
+      set({ currentStep: (current + 1) as 1 | 2 | 3 | 4 | 5 | 6 });
     }
   },
 
   prevStep: () => {
     const current = get().currentStep;
     if (current > 1) {
-      set({ currentStep: (current - 1) as 1 | 2 | 3 | 4 | 5 });
+      set({ currentStep: (current - 1) as 1 | 2 | 3 | 4 | 5 | 6 });
     }
   },
 
@@ -266,6 +274,9 @@ export const useExperimentBuilder = create<ExperimentBuilderState & ExperimentBu
   },
 
   setSelectedProviderId: (id) => set({ selectedProviderId: id }),
+
+  // Step 5: Network Configuration
+  setSocialNetwork: (network) => set({ socialNetwork: network }),
 
   // Validation
   validate: () => {
