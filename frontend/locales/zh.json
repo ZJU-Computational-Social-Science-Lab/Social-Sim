@@ -1554,7 +1554,7 @@
     },
     "dynamicActionsInfo": {
       "title": "动态动作：",
-      "message": "这些动作是从"{{paramLabel}}"参数生成的。在步骤2中编辑它以更改可用选项。"
+      "message": "这些动作是从【{{paramLabel}}】参数生成的。在步骤2中编辑它以更改可用选项。"
     }
   },
   "systemTemplates": {
