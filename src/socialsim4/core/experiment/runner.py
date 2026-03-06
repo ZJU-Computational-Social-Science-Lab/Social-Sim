@@ -89,6 +89,7 @@ class ExperimentRunner:
         self.round_visibility = round_visibility
         self.information_model = information_model
         self.scene_state: Dict[str, Any] = {}  # shared mutable ref; update via set_scene_state()
+        self._debug_lock = asyncio.Lock()  # Lock for atomic debug file writes
 
         self.context_manager = RoundContextManager(
             information_model=information_model,
@@ -107,6 +108,12 @@ class ExperimentRunner:
     def set_scene_state(self, state: Dict[str, Any]) -> None:
         """Merge new state into scene_state. context_manager holds the same reference."""
         self.scene_state.update(state)
+
+    async def _write_debug_atomically(self, buffer: list) -> None:
+        """Write debug buffer to file atomically using lock."""
+        async with self._debug_lock:
+            with open(_debug_file, 'a', encoding='utf-8') as f:
+                f.write(''.join(buffer))
 
     def execute_action(self, action_name, agent_name, params, state):
         """Delegate action execution to ActionHandler."""
@@ -671,33 +678,33 @@ class ExperimentRunner:
                 neighbor_context = f"Your social network neighbors: {', '.join(neighbors)}."
         prompt = build_prompt(agent, self.game_config, context, include_section_markers=True, information_model=self.information_model, kb_context=kb_context, neighbor_context=neighbor_context)
 
-        # Write to debug file (won't be truncated)
-        with open(_debug_file, 'a', encoding='utf-8') as f:
-            f.write(f"\n{'#'*80}\n")
-            f.write(f"# LLM DEBUG LOG - {datetime.now().isoformat()}\n")
-            f.write(f"{'#'*80}\n\n")
-            f.write(f"## AGENT: {agent.name}\n")
-            f.write(f"## ROUND: {round_num}\n")
-            f.write(f"## VISIBILITY MODE: {self.round_visibility}\n\n")
-            f.write(f"--- AGENT PROPERTIES ---\n")
-            for k, v in agent.get_properties_dict().items():
-                f.write(f"  {k}: {v}\n")
-            f.write(f"\n--- GAME CONFIG ---\n")
-            f.write(f"  scenario: {self.game_config.description[:100]}...\n")
-            f.write(f"  actions: {self.game_config.actions}\n")
-            f.write(f"  action_type: {self.game_config.action_type}\n")
-            f.write(f"  output_field: {self.game_config.output_field}\n")
-            if self.game_config.action_descriptions:
-                f.write(f"  action_descriptions: {self.game_config.action_descriptions}\n")
-            f.write(f"\n--- CONTEXT (filtered for this agent) ---\n")
-            f.write(f"{context[:500]}...\n" if len(context) > 500 else f"{context}\n")
-            f.write(f"\n{'='*80}\n")
-            f.write(f"FULL PROMPT SENT TO LLM\n")
-            f.write(f"{'='*80}\n\n")
-            f.write(prompt)
-            f.write(f"\n\n{'='*80}\n")
-            f.write(f"END OF PROMPT\n")
-            f.write(f"{'='*80}\n\n")
+        # Build debug output buffer (will be written atomically after LLM call)
+        debug_buffer = []
+        debug_buffer.append(f"\n{'#'*80}\n")
+        debug_buffer.append(f"# LLM DEBUG LOG - {datetime.now().isoformat()}\n")
+        debug_buffer.append(f"{'#'*80}\n\n")
+        debug_buffer.append(f"## AGENT: {agent.name}\n")
+        debug_buffer.append(f"## ROUND: {round_num}\n")
+        debug_buffer.append(f"## VISIBILITY MODE: {self.round_visibility}\n\n")
+        debug_buffer.append(f"--- AGENT PROPERTIES ---\n")
+        for k, v in agent.get_properties_dict().items():
+            debug_buffer.append(f"  {k}: {v}\n")
+        debug_buffer.append(f"\n--- GAME CONFIG ---\n")
+        debug_buffer.append(f"  scenario: {self.game_config.description[:100]}...\n")
+        debug_buffer.append(f"  actions: {self.game_config.actions}\n")
+        debug_buffer.append(f"  action_type: {self.game_config.action_type}\n")
+        debug_buffer.append(f"  output_field: {self.game_config.output_field}\n")
+        if self.game_config.action_descriptions:
+            debug_buffer.append(f"  action_descriptions: {self.game_config.action_descriptions}\n")
+        debug_buffer.append(f"\n--- CONTEXT (filtered for this agent) ---\n")
+        debug_buffer.append(f"{context[:500]}...\n" if len(context) > 500 else f"{context}\n")
+        debug_buffer.append(f"\n{'='*80}\n")
+        debug_buffer.append(f"FULL PROMPT SENT TO LLM\n")
+        debug_buffer.append(f"{'='*80}\n\n")
+        debug_buffer.append(prompt)
+        debug_buffer.append(f"\n\n{'='*80}\n")
+        debug_buffer.append(f"END OF PROMPT\n")
+        debug_buffer.append(f"{'='*80}\n\n")
 
         logger.debug(f"Prompting agent {agent.name} for round {round_num}")
         logger.debug(f"Game config: actions={self.game_config.actions}, type={self.game_config.action_type}")
@@ -712,11 +719,12 @@ class ExperimentRunner:
             # Handle empty response gracefully (e.g., Qwen3 via Ollama returns 0 chars)
             if not raw_response or not raw_response.strip():
                 logger.error(f"Empty response from LLM for {agent.name}")
-                with open(_debug_file, 'a', encoding='utf-8') as f:
-                    f.write(f"\n{'!'*80}\n")
-                    f.write(f"EMPTY RESPONSE\n")
-                    f.write(f"{'!'*80}\n")
-                    f.write(f"Agent {agent.name} received empty response from LLM\n\n")
+                debug_buffer.append(f"\n{'!'*80}\n")
+                debug_buffer.append(f"EMPTY RESPONSE\n")
+                debug_buffer.append(f"{'!'*80}\n")
+                debug_buffer.append(f"Agent {agent.name} received empty response from LLM\n\n")
+                # Write debug output atomically
+                await self._write_debug_atomically(debug_buffer)
                 return ActionResult(
                     agent_name=agent.name,
                     action_name="skip",
@@ -728,15 +736,14 @@ class ExperimentRunner:
                     error="Empty LLM response"
                 )
 
-            # Write raw response to debug file
-            with open(_debug_file, 'a', encoding='utf-8') as f:
-                f.write(f"\n{'='*80}\n")
-                f.write(f"LLM RAW RESPONSE\n")
-                f.write(f"{'='*80}\n\n")
-                f.write(raw_response)
-                f.write(f"\n\n{'='*80}\n")
-                f.write(f"END OF RESPONSE\n")
-                f.write(f"{'='*80}\n\n")
+            # Add response to debug buffer
+            debug_buffer.append(f"\n{'='*80}\n")
+            debug_buffer.append(f"LLM RAW RESPONSE\n")
+            debug_buffer.append(f"{'='*80}\n\n")
+            debug_buffer.append(raw_response)
+            debug_buffer.append(f"\n\n{'='*80}\n")
+            debug_buffer.append(f"END OF RESPONSE\n")
+            debug_buffer.append(f"{'='*80}\n\n")
 
             logger.debug(f"LLM response for {agent.name}: {len(raw_response)} chars")
 
@@ -754,16 +761,18 @@ class ExperimentRunner:
                 action_schemas=action_schemas
             )
 
-            # Write processed result to debug file
-            with open(_debug_file, 'a', encoding='utf-8') as f:
-                f.write(f"\n--- PROCESSED RESULT ---\n")
-                f.write(f"  action: {result.action_name}\n")
-                f.write(f"  success: {result.success}\n")
-                f.write(f"  skipped: {result.skipped}\n")
-                f.write(f"  summary: {result.summary}\n")
-                if result.error:
-                    f.write(f"  error: {result.error}\n")
-                f.write("\n" + "-"*80 + "\n\n")
+            # Add processed result to debug buffer
+            debug_buffer.append(f"\n--- PROCESSED RESULT ---\n")
+            debug_buffer.append(f"  action: {result.action_name}\n")
+            debug_buffer.append(f"  success: {result.success}\n")
+            debug_buffer.append(f"  skipped: {result.skipped}\n")
+            debug_buffer.append(f"  summary: {result.summary}\n")
+            if result.error:
+                debug_buffer.append(f"  error: {result.error}\n")
+            debug_buffer.append("\n" + "-"*80 + "\n\n")
+
+            # Write debug output atomically
+            await self._write_debug_atomically(debug_buffer)
 
             logger.debug(f"Processed result: action={result.action_name}, success={result.success}, skipped={result.skipped}")
             if result.error:
@@ -772,11 +781,12 @@ class ExperimentRunner:
             return result
 
         except Exception as e:
-            with open(_debug_file, 'a', encoding='utf-8') as f:
-                f.write(f"\n{'!'*80}\n")
-                f.write(f"ERROR\n")
-                f.write(f"{'!'*80}\n")
-                f.write(f"Agent {agent.name} failed: {e}\n\n")
+            debug_buffer.append(f"\n{'!'*80}\n")
+            debug_buffer.append(f"ERROR\n")
+            debug_buffer.append(f"{'!'*80}\n")
+            debug_buffer.append(f"Agent {agent.name} failed: {e}\n\n")
+            # Write debug output atomically
+            await self._write_debug_atomically(debug_buffer)
             logger.error(f"Error prompting agent {agent.name}: {e}")
             return ActionResult(
                 success=False,
