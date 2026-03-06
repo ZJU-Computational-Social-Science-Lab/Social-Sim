@@ -124,15 +124,19 @@ class RoundContextManager:
 
         If no information_model is stored, only the acting agent observes themselves.
         """
+        logger = logging.getLogger(__name__)
         if self.information_model and self.all_agent_names:
+            logger.debug(f"[CONTEXT] Recording action for {agent_name}: scope_type={self.information_model.scope_type}, scene_state keys={list(self.scene_state.keys())}")
             observed_by = self.information_model.get_observers(
                 for_agent=agent_name,
                 scene_state=self.scene_state,
                 all_agent_names=self.all_agent_names,
                 round_num=round_num,
             )
+            logger.debug(f"[CONTEXT] {agent_name}'s action observed by: {observed_by}")
         else:
             observed_by = [agent_name]
+            logger.debug(f"[CONTEXT] No information_model, {agent_name} observes only self")
         self.record_action(
             agent_name=agent_name,
             action_name=action_name,
@@ -165,7 +169,7 @@ class RoundContextManager:
             for_agent=agent_name,
             events=visible_events,
             info_model=self.information_model,
-            agent_score=agent_score,
+            agent_score=agent_score if self.information_model.include_scores else None,
         )
 
     def get_round_events(self, round_num: int) -> List[RoundEvent]:
