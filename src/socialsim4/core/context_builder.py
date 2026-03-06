@@ -194,7 +194,8 @@ def build_structured_context(
             continue
 
         my_event = next((e for e in round_events if e.agent_name == for_agent), None)
-        other_events = [e for e in round_events if e.agent_name != for_agent]
+        # FIX: Filter other_events by visibility (observed_by)
+        other_events = [e for e in round_events if e.agent_name != for_agent and for_agent in e.observed_by]
 
         if info_model.payoff_template and my_event is not None:
             # Template IS the complete line — no round prefix added separately
