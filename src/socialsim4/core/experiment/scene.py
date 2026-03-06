@@ -45,7 +45,7 @@ class ExperimentScene:
         self._pending_host_messages: list[str] = []
         self.state: ExperimentState = ExperimentState()
 
-        logger.debug(f"ExperimentScene initialized: {config.scenario_id}")
+        logger.debug(f"ExperimentScene initialized: scenario_id='{config.scenario_id}' (type: {type(config.scenario_id).__name__})")
 
     def initialize(self, llm_client: LLMClient) -> None:
         """Create ExperimentAgents directly from config.
@@ -97,6 +97,21 @@ class ExperimentScene:
                 payoff_template="Round {N}: I {my_action}, partner {partner_action} → {payoff} pts",
             )
 
+        # For games without score-based payoffs, ensure include_scores=False
+        # This handles cases where scenario_id doesn't match registry exactly
+        payoff_type = params.get("payoff_type", "matrix")
+        if payoff_type in ("feedback", "none", "") and information_model.include_scores:
+            information_model = InformationModel(
+                scope_type=information_model.scope_type,
+                scope_fn=information_model.scope_fn,
+                pairing_fn=information_model.pairing_fn,
+                recent_window=information_model.recent_window,
+                primacy_keep=information_model.primacy_keep,
+                context_budget_chars=information_model.context_budget_chars,
+                payoff_template=information_model.payoff_template,
+                include_scores=False,
+            )
+
         # Create the runner
         self.runner = ExperimentRunner(
             agents=self.agents,
@@ -109,8 +124,11 @@ class ExperimentScene:
         # Wire social network graph to runner's scene_state
         if self.config.social_network:
             self.runner.set_scene_state({"graph": self.config.social_network})
+            logger.debug(f"Social network set: {len(self.config.social_network.get('edges', []))} edges")
+        else:
+            logger.warning("No social network configured for this experiment")
 
-        logger.debug("ExperimentRunner initialized")
+        logger.debug(f"ExperimentRunner initialized: scenario_id={self.config.scenario_id}, scope_type={information_model.scope_type}, include_scores={information_model.include_scores}")
 
     async def run_round(self, event_emitter: Callable[[str, dict], None]) -> RoundResult:
         """Run exactly ONE round of the experiment.

@@ -8,6 +8,9 @@ keys to InformationModel instances.
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, List, Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -74,8 +77,26 @@ class InformationModel:
             if self.scope_fn:
                 neighbors = self.scope_fn(for_agent, scene_state, all_agent_names)
             else:
-                neighbors = scene_state.get("social_network", {}).get(for_agent, [])
-            return list(set([for_agent] + list(neighbors)))
+                # Check both "social_network" and "graph" keys for backwards compatibility
+                network = scene_state.get("social_network") or scene_state.get("graph", {})
+                logger.debug(f"[VISIBILITY] Agent {for_agent}: scene_state keys={list(scene_state.keys())}, network type={type(network).__name__}")
+                if isinstance(network, dict):
+                    # Check for edge list format: {"edges": [(a, b), ...]}
+                    if "edges" in network:
+                        edges = network.get("edges", [])
+                        neighbors = [b for a, b in edges if a == for_agent] + [a for a, b in edges if b == for_agent]
+                        logger.debug(f"[VISIBILITY] Agent {for_agent}: Found {len(edges)} edges, {len(neighbors)} neighbors")
+                    else:
+                        # Adjacency list format: {"Agent 1": ["Agent 2", "Agent 3"], ...}
+                        neighbors = network.get(for_agent, [])
+                        logger.debug(f"[VISIBILITY] Agent {for_agent}: Adjacency list format, {len(neighbors)} neighbors")
+                else:
+                    # Fallback: treat as empty if not a dict
+                    logger.warning(f"[VISIBILITY] Agent {for_agent}: Network is not a dict, falling back to no neighbors")
+                    neighbors = []
+            result = list(set([for_agent] + list(neighbors)))
+            logger.debug(f"[VISIBILITY] Agent {for_agent}: Final observers={result}")
+            return result
 
         if self.scope_type == "role_based":
             if self.scope_fn:
