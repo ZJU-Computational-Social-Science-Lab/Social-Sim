@@ -375,6 +375,38 @@ class ContagionScene(VillageScene):
             *super().get_scene_actions(agent),
         ]
 
+    def check_action_transmission(self, sender: "Agent", target: "Agent", simulator: "Simulator"):
+        """
+        Check if action-directed transmission occurs from sender to target.
+
+        Evaluates rules with trigger_type="action". If sender's state matches
+        rule.from_state and probability check passes, applies transition to target.
+
+        Implements ACT-01: Speak action triggers transmission check after message delivery.
+        Implements ACT-02: Probability is checked when speak targets an agent.
+
+        This method does NOT add feedback to agents about transmission (hidden state semantics).
+
+        Args:
+            sender: The agent performing the action (potential infection source)
+            target: The agent receiving the action (potential infection target)
+            simulator: Simulator for event emission
+        """
+        sender_state = sender.properties.get("contagion_state", "")
+
+        for rule in self.rules:
+            if rule.trigger_type != "action":
+                continue
+            if rule.from_state.value != sender_state:
+                continue
+            # Target must be in a state that can receive transmission
+            # For typical SIR: target should be susceptible
+            # The rule defines what states can receive - check target matches to_state prerequisite
+
+            if check_probability(rule.probability):
+                self._apply_transition(target, rule, simulator)
+                break  # First-match-wins
+
     def get_agent_status_prompt(self, agent: "Agent") -> str:
         """
         Generate a status prompt for an agent with contagion-specific information.
