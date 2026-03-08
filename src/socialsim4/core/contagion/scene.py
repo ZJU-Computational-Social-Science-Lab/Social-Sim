@@ -14,7 +14,7 @@ import random
 from typing import Dict, List, Optional, Tuple
 
 from socialsim4.core.contagion.states import ContagionState
-from socialsim4.core.contagion.rules import StateTransition
+from socialsim4.core.contagion.rules import StateTransition, check_probability
 from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
 from socialsim4.core.contagion.actions import MoveAdjacentAction, SpeakToAction
 from socialsim4.core.scenes.village_scene import GameMap, VillageScene
@@ -115,6 +115,9 @@ class ContagionScene(VillageScene):
         for agent in simulator.agents.values():
             self._evaluate_decay_rules(agent, simulator)
 
+        # Evaluate proximity rules (spatial transmission)
+        self._evaluate_proximity_rules(simulator)
+
         # Update statistics after rule evaluation
         self._update_statistics(simulator)
 
@@ -170,6 +173,109 @@ class ContagionScene(VillageScene):
             trigger_type=rule.trigger_type
         )
         self._statistics.record_transition(event)
+
+    def _evaluate_proximity_rules(self, simulator: "Simulator"):
+        """
+        Evaluate proximity-based transmission for all adjacent agent pairs.
+
+        Checks all pairs of adjacent agents for potential transmission.
+        Transmission occurs when an infected agent is adjacent to a susceptible
+        agent and the probability check succeeds. Newly infected agents cannot
+        spread until the next turn (no chaining).
+
+        Args:
+            simulator: Simulator instance for accessing agents
+        """
+        # Build position -> agent mapping for O(1) lookup
+        position_to_agent: Dict[Tuple[int, int], "Agent"] = {}
+        for agent in simulator.agents.values():
+            xy = agent.properties.get("map_xy")
+            if xy:
+                position_to_agent[(xy[0], xy[1])] = agent
+
+        # Track agents already transitioned this turn (prevents chaining)
+        transitioned_this_turn: set = set()
+
+        # Check each agent's neighbors for transmission
+        for agent in simulator.agents.values():
+            xy = agent.properties.get("map_xy")
+            if not xy:
+                continue
+
+            # Skip if this agent was just infected this turn (no chaining)
+            if agent.name in transitioned_this_turn:
+                continue
+
+            agent_state = agent.properties.get("contagion_state", "")
+
+            # Get all Moore neighbors
+            neighbor_coords = self.get_moore_neighbors(xy[0], xy[1])
+
+            for neighbor_xy in neighbor_coords:
+                neighbor = position_to_agent.get(neighbor_xy)
+                if not neighbor:
+                    continue
+
+                # Skip if already transitioned this turn
+                if neighbor.name in transitioned_this_turn:
+                    continue
+
+                neighbor_state = neighbor.properties.get("contagion_state", "")
+
+                # Check proximity rules for transmission from agent to neighbor
+                if self._check_proximity_transmission(
+                    agent_state, neighbor_state, agent, neighbor,
+                    simulator, transitioned_this_turn
+                ):
+                    break  # Only one transition per pair per turn
+
+                # Check proximity rules for transmission from neighbor to agent
+                if self._check_proximity_transmission(
+                    neighbor_state, agent_state, neighbor, agent,
+                    simulator, transitioned_this_turn
+                ):
+                    break  # Only one transition per pair per turn
+
+    def _check_proximity_transmission(
+        self,
+        source_state: str,
+        target_state: str,
+        source_agent: "Agent",
+        target_agent: "Agent",
+        simulator: "Simulator",
+        transitioned_set: set
+    ) -> bool:
+        """
+        Check if proximity transmission should occur between two agents.
+
+        Args:
+            source_state: State of the potentially infectious agent
+            target_state: State of the potentially susceptible agent
+            source_agent: Agent that might spread contagion
+            target_agent: Agent that might receive contagion
+            simulator: Simulator instance
+            transitioned_set: Set of agent names already transitioned this turn
+
+        Returns:
+            True if transmission occurred, False otherwise
+        """
+        # Skip if target already transitioned
+        if target_agent.name in transitioned_set:
+            return False
+
+        # Find matching proximity rule
+        for rule in self.rules:
+            if rule.trigger_type != "proximity":
+                continue
+
+            # Check if source state matches and target is susceptible
+            if rule.from_state.value == target_state:
+                if check_probability(rule.probability):
+                    self._apply_transition(target_agent, rule, simulator)
+                    transitioned_set.add(target_agent.name)
+                    return True
+
+        return False
 
     def _update_statistics(self, simulator: "Simulator"):
         """
