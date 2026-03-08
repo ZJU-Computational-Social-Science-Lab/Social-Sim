@@ -15,6 +15,8 @@ Key Components:
 - check_probability: Utility for probabilistic state transitions
 - ContagionStatistics: Tracker for state counts and transition events
 - TransitionEvent: Record of individual state transitions
+- MoveAdjacentAction: Single-cell movement in 8 compass directions
+- DIRECTION_DELTAS: Direction to coordinate delta mapping
 
 Usage:
     from socialsim4.core.contagion import ContagionState, StateTransition
@@ -31,6 +33,7 @@ from .states import ContagionState
 from .rules import StateTransition, check_probability
 from .statistics import ContagionStatistics, TransitionEvent
 from .scene import ContagionScene
+from .actions import MoveAdjacentAction, DIRECTION_DELTAS
 
 __all__ = [
     "ContagionState",
@@ -39,4 +42,6 @@ __all__ = [
     "ContagionStatistics",
     "TransitionEvent",
     "ContagionScene",
+    "MoveAdjacentAction",
+    "DIRECTION_DELTAS",
 ]
