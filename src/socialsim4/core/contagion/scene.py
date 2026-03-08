@@ -145,7 +145,11 @@ class ContagionScene(VillageScene):
                     break  # Only one transition per turn
 
     def _apply_transition(
-        self, agent: "Agent", rule: StateTransition, simulator: "Simulator"
+        self,
+        agent: "Agent",
+        rule: StateTransition,
+        simulator: "Simulator",
+        source_agent_id: Optional[str] = None
     ):
         """
         Apply a state transition to an agent.
@@ -157,6 +161,7 @@ class ContagionScene(VillageScene):
             agent: Agent to transition
             rule: StateTransition rule being applied
             simulator: Simulator for getting current turn
+            source_agent_id: Optional ID of agent that caused this transition
         """
         from_state = agent.properties.get("contagion_state", "")
 
@@ -170,7 +175,8 @@ class ContagionScene(VillageScene):
             agent_id=agent.name,
             from_state=from_state,
             to_state=rule.to_state.value,
-            trigger_type=rule.trigger_type
+            trigger_type=rule.trigger_type,
+            source_agent_id=source_agent_id
         )
         self._statistics.record_transition(event)
 
@@ -271,7 +277,10 @@ class ContagionScene(VillageScene):
             # Check if source state matches and target is susceptible
             if rule.from_state.value == target_state:
                 if check_probability(rule.probability):
-                    self._apply_transition(target_agent, rule, simulator)
+                    self._apply_transition(
+                        target_agent, rule, simulator,
+                        source_agent_id=source_agent.name
+                    )
                     transitioned_set.add(target_agent.name)
                     return True
 
@@ -404,7 +413,7 @@ class ContagionScene(VillageScene):
             # The rule defines what states can receive - check target matches to_state prerequisite
 
             if check_probability(rule.probability):
-                self._apply_transition(target, rule, simulator)
+                self._apply_transition(target, rule, simulator, source_agent_id=sender.name)
                 break  # First-match-wins
 
     def get_agent_status_prompt(self, agent: "Agent") -> str:

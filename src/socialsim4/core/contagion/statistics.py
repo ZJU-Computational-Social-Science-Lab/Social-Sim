@@ -8,7 +8,7 @@ via WebSocket for real-time visualization.
 Contains: ContagionStatistics, TransitionEvent
 """
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 @dataclass
@@ -25,6 +25,7 @@ class TransitionEvent:
         from_state: Previous contagion state (e.g., "susceptible")
         to_state: New contagion state (e.g., "infected")
         trigger_type: What caused the transition ("proximity", "action", "decay")
+        source_agent_id: Optional ID of agent that caused transmission (for proximity/action)
     """
 
     turn: int
@@ -32,6 +33,7 @@ class TransitionEvent:
     from_state: str
     to_state: str
     trigger_type: str
+    source_agent_id: Optional[str] = None
 
     def to_dict(self) -> dict:
         """
@@ -39,14 +41,18 @@ class TransitionEvent:
 
         Returns:
             Dict with all event fields for JSON serialization.
+            source_agent_id is only included when not None.
         """
-        return {
+        result = {
             "turn": self.turn,
             "agent_id": self.agent_id,
             "from_state": self.from_state,
             "to_state": self.to_state,
             "trigger_type": self.trigger_type,
         }
+        if self.source_agent_id is not None:
+            result["source_agent_id"] = self.source_agent_id
+        return result
 
 
 class ContagionStatistics:
