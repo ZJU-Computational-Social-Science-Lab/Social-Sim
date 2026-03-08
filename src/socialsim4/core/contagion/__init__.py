@@ -13,6 +13,8 @@ Key Components:
 - ContagionState: Enum defining agent infection states (S, E, I, R)
 - StateTransition: Dataclass for defining contagion rules
 - check_probability: Utility for probabilistic state transitions
+- ContagionStatistics: Tracker for state counts and transition events
+- TransitionEvent: Record of individual state transitions
 
 Usage:
     from socialsim4.core.contagion import ContagionState, StateTransition
@@ -27,5 +29,12 @@ Usage:
 """
 from .states import ContagionState
 from .rules import StateTransition, check_probability
+from .statistics import ContagionStatistics, TransitionEvent
 
-__all__ = ["ContagionState", "StateTransition", "check_probability"]
+__all__ = [
+    "ContagionState",
+    "StateTransition",
+    "check_probability",
+    "ContagionStatistics",
+    "TransitionEvent",
+]
