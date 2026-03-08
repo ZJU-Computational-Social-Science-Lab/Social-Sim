@@ -342,6 +342,10 @@ class Simulator:
                 text = evt.to_string(self.scene.state.get("time"))
                 agent.add_env_feedback(text)
 
+            # Pre-turn rule evaluation for contagion scenes
+            if hasattr(self.scene, 'pre_turn_rules'):
+                self.scene.pre_turn_rules(self)
+
             # Skip turn based on scene rule
             if self.scene.should_skip_turn(agent, self):
                 print(f"Skipping turn for {agent.name} as per scene rules.")

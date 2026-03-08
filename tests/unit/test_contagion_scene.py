@@ -447,3 +447,40 @@ class TestPreTurnRulesHook:
         # Verify the hook exists on the scene
         assert hasattr(scene, 'pre_turn_rules')
         assert callable(scene.pre_turn_rules)
+
+    def test_simulator_calls_pre_turn_rules_hook(self):
+        """Integration test: verify Simulator.run() calls pre_turn_rules hook."""
+        from socialsim4.core.simulator import Simulator
+        from socialsim4.core.ordering import SequentialOrdering
+
+        # Create a mock scene with pre_turn_rules
+        scene = MagicMock()
+        scene.get_agent_status_prompt = MagicMock(return_value=None)
+        scene.should_skip_turn = MagicMock(return_value=True)  # Skip to avoid agent processing
+        scene.is_complete = MagicMock(side_effect=[False, True])  # Run 1 turn then complete
+        scene.post_turn = MagicMock()
+        pre_turn_called = []
+
+        def mock_pre_turn(sim):
+            pre_turn_called.append(sim.turns)
+
+        scene.pre_turn_rules = mock_pre_turn
+
+        # Create a mock agent
+        agent = MagicMock()
+        agent.name = "test_agent"
+
+        # Create simulator
+        sim = Simulator(
+            agents=[agent],
+            scene=scene,
+            clients={},
+            broadcast_initial=False,
+            ordering=SequentialOrdering(),
+        )
+
+        # Run simulation
+        sim.run(max_turns=2)
+
+        # Verify pre_turn_rules was called
+        assert len(pre_turn_called) >= 1, "pre_turn_rules should have been called"
