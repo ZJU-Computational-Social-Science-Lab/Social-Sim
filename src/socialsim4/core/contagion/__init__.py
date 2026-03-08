@@ -16,6 +16,7 @@ Key Components:
 - ContagionStatistics: Tracker for state counts and transition events
 - TransitionEvent: Record of individual state transitions
 - MoveAdjacentAction: Single-cell movement in 8 compass directions
+- SpeakToAction: Targeted communication with adjacent agents
 - DIRECTION_DELTAS: Direction to coordinate delta mapping
 
 Usage:
@@ -33,7 +34,7 @@ from .states import ContagionState
 from .rules import StateTransition, check_probability
 from .statistics import ContagionStatistics, TransitionEvent
 from .scene import ContagionScene
-from .actions import MoveAdjacentAction, DIRECTION_DELTAS
+from .actions import MoveAdjacentAction, SpeakToAction, DIRECTION_DELTAS
 
 __all__ = [
     "ContagionState",
@@ -43,5 +44,6 @@ __all__ = [
     "TransitionEvent",
     "ContagionScene",
     "MoveAdjacentAction",
+    "SpeakToAction",
     "DIRECTION_DELTAS",
 ]
