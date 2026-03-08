@@ -10,6 +10,14 @@ and resistance dynamics.
 
 from typing import Dict, Any
 from socialsim4.core.scenes.experiment_scene import ExperimentScene
+from socialsim4.i18n import T
+
+
+def get_scenario_description(norm_strength: float, status_distribution: str) -> str:
+    """Get the scenario description with interpolated values."""
+    return T('prompts.scenarios.social_norm_disruption.description',
+             norm_strength=norm_strength,
+             status_distribution=status_distribution)
 
 
 def build_social_norm_disruption_sim(

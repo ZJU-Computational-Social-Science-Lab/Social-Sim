@@ -18,6 +18,7 @@ from datetime import datetime
 from socialsim4.core.config import MAX_REPEAT
 from socialsim4.core.memory import ShortTermMemory
 from socialsim4.core.agent.parsing import parse_actions
+from socialsim4.i18n import T
 
 # Debug file for agent prompts/responses
 _debug_dir = Path("test_results")
@@ -133,13 +134,13 @@ class Agent:
                 kb_preview.append(f"  [{i}] {title}: {content_preview}")
             kb_list = "\n".join(kb_preview)
             if kb_count > 5:
-                kb_list += f"\n  ... and {kb_count - 5} more items"
+                kb_list += "\n  " + T('prompts.agent.knowledge_base_more', count=kb_count - 5)
             knowledge_block = f"""
-Knowledge Base:
-You have a personal knowledge base with {kb_count} item(s) containing information you can reference:
+{T('prompts.agent.knowledge_base_header')}
+{T('prompts.agent.knowledge_base_intro', count=kb_count)}
 {kb_list}
 
-Use the query_knowledge action to search for specific information when needed. The knowledge base contains facts and information that you should use to inform your responses when relevant.
+{T('prompts.agent.query_instruction')}
 """
 
         # Identity line

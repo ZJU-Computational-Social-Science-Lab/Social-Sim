@@ -10,6 +10,7 @@ This scenario explores polarization and filter bubbles in social networks.
 
 from typing import Dict, Any
 from socialsim4.core.scenes.experiment_scene import ExperimentScene
+from socialsim4.i18n import T
 
 
 def build_echo_chamber_sim(
@@ -56,25 +57,12 @@ def build_echo_chamber_sim(
         for action_name in relevant_actions
     ]
 
-    # Build scenario description
-    description = f"""You are participating in an online discussion forum.
-
-Your political opinion: You are on a spectrum from strongly progressive (left)
-to strongly conservative (right). You have been assigned a position.
-
-The group contains {num_agents} participants with diverse opinions.
-
-Connection pattern: Agents tend to connect with others who have similar opinions
-(homophily factor: {connection_homogeneity:.1f}, where 0=random, 1=similar only).
-
-Your task: Interact with other participants by:
-- Expressing your opinion on current topics
-- Engaging with those who share your views
-- Challenging or avoiding those with different views
-- Sharing content that reinforces your position
-- Seeking common ground or disengaging
-
-Observe how opinions shift over time and whether echo chambers form."""
+    # Build scenario description using T() for i18n
+    description = T(
+        'prompts.scenarios.echo_chamber.description',
+        num_agents=num_agents,
+        connection_homogeneity=connection_homogeneity
+    )
 
     # Template configuration for experiment scene
     template_config = {

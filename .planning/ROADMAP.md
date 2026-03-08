@@ -6,7 +6,7 @@
 
 ## Phases
 
-- [ ] **Phase 1: Core Infrastructure** - State system, rules engine, statistics, grid positioning, and hidden state visibility
+- [x] **Phase 1: Core Infrastructure** - State system, rules engine, statistics, grid positioning, and hidden state visibility
 - [ ] **Phase 2: Actions & Context** - Movement, speak actions, and agent context integration with LLM prompts
 - [ ] **Phase 3: Transmission** - Proximity-based spread, action-directed transmission, and state decay
 
@@ -32,8 +32,8 @@
 
 Plans:
 - [x] 01-01-PLAN.md — ContagionState enum and StateTransition dataclass (CORE-01, CORE-02) ✓ Complete 2026-03-08
-- [ ] 01-02-PLAN.md — ContagionScene with state tracking, rules evaluation, statistics (CORE-03 to CORE-06)
-- [ ] 01-03-PLAN.md — Grid integration and hidden state semantics (GRID-01 to GRID-04, HIDE-01 to HIDE-03)
+- [x] 01-02-PLAN.md — ContagionScene with state tracking, rules evaluation, statistics (CORE-03 to CORE-06) ✓ Complete 2026-03-08
+- [x] 01-03-PLAN.md — Grid integration and hidden state semantics (GRID-01 to GRID-04, HIDE-01 to HIDE-03) ✓ Complete 2026-03-08
 
 ---
 
@@ -53,7 +53,12 @@ Plans:
 4. **Agent prompt includes nearby agents** — When agent receives their LLM prompt, the context lists IDs of agents in adjacent cells (but not those agents' contagion states)
 5. **Actions follow JSON pattern** — When agent responds to action prompt, they return JSON with action type and parameters (existing platform pattern), with speak action triggering a second freetext prompt for message content
 
-**Plans**: TBD
+**Plans**: 3 plans in 2 waves
+
+Plans:
+- [ ] 02-01-PLAN.md — MoveAdjacentAction with 8-way movement, collision/boundary validation (MOVE-01, MOVE-02, MOVE-03)
+- [ ] 02-02-PLAN.md — SpeakToAction with Moore adjacency check, TalkToEvent delivery (COMM-01, COMM-02, COMM-03, COMM-04)
+- [ ] 02-03-PLAN.md — Scene action registration, extended status prompt with full adjacent cell context (CTX-03, CTX-04)
 
 ---
 
@@ -70,7 +75,7 @@ Plans:
 1. **Proximity triggers transmission** — When infected agent is adjacent to susceptible agent, the susceptible agent becomes infected based on configured probability check at turn evaluation
 2. **Speak action triggers transmission** — When infected agent uses speak(target_id) action, the target agent may become infected based on configured probability for action-directed transmission
 3. **State transitions are logged** — When any agent changes contagion state, the system logs timestamp, agent IDs, from_state, to_state, and trigger_type (PROXIMITY or ACTION or DECAY)
-4. **Decay transitions agent state** — When agent's turns-since-infection exceeds rule's decay_turns, the agent automatically transitions to the rule-defined next state (e.g., INFECTED → RECOVERED)
+4. **Decay transitions agent state** — When agent's turns-since-infection exceeds rule's decay_turns, the agent automatically transitions to the rule-defined next state (e.g., INFECTED -> RECOVERED)
 5. **Both transmission types share infrastructure** — When rules are evaluated, proximity-based and action-directed transitions use the same probability-checking and state-applying logic from Phase 1's rule engine
 
 **Plans**: TBD
@@ -81,16 +86,16 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Core Infrastructure | 1/3 | In Progress | 01-01 (2026-03-08) |
-| 2. Actions & Context | 0/? | Not started | - |
+| 1. Core Infrastructure | 3/3 | Complete | 01-01, 01-02, 01-03 (2026-03-08) |
+| 2. Actions & Context | 0/3 | Planning | - |
 | 3. Transmission | 0/? | Not started | - |
 
-**Overall Progress:** 0/3 phases complete
+**Overall Progress:** 1/3 phases complete
 
 ## Dependencies
 
 ```
-Phase 1: Core Infrastructure
+Phase 1: Core Infrastructure (COMPLETE)
     ├── Plan 01 (Wave 1): ContagionState + StateTransition
     │       ↓
     ├── Plan 02 (Wave 2): ContagionScene core (depends on 01)
@@ -98,6 +103,10 @@ Phase 1: Core Infrastructure
     └── Plan 03 (Wave 2): Grid + hidden states (depends on 01, 02)
     ↓
 Phase 2: Actions & Context (requires Phase 1)
+    ├── Plan 01 (Wave 1): MoveAdjacentAction
+    ├── Plan 02 (Wave 1): SpeakToAction (parallel with 01)
+    │       ↓
+    └── Plan 03 (Wave 2): Scene registration + context (depends on 01, 02)
     ↓
 Phase 3: Transmission (requires Phase 1 + Phase 2)
 ```
@@ -106,8 +115,9 @@ Phase 3: Transmission (requires Phase 1 + Phase 2)
 
 - **LLM non-determinism**: Agent behavior variations may mask contagion effects. Mitigation: Use deterministic mode (temperature=0) for experiments.
 - **State-behavior desync**: Agents may act inconsistently with their contagion state. Mitigation: Always include current state in agent prompts (Phase 2).
-- **Grid performance**: O(n²) adjacency checks may slow large simulations. Mitigation: Use spatial indexing in Phase 1 implementation.
+- **Grid performance**: O(n^2) adjacency checks may slow large simulations. Mitigation: Use spatial indexing in Phase 1 implementation.
 
 ---
 *Roadmap created: 2026-03-08*
 *Plans created: 2026-03-08*
+*Phase 2 plans added: 2026-03-08*

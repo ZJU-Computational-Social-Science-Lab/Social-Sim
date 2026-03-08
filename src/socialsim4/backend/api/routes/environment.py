@@ -5,6 +5,7 @@ from litestar.connection import Request
 from litestar.exceptions import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from socialsim4.i18n import T
 from ...core.database import get_session
 from ...dependencies import extract_bearer_token, resolve_current_user
 from ...services.environment_suggestion_service import (
@@ -89,7 +90,7 @@ async def apply_environment_event(
                 session,
                 current_user.id,
             )
-            return {"success": True, "message": "Event broadcast to simulation"}
+            return {"success": True, "message": T('api.environment.event_broadcast')}
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
@@ -105,7 +106,7 @@ async def dismiss_suggestions_endpoint(
         current_user = await resolve_current_user(session, token)
         try:
             await dismiss_suggestions(simulation_id, session, current_user.id)
-            return {"success": True, "message": "Suggestions dismissed"}
+            return {"success": True, "message": T('api.environment.suggestions_dismissed')}
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 

@@ -21,6 +21,7 @@ from litestar.connection import Request
 from sqlalchemy import delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from socialsim4.i18n import T
 from socialsim4.backend.core.database import get_session
 from socialsim4.backend.dependencies import extract_bearer_token, resolve_current_user
 from socialsim4.backend.models.simulation import Simulation, SimulationLog, SimulationSnapshot
@@ -68,7 +69,7 @@ async def start_simulation(
         sim.updated_at = datetime.now(timezone.utc)
         await session.commit()
 
-        return Message(message="Simulation start enqueued")
+        return Message(message=T('api.lifecycle.start_enqueued'))
 
 
 @post("/{simulation_id:str}/resume")
@@ -129,7 +130,7 @@ async def resume_simulation(
         sim.updated_at = datetime.now(timezone.utc)
         await session.commit()
 
-        return Message(message="Simulation resume enqueued")
+        return Message(message=T('api.lifecycle.resume_enqueued'))
 
 
 @post("/{simulation_id:str}/reset")
@@ -176,7 +177,7 @@ async def reset_simulation(
         SIM_TREE_REGISTRY.remove(sim.id)
         await get_tree_record(sim, session, current_user.id)
 
-        return Message(message="Simulation reset and tree rebuilt")
+        return Message(message=T('api.lifecycle.reset_rebuilt'))
 
 
 @post("/{simulation_id:str}/copy", status_code=201)

@@ -62,7 +62,7 @@ const ActionToggleCard: React.FC<ActionToggleCardProps> = ({
               onClick={onRemove}
               className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
               type="button"
-              aria-label="Remove action"
+              aria-label={t('experimentBuilder.step3.removeAction')}
             >
               <X size={16} />
             </button>
@@ -234,15 +234,14 @@ export const Step3Scenario: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-gray-900">
-          Select Actions
+          {t('experimentBuilder.step3.title')}
         </h2>
         <p className="text-sm text-gray-600 mt-1">
-          Choose what actions agents can take. At least one action must be selected.
+          {t('experimentBuilder.step3.subtitle')}
         </p>
         {selectedScenarioData?.category_actions && (
           <p className="text-xs text-gray-600 mt-2">
-            Showing all available actions for the {selectedScenarioData.category} category.
-            This scenario starts with a pre-selected set of actions.
+            {t('experimentBuilder.step3.categoryInfo', { category: selectedScenarioData.category })}
           </p>
         )}
       </div>
@@ -269,7 +268,7 @@ export const Step3Scenario: React.FC = () => {
         {allActions.length === 0 ? (
           <div className="p-8 text-center border border-dashed border-gray-300 rounded-lg">
             <p className="text-sm text-gray-600">
-              No actions available. Please select a scenario first or add custom actions.
+              {t('experimentBuilder.step3.noActions')}
             </p>
           </div>
         ) : (
@@ -297,31 +296,31 @@ export const Step3Scenario: React.FC = () => {
               type="button"
             >
               <Plus size={16} />
-              <span className="text-sm font-medium">Add custom action</span>
+              <span className="text-sm font-medium">{t('experimentBuilder.step3.addCustomAction')}</span>
             </button>
           ) : (
             <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 space-y-3">
-              <h4 className="text-sm font-medium text-gray-900">Add Custom Action</h4>
+              <h4 className="text-sm font-medium text-gray-900">{t('experimentBuilder.step3.customActionTitle')}</h4>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Action name
+                  {t('experimentBuilder.step3.actionName')}
                 </label>
                 <input
                   type="text"
                   value={newActionName}
                   onChange={(e) => setNewActionName(e.target.value)}
-                  placeholder="e.g., Negotiate"
+                  placeholder={t('experimentBuilder.step3.actionNamePlaceholder')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Description
+                  {t('experimentBuilder.step3.description')}
                 </label>
                 <textarea
                   value={newActionDescription}
                   onChange={(e) => setNewActionDescription(e.target.value)}
-                  placeholder="Describe what this action does..."
+                  placeholder={t('experimentBuilder.step3.descriptionPlaceholder')}
                   rows={2}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
                 />
@@ -333,7 +332,7 @@ export const Step3Scenario: React.FC = () => {
                   className="px-4 py-2 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                   type="button"
                 >
-                  Add Action
+                  {t('experimentBuilder.step3.addAction')}
                 </button>
                 <button
                   onClick={() => {
@@ -355,7 +354,7 @@ export const Step3Scenario: React.FC = () => {
       {/* Selected Count */}
       {allActions.length > 0 && (
         <div className="text-sm text-gray-600">
-          {selectedActionIds.length} of {allActions.length} actions selected
+          {t('experimentBuilder.step3.actionsSelected', { selected: selectedActionIds.length, total: allActions.length })}
         </div>
       )}
     </div>

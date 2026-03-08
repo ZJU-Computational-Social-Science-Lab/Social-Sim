@@ -10,6 +10,7 @@ This scenario explores bureaucratic communication and meaning distortion.
 
 from typing import Dict, Any
 from socialsim4.core.scenes.experiment_scene import ExperimentScene
+from socialsim4.i18n import T
 
 
 def build_policy_erosion_sim(
@@ -54,31 +55,11 @@ def build_policy_erosion_sim(
         for action_name in relevant_actions
     ]
 
-    # Build scenario description
-    description = f"""POLICY ANNOUNCEMENT (from top-tier management):
-
-"{policy_text}"
-
-You are in a three-tier organizational hierarchy:
-- Tier 1 (Top): Receives the original policy directly
-- Tier 2 (Middle): Receives policy from Tier 1, must pass to Tier 3
-- Tier 3 (Bottom): Receives policy from Tier 2, must implement
-
-Each tier decides how to interpret and pass on the policy. Observe how
-the meaning changes as it moves down the chain.
-
-Your task:
-1. If you're Tier 1: Transmit the policy to Tier 2
-2. If you're Tier 2: Receive from Tier 1, interpret it, pass to Tier 3
-3. If you're Tier 3: Receive from Tier 2, decide how to implement
-
-You can:
-- Transmit the policy exactly as received
-- Reinterpret or adapt the policy when passing it down
-- Comply with the directive from above
-- Quietly resist while appearing to comply
-- Report obstacles up the chain
-- Create workarounds to avoid implementation"""
+    # Build scenario description using T() for i18n
+    description = T(
+        'prompts.scenarios.policy_erosion.description',
+        policy_text=policy_text
+    )
 
     # Template configuration for experiment scene
     template_config = {

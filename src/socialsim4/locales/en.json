@@ -22,17 +22,164 @@
       "description": "Visibly accept and follow the norm or directive",
       "execute": "{agent_name} publicly complied with the norm"
     },
+    "comply_covertly_resist": {
+      "description": "Formally comply but privately circumvent",
+      "execute": "{agent_name} covertly resisted while appearing to comply"
+    },
     "resist_openly": {
       "description": "Openly refuse or challenge the norm",
       "execute": "{agent_name} openly resisted the norm"
+    },
+    "persuade_others": {
+      "description": "Convince others to adopt your position",
+      "execute": "{agent_name} attempted to persuade others"
+    },
+    "form_coalition": {
+      "description": "Organize with like-minded others",
+      "execute": "{agent_name} formed a coalition"
     },
     "express_opinion": {
       "description": "Share your current viewpoint",
       "execute": "{agent_name} expressed their opinion"
     },
+    "reinforce_ingroup": {
+      "description": "Engage with and amplify similar viewpoints",
+      "execute": "{agent_name} reinforced in-group views"
+    },
+    "challenge_outgroup": {
+      "description": "Actively argue against opposing views",
+      "execute": "{agent_name} challenged out-group views"
+    },
+    "seek_common_ground": {
+      "description": "Find shared values across opinion divides",
+      "execute": "{agent_name} sought common ground"
+    },
+    "share_content": {
+      "description": "Share information reinforcing your position",
+      "execute": "{agent_name} shared content"
+    },
+    "disengage": {
+      "description": "Withdraw from engagement with opposing views",
+      "execute": "{agent_name} disengaged"
+    },
     "share_resources": {
       "description": "Give some of your resources to another agent",
       "execute": "{agent_name} shared resources"
+    },
+    "hoard": {
+      "description": "Keep all resources for yourself",
+      "execute": "{agent_name} hoarded resources"
+    },
+    "propose_trade": {
+      "description": "Offer to exchange resources",
+      "execute": "{agent_name} proposed a trade"
+    },
+    "form_contract": {
+      "description": "Propose a formal cooperative agreement",
+      "execute": "{agent_name} formed a contract"
+    },
+    "honor_contract": {
+      "description": "Fulfill an existing agreement",
+      "execute": "{agent_name} honored their contract"
+    },
+    "defect_from_contract": {
+      "description": "Break an agreement for personal gain",
+      "execute": "{agent_name} defected from their contract"
+    },
+    "transmit_faithfully": {
+      "description": "Pass the policy on exactly as received",
+      "execute": "{agent_name} transmitted the policy faithfully"
+    },
+    "reinterpret_downward": {
+      "description": "Adapt the policy when passing it down",
+      "execute": "{agent_name} reinterpreted the policy"
+    },
+    "comply_directive": {
+      "description": "Accept and implement the instruction from above",
+      "execute": "{agent_name} complied with the directive"
+    },
+    "resist_quietly": {
+      "description": "Formally comply but avoid real implementation",
+      "execute": "{agent_name} quietly resisted"
+    },
+    "report_up": {
+      "description": "Escalate an obstacle to a higher authority",
+      "execute": "{agent_name} reported up the chain"
+    },
+    "create_workaround": {
+      "description": "Build an informal path around the official rule",
+      "execute": "{agent_name} created a workaround"
+    }
+  },
+  "api": {
+    "auth": {
+      "email_verified": "Email verified"
+    },
+    "environment": {
+      "event_broadcast": "Event broadcast to simulation",
+      "suggestions_dismissed": "Suggestions dismissed"
+    },
+    "experiments": {
+      "not_found": "not_found"
+    },
+    "providers": {
+      "connectivity_verified": "Provider connectivity verified",
+      "activated": "Activated provider"
+    },
+    "templates": {
+      "deleted": "Template deleted"
+    },
+    "lifecycle": {
+      "start_enqueued": "Simulation start enqueued",
+      "resume_enqueued": "Simulation resume enqueued",
+      "reset_rebuilt": "Simulation reset and tree rebuilt",
+      "reset_success": "Simulation reset and tree rebuilt"
+    },
+    "documents": {
+      "deleted": "Document deleted successfully",
+      "memory_not_available": "Agent memory not available. Provide a valid node_id from a running simulation."
+    },
+    "knowledge": {
+      "deleted": "Knowledge item deleted successfully"
+    }
+  },
+  "prompts": {
+    "agent": {
+      "knowledge_base_header": "Knowledge Base:",
+      "knowledge_base_intro": "You have a personal knowledge base with {count} item(s) containing information you can reference:",
+      "knowledge_base_more": "... and {count} more items",
+      "query_instruction": "Use the query_knowledge action to search for specific information when needed. The knowledge base contains facts and information that you should use to inform your responses when relevant.",
+      "context_summary_header": "Recent Context Summary:",
+      "language_instruction": "Language: {language}. Respond in {language} for content; use English for action names.",
+      "action_space_header": "Action Space:",
+      "usage_header": "Usage:",
+      "output_format_header": "IMPORTANT - Output Format:",
+      "output_format_intro": "You MUST respond with a valid JSON object containing these 5 sections:",
+      "output_thoughts": "Your brief thinking about the current situation (1-2 sentences)",
+      "output_response": "What you want to communicate (can be empty string if no speech needed)",
+      "output_action": "The action you want to take, containing:",
+      "output_action_name": "action name from the Action Space above",
+      "output_action_params": "Additional key-value pairs for action parameters (if required)",
+      "output_context_update": "Brief notes to remember for future (goals, observations, plans)",
+      "output_metadata": "Optional object with any additional metadata"
+    },
+    "scenarios": {
+      "social_norm_disruption": {
+        "name": "Social Norm Disruption",
+        "description": "A new rule has been announced: All participants must comply with a new mandatory requirement.\n\nThe norm has a strength level of {norm_strength:.1f} (0=very weak, 1=very strong).\n\nAgents have different social statuses: {status_distribution}\n\nYour task is to decide how to respond to this new rule. You can:\n- Publicly comply with the rule\n- Covertly comply while privately resisting\n- Openly refuse or challenge the rule\n- Try to persuade others to join your position\n- Form coalitions with like-minded agents\n\nConsider your social status, temperament, and personal values when deciding."
+      },
+      "echo_chamber": {
+        "name": "Echo Chamber",
+        "description": "You are participating in an online discussion forum.\n\nYour political opinion: You are on a spectrum from strongly progressive (left)\nto strongly conservative (right). You have been assigned a position.\n\nThe group contains {num_agents} participants with diverse opinions.\n\nConnection pattern: Agents tend to connect with others who have similar opinions\n(homophily factor: {connection_homogeneity:.1f}, where 0=random, 1=similar only).\n\nYour task: Interact with other participants by:\n- Expressing your opinion on current topics\n- Engaging with those who share your views\n- Challenging or avoiding those with different views\n- Sharing content that reinforces your position\n- Seeking common ground or disengaging\n\nObserve how opinions shift over time and whether echo chambers form."
+      },
+      "policy_erosion": {
+        "name": "Policy Meaning Erosion",
+        "description": "POLICY ANNOUNCEMENT (from top-tier management):\n\n\"{policy_text}\"\n\nYou are in a three-tier organizational hierarchy:\n- Tier 1 (Top): Receives the original policy directly\n- Tier 2 (Middle): Receives policy from Tier 1, must pass to Tier 3\n- Tier 3 (Bottom): Receives policy from Tier 2, must implement\n\nEach tier decides how to interpret and pass on the policy. Observe how\nthe meaning changes as it moves down the chain.\n\nYour task:\n1. If you're Tier 1: Transmit the policy to Tier 2\n2. If you're Tier 2: Receive from Tier 1, interpret it, pass to Tier 3\n3. If you're Tier 3: Receive from Tier 2, decide how to implement\n\nYou can:\n- Transmit the policy exactly as received\n- Reinterpret or adapt the policy when passing it down\n- Comply with the directive from above\n- Quietly resist while appearing to comply\n- Report obstacles up the chain\n- Create workarounds to avoid implementation"
+      },
+      "resource_scarcity": {
+        "name": "Resource Scarcity",
+        "description": "DISASTER SITUATION:\n\nA recent disaster has created severe resource scarcity. The community has\nonly {resource_amount} units of critical supplies to last {num_agents} people.\n\nInitial distribution: {initial_distribution}\n\nYour task: Decide how to manage these scarce resources.\n\nYou can:\n- Share resources with others in need\n- Hoard resources for yourself\n- Propose trades to exchange resources\n- Form cooperative contracts with others\n- Honor your contractual commitments\n- Defect from contracts for personal gain\n\nConsider:\n- Your current resource level\n- Others' resource levels and trustworthiness\n- Long-term community survival vs short-term gain\n- Your reputation and future cooperation\n\nThe goal is to survive while maintaining social relationships."
+      }
     }
   }
 }

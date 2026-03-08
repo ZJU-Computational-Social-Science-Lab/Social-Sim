@@ -1556,6 +1556,102 @@
     "dynamicActionsInfo": {
       "title": "动态动作：",
       "message": "这些动作是从【{{paramLabel}}】参数生成的。在步骤2中编辑它以更改可用选项。"
+    },
+    "payoffMatrix": {
+      "howToRead": {
+        "title": "如何阅读此矩阵：",
+        "rows": "行",
+        "columns": "列",
+        "cellValues": "单元格值"
+      },
+      "rowLabel": "你的选择（玩家1）",
+      "colLabel": "对手的选择（玩家2）",
+      "pointsLabel": "当双方都做出这些选择时你获得的积分",
+      "symmetric": {
+        "title": "对称博弈：",
+        "description": "双方玩家在每个单元格中获得相同的收益。",
+        "example": "例如：如果双方都选择【合作】，每人都获得那么多积分。"
+      },
+      "asymmetric": {
+        "title": "非对称博弈：",
+        "description": "每个单元格显示两个值：",
+        "row": "行",
+        "col": "列"
+      },
+      "actionLegend": "每个动作的含义：",
+      "readInstruction": "阅读：【如果我选择[行]而他们选择[列]，我获得[值]积分】",
+      "iChoose": "我选择 ↓",
+      "theyChoose": "他们选择 →",
+      "pointsEach": "各得积分",
+      "tip": "提示：这些收益值会显示在代理的提示中，帮助他们理解游戏激励。",
+      "actions": {
+        "cooperate": "与对方玩家合作",
+        "defect": "为自己利益行事",
+        "hunt_stag": "猎捕大鹿（需要合作）",
+        "hunt_hare": "猎捕小兔（可独自完成）",
+        "heads": "选择正面",
+        "tails": "选择反面",
+        "soccer": "去足球比赛",
+        "ballet": "去芭蕾舞",
+        "choose": "选择{{action}}"
+      }
+    },
+    "keyValueField": {
+      "key": "键",
+      "value": "值",
+      "remove": "删除",
+      "add": "添加"
+    },
+    "listField": {
+      "addItem": "添加项目...",
+      "remove": "删除",
+      "add": "添加"
+    },
+    "step2": {
+      "selectScenarioFirst": "请先在步骤1中选择一个场景。",
+      "configureTitle": "配置{{name}}",
+      "configureSubtitle": "自定义场景描述和参数",
+      "scenarioDescriptionLabel": "场景描述（代理将看到此内容）",
+      "scenarioDescriptionPlaceholder": "输入代理能够理解的场景描述...",
+      "parametersTitle": "参数",
+      "noParameters": "此场景没有可配置的参数。调整上面的描述并进入下一步。",
+      "payoffInput": {
+        "yourPayoffs": "你的收益：",
+        "instruction": "填写根据你的选择和对方的选择你将获得什么。",
+        "youThey": "你：{{actionA}} / 对方：{{actionB}}"
+      }
+    },
+    "step3": {
+      "title": "选择动作",
+      "subtitle": "选择代理可以采取的动作。至少需要选择一个动作。",
+      "categoryInfo": "显示{{category}}类别的所有可用动作。此场景以一组预选动作开始。",
+      "noActions": "没有可用动作。请先选择一个场景或添加自定义动作。",
+      "addCustomAction": "添加自定义动作",
+      "customActionTitle": "添加自定义动作",
+      "actionName": "动作名称",
+      "actionNamePlaceholder": "例如，协商",
+      "description": "描述",
+      "descriptionPlaceholder": "描述这个动作的作用...",
+      "addAction": "添加动作",
+      "actionsSelected": "已选择 {{selected}} / {{total}} 个动作",
+      "removeAction": "删除动作"
+    },
+    "experimentBuilder": {
+      "step3": {
+        "title": "选择动作",
+        "subtitle": "选择代理可以采取的动作。至少需要选择一个动作。",
+        "categoryInfo": "显示{{category}}类别的所有可用动作。此场景以一组预选动作开始。",
+        "noActions": "没有可用动作。请先选择一个场景或添加自定义动作。",
+        "addCustomAction": "添加自定义动作",
+        "customActionTitle": "添加自定义动作",
+        "actionName": "动作名称",
+        "actionNamePlaceholder": "例如，协商",
+        "description": "描述",
+        "descriptionPlaceholder": "描述这个动作的作用...",
+        "addAction": "添加动作",
+        "actionsSelected": "已选择 {{selected}} / {{total}} 个动作",
+        "removeAction": "删除动作"
+      }
     }
   },
   "systemTemplates": {

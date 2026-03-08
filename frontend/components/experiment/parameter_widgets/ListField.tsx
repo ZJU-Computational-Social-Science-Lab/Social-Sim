@@ -5,6 +5,7 @@
  */
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface ListFieldProps {
   value: string[];
@@ -17,6 +18,7 @@ export default function ListField({
   onChange,
   disabled = false
 }: ListFieldProps) {
+  const { t } = useTranslation();
   const [newItem, setNewItem] = useState('');
 
   const addItem = () => {
@@ -61,7 +63,7 @@ export default function ListField({
             disabled={disabled}
             className="px-2 py-1 text-sm text-red-600 border rounded"
           >
-            Remove
+            {t('experimentBuilder.listField.remove')}
           </button>
         </div>
       ))}
@@ -71,7 +73,7 @@ export default function ListField({
           value={newItem}
           onChange={(e) => setNewItem(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && addItem()}
-          placeholder="Add item..."
+          placeholder={t('experimentBuilder.listField.addItem')}
           disabled={disabled}
           className="flex-1 px-3 py-2 border rounded-lg"
         />
@@ -80,7 +82,7 @@ export default function ListField({
           disabled={disabled || !newItem.trim()}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg"
         >
-          Add
+          {t('experimentBuilder.listField.add')}
         </button>
       </div>
     </div>

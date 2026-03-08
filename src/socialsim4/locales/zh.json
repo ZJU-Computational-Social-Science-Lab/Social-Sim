@@ -22,17 +22,164 @@
       "description": "公开接受并遵守规范或指令",
       "execute": "{agent_name} 公开遵守了规范"
     },
+    "comply_covertly_resist": {
+      "description": "形式上遵守但私下规避",
+      "execute": "{agent_name} 表面遵守但暗中抵制"
+    },
     "resist_openly": {
       "description": "公开拒绝或挑战规范",
       "execute": "{agent_name} 公开抵制规范"
+    },
+    "persuade_others": {
+      "description": "说服他人接受你的立场",
+      "execute": "{agent_name} 试图说服他人"
+    },
+    "form_coalition": {
+      "description": "与志同道合者组织起来",
+      "execute": "{agent_name} 组建了联盟"
     },
     "express_opinion": {
       "description": "分享你当前的观点",
       "execute": "{agent_name} 表达了意见"
     },
+    "reinforce_ingroup": {
+      "description": "参与并放大相似观点",
+      "execute": "{agent_name} 强化了群体内部观点"
+    },
+    "challenge_outgroup": {
+      "description": "积极反驳对立观点",
+      "execute": "{agent_name} 挑战了群体外部观点"
+    },
+    "seek_common_ground": {
+      "description": "在意见分歧中寻找共同价值",
+      "execute": "{agent_name} 寻求共同点"
+    },
+    "share_content": {
+      "description": "分享强化你立场的信息",
+      "execute": "{agent_name} 分享了内容"
+    },
+    "disengage": {
+      "description": "退出与对立观点的互动",
+      "execute": "{agent_name} 退出了讨论"
+    },
     "share_resources": {
       "description": "将部分资源给另一个代理",
       "execute": "{agent_name} 分享了资源"
+    },
+    "hoard": {
+      "description": "将所有资源留给自己",
+      "execute": "{agent_name} 囤积了资源"
+    },
+    "propose_trade": {
+      "description": "提议交换资源",
+      "execute": "{agent_name} 提议交易"
+    },
+    "form_contract": {
+      "description": "提议正式的合作协议",
+      "execute": "{agent_name} 签订了契约"
+    },
+    "honor_contract": {
+      "description": "履行现有协议",
+      "execute": "{agent_name} 履行了契约"
+    },
+    "defect_from_contract": {
+      "description": "为个人利益违背协议",
+      "execute": "{agent_name} 违背了契约"
+    },
+    "transmit_faithfully": {
+      "description": "完全按照收到的方式传达政策",
+      "execute": "{agent_name} 如实传达了政策"
+    },
+    "reinterpret_downward": {
+      "description": "在向下传达时调整政策",
+      "execute": "{agent_name} 重新解释了政策"
+    },
+    "comply_directive": {
+      "description": "接受并执行上级指令",
+      "execute": "{agent_name} 遵守了指令"
+    },
+    "resist_quietly": {
+      "description": "形式上遵守但避免真正执行",
+      "execute": "{agent_name} 悄悄抵制"
+    },
+    "report_up": {
+      "description": "向上级报告障碍",
+      "execute": "{agent_name} 向上报告"
+    },
+    "create_workaround": {
+      "description": "建立非正式途径规避正式规则",
+      "execute": "{agent_name} 创建了变通方案"
+    }
+  },
+  "api": {
+    "auth": {
+      "email_verified": "邮箱已验证"
+    },
+    "environment": {
+      "event_broadcast": "事件已广播到模拟",
+      "suggestions_dismissed": "建议已忽略"
+    },
+    "experiments": {
+      "not_found": "未找到"
+    },
+    "providers": {
+      "connectivity_verified": "提供商连接已验证",
+      "activated": "已激活提供商"
+    },
+    "templates": {
+      "deleted": "模板已删除"
+    },
+    "lifecycle": {
+      "start_enqueued": "模拟启动已排队",
+      "resume_enqueued": "模拟恢复已排队",
+      "reset_rebuilt": "模拟已重置并重建树",
+      "reset_success": "模拟已重置并重建树"
+    },
+    "documents": {
+      "deleted": "文档删除成功",
+      "memory_not_available": "代理记忆不可用。请提供运行中模拟的有效node_id。"
+    },
+    "knowledge": {
+      "deleted": "知识项删除成功"
+    }
+  },
+  "prompts": {
+    "agent": {
+      "knowledge_base_header": "知识库：",
+      "knowledge_base_intro": "你有一个包含 {count} 个项目的个人知识库，其中包含你可以参考的信息：",
+      "knowledge_base_more": "... 还有 {count} 个项目",
+      "query_instruction": "使用query_knowledge动作在需要时搜索特定信息。知识库包含你应该在相关时用于指导回应的事实和信息。",
+      "context_summary_header": "近期上下文摘要：",
+      "language_instruction": "语言：{language}。内容请用{language}回复；动作名称请使用英文。",
+      "action_space_header": "动作空间：",
+      "usage_header": "用法：",
+      "output_format_header": "重要 - 输出格式：",
+      "output_format_intro": "你必须响应一个包含这5个部分的有效JSON对象：",
+      "output_thoughts": "你对当前情况的简要思考（1-2句话）",
+      "output_response": "你想要交流的内容（如果不需要说话可以是空字符串）",
+      "output_action": "你想要采取的动作，包含：",
+      "output_action_name": "来自上面动作空间的动作名称",
+      "output_action_params": "动作参数的附加键值对（如果需要）",
+      "output_context_update": "为将来记住的简要笔记（目标、观察、计划）",
+      "output_metadata": "包含任何附加元数据的可选对象"
+    },
+    "scenarios": {
+      "social_norm_disruption": {
+        "name": "社会规范破坏",
+        "description": "一项新规则已宣布：所有参与者必须遵守一项新的强制性要求。\n\n规范强度等级为 {norm_strength:.1f}（0=非常弱，1=非常强）。\n\n代理人有不同的社会地位：{status_distribution}\n\n你的任务是决定如何回应这项新规则。你可以：\n- 公开遵守规则\n- 表面遵守但暗中抵制\n- 公开拒绝或挑战规则\n- 试图说服他人加入你的立场\n- 与志同道合的代理组建联盟\n\n在决定时考虑你的社会地位、性格和个人价值观。"
+      },
+      "echo_chamber": {
+        "name": "回音室",
+        "description": "你正在参与一个在线讨论论坛。\n\n你的政治观点：你处于从强烈进步（左）到强烈保守（右）的光谱上。你已被分配一个位置。\n\n该小组包含 {num_agents} 名具有不同观点的参与者。\n\n连接模式：代理人倾向于与具有相似观点的人连接\n（同质性因子：{connection_homogeneity:.1f}，其中0=随机，1=仅相似）。\n\n你的任务：通过以下方式与其他参与者互动：\n- 就当前话题表达你的观点\n- 与分享你观点的人互动\n- 挑战或避开持不同观点的人\n- 分享强化你立场的内容\n- 寻求共同点或退出\n\n观察观点如何随时间变化以及是否形成回音室。"
+      },
+      "policy_erosion": {
+        "name": "政策意义侵蚀",
+        "description": "政策公告（来自高层管理）：\n\n\"{policy_text}\"\n\n你处于一个三层组织层级中：\n- 第1层（顶层）：直接收到原始政策\n- 第2层（中层）：从第1层接收政策，必须传递给第3层\n- 第3层（底层）：从第2层接收政策，必须执行\n\n每一层决定如何解释和传递政策。观察\n意义如何在链条中传递时发生变化。\n\n你的任务：\n1. 如果你是第1层：将政策传递给第2层\n2. 如果你是第2层：从第1层接收，解释它，传递给第3层\n3. 如果你是第3层：从第2层接收，决定如何执行\n\n你可以：\n- 完全按照收到的传达政策\n- 在向下传递时重新解释或调整政策\n- 遵守来自上级的指令\n- 表面遵守但悄悄抵制\n- 向上级报告障碍\n- 创建变通方案以避免执行"
+      },
+      "resource_scarcity": {
+        "name": "资源稀缺",
+        "description": "灾难情况：\n\n最近的灾难造成了严重的资源短缺。社区只有\n{resource_amount} 单位的关键物资供应 {num_agents} 人。\n\n初始分配：{initial_distribution}\n\n你的任务：决定如何管理这些稀缺资源。\n\n你可以：\n- 与需要的人分享资源\n- 为自己囤积资源\n- 提议交易以交换资源\n- 与他人签订合作协议\n- 履行你的合同承诺\n- 为个人利益违背合同\n\n考虑：\n- 你当前的资源水平\n- 他人的资源水平和可信度\n- 长期社区生存与短期收益\n- 你的声誉和未来合作\n\n目标是在维持社会关系的同时生存。"
+      }
     }
   }
 }

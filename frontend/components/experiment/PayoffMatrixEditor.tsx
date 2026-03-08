@@ -43,17 +43,13 @@ export default function PayoffMatrixEditor({
 
   // Get action description for tooltip
   const getActionDescription = (action: string): string => {
-    const descriptions: Record<string, string> = {
-      cooperate: "Work together with the other player",
-      defect: "Act in your own self-interest",
-      hunt_stag: "Hunt the large stag (requires cooperation)",
-      hunt_hare: "Hunt the small hare (can do alone)",
-      heads: "Choose Heads",
-      tails: "Choose Tails",
-      soccer: "Go to the soccer game",
-      ballet: "Go to the ballet",
-    };
-    return descriptions[action] || `Choose ${formatActionName(action)}`;
+    const key = `experimentBuilder.payoffMatrix.actions.${action}`;
+    const translated = t(key);
+    // If translation doesn't exist, fall back to "Choose {action}"
+    if (translated === key) {
+      return t('experimentBuilder.payoffMatrix.actions.choose', { action: formatActionName(action) });
+    }
+    return translated;
   };
 
   return (
@@ -63,32 +59,32 @@ export default function PayoffMatrixEditor({
         <div className="flex items-start gap-2">
           <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-blue-800">
-            <strong>How to read this matrix:</strong>
+            <strong>{t('experimentBuilder.payoffMatrix.howToRead.title')}</strong>
             <ul className="mt-2 space-y-1 list-disc list-inside text-blue-700">
-              <li><strong>Rows</strong> = Your choice (Player 1)</li>
-              <li><strong>Columns</strong> = Opponent's choice (Player 2)</li>
-              <li><strong>Cell values</strong> = Points you receive when both players make those choices</li>
+              <li><strong>{t('experimentBuilder.payoffMatrix.howToRead.rows')}</strong> = {t('experimentBuilder.payoffMatrix.rowLabel')}</li>
+              <li><strong>{t('experimentBuilder.payoffMatrix.howToRead.columns')}</strong> = {t('experimentBuilder.payoffMatrix.colLabel')}</li>
+              <li><strong>{t('experimentBuilder.payoffMatrix.howToRead.cellValues')}</strong> = {t('experimentBuilder.payoffMatrix.pointsLabel')}</li>
             </ul>
           </div>
         </div>
 
         {matrixMeta.symmetric ? (
           <div className="text-sm text-blue-700 bg-blue-100 p-2 rounded">
-            <strong>Symmetric game:</strong> Both players get the same payoff shown in each cell.
-            Example: If you both choose "Cooperate", you each get that many points.
+            <strong>{t('experimentBuilder.payoffMatrix.symmetric.title')}</strong> {t('experimentBuilder.payoffMatrix.symmetric.description')}
+            {' '}{t('experimentBuilder.payoffMatrix.symmetric.example')}
           </div>
         ) : (
           <div className="text-sm text-blue-700 bg-blue-100 p-2 rounded">
-            <strong>Asymmetric game:</strong> Each cell shows two values:
-            <span className="font-medium"> Row</span> = Player 1's payoff,
-            <span className="font-medium"> Col</span> = Player 2's payoff.
+            <strong>{t('experimentBuilder.payoffMatrix.asymmetric.title')}</strong> {t('experimentBuilder.payoffMatrix.asymmetric.description')}
+            <span className="font-medium"> {t('experimentBuilder.payoffMatrix.asymmetric.row')}</span> = Player 1's payoff,
+            <span className="font-medium"> {t('experimentBuilder.payoffMatrix.asymmetric.col')}</span> = Player 2's payoff.
           </div>
         )}
       </div>
 
       {/* Action Legend */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">What each action means:</h4>
+        <h4 className="text-sm font-medium text-gray-700 mb-2">{t('experimentBuilder.payoffMatrix.actionLegend')}</h4>
         <div className="flex flex-wrap gap-3">
           {[...matrixMeta.rows, ...matrixMeta.cols].filter((v, i, a) => a.indexOf(v) === i).map(action => (
             <div key={action} className="flex items-center gap-2 text-sm">
@@ -104,14 +100,14 @@ export default function PayoffMatrixEditor({
       {/* The Matrix */}
       <div className="overflow-x-auto">
         <div className="text-sm text-gray-600 mb-2 italic">
-          Read: "If I choose [row] and they choose [column], I get [value] points"
+          {t('experimentBuilder.payoffMatrix.readInstruction')}
         </div>
         <table className="border-collapse">
           <thead>
             <tr>
               <th className="border p-2 bg-gray-200 text-gray-900 font-semibold">
-                <div className="text-xs text-gray-500">I choose ↓</div>
-                <div className="text-xs text-gray-500">They choose →</div>
+                <div className="text-xs text-gray-500">{t('experimentBuilder.payoffMatrix.iChoose')}</div>
+                <div className="text-xs text-gray-500">{t('experimentBuilder.payoffMatrix.theyChoose')}</div>
               </th>
               {matrixMeta.cols.map(col => (
                 <th key={col} className="border p-2 bg-gray-200 text-gray-900 font-semibold min-w-32">
@@ -146,7 +142,7 @@ export default function PayoffMatrixEditor({
                             disabled={disabled}
                             className="w-20 px-2 py-1 border border-gray-300 rounded text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
-                          <span className="text-xs text-gray-500 mt-1">points each</span>
+                          <span className="text-xs text-gray-500 mt-1">{t('experimentBuilder.payoffMatrix.pointsEach')}</span>
                         </div>
                       ) : (
                         <div className="flex flex-col items-center gap-1">
@@ -186,7 +182,7 @@ export default function PayoffMatrixEditor({
       </div>
 
       <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
-        💡 <strong>Tip:</strong> These payoff values are shown to agents in their prompts, helping them understand the game incentives.
+        💡 <strong>{t('experimentBuilder.payoffMatrix.tip')}</strong>
       </div>
     </div>
   );

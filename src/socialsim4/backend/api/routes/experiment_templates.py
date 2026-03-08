@@ -16,6 +16,7 @@ from litestar.exceptions import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from socialsim4.i18n import T
 from socialsim4.backend.core.database import get_session
 from socialsim4.backend.dependencies import extract_bearer_token, resolve_current_user
 from socialsim4.backend.models.experiment_template import ExperimentTemplate
@@ -303,7 +304,7 @@ async def delete_template(
         await session.delete(template)
         await session.commit()
 
-        return {"message": "Template deleted"}
+        return {"message": T('api.templates.deleted')}
 
 
 @post("/run")

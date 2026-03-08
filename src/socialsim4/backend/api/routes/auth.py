@@ -6,6 +6,7 @@ from litestar.connection import Request
 from litestar.exceptions import HTTPException
 from sqlalchemy import select
 
+from socialsim4.i18n import T
 from ...core.config import get_settings
 from ...core.database import get_session
 from ...core.security import create_access_token, create_refresh_token, hash_password, verify_password
@@ -123,7 +124,7 @@ async def verify_email(data: VerificationRequest) -> Message:
         await session.delete(token)
         await session.commit()
 
-        return Message(message="Email verified")
+        return Message(message=T('api.auth.email_verified'))
 
 
 @get("/me")

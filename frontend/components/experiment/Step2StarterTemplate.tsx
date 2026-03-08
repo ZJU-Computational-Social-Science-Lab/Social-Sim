@@ -30,6 +30,7 @@ interface PayoffInputProps {
 }
 
 function PayoffInput({ value, actionA = 'Action 1', actionB = 'Action 2', onChange }: PayoffInputProps) {
+  const { t } = useTranslation();
   const defaults = { cooperate_reward: 3, sucker_penalty: 0, temptation_reward: 5, defect_penalty: 1 };
 
   const update = (key: keyof typeof defaults, raw: string) => {
@@ -45,14 +46,14 @@ function PayoffInput({ value, actionA = 'Action 1', actionB = 'Action 2', onChan
   return (
     <div className="space-y-4">
       <div className="bg-blue-50 p-3 rounded-md text-sm mb-4">
-        <p className="font-medium text-blue-800 mb-2">Your Payoffs:</p>
-        <p className="text-blue-700 text-xs">Fill in what YOU receive based on YOUR choice and THEIR choice.</p>
+        <p className="font-medium text-blue-800 mb-2">{t('experimentBuilder.step2.payoffInput.yourPayoffs')}</p>
+        <p className="text-blue-700 text-xs">{t('experimentBuilder.step2.payoffInput.instruction')}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            You: {actionA} / They: {actionA}
+            {t('experimentBuilder.step2.payoffInput.youThey', { actionA, actionB })}
           </label>
           <input
             type="number"
@@ -175,7 +176,7 @@ export const Step2StarterTemplate: React.FC = () => {
   if (!selectedScenarioData) {
     return (
       <div className="p-4 text-center text-gray-500">
-        Please select a scenario in Step 1 first.
+        {t('experimentBuilder.step2.selectScenarioFirst')}
       </div>
     );
   }
@@ -186,10 +187,10 @@ export const Step2StarterTemplate: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-gray-900">
-          Configure {selectedScenarioData.name}
+          {t('experimentBuilder.step2.configureTitle', { name: selectedScenarioData.name })}
         </h2>
         <p className="text-sm text-gray-600 mt-1">
-          Customize the scenario description and parameters
+          {t('experimentBuilder.step2.configureSubtitle')}
         </p>
       </div>
 
@@ -199,7 +200,7 @@ export const Step2StarterTemplate: React.FC = () => {
           htmlFor="scenario-description"
           className="block text-sm font-medium text-gray-700 mb-2"
         >
-          Scenario description (agents will see this)
+          {t('experimentBuilder.step2.scenarioDescriptionLabel')}
         </label>
         <textarea
           id="scenario-description"
@@ -207,7 +208,7 @@ export const Step2StarterTemplate: React.FC = () => {
           onChange={handleDescriptionChange}
           rows={4}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y"
-          placeholder="Enter a description of the scenario that agents will understand..."
+          placeholder={t('experimentBuilder.step2.scenarioDescriptionPlaceholder')}
         />
       </div>
 
@@ -222,7 +223,7 @@ export const Step2StarterTemplate: React.FC = () => {
       ) : hasParameters ? (
         <div className="space-y-4">
           <h3 className="text-sm font-medium text-gray-700">
-            Parameters
+            {t('experimentBuilder.step2.parametersTitle')}
           </h3>
           {selectedScenarioData.parameters.map((param) => {
             const value = getParamValue(param);
@@ -253,8 +254,7 @@ export const Step2StarterTemplate: React.FC = () => {
       ) : (
         <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
           <p className="text-sm text-gray-600">
-            This scenario has no configurable parameters. Adjust the description above
-            and proceed to the next step.
+            {t('experimentBuilder.step2.noParameters')}
           </p>
         </div>
       )}

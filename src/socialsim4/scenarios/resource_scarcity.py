@@ -10,6 +10,7 @@ resource constraints.
 
 from typing import Dict, Any
 from socialsim4.core.scenes.experiment_scene import ExperimentScene
+from socialsim4.i18n import T
 
 
 def build_resource_scarcity_sim(
@@ -56,31 +57,13 @@ def build_resource_scarcity_sim(
         for action_name in relevant_actions
     ]
 
-    # Build scenario description
-    description = f"""DISASTER SITUATION:
-
-A recent disaster has created severe resource scarcity. The community has
-only {resource_amount} units of critical supplies to last {num_agents} people.
-
-Initial distribution: {initial_distribution}
-
-Your task: Decide how to manage these scarce resources.
-
-You can:
-- Share resources with others in need
-- Hoard resources for yourself
-- Propose trades to exchange resources
-- Form cooperative contracts with others
-- Honor your contractual commitments
-- Defect from contracts for personal gain
-
-Consider:
-- Your current resource level
-- Others' resource levels and trustworthiness
-- Long-term community survival vs short-term gain
-- Your reputation and future cooperation
-
-The goal is to survive while maintaining social relationships."""
+    # Build scenario description using T() for i18n
+    description = T(
+        'prompts.scenarios.resource_scarcity.description',
+        resource_amount=resource_amount,
+        num_agents=num_agents,
+        initial_distribution=initial_distribution
+    )
 
     # Template configuration for experiment scene
     template_config = {

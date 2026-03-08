@@ -21,6 +21,7 @@ from sqlalchemy import select
 
 from socialsim4.core.llm import create_llm_client
 from socialsim4.core.llm_config import LLMConfig, guess_supports_vision
+from socialsim4.i18n import T
 
 from ...core.database import get_session
 from ...dependencies import extract_bearer_token, resolve_current_user
@@ -157,7 +158,7 @@ async def test_provider(request: Request, provider_id: int) -> Message:
         provider.last_test_status = "success"
         provider.last_error = None
         await session.commit()
-        return Message(message="Provider connectivity verified")
+        return Message(message=T('api.providers.connectivity_verified'))
 
 
 @post("/{provider_id:int}/activate")
@@ -181,7 +182,7 @@ async def activate_provider(request: Request, provider_id: int) -> Message:
                 cfg["active"] = False
             p.config = cfg
         await session.commit()
-        return Message(message="Activated provider")
+        return Message(message=T('api.providers.activated'))
 
 
 router = Router(

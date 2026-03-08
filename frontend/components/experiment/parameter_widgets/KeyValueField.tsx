@@ -5,6 +5,7 @@
  */
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface KeyValueFieldProps {
   value: Record<string, string>;
@@ -17,6 +18,7 @@ export default function KeyValueField({
   onChange,
   disabled = false
 }: KeyValueFieldProps) {
+  const { t } = useTranslation();
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
 
@@ -61,7 +63,7 @@ export default function KeyValueField({
             disabled={disabled}
             className="px-2 py-1 text-sm text-red-600 border rounded"
           >
-            Remove
+            {t('experimentBuilder.keyValueField.remove')}
           </button>
         </div>
       ))}
@@ -70,7 +72,7 @@ export default function KeyValueField({
           type="text"
           value={newKey}
           onChange={(e) => setNewKey(e.target.value)}
-          placeholder="Key"
+          placeholder={t('experimentBuilder.keyValueField.key')}
           disabled={disabled}
           className="w-1/3 px-2 py-1 border rounded"
         />
@@ -78,7 +80,7 @@ export default function KeyValueField({
           type="text"
           value={newValue}
           onChange={(e) => setNewValue(e.target.value)}
-          placeholder="Value"
+          placeholder={t('experimentBuilder.keyValueField.value')}
           disabled={disabled}
           className="flex-1 px-2 py-1 border rounded"
         />
@@ -87,7 +89,7 @@ export default function KeyValueField({
           disabled={disabled || !newKey.trim()}
           className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
         >
-          Add
+          {t('experimentBuilder.keyValueField.add')}
         </button>
       </div>
     </div>

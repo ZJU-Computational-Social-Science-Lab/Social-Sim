@@ -1571,6 +1571,102 @@
     "dynamicActionsInfo": {
       "title": "Dynamic Actions:",
       "message": "These actions are generated from the \"{{paramLabel}}\" parameter. Edit it in Step 2 to change the available choices."
+    },
+    "payoffMatrix": {
+      "howToRead": {
+        "title": "How to read this matrix:",
+        "rows": "Rows",
+        "columns": "Columns",
+        "cellValues": "Cell values"
+      },
+      "rowLabel": "Your choice (Player 1)",
+      "colLabel": "Opponent's choice (Player 2)",
+      "pointsLabel": "Points you receive when both players make those choices",
+      "symmetric": {
+        "title": "Symmetric game:",
+        "description": "Both players get the same payoff shown in each cell.",
+        "example": "Example: If you both choose \"Cooperate\", you each get that many points."
+      },
+      "asymmetric": {
+        "title": "Asymmetric game:",
+        "description": "Each cell shows two values:",
+        "row": "Row",
+        "col": "Col"
+      },
+      "actionLegend": "What each action means:",
+      "readInstruction": "Read: \"If I choose [row] and they choose [column], I get [value] points\"",
+      "iChoose": "I choose ↓",
+      "theyChoose": "They choose →",
+      "pointsEach": "points each",
+      "tip": "Tip: These payoff values are shown to agents in their prompts, helping them understand the game incentives.",
+      "actions": {
+        "cooperate": "Work together with the other player",
+        "defect": "Act in your own self-interest",
+        "hunt_stag": "Hunt the large stag (requires cooperation)",
+        "hunt_hare": "Hunt the small hare (can do alone)",
+        "heads": "Choose Heads",
+        "tails": "Choose Tails",
+        "soccer": "Go to the soccer game",
+        "ballet": "Go to the ballet",
+        "choose": "Choose {{action}}"
+      }
+    },
+    "keyValueField": {
+      "key": "Key",
+      "value": "Value",
+      "remove": "Remove",
+      "add": "Add"
+    },
+    "listField": {
+      "addItem": "Add item...",
+      "remove": "Remove",
+      "add": "Add"
+    },
+    "step2": {
+      "selectScenarioFirst": "Please select a scenario in Step 1 first.",
+      "configureTitle": "Configure {{name}}",
+      "configureSubtitle": "Customize the scenario description and parameters",
+      "scenarioDescriptionLabel": "Scenario description (agents will see this)",
+      "scenarioDescriptionPlaceholder": "Enter a description of the scenario that agents will understand...",
+      "parametersTitle": "Parameters",
+      "noParameters": "This scenario has no configurable parameters. Adjust the description above and proceed to the next step.",
+      "payoffInput": {
+        "yourPayoffs": "Your Payoffs:",
+        "instruction": "Fill in what YOU receive based on YOUR choice and THEIR choice.",
+        "youThey": "You: {{actionA}} / They: {{actionB}}"
+      }
+    },
+    "step3": {
+      "title": "Select Actions",
+      "subtitle": "Choose what actions agents can take. At least one action must be selected.",
+      "categoryInfo": "Showing all available actions for the {{category}} category. This scenario starts with a pre-selected set of actions.",
+      "noActions": "No actions available. Please select a scenario first or add custom actions.",
+      "addCustomAction": "Add custom action",
+      "customActionTitle": "Add Custom Action",
+      "actionName": "Action name",
+      "actionNamePlaceholder": "e.g., Negotiate",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe what this action does...",
+      "addAction": "Add Action",
+      "actionsSelected": "{{selected}} of {{total}} actions selected",
+      "removeAction": "Remove action"
+    },
+    "experimentBuilder": {
+      "step3": {
+        "title": "Select Actions",
+        "subtitle": "Choose what actions agents can take. At least one action must be selected.",
+        "categoryInfo": "Showing all available actions for the {{category}} category. This scenario starts with a pre-selected set of actions.",
+        "noActions": "No actions available. Please select a scenario first or add custom actions.",
+        "addCustomAction": "Add custom action",
+        "customActionTitle": "Add Custom Action",
+        "actionName": "Action name",
+        "actionNamePlaceholder": "e.g., Negotiate",
+        "description": "Description",
+        "descriptionPlaceholder": "Describe what this action does...",
+        "addAction": "Add Action",
+        "actionsSelected": "{{selected}} of {{total}} actions selected",
+        "removeAction": "Remove action"
+      }
     }
   },
   "systemTemplates": {
