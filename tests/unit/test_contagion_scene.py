@@ -984,3 +984,90 @@ class TestFrontendStateExposure:
         # Verify data structure is JSON-serializable
         import json
         json.dumps(event_data)  # Should not raise
+
+
+class TestOpenGridConfiguration:
+    """Tests for open grid configuration (all cells passable)."""
+
+    def test_default_game_map_has_all_passable_tiles(self):
+        """Test that default GameMap(20, 20) has all passable tiles."""
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(20, 20)
+
+        # Verify all cells are passable
+        for x in range(20):
+            for y in range(20):
+                assert game_map.is_passable(x, y), f"Cell ({x},{y}) should be passable"
+
+    def test_no_blocking_terrain_by_default(self):
+        """Test that there is no blocking terrain by default."""
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(20, 20)
+
+        # Verify no tiles are explicitly set as blocking
+        # (tiles dict is sparse - only stores non-default tiles)
+        assert len(game_map.tiles) == 0, "Default map should have no custom tiles"
+
+    def test_agents_can_be_positioned_at_any_valid_coordinate(self):
+        """Test that agents can be positioned at any valid coordinate."""
+        from socialsim4.core.contagion.scene import ContagionScene
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(20, 20)
+        scene = ContagionScene(
+            name="test_scene",
+            initial_event="start",
+            game_map=game_map,
+            rules=[],
+            initial_infected_count=0
+        )
+
+        # Create agents at various positions
+        test_positions = [
+            (0, 0),    # Corner
+            (19, 19),  # Opposite corner
+            (10, 10),  # Center
+            (0, 10),   # Edge
+        ]
+
+        agents = {}
+        for i, (x, y) in enumerate(test_positions):
+            agent = MagicMock()
+            agent.name = f"agent_{i}"
+            agent.properties = {
+                "map_xy": [x, y],
+                "contagion_state": "susceptible",
+                "contagion_turns": 0
+            }
+            agents[agent.name] = agent
+
+        simulator = MagicMock()
+        simulator.agents = agents
+
+        # All positions should be valid
+        for agent in agents.values():
+            xy = agent.properties["map_xy"]
+            assert game_map.is_passable(xy[0], xy[1])
+
+    def test_contagion_scene_with_default_map_allows_any_position(self):
+        """Test that ContagionScene with default map allows any position."""
+        from socialsim4.core.contagion.scene import ContagionScene
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(20, 20)
+        scene = ContagionScene(
+            name="test_scene",
+            initial_event="start",
+            game_map=game_map,
+            rules=[],
+            initial_infected_count=0
+        )
+
+        # Verify Moore neighbors are valid for any position
+        test_positions = [(0, 0), (10, 10), (19, 19)]
+        for x, y in test_positions:
+            neighbors = scene.get_moore_neighbors(x, y)
+            for nx, ny in neighbors:
+                assert game_map.is_passable(nx, ny)
