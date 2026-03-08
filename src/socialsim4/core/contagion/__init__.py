@@ -30,6 +30,7 @@ Usage:
 from .states import ContagionState
 from .rules import StateTransition, check_probability
 from .statistics import ContagionStatistics, TransitionEvent
+from .scene import ContagionScene
 
 __all__ = [
     "ContagionState",
@@ -37,4 +38,5 @@ __all__ = [
     "check_probability",
     "ContagionStatistics",
     "TransitionEvent",
+    "ContagionScene",
 ]
