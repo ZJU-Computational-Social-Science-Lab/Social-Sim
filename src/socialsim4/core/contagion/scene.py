@@ -251,6 +251,24 @@ class ContagionScene(VillageScene):
 
         return adjacent
 
+    def get_scene_actions(self, agent: "Agent"):
+        """
+        Return actions available in the contagion scene for this agent.
+
+        Provides contagion-specific actions (move, speak) plus base scene actions.
+
+        Args:
+            agent: Agent requesting available actions
+
+        Returns:
+            List of Action instances available to the agent
+        """
+        return [
+            MoveAdjacentAction(),
+            SpeakToAction(),
+            *super().get_scene_actions(agent),
+        ]
+
     def get_agent_status_prompt(self, agent: "Agent") -> str:
         """
         Generate a status prompt for an agent with contagion-specific information.
