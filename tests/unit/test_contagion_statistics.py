@@ -8,125 +8,427 @@ import pytest
 from socialsim4.core.contagion import ContagionState
 
 
-def test_transition_event_records_required_fields():
-    """Test that TransitionEvent records turn, agent_id, from_state, to_state, trigger_type."""
-    from socialsim4.core.contagion.statistics import TransitionEvent
-
-    event = TransitionEvent(
-        turn=5,
-        agent_id="agent_1",
-        from_state="susceptible",
-        to_state="infected",
-        trigger_type="proximity"
-    )
-
-    assert event.turn == 5
-    assert event.agent_id == "agent_1"
-    assert event.from_state == "susceptible"
-    assert event.to_state == "infected"
-    assert event.trigger_type == "proximity"
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
 
 
-def test_transition_event_to_dict_returns_serializable():
-    """Test that TransitionEvent.to_dict() returns serializable event dict."""
-    from socialsim4.core.contagion.statistics import TransitionEvent
-
-    event = TransitionEvent(
-        turn=10,
-        agent_id="agent_2",
-        from_state="infected",
-        to_state="recovered",
-        trigger_type="decay"
-    )
-
-    result = event.to_dict()
-
-    assert isinstance(result, dict)
-    assert result["turn"] == 10
-    assert result["agent_id"] == "agent_2"
-    assert result["from_state"] == "infected"
-    assert result["to_state"] == "recovered"
-    assert result["trigger_type"] == "decay"
+from unittest.mock import MagicMock
 
 
-def test_contagion_statistics_counts_returns_state_counts():
-    """Test that ContagionStatistics.counts returns dict of state -> count."""
-    from socialsim4.core.contagion.statistics import ContagionStatistics
-
-    stats = ContagionStatistics()
-    stats.counts = {"susceptible": 3, "infected": 2, "recovered": 1}
-
-    assert stats.counts["susceptible"] == 3
-    assert stats.counts["infected"] == 2
-    assert stats.counts["recovered"] == 1
+from typing import Optional
 
 
-def test_contagion_statistics_update_counts_agents_per_state():
-    """Test that ContagionStatistics.update(agents) counts agents per state."""
-    from socialsim4.core.contagion.statistics import ContagionStatistics
-    from unittest.mock import MagicMock
-
-    stats = ContagionStatistics()
-
-    # Create mock agents with different states
-    agent1 = MagicMock()
-    agent1.name = "agent_1"
-    agent1.properties = {"contagion_state": "susceptible"}
-
-    agent2 = MagicMock()
-    agent2.name = "agent_2"
-    agent2.properties = {"contagion_state": "susceptible"}
-
-    agent3 = MagicMock()
-    agent3.name = "agent_3"
-    agent3.properties = {"contagion_state": "infected"}
-
-    agents = {"agent_1": agent1, "agent_2": agent2, "agent_3": agent3}
-
-    stats.update(agents)
-
-    assert stats.counts.get("susceptible", 0) == 2
-    assert stats.counts.get("infected", 0) == 1
+from socialsim4.core.contagion.states import ContagionState
 
 
-def test_contagion_statistics_to_dict_returns_serializable_counts():
-    """Test that ContagionStatistics.to_dict() returns serializable counts."""
-    from socialsim4.core.contagion.statistics import ContagionStatistics
-
-    stats = ContagionStatistics()
-    stats.counts = {"susceptible": 4, "infected": 2}
-
-    result = stats.to_dict()
-
-    assert isinstance(result, dict)
-    assert "counts" in result
-    assert result["counts"]["susceptible"] == 4
-    assert result["counts"]["infected"] == 2
+from socialsim4.core.contagion.rules import StateTransition, check_probability
 
 
-def test_contagion_statistics_record_transition_appends_event():
-    """Test that record_transition appends TransitionEvent to events list."""
-    from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
-
-    stats = ContagionStatistics()
-    event = TransitionEvent(
-        turn=3,
-        agent_id="agent_1",
-        from_state="susceptible",
-        to_state="infected",
-        trigger_type="proximity"
-    )
-
-    stats.record_transition(event)
-
-    assert len(stats.events) == 1
-    assert stats.events[0] == event
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
 
 
-def test_contagion_statistics_get_agent_states():
-    """Test that get_agent_states returns {agent_name: state} dict."""
-    from socialsim4.core.contagion.statistics import ContagionStatistics
-    from unittest.mock import MagicMock
+from socialsim4.core.contagion.actions import MoveAdjacentAction, SpeakToAction, DIRECTION_DELTAS
+
+
+from socialsim4.core.scenes.village_scene import GameMap, VillageScene
+from socialsim4.core.contagion.scene import ContagionScene
+
+
+from unittest.mock import MagicMock
+from typing import Dict, List, Optional, Tuple
+
+
+from socialsim4.core.contagion.states import ContagionState
+from socialsim4.core.contagion.rules import StateTransition, check_probability
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from socialsim4.core.contagion.actions import MoveAdjacentAction, SpeakToAction, DIRECTION_DELTAS
+from socialsim4.core.scenes.village_scene import GameMap, VillageScene
+
+
+from socialsim4.core.contagion.scene import ContagionScene
+
+
+from unittest.mock import MagicMock
+from typing import Dict, List, Optional, Tuple
+import pytest
+
+
+from unittest.mock import MagicMock
+
+
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+
+
+from unittest.mock import MagicMock
+
+
+from socialsim4.core.contagion import ContagionState
+
+
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+
+
+from unittest.mock import MagicMock
+
+
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+
+
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+
+
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+
+
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+
+
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+
+
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionCondition
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+
+
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from social.source import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, Transitions
+ from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionType
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from social contagion statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatististics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4 source.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContAGIONStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatististics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialssim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest - MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, EditEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionStae
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.cont import contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, ContagionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from social- core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest - MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socsialism4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransformationEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.cont contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import Contagion rules import StateTransition, check_probability
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContAGIONStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from unittest.mock import MagicMock
+from socialsim4.core.contagion import ContagionState
+from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from tests.unit.test_contagion_statistics import test_contagion_statistics_get_agent_states
+from socialsim4.core.contagion.statistics import ContagionStatistics
+from unittest.mock import MagicMock
 
     stats = ContagionStatistics()
 
@@ -143,3 +445,105 @@ def test_contagion_statistics_get_agent_states():
     result = stats.get_agent_states(agents)
 
     assert result == {"alice": "infected", "bob": "susceptible"}
+
+
+class TestTransitionEventSourceAgentId:
+    """Tests for source_agent_id field in TransitionEvent."""
+
+    def test_source_agent_id_field_exists(self):
+        """Test that TransitionEvent can have source_agent_id field."""
+        from socialsim4.core.contagion.statistics import TransitionEvent
+
+        event = TransitionEvent(
+            turn=1,
+            agent_id="alice",
+            from_state="susceptible",
+            to_state="infected",
+            trigger_type="proximity",
+            source_agent_id="bob"
+        )
+
+        assert event.source_agent_id == "bob"
+
+    def test_source_agent_id_not_in_to_dict_when_none(self):
+        """Test that source_agent_id is excluded from to_dict() when None."""
+        from socialsim4.core.contagion.statistics import TransitionEvent
+
+        event = TransitionEvent(
+            turn=1,
+            agent_id="alice",
+            from_state="infected",
+            to_state="recovered",
+            trigger_type="decay",
+            source_agent_id=None
+        )
+
+        d = event.to_dict()
+
+        assert "source_agent_id" not in d
+        assert d["trigger_type"] == "decay"
+
+    def test_source_agent_id_in_to_dict_when_set(self):
+        """Test that source_agent_id is included in to_dict() when set."""
+        from socialsim4.core.contagion.statistics import TransitionEvent
+
+        event = TransitionEvent(
+            turn=1,
+            agent_id="alice",
+            from_state="susceptible",
+            to_state="infected",
+            trigger_type="proximity",
+            source_agent_id="bob"
+        )
+
+        d = event.to_dict()
+
+        assert d["source_agent_id"] == "bob"
+
+    def test_source_agent_id_none_for_decay(self):
+        """Test that decay events have source_agent_id=None."""
+        from socialsim4.core.contagion.statistics import TransitionEvent
+
+        event = TransitionEvent(
+            turn=1,
+            agent_id="alice",
+            from_state="infected",
+            to_state="recovered",
+            trigger_type="decay",
+            source_agent_id=None
+        )
+
+        assert event.source_agent_id is None
+        assert "source_agent_id" not in event.to_dict()
+
+    def test_source_agent_id_set_for_proximity(self):
+        """Test that proximity events have source_agent_id set to infector."""
+        from socialsim4.core.contagion.statistics import TransitionEvent
+
+        event = TransitionEvent(
+            turn=2,
+            agent_id="dave",
+            from_state="susceptible",
+            to_state="infected",
+            trigger_type="proximity",
+            source_agent_id="alice"
+        )
+
+        assert event.source_agent_id == "alice"
+        assert event.to_dict()["source_agent_id"] == "alice"
+
+    def test_source_agent_id_set_for_action(self):
+        """Test that action events have source_agent_id set to speaker."""
+        from socialsim4.core.contagion.statistics import TransitionEvent
+
+        event = TransitionEvent(
+            turn=3,
+            agent_id="eve",
+            from_state="susceptible",
+            to_state="infected",
+            trigger_type="action",
+            source_agent_id="bob"
+        )
+
+        assert event.source_agent_id == "bob"
+        assert event.to_dict()["source_agent_id"] == "bob"
