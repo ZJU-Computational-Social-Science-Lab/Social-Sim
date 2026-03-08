@@ -8,7 +8,7 @@
 
 - [x] **Phase 1: Core Infrastructure** - State system, rules engine, statistics, grid positioning, and hidden state visibility
 - [x] **Phase 2: Actions & Context** - Movement, speak actions, and agent context integration with LLM prompts
-- [ ] **Phase 3: Transmission** - Proximity-based spread, action-directed transmission, and state decay
+- [x] **Phase 3: Transmission** - Proximity-based spread, action-directed transmission, and state decay
 
 ## Phase Details
 
@@ -82,8 +82,8 @@ Plans:
 
 Plans:
 - [x] 03-01-PLAN.md — Proximity transmission with _evaluate_proximity_rules (PROX-01, PROX-02, PROX-03, PROX-04) ✓ Complete 2026-03-08
-- [ ] 03-02-PLAN.md — Action-directed transmission with check_action_transmission (ACT-01, ACT-02, ACT-03)
-- [ ] 03-03-PLAN.md — TransitionEvent extension with source_agent_id (PROX-04, shared infrastructure)
+- [x] 03-02-PLAN.md — Action-directed transmission with check_action_transmission (ACT-01, ACT-02, ACT-03) ✓ Complete 2026-03-08
+- [x] 03-03-PLAN.md — TransitionEvent extension with source_agent_id (PROX-04, shared infrastructure) ✓ Complete 2026-03-08
 
 **Note**: DECAY-01, DECAY-02, DECAY-03 are already complete from Phase 1.
 
@@ -95,9 +95,9 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Core Infrastructure | 3/3 | Complete | 01-01, 01-02, 01-03 (2026-03-08) |
 | 2. Actions & Context | 3/3 | Complete | 02-01, 02-02, 02-03 (2026-03-08) |
-| 3. Transmission | 1/3 | In Progress | 03-01 (2026-03-08) |
+| 3. Transmission | 3/3 | Complete | 03-01, 03-02, 03-03 (2026-03-08) |
 
-**Overall Progress:** 2/3 phases complete
+**Overall Progress:** 3/3 phases complete
 
 ## Dependencies
 
@@ -115,7 +115,7 @@ Phase 2: Actions & Context (COMPLETE - requires Phase 1)
     │       ↓
     └── Plan 03 (Wave 2): Scene registration + context (depends on 01, 02)
     ↓
-Phase 3: Transmission (PLANNED - requires Phase 1 + Phase 2)
+Phase 3: Transmission (COMPLETE - requires Phase 1 + Phase 2)
     ├── Plan 01 (Wave 1): Proximity transmission
     ├── Plan 02 (Wave 1): Action-directed transmission (parallel with 01)
     │       ↓
