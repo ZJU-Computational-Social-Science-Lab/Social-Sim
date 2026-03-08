@@ -31,6 +31,7 @@ class ContagionScene(VillageScene):
         rules: List of StateTransition rules defining allowed transitions
         initial_infected_count: Number of agents to start as infected
         _statistics: Internal tracker for state counts and events
+        _current_simulator: Reference to simulator for adjacent agent queries
     """
 
     TYPE = "contagion_scene"
@@ -59,6 +60,7 @@ class ContagionScene(VillageScene):
         self.rules = rules
         self.initial_infected_count = initial_infected_count
         self._statistics = ContagionStatistics()
+        self._current_simulator: Optional["Simulator"] = None
 
     def pre_run(self, simulator: "Simulator"):
         """
@@ -71,6 +73,7 @@ class ContagionScene(VillageScene):
             simulator: Simulator instance for accessing agents
         """
         super().pre_run(simulator)
+        self._current_simulator = simulator
 
         agents = list(simulator.agents.values())
         agent_names = [a.name for a in agents]
@@ -246,6 +249,67 @@ class ContagionScene(VillageScene):
                     adjacent.append(other_name)
 
         return adjacent
+
+    def get_agent_status_prompt(self, agent: "Agent") -> str:
+        """
+        Generate a status prompt for an agent with contagion-specific information.
+
+        Overrides VillageScene to add contagion state and nearby agent names.
+        Implements HIDE-02: agents see their own state but only names of neighbors.
+
+        Args:
+            agent: Agent to generate status prompt for
+
+        Returns:
+            String containing position, contagion state, and nearby agents
+        """
+        # Get agent's coordinates
+        xy = agent.properties.get("map_xy") or [None, None]
+
+        # Get location name if at a named location
+        loc = None
+        if xy[0] is not None:
+            loc = self.game_map.get_location_at(xy[0], xy[1])
+        loc_name = loc.name if loc else agent.properties.get("map_position", "?")
+
+        # Get contagion state
+        contagion_state = agent.properties.get("contagion_state", "unknown")
+        contagion_turns = agent.properties.get("contagion_turns", 0)
+
+        # Build contagion-specific status
+        status_lines = [
+            "--- Status ---",
+            f"Current position: {loc_name} at ({xy[0]},{xy[1]})",
+            f"Contagion state: {contagion_state.upper()}",
+        ]
+
+        # Add turns info for non-susceptible states
+        if contagion_state != "susceptible":
+            status_lines.append(f"Turns in state: {contagion_turns}")
+
+        # Add physiological info from parent
+        status_lines.extend([
+            f"Hunger level: {agent.properties.get('hunger', 0)}",
+            f"Energy level: {agent.properties.get('energy', 100)}",
+            f"Inventory: {agent.properties.get('inventory', {})}",
+        ])
+
+        # Add time
+        minutes = int(self.state.get("time", 0) or 0)
+        hours = (minutes // 60) % 24
+        mins = minutes % 60
+        time_of_day = "day" if hours < 18 else "night"
+        status_lines.append(f"Current time: {hours}:{mins:02d} ({time_of_day})")
+
+        # Add nearby agents if we have a simulator reference
+        if self._current_simulator:
+            adjacent_names = self.get_adjacent_agents(agent.name, self._current_simulator)
+            if adjacent_names:
+                status_lines.append(f"Nearby agents: {', '.join(adjacent_names)}")
+            else:
+                status_lines.append("Nearby agents: None")
+
+        return "\n".join(status_lines) + "\n"
 
     def serialize_config(self) -> dict:
         """

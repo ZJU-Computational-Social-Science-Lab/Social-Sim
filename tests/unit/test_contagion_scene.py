@@ -643,3 +643,180 @@ class TestAdjacentAgents:
         adjacent = scene.get_adjacent_agents("agent_0", simulator)
 
         assert "agent_0" not in adjacent
+
+
+class TestAgentStatusPrompt:
+    """Tests for get_agent_status_prompt with hidden state semantics."""
+
+    def test_get_agent_status_prompt_includes_own_contagion_state(self):
+        """Test that get_agent_status_prompt includes agent's own contagion state."""
+        from socialsim4.core.contagion.scene import ContagionScene
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(10, 10)
+        game_map.add_location("village_center", 10, 10)
+
+        scene = ContagionScene(
+            name="test_scene",
+            initial_event="start",
+            game_map=game_map,
+            rules=[],
+            initial_infected_count=1
+        )
+
+        agent = MagicMock()
+        agent.name = "agent_0"
+        agent.properties = {
+            "map_xy": [10, 10],
+            "contagion_state": "infected",
+            "contagion_turns": 3,
+            "hunger": 0,
+            "energy": 100,
+            "inventory": {}
+        }
+
+        prompt = scene.get_agent_status_prompt(agent)
+
+        assert "infected" in prompt.lower()
+        assert "3" in prompt  # turns infected
+
+    def test_get_agent_status_prompt_includes_adjacent_agent_names(self):
+        """Test that get_agent_status_prompt includes list of adjacent agent names."""
+        from socialsim4.core.contagion.scene import ContagionScene
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(10, 10)
+        scene = ContagionScene(
+            name="test_scene",
+            initial_event="start",
+            game_map=game_map,
+            rules=[],
+            initial_infected_count=1
+        )
+
+        agent = MagicMock()
+        agent.name = "agent_0"
+        agent.properties = {
+            "map_xy": [5, 5],
+            "contagion_state": "susceptible",
+            "contagion_turns": 0,
+            "hunger": 0,
+            "energy": 100,
+            "inventory": {}
+        }
+
+        # Create a mock simulator with adjacent agents
+        simulator = MagicMock()
+        agents = {
+            "agent_0": agent,
+            "alice": MagicMock(name="alice", properties={"map_xy": [4, 4]}),
+            "bob": MagicMock(name="bob", properties={"map_xy": [6, 6]})
+        }
+        simulator.agents = agents
+
+        # Call pre_run to set up scene state
+        scene.pre_run(simulator)
+
+        prompt = scene.get_agent_status_prompt(agent)
+
+        # Should include names of adjacent agents
+        assert "alice" in prompt.lower() or "bob" in prompt.lower()
+
+    def test_get_agent_status_prompt_does_not_include_other_agents_states(self):
+        """Test that get_agent_status_prompt does NOT include other agents' states."""
+        from socialsim4.core.contagion.scene import ContagionScene
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(10, 10)
+        scene = ContagionScene(
+            name="test_scene",
+            initial_event="start",
+            game_map=game_map,
+            rules=[],
+            initial_infected_count=0  # Don't auto-infect anyone
+        )
+
+        agent = MagicMock()
+        agent.name = "agent_0"
+        agent.properties = {
+            "map_xy": [5, 5],
+            "contagion_state": "susceptible",
+            "contagion_turns": 0,
+            "hunger": 0,
+            "energy": 100,
+            "inventory": {}
+        }
+
+        # Create adjacent agent with infected state - use a name that doesn't contain "infected"
+        # to clearly test that the state isn't being exposed
+        simulator = MagicMock()
+        alice = MagicMock(name="alice")
+        alice.properties = {
+            "map_xy": [4, 4],
+            "contagion_state": "infected"
+        }
+        agents = {
+            "agent_0": agent,
+            "alice": alice
+        }
+        simulator.agents = agents
+
+        scene.pre_run(simulator)
+
+        # After pre_run, manually set the states to ensure predictable test conditions
+        # (pre_run sets random states, but we want to test specific scenario)
+        agent.properties["contagion_state"] = "susceptible"
+        alice.properties["contagion_state"] = "infected"
+
+        prompt = scene.get_agent_status_prompt(agent)
+
+        # The prompt should include "alice" but NOT reveal her "infected" state
+        assert "alice" in prompt.lower()
+        # The state "infected" should NOT appear in the prompt (agent_0 is susceptible)
+        assert "infected" not in prompt.lower(), f"Prompt should not mention 'infected' state: {prompt}"
+        # Verify state information isn't leaked via other patterns
+        assert "alice is infected" not in prompt.lower()
+        assert "alice: infected" not in prompt.lower()
+
+    def test_status_prompt_format_matches_village_scene_pattern(self):
+        """Test that status prompt format matches existing VillageScene pattern with contagion additions."""
+        from socialsim4.core.contagion.scene import ContagionScene
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(10, 10)
+        scene = ContagionScene(
+            name="test_scene",
+            initial_event="start",
+            game_map=game_map,
+            rules=[],
+            initial_infected_count=0  # No infected agents to ensure predictable state
+        )
+
+        agent = MagicMock()
+        agent.name = "agent_0"
+        agent.properties = {
+            "map_xy": [5, 5],
+            "contagion_state": "recovered",
+            "contagion_turns": 10,
+            "hunger": 20,
+            "energy": 80,
+            "inventory": {"apple": 2}
+        }
+
+        simulator = MagicMock()
+        simulator.agents = {"agent_0": agent}
+
+        scene.pre_run(simulator)
+
+        # After pre_run, set specific state for testing
+        agent.properties["contagion_state"] = "recovered"
+        agent.properties["contagion_turns"] = 10
+
+        prompt = scene.get_agent_status_prompt(agent)
+
+        # Should include position
+        assert "position" in prompt.lower() or "(5,5)" in prompt
+        # Should include contagion state
+        assert "recovered" in prompt.lower()
+        # Should include status section
+        assert "---" in prompt or "status" in prompt.lower()
