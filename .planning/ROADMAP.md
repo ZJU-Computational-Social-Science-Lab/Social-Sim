@@ -78,7 +78,14 @@ Plans:
 4. **Decay transitions agent state** — When agent's turns-since-infection exceeds rule's decay_turns, the agent automatically transitions to the rule-defined next state (e.g., INFECTED -> RECOVERED)
 5. **Both transmission types share infrastructure** — When rules are evaluated, proximity-based and action-directed transitions use the same probability-checking and state-applying logic from Phase 1's rule engine
 
-**Plans**: TBD
+**Plans**: 3 plans in 2 waves
+
+Plans:
+- [ ] 03-01-PLAN.md — Proximity transmission with _evaluate_proximity_rules (PROX-01, PROX-02, PROX-03, PROX-04)
+- [ ] 03-02-PLAN.md — Action-directed transmission with check_action_transmission (ACT-01, ACT-02, ACT-03)
+- [ ] 03-03-PLAN.md — TransitionEvent extension with source_agent_id (PROX-04, shared infrastructure)
+
+**Note**: DECAY-01, DECAY-02, DECAY-03 are already complete from Phase 1.
 
 ---
 
@@ -88,7 +95,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Core Infrastructure | 3/3 | Complete | 01-01, 01-02, 01-03 (2026-03-08) |
 | 2. Actions & Context | 3/3 | Complete | 02-01, 02-02, 02-03 (2026-03-08) |
-| 3. Transmission | 0/? | Not started | - |
+| 3. Transmission | 0/3 | Planned | - |
 
 **Overall Progress:** 2/3 phases complete
 
@@ -102,13 +109,17 @@ Phase 1: Core Infrastructure (COMPLETE)
     │       ↓
     └── Plan 03 (Wave 2): Grid + hidden states (depends on 01, 02)
     ↓
-Phase 2: Actions & Context (requires Phase 1)
+Phase 2: Actions & Context (COMPLETE - requires Phase 1)
     ├── Plan 01 (Wave 1): MoveAdjacentAction
     ├── Plan 02 (Wave 1): SpeakToAction (parallel with 01)
     │       ↓
     └── Plan 03 (Wave 2): Scene registration + context (depends on 01, 02)
     ↓
-Phase 3: Transmission (requires Phase 1 + Phase 2)
+Phase 3: Transmission (PLANNED - requires Phase 1 + Phase 2)
+    ├── Plan 01 (Wave 1): Proximity transmission
+    ├── Plan 02 (Wave 1): Action-directed transmission (parallel with 01)
+    │       ↓
+    └── Plan 03 (Wave 2): TransitionEvent extension (depends on 01, 02)
 ```
 
 ## Risk Notes
@@ -121,3 +132,4 @@ Phase 3: Transmission (requires Phase 1 + Phase 2)
 *Roadmap created: 2026-03-08*
 *Plans created: 2026-03-08*
 *Phase 2 plans added: 2026-03-08*
+*Phase 3 plans added: 2026-03-08*
