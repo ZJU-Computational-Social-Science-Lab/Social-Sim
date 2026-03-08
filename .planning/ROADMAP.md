@@ -28,7 +28,12 @@
 4. **Agents see neighbors without states** — When agent receives their context prompt, they see a list of adjacent agent IDs but NOT those agents' contagion states (hidden state semantics enforced)
 5. **Scene evaluates rules each turn** — When simulation advances one turn, the scene evaluates all configured transition rules before agents take actions, updating agent states based on rule conditions
 
-**Plans**: TBD
+**Plans**: 3 plans in 2 waves
+
+Plans:
+- [ ] 01-01-PLAN.md — ContagionState enum and StateTransition dataclass (CORE-01, CORE-02)
+- [ ] 01-02-PLAN.md — ContagionScene with state tracking, rules evaluation, statistics (CORE-03 to CORE-06)
+- [ ] 01-03-PLAN.md — Grid integration and hidden state semantics (GRID-01 to GRID-04, HIDE-01 to HIDE-03)
 
 ---
 
@@ -76,7 +81,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Core Infrastructure | 0/? | Not started | - |
+| 1. Core Infrastructure | 0/3 | Planning complete | - |
 | 2. Actions & Context | 0/? | Not started | - |
 | 3. Transmission | 0/? | Not started | - |
 
@@ -86,6 +91,11 @@
 
 ```
 Phase 1: Core Infrastructure
+    ├── Plan 01 (Wave 1): ContagionState + StateTransition
+    │       ↓
+    ├── Plan 02 (Wave 2): ContagionScene core (depends on 01)
+    │       ↓
+    └── Plan 03 (Wave 2): Grid + hidden states (depends on 01, 02)
     ↓
 Phase 2: Actions & Context (requires Phase 1)
     ↓
@@ -100,3 +110,4 @@ Phase 3: Transmission (requires Phase 1 + Phase 2)
 
 ---
 *Roadmap created: 2026-03-08*
+*Plans created: 2026-03-08*
