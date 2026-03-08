@@ -7,7 +7,7 @@
 ## Phases
 
 - [x] **Phase 1: Core Infrastructure** - State system, rules engine, statistics, grid positioning, and hidden state visibility
-- [ ] **Phase 2: Actions & Context** - Movement, speak actions, and agent context integration with LLM prompts
+- [x] **Phase 2: Actions & Context** - Movement, speak actions, and agent context integration with LLM prompts
 - [ ] **Phase 3: Transmission** - Proximity-based spread, action-directed transmission, and state decay
 
 ## Phase Details
@@ -56,9 +56,9 @@ Plans:
 **Plans**: 3 plans in 2 waves
 
 Plans:
-- [ ] 02-01-PLAN.md — MoveAdjacentAction with 8-way movement, collision/boundary validation (MOVE-01, MOVE-02, MOVE-03)
-- [ ] 02-02-PLAN.md — SpeakToAction with Moore adjacency check, TalkToEvent delivery (COMM-01, COMM-02, COMM-03, COMM-04)
-- [ ] 02-03-PLAN.md — Scene action registration, extended status prompt with full adjacent cell context (CTX-03, CTX-04)
+- [x] 02-01-PLAN.md — MoveAdjacentAction with 8-way movement, collision/boundary validation (MOVE-01, MOVE-02, MOVE-03) ✓ Complete 2026-03-08
+- [x] 02-02-PLAN.md — SpeakToAction with Moore adjacency check, TalkToEvent delivery (COMM-01, COMM-02, COMM-03, COMM-04) ✓ Complete 2026-03-08
+- [x] 02-03-PLAN.md — Scene action registration, extended status prompt with full adjacent cell context (CTX-03, CTX-04) ✓ Complete 2026-03-08
 
 ---
 
@@ -87,10 +87,10 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Core Infrastructure | 3/3 | Complete | 01-01, 01-02, 01-03 (2026-03-08) |
-| 2. Actions & Context | 0/3 | Planning | - |
+| 2. Actions & Context | 3/3 | Complete | 02-01, 02-02, 02-03 (2026-03-08) |
 | 3. Transmission | 0/? | Not started | - |
 
-**Overall Progress:** 1/3 phases complete
+**Overall Progress:** 2/3 phases complete
 
 ## Dependencies
 
