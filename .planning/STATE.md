@@ -2,7 +2,8 @@
 
 **Last Updated:** 2026-03-08
 **Current Milestone:** v1.0 - Contagion Spread Framework
-**Current Phase:** Phase 1 (Core Infrastructure) - Not Started
+**Current Phase:** Phase 1 (Core Infrastructure) - In Progress
+**Current Plan:** 01-01 (Contagion State Foundation) - Complete
 
 ## Project Reference
 
@@ -19,12 +20,12 @@
 ## Current Position
 
 **Active Phase:** Phase 1: Core Infrastructure
-**Status:** Not started (roadmap just created)
-**Progress:** 0/3 phases complete
+**Status:** In Progress (Plan 01 complete)
+**Progress:** 1/3 phases complete (Plan 01-01 complete)
 
 ```
-[██████████████████████████████████████████████████] 0% Phase 1
-[░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 0% Overall
+[████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 20% Phase 1
+[████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 7% Overall
 ```
 
 ## Performance Metrics
@@ -44,6 +45,9 @@
 | 2026-03-08 | Phase structure: 3 phases (not 4 from research) | Compressed from research recommendation to deliver focused milestones. Research Phase 3 (Viz) deferred to v2, Phase 4 (Advanced) out of scope. |
 | 2026-03-08 | State decay grouped with transmission | Decay rules are part of transmission mechanics; they trigger after infection occurs. |
 | 2026-03-08 | Agent context in Phase 2 | Context integration requires action patterns to exist first; prompts reference available actions. |
+| 2026-03-08 | str+Enum inheritance for ContagionState | Matches existing CouncilPhase pattern and ensures JSON serialization works correctly for frontend/config files. |
+| 2026-03-08 | __post_init__ validation for StateTransition | Dataclass pattern maintains immutability and follows Python best practices. |
+| 2026-03-08 | String trigger_type instead of enum | Allows easier extension by scenario authors without modifying core framework. |
 
 ## Accumulated Context
 
@@ -69,8 +73,8 @@
 **New Components to Build:**
 - `ContagionScene` — Extends Scene, orchestrates rule evaluation
 - `ContagionRules` module — Rule evaluation engine with probability checks
-- `ContagionState` enum — State representation (SUSCEPTIBLE, INFECTED, RECOVERED, etc.)
-- `StateTransition` dataclass — Rule definition schema
+- ~~`ContagionState` enum~~ — **COMPLETE** (Plan 01-01)
+- ~~`StateTransition` dataclass~~ — **COMPLETE** (Plan 01-01)
 - `MoveAction` — Grid-based movement (if not exists)
 - `SpeakToAction` — Targeted single-agent communication
 
@@ -92,14 +96,14 @@ None currently. Research addressed architecture and stack questions.
 ## Session Continuity
 
 **Next Steps:**
-1. User reviews and approves roadmap
-2. Execute `/gsd:plan-phase 1` to create detailed plans for Phase 1
-3. Begin Phase 1 implementation
+1. Execute Plan 01-02 (ContagionScene implementation)
+2. Execute Plan 01-03 (Grid integration)
+3. Complete Phase 1 remaining plans
 
 **Recent Commits:**
+- `232e120` test(01-01): add StateTransition validation tests
+- `684742f` test(01-01): add ContagionState enum and basic tests
 - `82db839` fix(scenarios): add council chamber and custom scenarios to UI
-- `304a0fb` docs: map existing codebase
-- `9b1069d` Network added to simulation builder
 
 **Branch:** `feature/experiment-builder`
 

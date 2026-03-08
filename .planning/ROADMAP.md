@@ -31,7 +31,7 @@
 **Plans**: 3 plans in 2 waves
 
 Plans:
-- [ ] 01-01-PLAN.md — ContagionState enum and StateTransition dataclass (CORE-01, CORE-02)
+- [x] 01-01-PLAN.md — ContagionState enum and StateTransition dataclass (CORE-01, CORE-02) ✓ Complete 2026-03-08
 - [ ] 01-02-PLAN.md — ContagionScene with state tracking, rules evaluation, statistics (CORE-03 to CORE-06)
 - [ ] 01-03-PLAN.md — Grid integration and hidden state semantics (GRID-01 to GRID-04, HIDE-01 to HIDE-03)
 
@@ -81,7 +81,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Core Infrastructure | 0/3 | Planning complete | - |
+| 1. Core Infrastructure | 1/3 | In Progress | 01-01 (2026-03-08) |
 | 2. Actions & Context | 0/? | Not started | - |
 | 3. Transmission | 0/? | Not started | - |
 
