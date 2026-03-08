@@ -16,6 +16,7 @@ from typing import Dict, List, Optional, Tuple
 from socialsim4.core.contagion.states import ContagionState
 from socialsim4.core.contagion.rules import StateTransition
 from socialsim4.core.contagion.statistics import ContagionStatistics, TransitionEvent
+from socialsim4.core.contagion.actions import MoveAdjacentAction, SpeakToAction
 from socialsim4.core.scenes.village_scene import GameMap, VillageScene
 
 
