@@ -11,7 +11,7 @@ not direct observation. State management is handled by the scene.
 Contains: ContagionScene
 """
 import random
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from socialsim4.core.contagion.states import ContagionState
 from socialsim4.core.contagion.rules import StateTransition
@@ -186,6 +186,66 @@ class ContagionScene(VillageScene):
                 "agent_states": self._statistics.get_agent_states(simulator.agents),
             }
         )
+
+    def get_moore_neighbors(self, x: int, y: int) -> List[Tuple[int, int]]:
+        """
+        Get all valid 8-directional (Moore) neighbor coordinates for a cell.
+
+        Moore neighborhood includes diagonals, unlike von Neumann (4-directional).
+
+        Args:
+            x: X coordinate of the center cell
+            y: Y coordinate of the center cell
+
+        Returns:
+            List of (x, y) tuples for all valid adjacent cells
+        """
+        neighbors = []
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                if dx == 0 and dy == 0:
+                    continue  # Skip center cell
+                nx, ny = x + dx, y + dy
+                if self.game_map.in_bounds(nx, ny):
+                    neighbors.append((nx, ny))
+        return neighbors
+
+    def get_adjacent_agents(self, agent_name: str, simulator: "Simulator") -> List[str]:
+        """
+        Get names of agents in cells adjacent to the specified agent.
+
+        Only returns agent names (IDs), not their contagion states.
+        This implements HIDE-01: agents cannot directly observe other agents' states.
+
+        Args:
+            agent_name: Name of the agent to find neighbors for
+            simulator: Simulator instance for accessing agents
+
+        Returns:
+            List of agent names in adjacent cells (empty if agent has no position)
+        """
+        agent = simulator.agents.get(agent_name)
+        if not agent:
+            return []
+
+        xy = agent.properties.get("map_xy")
+        if not xy:
+            return []
+
+        x, y = xy[0], xy[1]
+        neighbor_coords = set(self.get_moore_neighbors(x, y))
+
+        adjacent = []
+        for other_name, other_agent in simulator.agents.items():
+            if other_name == agent_name:
+                continue  # Skip the querying agent
+            other_xy = other_agent.properties.get("map_xy")
+            if other_xy:
+                other_coord = (other_xy[0], other_xy[1])
+                if other_coord in neighbor_coords:
+                    adjacent.append(other_name)
+
+        return adjacent
 
     def serialize_config(self) -> dict:
         """

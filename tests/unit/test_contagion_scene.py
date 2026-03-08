@@ -484,3 +484,162 @@ class TestPreTurnRulesHook:
 
         # Verify pre_turn_rules was called
         assert len(pre_turn_called) >= 1, "pre_turn_rules should have been called"
+
+
+class TestMooreNeighborhood:
+    """Tests for Moore neighborhood (8-directional) queries."""
+
+    def test_get_moore_neighbors_returns_8_coordinates_for_center_cell(self):
+        """Test that get_moore_neighbors(5, 5) returns 8 coordinates for center cell."""
+        from socialsim4.core.contagion.scene import ContagionScene
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(10, 10)
+        scene = ContagionScene(
+            name="test_scene",
+            initial_event="start",
+            game_map=game_map,
+            rules=[],
+            initial_infected_count=1
+        )
+
+        neighbors = scene.get_moore_neighbors(5, 5)
+
+        # Should return 8 coordinates (all 8 surrounding cells)
+        assert len(neighbors) == 8
+
+        # Verify all 8 expected coordinates are present
+        expected = {(4, 4), (4, 5), (4, 6), (5, 4), (5, 6), (6, 4), (6, 5), (6, 6)}
+        assert set(neighbors) == expected
+
+    def test_get_moore_neighbors_returns_3_coordinates_for_corner(self):
+        """Test that get_moore_neighbors(0, 0) returns 3 coordinates (corner)."""
+        from socialsim4.core.contagion.scene import ContagionScene
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(10, 10)
+        scene = ContagionScene(
+            name="test_scene",
+            initial_event="start",
+            game_map=game_map,
+            rules=[],
+            initial_infected_count=1
+        )
+
+        neighbors = scene.get_moore_neighbors(0, 0)
+
+        # Corner should have only 3 valid neighbors
+        assert len(neighbors) == 3
+
+        # Verify the 3 expected coordinates
+        expected = {(0, 1), (1, 0), (1, 1)}
+        assert set(neighbors) == expected
+
+    def test_get_moore_neighbors_filters_out_of_bounds_coordinates(self):
+        """Test that get_moore_neighbors filters out-of-bounds coordinates."""
+        from socialsim4.core.contagion.scene import ContagionScene
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(10, 10)
+        scene = ContagionScene(
+            name="test_scene",
+            initial_event="start",
+            game_map=game_map,
+            rules=[],
+            initial_infected_count=1
+        )
+
+        # Edge cell - should have 5 neighbors
+        neighbors = scene.get_moore_neighbors(0, 5)
+        assert len(neighbors) == 5
+
+        # All coordinates should be within bounds
+        for x, y in neighbors:
+            assert 0 <= x < 10
+            assert 0 <= y < 10
+
+
+class TestAdjacentAgents:
+    """Tests for get_adjacent_agents method."""
+
+    def test_get_adjacent_agents_returns_agent_names_in_adjacent_cells(self):
+        """Test that get_adjacent_agents returns agent names in adjacent cells."""
+        from socialsim4.core.contagion.scene import ContagionScene
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(10, 10)
+        scene = ContagionScene(
+            name="test_scene",
+            initial_event="start",
+            game_map=game_map,
+            rules=[],
+            initial_infected_count=1
+        )
+
+        # Create mock agents at specific positions
+        agents = {}
+        for i, (x, y) in enumerate([(5, 5), (4, 4), (6, 6), (0, 0)]):
+            agent = MagicMock()
+            agent.name = f"agent_{i}"
+            agent.properties = {"map_xy": [x, y]}
+            agents[agent.name] = agent
+
+        simulator = MagicMock()
+        simulator.agents = agents
+
+        # agent_0 at (5,5) should see agent_1 at (4,4) and agent_2 at (6,6)
+        adjacent = scene.get_adjacent_agents("agent_0", simulator)
+
+        assert "agent_1" in adjacent
+        assert "agent_2" in adjacent
+        assert "agent_3" not in adjacent  # Too far away
+
+    def test_get_adjacent_agents_returns_empty_list_for_agent_with_no_map_xy(self):
+        """Test that get_adjacent_agents returns empty list for agent with no map_xy."""
+        from socialsim4.core.contagion.scene import ContagionScene
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(10, 10)
+        scene = ContagionScene(
+            name="test_scene",
+            initial_event="start",
+            game_map=game_map,
+            rules=[],
+            initial_infected_count=1
+        )
+
+        agent = MagicMock()
+        agent.name = "agent_0"
+        agent.properties = {}  # No map_xy
+
+        simulator = MagicMock()
+        simulator.agents = {"agent_0": agent}
+
+        adjacent = scene.get_adjacent_agents("agent_0", simulator)
+
+        assert adjacent == []
+
+    def test_get_adjacent_agents_does_not_include_querying_agent(self):
+        """Test that get_adjacent_agents does NOT include the querying agent."""
+        from socialsim4.core.contagion.scene import ContagionScene
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(10, 10)
+        scene = ContagionScene(
+            name="test_scene",
+            initial_event="start",
+            game_map=game_map,
+            rules=[],
+            initial_infected_count=1
+        )
+
+        agent = MagicMock()
+        agent.name = "agent_0"
+        agent.properties = {"map_xy": [5, 5]}
+
+        simulator = MagicMock()
+        simulator.agents = {"agent_0": agent}
+
+        adjacent = scene.get_adjacent_agents("agent_0", simulator)
+
+        assert "agent_0" not in adjacent
