@@ -820,3 +820,167 @@ class TestAgentStatusPrompt:
         assert "recovered" in prompt.lower()
         # Should include status section
         assert "---" in prompt or "status" in prompt.lower()
+
+
+class TestFrontendStateExposure:
+    """Tests for frontend state exposure via contagion_stats event."""
+
+    def test_contagion_stats_event_includes_agent_states_dict(self):
+        """Test that contagion_stats event includes agent_states dict."""
+        from socialsim4.core.contagion.scene import ContagionScene
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(10, 10)
+        scene = ContagionScene(
+            name="test_scene",
+            initial_event="start",
+            game_map=game_map,
+            rules=[],
+            initial_infected_count=1
+        )
+
+        agents = {}
+        for i in range(3):
+            agent = MagicMock()
+            agent.name = f"agent_{i}"
+            agent.properties = {
+                "contagion_state": "susceptible" if i > 0 else "infected",
+                "contagion_turns": 0
+            }
+            agents[agent.name] = agent
+
+        simulator = MagicMock()
+        simulator.agents = agents
+
+        scene._update_statistics(simulator)
+
+        # Verify emit_event_later was called
+        simulator.emit_event_later.assert_called_once()
+        call_args = simulator.emit_event_later.call_args
+        assert call_args[0][0] == "contagion_stats"
+
+        # Verify agent_states exists and is a dict
+        event_data = call_args[0][1]
+        assert "agent_states" in event_data
+        assert isinstance(event_data["agent_states"], dict)
+
+    def test_agent_states_maps_agent_name_to_state_for_all_agents(self):
+        """Test that agent_states maps agent_name -> state for all agents."""
+        from socialsim4.core.contagion.scene import ContagionScene
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(10, 10)
+        scene = ContagionScene(
+            name="test_scene",
+            initial_event="start",
+            game_map=game_map,
+            rules=[],
+            initial_infected_count=2
+        )
+
+        agents = {}
+        expected_states = {}
+        for i, state in enumerate(["infected", "infected", "susceptible"]):
+            agent = MagicMock()
+            agent.name = f"agent_{i}"
+            agent.properties = {
+                "contagion_state": state,
+                "contagion_turns": 0
+            }
+            agents[agent.name] = agent
+            expected_states[agent.name] = state
+
+        simulator = MagicMock()
+        simulator.agents = agents
+
+        scene._update_statistics(simulator)
+
+        event_data = simulator.emit_event_later.call_args[0][1]
+        agent_states = event_data["agent_states"]
+
+        # Verify all agents are present
+        assert len(agent_states) == 3
+        assert set(agent_states.keys()) == set(expected_states.keys())
+
+        # Verify states match
+        for name, expected_state in expected_states.items():
+            assert agent_states[name] == expected_state
+
+    def test_agent_states_values_are_state_strings_not_enum_objects(self):
+        """Test that agent_states values are state strings (not enum objects)."""
+        from socialsim4.core.contagion.scene import ContagionScene
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(10, 10)
+        scene = ContagionScene(
+            name="test_scene",
+            initial_event="start",
+            game_map=game_map,
+            rules=[],
+            initial_infected_count=1
+        )
+
+        agent = MagicMock()
+        agent.name = "test_agent"
+        agent.properties = {
+            "contagion_state": "infected",
+            "contagion_turns": 0
+        }
+
+        simulator = MagicMock()
+        simulator.agents = {"test_agent": agent}
+
+        scene._update_statistics(simulator)
+
+        event_data = simulator.emit_event_later.call_args[0][1]
+        state_value = event_data["agent_states"]["test_agent"]
+
+        # Verify it's a string, not an enum object
+        assert isinstance(state_value, str)
+        assert state_value == "infected"
+
+    def test_frontend_can_render_grid_with_state_based_coloring(self):
+        """Test that frontend has data needed for state-based visualization."""
+        from socialsim4.core.contagion.scene import ContagionScene
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(10, 10)
+        scene = ContagionScene(
+            name="test_scene",
+            initial_event="start",
+            game_map=game_map,
+            rules=[],
+            initial_infected_count=1
+        )
+
+        # Create agents with positions and states
+        agents = {}
+        agent_states_and_positions = [
+            ("alice", "susceptible", [2, 2]),
+            ("bob", "infected", [5, 5]),
+            ("charlie", "recovered", [8, 8]),
+        ]
+        for name, state, pos in agent_states_and_positions:
+            agent = MagicMock()
+            agent.name = name
+            agent.properties = {
+                "contagion_state": state,
+                "contagion_turns": 0,
+                "map_xy": pos
+            }
+            agents[name] = agent
+
+        simulator = MagicMock()
+        simulator.agents = agents
+
+        scene._update_statistics(simulator)
+
+        event_data = simulator.emit_event_later.call_args[0][1]
+
+        # Verify frontend has all the data it needs
+        assert "counts" in event_data  # For summary stats
+        assert "agent_states" in event_data  # For per-agent coloring
+
+        # Verify data structure is JSON-serializable
+        import json
+        json.dumps(event_data)  # Should not raise
