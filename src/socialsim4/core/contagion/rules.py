@@ -1,4 +1,4 @@
-"""
+ """
 State transition rules for contagion dynamics.
 
 This module provides the rule evaluation engine for contagion state transitions.
