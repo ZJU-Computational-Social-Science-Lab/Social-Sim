@@ -316,6 +316,10 @@ class SpeakToAction(Action):
         # Deliver to target
         target.add_env_feedback(formatted)
 
+        # Check for action-directed transmission (Phase 3)
+        if hasattr(scene, 'check_action_transmission'):
+            scene.check_action_transmission(agent, target, simulator)
+
         result = {"to": target_name, "message": message}
         summary = _localized(
             agent,
