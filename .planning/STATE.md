@@ -3,7 +3,7 @@
 **Last Updated:** 2026-03-08
 **Current Milestone:** v1.0 - Contagion Spread Framework
 **Current Phase:** Phase 1 (Core Infrastructure) - In Progress
-**Current Plan:** 01-01 (Contagion State Foundation) - Complete
+**Current Plan:** 01-02 (ContagionScene Implementation) - Complete
 
 ## Project Reference
 
@@ -20,12 +20,12 @@
 ## Current Position
 
 **Active Phase:** Phase 1: Core Infrastructure
-**Status:** In Progress (Plan 01 complete)
-**Progress:** 1/3 phases complete (Plan 01-01 complete)
+**Status:** In Progress (Plans 01-01 and 01-02 complete)
+**Progress:** 2/3 phases complete (Plans 01-01 and 01-02 complete)
 
 ```
-[████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 20% Phase 1
-[████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 7% Overall
+[████████████████████████████░░░░░░░░░░░░░░░░░░░░] 40% Phase 1
+[████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 14% Overall
 ```
 
 ## Performance Metrics
@@ -48,6 +48,8 @@
 | 2026-03-08 | str+Enum inheritance for ContagionState | Matches existing CouncilPhase pattern and ensures JSON serialization works correctly for frontend/config files. |
 | 2026-03-08 | __post_init__ validation for StateTransition | Dataclass pattern maintains immutability and follows Python best practices. |
 | 2026-03-08 | String trigger_type instead of enum | Allows easier extension by scenario authors without modifying core framework. |
+| 2026-03-08 | Statistics as separate module | ContagionStatistics tracks counts and events independently from scene for single responsibility and testability. |
+| 2026-03-08 | Duck-typing for pre_turn_rules hook | Used hasattr check instead of isinstance for backwards compatibility with existing scenes. |
 
 ## Accumulated Context
 
@@ -61,6 +63,8 @@
 
 4. **Single-target speak** — Speak action targets one specific adjacent agent. Broadcast/multi-target deferred to v2.
 
+5. **Statistics emission via WebSocket** — ContagionScene emits contagion_stats events with counts and agent_states for real-time frontend visualization.
+
 ### Technical Context
 
 **Existing Infrastructure to Reuse:**
@@ -70,11 +74,13 @@
 - `Agent.properties` — Per-agent state storage
 - WebSocket events — Real-time statistics delivery to frontend
 
-**New Components to Build:**
-- `ContagionScene` — Extends Scene, orchestrates rule evaluation
-- `ContagionRules` module — Rule evaluation engine with probability checks
+**New Components Built:**
 - ~~`ContagionState` enum~~ — **COMPLETE** (Plan 01-01)
 - ~~`StateTransition` dataclass~~ — **COMPLETE** (Plan 01-01)
+- ~~`ContagionScene`~~ — **COMPLETE** (Plan 01-02)
+- ~~`ContagionStatistics` module~~ — **COMPLETE** (Plan 01-02)
+- ~~`TransitionEvent` dataclass~~ — **COMPLETE** (Plan 01-02)
+- ~~`pre_turn_rules` hook~~ — **COMPLETE** (Plan 01-02)
 - `MoveAction` — Grid-based movement (if not exists)
 - `SpeakToAction` — Targeted single-agent communication
 
@@ -96,14 +102,14 @@ None currently. Research addressed architecture and stack questions.
 ## Session Continuity
 
 **Next Steps:**
-1. Execute Plan 01-02 (ContagionScene implementation)
-2. Execute Plan 01-03 (Grid integration)
-3. Complete Phase 1 remaining plans
+1. Execute Plan 01-03 (Grid integration)
+2. Complete Phase 1 remaining plans
+3. Begin Phase 2 (Actions & Context)
 
 **Recent Commits:**
-- `232e120` test(01-01): add StateTransition validation tests
-- `684742f` test(01-01): add ContagionState enum and basic tests
-- `82db839` fix(scenarios): add council chamber and custom scenarios to UI
+- `4be4501` feat(01-02): integrate pre_turn_rules hook into Simulator.run()
+- `c8cff3d` feat(01-02): add ContagionScene with state tracking and decay rules
+- `9729eab` feat(01-02): add contagion statistics tracking module
 
 **Branch:** `feature/experiment-builder`
 
