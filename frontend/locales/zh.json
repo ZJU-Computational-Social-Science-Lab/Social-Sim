@@ -66,9 +66,10 @@
       "game_theory": "博弈论",
       "social_dynamics": "社会动力学",
       "discussion": "讨论",
-      "grid_world": "网格世界",
+      "grid": "网格世界",
       "social_deduction": "社会推理",
-      "sociology": "社会学"
+      "sociology": "社会学",
+      "custom": "自定义"
     },
     "sociology": {
       "social_norm_disruption": {

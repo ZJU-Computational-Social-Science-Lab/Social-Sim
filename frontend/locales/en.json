@@ -66,9 +66,10 @@
       "game_theory": "Game Theory",
       "social_dynamics": "Social Dynamics",
       "discussion": "Discussion",
-      "grid_world": "Grid World",
+      "grid": "Grid World",
       "social_deduction": "Social Deduction",
-      "sociology": "Sociology"
+      "sociology": "Sociology",
+      "custom": "Custom"
     },
     "sociology": {
       "social_norm_disruption": {

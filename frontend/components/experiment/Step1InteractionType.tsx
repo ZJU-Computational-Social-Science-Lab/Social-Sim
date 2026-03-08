@@ -21,18 +21,20 @@ const CATEGORY_ORDER = [
   'game_theory',
   'social_dynamics',
   'discussion',
-  'grid_world',
+  'grid',
   'social_deduction',
-  'sociology'
+  'sociology',
+  'custom',
 ] as const;
 
 const CATEGORY_COLORS: Record<string, string> = {
   game_theory: '#3b82f6',
   social_dynamics: '#8b5cf6',
   discussion: '#10b981',
-  grid_world: '#f59e0b',
+  grid: '#f59e0b',
   social_deduction: '#ef4444',
-  sociology: '#ec4899'
+  sociology: '#ec4899',
+  custom: '#6b7280',
 };
 
 const ScenarioCard: React.FC<ScenarioCardProps> = ({
