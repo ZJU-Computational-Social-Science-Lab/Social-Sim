@@ -2,8 +2,8 @@
 
 **Last Updated:** 2026-03-08
 **Current Milestone:** v1.0 - Contagion Spread Framework
-**Current Phase:** Phase 1 (Core Infrastructure) - In Progress
-**Current Plan:** 01-02 (ContagionScene Implementation) - Complete
+**Current Phase:** Phase 1 (Core Infrastructure) - Complete ✓
+**Next Phase:** Phase 2 (Actions & Context)
 
 ## Project Reference
 
@@ -19,13 +19,13 @@
 
 ## Current Position
 
-**Active Phase:** Phase 1: Core Infrastructure
-**Status:** In Progress (Plans 01-01 and 01-02 complete)
-**Progress:** 2/3 phases complete (Plans 01-01 and 01-02 complete)
+**Active Phase:** Phase 1: Core Infrastructure — **COMPLETE**
+**Status:** All 3 plans complete (01-01, 01-02, 01-03)
+**Progress:** 1/3 phases complete
 
 ```
-[████████████████████████████░░░░░░░░░░░░░░░░░░░░] 40% Phase 1
-[████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 14% Overall
+[██████████████████████████████████████████████████] 100% Phase 1
+[████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 33% Overall
 ```
 
 ## Performance Metrics
@@ -50,6 +50,8 @@
 | 2026-03-08 | String trigger_type instead of enum | Allows easier extension by scenario authors without modifying core framework. |
 | 2026-03-08 | Statistics as separate module | ContagionStatistics tracks counts and events independently from scene for single responsibility and testability. |
 | 2026-03-08 | Duck-typing for pre_turn_rules hook | Used hasattr check instead of isinstance for backwards compatibility with existing scenes. |
+| 2026-03-08 | Moore neighborhood (8-directional) | Richer spatial interactions vs von Neumann (4-directional). Enables diagonal adjacency for disease spread. |
+| 2026-03-08 | Hidden state pattern | Agents see adjacent agent IDs only, not their contagion states. Frontend receives all states for visualization. |
 
 ## Accumulated Context
 
@@ -77,12 +79,16 @@
 **New Components Built:**
 - ~~`ContagionState` enum~~ — **COMPLETE** (Plan 01-01)
 - ~~`StateTransition` dataclass~~ — **COMPLETE** (Plan 01-01)
+- ~~`check_probability` utility~~ — **COMPLETE** (Plan 01-01)
 - ~~`ContagionScene`~~ — **COMPLETE** (Plan 01-02)
 - ~~`ContagionStatistics` module~~ — **COMPLETE** (Plan 01-02)
 - ~~`TransitionEvent` dataclass~~ — **COMPLETE** (Plan 01-02)
 - ~~`pre_turn_rules` hook~~ — **COMPLETE** (Plan 01-02)
-- `MoveAction` — Grid-based movement (if not exists)
-- `SpeakToAction` — Targeted single-agent communication
+- ~~`get_moore_neighbors`~~ — **COMPLETE** (Plan 01-03)
+- ~~`get_adjacent_agents`~~ — **COMPLETE** (Plan 01-03)
+- ~~`get_agent_status_prompt`~~ — **COMPLETE** (Plan 01-03)
+- `MoveAction` — Grid-based movement (Phase 2)
+- `SpeakToAction` — Targeted single-agent communication (Phase 2)
 
 ### Known Risks
 
@@ -102,14 +108,14 @@ None currently. Research addressed architecture and stack questions.
 ## Session Continuity
 
 **Next Steps:**
-1. Execute Plan 01-03 (Grid integration)
-2. Complete Phase 1 remaining plans
-3. Begin Phase 2 (Actions & Context)
+1. Run Phase 1 verification (`/gsd:verify-work 1`)
+2. Begin Phase 2 (Actions & Context) with `/gsd:plan-phase 2`
+3. Implement MoveAction and SpeakToAction
 
 **Recent Commits:**
-- `4be4501` feat(01-02): integrate pre_turn_rules hook into Simulator.run()
-- `c8cff3d` feat(01-02): add ContagionScene with state tracking and decay rules
-- `9729eab` feat(01-02): add contagion statistics tracking module
+- `3388cab` feat(01-03): implement integration tests for grid positioning with hidden states
+- `2ad7c86` feat(01-03): implement hidden state semantics in agent status prompt
+- `58d9ab6` feat(01-03): implement Moore neighborhood and adjacent agents query
 
 **Branch:** `feature/experiment-builder`
 
