@@ -1071,3 +1071,87 @@ class TestOpenGridConfiguration:
             neighbors = scene.get_moore_neighbors(x, y)
             for nx, ny in neighbors:
                 assert game_map.is_passable(nx, ny)
+
+
+class TestContagionSceneActions:
+    """Tests for scene action registration."""
+
+    def test_get_scene_actions_includes_move_adjacent(self):
+        """Test that get_scene_actions returns MoveAdjacentAction instance."""
+        from socialsim4.core.contagion.scene import ContagionScene
+        from socialsim4.core.contagion.actions import MoveAdjacentAction
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(10, 10)
+        scene = ContagionScene(
+            name="test_scene",
+            initial_event="start",
+            game_map=game_map,
+            rules=[],
+            initial_infected_count=1
+        )
+
+        agent = MagicMock()
+        agent.name = "test_agent"
+
+        actions = scene.get_scene_actions(agent)
+
+        # Check that MoveAdjacentAction is in the list
+        move_action = None
+        for action in actions:
+            if isinstance(action, MoveAdjacentAction):
+                move_action = action
+                break
+
+        assert move_action is not None, "MoveAdjacentAction should be in scene actions"
+
+    def test_get_scene_actions_includes_speak_to(self):
+        """Test that get_scene_actions returns SpeakToAction instance."""
+        from socialsim4.core.contagion.scene import ContagionScene
+        from socialsim4.core.contagion.actions import SpeakToAction
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(10, 10)
+        scene = ContagionScene(
+            name="test_scene",
+            initial_event="start",
+            game_map=game_map,
+            rules=[],
+            initial_infected_count=1
+        )
+
+        agent = MagicMock()
+        agent.name = "test_agent"
+
+        actions = scene.get_scene_actions(agent)
+
+        # Check that SpeakToAction is in the list
+        speak_action = None
+        for action in actions:
+            if isinstance(action, SpeakToAction):
+                speak_action = action
+                break
+
+        assert speak_action is not None, "SpeakToAction should be in scene actions"
+
+    def test_get_scene_actions_includes_base_actions(self):
+        """Test that get_scene_actions includes base scene actions via inheritance."""
+        from socialsim4.core.contagion.scene import ContagionScene
+        from socialsim4.core.scenes.village_scene import GameMap
+
+        game_map = GameMap(10, 10)
+        scene = ContagionScene(
+            name="test_scene",
+            initial_event="start",
+            game_map=game_map,
+            rules=[],
+            initial_infected_count=1
+        )
+
+        agent = MagicMock()
+        agent.name = "test_agent"
+
+        actions = scene.get_scene_actions(agent)
+
+        # Should have at least 2 contagion actions
+        assert len(actions) >= 2, "Should have at least MoveAdjacentAction and SpeakToAction"
