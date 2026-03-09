@@ -11,6 +11,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useExperimentBuilder, STEPS } from '../../store/experiment-builder';
 import { ProgressBar } from '../ui/progress-bar';
 import { Button } from '../ui/button';
@@ -93,10 +94,10 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
-          Create New Experiment
+          {t('experimentBuilder.title')}
         </h1>
         <p className="text-gray-600 mt-1">
-          Design your social science experiment in 6 steps
+          {t('experimentBuilder.subtitle')}
         </p>
       </div>
 
@@ -137,23 +138,23 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
         <div>
           {canGoBack() && (
             <Button variant="outline" onClick={handleBack}>
-              ← Back
+              {t('experimentBuilder.back')}
             </Button>
           )}
         </div>
 
         <div className="flex gap-2">
           <Button variant="outline" onClick={onCancel}>
-            Cancel
+            {t('experimentBuilder.cancel')}
           </Button>
 
           {currentStep < 6 ? (
             <Button onClick={handleNext} disabled={!canProceed()}>
-              Next →
+              {t('experimentBuilder.next')} →
             </Button>
           ) : (
             <Button onClick={handleComplete} variant="default">
-              Create Experiment
+              {t('experimentBuilder.create')}
             </Button>
           )}
         </div>

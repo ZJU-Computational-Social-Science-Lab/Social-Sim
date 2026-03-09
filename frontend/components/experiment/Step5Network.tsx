@@ -652,14 +652,14 @@ export const Step5Network: React.FC = () => {
 
         {/* Zoom Controls */}
         <div className="absolute top-4 right-4 flex flex-col gap-1 bg-white border rounded shadow-sm p-1">
-          <button onClick={handleZoomIn} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title="Zoom in">
+          <button onClick={handleZoomIn} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('experimentBuilder.network.zoomIn')}>
             <ZoomIn size={16} />
           </button>
-          <button onClick={handleZoomOut} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title="Zoom out">
+          <button onClick={handleZoomOut} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('experimentBuilder.network.zoomOut')}>
             <ZoomOut size={16} />
           </button>
           <div className="h-px bg-slate-200 my-0.5"></div>
-          <button onClick={handleResetZoom} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title="Reset view">
+          <button onClick={handleResetZoom} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('experimentBuilder.network.resetView')}>
             <Maximize size={16} />
           </button>
         </div>
