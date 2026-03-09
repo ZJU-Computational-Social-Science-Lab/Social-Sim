@@ -53,7 +53,7 @@ function PayoffInput({ value, actionA = 'Action 1', actionB = 'Action 2', onChan
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t('experimentBuilder.step2.payoffInput.youThey', { actionA, actionB })}
+            {t('experimentBuilder.step2.payoffInput.youThey', { actionA, actionB: actionA })}
           </label>
           <input
             type="number"
@@ -65,7 +65,7 @@ function PayoffInput({ value, actionA = 'Action 1', actionB = 'Action 2', onChan
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            You: {actionA} / They: {actionB}
+            {t('experimentBuilder.step2.payoffInput.youThey', { actionA, actionB })}
           </label>
           <input
             type="number"
@@ -77,7 +77,7 @@ function PayoffInput({ value, actionA = 'Action 1', actionB = 'Action 2', onChan
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            You: {actionB} / They: {actionA}
+            {t('experimentBuilder.step2.payoffInput.youThey', { actionA: actionB, actionB: actionA })}
           </label>
           <input
             type="number"
@@ -89,7 +89,7 @@ function PayoffInput({ value, actionA = 'Action 1', actionB = 'Action 2', onChan
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            You: {actionB} / They: {actionB}
+            {t('experimentBuilder.step2.payoffInput.youThey', { actionA: actionB, actionB: actionB })}
           </label>
           <input
             type="number"

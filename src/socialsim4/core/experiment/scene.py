@@ -258,8 +258,8 @@ class ExperimentScene:
             a2 = params["action_2"]
             action_names = [a1.lower(), a2.lower()]
             action_descriptions = {
-                a1.lower(): params.get("action_1_description", a1),
-                a2.lower(): params.get("action_2_description", a2),
+                a1.lower(): a1,  # Use action name as description
+                a2.lower(): a2,
             }
 
         # Build description: use description_template if present on the scenario
