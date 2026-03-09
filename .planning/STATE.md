@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 3
 status: ready_for_verification
-last_updated: "2026-03-08T16:30:00.000Z"
+last_updated: "2026-03-09T04:10:53.000Z"
 
 ## Project Reference
 
@@ -120,6 +120,7 @@ None currently. Research addressed architecture and stack questions.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 001 | Audit scenario execution flow for bugs | 2026-03-08 | 65f7129 | [001-scenario-execution-audit](./quick/001-scenario-execution-audit/) |
+| 003 | Agent creation fixes (field mapping, validation, timeout) | 2026-03-09 | 8f87829 | [003-agent-creation-fixes](./quick/003-agent-creation-fixes/) |
 
 ## Session Continuity
 
@@ -129,11 +130,11 @@ None currently. Research addressed architecture and stack questions.
 3. Archive v1.0 milestone
 
 **Recent Commits:**
+- `8f87829` feat(003): enhance demographic generation with validation and timeout
+- `b6b98ff` feat(003): add field mapping middleware in simulation creation
+- `3897ac1` feat(003): fix manual agent field mapping and LLM config
 - `3eff50d` fix(03-03): remove leading space from rules.py docstring
 - `a124bc7` fix(03-02): use neutral agent names in test to avoid false positives
-- `bc9a20a` feat(03-02): add check_action_transmission hook to SpeakToAction
-- `d406b3b` feat(03-03): add source_agent_id to TransitionEvent for transmission tracking
-- `d70355f` feat(03-01): implement _evaluate_proximity_rules in ContagionScene
 
 **Branch:** `feature/experiment-builder`
 
