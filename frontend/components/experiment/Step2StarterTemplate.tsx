@@ -10,6 +10,8 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useExperimentBuilder } from '../../store/experiment-builder';
 import ParameterField from './ParameterField';
+import { ActionEditor } from './ActionEditor';
+import { ResourceConfig } from './ResourceConfig';
 
 // Payoff Input Component - 4 explicit inputs with dynamic action labels
 interface PayoffInputProps {
@@ -173,6 +175,54 @@ export const Step2StarterTemplate: React.FC = () => {
       : param.default;
   };
 
+  // Determine which editor to show based on scenario
+  const getActionEditor = () => {
+    const scenarioId = selectedScenarioData.id;
+
+    if (scenarioId === 'battle_of_the_sexes' || scenarioId === 'stag_hunt') {
+      return (
+        <ActionEditor
+          actions={[
+            {
+              id: 'action_1',
+              nameParam: 'action_1_name',
+              descParam: 'action_1_description',
+              defaultName: selectedScenarioData.actions?.[0]?.name || 'Action 1',
+              defaultDesc: selectedScenarioData.actions?.[0]?.description || '',
+            },
+            {
+              id: 'action_2',
+              nameParam: 'action_2_name',
+              descParam: 'action_2_description',
+              defaultName: selectedScenarioData.actions?.[1]?.name || 'Action 2',
+              defaultDesc: selectedScenarioData.actions?.[1]?.description || '',
+            },
+          ]}
+          values={scenarioParams as Record<string, string>}
+          onChange={handleParamChange}
+        />
+      );
+    }
+
+    if (scenarioId === 'public_goods') {
+      return (
+        <ResourceConfig
+          values={{
+            resource_name: (scenarioParams.resource_name as string) || 'Tokens',
+            resource_name_custom: (scenarioParams.resource_name_custom as string) || '',
+            initial_amount: (scenarioParams.initial_amount as number) || 20,
+            multiplier: (scenarioParams.multiplier as number) || 1.5,
+            action_name: (scenarioParams.action_name as string) || 'Contribute',
+            action_description: (scenarioParams.action_description as string) || 'Contribute {resource} to the shared pool',
+          }}
+          onChange={handleParamChange}
+        />
+      );
+    }
+
+    return null;
+  };
+
   if (!selectedScenarioData) {
     return (
       <div className="p-4 text-center text-gray-500">
@@ -213,11 +263,13 @@ export const Step2StarterTemplate: React.FC = () => {
       </div>
 
       {/* Dynamic Parameter Fields or Payoff Input */}
+      {/* Action Editor for configurable scenarios */}
+      {getActionEditor()}
       {selectedScenarioData.display_type === 'payoff_matrix' ? (
         <PayoffInput
           value={scenarioParams as { cooperate_reward?: number; defect_penalty?: number }}
-          actionA={selectedScenarioData.actions?.[0]?.name}
-          actionB={selectedScenarioData.actions?.[1]?.name}
+          actionA={scenarioParams.action_1_name || selectedScenarioData.actions?.[0]?.name}
+          actionB={scenarioParams.action_2_name || selectedScenarioData.actions?.[1]?.name}
           onChange={handlePayoffChange}
         />
       ) : hasParameters ? (
