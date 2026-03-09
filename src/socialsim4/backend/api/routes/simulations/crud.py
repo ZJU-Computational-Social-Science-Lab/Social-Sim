@@ -76,7 +76,12 @@ def _normalize_agent_config(agent_config: dict) -> dict:
         # Copy fields as-is, but normalize specific camelCase keys
         for key, value in agent.items():
             # Field name mapping: camelCase -> snake_case
-            if key == "rolePrompt":
+            # NOTE: "role" is kept separate from "role_prompt"
+            # "role" is just a role name (e.g., "Citizen"), while "role_prompt" is a full role description
+            if key == "role":
+                # Keep role as-is, don't map to role_prompt
+                normalized["role"] = value
+            elif key == "rolePrompt":
                 normalized["role_prompt"] = value
             elif key == "userProfile":
                 normalized["user_profile"] = value
