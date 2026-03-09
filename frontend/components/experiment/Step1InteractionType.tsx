@@ -204,7 +204,7 @@ export const Step1InteractionType: React.FC = () => {
 
       {!loading && !error && scenarios.length === 0 && (
         <div className="flex items-center justify-center py-12">
-          <p className="text-sm text-gray-600">No scenarios available</p>
+          <p className="text-sm text-gray-600">{t('experimentBuilder.step1.noScenariosAvailable')}</p>
         </div>
       )}
 

@@ -1547,6 +1547,10 @@
     "title": "Create New Experiment",
     "subtitle": "Design your social science experiment in 6 steps",
     "modalTitle": "Create New Experiment",
+    "cancel": "Cancel",
+    "next": "Next",
+    "back": "Back",
+    "create": "Create Experiment",
     "actionSelector": {
       "availableLabel": "Available Actions",
       "loading": "Loading actions...",
@@ -1592,6 +1596,7 @@
       "selectTemplate": "Select a scenario template to start building your experiment",
       "retry": "Retry",
       "scenariosCount": "{{count}} scenarios",
+      "noScenariosAvailable": "No scenarios available",
       "strategic_decisions": {
         "title": "Strategic Decisions",
         "description": "Study situations where outcomes depend on what others choose",

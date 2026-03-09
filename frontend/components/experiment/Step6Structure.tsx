@@ -163,10 +163,10 @@ export const Step6Structure: React.FC = () => {
             <AlertCircle className="w-8 h-8 text-amber-600" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            No Agents Defined
+            {t('experimentBuilder.step6.noAgentsDefined')}
           </h3>
           <p className="text-gray-600">
-            Go back to Step 4 to add agents to your experiment.
+            {t('experimentBuilder.step6.goBackToStep4')}
           </p>
         </div>
       </div>
@@ -227,7 +227,7 @@ export const Step6Structure: React.FC = () => {
 
       {/* Summary */}
       <div className="text-sm text-gray-600">
-        {totalAgents} total agents across {agentTypes.length} types
+        {t('experimentBuilder.step6.totalAgentsTypes', { agents: totalAgents, types: agentTypes.length })}
       </div>
     </div>
   );

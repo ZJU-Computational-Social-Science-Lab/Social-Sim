@@ -60,16 +60,18 @@ interface PresetMeta {
 // Preset Definitions
 // =============================================================================
 
-const presetMeta: Record<PresetType, PresetMeta> = {
-  full: { name: 'Fully Connected', description: 'Everyone knows everyone', icon: Share2 },
-  random: { name: 'Random', description: 'Random connections', icon: Shuffle },
-  ring: { name: 'Ring', description: 'Each agent connected to neighbors', icon: RefreshCw },
-  star: { name: 'Star', description: 'One central hub', icon: Users },
-  'newman-watts': { name: 'Small World', description: 'Newman-Watts small world network', icon: Grid3X3 },
-  'core-periphery': { name: 'Core-Periphery', description: 'Dense core, sparse periphery', icon: Layers },
-  'holme-kim': { name: 'Scale-Free', description: 'Holme-Kim scale-free network', icon: Share2 },
-  waxman: { name: 'Spatial', description: 'Waxman spatial network', icon: Grid3X3 },
-  sbm: { name: 'Communities', description: 'Stochastic block model', icon: Users },
+// Note: Preset names/descriptions are now translated in the component
+// This object only maps preset types to their icons and translation keys
+const presetIcons: Record<PresetType, { icon: React.ElementType; translationKey: string }> = {
+  full: { icon: Share2, translationKey: 'fully_connected' },
+  random: { icon: Shuffle, translationKey: 'random' },
+  ring: { icon: RefreshCw, translationKey: 'ring' },
+  star: { icon: Users, translationKey: 'star' },
+  'newman-watts': { icon: Grid3X3, translationKey: 'small_world' },
+  'core-periphery': { icon: Layers, translationKey: 'core_periphery' },
+  'holme-kim': { icon: Share2, translationKey: 'scale_free' },
+  waxman: { icon: Grid3X3, translationKey: 'spatial' },
+  sbm: { icon: Users, translationKey: 'communities' },
 };
 
 const defaultParams: PresetParams = {
@@ -525,7 +527,7 @@ export const Step5Network: React.FC = () => {
             disabled={!selectedPreset}
             className="w-full py-1.5 px-3 bg-brand-500 text-white rounded text-xs font-medium hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Apply Changes
+            {t('experimentBuilder.step5.applyChanges')}
           </button>
         </div>
       </div>
@@ -541,10 +543,10 @@ export const Step5Network: React.FC = () => {
             <Users className="w-8 h-8 text-amber-600" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            No Agents Configured
+            {t('experimentBuilder.step5.noAgentsConfigured')}
           </h3>
           <p className="text-gray-600">
-            Go back to Step 4 to add agents before configuring the network.
+            {t('experimentBuilder.step5.goBackToStep4')}
           </p>
         </div>
       </div>
@@ -557,16 +559,15 @@ export const Step5Network: React.FC = () => {
       <div className="lg:col-span-1 bg-slate-50 border-r p-4 space-y-4 overflow-y-auto max-h-full">
         <div>
           <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-            Network Presets
+            {t('experimentBuilder.step5.networkPresets')}
           </label>
           <p className="text-[10px] text-slate-400 mt-0.5 mb-3">
-            Choose a network topology
+            {t('experimentBuilder.step5.chooseTopology')}
           </p>
 
           {/* Preset Selection Grid */}
           <div className="space-y-1.5">
-            {Object.entries(presetMeta).map(([key, meta]) => {
-              const Icon = meta.icon;
+            {Object.entries(presetIcons).map(([key, { icon: Icon, translationKey }]) => {
               const isSelected = selectedPreset === key;
 
               return (
@@ -590,10 +591,10 @@ export const Step5Network: React.FC = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <span className={`text-xs font-medium block ${isSelected ? 'text-brand-700' : 'text-slate-700'}`}>
-                        {meta.name}
+                        {t(`experimentBuilder.step5.presets.${translationKey}.name`)}
                       </span>
                       <p className="text-[10px] text-slate-400 truncate">
-                        {meta.description}
+                        {t(`experimentBuilder.step5.presets.${translationKey}.description`)}
                       </p>
                     </div>
                     <div className={`transition-transform ${isSelected ? 'rotate-90' : ''}`}>
@@ -615,7 +616,7 @@ export const Step5Network: React.FC = () => {
               className="flex-1 py-1.5 px-2 bg-white border border-slate-200 rounded text-[10px] text-slate-600 hover:bg-slate-50 flex items-center justify-center gap-1"
             >
               <Share2 size={10} />
-              Fully Connected
+              {t('experimentBuilder.step5.fullyConnected')}
             </button>
             <button
               onClick={() => {
@@ -627,7 +628,7 @@ export const Step5Network: React.FC = () => {
               className="flex-1 py-1.5 px-2 bg-white border border-slate-200 rounded text-[10px] text-slate-500 hover:bg-slate-50 flex items-center justify-center gap-1"
             >
               <RefreshCw size={10} />
-              Reset
+              {t('experimentBuilder.step5.reset')}
             </button>
           </div>
         </div>
@@ -637,11 +638,11 @@ export const Step5Network: React.FC = () => {
 
         {/* Instructions */}
         <div className="text-xs text-slate-400 leading-relaxed pt-3 border-t mt-auto">
-          <strong className="text-slate-500">{t('components.networkEditorModal.instructions')}:</strong>
+          <strong className="text-slate-500">{t('experimentBuilder.step5.instructions')}:</strong>
           <ul className="list-decimal pl-4 space-y-0.5 mt-1 text-[10px]">
-            <li>Select a preset to generate a network</li>
-            <li>Drag nodes to rearrange</li>
-            <li>Scroll to zoom, drag to pan</li>
+            <li>{t('experimentBuilder.step5.instructionSelect')}</li>
+            <li>{t('experimentBuilder.step5.instructionDrag')}</li>
+            <li>{t('experimentBuilder.step5.instructionZoom')}</li>
           </ul>
         </div>
       </div>
@@ -668,12 +669,12 @@ export const Step5Network: React.FC = () => {
         <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm border rounded-lg px-3 py-2 text-[10px] text-slate-600">
           <div className="flex items-center gap-3">
             <span>
-              <strong className="text-slate-700">{agentIds.length}</strong> nodes
+              <strong className="text-slate-700">{agentIds.length}</strong> {t('experimentBuilder.step5.nodes', { count: agentIds.length })}
             </span>
             <span>
               <strong className="text-slate-700">
                 {Object.values(socialNetwork).reduce((sum, arr) => sum + arr.length, 0)}
-              </strong> edges
+              </strong> {t('experimentBuilder.step5.edges', { count: Object.values(socialNetwork).reduce((sum, arr) => sum + arr.length, 0) })}
             </span>
           </div>
         </div>

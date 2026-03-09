@@ -20,6 +20,7 @@ interface ActionToggleCardProps {
   onToggle: () => void;
   isCustom?: boolean;
   onRemove?: () => void;
+  removeLabel?: string;
 }
 
 const ActionToggleCard: React.FC<ActionToggleCardProps> = ({
@@ -29,6 +30,7 @@ const ActionToggleCard: React.FC<ActionToggleCardProps> = ({
   onToggle,
   isCustom = false,
   onRemove,
+  removeLabel,
 }) => {
   return (
     <div
@@ -62,7 +64,7 @@ const ActionToggleCard: React.FC<ActionToggleCardProps> = ({
               onClick={onRemove}
               className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
               type="button"
-              aria-label={t('experimentBuilder.step3.removeAction')}
+              aria-label={removeLabel}
             >
               <X size={16} />
             </button>
@@ -281,6 +283,7 @@ export const Step3Scenario: React.FC = () => {
               onToggle={() => handleToggleAction(action.name)}
               isCustom={action.isCustom}
               onRemove={action.isCustom ? () => handleRemoveCustomAction(action.name) : undefined}
+              removeLabel={t('experimentBuilder.step3.removeAction')}
             />
           ))
         )}
@@ -343,7 +346,7 @@ export const Step3Scenario: React.FC = () => {
                   className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-100 transition-colors"
                   type="button"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>
