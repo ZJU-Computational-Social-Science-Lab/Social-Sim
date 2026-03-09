@@ -59,6 +59,7 @@ const generateArchetypes = (demographics: Demographic[]): Archetype[] => {
 // =============================================================================
 
 export const Step4Agents: React.FC = () => {
+  const { t } = useTranslation();
   const {
     agentMode,
     setAgentMode,
@@ -136,20 +137,20 @@ export const Step4Agents: React.FC = () => {
   const agentModes = [
     {
       id: 'manual',
-      title: 'Manual Types',
-      description: 'Define agent types manually for precise experiments',
+      title: t('experimentBuilder.step4.modes.manual.title'),
+      description: t('experimentBuilder.step4.modes.manual.description'),
       icon: '✏️',
     },
     {
       id: 'demographic',
-      title: 'Demographic Generation',
-      description: 'Generate agents from custom demographic variables',
+      title: t('experimentBuilder.step4.modes.demographic.title'),
+      description: t('experimentBuilder.step4.modes.demographic.description'),
       icon: '👥',
     },
     {
       id: 'import',
-      title: 'File Import',
-      description: 'Upload CSV or JSON files with agent data',
+      title: t('experimentBuilder.step4.modes.import.title'),
+      description: t('experimentBuilder.step4.modes.import.description'),
       icon: '📁',
     },
   ];
@@ -347,7 +348,7 @@ export const Step4Agents: React.FC = () => {
       {/* Mode Selection */}
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-3">
-          How would you like to create agents?
+          {t('experimentBuilder.step4.modeTitle')}
         </h3>
         <div className="grid grid-cols-3 gap-4">
           {agentModes.map((mode) => (
@@ -373,13 +374,13 @@ export const Step4Agents: React.FC = () => {
       {/* Manual Agent Types */}
       {agentMode === 'manual' && (
         <div className="p-4 border border-gray-200 rounded-lg bg-white">
-          <h4 className="font-semibold text-gray-900 mb-3">Define Agent Types</h4>
+          <h4 className="font-semibold text-gray-900 mb-3">{t('experimentBuilder.step4.defineTypes')}</h4>
 
           {/* Add New Agent Type */}
           <div className="mb-4 p-3 bg-gray-50 rounded-md">
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Type Label</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.typeLabel')}</label>
                 <input
                   type="text"
                   value={newAgentType.label}
@@ -389,7 +390,7 @@ export const Step4Agents: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Count</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.count')}</label>
                 <input
                   type="number"
                   min="1"
@@ -403,7 +404,7 @@ export const Step4Agents: React.FC = () => {
             </div>
             <div className="mb-3">
               <label className="block text-xs font-medium text-gray-700 mb-1">
-                Role Prompt (what is this agent's role?)
+                {t('experimentBuilder.step4.rolePrompt')}
               </label>
               <textarea
                 value={newAgentType.rolePrompt}
@@ -414,13 +415,13 @@ export const Step4Agents: React.FC = () => {
               />
             </div>
             <Button onClick={handleAddAgentType} size="sm" disabled={!newAgentType.label.trim()}>
-              + Add Agent Type
+              {t('experimentBuilder.step4.addAgentType')}
             </Button>
           </div>
 
           {/* Agent Types List */}
           {agentTypes.length === 0 ? (
-            <p className="text-sm text-gray-600 text-center py-4">No agent types defined yet</p>
+            <p className="text-sm text-gray-600 text-center py-4">{t('experimentBuilder.step4.noTypes')}</p>
           ) : (
             <div className="space-y-2">
               {agentTypes.map((type) => {
@@ -454,7 +455,7 @@ export const Step4Agents: React.FC = () => {
                       onClick={() => removeAgentType(type.id)}
                       className="text-red-600 hover:text-red-700"
                     >
-                      Remove
+                      {t('experimentBuilder.step4.remove')}
                     </Button>
                   </div>
                 );
@@ -463,7 +464,7 @@ export const Step4Agents: React.FC = () => {
           )}
 
           {totalAgents > 0 && (
-            <div className="mt-3 text-sm text-gray-600">Total agents: {totalAgents}</div>
+            <div className="mt-3 text-sm text-gray-600">{t('experimentBuilder.step4.totalAgents', { count: totalAgents })}</div>
           )}
         </div>
       )}
@@ -474,13 +475,13 @@ export const Step4Agents: React.FC = () => {
           {/* LLM Provider Selector */}
           {llmProviders.length > 0 && (
             <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-              <label className="block text-sm font-medium text-gray-700 mb-2">LLM Provider</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('experimentBuilder.step4.llmProvider')}</label>
               <select
                 value={selectedProviderId || ''}
                 onChange={(e) => setSelectedProviderId(e.target.value || null)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
               >
-                <option value="">Default Provider</option>
+                <option value="">{t('experimentBuilder.step4.defaultProvider')}</option>
                 {llmProviders.map((p: LLMProvider) => (
                   <option key={p.id} value={p.id}>
                     {p.name} {p.model ? ` (${p.model})` : ''}
@@ -524,14 +525,14 @@ export const Step4Agents: React.FC = () => {
       {/* File Import */}
       {agentMode === 'import' && (
         <div className="p-4 border border-gray-200 rounded-lg bg-white">
-          <h4 className="font-semibold text-gray-900 mb-3">Import Agent Data</h4>
+          <h4 className="font-semibold text-gray-900 mb-3">{t('experimentBuilder.step4.importTitle')}</h4>
           <p className="text-sm text-gray-600 mb-3">
-            Upload a CSV or JSON file with agent definitions.
+            {t('experimentBuilder.step4.importDesc')}
           </p>
 
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">CSV Format Example:</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.csvFormat')}</label>
               <pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto">
                 <code>name,role_prompt,user_profile,opinion</code>
               </pre>
@@ -540,16 +541,16 @@ export const Step4Agents: React.FC = () => {
             <div className="flex gap-2">
               <Button variant="outline" component="label">
                 <input type="file" accept=".csv,.json" className="hidden" />
-                Upload CSV
+                {t('experimentBuilder.step4.uploadCSV')}
               </Button>
               <Button variant="outline" component="label">
                 <input type="file" accept=".csv,.json" className="hidden" />
-                Upload JSON
+                {t('experimentBuilder.step4.uploadJSON')}
               </Button>
             </div>
 
             <div className="bg-blue-50 p-3 rounded border border-blue-200">
-              <p className="text-sm text-blue-800">ℹ️ File import will be implemented in Phase 7.</p>
+              <p className="text-sm text-blue-800">ℹ️ {t('experimentBuilder.step4.importInfo')}</p>
             </div>
           </div>
         </div>
@@ -561,7 +562,7 @@ export const Step4Agents: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="text-green-800">✓</span>
             <span className="text-sm text-green-700">
-              {totalAgents} agent{totalAgents !== 1 ? 's' : ''} defined
+              {t('experimentBuilder.step4.agentsDefined', { count: totalAgents })}
             </span>
           </div>
         </div>
