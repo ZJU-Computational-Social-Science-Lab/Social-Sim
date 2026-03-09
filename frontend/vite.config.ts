@@ -53,6 +53,8 @@ export default defineConfig(({ mode }) => {
       react(),
       virtualDocsPlugin(),
     ],
+    // Add support for importing .md files as raw strings with ?raw suffix
+    assetsInclude: ["**/*.md"],
     server: {
       host,
       port,
