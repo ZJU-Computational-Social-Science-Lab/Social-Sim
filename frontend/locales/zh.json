@@ -1673,6 +1673,71 @@
         "actionsSelected": "已选择 {{selected}} / {{total}} 个动作",
         "removeAction": "删除动作"
       }
+    },
+    "actionEditor": {
+      "title": "行动",
+      "actionNumber": "行动 {{number}}",
+      "nameLabel": "名称",
+      "namePlaceholder": "输入行动名称",
+      "descriptionLabel": "描述",
+      "descriptionPlaceholder": "描述此行动的含义"
+    },
+    "resourceConfig": {
+      "title": "资源设置",
+      "resourceNameLabel": "资源名称",
+      "customResourceLabel": "自定义资源名称",
+      "customResourcePlaceholder": "输入自定义资源名称",
+      "initialAmountLabel": "初始数量",
+      "multiplierLabel": "资金池倍数",
+      "actionLabelsTitle": "行动标签",
+      "actionNameLabel": "行动名称",
+      "actionDescriptionLabel": "行动描述",
+      "resourceOptions": {
+        "tokens": "代币",
+        "money": "金钱",
+        "effortPoints": "努力点数",
+        "timeHours": "时间（小时）",
+        "resources": "资源",
+        "custom": "自定义..."
+      }
+    }
+  },
+  "simulation": {
+    "log": {
+      "action_chosen": "{{agent}} 选择了 {{action}}",
+      "action_generic": "{{agent}} 执行了：{{action}}",
+      "public_goods_contribution": "{{agent}} 决定{{action}} {{amount}} {{resource}}",
+      "round_summary": "第 {{round}} 轮完成",
+      "payoff_result": "{{agent}} 获得了 {{payoff}} 分"
+    },
+    "results": {
+      "round_title": "第 {{round}} 轮结果",
+      "agents_chose": "{{count}} 个代理选择了此项",
+      "total_contributed": "总贡献量",
+      "pool_after_multiplier": "资金池 (×{{multiplier}})",
+      "per_agent_share": "人均分配"
+    }
+  },
+  "prompts": {
+    "game_theory": {
+      "battle_of_the_sexes": {
+        "intro": "你正在玩性别博弈。",
+        "choose_instruction": "你可以选择：{{action_1}} 或 {{action_2}}。",
+        "action_format": "- {{action_name}}：{{action_description}}"
+      },
+      "stag_hunt": {
+        "intro": "你正在玩猎鹿博弈。",
+        "choose_instruction": "你可以选择：{{action_1}} 或 {{action_2}}。",
+        "action_format": "- {{action_name}}：{{action_description}}",
+        "payoff_context": "如果所有人都选择{{action_1}}，则获得{{stag_reward}}分，否则为0。{{action_2}}始终获得{{hare_reward}}分。"
+      },
+      "public_goods": {
+        "intro": "你有 {{initial_amount}} {{resource}}。",
+        "action_instruction": "你可以{{action_name}}一定数量到共享池中。",
+        "action_description": "{{action_description}}",
+        "pool_mechanics": "资金池将乘以 {{multiplier}} 并平均分配给所有参与者。",
+        "choose_instruction": "选择要{{action_name}}的数量（0 到 {{initial_amount}}）。"
+      }
     }
   },
   "systemTemplates": {
