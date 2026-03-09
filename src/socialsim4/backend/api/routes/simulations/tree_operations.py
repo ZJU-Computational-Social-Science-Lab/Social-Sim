@@ -35,6 +35,7 @@ from socialsim4.backend.schemas.simtree import (
     SimulationTreeAdvanceFrontierPayload,
     SimulationTreeAdvanceMultiPayload,
     SimulationTreeBranchPayload,
+    SimulationTreeAgentOverridePayload,
 )
 
 from .helpers import (
@@ -386,7 +387,14 @@ async def simulation_tree_branch(
         sim, record = await get_simulation_and_tree_any(session, simulation_id)
         tree = record.tree
 
-        cid = tree.branch(int(data.parent), [dict(op) for op in data.ops])
+        try:
+            cid = tree.branch(int(data.parent), [dict(op) for op in data.ops])
+        except KeyError as e:
+            logger.warning(f"Branch failed - node not found: {e}")
+            raise HTTPException(status_code=404, detail="Tree node not found")
+        except Exception as e:
+            logger.exception(f"Branch failed with unexpected error: {e}")
+            raise HTTPException(status_code=500, detail=f"Branch operation failed: {e}")
         node = tree.nodes[cid]
 
         broadcast_tree_event(
@@ -507,30 +515,59 @@ async def simulation_tree_state(
         simulator = node["sim"]
         agents = []
 
-        for name, agent in simulator.agents.items():
-            props = dict(agent.properties)
-            role = props.get("role") or getattr(agent, "role_prompt", "") or ""
-            if role and "role" not in props:
-                props["role"] = role
-            profile = agent.user_profile or props.get("profile") or props.get("description") or ""
-            kb = getattr(agent, "knowledge_base", [])
-            docs = getattr(agent, "documents", {})
+        # Handle ExperimentRunnerAdapter differently - agents are in scene.agents
+        from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
+        if isinstance(simulator, ExperimentRunnerAdapter):
+            for agent in simulator.scene.agents:
+                props = dict(agent.properties)
+                role = agent.role_prompt or props.get("role") or ""
+                if role and "role" not in props:
+                    props["role"] = role
+                profile = props.get("profile") or props.get("description") or ""
+                kb = getattr(agent, "knowledge_base", [])
+                docs = getattr(agent, "documents", {})
+                action_history = getattr(agent, "action_history", [])
+                score = getattr(agent, "score", 0)
 
-            logger.debug(f"Agent '{name}' has {len(kb)} KB items, {len(docs)} documents")
+                logger.debug(f"Agent '{agent.name}' has {len(kb)} KB items, {len(docs)} documents, {len(action_history)} actions, score={score}")
 
-            agents.append(
-                {
-                    "name": name,
+                agents.append({
+                    "name": agent.name,
                     "profile": profile,
                     "role": role,
                     "properties": props,
-                    "emotion": agent.emotion,
-                    "plan_state": agent.plan_state,
-                    "short_memory": agent.short_memory.get_all(),
+                    "short_memory": action_history,  # Map action_history to short_memory for frontend
                     "knowledgeBase": kb,
                     "documents": docs,
-                }
-            )
+                    "score": score,
+                    "llmConfig": props.get("llm_config") or {},
+                })
+            turns = simulator.scene.current_round
+        else:
+            for name, agent in simulator.agents.items():
+                props = dict(agent.properties)
+                role = props.get("role") or getattr(agent, "role_prompt", "") or ""
+                if role and "role" not in props:
+                    props["role"] = role
+                profile = agent.user_profile or props.get("profile") or props.get("description") or ""
+                kb = getattr(agent, "knowledge_base", [])
+                docs = getattr(agent, "documents", {})
+
+                logger.debug(f"Agent '{name}' has {len(kb)} KB items, {len(docs)} documents")
+
+                agents.append(
+                    {
+                        "name": name,
+                        "profile": profile,
+                        "role": role,
+                        "properties": props,
+                        "short_memory": agent.short_memory.get_all(),
+                        "knowledgeBase": kb,
+                        "documents": docs,
+                        "llmConfig": props.get("llm_config") or {},
+                    }
+                )
+            turns = simulator.turns
 
         # Include scene_config for social_network access
         scene_config = sim.scene_config or {}
@@ -539,10 +576,29 @@ async def simulation_tree_state(
         logger.debug(f"returning scene_config with social_network: {social_network}")
 
         return {
-            "turns": simulator.turns,
+            "turns": turns,
             "agents": agents,
             "scene_config": scene_config
         }
+
+
+@post("/{simulation_id:str}/tree/sim/{node_id:int}/overrides")
+async def simulation_tree_apply_overrides(
+    request: Request,
+    simulation_id: str,
+    node_id: int,
+    data: SimulationTreeAgentOverridePayload,
+) -> dict:
+    async with get_session() as session:
+        sim, record = await get_simulation_and_tree_any(session, simulation_id)
+        tree = record.tree
+
+        tree.apply_agent_overrides(int(node_id), [ov.model_dump() for ov in data.overrides])
+
+        sim.latest_state = tree.serialize()
+        await session.commit()
+
+        return {"ok": True}
 
 
 @get("/{simulation_id:str}/tree/sim/{node_id:int}/test-knowledge")
@@ -774,3 +830,43 @@ If you don't have specific information about this, say so."""
             "question": question,
             "responses": results
         }
+
+
+@post("/{simulation_id:str}/tree/sim/{node_id:int}/inject-message")
+async def inject_host_message(
+    request: Request,
+    simulation_id: str,
+    node_id: int,
+    data: dict,
+) -> dict:
+    """
+    Inject a host message into all agents' context for the next round.
+
+    POST body: {"message": "ANNOUNCEMENT: Please reconsider your strategy."}
+
+    The message is prepended to every agent's context when the next round runs.
+    Only available for experiment_template simulations (ExperimentRunnerAdapter).
+
+    Raises:
+        HTTPException 400: if message is empty or simulation is not experiment type
+        HTTPException 404: if node not found
+    """
+    message = data.get("message", "").strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="message is required")
+
+    async with get_session() as session:
+        _, record = await get_simulation_and_tree_any(session, simulation_id)
+        node = record.tree.nodes.get(int(node_id))
+
+        if node is None:
+            raise HTTPException(status_code=404, detail="Tree node not found")
+
+        simulator = node["sim"]
+        from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
+        if not isinstance(simulator, ExperimentRunnerAdapter):
+            raise HTTPException(status_code=400, detail="inject-message only supported for experiment simulations")
+
+        simulator.inject_host_message(message)
+
+    return {"status": "queued", "message": message}

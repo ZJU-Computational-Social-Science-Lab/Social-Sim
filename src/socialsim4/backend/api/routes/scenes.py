@@ -7,7 +7,7 @@ from litestar.response import Response
 from pydantic import ValidationError
 
 from socialsim4.core.agent import Agent
-from socialsim4.core.registry import SCENE_ACTIONS, SCENE_DESCRIPTIONS, SCENE_MAP
+from socialsim4.core.registry import SCENE_ACTIONS, SCENE_DESCRIPTIONS, SCENE_MAP, get_scene_class
 from socialsim4.templates.loader import TemplateLoader
 from socialsim4.templates.schema import GenericTemplate, export_json_schema
 
@@ -33,6 +33,24 @@ SYSTEM_TEMPLATES_DIR = Path(__file__).parent.parent.parent.parent / "templates"
 
 
 def scene_config_template(scene_key: str, scene_cls) -> dict:
+    # Special handling for ExperimentScene - it has a different constructor
+    if scene_key == "experiment_template":
+        return {
+            "type": scene_key,
+            "name": "ExperimentScene",
+            "description": SCENE_DESCRIPTIONS.get(scene_key, ""),
+            "config_schema": {
+                "agents": [],
+                "actions": [],
+                "parameters": {},
+                "description": "",
+                "scenario_id": "custom",
+                "round_visibility": "simultaneous",
+            },
+            "allowed_actions": [],
+            "basic_actions": [],
+        }
+
     scene = scene_cls("preview", "")
     config_schema = scene.serialize_config() or {}
 
@@ -45,8 +63,7 @@ def scene_config_template(scene_key: str, scene_cls) -> dict:
     if scene_key == "simple_chat_scene":
         config_schema["initial_events"] = [DEFAULT_SIMPLE_CHAT_NEWS]
     elif scene_key == "emotional_conflict_scene":
-        # Expose emotion toggle and suggest initial announcements
-        config_schema["emotion_enabled"] = True
+        # Suggest initial announcements
         config_schema["initial_events"] = [
             "Participants: Host, Lily, Alex",
             (
@@ -56,8 +73,6 @@ def scene_config_template(scene_key: str, scene_cls) -> dict:
         ]
     else:
         config_schema.setdefault("initial_events", [])
-    # Ensure toggle is present for all scenes; default off unless explicitly set
-    config_schema.setdefault("emotion_enabled", False)
 
     # Read from registry; fallback to scene introspection if not present
     reg = SCENE_ACTIONS.get(scene_key)
@@ -153,10 +168,13 @@ def load_all_templates() -> list[dict]:
 async def list_scenes() -> list[dict]:
     """List all available scene types including generic_scene."""
     scenes: list[dict] = []
-    for key, cls in SCENE_MAP.items():
+    for key in SCENE_MAP.keys():
         if key not in PUBLIC_SCENE_KEYS:
             continue
-        scenes.append(scene_config_template(key, cls))
+        scene_cls = get_scene_class(key)
+        if scene_cls is None:
+            continue
+        scenes.append(scene_config_template(key, scene_cls))
     return scenes
 
 

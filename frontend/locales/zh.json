@@ -61,6 +61,89 @@
     "loading": "加载中…",
     "error": "无法加载模拟。"
   },
+  "scenario": {
+    "category": {
+      "game_theory": "博弈论",
+      "social_dynamics": "社会动力学",
+      "discussion": "讨论",
+      "spatial": "空间/网格",
+      "social_deduction": "社会推理",
+      "sociology": "社会学",
+      "custom": "自定义"
+    },
+    "sociology": {
+      "social_norm_disruption": {
+        "name": "社会规范破坏",
+        "description": "一项新规则突然强加给群体。具有不同社会地位和性格的代理人必须决定如何应对。"
+      },
+      "policy_erosion": {
+        "name": "政策意义侵蚀",
+        "description": "一项政策在三层层级结构的顶部宣布。每一层决定如何解释和传递它。"
+      },
+      "echo_chamber": {
+        "name": "回声室",
+        "description": "代理人持有从强烈进步到强烈保守的观点。观察观点漂移和信息茧房。"
+      },
+      "resource_scarcity": {
+        "name": "资源稀缺",
+        "description": "灾后社区面临资源稀缺。代理人决定是分享、交易还是为了个人利益而背叛。"
+      }
+    },
+    "game_theory": {
+      "prisoners_dilemma": {
+        "name": "囚徒困境",
+        "description": "两个嫌疑人被分开审讯。每个人都必须决定是背叛对方还是保持沉默。你的收益取决于你和搭档的选择。"
+      },
+      "battle_of_the_sexes": {
+        "name": "性别战",
+        "description": "一对情侣想要协调晚上的活动。一个喜欢歌剧，另一个喜欢足球。如果协调一致，双方都能获得正收益，但每个人都更喜欢自己的活动。"
+      },
+      "stag_hunt": {
+        "name": "猎鹿博弈",
+        "description": "猎人必须全部选择猎鹿（高回报）或猎兔（安全但低回报）。猎鹿需要所有人合作。如果有一个人选择猎兔，鹿就会逃跑，猎鹿者一无所获。"
+      },
+      "public_goods": {
+        "name": "公共品博弈",
+        "description": "每个代理都有资源，并决定向共享池贡献多少。共享池会倍增并平均分配给所有代理，无论贡献多少。"
+      },
+      "coordination_game": {
+        "name": "协调博弈",
+        "description": "你和你的邻居各自选择一个选项。你可以看到邻居在之前轮次的选择。"
+      }
+    },
+    "discussion": {
+      "open_discussion": {
+        "name": "自由讨论",
+        "description": "代理自由讨论一个话题。没有结构化的决策——只是对话。"
+      },
+      "council_chamber": {
+        "name": "议事厅",
+        "description": "带有投票和程序规则的正式审议。参与者辩论提案、发起投票并做出集体决策。"
+      }
+    },
+    "spatial": {
+      "grid_world": {
+        "name": "网格世界",
+        "description": "代理在网格上移动，收集资源并观察环境。"
+      },
+      "contagion": {
+        "name": "传染扩散",
+        "description": "网格上的代理可以通过邻近和社交互动传播传染病。观察感染如何在人群中扩散，同时代理在移动和交流。"
+      }
+    },
+    "social_deduction": {
+      "werewolf": {
+        "name": "狼人杀",
+        "description": "一个社会推理游戏，村民试图识别隐藏在他们中间的狼人，而狼人则在夜间试图消灭村民。"
+      }
+    },
+    "custom": {
+      "custom": {
+        "name": "自定义场景",
+        "description": "从头构建您自己的自定义实验。"
+      }
+    }
+  },
   "settings": {
     "title": "设置",
     "tabs": {
@@ -192,7 +275,6 @@
     "config": "配置",
     "agents": "智能体",
     "scene": "场景",
-    "noProfile": "无简介",
     "loadingScenes": "正在加载场景…",
     "fetchScenesError": "无法获取场景。",
     "basicActions": "基础动作",
@@ -419,6 +501,7 @@
       "landlord": "斗地主"
     },
     "actions": {
+      "chooseAction": "选择{{action}}",
       "send_message": "向所有参与者发送消息",
       "talk_to": "与附近的人交谈",
       "speak": "发言",
@@ -636,7 +719,99 @@
     "send_message": "发送消息",
     "gather_resource": "采集资源",
     "rest": "休息",
-    "yield": "结束本轮发言"
+    "yield": "结束本轮发言",
+    "comply_publicly": {
+      "description": "公开接受并遵守规范或指令",
+      "execute": "{agent_name} 公开遵守了规范"
+    },
+    "comply_covertly_resist": {
+      "description": "形式上遵守但私下规避",
+      "execute": "{agent_name} 公开遵守但私下抵制"
+    },
+    "resist_openly": {
+      "description": "公开拒绝或挑战规范",
+      "execute": "{agent_name} 公开抵制规范"
+    },
+    "persuade_others": {
+      "description": "说服他人采纳你的立场",
+      "execute": "{agent_name} 试图说服他人"
+    },
+    "form_coalition": {
+      "description": "与志同道合者组织起来",
+      "execute": "{agent_name} 组建了联盟"
+    },
+    "transmit_faithfully": {
+      "description": "完全按原样传递政策",
+      "execute": "{agent_name} 忠实地传达了政策"
+    },
+    "reinterpret_downward": {
+      "description": "在向下传递时调整政策",
+      "execute": "{agent_name} 重新解读了政策"
+    },
+    "comply_directive": {
+      "description": "接受并执行上级指令",
+      "execute": "{agent_name} 遵守了指令"
+    },
+    "resist_quietly": {
+      "description": "形式上遵守但避免实际执行",
+      "execute": "{agent_name} 悄悄抵制"
+    },
+    "report_up": {
+      "description": "向更高层级的当局升级障碍",
+      "execute": "{agent_name} 向上报告"
+    },
+    "create_workaround": {
+      "description": "建立绕过正式规则的非正式路径",
+      "execute": "{agent_name} 创建了变通方法"
+    },
+    "express_opinion": {
+      "description": "分享你当前的观点",
+      "execute": "{agent_name} 表达了意见"
+    },
+    "reinforce_ingroup": {
+      "description": "与相似观点接触并放大",
+      "execute": "{agent_name} 强化了群体内部"
+    },
+    "challenge_outgroup": {
+      "description": "积极反对相反观点",
+      "execute": "{agent_name} 挑战外部群体观点"
+    },
+    "seek_common_ground": {
+      "description": "在观点分歧中寻找共同价值观",
+      "execute": "{agent_name} 寻求共同点"
+    },
+    "share_content": {
+      "description": "分享强化你立场的信息",
+      "execute": "{agent_name} 分享了内容"
+    },
+    "disengage": {
+      "description": "退出与相反观点的接触",
+      "execute": "{agent_name} 退出接触"
+    },
+    "share_resources": {
+      "description": "将部分资源给另一个代理",
+      "execute": "{agent_name} 分享了资源"
+    },
+    "hoard": {
+      "description": "保留所有资源给自己",
+      "execute": "{agent_name} 囤积了资源"
+    },
+    "propose_trade": {
+      "description": "提议交换资源",
+      "execute": "{agent_name} 提议交易"
+    },
+    "form_contract": {
+      "description": "提议正式的合作协议",
+      "execute": "{agent_name} 形成了合同"
+    },
+    "honor_contract": {
+      "description": "履行现有协议",
+      "execute": "{agent_name} 遵守了合同"
+    },
+    "defect_from_contract": {
+      "description": "为了个人利益违反协议",
+      "execute": "{agent_name} 违反了合同"
+    }
   },
   "simPage": {
     "noSimulation": "未选择仿真",
@@ -680,7 +855,15 @@
     "node": "节点 {{id}}",
     "initialNode": "初始状态",
     "round": "系统推进至第 {{round}} 回合",
-    "timeLabel": "{{step}} {{unit}}/R"
+    "timeLabel": "{{step}} {{unit}}/R",
+    "resetSimulation": "重置仿真",
+    "deleteSimulation": "删除仿真",
+    "confirmReset": "确认重置当前仿真？这会清空本地图和日志。",
+    "confirmDelete": "确认删除当前仿真？在连接模式下会从后端删除该记录。",
+    "resetSuccess": "仿真已重置",
+    "resetFail": "重置仿真失败",
+    "deleteSuccess": "仿真已删除",
+    "deleteFail": "删除仿真失败"
   },
   "components": {
     "agentPanel": {
@@ -698,7 +881,10 @@
       "titlePlaceholder": "标题 (如：乡村公约)",
       "uploadHelperText": "拖拽/上传图片将以 markdown 链接插入画像描述",
       "saveProfile": "保存画像",
+      "profilePlaceholder": "输入智能体简介...",
+      "noProfile": "无简介",
       "currentAttributes": "当前状态属性",
+      "noCustomAttributes": "无自定义属性",
       "knowledgeBase": "知识库 (RAG)",
       "noKnowledgeDocs": "暂无知识库文档",
       "save": "保存",
@@ -1145,6 +1331,20 @@
       "instructions": "请把上面这行红字错误信息，或者浏览器控制台（F12 Console）里红色那行，截图或复制给开发团队。"
     }
   },
+  "param": {
+    "uiHint": {
+      "slider": "滑块",
+      "percentage": "百分比",
+      "textarea": "文本区域",
+      "text": "文本输入",
+      "select": "选择",
+      "toggle": "切换",
+      "list": "列表",
+      "multiselect": "多选",
+      "key_value": "键值对",
+      "drag_list": "拖动列表"
+    }
+  },
   "pages": {
     "docsPage": {
       "documentation": "文档 / 使用说明",
@@ -1256,6 +1456,7 @@
     "knowledgeItemRemoved": "知识库条目已移除",
     "knowledgeItemUpdated": "知识库条目已更新",
     "selectedNodeNotBackend": "选中节点不是后端节点",
+    "selectNodeFirst": "请先在模拟树中选择一个节点",
     "backendAdvanceFailed": "后端推进失败，回退本地模拟",
     "simulationAdvanceFailed": "仿真推进失败，请重试",
     "branch": "分支",
@@ -1320,6 +1521,355 @@
     "nearbyAgents": "附近的智能体:",
     "plain": "平原",
     "messageLabel": "[消息]"
+  },
+  "experimentBuilder": {
+    "title": "创建新实验",
+    "subtitle": "在6个步骤中设计你的社会科学实验",
+    "modalTitle": "创建新实验",
+    "cancel": "取消",
+    "next": "下一步",
+    "back": "返回",
+    "create": "创建实验",
+    "actionSelector": {
+      "availableLabel": "可用操作",
+      "loading": "加载操作中...",
+      "selectPrompt": "在下方选择操作...",
+      "selectAction": "选择操作...",
+      "addAction": "添加操作... ({{count}}/{{max}})",
+      "noneAvailable": "无可用操作",
+      "maxSelected": "已选择最多 {{max}} 个操作。移除一个以添加更多。",
+      "fallbackWarning": "使用备用选项",
+      "loadError": "加载操作失败",
+      "fallbackCooperate": "合作",
+      "fallbackCooperateDesc": "与其他玩家合作",
+      "fallbackDefect": "背叛",
+      "fallbackDefectDesc": "为自身利益行动"
+    },
+    "network": {
+      "zoomIn": "放大",
+      "zoomOut": "缩小",
+      "resetView": "重置视图"
+    },
+    "newExperiment": "新实验",
+    "customExperiment": "自定义实验",
+    "experimentCreated": "实验创建成功！",
+    "interactionTypes": {
+      "strategic_decisions": "战略决策",
+      "opinions_influence": "观点与影响",
+      "network_spread": "网络与传播",
+      "markets_exchange": "市场与交换",
+      "spatial_movement": "空间与移动",
+      "open_conversation": "开放对话"
+    },
+    "agent": {
+      "defaultRole": "智能体",
+      "defaultRolePrompt": "此模拟中的智能体",
+      "agentWithOpinion": "观点为 {{opinion}} 的智能体",
+      "profileGender": "性别：{{gender}}",
+      "profileAge": " | 年龄：{{age}}"
+    },
+    "step1": {
+      "title": "为您的实验选择交互模式",
+      "subtitle": "选择一个或多个您想要研究的交互模式",
+      "chooseScenario": "选择场景",
+      "selectTemplate": "选择一个场景模板来开始构建您的实验",
+      "retry": "重试",
+      "scenariosCount": "{{count}} 个场景",
+      "strategic_decisions": {
+        "title": "战略决策",
+        "description": "研究结果取决于他人选择的情况",
+        "examples": ["囚徒困境", "猎鹿博弈", "公共品博弈"]
+      },
+      "opinions_influence": {
+        "title": "观点与影响",
+        "description": "模拟观点如何通过社交互动和影响而转变",
+        "examples": ["观点极化", "共识形成", "社会影响"]
+      },
+      "network_spread": {
+        "title": "网络与传播",
+        "description": "研究想法、行为或信息如何通过连接传播",
+        "examples": ["信息级联", "病毒式内容", "网络效应"]
+      },
+      "markets_exchange": {
+        "title": "市场与交换",
+        "description": "模拟买卖、竞价和交易",
+        "examples": ["双向拍卖", "公共池资源", "市场设计"]
+      },
+      "spatial_movement": {
+        "title": "空间与移动",
+        "description": "研究位置和邻近性很重要的场景",
+        "examples": ["空间博弈", "隔离", "领土性"]
+      },
+      "open_conversation": {
+        "title": "开放对话",
+        "description": "智能体只需交谈和讨论 - 无正式结构",
+        "examples": ["焦点小组", " deliberation", "非结构化讨论"]
+      },
+      "optionalAddons": "可选附加功能",
+      "optionalAddonsDesc": "根据您的选择，您可以在后续步骤中添加投票、多阶段或脚本化智能体。"
+    },
+    "close": "关闭",
+    "roundSettings": {
+      "title": "回合设置",
+      "roundVisibility": {
+        "label": "回合可见性",
+        "simultaneous": "同时（所有人同时决定）",
+        "sequential": "顺序（逐一进行）"
+      },
+      "turnOrder": {
+        "label": "行动顺序",
+        "fixed": "固定",
+        "random": "随机"
+      }
+    },
+    "promptPreview": {
+      "title": "示例代理提示词",
+      "note": "所有 {n} 个代理类型接收相同的场景、行动和输出格式。只有代理描述不同。",
+      "otherTypes": "其他代理类型"
+    },
+    "actions": {
+      "chooseAction": "选择 {{action}}"
+    },
+    "dynamicActionsInfo": {
+      "title": "动态动作：",
+      "message": "这些动作是从【{{paramLabel}}】参数生成的。在步骤2中编辑它以更改可用选项。"
+    },
+    "payoffMatrix": {
+      "howToRead": {
+        "title": "如何阅读此矩阵：",
+        "rows": "行",
+        "columns": "列",
+        "cellValues": "单元格值"
+      },
+      "rowLabel": "你的选择（玩家1）",
+      "colLabel": "对手的选择（玩家2）",
+      "pointsLabel": "当双方都做出这些选择时你获得的积分",
+      "symmetric": {
+        "title": "对称博弈：",
+        "description": "双方玩家在每个单元格中获得相同的收益。",
+        "example": "例如：如果双方都选择【合作】，每人都获得那么多积分。"
+      },
+      "asymmetric": {
+        "title": "非对称博弈：",
+        "description": "每个单元格显示两个值：",
+        "row": "行",
+        "col": "列"
+      },
+      "actionLegend": "每个动作的含义：",
+      "readInstruction": "阅读：【如果我选择[行]而他们选择[列]，我获得[值]积分】",
+      "iChoose": "我选择 ↓",
+      "theyChoose": "他们选择 →",
+      "pointsEach": "各得积分",
+      "tip": "提示：这些收益值会显示在代理的提示中，帮助他们理解游戏激励。",
+      "actions": {
+        "cooperate": "与对方玩家合作",
+        "defect": "为自己利益行事",
+        "hunt_stag": "猎捕大鹿（需要合作）",
+        "hunt_hare": "猎捕小兔（可独自完成）",
+        "heads": "选择正面",
+        "tails": "选择反面",
+        "soccer": "去足球比赛",
+        "ballet": "去芭蕾舞",
+        "choose": "选择{{action}}"
+      }
+    },
+    "keyValueField": {
+      "key": "键",
+      "value": "值",
+      "remove": "删除",
+      "add": "添加"
+    },
+    "listField": {
+      "addItem": "添加项目...",
+      "remove": "删除",
+      "add": "添加"
+    },
+    "step2": {
+      "selectScenarioFirst": "请先在步骤1中选择一个场景。",
+      "configureTitle": "配置{{name}}",
+      "configureSubtitle": "自定义场景描述和参数",
+      "scenarioDescriptionLabel": "场景描述（代理将看到此内容）",
+      "scenarioDescriptionPlaceholder": "输入代理能够理解的场景描述...",
+      "parametersTitle": "参数",
+      "noParameters": "此场景没有可配置的参数。调整上面的描述并进入下一步。",
+      "payoffInput": {
+        "yourPayoffs": "你的收益：",
+        "instruction": "填写根据你的选择和对方的选择你将获得什么。",
+        "youThey": "你：{{actionA}} / 对方：{{actionB}}"
+      }
+    },
+    "step3": {
+      "title": "选择动作",
+      "subtitle": "选择代理可以采取的动作。至少需要选择一个动作。",
+      "categoryInfo": "显示{{category}}类别的所有可用动作。此场景以一组预选动作开始。",
+      "noActions": "没有可用动作。请先选择一个场景或添加自定义动作。",
+      "addCustomAction": "添加自定义动作",
+      "customActionTitle": "添加自定义动作",
+      "actionName": "动作名称",
+      "actionNamePlaceholder": "例如，协商",
+      "description": "描述",
+      "descriptionPlaceholder": "描述这个动作的作用...",
+      "addAction": "添加动作",
+      "actionsSelected": "已选择 {{selected}} / {{total}} 个动作",
+      "removeAction": "删除动作"
+    },
+    "step4": {
+      "modeTitle": "您想如何创建代理？",
+      "modes": {
+        "manual": {
+          "title": "手动类型",
+          "description": "手动定义代理类型，设置自定义提示词和数量"
+        },
+        "demographic": {
+          "title": "人口统计生成",
+          "description": "从自定义人口统计变量生成代理"
+        },
+        "import": {
+          "title": "文件导入",
+          "description": "从JSON文件导入代理配置"
+        }
+      },
+      "defineTypes": "定义代理类型",
+      "typeLabel": "类型标签",
+      "count": "数量",
+      "rolePrompt": "角色提示词（这个代理的角色是什么？）",
+      "addAgentType": "+ 添加代理类型",
+      "noTypes": "尚未定义代理类型",
+      "remove": "删除",
+      "totalAgents": "代理总数：{{count}}",
+      "agentsDefined": "已定义 {{count}} 个代理",
+      "llmProvider": "LLM 提供商",
+      "defaultProvider": "默认提供商",
+      "importTitle": "导入代理数据",
+      "importDesc": "上传包含代理定义的 CSV 或 JSON 文件。",
+      "csvFormat": "CSV 格式示例：",
+      "uploadCSV": "上传 CSV",
+      "uploadJSON": "上传 JSON",
+      "importInfo": "文件导入功能将在第7阶段实现。"
+    },
+    "step5": {
+      "networkPresets": "网络预设",
+      "chooseTopology": "选择网络拓扑结构",
+      "presets": {
+        "fully_connected": { "name": "全连接", "description": "每个人都认识每个人" },
+        "random": { "name": "随机", "description": "随机连接" },
+        "ring": { "name": "环形", "description": "每个代理连接到邻居" },
+        "small_world": { "name": "小世界", "description": "Newman-Watts 小世界网络" },
+        "scale_free": { "name": "无标度", "description": "Holme-Kim 无标度网络" },
+        "star": { "name": "星形", "description": "一个中心枢纽" },
+        "core_periphery": { "name": "核心-边缘", "description": "密集核心，稀疏边缘" },
+        "spatial": { "name": "空间", "description": "Waxman 空间网络" },
+        "communities": { "name": "社区", "description": "随机块模型" }
+      },
+      "applyChanges": "应用更改",
+      "noAgentsConfigured": "未配置代理",
+      "goBackToStep4": "返回步骤4添加代理后再配置网络。",
+      "fullyConnected": "全连接",
+      "reset": "重置",
+      "nodes": "{{count}} 个节点",
+      "edges": "{{count}} 条边",
+      "instructions": "说明",
+      "instructionSelect": "选择预设以生成网络",
+      "instructionDrag": "拖动节点重新排列",
+      "instructionZoom": "滚动缩放，拖动平移"
+    },
+    "step6": {
+      "noAgentsDefined": "未定义代理",
+      "goBackToStep4": "返回步骤4为您的实验添加代理。",
+      "totalAgentsTypes": "共 {{agents}} 个代理，分为 {{types}} 种类型"
+    },
+    "progressBar": {
+      "steps": {
+        "chooseScenario": "选择场景",
+        "configureScenario": "配置场景",
+        "selectActions": "选择动作",
+        "createAgents": "创建代理",
+        "network": "网络",
+        "review": "预览"
+      }
+    },
+    "experimentBuilder": {
+      "step3": {
+        "title": "选择动作",
+        "subtitle": "选择代理可以采取的动作。至少需要选择一个动作。",
+        "categoryInfo": "显示{{category}}类别的所有可用动作。此场景以一组预选动作开始。",
+        "noActions": "没有可用动作。请先选择一个场景或添加自定义动作。",
+        "addCustomAction": "添加自定义动作",
+        "customActionTitle": "添加自定义动作",
+        "actionName": "动作名称",
+        "actionNamePlaceholder": "例如，协商",
+        "description": "描述",
+        "descriptionPlaceholder": "描述这个动作的作用...",
+        "addAction": "添加动作",
+        "actionsSelected": "已选择 {{selected}} / {{total}} 个动作",
+        "removeAction": "删除动作"
+      }
+    },
+    "actionEditor": {
+      "title": "行动",
+      "actionNumber": "行动 {{number}}",
+      "nameLabel": "名称",
+      "namePlaceholder": "输入行动名称",
+      "descriptionLabel": "描述",
+      "descriptionPlaceholder": "描述此行动的含义"
+    },
+    "resourceConfig": {
+      "title": "资源设置",
+      "resourceNameLabel": "资源名称",
+      "customResourceLabel": "自定义资源名称",
+      "customResourcePlaceholder": "输入自定义资源名称",
+      "initialAmountLabel": "初始数量",
+      "multiplierLabel": "资金池倍数",
+      "actionLabelsTitle": "行动标签",
+      "actionNameLabel": "行动名称",
+      "actionDescriptionLabel": "行动描述",
+      "resourceOptions": {
+        "tokens": "代币",
+        "money": "金钱",
+        "effortPoints": "努力点数",
+        "timeHours": "时间（小时）",
+        "resources": "资源",
+        "custom": "自定义..."
+      }
+    }
+  },
+  "simulation": {
+    "log": {
+      "action_chosen": "{{agent}} 选择了 {{action}}",
+      "action_generic": "{{agent}} 执行了：{{action}}",
+      "public_goods_contribution": "{{agent}} 决定{{action}} {{amount}} {{resource}}",
+      "round_summary": "第 {{round}} 轮完成",
+      "payoff_result": "{{agent}} 获得了 {{payoff}} 分"
+    },
+    "results": {
+      "round_title": "第 {{round}} 轮结果",
+      "agents_chose": "{{count}} 个代理选择了此项",
+      "total_contributed": "总贡献量",
+      "pool_after_multiplier": "资金池 (×{{multiplier}})",
+      "per_agent_share": "人均分配"
+    }
+  },
+  "prompts": {
+    "game_theory": {
+      "battle_of_the_sexes": {
+        "intro": "你正在玩性别博弈。",
+        "choose_instruction": "你可以选择：{{action_1}} 或 {{action_2}}。",
+        "action_format": "- {{action_name}}：{{action_description}}"
+      },
+      "stag_hunt": {
+        "intro": "你正在玩猎鹿博弈。",
+        "choose_instruction": "你可以选择：{{action_1}} 或 {{action_2}}。",
+        "action_format": "- {{action_name}}：{{action_description}}",
+        "payoff_context": "如果所有人都选择{{action_1}}，则获得{{stag_reward}}分，否则为0。{{action_2}}始终获得{{hare_reward}}分。"
+      },
+      "public_goods": {
+        "intro": "你有 {{initial_amount}} {{resource}}。",
+        "action_instruction": "你可以{{action_name}}一定数量到共享池中。",
+        "action_description": "{{action_description}}",
+        "pool_mechanics": "资金池将乘以 {{multiplier}} 并平均分配给所有参与者。",
+        "choose_instruction": "选择要{{action_name}}的数量（0 到 {{initial_amount}}）。"
+      }
+    }
   },
   "systemTemplates": {
     "normDisruption": {

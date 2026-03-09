@@ -353,7 +353,43 @@ async def generate_agents_demographics(
 
             # Traits are required
             if not data.traits:
-                raise RuntimeError("Traits are required for demographic generation")
+                raise ValueError("Traits are required for demographic generation. Please add at least one trait (e.g., Trust, Empathy) with mean and standard deviation values.")
+
+            # Demographics are required
+            if not data.demographics:
+                raise ValueError("Demographics are required for demographic generation. Please add at least one demographic dimension (e.g., Age, Political View).")
+
+            # Validate each demographic has categories
+            for demo in data.demographics:
+                if not demo.categories or len(demo.categories) == 0:
+                    raise ValueError(f"Demographic '{demo.name}' must have at least one category.")
+
+            # Validate trait ranges before passing to generation
+            for trait in data.traits:
+                mean_val = trait.mean if trait.mean is not None else 0
+                std_val = trait.std if trait.std is not None else 0
+
+                if not (0 <= mean_val <= 100):
+                    raise ValueError(
+                        f"Trait '{trait.name}' mean value {mean_val} is outside valid range [0, 100]. "
+                        f"Trait means should represent percentages or scores between 0 and 100."
+                    )
+
+                if not (0 <= std_val <= 50):
+                    raise ValueError(
+                        f"Trait '{trait.name}' std value {std_val} is outside valid range [0, 50]. "
+                        f"Standard deviation represents variation from the mean and should not exceed 50."
+                    )
+
+            # Check probability sum and warn if not normalized
+            if data.archetype_probabilities:
+                prob_sum = sum(data.archetype_probabilities.values())
+                tolerance = 0.01
+                if abs(prob_sum - 1.0) > tolerance:
+                    logger.warning(
+                        f"Archetype probabilities sum to {prob_sum:.3f}, not 1.0. "
+                        f"Probabilities will be automatically normalized."
+                    )
 
             # Convert Pydantic models to dicts for llm.py function
             demographics_dicts = [
@@ -367,14 +403,24 @@ async def generate_agents_demographics(
             ]
 
             # 🎯 Call the integrated AgentTorch function from llm.py
-            agents_data = generate_agents_with_archetypes(
-                total_agents=data.total_agents,
-                demographics=demographics_dicts,
-                archetype_probabilities=data.archetype_probabilities,
-                traits=traits_dicts,
-                llm_client=llm,
-                language=data.language
-            )
+            try:
+                agents_data = generate_agents_with_archetypes(
+                    total_agents=data.total_agents,
+                    demographics=demographics_dicts,
+                    archetype_probabilities=data.archetype_probabilities,
+                    traits=traits_dicts,
+                    llm_client=llm,
+                    language=data.language
+                )
+            except ValueError as ve:
+                # Re-raise ValueError with more context
+                raise ValueError(f"Agent generation validation failed: {ve}")
+            except RuntimeError as re:
+                # LLM or JSON parsing error
+                raise RuntimeError(f"LLM agent generation failed: {re}")
+            except Exception as e:
+                # Unexpected error during generation
+                raise RuntimeError(f"Unexpected error during agent generation: {e}")
 
             # Convert to GeneratedAgent response models
             agents: List[GeneratedAgent] = []
@@ -396,9 +442,18 @@ async def generate_agents_demographics(
 
             logger.info(f"Generated {len(agents)} agents using demographic modeling")
             return agents
-    except Exception as e:
-        logger.error(f"Error in generate_agents_demographics: {e}", exc_info=True)
+    except ValueError as e:
+        # Validation errors - return 400 with clear message
+        logger.warning(f"Validation error in generate_agents_demographics: {e}")
         raise
+    except RuntimeError as e:
+        # LLM errors - return 500 with error message
+        logger.error(f"LLM error in generate_agents_demographics: {e}")
+        raise
+    except Exception as e:
+        # Unexpected errors
+        logger.error(f"Unexpected error in generate_agents_demographics: {e}", exc_info=True)
+        raise RuntimeError(f"Failed to generate agents: {e}")
 
 
 # 暴露 /llm 前缀的 Router

@@ -131,6 +131,9 @@ node_modules
 storage/
 socialsim.db
 socialsim4.db
+*.db
+*.db-shm
+*.db-wal
 *.pdf
 stats.sh
 .DS_Store
@@ -159,3 +162,15 @@ planning/
 
 # Git worktrees for parallel development
 .worktrees/
+
+# Test results and debug output
+test_results/
+src/test_results/
+
+# Debug log files
+agent_debug_*.txt
+experiment_debug_*.txt
+*_debug_*.txt
+
+# Temporary files
+nul

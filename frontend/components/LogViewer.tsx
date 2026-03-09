@@ -1,9 +1,19 @@
+/**
+ * Log viewer component with timeline, card, and list views.
+ *
+ * Displays simulation events including agent actions, dialogue, and system events.
+ * Supports filtering by type and agent, with search functionality.
+ * In timeline view, displays custom action and resource names from scenario params.
+ *
+ * Exports: LogViewer (default export)
+ */
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSimulationStore } from '../store';
 import { useTranslation } from 'react-i18next';
-import { LogEntry, ViewMode, SimNode } from '../types';
+import { LogEntry, ViewMode } from '../types';
 import { List, CreditCard, Clock, Filter, Search, X, Check, GitCommit, Image as ImageIcon } from 'lucide-react';
+import { getActionConfig, getResourceName } from '../utils/scenarioHelpers';
 
 // Helper for displaying time niceliy
 const formatLogTime = (dateStr: string) => {
@@ -17,7 +27,62 @@ const formatLogTime = (dateStr: string) => {
   });
 };
 
-const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: string; agents?: any[] }> = ({ entry, mode, nodeWorldTime, agents = [] }) => {
+// Resolve action name for display using scenario params
+const getDisplayActionName = (
+  action: string,
+  scenarioParams: Record<string, unknown>
+): string => {
+  // Map original action names to custom names for stag hunt / battle of sexes scenarios
+  const originalActions = ['Opera', 'Football', 'Stag', 'Hare'];
+
+  if (originalActions.includes(action)) {
+    // Determine action index based on original position
+    // Opera/Stag are action 1, Football/Hare are action 2
+    const actionIndex = ['Opera', 'Stag'].includes(action) ? 1 : 2;
+    const config = getActionConfig(scenarioParams, actionIndex);
+    return config.name;
+  }
+
+  return action;
+};
+
+// Format public goods contribution event with custom resource/action names
+const formatPublicGoodsEvent = (
+  eventContent: string,
+  scenarioParams: Record<string, unknown>,
+  t: (key: string, options?: Record<string, unknown>) => string
+): string => {
+  const resource = getResourceName(scenarioParams);
+  const actionName = (scenarioParams.action_name as string) || 'Contribute';
+
+  // Try to parse contribution amount from content
+  const contributionMatch = eventContent.match(/(\d+)/);
+  if (contributionMatch) {
+    const amount = contributionMatch[1];
+    // Extract agent name if present
+    const agentMatch = eventContent.match(/^([^:]+):/);
+    const agentName = agentMatch ? agentMatch[1].trim() : '';
+
+    if (agentName) {
+      return t('simulation.log.public_goods_contribution', {
+        agent: agentName,
+        action: actionName.toLowerCase(),
+        amount: amount,
+        resource: resource.toLowerCase(),
+      });
+    }
+  }
+
+  return eventContent;
+};
+
+const LogItem: React.FC<{
+  entry: LogEntry;
+  mode: ViewMode;
+  nodeWorldTime?: string;
+  agents?: any[];
+  scenarioParams?: Record<string, unknown>;
+}> = ({ entry, mode, nodeWorldTime, agents = [], scenarioParams = {} }) => {
   const { t } = useTranslation();
   const [isImageExpanded, setIsImageExpanded] = useState(false);
 
@@ -62,6 +127,43 @@ const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: strin
 
   // Use entry timestamp if valid, otherwise fallback or node time
   const displayTime = entry.timestamp.includes('-') ? formatLogTime(entry.timestamp) : entry.timestamp;
+
+  // Process content to replace action names with custom names
+  const getProcessedContent = (content: string): string => {
+    if (!content || Object.keys(scenarioParams).length === 0) {
+      return content;
+    }
+
+    let processedContent = content;
+
+    // Handle stag hunt / battle of sexes action names
+    // Match patterns like "chose Opera", "chose Stag", "chose Football", "chose Hare"
+    const actionChoicePattern = /(chose|选择了)\s+(Opera|Football|Stag|Hare)/gi;
+    processedContent = processedContent.replace(actionChoicePattern, (match, verb, action) => {
+      const displayName = getDisplayActionName(action, scenarioParams);
+      return `${verb} ${displayName}`;
+    });
+
+    // Handle action names in patterns like "performed Opera action", "Opera action"
+    const actionNamePattern = /\b(Opera|Football|Stag|Hare)\b/g;
+    processedContent = processedContent.replace(actionNamePattern, (match) => {
+      return getDisplayActionName(match, scenarioParams);
+    });
+
+    // Handle public goods contribution events
+    if (scenarioParams.resource_name || scenarioParams.action_name) {
+      // Check if this looks like a contribution message
+      if (content.toLowerCase().includes('contribut') ||
+          content.toLowerCase().includes('贡献') ||
+          /\b\d+\s*(tokens?|tokens)\b/i.test(content)) {
+        processedContent = formatPublicGoodsEvent(content, scenarioParams, t);
+      }
+    }
+
+    return processedContent;
+  };
+
+  const displayContent = getProcessedContent(entry.content);
 
   const ImageComponent = () => (
     entry.imageUrl ? (
@@ -123,7 +225,7 @@ const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: strin
           {entry.agentId && entry.type !== 'AGENT_METADATA' && (
             <span className="font-bold text-slate-700 mr-2">{entry.agentId}:</span>
           )}
-          <span className="text-slate-600">{entry.content}</span>
+          <span className="text-slate-600">{displayContent}</span>
           <ImageComponent />
           <MediaBadges />
         </div>
@@ -149,7 +251,7 @@ const LogItem: React.FC<{ entry: LogEntry; mode: ViewMode; nodeWorldTime?: strin
         </div>
         <span className="text-[10px] font-mono text-slate-400">{displayTime}</span>
       </div>
-      <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{entry.content}</p>
+      <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{displayContent}</p>
       <ImageComponent />
       <MediaBadges />
     </div>
@@ -162,7 +264,15 @@ export const LogViewer: React.FC = () => {
   const nodes = useSimulationStore(state => state.nodes);
   const selectedNodeId = useSimulationStore(state => state.selectedNodeId);
   const agents = useSimulationStore(state => state.agents);
-  
+  const currentSimulation = useSimulationStore(state => state.currentSimulation);
+
+  // Extract scenario params from current simulation's scene_config
+  const scenarioParams = useMemo((): Record<string, unknown> => {
+    const sceneConfig = currentSimulation?.scene_config || {};
+    // Parameters may be nested under 'parameters' or at the top level
+    return (sceneConfig.parameters as Record<string, unknown>) || sceneConfig || {};
+  }, [currentSimulation]);
+
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.CARD);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -384,7 +494,14 @@ export const LogViewer: React.FC = () => {
              // Find corresponding node worldTime if available (optional enhancement)
              const node = nodes.find(n => n.id === log.nodeId);
              return (
-               <LogItem key={log.id} entry={log} mode={viewMode} nodeWorldTime={node?.worldTime} agents={agents} />
+               <LogItem
+                 key={log.id}
+                 entry={log}
+                 mode={viewMode}
+                 nodeWorldTime={node?.worldTime}
+                 agents={agents}
+                 scenarioParams={scenarioParams}
+               />
              );
           })
         ) : (

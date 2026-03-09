@@ -2,19 +2,27 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import sys
 from typing import Dict
 
 from socialsim4.core.agent import Agent
 from socialsim4.core.event import PublicEvent
+from socialsim4.core.registry import get_information_model
 from socialsim4.core.ordering import ControlledOrdering, CycledOrdering, SequentialOrdering
-from socialsim4.core.registry import ACTION_SPACE_MAP, SCENE_ACTIONS, SCENE_MAP
+from socialsim4.core.registry import ACTION_SPACE_MAP, SCENE_ACTIONS, SCENE_MAP, get_scene_class
 from socialsim4.core.simtree import SimTree
 from socialsim4.core.simulator import Simulator
 from socialsim4.core.environment_config import EnvironmentConfig
 from socialsim4.scenarios.basic import make_clients_from_env
+from socialsim4.core.experiment.config import ExperimentConfig
+from socialsim4.core.experiment.scene import ExperimentScene
 
 
 logger = logging.getLogger(__name__)
+_logging_handler = logging.StreamHandler(sys.stdout)
+_logging_handler.setLevel(logging.DEBUG)
+_logging_handler.setFormatter(logging.Formatter('[SIMTREE RUNTIME] %(message)s'))
+logger.addHandler(_logging_handler)
 
 
 def _normalize_language(value: str | None) -> str:
@@ -42,10 +50,106 @@ def _quiet_logger(event_type: str, data: dict) -> None:
     return
 
 
+class ExperimentRunnerAdapter:
+    """Minimal adapter so ExperimentScene works with SimTree.
+
+    Provides the interface SimTree expects (.run(), .agents, .clients)
+    without requiring a full Simulator with legacy Agents.
+    """
+
+    def __init__(self, scene: ExperimentScene, clients: dict):
+        self.scene = scene
+        self.clients = clients
+        self.agents = {}  # Empty dict - no legacy agents
+        self.events: list[dict] = []
+        self._llm_client = clients.get("chat") or clients.get("default")
+        self.log_event = None  # Will be set by SimTree._attach_log_handler
+
+        # Pre-initialize to populate scene.agents so UI can render agent cards without running a round
+        if self._llm_client is not None and not self.scene.agents:
+            self.scene.initialize(self._llm_client)
+
+    def run(self, max_turns: int = 1) -> None:
+        """Run experiment rounds (each 'turn' = one round)."""
+        import asyncio
+
+        if not self.scene.runner:
+            self.scene.initialize(self._llm_client)
+
+        for _ in range(max_turns):
+            if self.scene.is_complete():
+                break
+            asyncio.run(self.scene.run_round(self._emit_event))
+
+    def _emit_event(self, event_type: str, data: dict) -> None:
+        """Collect events for SimTree and emit to log handler."""
+        self.events.append({"type": event_type, "data": data})
+        # Also emit to log handler if set (for UI logs display)
+        if self.log_event is not None:
+            self.log_event(event_type, data)
+
+    def serialize(self) -> dict:
+        """Serialize for SimTree compatibility."""
+        return {
+            "agents": {},  # No legacy agents
+            "scene": {
+                "type": "experiment_template",
+                "config": self.scene.serialize_config(),
+            },
+            "max_steps_per_turn": 5,
+            "ordering": "sequential",
+            "ordering_state": {},
+            "event_queue": [],
+            "turns": self.scene.current_round,
+            "environment_config": None,
+            "_suggestions_viewed_turn": None,
+        }
+
+    @classmethod
+    def deserialize(cls, data: dict, clients: dict, log_handler=None):
+        """Deserialize for SimTree compatibility."""
+        scene_data = data["scene"]["config"]
+        scene = ExperimentScene.deserialize_config(scene_data)
+
+        adapter = cls(scene, clients)
+        adapter.scene.current_round = data.get("turns", 0)
+        return adapter
+
+    def reset_event_queue(self) -> None:
+        """No-op for SimTree compatibility (adapter has no event queue)."""
+        pass
+
+    def emit_remaining_events(self) -> None:
+        """No-op for SimTree compatibility (adapter has no event queue)."""
+        pass
+
+    def broadcast(self, event) -> None:
+        """Broadcast a public event to the experiment scene.
+
+        Args:
+            event: PublicEvent or similar event object with text attribute
+        """
+        # For experiment scenes, broadcast emits as a public event
+        if hasattr(event, "text"):
+            self._emit_event("public_broadcast", {"text": event.text})
+        elif hasattr(event, "__dict__"):
+            self._emit_event("public_broadcast", event.__dict__)
+        else:
+            self._emit_event("public_broadcast", {"data": str(event)})
+
+    def inject_host_message(self, message: str) -> None:
+        """Inject a host message into all agents' context for the next round.
+
+        Args:
+            message: Host message text to inject
+        """
+        self.scene.inject_host_message(message)
+
+
 def _build_tree_for_scene(scene_type: str, clients: dict | None = None) -> SimTree:
     # Normalize scene_type to registry keys (allow aliases like 'village' -> 'village_scene')
     scene_key = scene_type if scene_type in SCENE_MAP else f"{scene_type}_scene"
-    scene_cls = SCENE_MAP.get(scene_key)
+    scene_cls = get_scene_class(scene_key)
     if scene_cls is None:
         raise ValueError(f"Unsupported scene type: {scene_type}")
     active = clients or make_clients_from_env()
@@ -81,9 +185,40 @@ def _apply_agent_config(simulator, agent_config: dict | None):
         new_name = str(cfg.get("name") or "").strip()
         if new_name:
             agent.name = new_name
-        profile = str(cfg.get("profile") or "").strip()
+
+        # Try multiple field names for profile (frontend compatibility)
+        # Priority: profile > user_profile > userProfile (camelCase)
+        profile = (
+            str(cfg.get("profile") or "").strip() or
+            str(cfg.get("user_profile") or "").strip() or
+            str(cfg.get("userProfile") or "").strip()
+        )
         if profile:
             agent.user_profile = profile
+
+        # Try role_prompt field (snake_case from frontend)
+        role_prompt = (
+            str(cfg.get("role_prompt") or "").strip() or
+            str(cfg.get("rolePrompt") or "").strip()
+        )
+        if role_prompt and hasattr(agent, 'role_prompt'):
+            agent.role_prompt = role_prompt
+
+        # Preserve avatar URL from properties if present
+        properties = cfg.get("properties") or {}
+        if isinstance(properties, dict) and "avatarUrl" in properties:
+            if not hasattr(agent, 'properties') or agent.properties is None:
+                agent.properties = {}
+            agent.properties["avatarUrl"] = properties["avatarUrl"]
+
+        # Ensure defaults for required fields
+        if not hasattr(agent, 'history') or agent.history is None:
+            agent.history = {}
+        if not hasattr(agent, 'memory') or agent.memory is None:
+            agent.memory = []
+        if not hasattr(agent, 'score') or agent.score is None:
+            agent.score = 0
+
         language = str(cfg.get("language") or "").strip()
         if language:
             agent.language = language
@@ -95,6 +230,7 @@ def _apply_agent_config(simulator, agent_config: dict | None):
         agent = agents_list[i]
         selected = [str(a) for a in (cfg.get("action_space") or [])]
         scene_actions = simulator.scene.get_scene_actions(agent) or []
+        print(f"[ACTION_DEBUG] Agent {agent.name}: scene_actions={[getattr(a, 'NAME', a) for a in scene_actions]}, selected={selected}")
         picked = []
         for key in selected:
             act = ACTION_SPACE_MAP.get(key)
@@ -108,6 +244,7 @@ def _apply_agent_config(simulator, agent_config: dict | None):
                 merged.append(act)
                 seen.add(n)
         agent.action_space = merged
+        print(f"[ACTION_DEBUG] Agent {agent.name}: final action_space={[getattr(a, 'NAME', a) for a in agent.action_space]}")
     # Refresh ordering candidates after renames
     simulator.ordering.set_simulation(simulator)
 
@@ -117,12 +254,21 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
     scene_type = sim_record.scene_type
     # Normalize scene_type to registry keys (allow aliases like 'village' -> 'village_scene')
     scene_key = scene_type if scene_type in SCENE_MAP else f"{scene_type}_scene"
-    scene_cls = SCENE_MAP.get(scene_key)
+    scene_cls = get_scene_class(scene_key)
     if scene_cls is None:
         raise ValueError(f"Unsupported scene type: {scene_type}")
 
     cfg = getattr(sim_record, "scene_config", {}) or {}
     name = getattr(sim_record, "name", scene_type)
+
+    # Debug logging to show which scene type is being used
+    logger.debug(f"\n{'='*60}")
+    logger.debug(f"BUILDING TREE FOR SIMULATION: {sim_record.id}")
+    logger.debug(f"Scene type: {scene_type}")
+    logger.debug(f"Scene key: {scene_key}")
+    logger.debug(f"Scene class: {scene_cls.__name__ if hasattr(scene_cls, '__name__') else scene_cls}")
+    logger.debug(f"Scene config: {cfg}")
+    logger.debug(f"{'='*60}\n")
 
     agent_config = getattr(sim_record, "agent_config", {}) or {}
     print(f"[KB-DEBUG] _build_tree_for_sim: agent_config keys: {list(agent_config.keys())}")
@@ -193,6 +339,26 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
             str(cfg.get("initial_event") or ""),
             available_actions=available_actions,
         )
+    elif scene_key == "experiment_template":
+        # ExperimentScene - standalone, no legacy Simulator needed
+        config = ExperimentConfig(
+            agents=agent_config.get("agents", []),
+            actions=cfg.get("actions", []),
+            parameters=cfg.get("parameters", {}),
+            description=cfg.get("description", ""),
+            scenario_id=cfg.get("scenario_id", "custom"),
+            round_visibility=cfg.get("round_visibility", "simultaneous"),
+            social_network=cfg.get("social_network") or {},
+        )
+        logger.debug(f"[EXPERIMENT] Creating ExperimentConfig with parameters: {cfg.get('parameters', {})}")
+        scene = ExperimentScene(config)
+
+        # Use adapter instead of full Simulator
+        adapter = ExperimentRunnerAdapter(scene, clients or make_clients_from_env())
+
+        logger.debug(f"Created ExperimentScene with adapter: {config.scenario_id}")
+
+        return SimTree.new(adapter, adapter.clients)
     else:
         scene = scene_cls(name, str(cfg.get("initial_event") or ""))
 
@@ -210,14 +376,11 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
 
     # Build agents from agent_config
     built_agents = []
-    emotion_enabled = cfg["emotion_enabled"] if ("emotion_enabled" in cfg) else False
     for cfg_agent in items:
         aname = str(cfg_agent.get("name") or "").strip() or "Agent"
         profile = str(cfg_agent.get("profile") or "")
         selected = [str(a) for a in (cfg_agent.get("action_space") or [])]
         props = dict(cfg_agent.get("properties") or {})
-        if "emotion_enabled" not in props:
-            props["emotion_enabled"] = emotion_enabled
         language = _normalize_language(cfg_agent.get("language") or preferred_language)
         # scene common actions from registry (fallback to scene introspection)
         # Use normalized scene_key so short names (e.g., 'village') map correctly.
@@ -309,7 +472,6 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         event_handler=_quiet_logger,
         ordering=ordering,
         max_steps_per_turn=3 if scene_type == "landlord_scene" else 5,
-        emotion_enabled=emotion_enabled,
         environment_config=environment_config,
     )
     # Set global knowledge reference on all agents
@@ -384,7 +546,15 @@ class SimTreeRegistry:
             record = self._records.get(key)
             if record is not None:
                 return record
-            tree = await asyncio.to_thread(_build_tree_for_sim, sim_record, clients)
+            # 优先使用最新持久化的 latest_state 进行恢复；否则重新构建
+            if getattr(sim_record, "latest_state", None):
+                try:
+                    tree = SimTree.deserialize(sim_record.latest_state, clients or make_clients_from_env())
+                except Exception:
+                    logger.exception("Failed to deserialize latest_state, fallback to rebuild")
+                    tree = await asyncio.to_thread(_build_tree_for_sim, sim_record, clients)
+            else:
+                tree = await asyncio.to_thread(_build_tree_for_sim, sim_record, clients)
             record = SimTreeRecord(tree)
             loop = asyncio.get_running_loop()
             tree.attach_event_loop(loop)

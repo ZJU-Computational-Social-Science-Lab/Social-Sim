@@ -13,6 +13,7 @@
  *   - Step1BasicInfo: Experiment name input
  *   - Step2ImportModeSelector: Import mode buttons
  *   - Step2DefaultMode: Default template agents display
+ *   - Step2DemographicsEditor: Demographic-based agent generation UI
  *   - Step3Confirmation: Confirmation summary
  */
 
@@ -24,4 +25,5 @@ export { Step1TimeConfiguration } from './Step1TimeConfiguration';
 export { Step1BasicInfo } from './Step1BasicInfo';
 export { Step2ImportModeSelector } from './Step2ImportModeSelector';
 export { Step2DefaultMode } from './Step2DefaultMode';
+export { Step2DemographicsEditor } from './Step2DemographicsEditor';
 export { Step3Confirmation } from './Step3Confirmation';

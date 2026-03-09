@@ -215,7 +215,7 @@ class LLMClient:
     # Chat API
     # -------------------------------------------------------------------------
 
-    def chat(self, messages: List[Dict[str, Any]]) -> str:
+    def chat(self, messages: List[Dict[str, Any]], json_mode: bool = False) -> str:
         """
         Generate chat completion with vision support.
 
@@ -226,6 +226,9 @@ class LLMClient:
         Args:
             messages: List of message dicts with role, content, and optional
                      images/audio/video lists
+            json_mode: If True, enforce JSON output via:
+                       - OpenAI/Ollama: response_format={"type": "json_object"}
+                       - Gemini: generation_config={"response_mime_type": "application/json"}
 
         Returns:
             Generated text response
@@ -249,6 +252,7 @@ class LLMClient:
                     timeout=self.timeout_s,
                     allow_vision=supports_vision,
                     safe_urls_func=validate_media_url,
+                    json_mode=json_mode,
                 )
             return self._with_timeout_and_retry(_do)
 
@@ -266,6 +270,7 @@ class LLMClient:
                     presence_penalty=self.provider.presence_penalty,
                     safe_urls_func=validate_media_url,
                     allow_vision=supports_vision,
+                    json_mode=json_mode,
                 )
             return self._with_timeout_and_retry(_do)
 
@@ -289,6 +294,7 @@ class LLMClient:
                     timeout=self.timeout_s,
                     allow_vision=supports_vision,
                     safe_urls_func=validate_media_url,
+                    json_mode=json_mode,
                 )
             return self._with_timeout_and_retry(_do)
 

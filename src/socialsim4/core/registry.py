@@ -40,6 +40,7 @@ from .scenes.landlord_scene import LandlordPokerScene
 from .scenes.simple_chat_scene import SimpleChatScene
 from .scenes.village_scene import VillageScene
 from .scenes.werewolf_scene import WerewolfScene
+from socialsim4.core.experiment.scene import ExperimentScene
 from socialsim4.templates.loader import GenericScene
 
 ACTION_SPACE_MAP = {
@@ -85,6 +86,7 @@ ACTION_SPACE_MAP = {
     "no_double": NoDoubleAction(),
 }
 
+
 SCENE_MAP = {
     "simple_chat_scene": SimpleChatScene,
     "emotional_conflict_scene": SimpleChatScene,
@@ -93,7 +95,27 @@ SCENE_MAP = {
     "werewolf_scene": WerewolfScene,
     "landlord_scene": LandlordPokerScene,
     "generic_scene": GenericScene,
+    "experiment_template": ExperimentScene,
 }
+
+
+def get_scene_class(scene_key: str):
+    """Get a scene class from SCENE_MAP, handling lazy loading.
+
+    Args:
+        scene_key: The key to look up in SCENE_MAP
+
+    Returns:
+        The scene class (callable if it was a lazy loader)
+    """
+    scene_cls = SCENE_MAP.get(scene_key)
+    if scene_cls is None:
+        return None
+    # If it's a callable (lazy loader), call it to get the actual class
+    if callable(scene_cls) and not isinstance(scene_cls, type):
+        return scene_cls()
+    return scene_cls
+
 
 ORDERING_MAP = _ORDERING_MAP
 
@@ -146,7 +168,116 @@ SCENE_ACTIONS: dict[str, dict[str, list[str]]] = {
             "call_landlord", "rob_landlord", "pass", "play_cards", "double", "no_double",
         ],
     },
+    "experiment_template": {
+        "basic": [],
+        "allowed": [],
+    },
 }
+
+# ---------------------------------------------------------------------------
+# Information Model Registry (mirrors SCENE_MAP pattern for the info layer)
+# ---------------------------------------------------------------------------
+
+import random as _random
+from typing import List, Tuple
+from socialsim4.core.experiment.information_model import InformationModel
+
+
+def pair_agents_randomly(agents: List[str], round_num: int) -> List[Tuple[str, str]]:
+    """Deterministically pair agents by round_num seed (no global state side-effects)."""
+    rng = _random.Random(round_num)
+    shuffled = list(agents)
+    rng.shuffle(shuffled)
+    return [(shuffled[i], shuffled[i + 1]) for i in range(0, len(shuffled) - 1, 2)]
+
+
+def werewolf_visibility_scope(
+    agent: str, state: dict, all_agents: List[str]
+) -> List[str]:
+    """Mafia members see each other; villagers see only themselves."""
+    roles = state.get("roles", {})
+    if roles.get(agent) == "mafia":
+        return [a for a, r in roles.items() if r == "mafia"]
+    return [agent]
+
+
+INFORMATION_MODEL_MAP: dict = {
+    # Scene keys must exactly match SCENE_MAP keys
+    "simple_chat_scene": InformationModel(scope_type="all", recent_window=5),
+    "emotional_conflict_scene": InformationModel(scope_type="all", recent_window=5),
+    "council_scene": InformationModel(scope_type="all", recent_window=5),
+    "village_scene": InformationModel(
+        scope_type="neighborhood",
+        # NOTE: proximity_scope requires state["_agent_positions"] to be populated
+        # by the runtime. Defaults to social_network fallback until that is wired.
+        recent_window=5,
+    ),
+    "werewolf_scene": InformationModel(
+        scope_type="role_based",
+        scope_fn=werewolf_visibility_scope,
+        recent_window=5,
+    ),
+    "landlord_scene": InformationModel(scope_type="all", recent_window=3),
+    "generic_scene": InformationModel(scope_type="all", recent_window=3),
+    "experiment_template": InformationModel(scope_type="all", recent_window=3),
+    # Scenario-level keys (used when scene_type == scenario id)
+    "prisoners_dilemma": InformationModel(
+        scope_type="pair",
+        pairing_fn=pair_agents_randomly,
+        recent_window=3,
+        payoff_template="Round {N}: {my_action} vs {partner_action} → {payoff} pts",
+    ),
+    # Aliases for frontend compatibility (frontend may use hyphens)
+    "prisoners-dilemma": InformationModel(
+        scope_type="pair",
+        pairing_fn=pair_agents_randomly,
+        recent_window=3,
+        payoff_template="Round {N}: {my_action} vs {partner_action} → {payoff} pts",
+    ),
+    "public_goods": InformationModel(scope_type="all", recent_window=3),
+    "public-goods": InformationModel(scope_type="all", recent_window=3),
+    # Graph Coloring / Coordination Game - neighbor-based coordination with feedback (no scores)
+    "graph_coloring": InformationModel(
+        scope_type="neighborhood",
+        recent_window=5,
+        include_scores=False,  # No scores for feedback-type games
+    ),
+    "graph-coloring": InformationModel(
+        scope_type="neighborhood",
+        recent_window=5,
+        include_scores=False,
+    ),
+    "coordination_game": InformationModel(
+        scope_type="neighborhood",
+        recent_window=5,
+        include_scores=False,
+    ),
+    "coordination-game": InformationModel(
+        scope_type="neighborhood",
+        recent_window=5,
+        include_scores=False,
+    ),
+    # Sociology scenarios - no payoff scores to show
+    "social_norm_disruption": InformationModel(scope_type="all", recent_window=3, include_scores=False),
+    "policy_erosion": InformationModel(scope_type="all", recent_window=3, include_scores=False),
+    "echo_chamber": InformationModel(scope_type="neighborhood", recent_window=3, include_scores=False),
+    "resource_scarcity": InformationModel(scope_type="all", recent_window=3, include_scores=False),
+    "open_discussion": InformationModel(scope_type="all", recent_window=3, include_scores=False),
+    "werewolf": InformationModel(scope_type="all", recent_window=3, include_scores=False),
+    "grid_world": InformationModel(scope_type="neighborhood", recent_window=3, include_scores=False),
+    # Fallback for unknown scene types
+    "_default": InformationModel(scope_type="all", recent_window=3),
+}
+
+
+def get_information_model(scene_type: str) -> InformationModel:
+    """Return the InformationModel for a scene type, with _default fallback.
+
+    Normalizes hyphens to underscores for lookup (frontend uses 'prisoners-dilemma',
+    backend uses 'prisoners_dilemma').
+    """
+    normalized = scene_type.replace("-", "_")
+    return INFORMATION_MODEL_MAP.get(normalized, INFORMATION_MODEL_MAP["_default"])
 
 # Scene descriptions for selection UI and docs
 SCENE_DESCRIPTIONS: dict[str, str] = {
@@ -157,4 +288,5 @@ SCENE_DESCRIPTIONS: dict[str, str] = {
     "werewolf_scene": "Social deduction game with night/day phases and role-specific actions (moderated flow).",
     "landlord_scene": "Dou Dizhu (Landlord) card game flow with bidding, playing, and scoring stages.",
     "generic_scene": "A flexible scene type composed from template configuration. Supports custom mechanics and semantic actions.",
+    "experiment_template": "Social science experiment using Three-Layer Architecture (constrained decoding, structured prompts, validation). Supports custom actions and simultaneous/sequential rounds.",
 }

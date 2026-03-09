@@ -1,0 +1,82 @@
+# Backend i18n Audit Findings
+# Generated: 2026-03-09
+# Total Python files in backend: 62
+# Files using T() from socialsim4.i18n: 10
+
+================================================================================
+## SUMMARY
+================================================================================
+Files with violations: 3 files (user-facing API routes)
+Total hardcoded strings found: 15+
+
+Note: Core simulation engine (src/socialsim4/core/) is intentionally excluded per CLAUDE.md:
+"Core Engine follows fail-fast philosophy - no try/except, no runtime type checks"
+These files are NOT user-facing and are exempt from i18n requirements.
+
+================================================================================
+## HIGH PRIORITY - User-facing API responses
+================================================================================
+
+### 1. experiments.py (src/socialsim4/backend/api/routes/experiments.py)
+Category: Error response
+Line 119:   return {"error": "not_found"}
+
+Category: HTTPException details
+Line 145:   raise HTTPException(status_code=400, detail="Missing node_a or node_b in request body")
+Line 151:   raise HTTPException(status_code=400, detail="Invalid node id(s); must be integers")
+Line 160:   raise HTTPException(status_code=400, detail="node_not_found")
+
+Category: Hardcoded Chinese strings (should be translated)
+Lines 192-198: Hardcoded Chinese summary text:
+  - "节点 {node_a} 有 {len(only_a)} 条独有事件。"
+  - "节点 {node_b} 有 {len(only_b)} 条独有事件。"
+  - "{len(agent_diffs)} 个代理的属性存在差异。"
+  - "未发现明显差异（基于事件内容与属性的快速比对）。"
+Line 208:   summary = summary + "（注意：差异过大，已禁用 LLM 摘要以节省资源）"
+Line 218:   summary = summary + "（未配置可用的 LLM 客户端）"
+Line 295:   summary = summary + "（注意：用户 LLM 配额已耗尽，已禁用 LLM 摘要）"
+
+Lines 237-252: Hardcoded LLM system/user prompts (Chinese):
+  - "You are a concise and conservative summarizer..."
+  - "Please respond in Chinese, <= 3 sentences..."
+
+### 2. agent_documents.py (src/socialsim4/backend/api/routes/simulations/agent_documents.py)
+Category: Error response with hint
+Lines 398-400:
+  "error": "Agent memory not available. Provide a valid node_id from a running simulation.",
+  "hint": "Use /tree/graph to get available nodes, then query with ?node_id=<node>",
+
+### 3. experiment_runner.py (src/socialsim4/backend/services/experiment_runner.py)
+Category: Error metadata
+Line 254:   run.result_meta = {"error": "SimTree not loaded"}
+
+### 4. tree_operations.py (src/socialsim4/backend/api/routes/simulations/tree_operations.py)
+Category: Example in docstring (lower priority)
+Line 845:   POST body: {"message": "ANNOUNCEMENT: Please reconsider your strategy."}
+
+================================================================================
+## MEDIUM PRIORITY - Scenario descriptions
+================================================================================
+
+### 5. social_norm_disruption.py (src/socialsim4/scenarios/social_norm_disruption.py)
+Category: Scenario event description (user-facing via frontend)
+Line 67:    description = f"""A new rule has been announced: All participants must comply with a new mandatory requirement.
+
+Note: Scenario descriptions are typically shown to users and should be translatable.
+This file uses English hardcoded strings for event descriptions.
+
+================================================================================
+## FILES ALREADY COMPLIANT (using T())
+================================================================================
+10 backend files already import and use T():
+- src/socialsim4/backend/api/routes/simulations/*.py (several files)
+- Other backend service files
+
+================================================================================
+## EXCLUSIONS (not flagged)
+================================================================================
+- src/socialsim4/core/ - Core simulation engine (fail-fast, not user-facing)
+- Test files (tests/)
+- Debug/logging strings (not user-facing)
+- Schema field descriptions (Pydantic Field description= - developer docs)
+- Comments and docstrings

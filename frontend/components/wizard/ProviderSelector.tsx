@@ -17,8 +17,8 @@ import React from 'react';
 import { Bot } from 'lucide-react';
 
 interface LLMProvider {
-  id: number;
-  name?: string;
+  id: string;
+  name: string;
   provider?: string;
   model?: string;
   base_url?: string;
@@ -28,8 +28,8 @@ interface LLMProvider {
 
 interface ProviderSelectorProps {
   providers: LLMProvider[];
-  selectedProviderId: number | null;
-  onProviderChange: (id: number | null) => void;
+  selectedProviderId: string | null;
+  onProviderChange: (id: string | null) => void;
   title: string;
   hint: string;
   noProviderOption: string;
@@ -46,10 +46,15 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
   defaultProviderText,
 }) => {
   const getProviderLabel = (p: LLMProvider) => {
-    const name = p.name || p.provider || defaultProviderText;
-    const model = p.model ? ` · ${p.model}` : '';
+    const name = p.name || defaultProviderText;
+    const model = p.model ? ` (${p.model})` : '';
     const baseUrl = p.base_url ? ` · ${p.base_url}` : '';
-    return name + model + baseUrl;
+    // Show active/default status
+    const status = [];
+    if (p.is_active) status.push('Active');
+    if (p.is_default) status.push('Default');
+    const statusStr = status.length > 0 ? ` · ${status.join(', ')}` : '';
+    return name + model + statusStr + baseUrl;
   };
 
   return (
@@ -66,16 +71,18 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
 
       <select
         value={selectedProviderId ?? ''}
-        onChange={(e) =>
-          onProviderChange(e.target.value ? Number(e.target.value) : null)
-        }
-        className="text-xs border-indigo-200 rounded px-2 py-1.5 focus:ring-indigo-500 min-w-[260px]"
+        onChange={(e) => onProviderChange(e.target.value || null)}
+        className="text-xs border-indigo-200 rounded px-2 py-1.5 focus:ring-indigo-500 min-w-[300px]"
       >
         {providers.length === 0 && (
-          <option value="">{noProviderOption}</option>
+          <option value="" disabled className="text-gray-400 italic">{noProviderOption}</option>
         )}
         {providers.map((p) => (
-          <option key={p.id} value={p.id}>
+          <option
+            key={p.id}
+            value={p.id}
+            className={selectedProviderId === p.id ? 'font-semibold text-indigo-900' : 'text-gray-700'}
+          >
             {getProviderLabel(p)}
           </option>
         ))}

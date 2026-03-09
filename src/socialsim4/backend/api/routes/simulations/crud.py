@@ -12,6 +12,7 @@ Contains:
     - read_simulation: GET single simulation by ID
     - update_simulation: PATCH update simulation
     - delete_simulation: DELETE simulation by ID
+    - _normalize_agent_config: Convert camelCase to snake_case for agent fields
 """
 
 import copy
@@ -43,6 +44,86 @@ from .helpers import (
 
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_agent_config(agent_config: dict) -> dict:
+    """
+    Normalize agent config field names from camelCase to snake_case.
+
+    Frontend sends camelCase field names (rolePrompt, userProfile, avatarUrl)
+    but backend expects snake_case (role_prompt, user_profile, avatar_url).
+    This function also ensures required fields have proper defaults.
+
+    Args:
+        agent_config: Raw agent config dict from frontend
+
+    Returns:
+        Normalized agent config dict with snake_case field names
+    """
+    if not agent_config:
+        return agent_config
+
+    agents = agent_config.get("agents", [])
+    normalized_agents = []
+
+    for agent in agents:
+        if not isinstance(agent, dict):
+            normalized_agents.append(agent)
+            continue
+
+        normalized = {}
+
+        # Copy fields as-is, but normalize specific camelCase keys
+        for key, value in agent.items():
+            # Field name mapping: camelCase -> snake_case
+            # NOTE: "role" is kept separate from "role_prompt"
+            # "role" is just a role name (e.g., "Citizen"), while "role_prompt" is a full role description
+            if key == "role":
+                # Keep role as-is, don't map to role_prompt
+                normalized["role"] = value
+            elif key == "rolePrompt":
+                normalized["role_prompt"] = value
+            elif key == "userProfile":
+                normalized["user_profile"] = value
+            elif key == "avatarUrl":
+                normalized["avatar_url"] = value
+                # Also preserve in properties for display
+                if "properties" not in normalized or not isinstance(normalized["properties"], dict):
+                    normalized["properties"] = {}
+                normalized["properties"]["avatarUrl"] = value
+            elif key == "llmConfig":
+                normalized["llm_config"] = value
+            elif key == "knowledgeBase":
+                normalized["knowledge_base"] = value
+            elif key == "providerId":
+                normalized["provider_id"] = value
+            elif key == "actionSpace":
+                normalized["action_space"] = value
+            else:
+                # Keep original key for already snake_case fields
+                normalized[key] = value
+
+        # Ensure required fields have defaults
+        if "history" not in normalized or normalized["history"] is None:
+            normalized["history"] = {}
+        if "memory" not in normalized or normalized["memory"] is None:
+            normalized["memory"] = []
+        if "score" not in normalized or normalized["score"] is None:
+            normalized["score"] = 0
+        if "properties" not in normalized or normalized["properties"] is None:
+            normalized["properties"] = {}
+
+        # Preserve profile/user_profile mapping for backend compatibility
+        # Frontend sends user_profile, backend expects profile OR user_profile
+        if "user_profile" in normalized and "profile" not in normalized:
+            normalized["profile"] = normalized["user_profile"]
+
+        normalized_agents.append(normalized)
+
+    return {
+        **agent_config,
+        "agents": normalized_agents
+    }
 
 
 @get("/")
@@ -116,6 +197,9 @@ async def create_simulation(
         if not provider.model:
             raise RuntimeError("LLM model required")
 
+        # Normalize agent config field names from camelCase to snake_case
+        normalized_agent_config = _normalize_agent_config(data.agent_config or {})
+
         sim_id = generate_simulation_id()
         name = data.name or generate_simulation_name(sim_id)
 
@@ -125,7 +209,7 @@ async def create_simulation(
             name=name,
             scene_type=data.scene_type,
             scene_config=data.scene_config,
-            agent_config=data.agent_config,
+            agent_config=normalized_agent_config,
             status="draft",
         )
         session.add(sim)
@@ -202,11 +286,14 @@ async def update_simulation(
                 f"update_simulation: Received agent_config update for sim {simulation_id}"
             )
 
+            # Normalize incoming agent config field names
+            normalized_agent_config = _normalize_agent_config(data.agent_config)
+
             # Merge incoming agent_config with existing to preserve documents
             existing_agent_config = (
                 copy.deepcopy(sim.agent_config) if sim.agent_config else {"agents": []}
             )
-            incoming_agents = data.agent_config.get("agents", [])
+            incoming_agents = normalized_agent_config.get("agents", [])
             existing_agents = existing_agent_config.get("agents", [])
 
             # Create a map of existing agents by name for quick lookup
@@ -232,7 +319,7 @@ async def update_simulation(
                 if agent_name not in {a.get("name") for a in incoming_agents}:
                     merged_agents.append(copy.deepcopy(existing_agent))
 
-            merged_config = copy.deepcopy(data.agent_config)
+            merged_config = copy.deepcopy(normalized_agent_config)
             merged_config["agents"] = merged_agents
 
             # Debug logging for knowledge bases

@@ -89,19 +89,23 @@ async def get_tree_record(
         HTTPException: If provider configuration is invalid or missing
     """
     # Load LLM Provider configuration
+    # Find active provider, or fall back to first provider (consistent with create_simulation)
     result = await session.execute(
         select(ProviderConfig).where(ProviderConfig.user_id == user_id)
     )
     items = result.scalars().all()
     active = [p for p in items if (p.config or {}).get("active")]
 
-    if len(active) != 1:
+    if len(active) == 1:
+        provider = active[0]
+    elif len(items) >= 1:
+        # Fall back to first provider if no active flag is set
+        provider = items[0]
+    else:
         raise HTTPException(
             status_code=400,
-            detail="LLM provider not configured (need exactly one active)"
+            detail="LLM provider not configured"
         )
-
-    provider = active[0]
     dialect = (provider.provider or "").lower()
 
     if dialect not in {"openai", "gemini", "mock", "ollama"}:

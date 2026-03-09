@@ -61,6 +61,89 @@
     "loading": "Loading…",
     "error": "Unable to load simulations."
   },
+  "scenario": {
+    "category": {
+      "game_theory": "Game Theory",
+      "social_dynamics": "Social Dynamics",
+      "discussion": "Discussion",
+      "spatial": "Spatial / Grid-Based",
+      "social_deduction": "Social Deduction",
+      "sociology": "Sociology",
+      "custom": "Custom"
+    },
+    "sociology": {
+      "social_norm_disruption": {
+        "name": "Social Norm Disruption",
+        "description": "A new rule is suddenly imposed on the group. Agents with different social status and temperament must decide how to respond."
+      },
+      "policy_erosion": {
+        "name": "Policy Meaning Erosion",
+        "description": "A policy is announced at the top of a three-tier hierarchy. Each tier decides how to interpret and pass it on."
+      },
+      "echo_chamber": {
+        "name": "Echo Chamber",
+        "description": "Agents hold opinions ranging from strongly progressive to strongly conservative. Observe opinion drift and information silos."
+      },
+      "resource_scarcity": {
+        "name": "Resource Scarcity",
+        "description": "A post-disaster community faces scarce resources. Agents decide whether to share, trade, or defect for personal gain."
+      }
+    },
+    "game_theory": {
+      "prisoners_dilemma": {
+        "name": "Prisoner's Dilemma",
+        "description": "Two suspects are arrested and held separately. Each must decide whether to betray the other or remain silent. Your payoff depends on both your choice and your partner's choice."
+      },
+      "battle_of_the_sexes": {
+        "name": "Battle of the Sexes",
+        "description": "A couple wants to coordinate on an evening activity. One prefers opera, the other prefers football. They get positive payoff if they coordinate, but each prefers their own activity."
+      },
+      "stag_hunt": {
+        "name": "Stag Hunt",
+        "description": "Hunters must all choose stag (high reward) or hare (safe but low reward). Stag requires everyone to cooperate. If even one person chooses hare, the stag escapes and stag hunters get nothing."
+      },
+      "public_goods": {
+        "name": "Public Goods Game",
+        "description": "Each agent has resources and decides how much to contribute to a shared pool. The pool is multiplied and distributed equally among all agents, regardless of contribution."
+      },
+      "coordination_game": {
+        "name": "Coordination Game",
+        "description": "You and your neighbors each pick an option. You can see what your neighbors chose in previous rounds."
+      }
+    },
+    "discussion": {
+      "open_discussion": {
+        "name": "Open Discussion",
+        "description": "Agents discuss a topic freely. No structured decisions - just conversation."
+      },
+      "council_chamber": {
+        "name": "Council Chamber",
+        "description": "Formal deliberation with voting and procedural rules. Participants debate proposals, call for votes, and make collective decisions."
+      }
+    },
+    "spatial": {
+      "grid_world": {
+        "name": "Grid World",
+        "description": "Agents move on a grid, collecting resources and observing their environment."
+      },
+      "contagion": {
+        "name": "Contagion Spread",
+        "description": "Agents on a grid can spread contagion through proximity and social interactions. Watch as infection spreads through the population while agents move and communicate."
+      }
+    },
+    "social_deduction": {
+      "werewolf": {
+        "name": "Werewolf",
+        "description": "A social deduction game where villagers try to identify werewolves among them while werewolves try to eliminate villagers at night."
+      }
+    },
+    "custom": {
+      "custom": {
+        "name": "Custom Scenario",
+        "description": "Build your own custom experiment from scratch."
+      }
+    }
+  },
   "settings": {
     "title": "Settings",
     "tabs": {
@@ -192,7 +275,6 @@
     "config": "Configuration",
     "agents": "Agents",
     "scene": "Scene",
-    "noProfile": "No profile",
     "loadingScenes": "Loading scenes…",
     "fetchScenesError": "Unable to fetch scenes.",
     "basicActions": "Basic actions",
@@ -419,6 +501,7 @@
       "landlord": "Landlord"
     },
     "actions": {
+      "chooseAction": "Choose {{action}}",
       "send_message": "Post a message to all participants",
       "talk_to": "Say something to a nearby person",
       "speak": "Say something",
@@ -636,7 +719,99 @@
     "send_message": "Send message",
     "gather_resource": "Gather resources",
     "rest": "Rest",
-    "yield": "Yield"
+    "yield": "Yield",
+    "comply_publicly": {
+      "description": "Visibly accept and follow the norm or directive",
+      "execute": "{agent_name} publicly complied with the norm"
+    },
+    "comply_covertly_resist": {
+      "description": "Formally comply while privately circumventing",
+      "execute": "{agent_name} complied publicly but resisted privately"
+    },
+    "resist_openly": {
+      "description": "Openly refuse or challenge the norm",
+      "execute": "{agent_name} openly resisted the norm"
+    },
+    "persuade_others": {
+      "description": "Convince others to adopt your position",
+      "execute": "{agent_name} tried to persuade others"
+    },
+    "form_coalition": {
+      "description": "Organize with like-minded others",
+      "execute": "{agent_name} formed a coalition"
+    },
+    "transmit_faithfully": {
+      "description": "Pass the policy on exactly as received",
+      "execute": "{agent_name} transmitted the policy faithfully"
+    },
+    "reinterpret_downward": {
+      "description": "Adapt the policy when passing it down",
+      "execute": "{agent_name} reinterpreted the policy"
+    },
+    "comply_directive": {
+      "description": "Accept and implement the instruction from above",
+      "execute": "{agent_name} complied with the directive"
+    },
+    "resist_quietly": {
+      "description": "Formally comply but avoid real implementation",
+      "execute": "{agent_name} quietly resisted"
+    },
+    "report_up": {
+      "description": "Escalate an obstacle to a higher authority",
+      "execute": "{agent_name} reported up the chain"
+    },
+    "create_workaround": {
+      "description": "Build an informal path around the official rule",
+      "execute": "{agent_name} created a workaround"
+    },
+    "express_opinion": {
+      "description": "Share your current viewpoint",
+      "execute": "{agent_name} expressed their opinion"
+    },
+    "reinforce_ingroup": {
+      "description": "Engage with and amplify similar viewpoints",
+      "execute": "{agent_name} reinforced their in-group"
+    },
+    "challenge_outgroup": {
+      "description": "Actively argue against opposing views",
+      "execute": "{agent_name} challenged out-group views"
+    },
+    "seek_common_ground": {
+      "description": "Find shared values across opinion divides",
+      "execute": "{agent_name} sought common ground"
+    },
+    "share_content": {
+      "description": "Share information reinforcing your position",
+      "execute": "{agent_name} shared content"
+    },
+    "disengage": {
+      "description": "Withdraw from engagement with opposing views",
+      "execute": "{agent_name} disengaged"
+    },
+    "share_resources": {
+      "description": "Give some of your resources to another agent",
+      "execute": "{agent_name} shared resources"
+    },
+    "hoard": {
+      "description": "Keep all resources for yourself",
+      "execute": "{agent_name} hoarded resources"
+    },
+    "propose_trade": {
+      "description": "Offer to exchange resources",
+      "execute": "{agent_name} proposed a trade"
+    },
+    "form_contract": {
+      "description": "Propose a formal cooperative agreement",
+      "execute": "{agent_name} formed a contract"
+    },
+    "honor_contract": {
+      "description": "Fulfill an existing agreement",
+      "execute": "{agent_name} honored their contract"
+    },
+    "defect_from_contract": {
+      "description": "Break an agreement for personal gain",
+      "execute": "{agent_name} defected from their contract"
+    }
   },
   "simPage": {
     "noSimulation": "No simulation selected",
@@ -680,7 +855,15 @@
     "node": "Node {{id}}",
     "initialNode": "Initial state",
     "round": "System advanced to round {{round}}",
-    "timeLabel": "{{step}} {{unit}}/R"
+    "timeLabel": "{{step}} {{unit}}/R",
+    "resetSimulation": "Reset simulation",
+    "deleteSimulation": "Delete simulation",
+    "confirmReset": "Reset this simulation? This clears local graph and logs.",
+    "confirmDelete": "Delete this simulation? This removes the record from backend in connected mode.",
+    "resetSuccess": "Simulation reset",
+    "resetFail": "Failed to reset simulation",
+    "deleteSuccess": "Simulation deleted",
+    "deleteFail": "Failed to delete simulation"
   },
   "components": {
     "agentPanel": {
@@ -698,7 +881,10 @@
       "titlePlaceholder": "Title (e.g., Village Covenant)",
       "uploadHelperText": "Drag/upload images will be inserted as markdown links in profile description",
       "saveProfile": "Save profile",
+      "profilePlaceholder": "Enter agent profile...",
+      "noProfile": "No profile",
       "currentAttributes": "Current Attributes",
+      "noCustomAttributes": "No custom attributes",
       "knowledgeBase": "Knowledge Base (RAG)",
       "noKnowledgeDocs": "No knowledge base documents yet",
       "save": "Save",
@@ -1145,6 +1331,20 @@
       "instructions": "Please copy or screenshot the red error message above, or the red line in the browser console (F12), and share it with the development team."
     }
   },
+  "param": {
+    "uiHint": {
+      "slider": "Slider",
+      "percentage": "Percentage",
+      "textarea": "Text Area",
+      "text": "Text Input",
+      "select": "Select",
+      "toggle": "Toggle",
+      "list": "List",
+      "multiselect": "Multi-select",
+      "key_value": "Key-Value Pairs",
+      "drag_list": "Drag List"
+    }
+  },
   "pages": {
     "docsPage": {
       "documentation": "Documentation / User Guide",
@@ -1256,6 +1456,7 @@
     "knowledgeItemRemoved": "Knowledge item removed",
     "knowledgeItemUpdated": "Knowledge item updated",
     "selectedNodeNotBackend": "Selected node is not a backend node",
+    "selectNodeFirst": "Please select a node in the simulation tree first",
     "backendAdvanceFailed": "Backend advance failed, reverting local simulation",
     "simulationAdvanceFailed": "Simulation advance failed, please try again",
     "branch": "Branch",
@@ -1291,7 +1492,22 @@
     "experimentCompleted": "Experiment {{name}} completed (run {{status}})",
     "failedToStartExperiment": "Failed to start experiment",
     "batchExperimentStarted": "Batch experiment \"{{name}}\" started",
-    "comparisonAnalysisFailed": "Comparison analysis failed"
+    "comparisonAnalysisFailed": "Comparison analysis failed",
+    "selectedNodeNotFound": "Selected node not found in the simulation tree. Please try refreshing the simulation.",
+    "localDemoComparison": "Local demo: two timelines differ in events and agent attributes (demo only).",
+    "timeAdvancedTo": "Time advanced to",
+    "offlineModeNoAction": "offline mode, no actual action performed",
+    "branchCreated": "Branch created",
+    "parallelRun": "Parallel Run",
+    "createdBranch": "Created branch",
+    "parallelScenario": "parallel scenario",
+    "branchCreatedLocalMode": "Branch created (local mode)",
+    "cannotBranchFromRoot": "Cannot create branch from root node",
+    "cannotFindParentNode": "Cannot find parent node",
+    "simulationReport": "Simulation Experiment Analysis Report",
+    "generatedAt": "Generated at",
+    "keyEvents": "Key Events",
+    "suggestions": "Suggestions"
   },
   "helpModal": {
     "title": "Understanding the Frontier Concept",
@@ -1320,6 +1536,356 @@
     "nearbyAgents": "Nearby agents:",
     "plain": "plain",
     "messageLabel": "[Message]"
+  },
+  "experimentBuilder": {
+    "title": "Create New Experiment",
+    "subtitle": "Design your social science experiment in 6 steps",
+    "modalTitle": "Create New Experiment",
+    "cancel": "Cancel",
+    "next": "Next",
+    "back": "Back",
+    "create": "Create Experiment",
+    "actionSelector": {
+      "availableLabel": "Available Actions",
+      "loading": "Loading actions...",
+      "selectPrompt": "Select actions below...",
+      "selectAction": "Select an action...",
+      "addAction": "Add action... ({{count}}/{{max}})",
+      "noneAvailable": "No actions available",
+      "maxSelected": "Maximum {{max}} actions selected. Remove an action to add more.",
+      "fallbackWarning": "Using fallback options",
+      "loadError": "Failed to load actions",
+      "fallbackCooperate": "Cooperate",
+      "fallbackCooperateDesc": "Cooperate with other players",
+      "fallbackDefect": "Defect",
+      "fallbackDefectDesc": "Act in self-interest"
+    },
+    "network": {
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "resetView": "Reset view"
+    },
+    "newExperiment": "New Experiment",
+    "customExperiment": "Custom experiment",
+    "experimentCreated": "Experiment created successfully!",
+    "interactionTypes": {
+      "strategic_decisions": "Strategic Decisions",
+      "opinions_influence": "Opinions & Influence",
+      "network_spread": "Network & Spread",
+      "markets_exchange": "Markets & Exchange",
+      "spatial_movement": "Spatial & Movement",
+      "open_conversation": "Open Conversation"
+    },
+    "agent": {
+      "defaultRole": "Agent",
+      "defaultRolePrompt": "An agent in this simulation",
+      "agentWithOpinion": "Agent with opinion {{opinion}}",
+      "profileGender": "Gender: {{gender}}",
+      "profileAge": " | Age: {{age}}"
+    },
+    "step1": {
+      "title": "Choose interaction patterns for your experiment",
+      "subtitle": "Select one or more patterns that describe interactions you want to study",
+      "chooseScenario": "Choose a Scenario",
+      "selectTemplate": "Select a scenario template to start building your experiment",
+      "retry": "Retry",
+      "scenariosCount": "{{count}} scenarios",
+      "noScenariosAvailable": "No scenarios available",
+      "strategic_decisions": {
+        "title": "Strategic Decisions",
+        "description": "Study situations where outcomes depend on what others choose",
+        "examples": ["Prisoner's Dilemma", "Stag Hunt", "Public Goods Game"]
+      },
+      "opinions_influence": {
+        "title": "Opinions & Influence",
+        "description": "Model how views shift through social interaction and influence",
+        "examples": ["Opinion Polarization", "Consensus Formation", "Social Influence"]
+      },
+      "network_spread": {
+        "title": "Network & Spread",
+        "description": "Study how ideas, behaviors, or information spread through connections",
+        "examples": ["Information Cascades", "Viral Content", "Network Effects"]
+      },
+      "markets_exchange": {
+        "title": "Markets & Exchange",
+        "description": "Model buying, selling, bidding, and trading",
+        "examples": ["Double Auction", "Common Pool Resources", "Market Design"]
+      },
+      "spatial_movement": {
+        "title": "Spatial & Movement",
+        "description": "Study scenarios where location and proximity matter",
+        "examples": ["Spatial Games", "Segregation", "Territoriality"]
+      },
+      "open_conversation": {
+        "title": "Open Conversation",
+        "description": "Agents simply talk and discuss - no formal structure",
+        "examples": ["Focus Groups", "Deliberation", "Unstructured Discussion"]
+      },
+      "optionalAddons": "Optional Add-ons Available",
+      "optionalAddonsDesc": "Based on your selection, you can add voting, multiple phases, or scripted agents in later steps."
+    },
+    "close": "Close",
+    "roundSettings": {
+      "title": "Round Settings",
+      "roundVisibility": {
+        "label": "Round Visibility",
+        "simultaneous": "Simultaneous (all decide at once)",
+        "sequential": "Sequential (one at a time)"
+      },
+      "turnOrder": {
+        "label": "Turn Order",
+        "fixed": "Fixed",
+        "random": "Random"
+      }
+    },
+    "promptPreview": {
+      "title": "Example Agent Prompt",
+      "note": "All {n} agent type(s) receive the same scenario, actions, and output format. Only the agent description changes.",
+      "otherTypes": "Other agent types"
+    },
+    "actions": {
+      "chooseAction": "Choose {{action}}"
+    },
+    "dynamicActionsInfo": {
+      "title": "Dynamic Actions:",
+      "message": "These actions are generated from the \"{{paramLabel}}\" parameter. Edit it in Step 2 to change the available choices."
+    },
+    "payoffMatrix": {
+      "howToRead": {
+        "title": "How to read this matrix:",
+        "rows": "Rows",
+        "columns": "Columns",
+        "cellValues": "Cell values"
+      },
+      "rowLabel": "Your choice (Player 1)",
+      "colLabel": "Opponent's choice (Player 2)",
+      "pointsLabel": "Points you receive when both players make those choices",
+      "symmetric": {
+        "title": "Symmetric game:",
+        "description": "Both players get the same payoff shown in each cell.",
+        "example": "Example: If you both choose \"Cooperate\", you each get that many points."
+      },
+      "asymmetric": {
+        "title": "Asymmetric game:",
+        "description": "Each cell shows two values:",
+        "row": "Row",
+        "col": "Col"
+      },
+      "actionLegend": "What each action means:",
+      "readInstruction": "Read: \"If I choose [row] and they choose [column], I get [value] points\"",
+      "iChoose": "I choose ↓",
+      "theyChoose": "They choose →",
+      "pointsEach": "points each",
+      "tip": "Tip: These payoff values are shown to agents in their prompts, helping them understand the game incentives.",
+      "actions": {
+        "cooperate": "Work together with the other player",
+        "defect": "Act in your own self-interest",
+        "hunt_stag": "Hunt the large stag (requires cooperation)",
+        "hunt_hare": "Hunt the small hare (can do alone)",
+        "heads": "Choose Heads",
+        "tails": "Choose Tails",
+        "soccer": "Go to the soccer game",
+        "ballet": "Go to the ballet",
+        "choose": "Choose {{action}}"
+      }
+    },
+    "keyValueField": {
+      "key": "Key",
+      "value": "Value",
+      "remove": "Remove",
+      "add": "Add"
+    },
+    "listField": {
+      "addItem": "Add item...",
+      "remove": "Remove",
+      "add": "Add"
+    },
+    "step2": {
+      "selectScenarioFirst": "Please select a scenario in Step 1 first.",
+      "configureTitle": "Configure {{name}}",
+      "configureSubtitle": "Customize the scenario description and parameters",
+      "scenarioDescriptionLabel": "Scenario description (agents will see this)",
+      "scenarioDescriptionPlaceholder": "Enter a description of the scenario that agents will understand...",
+      "parametersTitle": "Parameters",
+      "noParameters": "This scenario has no configurable parameters. Adjust the description above and proceed to the next step.",
+      "payoffInput": {
+        "yourPayoffs": "Your Payoffs:",
+        "instruction": "Fill in what YOU receive based on YOUR choice and THEIR choice.",
+        "youThey": "You: {{actionA}} / They: {{actionB}}"
+      }
+    },
+    "step3": {
+      "title": "Select Actions",
+      "subtitle": "Choose what actions agents can take. At least one action must be selected.",
+      "categoryInfo": "Showing all available actions for the {{category}} category. This scenario starts with a pre-selected set of actions.",
+      "noActions": "No actions available. Please select a scenario first or add custom actions.",
+      "addCustomAction": "Add custom action",
+      "customActionTitle": "Add Custom Action",
+      "actionName": "Action name",
+      "actionNamePlaceholder": "e.g., Negotiate",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe what this action does...",
+      "addAction": "Add Action",
+      "actionsSelected": "{{selected}} of {{total}} actions selected",
+      "removeAction": "Remove action"
+    },
+    "step4": {
+      "modeTitle": "How would you like to create agents?",
+      "modes": {
+        "manual": {
+          "title": "Manual Types",
+          "description": "Define agent types manually with custom prompts and counts"
+        },
+        "demographic": {
+          "title": "Demographic Generation",
+          "description": "Generate agents from custom demographic variables"
+        },
+        "import": {
+          "title": "File Import",
+          "description": "Import agent configurations from a JSON file"
+        }
+      },
+      "defineTypes": "Define Agent Types",
+      "typeLabel": "Type Label",
+      "count": "Count",
+      "rolePrompt": "Role Prompt (what is this agent's role?)",
+      "addAgentType": "+ Add Agent Type",
+      "noTypes": "No agent types defined yet",
+      "remove": "Remove",
+      "totalAgents": "Total agents: {{count}}",
+      "agentsDefined": "{{count}} agent(s) defined",
+      "llmProvider": "LLM Provider",
+      "defaultProvider": "Default Provider",
+      "importTitle": "Import Agent Data",
+      "importDesc": "Upload a CSV or JSON file with agent definitions.",
+      "csvFormat": "CSV Format Example:",
+      "uploadCSV": "Upload CSV",
+      "uploadJSON": "Upload JSON",
+      "importInfo": "File import will be implemented in Phase 7."
+    },
+    "step5": {
+      "networkPresets": "Network Presets",
+      "chooseTopology": "Choose a network topology",
+      "presets": {
+        "fully_connected": { "name": "Fully Connected", "description": "Everyone knows everyone" },
+        "random": { "name": "Random", "description": "Random connections" },
+        "ring": { "name": "Ring", "description": "Each agent connected to neighbors" },
+        "small_world": { "name": "Small World", "description": "Newman-Watts small world network" },
+        "scale_free": { "name": "Scale-Free", "description": "Holme-Kim scale-free network" },
+        "star": { "name": "Star", "description": "One central hub" },
+        "core_periphery": { "name": "Core-Periphery", "description": "Dense core, sparse periphery" },
+        "spatial": { "name": "Spatial", "description": "Waxman spatial network" },
+        "communities": { "name": "Communities", "description": "Stochastic block model" }
+      },
+      "applyChanges": "Apply Changes",
+      "noAgentsConfigured": "No Agents Configured",
+      "goBackToStep4": "Go back to Step 4 to add agents before configuring the network.",
+      "fullyConnected": "Fully Connected",
+      "reset": "Reset",
+      "nodes": "{{count}} nodes",
+      "edges": "{{count}} edges",
+      "instructions": "Instructions",
+      "instructionSelect": "Select a preset to generate a network",
+      "instructionDrag": "Drag nodes to rearrange",
+      "instructionZoom": "Scroll to zoom, drag to pan"
+    },
+    "step6": {
+      "noAgentsDefined": "No Agents Defined",
+      "goBackToStep4": "Go back to Step 4 to add agents to your experiment.",
+      "totalAgentsTypes": "{{agents}} total agents across {{types}} types"
+    },
+    "progressBar": {
+      "steps": {
+        "chooseScenario": "Choose Scenario",
+        "configureScenario": "Configure Scenario",
+        "selectActions": "Select Actions",
+        "createAgents": "Create Agents",
+        "network": "Network",
+        "review": "Review"
+      }
+    },
+    "experimentBuilder": {
+      "step3": {
+        "title": "Select Actions",
+        "subtitle": "Choose what actions agents can take. At least one action must be selected.",
+        "categoryInfo": "Showing all available actions for the {{category}} category. This scenario starts with a pre-selected set of actions.",
+        "noActions": "No actions available. Please select a scenario first or add custom actions.",
+        "addCustomAction": "Add custom action",
+        "customActionTitle": "Add Custom Action",
+        "actionName": "Action name",
+        "actionNamePlaceholder": "e.g., Negotiate",
+        "description": "Description",
+        "descriptionPlaceholder": "Describe what this action does...",
+        "addAction": "Add Action",
+        "actionsSelected": "{{selected}} of {{total}} actions selected",
+        "removeAction": "Remove action"
+      }
+    },
+    "actionEditor": {
+      "title": "Actions",
+      "actionNumber": "Action {{number}}",
+      "nameLabel": "Name",
+      "namePlaceholder": "Enter action name",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Describe what this action means"
+    },
+    "resourceConfig": {
+      "title": "Resource Settings",
+      "resourceNameLabel": "Resource Name",
+      "customResourceLabel": "Custom Resource Name",
+      "customResourcePlaceholder": "Enter custom resource name",
+      "initialAmountLabel": "Initial Amount",
+      "multiplierLabel": "Pool Multiplier",
+      "actionLabelsTitle": "Action Labels",
+      "actionNameLabel": "Action Name",
+      "actionDescriptionLabel": "Action Description",
+      "resourceOptions": {
+        "tokens": "Tokens",
+        "money": "Money",
+        "effortPoints": "Effort Points",
+        "timeHours": "Time (hours)",
+        "resources": "Resources",
+        "custom": "Custom..."
+      }
+    }
+  },
+  "simulation": {
+    "log": {
+      "action_chosen": "{{agent}} chose {{action}}",
+      "action_generic": "{{agent}} performed: {{action}}",
+      "public_goods_contribution": "{{agent}} decided to {{action}} {{amount}} {{resource}}",
+      "round_summary": "Round {{round}} complete",
+      "payoff_result": "{{agent}} received {{payoff}} points"
+    },
+    "results": {
+      "round_title": "Round {{round}} Results",
+      "agents_chose": "{{count}} agents chose this",
+      "total_contributed": "Total Contributed",
+      "pool_after_multiplier": "Pool (x{{multiplier}})",
+      "per_agent_share": "Per-Agent Share"
+    }
+  },
+  "prompts": {
+    "game_theory": {
+      "battle_of_the_sexes": {
+        "intro": "You are playing Battle of the Sexes.",
+        "choose_instruction": "You can choose: {{action_1}} or {{action_2}}.",
+        "action_format": "- {{action_name}}: {{action_description}}"
+      },
+      "stag_hunt": {
+        "intro": "You are playing Stag Hunt.",
+        "choose_instruction": "You can choose: {{action_1}} or {{action_2}}.",
+        "action_format": "- {{action_name}}: {{action_description}}",
+        "payoff_context": "{{action_1}} pays {{stag_reward}} if ALL choose it, else 0. {{action_2}} always pays {{hare_reward}}."
+      },
+      "public_goods": {
+        "intro": "You have {{initial_amount}} {{resource}}.",
+        "action_instruction": "You can {{action_name}} some amount to a shared pool.",
+        "action_description": "{{action_description}}",
+        "pool_mechanics": "The pool is multiplied by {{multiplier}} and distributed equally among all participants.",
+        "choose_instruction": "Choose how much to {{action_name}} (0 to {{initial_amount}})."
+      }
+    }
   },
   "systemTemplates": {
     "normDisruption": {

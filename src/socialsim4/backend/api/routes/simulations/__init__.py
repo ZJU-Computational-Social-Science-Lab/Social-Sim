@@ -45,6 +45,7 @@ def create_router() -> Router:
             lifecycle.resume_simulation,
             lifecycle.reset_simulation,
             lifecycle.copy_simulation,
+            lifecycle.rehydrate_simulation,
             # Snapshot operations
             snapshots.create_snapshot,
             snapshots.list_snapshots,
@@ -60,6 +61,7 @@ def create_router() -> Router:
             tree_operations.simulation_tree_state,
             tree_operations.test_agent_knowledge,
             tree_operations.ask_agents_question,
+            tree_operations.inject_host_message,
             # WebSocket handlers
             websocket_handlers.simulation_tree_events_ws,
             websocket_handlers.simulation_tree_node_events_ws,

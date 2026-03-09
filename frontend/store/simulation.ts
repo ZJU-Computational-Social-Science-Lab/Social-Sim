@@ -22,7 +22,7 @@ import type {
   EngineMode,
   SocialNetwork
 } from '../types';
-import { SYSTEM_TEMPLATES, generateNodes, mapGraphToNodes, DEFAULT_TIME_CONFIG } from './helpers';
+import { SYSTEM_TEMPLATES, generateNodes, mapGraphToNodes, DEFAULT_TIME_CONFIG, mapBackendEventsToLogs } from './helpers';
 import i18n from '../i18n';
 
 export interface SimulationSlice {
@@ -54,6 +54,7 @@ export interface SimulationSlice {
   updateSocialNetwork: (network: SocialNetwork) => Promise<void>;
   setEngineMode: (mode: EngineMode) => void;
   loadSimulations: () => Promise<void>;
+  loadSimulationById: (id: string) => Promise<void>;
 }
 
 export const createSimulationSlice: StateCreator<
@@ -92,6 +93,259 @@ export const createSimulationSlice: StateCreator<
       set({ simulations });
     } catch (e) {
       console.error('Failed to load simulations', e);
+    }
+  },
+
+  loadSimulationById: async (id: string) => {
+    if (!id) return;
+
+    const state = get();
+    const base = state.engineConfig.endpoint;
+    const token = (state.engineConfig as any).token;
+
+    try {
+      const { getSimulation } = await import('../services/simulations');
+      const { getTreeGraph, getSimState, getSimEvents, getRehydrate } = await import('../services/simulationTree');
+
+      const sim = await getSimulation(id);
+
+      const graph = await getTreeGraph(base, id, token).catch(() => null);
+
+      if (graph && graph.root != null) {
+        const nodes = mapGraphToNodes(graph);
+
+        const runningId = Array.isArray(graph.running) && graph.running.length > 0 ? graph.running[0] : null;
+        const frontierId = Array.isArray(graph.frontier) && graph.frontier.length > 0 ? graph.frontier[0] : null;
+        const deepestLeaf = nodes.reduce<{ id: string | null; depth: number }>((acc, n) => {
+          const depthNum = Number(n.depth ?? 0);
+          if (n.isLeaf && depthNum >= acc.depth) {
+            return { id: n.id, depth: depthNum };
+          }
+          return acc;
+        }, { id: null, depth: -Infinity });
+
+        const selectedId = runningId != null
+          ? String(runningId)
+          : frontierId != null
+          ? String(frontierId)
+          : deepestLeaf.id ?? String(graph.root);
+
+        const nodeNumeric = Number(selectedId);
+        const simState = Number.isFinite(nodeNumeric)
+          ? await getSimState(base, id, nodeNumeric, token).catch(() => null)
+          : null;
+        const events = Number.isFinite(nodeNumeric)
+          ? await getSimEvents(base, id, nodeNumeric, token).catch(() => [])
+          : [];
+
+        if (simState) {
+          const turnVal = Number(simState?.turns ?? 0) || 0;
+          const agents = (simState?.agents || []).map((a: any, idx: number) => {
+            const fallbackRole = a.properties && (a.properties.role || a.properties.title || a.properties.position);
+            const fallbackProfile = a.profile || a.user_profile || a.userProfile || (a.properties && (a.properties.profile || a.properties.description)) || '';
+            return {
+              id: `a-${idx}-${a.name}`,
+              name: a.name,
+              role: a.role || fallbackRole || '',
+              avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
+              profile: fallbackProfile,
+              llmConfig: a.llmConfig || { provider: 'mock', model: 'default' },
+              properties: a.properties || {},
+              history: {},
+              memory: (a.short_memory || []).map((m: any, j: number) => ({
+                id: `m-${idx}-${j}`,
+                round: turnVal,
+                content: String(m.content ?? ''),
+                type: (String(m.role ?? '') === 'assistant' || String(m.role ?? '') === 'user') ? 'dialogue' : 'observation',
+                timestamp: new Date().toISOString()
+              })),
+              knowledgeBase: a.knowledgeBase || []
+            };
+          });
+
+          const socialNetwork = simState?.scene_config?.social_network || (sim as any).scene_config?.social_network || {};
+          const logs = mapBackendEventsToLogs(events || [], selectedId, turnVal, agents, true);
+
+          set({
+            currentSimulation: { ...sim, socialNetwork },
+            nodes,
+            selectedNodeId: selectedId,
+            agents,
+            rawEvents: events || [],
+            logs
+          });
+          return;
+        }
+      }
+
+      // Fallback 1: rehydrate snapshot (includes nodes/agents)
+      try {
+        const re = await getRehydrate(base, id, token).catch(() => null);
+        if (re && typeof re === 'object') {
+          const nodesRaw2 = (re.nodes || []) as any[];
+          const nodes2 = nodesRaw2.map((n: any) => ({
+            id: String(n.id),
+            display_id: String(n.id),
+            parentId: n.parent == null ? null : String(n.parent),
+            name: i18n.t('simPage.nodeId', { id: n.id }),
+            depth: n.depth,
+            isLeaf: (n.depth || 0) === (Math.max(...(nodesRaw2.map((x: any) => x.depth || 0))) || 0),
+            status: 'completed',
+            timestamp: new Date().toLocaleTimeString(),
+            worldTime: new Date().toISOString(),
+            meta: n.meta || {}
+          }));
+
+          let agents2: any[] = [];
+          try {
+            const firstNode = nodesRaw2.find((n: any) => Number(n.id) === Number(nodes2[0]?.id));
+            const simSnap2 = firstNode?.sim || {};
+            const latestAgents2 = simSnap2?.agents || re.agents || [];
+            if (Array.isArray(latestAgents2)) {
+              agents2 = latestAgents2.map((a: any, idx: number) => ({
+                id: `a-${idx}-${a.name}`,
+                name: a.name,
+                role: a.role || (a.properties || {}).role || '',
+                avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
+                profile: '',
+                llmConfig: { provider: 'mock', model: 'default' },
+                properties: a.properties || {},
+                history: {},
+                memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
+                knowledgeBase: a.knowledgeBase || []
+              }));
+            } else if (latestAgents2 && typeof latestAgents2 === 'object') {
+              agents2 = Object.keys(latestAgents2).map((k: string, idx: number) => {
+                const a = (latestAgents2 as any)[k] || {};
+                return {
+                  id: `a-${idx}-${a.name || k}`,
+                  name: a.name || k,
+                  role: a.role || (a.properties || {}).role || '',
+                  avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || k)}`,
+                  profile: '',
+                  llmConfig: { provider: 'mock', model: 'default' },
+                  properties: a.properties || {},
+                  history: {},
+                  memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
+                  knowledgeBase: a.knowledgeBase || []
+                };
+              });
+            }
+          } catch (e) {
+            console.warn('rehydrate parsing failed', e);
+          }
+
+          if (nodes2.length > 0) {
+            set({
+              currentSimulation: sim,
+              nodes: nodes2,
+              selectedNodeId: nodes2[0]?.id ?? null,
+              agents: agents2,
+              rawEvents: [],
+              logs: []
+            });
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('rehydrate fallback failed', e);
+      }
+
+      // Fallback 2: persisted latest_state on the simulation object
+      try {
+        const latest = (sim as any).latest_state;
+        if (latest && typeof latest === 'object') {
+          const nodesRaw = (latest.nodes || []) as any[];
+          const nodes = nodesRaw.map((n: any) => ({
+            id: String(n.id),
+            display_id: String(n.id),
+            parentId: n.parent == null ? null : String(n.parent),
+            name: i18n.t('simPage.nodeId', { id: n.id }),
+            depth: n.depth,
+            isLeaf: (n.depth || 0) === (Math.max(...(nodesRaw.map((x: any) => x.depth || 0))) || 0),
+            status: 'completed',
+            timestamp: new Date().toLocaleTimeString(),
+            worldTime: new Date().toISOString(),
+            meta: n.meta || {}
+          }));
+
+          let agents: any[] = [];
+          if (Array.isArray(nodesRaw)) {
+            const matched = nodesRaw.find((n: any) => Number(n.id) === Number(nodes[0]?.id));
+            const simSnap = matched?.sim || {};
+            const latestAgents = simSnap?.agents || latest.agents || [];
+            if (latestAgents && typeof latestAgents === 'object') {
+              if (Array.isArray(latestAgents)) {
+                agents = latestAgents.map((a: any, idx: number) => ({
+                  id: `a-${idx}-${a.name}`,
+                  name: a.name,
+                  role: a.role || (a.properties || {}).role || '',
+                  avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
+                  profile: '',
+                  llmConfig: { provider: 'mock', model: 'default' },
+                  properties: a.properties || {},
+                  history: {},
+                  memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
+                  knowledgeBase: a.knowledgeBase || []
+                }));
+              } else {
+                agents = Object.keys(latestAgents).map((k: string, idx: number) => {
+                  const a = (latestAgents as any)[k] || {};
+                  return {
+                    id: `a-${idx}-${a.name || k}`,
+                    name: a.name || k,
+                    role: a.role || (a.properties || {}).role || '',
+                    avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || k)}`,
+                    profile: '',
+                    llmConfig: { provider: 'mock', model: 'default' },
+                    properties: a.properties || {},
+                    history: {},
+                    memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
+                    knowledgeBase: a.knowledgeBase || []
+                  };
+                });
+              }
+            }
+          }
+
+          const socialNetwork = latest.social_network || (sim as any).scene_config?.social_network || {};
+
+          // Attempt to fetch events for the selected node if numeric
+          let events: any[] = [];
+          const selectedNodeNumeric = nodes[0]?.id ? Number(nodes[0].id) : null;
+          if (selectedNodeNumeric != null && Number.isFinite(selectedNodeNumeric)) {
+            events = await getSimEvents(base, id, selectedNodeNumeric, token).catch(() => []);
+          }
+
+          const logs = mapBackendEventsToLogs(events || [], nodes[0]?.id ?? 'root', Number((latest as any)?.turns ?? 0) || 0, agents, true);
+
+          set({
+            currentSimulation: { ...sim, socialNetwork },
+            nodes,
+            selectedNodeId: nodes[0]?.id ?? null,
+            agents,
+            rawEvents: events || [],
+            logs
+          });
+          return;
+        }
+      } catch (e) {
+        console.warn('latest_state fallback failed', e);
+      }
+
+      // If everything fails, fall back to an empty shell so user can still operate
+      set({
+        currentSimulation: sim,
+        nodes: generateNodes(),
+        selectedNodeId: 'root',
+        agents: [],
+        rawEvents: [],
+        logs: []
+      });
+    } catch (e) {
+      console.error('Failed to load simulation by id', e);
+      set({ currentSimulation: null, nodes: generateNodes(), selectedNodeId: 'root', agents: [], rawEvents: [] });
+      (get() as any).addNotification?.('error', i18n.t('store.failedToLoadSimulation') || 'Failed to load simulation');
     }
   },
 
@@ -196,7 +450,8 @@ export const createSimulationSlice: StateCreator<
     }
 
     // Apply custom template actions to agents if present
-    const templateActions = (template as any).genericConfig?.availableActions || [];
+    // Note: ExperimentBuilderModal sets 'actions' (not 'availableActions')
+    const templateActions = (template as any).genericConfig?.actions || [];
     if (templateActions.length > 0 && finalAgents) {
       finalAgents = finalAgents.map(agent => ({
         ...agent,
@@ -220,23 +475,49 @@ export const createSimulationSlice: StateCreator<
             village: 'village_scene',
             council: 'council_scene',
             werewolf: 'werewolf_scene',
-            generic: 'generic_scene'
+            generic: 'generic_scene',
+            experiment: 'experiment_template'
           };
           const backendSceneType = mapSceneType[template.sceneType] || template.sceneType;
 
+          // Determine if this is an experiment template (has structured actions)
+          const isExperimentTemplate = backendSceneType === 'experiment_template' ||
+            (templateActions.length > 0 && templateActions.some((a: any) => a.action_type));
+
+          // For experiment templates, use the new structured action format
+          const sceneConfig: any = {
+            time_scale: finalTimeConfig,
+            social_network: template.defaultNetwork || {},
+            language: i18n.language || 'en',
+          };
+
+          if (isExperimentTemplate && templateActions.length > 0) {
+            // Use the new experiment template format
+            sceneConfig.description = template.genericConfig?.description || name || 'Experiment';
+            sceneConfig.actions = templateActions.map((action: any) => ({
+              action_type: action.action_type || action,
+              name: action.name || action,
+              description: action.description || `${action} action`,
+            }));
+            sceneConfig.settings = {
+              round_visibility: template.genericConfig?.round_visibility || 'simultaneous',
+              max_rounds: template.genericConfig?.max_rounds || 50,
+            };
+            sceneConfig.parameters = template.genericConfig?.parameters || {};
+          } else if (templateActions.length > 0) {
+            // Legacy format
+            sceneConfig.available_actions = templateActions;
+          }
+
           const payload: any = {
-            scene_type: backendSceneType,
-            scene_config: {
-              time_scale: finalTimeConfig,
-              social_network: template.defaultNetwork || {},
-              ...(templateActions.length > 0 && { available_actions: templateActions }),
-              language: i18n.language || 'en',
-            },
+            scene_type: isExperimentTemplate ? 'experiment_template' : backendSceneType,
+            scene_config: sceneConfig,
             agent_config: {
               language: i18n.language || 'en',
               agents: (finalAgents || []).map((a: any) => ({
                 name: a.name,
-                profile: a.profile,
+                profile: a.profile || a.rolePrompt,  // FIX: Fall back to rolePrompt if profile is undefined
+                rolePrompt: a.rolePrompt,            // ADD: Pass rolePrompt explicitly for experiment templates
                 role: a.role,
                 avatarUrl: a.avatarUrl,
                 llmConfig: a.llmConfig,
@@ -244,7 +525,9 @@ export const createSimulationSlice: StateCreator<
                 history: a.history || {},
                 memory: a.memory || [],
                 knowledgeBase: a.knowledgeBase || [],
-                action_space: Array.isArray(a.action_space) ? a.action_space : ['send_message']
+                // For experiment templates, use empty action_space (scene provides actions dynamically)
+                // For other scenes, use the agent's action_space or default to ['send_message']
+                action_space: isExperimentTemplate ? [] : (Array.isArray(a.action_space) ? a.action_space : ['send_message'])
               }))
             },
             llm_provider_id: state.selectedProviderId ?? state.currentProviderId ?? undefined,
@@ -255,7 +538,9 @@ export const createSimulationSlice: StateCreator<
 
           try {
             await startSimulation(base, sim.id, token);
-          } catch {}
+          } catch (e) {
+            console.error('[addSimulation] Failed to start simulation:', e);
+          }
 
           const newSim: Simulation = {
             id: sim.id,
@@ -273,17 +558,36 @@ export const createSimulationSlice: StateCreator<
             agents: finalAgents || [],
             logs: [],
             rawEvents: [],
-            timeConfig: finalTimeConfig
+            timeConfig: finalTimeConfig,
+            // Reset nodes and selectedNodeId before loading the graph
+            nodes: [],
+            selectedNodeId: null
           });
 
-          const graph = await getTreeGraph(base, sim.id, token);
-          if (graph) {
+          // Retry fetching the tree graph with exponential backoff
+          // The backend might need time to initialize the tree after starting the simulation
+          const maxRetries = 5;
+          const baseDelay = 500;
+          let graph: any = null;
+          for (let attempt = 0; attempt < maxRetries; attempt++) {
+            graph = await getTreeGraph(base, sim.id, token);
+            if (graph && graph.root != null) {
+              break;
+            }
+            if (attempt < maxRetries - 1) {
+              await new Promise(r => setTimeout(r, baseDelay * Math.pow(2, attempt)));
+            }
+          }
+
+          if (graph && graph.root != null) {
             const { mapGraphToNodes } = await import('./helpers');
             const nodesMapped = mapGraphToNodes(graph);
             set({
               nodes: nodesMapped,
-              selectedNodeId: graph.root != null ? String(graph.root) : nodesMapped[0]?.id ?? null
+              selectedNodeId: String(graph.root)
             });
+          } else {
+            console.error('[addSimulation] Failed to fetch tree graph after retries');
           }
 
           // Close the wizard
@@ -364,7 +668,10 @@ export const createSimulationSlice: StateCreator<
 
     try {
       const { updateSimulation: updateSimApi } = await import('../services/simulations');
-      await updateSimApi(currentSim.id, { socialNetwork: network });
+      // Send social_network inside scene_config, not as a top-level socialNetwork field
+      // The SimulationUpdate schema has scene_config field but the frontend was sending
+      // a wrong key that gets silently ignored
+      await updateSimApi(currentSim.id, { scene_config: { social_network: network } });
 
       set((state) => ({
         currentSimulation: state.currentSimulation

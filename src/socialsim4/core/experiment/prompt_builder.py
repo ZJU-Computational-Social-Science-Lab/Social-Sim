@@ -1,0 +1,331 @@
+"""
+Experiment Prompt Builder - builds 5-section prompts (Layer 2).
+
+The prompt builder constructs structured prompts from:
+1. Agent Description (demographics)
+2. Scenario (researcher-defined)
+3. Available Actions (from kernel)
+4. Context (cumulative per-agent summary)
+5. JSON format instruction
+"""
+
+import logging
+from typing import Dict, Any, Literal
+
+from socialsim4.core.experiment.agent import ExperimentAgent
+from socialsim4.core.experiment.game_configs import GameConfig
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+
+def _interpret_score(value: int) -> str:
+    """Convert numeric score to interpretation bracket.
+
+    Args:
+        value: Numeric score from 0-100
+
+    Returns:
+        "low", "moderate", or "high"
+    """
+    if value <= 33:
+        return "low"
+    elif value <= 66:
+        return "moderate"
+    else:
+        return "high"
+
+
+def _get_article(word: str) -> str:
+    """Get the appropriate article (a/an) for a word.
+
+    Args:
+        word: The word to get an article for
+
+    Returns:
+        "an" if word starts with a vowel sound, "a" otherwise
+    """
+    vowels = ("a", "e", "i", "o", "u")
+    return "an" if word.lower().startswith(vowels) else "a"
+
+
+def truncate_context_to_budget(context: str, budget_chars: int) -> str:
+    """Truncate context to fit within a character budget.
+
+    Preserves whole lines, dropping from the middle to keep first and last content.
+    Returns context unchanged if budget_chars is 0 (no limit).
+
+    Args:
+        context: Context string to truncate
+        budget_chars: Maximum number of characters (0 = no limit)
+
+    Returns:
+        Truncated context string, or original if within budget
+    """
+    if budget_chars <= 0 or len(context) <= budget_chars:
+        return context
+    lines = context.split("\n")
+    result = []
+    chars = 0
+    for line in lines:
+        needed = len(line) + (1 if result else 0)
+        if chars + needed > budget_chars:
+            result.append("... (earlier rounds omitted)")
+            break
+        result.append(line)
+        chars += needed
+    return "\n".join(result)
+
+
+def build_agent_description(
+    agent_properties: Dict[str, Any],
+    role_prompt: str = None,
+    agent_name: str = ""
+) -> str:
+    """Build agent description section from demographic properties.
+
+    If role_prompt is provided, it takes precedence and is used as the entire description.
+    If properties are empty (manual agent), uses agent_name as identity.
+    Otherwise, formats numeric traits with interpretation brackets:
+    - 0-33 -> (low)
+    - 34-66 -> (moderate)
+    - 67-100 -> (high)
+
+    Args:
+        agent_properties: Dict of demographic properties
+        role_prompt: Optional role prompt to use instead of demographic description
+        agent_name: Agent name used as identity fallback for manual agents
+
+    Returns:
+        Formatted agent description string
+
+    Example:
+        >>> build_agent_description({}, agent_name="Psychology Student")
+        "You are Psychology Student."
+        >>> build_agent_description({"age_group": "young adult", "social_capital": 82})
+        "You are a young adult person. Your social_capital score is 82/100 (high)."
+    """
+    # If role_prompt exists, use it as the entire description
+    if role_prompt:
+        return role_prompt
+
+    # Skip internal bookkeeping keys that don't describe the agent
+    _skip_keys = {"avatarUrl", "archetype_id", "demographic_attributes"}
+    # Also filter out empty string values - they don't provide meaningful information
+    meaningful_props = {
+        k: v for k, v in agent_properties.items()
+        if k not in _skip_keys and v is not None and v != ""
+    }
+
+    # Manual agent: no meaningful properties → use name directly
+    if not meaningful_props:
+        return f"You are {agent_name}." if agent_name else "You are a participant."
+
+    parts = []
+
+    # Identity-related properties that define who the agent is
+    _identity_keys = {"age_group", "profession", "role", "occupation"}
+    # Only consider identity as present if the value is non-empty
+    has_identity = any(
+        k in meaningful_props and meaningful_props.get(k)
+        for k in _identity_keys
+    )
+
+    if has_identity:
+        # Build identity from available fields
+        age_group = meaningful_props.get("age_group")
+        profession = meaningful_props.get("profession") or meaningful_props.get("role") or meaningful_props.get("occupation")
+
+        if age_group and profession:
+            article = _get_article(age_group)
+            parts.append(f"You are {article} {age_group} {profession}.")
+        elif age_group:
+            article = _get_article(age_group)
+            parts.append(f"You are {article} {age_group}.")
+        elif profession:
+            article = _get_article(profession)
+            parts.append(f"You are {article} {profession}.")
+    else:
+        # No identity properties - use agent name as identity
+        if agent_name:
+            parts.append(f"You are {agent_name}.")
+
+    # Add numeric traits with interpretation
+    for key, value in meaningful_props.items():
+        if key in _identity_keys:
+            continue  # Already handled
+        if isinstance(value, (int, float)):
+            interpretation = _interpret_score(int(value))
+            parts.append(f"Your {key} score is {value}/100 ({interpretation}).")
+        elif isinstance(value, str) and value:
+            parts.append(f"Your {key} is {value}.")
+
+    return " ".join(parts)
+
+
+def build_prompt(
+    agent: ExperimentAgent,
+    game_config: GameConfig,
+    context_summary: str,
+    include_section_markers: bool = False,
+    *,
+    information_model=None,
+    kb_context: str = "",
+    neighbor_context: str = "",
+) -> str:
+    """Build the 5-section structured prompt.
+
+    Args:
+        agent: The agent acting
+        game_config: Game/scenario configuration
+        context_summary: Cumulative context summary for this agent
+        include_section_markers: If True, add explicit section markers for debugging
+
+    Returns:
+        Complete prompt string
+    """
+    sections = []
+
+    # Section 1: Agent Description (role_prompt takes precedence if present;
+    # manual agents with no properties fall back to their name)
+    agent_desc = build_agent_description(
+        agent.get_properties_dict(),
+        role_prompt=getattr(agent, 'role_prompt', None),
+        agent_name=agent.name
+    )
+    if include_section_markers:
+        sections.append("=== SECTION 1: AGENT DESCRIPTION ===")
+    sections.append(agent_desc)
+
+    # Section 2: Scenario (including payoff_summary if present - Bug B)
+    scenario_text = game_config.description
+    if game_config.payoff_summary:
+        scenario_text += f"\n\n{game_config.payoff_summary}"
+    if include_section_markers:
+        sections.append("\n=== SECTION 2: SCENARIO ===")
+    sections.append(f"\n## Scenario\n{scenario_text}")
+
+    # Section 3: Available Actions (using descriptions - Bug A)
+    if include_section_markers:
+        sections.append("\n=== SECTION 3: AVAILABLE ACTIONS ===")
+    if game_config.action_type == "discrete":
+        if game_config.action_descriptions:
+            # Bug A: Use action descriptions instead of "cooperate: cooperate"
+            actions_list = "\n".join(
+                f"- {a}: {game_config.action_descriptions.get(a, a)}"
+                for a in game_config.actions
+            )
+        else:
+            # Fallback to action name only if no descriptions available
+            actions_list = "\n".join(f"- {a}" for a in game_config.actions)
+        sections.append(f"\n## Available Actions\n{actions_list}")
+    else:  # integer
+        sections.append(f"\n## Your Action\nChoose a value from {game_config.min} to {game_config.max}.")
+
+    # Section 3.5: Social Network Neighbors (if provided)
+    if neighbor_context:
+        if include_section_markers:
+            sections.append("\n=== SECTION 3.5: SOCIAL NETWORK ===")
+        sections.append(f"\n## Your Social Network\n{neighbor_context}")
+
+    # Section 3.6: Knowledge Base (if agent has relevant knowledge)
+    if kb_context:
+        if include_section_markers:
+            sections.append("\n=== SECTION 3.6: KNOWLEDGE BASE ===")
+        sections.append(f"\n{kb_context}")
+
+    # Section 4: Context
+    if include_section_markers:
+        sections.append("\n=== SECTION 4: CONTEXT ===")
+    budget = getattr(information_model, 'context_budget_chars', 0)
+    display_context = (
+        truncate_context_to_budget(context_summary, budget)
+        if context_summary else ""
+    )
+    if display_context:
+        sections.append(f"\n## Context\n{display_context}")
+    else:
+        sections.append("\n## Context\nThis is the first round - no previous context.")
+
+    # Section 5: Output Format
+    if include_section_markers:
+        sections.append("\n=== SECTION 5: JSON OUTPUT REQUIREMENT ===")
+    field = game_config.output_field
+    if game_config.action_type == "discrete":
+        # List all valid actions clearly
+        actions_formatted = ", ".join(f'"{a}"' for a in game_config.actions)
+        sections.append(f'\n## Your Response\nValid actions: {actions_formatted}')
+        sections.append(f'Respond with ONLY JSON: {{"{field}": "<action>"}}')
+    else:  # integer
+        sections.append(f'\n## Your Response\nChoose a number from {game_config.min} to {game_config.max}.')
+        sections.append(f'Respond with ONLY JSON: {{"{field}": <number>}}')
+
+    sections.append("\nNo markdown. No explanation. Only JSON.")
+
+    prompt = "\n".join(sections)
+
+    # Log the full prompt for debugging
+    logger.debug(f"\n{'='*60}")
+    logger.debug(f"PROMPT FOR AGENT: {agent.name}")
+    logger.debug(f"{'='*60}")
+    logger.debug(prompt)
+    logger.debug(f"{'='*60}\n")
+
+    return prompt
+
+
+def build_reprompt(
+    agent: ExperimentAgent,
+    game_config: GameConfig,
+    context_summary: str,
+    chosen_action: str,
+    parameter_schema: Dict[str, Any],
+    mode: Literal["json", "plain_text"] = "json",
+    include_section_markers: bool = False,
+    *,
+    information_model=None,
+    kb_context: str = "",
+    neighbor_context: str = "",
+) -> str:
+    """Build a re-prompt for collecting missing parameters.
+
+    Args:
+        agent: The agent acting
+        game_config: Game/scenario configuration
+        context_summary: Cumulative context (same as original prompt)
+        chosen_action: The action the agent chose
+        parameter_schema: JSON schema of required parameters
+        mode: json or plain_text
+        include_section_markers: If True, add explicit section markers for debugging
+
+    Returns:
+        Re-prompt string
+    """
+    # Reuse the base prompt (all 5 sections)
+    base_prompt = build_prompt(agent, game_config, context_summary, include_section_markers, information_model=information_model, kb_context=kb_context, neighbor_context=neighbor_context)
+
+    # Add re-prompt instruction with section marker
+    if include_section_markers:
+        reprompt_header = "\n=== FOLLOW-UP PROMPT (Action Requires Parameters) ==="
+    else:
+        reprompt_header = ""
+
+    if mode == "json":
+        params_desc = ", ".join(f'"{k}": <{v.get("description", k)}>' for k, v in parameter_schema.items())
+        reprompt = f"{reprompt_header}\n\nYou chose to {chosen_action}. This action requires parameters.\nRespond ONLY with valid JSON: {{\"action\": \"{chosen_action}\", {params_desc}}}"
+    else:  # plain_text
+        reprompt = f"{reprompt_header}\n\nYou chose to {chosen_action}. Please provide your response.\nYour response:"
+
+    full_prompt = base_prompt + reprompt
+
+    # Log the follow-up prompt
+    if include_section_markers:
+        logger.debug(f"\n{'='*60}")
+        logger.debug(f"FOLLOW-UP PROMPT FOR AGENT: {agent.name}")
+        logger.debug(f"CHOSEN ACTION: {chosen_action}")
+        logger.debug(f"REQUIRED PARAMS: {list(parameter_schema.keys())}")
+        logger.debug(f"{'='*60}")
+        logger.debug(full_prompt)
+        logger.debug(f"{'='*60}\n")
+
+    return full_prompt

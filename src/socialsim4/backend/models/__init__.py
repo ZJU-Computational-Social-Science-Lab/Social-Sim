@@ -2,6 +2,7 @@ from .simulation import Simulation, SimulationSnapshot, SimulationLog, SimTreeNo
 from .simulation import SimulationSyncLog
 from .token import RefreshToken, VerificationToken
 from .user import ProviderConfig, SearchProviderConfig, User
+from .experiment_template import ExperimentTemplate
 
 __all__ = [
     "User",
@@ -14,4 +15,5 @@ __all__ = [
     "SimTreeNode",
     "RefreshToken",
     "VerificationToken",
+    "ExperimentTemplate",
 ]

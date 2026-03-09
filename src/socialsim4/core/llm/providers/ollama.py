@@ -144,7 +144,8 @@ def ollama_chat(
     max_tokens: int,
     timeout: float,
     allow_vision: bool,
-    safe_urls_func: callable
+    safe_urls_func: callable,
+    json_mode: bool = False,
 ) -> str:
     """
     Perform Ollama chat completion.
@@ -159,6 +160,7 @@ def ollama_chat(
         timeout: Request timeout in seconds
         allow_vision: Whether to process image content
         safe_urls_func: Function to validate media URLs
+        json_mode: If True, enforce JSON output
 
     Returns:
         Generated text response
@@ -168,6 +170,20 @@ def ollama_chat(
     for m in msgs:
         if allow_vision and m.get("images"):
             m["images"] = encode_images(m.get("images"), client, safe_urls_func)
+
+    # For json_mode with Ollama, add prompt-based JSON instruction
+    # Some models (Qwen3, Gemma 3) don't properly support "format": "json"
+    # and return empty responses. Prompt-based instruction is more reliable.
+    if json_mode and msgs:
+        # Prepend JSON instruction to the last user message
+        for i in range(len(msgs) - 1, -1, -1):
+            if msgs[i].get("role") == "user":
+                original_content = msgs[i].get("content", "")
+                msgs[i]["content"] = (
+                    "IMPORTANT: You must respond with ONLY valid JSON, no markdown, no explanation.\n\n"
+                    + original_content
+                )
+                break
 
     payload = {
         "model": model,
@@ -179,12 +195,34 @@ def ollama_chat(
             "num_predict": max_tokens,
         },
     }
-    resp = client.post("/api/chat", json=payload, timeout=timeout)
-    resp.raise_for_status()
-    data = resp.json()
-    message = data.get("message") or {}
-    content = message.get("content") or data.get("response") or ""
-    return str(content).strip()
+
+    # Note: We don't use payload["format"] = "json" because some Ollama models
+    # (Qwen3, Gemma 3) return empty responses with this setting.
+    # Prompt-based JSON instruction is more reliable.
+
+    def _post(body):
+        resp = client.post("/api/chat", json=body, timeout=timeout)
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get("error"):
+            raise ValueError(f"Ollama error: {data.get('error')}")
+        message = data.get("message") or {}
+        content = message.get("content") or data.get("response") or ""
+        return str(content).strip()
+
+    content = _post(payload)
+
+    # Fallback: some models still return empty content; try explicit JSON format once
+    if not content:
+        if json_mode:
+            payload_with_format = dict(payload)
+            payload_with_format["format"] = "json"
+            content = _post(payload_with_format)
+
+    if not content:
+        raise ValueError("Ollama returned empty response")
+
+    return content
 
 
 def ollama_completion(

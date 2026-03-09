@@ -108,7 +108,8 @@ def openai_chat(
     presence_penalty: float,
     timeout: float,
     allow_vision: bool,
-    safe_urls_func: callable
+    safe_urls_func: callable,
+    json_mode: bool = False,
 ) -> str:
     """
     Perform OpenAI chat completion.
@@ -124,21 +125,66 @@ def openai_chat(
         timeout: Request timeout in seconds
         allow_vision: Whether to process image content
         safe_urls_func: Function to validate media URLs
+        json_mode: If True, enforce JSON output
 
     Returns:
         Generated text response
     """
     normalized_messages = normalize_messages_for_openai(messages, allow_vision, safe_urls_func)
-    resp = client.chat.completions.create(
-        model=model,
-        messages=normalized_messages,
-        frequency_penalty=frequency_penalty,
-        presence_penalty=presence_penalty,
-        max_tokens=max_tokens,
-        temperature=temperature,
-        timeout=timeout,
-    )
-    return resp.choices[0].message.content.strip()
+
+    kwargs = {
+        "model": model,
+        "messages": normalized_messages,
+        "frequency_penalty": frequency_penalty,
+        "presence_penalty": presence_penalty,
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+        "timeout": timeout,
+    }
+
+    if json_mode:
+        kwargs["response_format"] = {"type": "json_object"}
+
+    resp = client.chat.completions.create(**kwargs)
+    content = (resp.choices[0].message.content or "").strip()
+
+    if content:
+        return content
+
+    # Fallback for providers (e.g., Ollama OpenAI-compatible) that return empty
+    # content when response_format is set. Retry once without response_format and
+    # prepend an explicit JSON-only instruction to the last user message.
+    if json_mode:
+        fallback_messages = list(normalized_messages)
+
+        for i in range(len(fallback_messages) - 1, -1, -1):
+            if fallback_messages[i].get("role") == "user":
+                existing = fallback_messages[i].get("content") or ""
+                if isinstance(existing, list):
+                    text_parts = []
+                    for part in existing:
+                        if isinstance(part, dict) and part.get("type") == "text":
+                            text_parts.append(part.get("text") or "")
+                    existing = "\n".join([p for p in text_parts if p])
+                fallback_messages[i] = {
+                    "role": "user",
+                    "content": (
+                        "IMPORTANT: You must respond with ONLY valid JSON, no markdown, no explanation.\n\n"
+                        + str(existing)
+                    ),
+                }
+                break
+
+        fallback_kwargs = {k: v for k, v in kwargs.items() if k != "response_format"}
+        fallback_kwargs["messages"] = fallback_messages
+
+        resp = client.chat.completions.create(**fallback_kwargs)
+        content = (resp.choices[0].message.content or "").strip()
+
+    if not content:
+        raise ValueError("OpenAI-compatible provider returned empty response")
+
+    return content
 
 
 def openai_completion(

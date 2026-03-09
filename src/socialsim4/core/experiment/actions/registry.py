@@ -1,0 +1,132 @@
+"""
+Action registry for experiments.
+
+Contains all pre-built actions that scenarios can use.
+Actions are registered by name and looked up during execution.
+
+Contains: ACTION_REGISTRY, get_action, register_action
+"""
+from socialsim4.core.experiment.actions.definitions import (
+    ActionDefinition,
+    ParameterSpec,
+    EffectSpec,
+)
+
+
+# Pre-built action definitions
+CHOOSE_ACTION = ActionDefinition(
+    name="choose",
+    description="Select an option from available choices",
+    parameters=[
+        ParameterSpec("choice", "enum", [], required=True),
+    ],
+    effects=[],
+    requires=None,
+    handler=None,
+)
+
+MOVE_ACTION = ActionDefinition(
+    name="move",
+    description="Move to an adjacent tile on the grid",
+    parameters=[
+        ParameterSpec("direction", "enum", ["north", "south", "east", "west"], required=True),
+    ],
+    effects=[
+        EffectSpec("agent.position", "update_spatial", None),
+    ],
+    requires=["spatial"],
+    handler=None,  # Will be set after handlers module is loaded
+)
+
+CONTRIBUTE_ACTION = ActionDefinition(
+    name="contribute",
+    description="Contribute resources to a pool",
+    parameters=[
+        ParameterSpec("amount", "number", [], required=True),
+        ParameterSpec("pool", "enum", ["main"], required=False),
+    ],
+    effects=[
+        EffectSpec("agent.resources.tokens", "subtract", "amount"),
+        EffectSpec("extensions.pools.{pool}", "add", "amount"),
+    ],
+    requires=["resources", "pools"],
+    handler=None,
+)
+
+TALK_ACTION = ActionDefinition(
+    name="talk",
+    description="Send a message to another agent",
+    parameters=[
+        ParameterSpec("target", "agent", [], required=True),
+        ParameterSpec("message", "text", [], required=True),
+    ],
+    effects=[],
+    requires=None,
+    handler=None,  # Will be set after handlers module is loaded
+)
+
+ESTIMATE_ACTION = ActionDefinition(
+    name="estimate",
+    description="Provide a numerical estimate",
+    parameters=[
+        ParameterSpec("value", "number", [], required=True),
+    ],
+    effects=[],
+    requires=None,
+    handler=None,
+)
+
+VOTE_ACTION = ActionDefinition(
+    name="vote",
+    description="Vote for an option",
+    parameters=[
+        ParameterSpec("choice", "enum", [], required=True),
+    ],
+    effects=[],
+    requires=["voting"],
+    handler=None,
+)
+
+
+# The registry dictionary
+ACTION_REGISTRY: dict[str, ActionDefinition] = {
+    "choose": CHOOSE_ACTION,
+    "move": MOVE_ACTION,
+    "contribute": CONTRIBUTE_ACTION,
+    "talk": TALK_ACTION,
+    "estimate": ESTIMATE_ACTION,
+    "vote": VOTE_ACTION,
+}
+
+
+def get_action(name: str) -> ActionDefinition | None:
+    """Get action definition by name.
+
+    Args:
+        name: Action name
+
+    Returns:
+        ActionDefinition or None if not found
+    """
+    return ACTION_REGISTRY.get(name)
+
+
+def register_action(action: ActionDefinition) -> None:
+    """Register a new action or override existing.
+
+    Args:
+        action: ActionDefinition to register
+    """
+    ACTION_REGISTRY[action.name] = action
+
+
+# Late binding of handlers to avoid circular imports
+def _bind_handlers():
+    """Bind handler functions to actions after module load."""
+    from socialsim4.core.experiment.actions.handlers import handle_move, handle_talk
+    ACTION_REGISTRY["move"].handler = handle_move
+    ACTION_REGISTRY["talk"].handler = handle_talk
+
+
+# Bind handlers on first import
+_bind_handlers()

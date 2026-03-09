@@ -13,17 +13,21 @@ Contains:
 
 import asyncio
 from datetime import datetime, timezone
+from typing import Any
 
-from litestar import post
+from litestar import post, get
+from litestar.exceptions import HTTPException
 from litestar.connection import Request
 from sqlalchemy import delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from socialsim4.i18n import T
 from socialsim4.backend.core.database import get_session
 from socialsim4.backend.dependencies import extract_bearer_token, resolve_current_user
 from socialsim4.backend.models.simulation import Simulation, SimulationLog, SimulationSnapshot
 from socialsim4.backend.schemas.common import Message
 from socialsim4.backend.schemas.simulation import SimulationBase
+from litestar import get
 
 from .helpers import (
     get_simulation_for_owner,
@@ -65,7 +69,7 @@ async def start_simulation(
         sim.updated_at = datetime.now(timezone.utc)
         await session.commit()
 
-        return Message(message="Simulation start enqueued")
+        return Message(message=T('api.lifecycle.start_enqueued'))
 
 
 @post("/{simulation_id:str}/resume")
@@ -126,7 +130,7 @@ async def resume_simulation(
         sim.updated_at = datetime.now(timezone.utc)
         await session.commit()
 
-        return Message(message="Simulation resume enqueued")
+        return Message(message=T('api.lifecycle.resume_enqueued'))
 
 
 @post("/{simulation_id:str}/reset")
@@ -173,7 +177,7 @@ async def reset_simulation(
         SIM_TREE_REGISTRY.remove(sim.id)
         await get_tree_record(sim, session, current_user.id)
 
-        return Message(message="Simulation reset and tree rebuilt")
+        return Message(message=T('api.lifecycle.reset_rebuilt'))
 
 
 @post("/{simulation_id:str}/copy", status_code=201)
@@ -219,3 +223,27 @@ async def copy_simulation(
         await session.refresh(new_sim)
 
         return SimulationBase.model_validate(new_sim)
+
+
+@get("/{simulation_id:str}/rehydrate")
+async def rehydrate_simulation(
+    request: Request,
+    simulation_id: str,
+) -> Any:
+    """Return persisted latest_state for restart recovery."""
+    token = extract_bearer_token(request)
+    async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
+        sim = await get_simulation_for_owner(session, current_user.id, simulation_id)
+
+        if sim.latest_state:
+            return sim.latest_state
+
+        record = SIM_TREE_REGISTRY.get(simulation_id.upper())
+        if record is None:
+            record = await get_tree_record(sim, session, current_user.id)
+
+        if record and record.tree:
+            return record.tree.serialize()
+
+        raise HTTPException(status_code=404, detail="No persisted state for simulation")

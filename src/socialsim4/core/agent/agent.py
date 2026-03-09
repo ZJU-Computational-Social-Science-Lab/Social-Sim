@@ -4,23 +4,26 @@ Core Agent class for social simulations.
 The Agent class represents an autonomous agent in social simulations.
 It coordinates between memory, action execution, tools, and LLM integration.
 
-This is a refactored version that delegates specialized functionality
-to focused submodules while maintaining backwards compatibility.
+This is a refactored version that uses clean JSON prompts for LLM interaction,
+delegating specialized functionality to focused submodules.
 
 Contains:
     - Agent: Main agent class with state and orchestration logic
 """
 
 import logging
+from pathlib import Path
+from datetime import datetime
 
 from socialsim4.core.config import MAX_REPEAT
 from socialsim4.core.memory import ShortTermMemory
-from .parsing import (
-    parse_full_response,
-    parse_emotion_update,
-    parse_plan_update,
-    parse_actions,
-)
+from socialsim4.core.agent.parsing import parse_actions
+from socialsim4.i18n import T
+
+# Debug file for agent prompts/responses
+_debug_dir = Path("test_results")
+_debug_dir.mkdir(exist_ok=True)
+_debug_file = _debug_dir / f"agent_debug_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
 from .rag import (
     add_knowledge,
     remove_knowledge,
@@ -46,10 +49,10 @@ class Agent:
 
     The Agent class represents an entity that can perceive, reason,
     and act within a social simulation environment. Each agent
-    maintains its own memory, knowledge base, and planning state.
+    maintains its own memory and knowledge base.
 
-    This refactored version delegates to specialized modules while
-    maintaining the same public API for backwards compatibility.
+    This refactored version uses clean JSON prompts for LLM interaction
+    and delegates to specialized modules for focused functionality.
     """
 
     def __init__(
@@ -77,16 +80,6 @@ class Agent:
         self.max_repeat = max_repeat
         self.properties = kwargs
         self.log_event = event_handler
-        self.emotion = kwargs.get("emotion", "neutral")
-        self.emotion_enabled = bool(kwargs.get("emotion_enabled", False))
-
-        # Plan state persisted across turns
-        self.plan_state = {
-            "goals": [],
-            "milestones": [],
-            "strategy": "",
-            "notes": "",
-        }
 
         # Knowledge Base (RAG) - list of knowledge items
         self.knowledge_base = list(kwargs.get("knowledge_base", []) or [])
@@ -105,60 +98,19 @@ class Agent:
         self.is_offline = False
 
     # -------------------------------------------------------------------------
-    # System Prompt & Output Format
+    # System Prompt
     # -------------------------------------------------------------------------
 
-    def system_prompt(self, scene=None):
-        """Generate the system prompt for LLM calls."""
-        def _fmt_list(items):
-            if not items:
-                return "(none)"
-            return "\n".join([f"- {item}" for item in items])
+    def system_prompt(self, scene=None, context_summary=None) -> str:
+        """Generate the system prompt for LLM calls.
 
-        def _fmt_goals(goals):
-            if not goals:
-                return "(none)"
-            lines = []
-            for g in goals:
-                gid = g.get("id", "?")
-                desc = g.get("desc", "")
-                pr = g.get("priority", "")
-                st = g.get("status", "pending")
-                lines.append(f"- [{gid}] {desc} (priority: {pr}, status: {st})")
-            return "\n".join(lines)
+        Args:
+            scene: Optional scene object with scenario information
+            context_summary: Optional summary of recent context
 
-        def _fmt_milestones(milestones):
-            if not milestones:
-                return "(none)"
-            lines = []
-            for m in milestones:
-                mid = m.get("id", "?")
-                desc = m.get("desc", "")
-                st = m.get("status", "pending")
-                lines.append(f"- [{mid}] {desc} (status: {st})")
-            return "\n".join(lines)
-
-        plan_state_block = f"""
-Internal Plan State:
-Internal Goals:
-{_fmt_goals(self.plan_state.get("goals"))}
-
-Internal Milestones:
-{_fmt_milestones(self.plan_state.get("milestones"))}
-
-Internal Strategy:
-{self.plan_state.get("strategy", "")}
-
-Internal Notes:
-{self.plan_state.get("notes", "")}
-"""
-
-        # Prompt for plan initialization if empty
-        if not self.plan_state or (
-            not self.plan_state.get("goals") and not self.plan_state.get("milestones")
-        ):
-            plan_state_block += "\nPlan State is empty. In this turn, include a plan update block using tags to initialize numbered Goals and Milestones.\n"
-
+        Returns:
+            Complete system prompt string with 5-section JSON output format
+        """
         # Build action catalog and usage instructions
         action_catalog = "\n".join([
             f"- {getattr(action, 'NAME', '')}: {getattr(action, 'DESC', '')}".strip()
@@ -166,17 +118,6 @@ Internal Notes:
         ])
         action_instructions = "".join(
             getattr(action, "INSTRUCTION", "") for action in self.action_space
-        )
-
-        # Examples block from scene
-        examples_block = ""
-        if scene and hasattr(scene, 'get_examples') and scene.get_examples():
-            examples_block = f"Here are some examples:\n{scene.get_examples()}"
-
-        # Emotion prompt
-        emotion_prompt = (
-            f"Your current emotion is {self.emotion}."
-            if self.emotion_enabled else ""
         )
 
         # Knowledge base preview
@@ -193,13 +134,13 @@ Internal Notes:
                 kb_preview.append(f"  [{i}] {title}: {content_preview}")
             kb_list = "\n".join(kb_preview)
             if kb_count > 5:
-                kb_list += f"\n  ... and {kb_count - 5} more items"
+                kb_list += "\n  " + T('prompts.agent.knowledge_base_more', count=kb_count - 5)
             knowledge_block = f"""
-Knowledge Base:
-You have a personal knowledge base with {kb_count} item(s) containing information you can reference:
+{T('prompts.agent.knowledge_base_header')}
+{T('prompts.agent.knowledge_base_intro', count=kb_count)}
 {kb_list}
 
-Use the query_knowledge action to search for specific information when needed. The knowledge base contains facts and information that you should use to inform your responses when relevant.
+{T('prompts.agent.query_instruction')}
 """
 
         # Identity line
@@ -210,68 +151,85 @@ Use the query_knowledge action to search for specific information when needed. T
             identity_parts.append(f"({self.style})")
         identity_line = " - ".join(identity_parts)
 
-        base = f"""{identity_line}
+        # Scene description
+        scene_block = ""
+        if scene:
+            if hasattr(scene, 'get_compact_description'):
+                scene_block = scene.get_compact_description()
+            elif hasattr(scene, 'get_scenario_description'):
+                scene_block = scene.get_scenario_description()
 
-{self.user_profile if len(self.user_profile) < 200 else self.user_profile[:200] + "..."}
+            if hasattr(scene, 'get_behavior_guidelines'):
+                scene_block += f"\n\n{scene.get_behavior_guidelines()}"
 
-{self.role_prompt if len(self.role_prompt or "") < 200 else ""}{knowledge_block}{plan_state_block}
+        # Context summary if provided
+        context_block = ""
+        if context_summary:
+            context_block = f"""
+Recent Context Summary:
+{context_summary}
+"""
 
-Language: {self.language}. Action XML in English; content in {self.language}.
+        # Build the prompt with new JSON output format
+        prompt = f"""{identity_line}
 
-{scene.get_compact_description() if scene and hasattr(scene, 'get_compact_description') else (scene.get_scenario_description() if scene else "")}
+{self.user_profile if len(self.user_profile) < 500 else self.user_profile[:500] + "..."}
 
-{scene.get_behavior_guidelines() if scene else ""}
+{self.role_prompt if len(self.role_prompt or "") < 500 else ""}{knowledge_block}
+Language: {self.language}. Respond in {self.language} for content; use English for action names.
 
+{scene_block}
+{context_block}
 Action Space:
 {action_catalog}
 
 Usage:
 {action_instructions}
 
-{examples_block}
-
-{self.get_output_format()}
-
 {self.initial_instruction}
+
+IMPORTANT - Output Format:
+You MUST respond with a valid JSON object containing these 5 sections:
+
+1. "thoughts": Your brief thinking about the current situation (1-2 sentences)
+
+2. "response": What you want to communicate (can be empty string if no speech needed)
+
+3. "action": The action you want to take, containing:
+   - "name": action name from the Action Space above
+   - Additional key-value pairs for action parameters (if required)
+
+4. "context_update": Brief notes to remember for future (goals, observations, plans)
+
+5. "metadata": Optional object with any additional metadata
+
+Example JSON response:
+```json
+{{
+  "thoughts": "I need to respond to the greeting and consider next steps",
+  "response": "Hello! Nice to meet you.",
+  "action": {{
+    "name": "send_message",
+    "target": "other_agent",
+    "message": "Hello! Nice to meet you."
+  }},
+  "context_update": "Met a new agent, should learn more about them",
+  "metadata": {{}}
+}}
+```
+
+If you only want to speak without taking an action:
+```json
+{{
+  "thoughts": "Just responding to the question",
+  "response": "My opinion is...",
+  "action": null,
+  "context_update": "Shared my opinion on the topic",
+  "metadata": {{}}
+}}
+```
 """
-        return base
-
-    def get_output_format(self):
-        """Get the output format specification for the agent."""
-        base_prompt = """--- Thoughts ---
-[What you're thinking right now - brief]
-
---- Plan ---
-Goals: [your goals]
-Milestones: [completed ✓, pending →]
-
---- Action ---
-<Action name="[action_name]">
-  [params if needed]
-</Action>
-
-Example:
---- Thoughts ---
-Need to gather food.
-
---- Plan ---
-Goals: Collect dinner
-Milestones: ✓ at market, → gather food
-
---- Action ---
-<Action name="gather_resource"><resource>food</resource></Action>
-"""
-        if self.emotion_enabled:
-            emotion_rules = """
-
---- Emotion Update ---
-// Mandatory: Output your emotion after each turn
-// Use Plutchik emotions: Joy, Trust, Fear, Surprise, Sadness, Disgust, Anger, Anticipation
-// Base on: goal progress (+→ Joy/Trust, -→ Sadness/Fear), novelty (→ Surprise), conflict (→ Anger/Disgust)
-<Emotion>[emotion]</Emotion>
-"""
-            return base_prompt + emotion_rules
-        return base_prompt
+        return prompt
 
     # -------------------------------------------------------------------------
     # LLM Interaction
@@ -363,9 +321,27 @@ Use the above context to inform your responses when relevant.
             self.short_memory.append("user", hint)
             ctx.append({"role": "user", "content": hint})
 
+        # Debug: Write prompt to file
+        try:
+            with open(_debug_file, 'a', encoding='utf-8') as f:
+                f.write(f"\n{'='*80}\n")
+                f.write(f"[AGENT PROCESS] {self.name}\n")
+                f.write(f"{'='*80}\n")
+                f.write(f"Scene: {scene.__class__.__name__ if scene else 'None'}\n")
+                f.write(f"Action space: {[getattr(a, 'NAME', str(a)) for a in self.action_space]}\n")
+                f.write(f"\n--- SYSTEM PROMPT ---\n")
+                f.write(system_prompt)
+                f.write(f"\n--- END SYSTEM PROMPT ---\n\n")
+                f.write(f"\n--- CONTEXT MESSAGES ({len(ctx)} total) ---\n")
+                for msg in ctx:
+                    f.write(f"[{msg.get('role')}]: {msg.get('content', '')[:500]}\n")
+                f.write(f"--- END CONTEXT ---\n\n")
+            print(f"[AGENT DEBUG] Wrote prompt for {self.name} to {_debug_file.name}")
+        except Exception as e:
+            print(f"[AGENT DEBUG] Failed to write debug file: {e}")
+
         # Retry loop
         attempts = int(getattr(self, "max_repeat", 0) or 0) + 1
-        plan_update = None
         action_data = []
         llm_output = ""
         success = False
@@ -374,6 +350,18 @@ Use the above context to inform your responses when relevant.
             # Step 1: Call LLM
             try:
                 llm_output = self.call_llm(clients, ctx)
+
+                # Debug: Write LLM output to file
+                try:
+                    with open(_debug_file, 'a', encoding='utf-8') as f:
+                        f.write(f"\n--- LLM OUTPUT ---\n")
+                        f.write(llm_output)
+                        f.write(f"\n--- END LLM OUTPUT ---\n\n")
+                except Exception:
+                    pass
+
+                print(f"[AGENT DEBUG] {self.name} got LLM response: {len(llm_output)} chars")
+
             except Exception as e:
                 self._record_llm_error("llm_call", e, i + 1, i == attempts - 1)
                 if getattr(self, "is_offline", False):
@@ -382,28 +370,20 @@ Use the above context to inform your responses when relevant.
                     continue
                 break
 
-            # Step 2: Parse response
+            # Step 2: Parse response (JSON format)
             try:
-                (
-                    thoughts,
-                    plan,
-                    action_block,
-                    plan_update_block,
-                    emotion_update_block,
-                ) = parse_full_response(llm_output)
+                action_data = parse_actions(llm_output)
 
-                action_data = parse_actions(action_block) or parse_actions(llm_output)
-                plan_update = parse_plan_update(plan_update_block)
+                # Debug: Write parsed actions to file
+                try:
+                    with open(_debug_file, 'a', encoding='utf-8') as f:
+                        f.write(f"\n--- PARSED ACTIONS ---\n")
+                        f.write(f"Parsed action_data: {action_data}\n")
+                        f.write(f"--- END PARSED ACTIONS ---\n\n")
+                except Exception:
+                    pass
 
-                if self.emotion_enabled:
-                    emotion_update = parse_emotion_update(emotion_update_block)
-                    if emotion_update:
-                        self.emotion = emotion_update
-                        if self.log_event:
-                            self.log_event(
-                                "emotion_update",
-                                {"agent": self.name, "emotion": emotion_update},
-                            )
+                print(f"[AGENT DEBUG] {self.name} parsed actions: {action_data}")
 
                 success = True
                 self.consecutive_llm_errors = 0  # Reset on success
@@ -423,10 +403,6 @@ Use the above context to inform your responses when relevant.
         # If failed, return empty
         if not success:
             return {}
-
-        # Apply plan update
-        if plan_update:
-            self._apply_plan_update(plan_update)
 
         # Store LLM output in memory
         self.short_memory.append("assistant", llm_output)
@@ -462,22 +438,6 @@ Use the above context to inform your responses when relevant.
     def append_env_message(self, content):
         """Deprecated: use add_env_feedback(). Kept for compatibility."""
         return self.add_env_feedback(content)
-
-    # -------------------------------------------------------------------------
-    # Plan Management
-    # -------------------------------------------------------------------------
-
-    def _apply_plan_update(self, update):
-        """Apply plan update by full replace with the provided plan_state dict."""
-        if not update:
-            return False
-        self.plan_state = update
-        if self.log_event:
-            self.log_event(
-                "plan_update",
-                {"agent": self.name, "kind": "replace", "plan": update},
-            )
-        return True
 
     # -------------------------------------------------------------------------
     # LLM Error Handling

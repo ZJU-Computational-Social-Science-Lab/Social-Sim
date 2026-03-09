@@ -10,6 +10,7 @@ class ProviderBase(BaseModel):
     model: str
     base_url: str | None = None
     has_api_key: bool = False
+    is_active: bool = False
     last_tested_at: datetime | None = None
     last_test_status: str | None = None
     last_error: str | None = None

@@ -1,20 +1,17 @@
-// frontend/store/experiments.ts
-//
-// Experiments, comparison, and reports slice.
-//
-// Responsibilities:
-//   - Experiment execution (runExperiment with WebSocket/polling)
-//   - Node comparison
-//   - Report generation and export
-//   - Tree branching and deletion
-//
-// Used by: SimulationPage, ExperimentDesignModal, ReportModal, ComparisonView
+/**
+ * Experiments slice for simulation workspace.
+ *
+ * What/why: Manages experiment comparison, branching, reporting, and timeline control state for the simulation UI.
+ * Key exports: createExperimentsSlice (Zustand slice factory).
+ * Used by: SimulationPage, ExperimentDesignModal, ReportModal, ComparisonView.
+ */
 
 import { StateCreator } from 'zustand';
 import type { ExperimentVariant, SimulationReport, SocialNetwork, SimNode } from '../types';
 import * as experimentsApi from '../services/experiments';
 import type { EnvironmentSuggestion } from '../services/environmentSuggestions';
 import { addTime } from './helpers';
+import i18n from '../i18n';
 
 export interface ExperimentsSlice {
   // Comparison state
@@ -117,19 +114,19 @@ export const createExperimentsSlice: StateCreator<
         const nodeA = Number(state.selectedNodeId);
         const nodeB = Number(state.compareTargetNodeId);
         if (!Number.isFinite(nodeA) || !Number.isFinite(nodeB)) {
-          state.addNotification?.('error', '选中的节点不是后端节点');
+          state.addNotification?.('error', i18n.t('store.selectedNodeNotBackend') || 'Selected node is not a backend node');
           set({ isGenerating: false } as any);
           return;
         }
 
         const useLLM = Boolean(state.comparisonUseLLM);
         const res = await experimentsApi.compareNodes(simId, nodeA, nodeB, useLLM);
-        const summary = res?.summary || (res?.message || '') || '未能生成摘要';
+        const summary = res?.summary || (res?.message || '') || i18n.t('store.failedToGenerateSummary') || 'Failed to generate summary';
         set({ comparisonSummary: summary, isGenerating: false } as any);
       } catch (e) {
         console.error(e);
         set({ isGenerating: false } as any);
-        state.addNotification?.('error', '比较分析失败');
+        state.addNotification?.('error', i18n.t('store.comparisonAnalysisFailed') || 'Comparison analysis failed');
       }
       return;
     }
@@ -138,7 +135,7 @@ export const createExperimentsSlice: StateCreator<
     set({ isGenerating: true } as any);
     setTimeout(() => {
       set({
-        comparisonSummary: '本地演示：两条时间线在若干事件与若干智能体属性上存在差异（仅演示）。',
+        comparisonSummary: i18n.t('store.localDemoComparison') || 'Local demo: two timelines differ in events and agent attributes (demo only).',
         isGenerating: false
       } as any);
     }, 700);
@@ -149,7 +146,11 @@ export const createExperimentsSlice: StateCreator<
     if (!state.currentSimulation || !state.selectedNodeId || state.isGenerating) return;
 
     const parentNode = state.nodes?.find((n: any) => n.id === state.selectedNodeId);
-    if (!parentNode) return;
+    if (!parentNode) {
+      console.error('[advanceSimulation] Selected node not found in nodes:', state.selectedNodeId);
+      state.addNotification?.('error', i18n.t('store.selectedNodeNotFound') || 'Selected node not found');
+      return;
+    }
 
     set({ isGenerating: true } as any);
 
@@ -165,7 +166,8 @@ export const createExperimentsSlice: StateCreator<
         const parentNumeric = Number(state.selectedNodeId);
 
         if (!Number.isFinite(parentNumeric)) {
-          state.addNotification?.('error', '选中节点不是后端节点');
+          console.error('[advanceSimulation] Invalid node ID:', state.selectedNodeId, 'Type:', typeof state.selectedNodeId);
+          state.addNotification?.('error', i18n.t('store.selectedNodeNotBackend') || 'Selected node is not a backend node');
           set({ isGenerating: false } as any);
           return;
         }
@@ -236,6 +238,7 @@ export const createExperimentsSlice: StateCreator<
           if (!ev || typeof ev !== 'object') return `prim:${String(ev)}`;
           const evType = ev.type || ev.event_type || 'unknown';
           const data = ev.data || {};
+          const agent = data.agent || '';
 
           // For system_broadcast events, use text and sender as unique key
           if (evType === 'system_broadcast') {
@@ -245,8 +248,15 @@ export const createExperimentsSlice: StateCreator<
             return `${evType}:${eventType}:${sender}:${text}`;
           }
 
+          // For experiment_action events, include round number to distinguish actions across rounds
+          // (data.action is a plain string like "cooperate", not an object)
+          if (evType === 'experiment_action') {
+            const round = data.round !== undefined ? String(data.round) : '';
+            const agentAction = typeof data.action === 'string' ? data.action : '';
+            return `${evType}:${agent}:${agentAction}:round${round}`;
+          }
+
           // Use type, agent, content, time, and action to generate unique key
-          const agent = data.agent || '';
           const content = typeof data.content === 'string' ? data.content.substring(0, 100) : '';
           const time = data.time || '';
           const action = data.action?.action || data.action?.name || '';
@@ -316,7 +326,7 @@ export const createExperimentsSlice: StateCreator<
           nodeId: newNodeId,
           round: newDepth,
           type: 'SYSTEM',
-          content: `时间推进至: ${formatWorldTime(nextWorldTime)} (Round ${newDepth})` + '（离线模式，未执行真实动作）',
+          content: `${i18n.t('store.timeAdvancedTo') || 'Time advanced to'}: ${formatWorldTime(nextWorldTime)} (Round ${newDepth})` + ` (${i18n.t('store.offlineModeNoAction') || 'offline mode, no actual action performed'})`,
           timestamp: newNode.timestamp
         }
       ];
@@ -340,7 +350,7 @@ export const createExperimentsSlice: StateCreator<
     } catch (e) {
       console.error('advanceSimulation failed', e);
       set({ isGenerating: false } as any);
-      state.addNotification?.('error', '推进模拟失败');
+      state.addNotification?.('error', i18n.t('store.simulationAdvanceFailed') || 'Simulation advance failed');
     }
   },
 
@@ -358,12 +368,13 @@ export const createExperimentsSlice: StateCreator<
         const parentNumeric = Number(state.selectedNodeId);
 
         if (!Number.isFinite(parentNumeric)) {
-          state.addNotification?.('error', '选中节点不是后端节点');
+          console.error('[branchSimulation] Invalid node ID:', state.selectedNodeId, 'Type:', typeof state.selectedNodeId);
+          state.addNotification?.('error', i18n.t('store.selectedNodeNotBackend') || 'Selected node is not a backend node');
           return;
         }
 
         // treeBranchPublic expects: (base, id, parent, text, token)
-        const result = await treeBranchPublic(base, state.currentSimulation.id, parentNumeric, '分支', token);
+        const result = await treeBranchPublic(base, state.currentSimulation.id, parentNumeric, i18n.t('store.branch') || 'Branch', token);
 
         if (result?.child !== undefined) {
           // Refresh tree
@@ -372,7 +383,7 @@ export const createExperimentsSlice: StateCreator<
             const nodesMapped = mapGraphToNodes(graph);
             set({ nodes: nodesMapped } as any);
           }
-          state.addNotification?.('success', '分支已创建');
+          state.addNotification?.('success', i18n.t('store.branchCreated') || 'Branch created');
         }
       } else {
         // Standalone mode - create mock branch
@@ -380,14 +391,14 @@ export const createExperimentsSlice: StateCreator<
         const baseNode = state.nodes?.find((n: any) => n.id === state.selectedNodeId);
         if (!baseNode || !baseNode.parentId) {
           // Can't branch from root (no parent)
-          state.addNotification?.('error', '无法从根节点创建分支');
+          state.addNotification?.('error', i18n.t('store.cannotBranchFromRoot') || 'Cannot create branch from root node');
           return;
         }
 
         // Find the parent to create a sibling relationship
         const parentNode = state.nodes?.find((n: any) => n.id === baseNode.parentId);
         if (!parentNode) {
-          state.addNotification?.('error', '无法找到父节点');
+          state.addNotification?.('error', i18n.t('store.cannotFindParentNode') || 'Cannot find parent node');
           return;
         }
 
@@ -399,7 +410,7 @@ export const createExperimentsSlice: StateCreator<
           id: `branch-${Date.now()}`,
           display_id: `${parentNode.display_id}.${nextIndex}`,
           parentId: parentNode.id,  // Same parent as baseNode (sibling relationship)
-          name: '分支: 平行推演',
+          name: `${i18n.t('store.branch') || 'Branch'}: ${i18n.t('store.parallelRun') || 'Parallel Run'}`,
           depth: baseNode.depth,  // Same depth as baseNode (sibling relationship)
           isLeaf: true,
           status: 'pending' as const,
@@ -414,7 +425,7 @@ export const createExperimentsSlice: StateCreator<
             nodeId: newNode.id,
             round: newNode.depth,
             type: 'SYSTEM',
-            content: `创建分支: ${newNode.display_id} (平行推演场景)`,
+            content: `${i18n.t('store.createdBranch') || 'Created branch'}: ${newNode.display_id} (${i18n.t('store.parallelScenario') || 'parallel scenario'})`,
             timestamp: newNode.timestamp
           }
         ];
@@ -424,18 +435,18 @@ export const createExperimentsSlice: StateCreator<
           selectedNodeId: newNode.id,
           logs: [...(s.logs || []), ...newLogs]
         }));
-        state.addNotification?.('success', '分支已创建（本地模式）');
+        state.addNotification?.('success', i18n.t('store.branchCreatedLocalMode') || 'Branch created (local mode)');
       }
     } catch (e) {
       console.error('branchSimulation failed', e);
-      state.addNotification?.('error', '创建分支失败');
+      state.addNotification?.('error', i18n.t('store.backendBranchFailed') || 'Branch creation failed');
     }
   },
 
   deleteNode: async () => {
     const state = get() as any;
     if (!state.currentSimulation || !state.selectedNodeId || state.selectedNodeId === 'root') {
-      state.addNotification?.('error', '无法删除根节点');
+      state.addNotification?.('error', i18n.t('store.cannotDeleteRoot') || 'Cannot delete root node');
       return;
     }
 
@@ -474,10 +485,10 @@ export const createExperimentsSlice: StateCreator<
           selectedNodeId: 'root'
         }));
       }
-      state.addNotification?.('success', '节点已删除');
+      state.addNotification?.('success', i18n.t('store.nodeDeleted') || 'Node deleted');
     } catch (e) {
       console.error('deleteNode failed', e);
-      state.addNotification?.('error', '删除节点失败');
+      state.addNotification?.('error', i18n.t('store.failedToDeleteNode') || 'Failed to delete node');
     }
   },
 
@@ -487,6 +498,19 @@ export const createExperimentsSlice: StateCreator<
 
     const baseNode = state.nodes?.find((n: any) => n.id === baseNodeId);
     if (!baseNode) return;
+
+    const parentNumeric = Number(baseNode.id);
+    if (!Number.isFinite(parentNumeric)) {
+      state.addNotification?.('error', i18n.t('store.selectedNodeNotBackend') || 'Selected node is not a backend node');
+      return;
+    }
+    const parentOfVariants = baseNode.parentId == null ? null : String(baseNode.parentId);
+    const existingSiblingIds = (state.nodes || [])
+      .filter((n: any) => {
+        if (parentOfVariants === null) return n.parentId === null;
+        return String(n.parentId) === parentOfVariants;
+      })
+      .map((n: any) => String(n.id));
 
     // connected mode -> call backend create + run; standalone -> keep existing mock behavior
     if (state.engineConfig?.mode === 'connected') {
@@ -498,172 +522,256 @@ export const createExperimentsSlice: StateCreator<
           // prepare variant specs for backend (ops expected by backend)
           const variantSpecs = variants.map((v) => ({ name: v.name, ops: v.ops || [] }));
 
-          const createRes = await experimentsApi.createExperiment(
-            simId,
-            experimentName,
-            Number(baseNode.display_id || 0),
-            variantSpecs
-          );
-          const expId = createRes.experiment_id || (createRes as any).experiment_id;
+          // Step 1: create experiment
+          const createRes = await experimentsApi.createExperiment(simId, experimentName, parentNumeric, variantSpecs);
+          const expId = (createRes as any).experiment_id || (createRes as any).id || (createRes as any).experiment?.id;
+          if (!expId) {
+            state.addNotification?.('error', i18n.t('store.failedToStartExperiment') || 'Failed to start experiment');
+            return;
+          }
+          const expIdStr = String(expId);
 
-          // locally add placeholder nodes so UI shows pending variants
-          set((s: any) => {
-            const tc = s.currentSimulation?.timeConfig || { baseTime: new Date().toISOString(), unit: 'hour' as const, step: 1 };
-            const nextWorldTime = addTime(baseNode.worldTime, tc.step, tc.unit);
-            const updatedNodes = s.nodes.map((n: any) => (n.id === baseNodeId ? { ...n, isLeaf: false } : n));
-            const newNodes: any[] = variantSpecs.map((vs, idx) => ({
-              id: `exp-${Date.now()}-${idx}`,
-              display_id: `${baseNode.display_id}.${idx + 1}`,
-              parentId: baseNode.id,
-              name: `${experimentName}: ${vs.name}`,
-              depth: baseNode.depth + 1,
-              isLeaf: true,
-              status: 'pending',
-              timestamp: new Date().toLocaleTimeString(),
-              worldTime: nextWorldTime,
-              meta: { placeholder_exp_id: String(expId), variant_index: idx },
-            }));
-            return { nodes: [...updatedNodes, ...newNodes], selectedNodeId: newNodes[0]?.id ?? null } as any;
-          });
+          // Make parent non-leaf immediately so UI shows branching intent
+          set((s: any) => ({ nodes: (s.nodes || []).map((n: any) => (n.id === baseNodeId ? { ...n, isLeaf: false } : n)) }));
 
-          // start the run (background) and poll for completion
-          const runRes = await experimentsApi.runExperiment(simId, String(expId), 1);
-          const runId = runRes?.run_id || (runRes as any)?.run_id;
-          state.addNotification?.('success', `实验 ${experimentName} 已提交 (run ID: ${runId})`);
+          // Emit a local system log describing variant ops so the user can see what changed
+          const summarizeOps = (ops: any[]) => {
+            if (!ops || !ops.length) return '无操作更改';
+            const detailed = ops
+              .map((o: any, idx: number) => {
+                const label = o?.op || o?.name || `op${idx + 1}`;
+                const body = JSON.stringify(o, null, 2) || '';
+                return `[#${idx + 1}] ${label}\n${body}`;
+              })
+              .join('\n');
+            return detailed.length > 1200 ? detailed.slice(0, 1200) + '…' : detailed;
+          };
+          const nowIso = new Date().toISOString();
+          const variantLogs = variants.map((v, idx) => ({
+            id: `exp-log-${Date.now()}-${idx}`,
+            nodeId: String(parentNumeric),
+            round: 0,
+            type: 'SYSTEM',
+            content: `${experimentName} / ${v.name}: ${summarizeOps(v.ops || [])}`,
+            timestamp: nowIso
+          }));
 
-          // If backend returned immediate node mapping, apply it
-          const mapping = (runRes && (runRes as any).node_mapping) || null;
-          if (mapping && mapping.length) {
-            set((s: any) => {
-              const updated = s.nodes.map((n: any) => ({ ...n }));
-              let newSelected: string | null = s.selectedNodeId;
-              for (let mi = 0; mi < mapping.length; mi++) {
-                const m = mapping[mi];
-                if (!m || !m.node_id) continue;
-                let idx = updated.findIndex((nn: any) => String((nn.meta || {}).placeholder_exp_id) === String(expId) && (nn.meta || {}).variant_index === mi);
-                if (idx < 0) {
-                  const expectedName = `${experimentName}: ${variants[mi]?.name || ''}`;
-                  idx = updated.findIndex((nn: any) => nn.name === expectedName && nn.parentId === baseNodeId);
-                }
-                if (idx < 0) {
-                  let count = 0;
-                  for (let j = 0; j < updated.length; j++) {
-                    const nn = updated[j];
-                    if (nn.parentId === baseNodeId && nn.id?.toString().startsWith('exp-')) {
-                      if (count === mi) {
-                        idx = j;
-                        break;
-                      }
-                      count++;
-                    }
-                  }
-                }
-                if (idx >= 0) {
-                  const oldId = updated[idx].id;
-                  updated[idx].id = String(m.node_id);
-                  updated[idx].display_id = String(m.node_id);
-                  updated[idx].meta = { experiment_id: expId, variant_id: m.variant_id };
-                  updated[idx].status = 'pending';
-                  if (s.selectedNodeId === oldId) {
-                    newSelected = String(m.node_id);
-                  }
-                }
-              }
-              return { nodes: updated, selectedNodeId: newSelected } as any;
-            });
-          } else {
-            // Try immediate graph refresh
-            try {
-              const { getTreeGraph } = await import('../services/simulationTree');
-              const { mapGraphToNodes } = await import('./helpers');
-              const graph = await getTreeGraph(state.engineConfig.endpoint, simId, token);
-              if (graph) {
-                const nodesFromGraph = mapGraphToNodes(graph);
-                set((s: any) => {
-                  const updated = s.nodes.map((n: any) => ({ ...n }));
-                  let newSelected: string | null = s.selectedNodeId;
-                  for (let mi = 0; mi < variants.length; mi++) {
-                    const expectedName = `${experimentName}: ${variants[mi]?.name || ''}`;
-                    const candidate = nodesFromGraph.find((gn: any) => gn.parentId === baseNode.id && gn.name === expectedName && String(gn.id) !== String(baseNode.id));
-                    if (candidate && candidate.id) {
-                      const pIdx = updated.findIndex((nn: any) => String((nn.meta || {}).placeholder_exp_id) === String(expId) && (nn.meta || {}).variant_index === mi);
-                      if (pIdx >= 0) {
-                        const oldId = updated[pIdx].id;
-                        updated[pIdx].id = String(candidate.id);
-                        updated[pIdx].display_id = String(candidate.id);
-                        updated[pIdx].meta = { experiment_id: expId, variant_id: variants[mi]?.id };
-                        updated[pIdx].status = 'pending';
-                        if (s.selectedNodeId === oldId) newSelected = String(candidate.id);
-                      }
-                    }
-                  }
-                  return { nodes: updated, selectedNodeId: newSelected } as any;
-                });
-              }
-            } catch (e) {
-              console.warn('Immediate graph refresh failed', e);
+          const dedupLogs = (logsArr: any[]) => {
+            const seen = new Set<string>();
+            const out: any[] = [];
+            for (const l of logsArr || []) {
+              if (!l) continue;
+              const key = `${l.nodeId || ''}|${l.type || ''}|${l.content || ''}`;
+              if (seen.has(key)) continue;
+              seen.add(key);
+              out.push(l);
             }
-            // Poll for completion if not mapped
-            const pollInterval = 2000;
-            const maxAttempts = 30;
-            (async () => {
-              for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            return out;
+          };
+
+          // Step 2: run experiment
+          const runRes = await experimentsApi.runExperiment(simId, expIdStr, 1);
+          const runId = runRes?.run_id || (runRes as any)?.run_id;
+          state.addNotification?.('success', i18n.t('store.experimentSubmitted', { name: experimentName, runId }) || `Experiment "${experimentName}" submitted (run ID: ${runId})`);
+
+          const { getTreeGraph, getSimEvents, getSimState } = await import('../services/simulationTree');
+          const { mapGraphToNodes, mapBackendEventsToLogs } = await import('./helpers');
+
+          const applyChildrenWithLogs = async (mapped: any[], childrenIds: { node_id: number | string; variant_id?: any }[]) => {
+            const parentLogsSnapshot = (get() as any).logs || [];
+            // 复制的是“被选中的基准节点”的现有日志（即 baseNode），而不是它的父节点
+            const parentLogsForCopy = parentLogsSnapshot.filter((l: any) => String(l.nodeId) === String(baseNode.id));
+            set((s: any) => {
+              const variantIdMap = new Map<string, any>();
+              childrenIds.forEach((c) => variantIdMap.set(String(c.node_id), c.variant_id));
+
+              const augmented = mapped.map((n: any) => {
+                if (variantIdMap.has(String(n.id))) {
+                  return { ...n, meta: { experiment_id: expIdStr, variant_id: variantIdMap.get(String(n.id)) } };
+                }
+                return n;
+              });
+
+              const existingLogIds = new Set((s.logs || []).map((l: any) => l.id));
+              const copyVariantLogs = childrenIds.flatMap((c, idx) => {
+                const baseLog = variantLogs[idx];
+                if (!baseLog) return [] as any[];
+                const newId = `${baseLog.id}-child-${c.node_id}`;
+                if (existingLogIds.has(newId)) return [] as any[];
+                return [{ ...baseLog, id: newId, nodeId: String(c.node_id) }];
+              });
+
+              const copyParentLogs = childrenIds.flatMap((c) => {
+                const childId = String(c.node_id);
+                return parentLogsForCopy.map((pl: any, idx: number) => {
+                  const newId = `${pl.id}-copy-${childId}-${idx}`;
+                  if (existingLogIds.has(newId)) return null;
+                  return { ...pl, id: newId, nodeId: childId };
+                }).filter(Boolean) as any[];
+              });
+
+              const firstChildId = childrenIds[0]?.node_id ? String(childrenIds[0].node_id) : s.selectedNodeId;
+              return {
+                nodes: augmented,
+                selectedNodeId: firstChildId,
+                logs: copyVariantLogs.length || copyParentLogs.length
+                  ? dedupLogs([...(s.logs || []), ...copyVariantLogs, ...copyParentLogs])
+                  : s.logs
+              } as any;
+            });
+
+            // Fetch backend events/state for each child and append mapped logs so child view is not empty
+            const agents = (get() as any).agents || [];
+            await Promise.all(childrenIds.map(async (c) => {
+              const cidNum = Number(c.node_id);
+              if (!Number.isFinite(cidNum)) return;
+              try {
+                const [eventsRaw, simState] = await Promise.all([
+                  getSimEvents(state.engineConfig.endpoint, simId, cidNum, token),
+                  getSimState(state.engineConfig.endpoint, simId, cidNum, token)
+                ]);
+                const events = (eventsRaw || []).map((ev: any) => ({ ...ev, node: cidNum }));
+                const roundVal = Number(simState?.turns ?? 0) || 0;
+                const logsFromEvents = mapBackendEventsToLogs(events || [], String(c.node_id), roundVal, agents, true);
+                if (logsFromEvents && logsFromEvents.length) {
+                  set((s: any) => ({
+                    logs: dedupLogs([...(s.logs || []), ...logsFromEvents.filter((l: any) => l && l.id)])
+                  } as any));
+                }
+              } catch (e) {
+                // ignore
+              }
+            }));
+          };
+
+          // Fast path: if runRes returns node_mapping, apply immediately
+          const runMapping = (runRes as any)?.node_mapping;
+          if (Array.isArray(runMapping) && runMapping.length) {
+            const graph = await getTreeGraph(state.engineConfig.endpoint, simId, token);
+            if (graph) {
+              const mapped = mapGraphToNodes(graph);
+              const childrenIds = runMapping.map((m: any) => ({ node_id: m.node_id, variant_id: m.variant_id }));
+              await applyChildrenWithLogs(mapped, childrenIds);
+              return;
+            }
+          }
+
+          // Helper: refresh graph and attempt to locate variant nodes
+          const tryResolve = async (): Promise<boolean> => {
+            const [graph, expDetail] = await Promise.all([
+              getTreeGraph(state.engineConfig.endpoint, simId, token),
+              experimentsApi.getExperiment(simId, expIdStr)
+            ]);
+
+            if (!graph) return false;
+            // Reset logs once at first resolve attempt to avoid duplicates from repeated polling
+            set((s: any) => ({ logs: dedupLogs(s.logs || []) } as any));
+            const mapped = mapGraphToNodes(graph);
+            const variantNodesFromExp = (expDetail?.experiment?.variants || []).filter((v: any) => v && v.node_id);
+
+            // If experiment detail already has node_ids, prefer those
+            if (variantNodesFromExp.length) {
+              const variantIds = variantNodesFromExp.map((v: any) => String(v.node_id));
+              const children = mapped.filter((n: any) => {
+                  const isVariant = variantIds.includes(String(n.id));
+                  if (!isVariant) return false;
+                  if (parentOfVariants === null) return n.parentId === null;
+                  return String(n.parentId) === parentOfVariants;
+                });
+              if (children.length === variantIds.length) {
+                // attach meta and select first child; also copy variant logs onto child nodes
+                await applyChildrenWithLogs(mapped, variantNodesFromExp.map((v: any) => ({ node_id: v.node_id, variant_id: v.id })));
+                return true;
+              }
+            }
+
+            // Otherwise, rely on graph children order under parent
+            const children = mapped
+              .filter((n: any) => {
+                const isUnderParent = parentOfVariants === null ? n.parentId === null : String(n.parentId) === parentOfVariants;
+                if (!isUnderParent) return false;
+                // Only consider new siblings (exclude the baseline node and pre-existing siblings)
+                const isExisting = existingSiblingIds.includes(String(n.id)) || String(n.id) === String(baseNode.id);
+                return !isExisting;
+              })
+              .sort((a: any, b: any) => Number(a.id) - Number(b.id));
+            if (children.length >= variants.length) {
+              // Attach variant logs to ordered children
+              const parentLogsSnapshot = (get() as any).logs || [];
+              const parentLogsForCopy = parentLogsSnapshot.filter((l: any) => String(l.nodeId) === String(baseNode.id));
+
+              set((s: any) => {
+                const existingLogIds = new Set((s.logs || []).map((l: any) => l.id));
+                const copyVariantLogs = children.slice(0, variants.length).flatMap((child: any, idx: number) => {
+                  const baseLog = variantLogs[idx];
+                  if (!baseLog) return [] as any[];
+                  const newId = `${baseLog.id}-child-${child.id}`;
+                  if (existingLogIds.has(newId)) return [] as any[];
+                  return [{ ...baseLog, id: newId, nodeId: String(child.id) }];
+                });
+
+                const copyParentLogs = children.slice(0, variants.length).flatMap((child: any) => {
+                  const childId = String(child.id);
+                  return parentLogsForCopy.map((pl: any, idx: number) => {
+                    const newId = `${pl.id}-copy-${childId}-${idx}`;
+                    if (existingLogIds.has(newId)) return null;
+                    return { ...pl, id: newId, nodeId: childId };
+                  }).filter(Boolean) as any[];
+                });
+
+                return {
+                  nodes: mapped,
+                  selectedNodeId: String(children[0].id),
+                  logs: copyVariantLogs.length || copyParentLogs.length
+                    ? dedupLogs([...(s.logs || []), ...copyVariantLogs, ...copyParentLogs])
+                    : s.logs
+                } as any;
+              });
+              // Fetch backend events for ordered children (fallback path)
+              await Promise.all(children.slice(0, variants.length).map(async (child: any) => {
+                const cidNum = Number(child.id);
+                if (!Number.isFinite(cidNum)) return;
                 try {
-                  await new Promise(r => setTimeout(r, pollInterval));
-                  const expDetail = await experimentsApi.getExperiment(simId, String(expId));
-                  const variantsResp = expDetail?.experiment?.variants || [];
-                  if (variantsResp.length) {
-                    const hasNode = variantsResp.some((v: any) => v && v.node_id);
-                    if (hasNode) {
-                      set((s: any) => {
-                        const updated = s.nodes.map((n: any) => ({ ...n }));
-                        let newSelected: string | null = s.selectedNodeId;
-                        for (let vi = 0; vi < variantsResp.length; vi++) {
-                          const v = variantsResp[vi];
-                          if (!v || !v.node_id) continue;
-                          let idx = updated.findIndex((nn: any) => String((nn.meta || {}).placeholder_exp_id) === String(expId) && (nn.meta || {}).variant_index === vi);
-                          if (idx < 0) {
-                            const expectedName = `${experimentName}: ${v.name}`;
-                            idx = updated.findIndex((nn: any) => nn.name === expectedName && nn.parentId === baseNodeId);
-                          }
-                          if (idx < 0) {
-                            let count = 0;
-                            for (let j = 0; j < updated.length; j++) {
-                              const nn = updated[j];
-                              if (nn.parentId === baseNodeId && nn.id?.toString().startsWith('exp-')) {
-                                if (count === vi) {
-                                  idx = j;
-                                  break;
-                                }
-                                count++;
-                              }
-                            }
-                          }
-                          if (idx >= 0) {
-                            const oldId = updated[idx].id;
-                            updated[idx].id = String(v.node_id);
-                            updated[idx].display_id = String(v.node_id);
-                            updated[idx].meta = { experiment_id: expId, variant_id: v.id };
-                            updated[idx].status = 'pending';
-                            if (s.selectedNodeId === oldId) {
-                              newSelected = String(v.node_id);
-                            }
-                          }
-                        }
-                        return { nodes: updated, selectedNodeId: newSelected } as any;
-                      });
-                      break;
-                    }
+                  const [eventsRaw, simState] = await Promise.all([
+                    getSimEvents(state.engineConfig.endpoint, simId, cidNum, token),
+                    getSimState(state.engineConfig.endpoint, simId, cidNum, token)
+                  ]);
+                  const events = (eventsRaw || []).map((ev: any) => ({ ...ev, node: cidNum }));
+                  const roundVal = Number(simState?.turns ?? 0) || 0;
+                  const agents = (get() as any).agents || [];
+                  const logsFromEvents = mapBackendEventsToLogs(events || [], String(child.id), roundVal, agents, true);
+                  if (logsFromEvents && logsFromEvents.length) {
+                    set((s: any) => ({ logs: dedupLogs([...(s.logs || []), ...logsFromEvents.filter((l: any) => l && l.id)]) } as any));
                   }
                 } catch (e) {
-                  // ignore polling errors
+                  // ignore
                 }
-              }
-            })();
+              }));
+              return true;
+            }
+
+            // Update nodes anyway to reflect latest graph
+            set({ nodes: mapped } as any);
+            return false;
+          };
+
+          // Try immediate resolve once
+          let resolved = await tryResolve();
+          if (resolved) return;
+
+          // Poll until resolved or timeout
+          const pollInterval = 2000;
+          const maxAttempts = 30;
+          for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            await new Promise((r) => setTimeout(r, pollInterval));
+            resolved = await tryResolve();
+            if (resolved) return;
           }
+
+          state.addNotification?.('warning', i18n.t('store.experimentNodesTimeout') || 'Experiment nodes not available yet; please refresh or retry.');
         } catch (e) {
           console.error('Experiment error', e);
-          state.addNotification?.('error', '启动实验失败: ' + (e as any).message);
+          state.addNotification?.('error', (i18n.t('store.failedToStartExperiment') || 'Failed to start experiment') + ': ' + (e as any).message);
         }
       })();
       return;
@@ -696,7 +804,7 @@ export const createExperimentsSlice: StateCreator<
       nodes: [...updatedNodes, ...newNodes],
       selectedNodeId: newNodes[0].id
     });
-    state.addNotification?.('success', `批量实验 "${experimentName}" 已启动（本地模式）`);
+    state.addNotification?.('success', i18n.t('store.batchExperimentStarted', { name: experimentName }) || `Batch experiment "${experimentName}" started (local mode)`);
   },
 
   generateReport: async () => {
@@ -804,11 +912,11 @@ export const createExperimentsSlice: StateCreator<
         currentSimulation: s.currentSimulation ? { ...s.currentSimulation, report } : s.currentSimulation,
         isGeneratingReport: false
       }));
-      state.addNotification?.('success', '报告生成完成');
+      state.addNotification?.('success', i18n.t('store.reportGenerationComplete') || 'Report generation complete');
     } catch (e) {
       console.error('generateReport failed', e);
       set({ isGeneratingReport: false } as any);
-      state.addNotification?.('error', '报告生成失败，请稍后重试');
+      state.addNotification?.('error', i18n.t('store.reportGenerationFailed') || 'Report generation failed, please try again later');
     }
   },
 
@@ -816,7 +924,7 @@ export const createExperimentsSlice: StateCreator<
     const state = get() as any;
     const report = state.currentSimulation?.report;
     if (!report) {
-      state.addNotification?.('error', '暂无报告可导出');
+      state.addNotification?.('error', i18n.t('store.noReportToExport') || 'No report to export');
       return;
     }
 
@@ -834,16 +942,16 @@ export const createExperimentsSlice: StateCreator<
 
     // markdown export
     const lines: string[] = [];
-    lines.push(`# 仿真实验分析报告`);
-    lines.push(`生成时间: ${new Date(report.generatedAt).toLocaleString()}`);
-    lines.push(`\n## 摘要\n${report.summary}`);
-    lines.push(`\n## 关键转折`);
+    lines.push(`# ${i18n.t('store.simulationReport') || 'Simulation Experiment Analysis Report'}`);
+    lines.push(`${i18n.t('store.generatedAt') || 'Generated at'}: ${new Date(report.generatedAt).toLocaleString()}`);
+    lines.push(`\n## ${i18n.t('store.summary') || 'Summary'}\n${report.summary}`);
+    lines.push(`\n## ${i18n.t('store.keyEvents') || 'Key Events'}`);
     report.keyEvents.forEach((ev) => {
       lines.push(`- R${ev.round}: ${ev.description}`);
     });
-    lines.push(`\n## 建议`);
+    lines.push(`\n## ${i18n.t('store.suggestions') || 'Suggestions'}`);
     report.suggestions.forEach((sug) => lines.push(`- ${sug}`));
-    lines.push(`\n## 智能体分析`);
+    lines.push(`\n## ${i18n.t('store.agentAnalysis') || 'Agent Analysis'}`);
     report.agentAnalysis.forEach((a) => {
       lines.push(`- **${a.agentName}**: ${a.analysis}`);
     });

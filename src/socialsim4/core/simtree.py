@@ -1,12 +1,15 @@
 import json
 import asyncio
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TYPE_CHECKING
 import os
 
 from socialsim4.core.event import PublicEvent
 from socialsim4.core.simulator import Simulator
 from socialsim4.services.llm_client_pool import LLMClientPool
+
+if TYPE_CHECKING:
+    from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +131,12 @@ class SimTree:
 
         # 1) 通过 serialize -> deserialize 克隆 simulator
         snap = sim.serialize()
-        sim_clone = Simulator.deserialize(snap, root_clients, log_handler=None)
+        # Lazy import to avoid circular dependency
+        from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
+        if isinstance(sim, ExperimentRunnerAdapter):
+            sim_clone = ExperimentRunnerAdapter.deserialize(snap, root_clients, log_handler=None)
+        else:
+            sim_clone = Simulator.deserialize(snap, root_clients, log_handler=None)
 
         # 2) 克隆点的 event_queue 必须是“干净”的
         sim_clone.reset_event_queue()
@@ -146,6 +154,7 @@ class SimTree:
             "ops": [],
             "sim": sim_clone,
             "logs": root_logs,
+            "meta": {},
         }
 
         # Attach log handler so future events at root accumulate into root logs
@@ -182,7 +191,12 @@ class SimTree:
 
         # Simulator.serialize 已经用 deepcopy 做了深拷贝，这里不再做 json roundtrip
         snap = base_sim.serialize()
-        sim_copy = Simulator.deserialize(snap, branch_clients, log_handler=None)
+        # Lazy import to avoid circular dependency
+        from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
+        if isinstance(base_sim, ExperimentRunnerAdapter):
+            sim_copy = ExperimentRunnerAdapter.deserialize(snap, branch_clients, log_handler=None)
+        else:
+            sim_copy = Simulator.deserialize(snap, branch_clients, log_handler=None)
 
         # 先清空 clone 的 event_queue，再做一次完整自检
         sim_copy.reset_event_queue()
@@ -202,6 +216,11 @@ class SimTree:
         4）ordering 类型一致，serialize 后的状态一致；
         5）**event_queue：对象不共享，且在克隆点必须为空**。
         """
+        # Skip checks for ExperimentRunnerAdapter (different architecture)
+        # Lazy import to avoid circular dependency
+        from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
+        if isinstance(cloned, ExperimentRunnerAdapter):
+            return
 
         # --- 1. agent 基本信息 ---
         if not cloned.agents:
@@ -293,6 +312,7 @@ class SimTree:
         # Prepare a new node with inherited logs snapshot; parent/ops assigned later
         nid = self._next_id()
         parent_logs = list(self.nodes[node_id].get("logs", []))
+        parent_meta = json.loads(json.dumps(self.nodes[node_id].get("meta", {})))
         # Deep copy parent's logs so child does not share dict references
         child_logs: List[dict] = json.loads(json.dumps(parent_logs))
         node = {
@@ -303,7 +323,7 @@ class SimTree:
             "ops": [],
             "sim": sim_copy,
             "logs": child_logs,
-            "meta": {},
+            "meta": parent_meta,
         }
 
         self._attach_log_handler(nid, sim_copy, child_logs)
@@ -432,7 +452,13 @@ class SimTree:
             edge_type = item.get("edge_type")
             ops = item.get("ops") or []
             sim_data = item.get("sim") or {}
-            sim = Simulator.deserialize(sim_data, clients, log_handler=None)
+            scene_type = (sim_data.get("scene") or {}).get("type")
+            if scene_type == "experiment_template":
+                from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
+
+                sim = ExperimentRunnerAdapter.deserialize(sim_data, clients, log_handler=None)
+            else:
+                sim = Simulator.deserialize(sim_data, clients, log_handler=None)
             logs = list(item.get("logs") or [])
             node = {
                 "id": nid,
@@ -456,6 +482,10 @@ class SimTree:
     # ---------- 节点操作 ----------
 
     def attach(self, parent_id: int, ops: List[dict], cid: int) -> int:
+        if parent_id not in self.nodes:
+            raise KeyError(f"Parent node {parent_id} not found in tree")
+        if cid not in self.nodes:
+            raise KeyError(f"Child node {cid} not found in tree")
         parent = self.nodes[parent_id]
         node = self.nodes[cid]
         node["parent"] = parent_id
@@ -491,6 +521,8 @@ class SimTree:
     def branch(self, parent_id: int, ops: List[dict]) -> int:
         # For branching (what-if scenarios), we create a SIBLING node, not a child
         # So we need to find the parent of parent_id and attach there
+        if parent_id not in self.nodes:
+            raise KeyError(f"Node {parent_id} not found in tree")
         actual_parent_id = self.nodes[parent_id]["parent"]
 
         # If the node has no parent (it's the root), we can't create a sibling
@@ -532,6 +564,49 @@ class SimTree:
         sim.emit_remaining_events()
         # Attach to actual_parent_id instead of parent_id to create a sibling relationship
         return self.attach(actual_parent_id, ops, cid)
+
+    def apply_agent_overrides(self, node_id: int, overrides: List[dict]) -> None:
+        if node_id not in self.nodes:
+            raise KeyError(f"Node {node_id} not found in tree")
+
+        node = self.nodes[node_id]
+        sim: Simulator = node["sim"]
+        meta = node.setdefault("meta", {})
+        agent_overrides = meta.setdefault("agent_overrides", {})
+
+        for item in overrides:
+            name = item["name"]
+            agent = sim.agents[name]
+
+            current = dict(agent_overrides.get(name, {}))
+
+            if "language" in item:
+                agent.language = item["language"]
+                current["language"] = item["language"]
+
+            if "llm_config" in item:
+                llm_cfg = json.loads(json.dumps(item["llm_config"]))
+                agent.properties["llm_config"] = llm_cfg
+                current["llm_config"] = llm_cfg
+
+            if "knowledge_base" in item:
+                kb = json.loads(json.dumps(item["knowledge_base"]))
+                agent.knowledge_base = kb
+                current["knowledge_base"] = kb
+
+            if "documents" in item:
+                docs = json.loads(json.dumps(item["documents"]))
+                agent.documents = docs
+                current["documents"] = docs
+
+            if "properties" in item:
+                props = item["properties"]
+                for k, v in props.items():
+                    agent.properties[k] = v
+                merged = dict(agent.properties)
+                current["properties"] = merged
+
+            agent_overrides[name] = current
 
     def lca(self, a: int, b: int) -> int:
         da = int(self.nodes[a]["depth"])

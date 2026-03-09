@@ -40,6 +40,7 @@ socialsim4 = "socialsim4.cli:main"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+pythonpath = "src"
 
 [build-system]
 requires = ["poetry-core>=1.6.0"]

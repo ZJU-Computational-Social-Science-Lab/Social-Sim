@@ -6,6 +6,8 @@ Contains:
     - add_gaussian_noise: Add Gaussian noise to trait values
     - generate_archetype_template: Generate LLM-based archetype descriptions
     - generate_agents_with_archetypes: Generate agent population from demographics
+    - _validate_and_normalize_probabilities: Ensure probabilities sum to 1
+    - _validate_trait_ranges: Check trait mean/std are within valid bounds
 
 These functions enable large-scale agent generation by:
 1. Creating cross-product of demographic categories (archetypes)
@@ -91,7 +93,8 @@ def add_gaussian_noise(value: float, std_dev: float, min_val: float = 0, max_val
 def generate_archetype_template(
     archetype: Dict[str, Any],
     llm_client,
-    language: str = "en"
+    language: str = "en",
+    timeout: int = 30
 ) -> Dict[str, Any]:
     """
     Make ONE LLM call to get description and roles for an archetype.
@@ -103,14 +106,17 @@ def generate_archetype_template(
         archetype: Archetype dict with attributes and label
         llm_client: LLM client for generation
         language: Language code ("en" or "zh")
+        timeout: Timeout in seconds for LLM call (default: 30)
 
     Returns:
         Dict with "description" (str) and "roles" (List[str])
 
     Raises:
         RuntimeError: If LLM response is invalid or cannot be parsed
+        TimeoutError: If LLM call times out
     """
     attrs_str = ", ".join(f"{k}: {v}" for k, v in archetype["attributes"].items())
+    archetype_label = archetype.get("label", attrs_str)
 
     if language == "zh":
         prompt = f"""为此人口创建角色模板: {attrs_str}
@@ -132,11 +138,79 @@ JSON only, no other text."""
         {"role": "user", "content": prompt}
     ]
 
-    response = llm_client.chat(messages)
+    # Fallback roles and descriptions for timeout/empty response
+    fallback_roles_en = ["Citizen", "Worker", "Professional", "Student", "Other"]
+    fallback_roles_zh = ["公民", "工人", "专业人士", "学生", "其他"]
+    fallback_description_en = f"Individual with background: {archetype_label}"
+    fallback_description_zh = f"具有以下背景的个人: {archetype_label}"
+
+    # Cross-platform timeout using threading
+    import threading
+    import queue
+
+    result_queue = queue.Queue()
+    exception_queue = queue.Queue()
+
+    def llm_call():
+        try:
+            result = llm_client.chat(messages)
+            result_queue.put(result)
+        except Exception as e:
+            exception_queue.put(e)
+
+    # Start LLM call in thread
+    llm_thread = threading.Thread(target=llm_call, daemon=True)
+    llm_thread.start()
+
+    # Wait for result with timeout
+    llm_thread.join(timeout=timeout)
+
+    if llm_thread.is_alive():
+        # Thread is still running - timeout occurred
+        import warnings
+        warnings.warn(f"LLM timeout for archetype '{attrs_str}' after {timeout} seconds. Using fallback roles/description.")
+
+        return {
+            "description": fallback_description_zh if language == "zh" else fallback_description_en,
+            "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
+        }
+
+    # Thread completed - check for result or exception
+    if not exception_queue.empty():
+        e = exception_queue.get()
+        import warnings
+        warnings.warn(f"LLM error for archetype '{attrs_str}': {e}. Using fallback roles/description.")
+
+        return {
+            "description": fallback_description_zh if language == "zh" else fallback_description_en,
+            "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
+        }
+
+    if result_queue.empty():
+        # No result and no exception - unexpected
+        import warnings
+        warnings.warn(f"LLM returned no result for archetype '{attrs_str}'. Using fallback roles/description.")
+
+        return {
+            "description": fallback_description_zh if language == "zh" else fallback_description_en,
+            "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
+        }
+
+    response = result_queue.get()
 
     # Debug logging
     print(f"[DEBUG] Archetype: {attrs_str}")
-    print(f"[DEBUG] LLM Response: {response[:500]}...")
+    print(f"[DEBUG] LLM Response: {response[:500] if response else 'EMPTY'}...")
+
+    # Check for empty response - use fallback
+    if not response or not response.strip():
+        import warnings
+        warnings.warn(f"LLM returned empty response for archetype '{attrs_str}'. Using fallback.")
+
+        return {
+            "description": fallback_description_zh if language == "zh" else fallback_description_en,
+            "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
+        }
 
     # Strip markdown code blocks if present
     cleaned = response.strip()
@@ -147,32 +221,124 @@ JSON only, no other text."""
     # Try to parse JSON from response
     json_match = re.search(r'\{[\s\S]*\}', cleaned)
     if not json_match:
-        print(f"[ERROR] No JSON found in response for archetype {attrs_str}")
-        print(f"[ERROR] Cleaned response: {cleaned}")
-        raise RuntimeError(f"No JSON found in LLM response for archetype {attrs_str}. Response: {cleaned[:200]}")
+        import warnings
+        warnings.warn(f"No JSON found in LLM response for archetype '{attrs_str}'. Using fallback.")
+
+        return {
+            "description": fallback_description_zh if language == "zh" else fallback_description_en,
+            "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
+        }
 
     try:
         parsed = json.loads(json_match.group())
-    except json.JSONDecodeError as e:
-        print(f"[ERROR] JSON parse error for archetype {attrs_str}: {e}")
-        print(f"[ERROR] JSON string: {json_match.group()[:200]}")
-        raise RuntimeError(f"Failed to parse JSON for archetype {attrs_str}: {e}")
+    except json.JSONDecodeError:
+        import warnings
+        warnings.warn(f"Invalid JSON in LLM response for archetype '{attrs_str}'. Using fallback.")
+
+        return {
+            "description": fallback_description_zh if language == "zh" else fallback_description_en,
+            "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
+        }
 
     # Validate required fields
     if "description" not in parsed or not isinstance(parsed["description"], str):
-        raise RuntimeError(f"Missing or invalid 'description' for archetype {attrs_str}. Got keys: {list(parsed.keys())}")
-    if "roles" not in parsed or not isinstance(parsed["roles"], list) or len(parsed["roles"]) == 0:
-        raise RuntimeError(f"Missing or invalid 'roles' for archetype {attrs_str}. Got: {parsed.get('roles')}")
+        import warnings
+        warnings.warn(f"Missing 'description' for archetype '{attrs_str}'. Using fallback.")
+        parsed["description"] = fallback_description_zh if language == "zh" else fallback_description_en
 
-    # Validate roles are strings
-    for i, r in enumerate(parsed["roles"]):
-        if not isinstance(r, str):
-            raise RuntimeError(f"Role {i} must be a string, got {type(r).__name__} for archetype {attrs_str}")
+    if "roles" not in parsed or not isinstance(parsed["roles"], list) or len(parsed["roles"]) == 0:
+        import warnings
+        warnings.warn(f"Missing or invalid 'roles' for archetype '{attrs_str}'. Using fallback.")
+        parsed["roles"] = fallback_roles_zh if language == "zh" else fallback_roles_en
+    else:
+        # Validate roles are strings
+        valid_roles = []
+        for i, r in enumerate(parsed["roles"]):
+            if isinstance(r, str) and r.strip():
+                valid_roles.append(r.strip())
+            else:
+                import warnings
+                warnings.warn(f"Role {i} is not a valid string for archetype '{attrs_str}'. Skipping.")
+
+        if not valid_roles:
+            parsed["roles"] = fallback_roles_zh if language == "zh" else fallback_roles_en
+        else:
+            parsed["roles"] = valid_roles
 
     return {
         "description": parsed["description"],
         "roles": parsed["roles"]
     }
+
+
+def _validate_and_normalize_probabilities(archetypes: List[Dict[str, Any]]) -> None:
+    """
+    Validate and normalize archetype probabilities.
+
+    Checks if probabilities sum to approximately 1.0 (within 0.01 tolerance).
+    If not, normalizes them and logs a warning.
+
+    Args:
+        archetypes: List of archetype dicts with 'id' and 'probability' keys
+
+    Raises:
+        ValueError: If normalization fails (e.g., all probabilities are 0)
+    """
+    total_prob = sum(a.get("probability", 0) for a in archetypes)
+
+    # Check if probabilities are already normalized (within tolerance)
+    tolerance = 0.01
+    if abs(total_prob - 1.0) <= tolerance:
+        return
+
+    # Log warning about normalization
+    import warnings
+    warnings.warn(
+        f"Archetype probabilities sum to {total_prob:.3f}, not 1.0. "
+        f"Normalizing automatically."
+    )
+
+    # Normalize probabilities
+    if total_prob == 0:
+        raise ValueError(
+            "Cannot normalize probabilities: sum is 0. "
+            "Please provide non-zero probabilities for at least one archetype."
+        )
+
+    for archetype in archetypes:
+        current_prob = archetype.get("probability", 0)
+        archetype["probability"] = current_prob / total_prob
+
+
+def _validate_trait_ranges(traits: List[Dict[str, Any]]) -> None:
+    """
+    Validate trait mean and standard deviation values are within reasonable bounds.
+
+    Args:
+        traits: List of trait dicts with 'name', 'mean', and 'std' keys
+
+    Raises:
+        ValueError: If trait values are out of valid range
+    """
+    for trait in traits:
+        mean = trait.get("mean", 0)
+        std = trait.get("std", 0)
+
+        # Mean should be in 0-100 range (typical for trait scores)
+        if not (0 <= mean <= 100):
+            raise ValueError(
+                f"Trait '{trait.get('name', 'unknown')}' mean value {mean} "
+                f"is outside valid range [0, 100]. "
+                f"Trait means should be between 0 and 100."
+            )
+
+        # Std should be in 0-50 range (reasonable for trait variation)
+        if not (0 <= std <= 50):
+            raise ValueError(
+                f"Trait '{trait.get('name', 'unknown')}' std value {std} "
+                f"is outside valid range [0, 50]. "
+                f"Trait standard deviations should be between 0 and 50."
+            )
 
 
 def generate_agents_with_archetypes(
@@ -181,16 +347,18 @@ def generate_agents_with_archetypes(
     archetype_probabilities: Optional[Dict[str, float]],
     traits: List[Dict[str, Any]],
     llm_client,
-    language: str = "en"
+    language: str = "en",
+    timeout: int = 30
 ) -> List[Dict[str, Any]]:
     """
     Generate agents based on demographics and archetype probabilities.
 
     Traits use user-specified mean/std directly. This function:
     1. Generates all archetype combinations from demographics
-    2. Applies custom probabilities if provided
-    3. Calculates agent count per archetype
-    4. Generates agents with LLM-based descriptions and Gaussian-noised traits
+    2. Validates and normalizes probabilities
+    3. Validates trait ranges
+    4. Calculates agent count per archetype
+    5. Generates agents with LLM-based descriptions and Gaussian-noised traits
 
     Args:
         total_agents: Total number of agents to generate
@@ -199,12 +367,14 @@ def generate_agents_with_archetypes(
         traits: List of trait dicts with "name", "mean", "std"
         llm_client: LLM client for archetype template generation
         language: Language code ("en" or "zh")
+        timeout: Timeout in seconds for each LLM call (default: 30)
 
     Returns:
         List of agent dicts with id, name, role, profile, properties, etc.
 
     Raises:
         ValueError: If traits are empty or missing required fields
+        ValueError: If trait values are out of valid range
     """
     # Validate inputs
     if not traits:
@@ -225,6 +395,12 @@ def generate_agents_with_archetypes(
         for arch in archetypes:
             if arch["id"] in archetype_probabilities:
                 arch["probability"] = archetype_probabilities[arch["id"]]
+
+    # Step 2.5: Validate and normalize probabilities
+    _validate_and_normalize_probabilities(archetypes)
+
+    # Step 2.6: Validate trait ranges
+    _validate_trait_ranges(traits)
 
     # Step 3: Calculate agent counts per archetype
     total_prob = sum(a["probability"] for a in archetypes) or 1.0
@@ -251,7 +427,8 @@ def generate_agents_with_archetypes(
             continue
 
         # ONE LLM call per archetype to get description and roles only
-        template = generate_archetype_template(arch, llm_client, language)
+        # With timeout handling and fallback for errors
+        template = generate_archetype_template(arch, llm_client, language, timeout)
 
         # Create agents with random role and Gaussian noise on traits
         for i in range(count):
@@ -277,8 +454,29 @@ def generate_agents_with_archetypes(
                 )
                 properties[trait["name"]] = value
 
-            # Profile is just the description
-            profile = template["description"]
+            # Build enriched profile with demographics and traits
+            profile_parts = [template["description"]]
+
+            # Add demographic attributes (Age, Location, etc.)
+            if arch["attributes"]:
+                demo_parts = []
+                for key, value in arch["attributes"].items():
+                    # Format key nicely (e.g., "age_range" -> "Age Range")
+                    formatted_key = key.replace("_", " ").title()
+                    demo_parts.append(f"{formatted_key}: {value}")
+                if demo_parts:
+                    profile_parts.append("Demographics: " + ", ".join(demo_parts))
+
+            # Add trait values
+            trait_parts = []
+            for trait in traits:
+                trait_name = trait["name"]
+                if trait_name in properties:
+                    trait_parts.append(f"{trait_name}: {properties[trait_name]:.0f}")
+            if trait_parts:
+                profile_parts.append("Traits: " + ", ".join(trait_parts))
+
+            profile = " | ".join(profile_parts)
 
             agent = {
                 "id": f"agent_{agent_num}",
