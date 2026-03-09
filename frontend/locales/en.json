@@ -1688,6 +1688,71 @@
         "actionsSelected": "{{selected}} of {{total}} actions selected",
         "removeAction": "Remove action"
       }
+    },
+    "actionEditor": {
+      "title": "Actions",
+      "actionNumber": "Action {{number}}",
+      "nameLabel": "Name",
+      "namePlaceholder": "Enter action name",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Describe what this action means"
+    },
+    "resourceConfig": {
+      "title": "Resource Settings",
+      "resourceNameLabel": "Resource Name",
+      "customResourceLabel": "Custom Resource Name",
+      "customResourcePlaceholder": "Enter custom resource name",
+      "initialAmountLabel": "Initial Amount",
+      "multiplierLabel": "Pool Multiplier",
+      "actionLabelsTitle": "Action Labels",
+      "actionNameLabel": "Action Name",
+      "actionDescriptionLabel": "Action Description",
+      "resourceOptions": {
+        "tokens": "Tokens",
+        "money": "Money",
+        "effortPoints": "Effort Points",
+        "timeHours": "Time (hours)",
+        "resources": "Resources",
+        "custom": "Custom..."
+      }
+    }
+  },
+  "simulation": {
+    "log": {
+      "action_chosen": "{{agent}} chose {{action}}",
+      "action_generic": "{{agent}} performed: {{action}}",
+      "public_goods_contribution": "{{agent}} decided to {{action}} {{amount}} {{resource}}",
+      "round_summary": "Round {{round}} complete",
+      "payoff_result": "{{agent}} received {{payoff}} points"
+    },
+    "results": {
+      "round_title": "Round {{round}} Results",
+      "agents_chose": "{{count}} agents chose this",
+      "total_contributed": "Total Contributed",
+      "pool_after_multiplier": "Pool (x{{multiplier}})",
+      "per_agent_share": "Per-Agent Share"
+    }
+  },
+  "prompts": {
+    "game_theory": {
+      "battle_of_the_sexes": {
+        "intro": "You are playing Battle of the Sexes.",
+        "choose_instruction": "You can choose: {{action_1}} or {{action_2}}.",
+        "action_format": "- {{action_name}}: {{action_description}}"
+      },
+      "stag_hunt": {
+        "intro": "You are playing Stag Hunt.",
+        "choose_instruction": "You can choose: {{action_1}} or {{action_2}}.",
+        "action_format": "- {{action_name}}: {{action_description}}",
+        "payoff_context": "{{action_1}} pays {{stag_reward}} if ALL choose it, else 0. {{action_2}} always pays {{hare_reward}}."
+      },
+      "public_goods": {
+        "intro": "You have {{initial_amount}} {{resource}}.",
+        "action_instruction": "You can {{action_name}} some amount to a shared pool.",
+        "action_description": "{{action_description}}",
+        "pool_mechanics": "The pool is multiplied by {{multiplier}} and distributed equally among all participants.",
+        "choose_instruction": "Choose how much to {{action_name}} (0 to {{initial_amount}})."
+      }
     }
   },
   "systemTemplates": {
