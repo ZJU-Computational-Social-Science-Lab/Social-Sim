@@ -36,6 +36,7 @@ export interface ManualAgentType {
   rolePrompt: string;
   userProfile: string;
   properties: Record<string, unknown>;
+  providerId?: number | null;
 }
 
 export interface ExperimentBuilderState {
@@ -99,6 +100,7 @@ interface ExperimentBuilderActions {
   updateAgentType: (id: string, updates: Partial<ManualAgentType>) => void;
   loadProviders: () => Promise<void>;
   setSelectedProviderId: (id: number | null) => void;
+  getSelectedProviderId: () => number | null;
 
   // Step 5: Network Configuration
   setSocialNetwork: (network: SocialNetwork) => void;
@@ -274,6 +276,8 @@ export const useExperimentBuilder = create<ExperimentBuilderState & ExperimentBu
   },
 
   setSelectedProviderId: (id) => set({ selectedProviderId: id }),
+
+  getSelectedProviderId: () => get().selectedProviderId,
 
   // Step 5: Network Configuration
   setSocialNetwork: (network) => set({ socialNetwork: network }),

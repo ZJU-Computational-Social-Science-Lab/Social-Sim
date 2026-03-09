@@ -185,9 +185,40 @@ def _apply_agent_config(simulator, agent_config: dict | None):
         new_name = str(cfg.get("name") or "").strip()
         if new_name:
             agent.name = new_name
-        profile = str(cfg.get("profile") or "").strip()
+
+        # Try multiple field names for profile (frontend compatibility)
+        # Priority: profile > user_profile > userProfile (camelCase)
+        profile = (
+            str(cfg.get("profile") or "").strip() or
+            str(cfg.get("user_profile") or "").strip() or
+            str(cfg.get("userProfile") or "").strip()
+        )
         if profile:
             agent.user_profile = profile
+
+        # Try role_prompt field (snake_case from frontend)
+        role_prompt = (
+            str(cfg.get("role_prompt") or "").strip() or
+            str(cfg.get("rolePrompt") or "").strip()
+        )
+        if role_prompt and hasattr(agent, 'role_prompt'):
+            agent.role_prompt = role_prompt
+
+        # Preserve avatar URL from properties if present
+        properties = cfg.get("properties") or {}
+        if isinstance(properties, dict) and "avatarUrl" in properties:
+            if not hasattr(agent, 'properties') or agent.properties is None:
+                agent.properties = {}
+            agent.properties["avatarUrl"] = properties["avatarUrl"]
+
+        # Ensure defaults for required fields
+        if not hasattr(agent, 'history') or agent.history is None:
+            agent.history = {}
+        if not hasattr(agent, 'memory') or agent.memory is None:
+            agent.memory = []
+        if not hasattr(agent, 'score') or agent.score is None:
+            agent.score = 0
+
         language = str(cfg.get("language") or "").strip()
         if language:
             agent.language = language

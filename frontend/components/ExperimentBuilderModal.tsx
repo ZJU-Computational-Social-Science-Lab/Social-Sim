@@ -78,17 +78,19 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
       for (let i = 0; i < count; i++) {
         // Only use rolePrompt if explicitly provided - let backend handle identity from name
         const rolePrompt = agentType.rolePrompt?.trim() || null;
+        const userProfile = agentType.userProfile?.trim() || '';
 
         // Determine unique ID and name for each agent instance
         const suffix = count > 1 ? ` ${i + 1}` : '';
         const idSuffix = count > 1 ? `-${i}` : '';
 
         // Use avatarUrl from properties if available, otherwise generate one
-        const avatarUrl = props.avatarUrl ||
+        const avatarUrl = props.avatarUrl as string ||
           `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(agentType.label || 'agent') + i}`;
 
-        // Get LLM config
-        const selectedProvider = state.llmProviders.find((p) => p.id === state.selectedProviderId);
+        // Get LLM config - use agent type's provider if set, otherwise use global selection
+        const providerId = agentType.providerId ?? state.selectedProviderId;
+        const selectedProvider = state.llmProviders.find((p) => p.id === providerId);
         const llmConfig = selectedProvider
           ? {
               provider: selectedProvider.provider,
@@ -103,13 +105,20 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
           name: agentType.label + suffix,
           id: agentType.id + idSuffix,
           role: rolePrompt || '',
-          role_prompt: rolePrompt,  // null if not provided - backend will use agent name
+          role_prompt: rolePrompt,  // snake_case for backend
+          profile: userProfile || rolePrompt || '',  // backend expects 'profile' or 'user_profile'
+          user_profile: userProfile || '',  // snake_case for backend
           avatarUrl: avatarUrl,
           llm_config: llmConfig,
-          properties: props,
+          provider_id: providerId,  // Track which provider this agent uses
+          properties: {
+            ...props,
+            avatarUrl: avatarUrl,  // Ensure avatarUrl is in properties
+          },
           history: {},
           memory: [],
           knowledgeBase: [],
+          score: 0,  // Initialize score for agents that need it
         });
       }
 

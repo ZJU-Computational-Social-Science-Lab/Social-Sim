@@ -69,6 +69,7 @@ export const Step4Agents: React.FC = () => {
     selectedProviderId,
     setSelectedProviderId,
     loadProviders,
+    getSelectedProviderId,
   } = useExperimentBuilder();
 
   // Load providers on mount
@@ -87,6 +88,7 @@ export const Step4Agents: React.FC = () => {
     rolePrompt: '',
     userProfile: '',
     properties: {},
+    providerId: null,
   });
 
   // ==================== Demographic Mode State ====================
@@ -158,6 +160,7 @@ export const Step4Agents: React.FC = () => {
     addAgentType({
       ...newAgentType,
       id: newAgentType.id || `agent-${Date.now()}`,
+      providerId: selectedProviderId,
     });
     setNewAgentType({
       id: '',
@@ -166,6 +169,7 @@ export const Step4Agents: React.FC = () => {
       rolePrompt: '',
       userProfile: '',
       properties: {},
+      providerId: selectedProviderId,
     });
   };
 
@@ -319,6 +323,7 @@ export const Step4Agents: React.FC = () => {
             archetype_id: agent.properties?.archetype_id || '',
             demographic_attributes: JSON.stringify(agent.properties || {}),
           },
+          providerId: selectedProviderId ?? undefined,
         };
         addAgentType(agentType);
       });
