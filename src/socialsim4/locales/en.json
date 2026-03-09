@@ -112,6 +112,20 @@
     }
   },
   "api": {
+    "errors": {
+      "missing_nodes": "Missing node_a or node_b in request body",
+      "invalid_node_ids": "Invalid node id(s); must be integers",
+      "node_not_found": "node_not_found",
+      "agent_memory_unavailable": "Agent memory not available. Provide a valid node_id from a running simulation.",
+      "llm_disabled_large_diff": " (Note: Large diff detected, LLM summary disabled to save resources)",
+      "llm_no_client": " (No LLM client configured)",
+      "llm_quota_exhausted": " (Note: User LLM quota exhausted, LLM summary disabled)"
+    },
+    "compare": {
+      "node_unique_events": "Node {{node}} has {{count}} unique events.",
+      "agent_property_diffs": "{{count}} agents have property differences.",
+      "no_obvious_diff": "No obvious differences found (based on quick comparison of events and properties)."
+    },
     "auth": {
       "email_verified": "Email verified"
     },

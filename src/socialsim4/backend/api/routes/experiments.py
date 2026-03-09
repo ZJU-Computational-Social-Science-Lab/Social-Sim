@@ -9,6 +9,7 @@ from litestar.exceptions import HTTPException
 from litestar.connection import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from socialsim4.i18n import T
 from socialsim4.backend.core.database import get_session
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -116,7 +117,7 @@ async def get_experiment(request: Request, simulation_id: str, exp_id: str) -> d
         res = await session.execute(stmt)
         exp = res.scalars().first()
         if exp is None:
-            return {"error": "not_found"}
+            return {"error": T('api.experiments.not_found')}
         # serialize minimal experiment info
         return {
             "experiment": {
@@ -142,13 +143,13 @@ async def compare_nodes(request: Request, simulation_id: str, data: dict) -> dic
     use_llm = bool(data.get("use_llm", False))
 
     if node_a_raw is None or node_b_raw is None:
-        raise HTTPException(status_code=400, detail="Missing node_a or node_b in request body")
+        raise HTTPException(status_code=400, detail=T('api.errors.missing_nodes'))
 
     try:
         node_a = int(node_a_raw)
         node_b = int(node_b_raw)
     except Exception:
-        raise HTTPException(status_code=400, detail="Invalid node id(s); must be integers")
+        raise HTTPException(status_code=400, detail=T('api.errors.invalid_node_ids'))
 
     async with get_session() as session:
         sim, record = await get_simulation_and_tree_any(session, simulation_id)
@@ -157,7 +158,7 @@ async def compare_nodes(request: Request, simulation_id: str, data: dict) -> dic
     a = tree.nodes.get(int(node_a))
     b = tree.nodes.get(int(node_b))
     if a is None or b is None:
-        raise HTTPException(status_code=400, detail="node_not_found")
+        raise HTTPException(status_code=400, detail=T('api.errors.node_not_found'))
 
     logs_a = a.get("logs") or []
     logs_b = b.get("logs") or []
@@ -189,13 +190,13 @@ async def compare_nodes(request: Request, simulation_id: str, data: dict) -> dic
     # construct a conservative natural-language summary from diffs (no external LLM by default)
     parts: List[str] = []
     if only_a:
-        parts.append(f"节点 {node_a} 有 {len(only_a)} 条独有事件。")
+        parts.append(T('api.compare.node_unique_events', node=node_a, count=len(only_a)))
     if only_b:
-        parts.append(f"节点 {node_b} 有 {len(only_b)} 条独有事件。")
+        parts.append(T('api.compare.node_unique_events', node=node_b, count=len(only_b)))
     if agent_diffs:
-        parts.append(f"{len(agent_diffs)} 个代理的属性存在差异。")
+        parts.append(T('api.compare.agent_property_diffs', count=len(agent_diffs)))
     if not parts:
-        parts.append("未发现明显差异（基于事件内容与属性的快速比对）。")
+        parts.append(T('api.compare.no_obvious_diff'))
 
     summary = "；".join(parts)
 
@@ -205,7 +206,7 @@ async def compare_nodes(request: Request, simulation_id: str, data: dict) -> dic
         total_events = len(only_a) + len(only_b)
         if total_events > 200 or len(agent_diffs) > 50:
             # Avoid expensive/hallucination-prone calls for very large diffs
-            summary = summary + "（注意：差异过大，已禁用 LLM 摘要以节省资源）"
+            summary = summary + T('api.errors.llm_disabled_large_diff')
         else:
             # Try to get an LLM client from the tree's clients if available
             llm_client = None
@@ -215,7 +216,7 @@ async def compare_nodes(request: Request, simulation_id: str, data: dict) -> dic
                 llm_client = None
 
             if llm_client is None:
-                summary = summary + "（未配置可用的 LLM 客户端）"
+                summary = summary + T('api.errors.llm_no_client')
             else:
                 # Build compact prompt with counts and a few examples (limit length)
                 def stringify_event(ev: dict) -> str:
@@ -292,7 +293,7 @@ async def compare_nodes(request: Request, simulation_id: str, data: dict) -> dic
                         quota_allowed = False
 
                 if not quota_allowed:
-                    summary = summary + "（注意：用户 LLM 配额已耗尽，已禁用 LLM 摘要）"
+                    summary = summary + T('api.errors.llm_quota_exhausted')
                 else:
                     try:
                         text = llm_client.chat([system_msg, user_msg])

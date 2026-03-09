@@ -38,6 +38,7 @@ from socialsim4.backend.core.database import get_session
 from socialsim4.backend.dependencies import extract_bearer_token, resolve_current_user
 from socialsim4.backend.services.documents import process_document
 from socialsim4.backend.services.simtree_runtime import SIM_TREE_REGISTRY
+from socialsim4.i18n import T
 
 from .helpers import get_simulation_for_owner
 
@@ -395,8 +396,8 @@ async def get_agent_memory(
         if agent_data is None:
             return {
                 "name": agent_name,
-                "error": "Agent memory not available. Provide a valid node_id from a running simulation.",
-                "hint": "Use /tree/graph to get available nodes, then query with ?node_id=<node>",
+                "error": T('api.errors.agent_memory_unavailable'),
+                "hint": T('api.documents.memory_not_available'),
             }
 
         return agent_data

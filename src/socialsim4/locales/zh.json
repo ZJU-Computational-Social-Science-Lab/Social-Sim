@@ -112,6 +112,20 @@
     }
   },
   "api": {
+    "errors": {
+      "missing_nodes": "请求体中缺少 node_a 或 node_b",
+      "invalid_node_ids": "节点ID无效；必须是整数",
+      "node_not_found": "节点未找到",
+      "agent_memory_unavailable": "代理记忆不可用。请提供运行中模拟的有效 node_id。",
+      "llm_disabled_large_diff": "（注意：差异过大，已禁用 LLM 摘要以节省资源）",
+      "llm_no_client": "（未配置可用的 LLM 客户端）",
+      "llm_quota_exhausted": "（注意：用户 LLM 配额已耗尽，已禁用 LLM 摘要）"
+    },
+    "compare": {
+      "node_unique_events": "节点 {{node}} 有 {{count}} 条独有事件。",
+      "agent_property_diffs": "{{count}} 个代理的属性存在差异。",
+      "no_obvious_diff": "未发现明显差异（基于事件内容与属性的快速比对）。"
+    },
     "auth": {
       "email_verified": "邮箱已验证"
     },
