@@ -1491,6 +1491,7 @@
   },
   "experimentBuilder": {
     "title": "Create New Experiment",
+    "subtitle": "Design your social science experiment in 6 steps",
     "modalTitle": "Create New Experiment",
     "actionSelector": {
       "availableLabel": "Available Actions",

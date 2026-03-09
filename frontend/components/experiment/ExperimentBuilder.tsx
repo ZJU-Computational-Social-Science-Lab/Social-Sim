@@ -33,6 +33,7 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
   onComplete,
   onCancel,
 }) => {
+  const { t } = useTranslation();
   const {
     currentStep,
     completedSteps,
