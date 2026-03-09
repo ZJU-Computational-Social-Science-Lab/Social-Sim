@@ -144,39 +144,40 @@ JSON only, no other text."""
     fallback_description_en = f"Individual with background: {archetype_label}"
     fallback_description_zh = f"具有以下背景的个人: {archetype_label}"
 
-    try:
-        # Wrap LLM call in timeout
-        import signal
+    # Cross-platform timeout using threading
+    import threading
+    import queue
 
-        def timeout_handler(signum, frame):
-            raise TimeoutError(f"LLM call timed out after {timeout} seconds")
+    result_queue = queue.Queue()
+    exception_queue = queue.Queue()
 
-        # Set timeout (only works on Unix systems)
+    def llm_call():
         try:
-            signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(timeout)
-            use_signal_timeout = True
-        except (AttributeError, ValueError):
-            # Windows or systems without SIGALRM - use fallback
-            use_signal_timeout = False
+            result = llm_client.chat(messages)
+            result_queue.put(result)
+        except Exception as e:
+            exception_queue.put(e)
 
-        response = llm_client.chat(messages)
+    # Start LLM call in thread
+    llm_thread = threading.Thread(target=llm_call, daemon=True)
+    llm_thread.start()
 
-        # Cancel alarm if it was set
-        if use_signal_timeout:
-            signal.alarm(0)
+    # Wait for result with timeout
+    llm_thread.join(timeout=timeout)
 
-    except TimeoutError as e:
-        # Use fallback on timeout
+    if llm_thread.is_alive():
+        # Thread is still running - timeout occurred
         import warnings
-        warnings.warn(f"LLM timeout for archetype '{attrs_str}': {e}. Using fallback roles/description.")
+        warnings.warn(f"LLM timeout for archetype '{attrs_str}' after {timeout} seconds. Using fallback roles/description.")
 
         return {
             "description": fallback_description_zh if language == "zh" else fallback_description_en,
             "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
         }
-    except Exception as e:
-        # Handle other LLM errors with fallback
+
+    # Thread completed - check for result or exception
+    if not exception_queue.empty():
+        e = exception_queue.get()
         import warnings
         warnings.warn(f"LLM error for archetype '{attrs_str}': {e}. Using fallback roles/description.")
 
@@ -184,6 +185,18 @@ JSON only, no other text."""
             "description": fallback_description_zh if language == "zh" else fallback_description_en,
             "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
         }
+
+    if result_queue.empty():
+        # No result and no exception - unexpected
+        import warnings
+        warnings.warn(f"LLM returned no result for archetype '{attrs_str}'. Using fallback roles/description.")
+
+        return {
+            "description": fallback_description_zh if language == "zh" else fallback_description_en,
+            "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
+        }
+
+    response = result_queue.get()
 
     # Debug logging
     print(f"[DEBUG] Archetype: {attrs_str}")
