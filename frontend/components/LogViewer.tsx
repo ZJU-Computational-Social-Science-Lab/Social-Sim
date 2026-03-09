@@ -225,7 +225,7 @@ const LogItem: React.FC<{
           {entry.agentId && entry.type !== 'AGENT_METADATA' && (
             <span className="font-bold text-slate-700 mr-2">{entry.agentId}:</span>
           )}
-          <span className="text-slate-600">{entry.content}</span>
+          <span className="text-slate-600">{displayContent}</span>
           <ImageComponent />
           <MediaBadges />
         </div>
