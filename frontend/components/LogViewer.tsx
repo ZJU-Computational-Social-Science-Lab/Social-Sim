@@ -11,7 +11,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSimulationStore } from '../store';
 import { useTranslation } from 'react-i18next';
-import { LogEntry, ViewMode, SimNode } from '../types';
+import { LogEntry, ViewMode } from '../types';
 import { List, CreditCard, Clock, Filter, Search, X, Check, GitCommit, Image as ImageIcon } from 'lucide-react';
 import { getActionConfig, getResourceName } from '../utils/scenarioHelpers';
 
@@ -251,7 +251,7 @@ const LogItem: React.FC<{
         </div>
         <span className="text-[10px] font-mono text-slate-400">{displayTime}</span>
       </div>
-      <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{entry.content}</p>
+      <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{displayContent}</p>
       <ImageComponent />
       <MediaBadges />
     </div>
