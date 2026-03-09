@@ -443,10 +443,63 @@ OPEN_DISCUSSION: Dict[str, Any] = {
     ],
 }
 
+COUNCIL_CHAMBER: Dict[str, Any] = {
+    "id": "council_chamber",
+    "name": "Council Chamber",
+    "category": "discussion",
+    "description": "Formal deliberation with voting and procedural rules. Participants debate proposals, call for votes, and make collective decisions.",
+    "grouping_mode": "individual",
+    "payoff_type": "none",
+    "interaction_mode": "simultaneous",
+    "display_type": "params",
+    "parameters": [
+        {
+            "id": "proposal_text",
+            "key": "proposal_text",
+            "label": "Proposal Text",
+            "type": "string",
+            "default": "",
+            "ui_hint": "textarea",
+        },
+        {
+            "id": "voting_threshold",
+            "key": "voting_threshold",
+            "label": "Voting Threshold",
+            "type": "number",
+            "default": 0.5,
+            "ui_hint": "slider",
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.1,
+        },
+        {
+            "id": "max_rounds",
+            "key": "max_rounds",
+            "label": "Max Debate Rounds",
+            "type": "integer",
+            "default": 5,
+            "ui_hint": "slider",
+            "min": 1,
+            "max": 10,
+        },
+    ],
+    "actions": [
+        {"id": "speak", "name": "Speak", "description": "Make a statement"},
+        {"id": "call_vote", "name": "Call Vote", "description": "Initiate a vote"},
+        {"id": "vote_yes", "name": "Vote Yes", "description": "Vote in favor"},
+        {"id": "vote_no", "name": "Vote No", "description": "Vote against"},
+        {"id": "abstain", "name": "Abstain", "description": "Neither yes nor no"},
+    ],
+}
+
+# ============================================================================
+# Spatial Scenarios (Grid-Based)
+# ============================================================================
+
 GRID_WORLD: Dict[str, Any] = {
     "id": "grid_world",
     "name": "Grid World",
-    "category": "grid_world",
+    "category": "spatial",
     "description": "Agents move on a grid, collecting resources and observing their environment.",
     "grouping_mode": "neighbor",
     "payoff_type": "none",
@@ -530,7 +583,7 @@ WEREWOLF: Dict[str, Any] = {
 CUSTOM: Dict[str, Any] = {
     "id": "custom",
     "name": "Custom Scenario",
-    "category": "discussion",
+    "category": "custom",
     "description": "Build your own custom experiment from scratch.",
     "grouping_mode": "individual",
     "payoff_type": "none",
@@ -627,6 +680,84 @@ COORDINATION_GAME: Dict[str, Any] = {
 }
 
 # ============================================================================
+# Contagion Spread Scenario
+# ============================================================================
+
+CONTAGION: Dict[str, Any] = {
+    "id": "contagion",
+    "name": "Contagion Spread",
+    "category": "spatial",
+    "description": "Agents on a grid can spread contagion through proximity and social interactions. Watch as infection spreads through the population while agents move and communicate.",
+    "grouping_mode": "neighbor",
+    "payoff_type": "none",
+    "interaction_mode": "simultaneous",
+    "display_type": "params",
+    "parameters": [
+        {
+            "id": "initial_infected",
+            "key": "initial_infected",
+            "label": "Initial Infected Agents",
+            "type": "integer",
+            "default": 1,
+            "ui_hint": "slider",
+            "min": 1,
+            "max": 5,
+            "description": "Number of agents that start infected",
+        },
+        {
+            "id": "proximity_probability",
+            "key": "proximity_probability",
+            "label": "Proximity Transmission Rate",
+            "type": "number",
+            "default": 0.3,
+            "ui_hint": "slider",
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.1,
+            "description": "Probability of transmission when agents are adjacent",
+        },
+        {
+            "id": "action_probability",
+            "key": "action_probability",
+            "label": "Action Transmission Rate",
+            "type": "number",
+            "default": 0.5,
+            "ui_hint": "slider",
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.1,
+            "description": "Probability of transmission when infected agent speaks to susceptible",
+        },
+        {
+            "id": "recovery_turns",
+            "key": "recovery_turns",
+            "label": "Turns Until Recovery",
+            "type": "integer",
+            "default": 5,
+            "ui_hint": "slider",
+            "min": 1,
+            "max": 20,
+            "description": "Number of turns before infected agents recover",
+        },
+        {
+            "id": "grid_size",
+            "key": "grid_size",
+            "label": "Grid Size",
+            "type": "integer",
+            "default": 10,
+            "ui_hint": "slider",
+            "min": 5,
+            "max": 20,
+            "description": "Size of the grid (N x N)",
+        },
+    ],
+    "actions": [
+        {"id": "move", "name": "Move", "description": "Move to an adjacent cell"},
+        {"id": "speak", "name": "Speak", "description": "Talk to a nearby agent (may transmit contagion)"},
+    ],
+}
+
+# ============================================================================
 # Registry
 # ============================================================================
 
@@ -639,10 +770,12 @@ ALL_SCENARIOS: List[Dict[str, Any]] = [
     ECHO_CHAMBER,
     RESOURCE_SCARCITY,
     OPEN_DISCUSSION,
+    COUNCIL_CHAMBER,
     GRID_WORLD,
     WEREWOLF,
     PUBLIC_GOODS,
     COORDINATION_GAME,
+    CONTAGION,
     CUSTOM,
 ]
 
