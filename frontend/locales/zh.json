@@ -1477,6 +1477,26 @@
   "experimentBuilder": {
     "title": "创建新实验",
     "modalTitle": "创建新实验",
+    "actionSelector": {
+      "availableLabel": "可用操作",
+      "loading": "加载操作中...",
+      "selectPrompt": "在下方选择操作...",
+      "selectAction": "选择操作...",
+      "addAction": "添加操作... ({{count}}/{{max}})",
+      "noneAvailable": "无可用操作",
+      "maxSelected": "已选择最多 {{max}} 个操作。移除一个以添加更多。",
+      "fallbackWarning": "使用备用选项",
+      "loadError": "加载操作失败",
+      "fallbackCooperate": "合作",
+      "fallbackCooperateDesc": "与其他玩家合作",
+      "fallbackDefect": "背叛",
+      "fallbackDefectDesc": "为自身利益行动"
+    },
+    "network": {
+      "zoomIn": "放大",
+      "zoomOut": "缩小",
+      "resetView": "重置视图"
+    },
     "newExperiment": "新实验",
     "customExperiment": "自定义实验",
     "experimentCreated": "实验创建成功！",

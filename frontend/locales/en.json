@@ -1492,6 +1492,26 @@
   "experimentBuilder": {
     "title": "Create New Experiment",
     "modalTitle": "Create New Experiment",
+    "actionSelector": {
+      "availableLabel": "Available Actions",
+      "loading": "Loading actions...",
+      "selectPrompt": "Select actions below...",
+      "selectAction": "Select an action...",
+      "addAction": "Add action... ({{count}}/{{max}})",
+      "noneAvailable": "No actions available",
+      "maxSelected": "Maximum {{max}} actions selected. Remove an action to add more.",
+      "fallbackWarning": "Using fallback options",
+      "loadError": "Failed to load actions",
+      "fallbackCooperate": "Cooperate",
+      "fallbackCooperateDesc": "Cooperate with other players",
+      "fallbackDefect": "Defect",
+      "fallbackDefectDesc": "Act in self-interest"
+    },
+    "network": {
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "resetView": "Reset view"
+    },
     "newExperiment": "New Experiment",
     "customExperiment": "Custom experiment",
     "experimentCreated": "Experiment created successfully!",

@@ -9,6 +9,7 @@
 import React, { useEffect, useState } from 'react';
 import { Check, ChevronDown, X } from 'lucide-react';
 import { fetchAvailableActionTypes, ActionType } from '../../services/experiment-templates';
+import { useTranslation } from 'react-i18next';
 
 interface ActionSelectorProps {
   /** Currently selected action values */
@@ -28,13 +29,17 @@ export const ActionSelector: React.FC<ActionSelectorProps> = ({
   onSelectionChange,
   maxActions = 10,
   disabled = false,
-  label = 'Available Actions',
+  label,
 }) => {
+  const { t } = useTranslation();
   const [availableActions, setAvailableActions] = useState<ActionType[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  // Default label uses translation
+  const displayLabel = label || t('experiment.actionSelector.availableLabel');
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -59,12 +64,12 @@ export const ActionSelector: React.FC<ActionSelectorProps> = ({
       })
       .catch(err => {
         console.error('Failed to load action types:', err);
-        setError('Failed to load actions');
+        setError(t('experiment.actionSelector.loadError'));
         setLoading(false);
         // Set fallback actions so the component still works
         setAvailableActions([
-          { value: 'cooperate', label: 'Cooperate', description: 'Cooperate with other players' },
-          { value: 'defect', label: 'Defect', description: 'Act in self-interest' },
+          { value: 'cooperate', label: t('experiment.actionSelector.fallbackCooperate'), description: t('experiment.actionSelector.fallbackCooperateDesc') },
+          { value: 'defect', label: t('experiment.actionSelector.fallbackDefect'), description: t('experiment.actionSelector.fallbackDefectDesc') },
         ]);
       });
   }, []);
@@ -97,9 +102,9 @@ export const ActionSelector: React.FC<ActionSelectorProps> = ({
 
   return (
     <div className="space-y-2">
-      {label && (
+      {displayLabel && (
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {label}
+          {displayLabel}
         </label>
       )}
 
@@ -107,7 +112,7 @@ export const ActionSelector: React.FC<ActionSelectorProps> = ({
       <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md min-h-[60px] bg-gray-50">
         {selectedActions.length === 0 ? (
           <span className="text-sm text-gray-600">
-            {loading ? 'Loading actions...' : 'Select actions below...'}
+            {loading ? t('experiment.actionSelector.loading') : t('experiment.actionSelector.selectPrompt')}
           </span>
         ) : (
           selectedActions.map(action => (
@@ -131,7 +136,7 @@ export const ActionSelector: React.FC<ActionSelectorProps> = ({
 
       {error && (
         <div className="text-xs text-amber-600">
-          {error} - Using fallback options
+          {error} - {t('experiment.actionSelector.fallbackWarning')}
         </div>
       )}
 
@@ -144,7 +149,7 @@ export const ActionSelector: React.FC<ActionSelectorProps> = ({
           className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white text-left disabled:bg-gray-100 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
         >
           <span className="text-sm text-gray-700">
-            {loading ? 'Loading actions...' : isOpen ? 'Select an action...' : `Add action... (${selectedActions.length}/${maxActions})`}
+            {loading ? t('experiment.actionSelector.loading') : isOpen ? t('experiment.actionSelector.selectAction') : t('experiment.actionSelector.addAction', { count: selectedActions.length, max: maxActions })}
           </span>
           <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </button>
@@ -153,7 +158,7 @@ export const ActionSelector: React.FC<ActionSelectorProps> = ({
           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
             {availableActions.length === 0 ? (
               <div className="px-3 py-2 text-sm text-gray-500">
-                No actions available
+                {t('experiment.actionSelector.noneAvailable')}
               </div>
             ) : (
               availableActions.map(action => {
@@ -196,7 +201,7 @@ export const ActionSelector: React.FC<ActionSelectorProps> = ({
       {/* Max actions hint */}
       {selectedActions.length >= maxActions && (
         <div className="text-xs text-amber-600">
-          Maximum {maxActions} actions selected. Remove an action to add more.
+          {t('experimentBuilder.actionSelector.maxSelected', { max: maxActions })}
         </div>
       )}
     </div>
