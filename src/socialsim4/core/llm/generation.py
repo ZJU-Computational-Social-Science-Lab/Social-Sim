@@ -454,8 +454,29 @@ def generate_agents_with_archetypes(
                 )
                 properties[trait["name"]] = value
 
-            # Profile is just the description
-            profile = template["description"]
+            # Build enriched profile with demographics and traits
+            profile_parts = [template["description"]]
+
+            # Add demographic attributes (Age, Location, etc.)
+            if arch["attributes"]:
+                demo_parts = []
+                for key, value in arch["attributes"].items():
+                    # Format key nicely (e.g., "age_range" -> "Age Range")
+                    formatted_key = key.replace("_", " ").title()
+                    demo_parts.append(f"{formatted_key}: {value}")
+                if demo_parts:
+                    profile_parts.append("Demographics: " + ", ".join(demo_parts))
+
+            # Add trait values
+            trait_parts = []
+            for trait in traits:
+                trait_name = trait["name"]
+                if trait_name in properties:
+                    trait_parts.append(f"{trait_name}: {properties[trait_name]:.0f}")
+            if trait_parts:
+                profile_parts.append("Traits: " + ", ".join(trait_parts))
+
+            profile = " | ".join(profile_parts)
 
             agent = {
                 "id": f"agent_{agent_num}",
