@@ -76,7 +76,7 @@ All tasks were completed according to the specification with no unexpected issue
 **Solution:**
 - Added `_validate_and_normalize_probabilities()` - Checks if sum is 1.0 (±0.01), normalizes if needed
 - Added `_validate_trait_ranges()` - Validates mean is 0-100, std is 0-50
-- Added 30-second timeout in `generate_archetype_template()` using `signal.SIGALRM`
+- Added 30-second timeout in `generate_archetype_template()` using cross-platform threading
 - Added fallback roles for English and Chinese when LLM fails
 - Improved error messages to be user-friendly
 - Added pre-validation in `llm.py` route
@@ -94,7 +94,7 @@ All tasks were completed according to the specification with no unexpected issue
 - Defensive validation with clear error messages
 
 **Key Dependencies:**
-- None added (uses existing `signal` module for timeout)
+- None added (uses standard library `threading` and `queue` for timeout)
 
 ## Dependency Graph
 
@@ -119,7 +119,7 @@ All tasks were completed according to the specification with no unexpected issue
 
 2. **Fallback values for LLM timeout** - Instead of failing the entire generation, use generic roles/descriptions when LLM times out. This allows experiments to proceed even with unreliable LLM services.
 
-3. **Signal-based timeout** - Used `signal.SIGALRM` for timeout (Unix-only). On Windows, timeout is not enforced but fallback still catches exceptions. A cross-platform solution using `asyncio.wait_for` would require converting the codebase to async.
+3. **Threading-based timeout** - Used `threading.Thread` with `daemon=True` and `join(timeout=30)` for cross-platform timeout support. This works on both Windows and Unix systems, unlike `signal.SIGALRM` which is Unix-only.
 
 4. **Tolerance-based probability check** - Used ±0.01 tolerance when checking if probabilities sum to 1.0 to handle floating-point precision issues.
 
@@ -130,6 +130,7 @@ All tasks were completed according to the specification with no unexpected issue
 1. `3897ac1` - feat(003): fix manual agent field mapping and LLM config
 2. `b6b98ff` - feat(003): add field mapping middleware in simulation creation
 3. `8f87829` - feat(003): enhance demographic generation with validation and timeout
+4. `565e850` - fix(003): use cross-platform threading timeout instead of Unix signals
 
 ## Success Criteria
 
@@ -177,6 +178,7 @@ All tasks were completed according to the specification with no unexpected issue
 - [x] `3897ac1` - feat(003): fix manual agent field mapping and LLM config
 - [x] `b6b98ff` - feat(003): add field mapping middleware in simulation creation
 - [x] `8f87829` - feat(003): enhance demographic generation with validation and timeout
+- [x] `565e850` - fix(003): use cross-platform threading timeout instead of Unix signals
 
 ### Self-Check: PASSED
 
