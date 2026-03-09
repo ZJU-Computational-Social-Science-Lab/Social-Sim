@@ -122,6 +122,7 @@ None currently. Research addressed architecture and stack questions.
 | 001 | Audit scenario execution flow for bugs | 2026-03-08 | 65f7129 | [001-scenario-execution-audit](./quick/001-scenario-execution-audit/) |
 | 003 | Agent creation fixes (field mapping, validation, timeout) | 2026-03-09 | 8f87829 | [003-agent-creation-fixes](./quick/003-agent-creation-fixes/) |
 | 004 | i18n compliance audit | 2026-03-09 | b6b98ff | [004-i18n-audit](./quick/004-i18n-audit/) |
+| 005 | Fix hardcoded strings for i18n compliance | 2026-03-09 | 9d36d4d | [005-fix-i18n-hardcoded](./quick/005-fix-i18n-hardcoded/) |
 
 ## Session Continuity
 
