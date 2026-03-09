@@ -88,6 +88,60 @@
         "name": "资源稀缺",
         "description": "灾后社区面临资源稀缺。代理人决定是分享、交易还是为了个人利益而背叛。"
       }
+    },
+    "game_theory": {
+      "prisoners_dilemma": {
+        "name": "囚徒困境",
+        "description": "两个嫌疑人被分开审讯。每个人都必须决定是背叛对方还是保持沉默。你的收益取决于你和搭档的选择。"
+      },
+      "battle_of_the_sexes": {
+        "name": "性别战",
+        "description": "一对情侣想要协调晚上的活动。一个喜欢歌剧，另一个喜欢足球。如果协调一致，双方都能获得正收益，但每个人都更喜欢自己的活动。"
+      },
+      "stag_hunt": {
+        "name": "猎鹿博弈",
+        "description": "猎人必须全部选择猎鹿（高回报）或猎兔（安全但低回报）。猎鹿需要所有人合作。如果有一个人选择猎兔，鹿就会逃跑，猎鹿者一无所获。"
+      },
+      "public_goods": {
+        "name": "公共品博弈",
+        "description": "每个代理都有资源，并决定向共享池贡献多少。共享池会倍增并平均分配给所有代理，无论贡献多少。"
+      },
+      "coordination_game": {
+        "name": "协调博弈",
+        "description": "你和你的邻居各自选择一个选项。你可以看到邻居在之前轮次的选择。"
+      }
+    },
+    "discussion": {
+      "open_discussion": {
+        "name": "自由讨论",
+        "description": "代理自由讨论一个话题。没有结构化的决策——只是对话。"
+      },
+      "council_chamber": {
+        "name": "议事厅",
+        "description": "带有投票和程序规则的正式审议。参与者辩论提案、发起投票并做出集体决策。"
+      }
+    },
+    "spatial": {
+      "grid_world": {
+        "name": "网格世界",
+        "description": "代理在网格上移动，收集资源并观察环境。"
+      },
+      "contagion": {
+        "name": "传染扩散",
+        "description": "网格上的代理可以通过邻近和社交互动传播传染病。观察感染如何在人群中扩散，同时代理在移动和交流。"
+      }
+    },
+    "social_deduction": {
+      "werewolf": {
+        "name": "狼人杀",
+        "description": "一个社会推理游戏，村民试图识别隐藏在他们中间的狼人，而狼人则在夜间试图消灭村民。"
+      }
+    },
+    "custom": {
+      "custom": {
+        "name": "自定义场景",
+        "description": "从头构建您自己的自定义实验。"
+      }
     }
   },
   "settings": {
@@ -1519,6 +1573,10 @@
     "step1": {
       "title": "为您的实验选择交互模式",
       "subtitle": "选择一个或多个您想要研究的交互模式",
+      "chooseScenario": "选择场景",
+      "selectTemplate": "选择一个场景模板来开始构建您的实验",
+      "retry": "重试",
+      "scenariosCount": "{{count}} 个场景",
       "strategic_decisions": {
         "title": "战略决策",
         "description": "研究结果取决于他人选择的情况",
@@ -1656,6 +1714,81 @@
       "addAction": "添加动作",
       "actionsSelected": "已选择 {{selected}} / {{total}} 个动作",
       "removeAction": "删除动作"
+    },
+    "step4": {
+      "modeTitle": "您想如何创建代理？",
+      "modes": {
+        "manual": {
+          "title": "手动类型",
+          "description": "手动定义代理类型，设置自定义提示词和数量"
+        },
+        "demographic": {
+          "title": "人口统计生成",
+          "description": "从自定义人口统计变量生成代理"
+        },
+        "import": {
+          "title": "文件导入",
+          "description": "从JSON文件导入代理配置"
+        }
+      },
+      "defineTypes": "定义代理类型",
+      "typeLabel": "类型标签",
+      "count": "数量",
+      "rolePrompt": "角色提示词（这个代理的角色是什么？）",
+      "addAgentType": "+ 添加代理类型",
+      "noTypes": "尚未定义代理类型",
+      "remove": "删除",
+      "totalAgents": "代理总数：{{count}}",
+      "agentsDefined": "已定义 {{count}} 个代理",
+      "llmProvider": "LLM 提供商",
+      "defaultProvider": "默认提供商",
+      "importTitle": "导入代理数据",
+      "importDesc": "上传包含代理定义的 CSV 或 JSON 文件。",
+      "csvFormat": "CSV 格式示例：",
+      "uploadCSV": "上传 CSV",
+      "uploadJSON": "上传 JSON",
+      "importInfo": "文件导入功能将在第7阶段实现。"
+    },
+    "step5": {
+      "networkPresets": "网络预设",
+      "chooseTopology": "选择网络拓扑结构",
+      "presets": {
+        "fully_connected": { "name": "全连接", "description": "每个人都认识每个人" },
+        "random": { "name": "随机", "description": "随机连接" },
+        "ring": { "name": "环形", "description": "每个代理连接到邻居" },
+        "small_world": { "name": "小世界", "description": "Newman-Watts 小世界网络" },
+        "scale_free": { "name": "无标度", "description": "Holme-Kim 无标度网络" },
+        "star": { "name": "星形", "description": "一个中心枢纽" },
+        "core_periphery": { "name": "核心-边缘", "description": "密集核心，稀疏边缘" },
+        "spatial": { "name": "空间", "description": "Waxman 空间网络" },
+        "communities": { "name": "社区", "description": "随机块模型" }
+      },
+      "applyChanges": "应用更改",
+      "noAgentsConfigured": "未配置代理",
+      "goBackToStep4": "返回步骤4添加代理后再配置网络。",
+      "fullyConnected": "全连接",
+      "reset": "重置",
+      "nodes": "{{count}} 个节点",
+      "edges": "{{count}} 条边",
+      "instructions": "说明",
+      "instructionSelect": "选择预设以生成网络",
+      "instructionDrag": "拖动节点重新排列",
+      "instructionZoom": "滚动缩放，拖动平移"
+    },
+    "step6": {
+      "noAgentsDefined": "未定义代理",
+      "goBackToStep4": "返回步骤4为您的实验添加代理。",
+      "totalAgentsTypes": "共 {{agents}} 个代理，分为 {{types}} 种类型"
+    },
+    "progressBar": {
+      "steps": {
+        "chooseScenario": "选择场景",
+        "configureScenario": "配置场景",
+        "selectActions": "选择动作",
+        "createAgents": "创建代理",
+        "network": "网络",
+        "review": "预览"
+      }
     },
     "experimentBuilder": {
       "step3": {

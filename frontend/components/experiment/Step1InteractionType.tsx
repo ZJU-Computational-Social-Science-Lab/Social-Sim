@@ -43,6 +43,14 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({
   onClick,
   t,
 }) => {
+  // Build translation key for scenario name/description
+  const scenarioNameKey = `scenario.${scenario.category}.${scenario.id}.name`;
+  const scenarioDescKey = `scenario.${scenario.category}.${scenario.id}.description`;
+
+  // Use translation with fallback to original value
+  const translatedName = t(scenarioNameKey, scenario.name);
+  const translatedDesc = t(scenarioDescKey, scenario.description);
+
   return (
     <button
       onClick={onClick}
@@ -58,11 +66,11 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <h3 className="font-semibold text-gray-900 truncate">
-              {scenario.name}
+              {translatedName}
             </h3>
           </div>
           <p className="text-sm text-gray-600 line-clamp-2">
-            {scenario.description}
+            {translatedDesc}
           </p>
         </div>
         <div className="ml-2 flex-shrink-0">
@@ -161,10 +169,10 @@ export const Step1InteractionType: React.FC = () => {
     <div>
       <div className="mb-4">
         <h2 className="text-xl font-semibold text-gray-900">
-          Choose a Scenario
+          {t('experimentBuilder.step1.chooseScenario')}
         </h2>
         <p className="text-sm text-gray-600 mt-1">
-          Select a scenario template to start building your experiment
+          {t('experimentBuilder.step1.selectTemplate')}
         </p>
       </div>
 
@@ -189,7 +197,7 @@ export const Step1InteractionType: React.FC = () => {
             onClick={handleRetry}
             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
           >
-            Retry
+            {t('experimentBuilder.step1.retry')}
           </button>
         </div>
       )}
@@ -226,7 +234,7 @@ export const Step1InteractionType: React.FC = () => {
                       {t(`scenario.category.${category}`)}
                     </span>
                     <span className="text-sm text-gray-600">
-                      {categoryScenarios.length} scenarios
+                      {t('experimentBuilder.step1.scenariosCount', { count: categoryScenarios.length })}
                     </span>
                   </div>
                   <svg

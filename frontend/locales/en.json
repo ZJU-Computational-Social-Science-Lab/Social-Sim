@@ -88,6 +88,60 @@
         "name": "Resource Scarcity",
         "description": "A post-disaster community faces scarce resources. Agents decide whether to share, trade, or defect for personal gain."
       }
+    },
+    "game_theory": {
+      "prisoners_dilemma": {
+        "name": "Prisoner's Dilemma",
+        "description": "Two suspects are arrested and held separately. Each must decide whether to betray the other or remain silent. Your payoff depends on both your choice and your partner's choice."
+      },
+      "battle_of_the_sexes": {
+        "name": "Battle of the Sexes",
+        "description": "A couple wants to coordinate on an evening activity. One prefers opera, the other prefers football. They get positive payoff if they coordinate, but each prefers their own activity."
+      },
+      "stag_hunt": {
+        "name": "Stag Hunt",
+        "description": "Hunters must all choose stag (high reward) or hare (safe but low reward). Stag requires everyone to cooperate. If even one person chooses hare, the stag escapes and stag hunters get nothing."
+      },
+      "public_goods": {
+        "name": "Public Goods Game",
+        "description": "Each agent has resources and decides how much to contribute to a shared pool. The pool is multiplied and distributed equally among all agents, regardless of contribution."
+      },
+      "coordination_game": {
+        "name": "Coordination Game",
+        "description": "You and your neighbors each pick an option. You can see what your neighbors chose in previous rounds."
+      }
+    },
+    "discussion": {
+      "open_discussion": {
+        "name": "Open Discussion",
+        "description": "Agents discuss a topic freely. No structured decisions - just conversation."
+      },
+      "council_chamber": {
+        "name": "Council Chamber",
+        "description": "Formal deliberation with voting and procedural rules. Participants debate proposals, call for votes, and make collective decisions."
+      }
+    },
+    "spatial": {
+      "grid_world": {
+        "name": "Grid World",
+        "description": "Agents move on a grid, collecting resources and observing their environment."
+      },
+      "contagion": {
+        "name": "Contagion Spread",
+        "description": "Agents on a grid can spread contagion through proximity and social interactions. Watch as infection spreads through the population while agents move and communicate."
+      }
+    },
+    "social_deduction": {
+      "werewolf": {
+        "name": "Werewolf",
+        "description": "A social deduction game where villagers try to identify werewolves among them while werewolves try to eliminate villagers at night."
+      }
+    },
+    "custom": {
+      "custom": {
+        "name": "Custom Scenario",
+        "description": "Build your own custom experiment from scratch."
+      }
     }
   },
   "settings": {
@@ -1534,6 +1588,10 @@
     "step1": {
       "title": "Choose interaction patterns for your experiment",
       "subtitle": "Select one or more patterns that describe interactions you want to study",
+      "chooseScenario": "Choose a Scenario",
+      "selectTemplate": "Select a scenario template to start building your experiment",
+      "retry": "Retry",
+      "scenariosCount": "{{count}} scenarios",
       "strategic_decisions": {
         "title": "Strategic Decisions",
         "description": "Study situations where outcomes depend on what others choose",
@@ -1671,6 +1729,81 @@
       "addAction": "Add Action",
       "actionsSelected": "{{selected}} of {{total}} actions selected",
       "removeAction": "Remove action"
+    },
+    "step4": {
+      "modeTitle": "How would you like to create agents?",
+      "modes": {
+        "manual": {
+          "title": "Manual Types",
+          "description": "Define agent types manually with custom prompts and counts"
+        },
+        "demographic": {
+          "title": "Demographic Generation",
+          "description": "Generate agents from custom demographic variables"
+        },
+        "import": {
+          "title": "File Import",
+          "description": "Import agent configurations from a JSON file"
+        }
+      },
+      "defineTypes": "Define Agent Types",
+      "typeLabel": "Type Label",
+      "count": "Count",
+      "rolePrompt": "Role Prompt (what is this agent's role?)",
+      "addAgentType": "+ Add Agent Type",
+      "noTypes": "No agent types defined yet",
+      "remove": "Remove",
+      "totalAgents": "Total agents: {{count}}",
+      "agentsDefined": "{{count}} agent(s) defined",
+      "llmProvider": "LLM Provider",
+      "defaultProvider": "Default Provider",
+      "importTitle": "Import Agent Data",
+      "importDesc": "Upload a CSV or JSON file with agent definitions.",
+      "csvFormat": "CSV Format Example:",
+      "uploadCSV": "Upload CSV",
+      "uploadJSON": "Upload JSON",
+      "importInfo": "File import will be implemented in Phase 7."
+    },
+    "step5": {
+      "networkPresets": "Network Presets",
+      "chooseTopology": "Choose a network topology",
+      "presets": {
+        "fully_connected": { "name": "Fully Connected", "description": "Everyone knows everyone" },
+        "random": { "name": "Random", "description": "Random connections" },
+        "ring": { "name": "Ring", "description": "Each agent connected to neighbors" },
+        "small_world": { "name": "Small World", "description": "Newman-Watts small world network" },
+        "scale_free": { "name": "Scale-Free", "description": "Holme-Kim scale-free network" },
+        "star": { "name": "Star", "description": "One central hub" },
+        "core_periphery": { "name": "Core-Periphery", "description": "Dense core, sparse periphery" },
+        "spatial": { "name": "Spatial", "description": "Waxman spatial network" },
+        "communities": { "name": "Communities", "description": "Stochastic block model" }
+      },
+      "applyChanges": "Apply Changes",
+      "noAgentsConfigured": "No Agents Configured",
+      "goBackToStep4": "Go back to Step 4 to add agents before configuring the network.",
+      "fullyConnected": "Fully Connected",
+      "reset": "Reset",
+      "nodes": "{{count}} nodes",
+      "edges": "{{count}} edges",
+      "instructions": "Instructions",
+      "instructionSelect": "Select a preset to generate a network",
+      "instructionDrag": "Drag nodes to rearrange",
+      "instructionZoom": "Scroll to zoom, drag to pan"
+    },
+    "step6": {
+      "noAgentsDefined": "No Agents Defined",
+      "goBackToStep4": "Go back to Step 4 to add agents to your experiment.",
+      "totalAgentsTypes": "{{agents}} total agents across {{types}} types"
+    },
+    "progressBar": {
+      "steps": {
+        "chooseScenario": "Choose Scenario",
+        "configureScenario": "Configure Scenario",
+        "selectActions": "Select Actions",
+        "createAgents": "Create Agents",
+        "network": "Network",
+        "review": "Review"
+      }
     },
     "experimentBuilder": {
       "step3": {
