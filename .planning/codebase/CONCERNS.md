@@ -1,28 +1,66 @@
 # Codebase Concerns
 
-**Analysis Date:** 2025-03-08
+**Analysis Date:** 2025-03-09
 
 ## Tech Debt
 
-**Large Files Exceeding Size Limits:**
-- Issue: Several core files exceed the 500-line hard limit established in coding guidelines
+**Oversized Python Files (500+ line hard limit):**
+- Issue: Numerous Python files exceed the 500-line hard limit from coding guidelines
 - Files:
-  - `src/socialsim4/backend/api/routes/simulations/tree_operations.py` (872 lines) - Tree manipulation API routes
-  - `src/socialsim4/core/experiment/runner.py` (830 lines) - Experiment orchestration
-  - `src/socialsim4/services/llm_client_pool.py` (778 lines) - LLM client pooling
-  - `src/socialsim4/core/agent/agent.py` (538 lines) - Core agent class
-  - `src/socialsim4/core/simulator.py` (434 lines) - Simulation orchestration
-  - `frontend/components/SimulationWizard.tsx` (1295 lines) - Main wizard component
-  - `frontend/store/index.test.ts` (1339 lines) - Store test file
-  - `frontend/components/NetworkEditorModal.tsx` (1010 lines) - Network editor
-- Impact: Reduced maintainability, difficult to navigate, higher cognitive load
+  - `src/socialsim4/backend/api/routes/simulations/tree_operations.py` (872 lines)
+  - `src/socialsim4/core/scenarios/registry.py` (848 lines)
+  - `src/socialsim4/core/experiment/runner.py` (830 lines)
+  - `src/socialsim4/services/llm_client_pool.py` (778 lines)
+  - `src/socialsim4/core/simtree.py` (719 lines)
+  - `src/socialsim4/scenarios/basic.py` (640 lines)
+  - `src/socialsim4/backend/services/simtree_runtime.py` (635 lines)
+  - `src/socialsim4/core/scenes/village_scene.py` (608 lines)
+  - `src/socialsim4/core/scenes/landlord_scene.py` (596 lines)
+  - `src/socialsim4/core/scenarios.py` (568 lines)
+  - `src/socialsim4/core/agent/agent.py` (539 lines)
+  - `src/socialsim4/core/contagion/scene.py` (531 lines)
+  - `src/socialsim4/templates/schema.py` (479 lines)
+  - `src/socialsim4/templates/loader.py` (454 lines)
+  - `src/socialsim4/core/agent/rag.py` (450 lines)
+  - `src/socialsim4/core/simulator.py` (438 lines)
+  - `src/socialsim4/backend/api/routes/llm.py` (436 lines)
+  - `src/socialsim4/backend/api/routes/uploads.py` (433 lines)
+  - `src/socialsim4/backend/api/routes/simulations/agent_documents.py` (432 lines)
+  - `src/socialsim4/backend/api/routes/experiment_templates.py` (412 lines)
+  - `src/socialsim4/backend/services/documents.py` (409 lines)
+- Impact: Reduced maintainability, difficult navigation, high cognitive load for changes
 - Fix approach: Split into focused modules by responsibility (e.g., agent.py → agent.py, agent_thinking.py, agent_memory.py)
 
-**Deprecated Code Presence:**
-- Issue: Deprecated patterns and methods still present in codebase
-- Files: `src/socialsim4/core/experiment/round_context.py`, `src/socialsim4/tests/test_action_controller.py`
-- Impact: Potential confusion for developers, unclear which patterns to follow
-- Fix approach: Remove deprecated code or update documentation to clarify current patterns
+**Oversized TypeScript Files (400+ line hard limit):**
+- Issue: Multiple TypeScript components exceed the 400-line hard limit
+- Files:
+  - `frontend/components/SimulationWizard.tsx` (1295 lines)
+  - `frontend/components/NetworkEditorModal.tsx` (1010 lines)
+  - `frontend/store/helpers.ts` (968 lines)
+  - `frontend/store/experiments.ts` (967 lines)
+  - `frontend/components/__tests__/SimulationWizard.test.tsx` (906 lines)
+  - `frontend/pages/SimulationPage.tsx` (898 lines)
+  - `frontend/store/simulation.ts` (774 lines)
+  - `frontend/pages/SettingsPage.tsx` (710 lines)
+  - `frontend/components/experiment/Step5Network.tsx` (685 lines)
+  - `frontend/components/TemplateBuilder.tsx` (613 lines)
+  - `frontend/pages/SimulationWizardPage.tsx` (608 lines)
+  - `frontend/components/AgentPanel.tsx` (583 lines)
+  - `frontend/components/experiment/Step4Agents.tsx` (565 lines)
+  - `frontend/components/ExperimentDesignModal.tsx` (448 lines)
+  - `frontend/components/ReportModal.tsx` (424 lines)
+  - `frontend/components/LogViewer.tsx` (413 lines)
+- Impact: Monolithic components, difficult to test, violate single responsibility principle
+- Fix approach: Extract sub-components and custom hooks. Break into smaller focused units.
+
+**Deprecated Files Not Removed:**
+- Issue: Three `.deprecated` files exist in codebase
+- Files:
+  - `src/socialsim4/backend/api/routes/simulations.py.deprecated`
+  - `src/socialsim4/core/agent.py.deprecated`
+  - `src/socialsim4/core/llm.py.deprecated`
+- Impact: Confusion about which files are active, may accidentally reference deprecated code
+- Fix approach: Remove deprecated files after confirming no active references exist
 
 **TODO Comments Not Implemented:**
 - Issue: TODO items in production code without resolution
@@ -34,10 +72,10 @@
 
 **Empty LLM Response Handling:**
 - Symptoms: Some LLM models (Qwen3, Gemma 3) return empty responses with native JSON mode
-- Files: `src/socialsim4/core/experiment/runner.py:750-767`, `src/socialsim4/core/llm/providers/*.py`
+- Files: `src/socialsim4/core/llm/providers/ollama.py`, `src/socialsim4/core/llm/providers/openai.py`
 - Trigger: Specific models via Ollama or OpenAI-compatible endpoints
-- Workaround: Fallback logic implemented retries with explicit JSON instruction in prompt
-- Status: Mitigated with fallback, but root cause is model behavior
+- Workaround: Fallback logic retries with explicit JSON instruction in prompt
+- Status: Mitigated with fallback (commit 7d8704f), but root cause is model behavior
 
 **Agent Offline State:**
 - Symptoms: Agents marked as offline after consecutive LLM errors may not recover
@@ -55,10 +93,20 @@
 
 ## Security Considerations
 
+**Arbitrary Code Execution in Semantic Actions:**
+- Risk: User-defined effect_code uses `exec()` with restricted but not sandboxed execution
+- Files: `src/socialsim4/templates/semantic_actions.py` (line 147)
+- Current mitigation: Restricted `__builtins__` whitelist (print, len, str, int, float, bool, list, dict, set, tuple, range, enumerate, zip, sum, min, max, abs, round)
+- Recommendations:
+  - Consider AST validation before exec
+  - Add timeout wrapper for effect_code execution
+  - Document security model for custom action effects
+  - Consider alternative: predefined effect templates instead of arbitrary code
+
 **Environment Variable Configuration:**
 - Risk: Admin credentials and API keys configured via environment variables
 - Files: `src/socialsim4/backend/scripts/ensure_admin.py:40-45`, `src/socialsim4/cli.py:90-91`
-- Current mitigation: Uses os.environ.get() with defaults
+- Current mitigation: Uses os.environ.get() with defaults, `.env` files gitignored
 - Recommendations:
   - Add .env.example file with required variables documented
   - Implement secrets validation at startup
@@ -66,7 +114,7 @@
 
 **File Upload Handling:**
 - Risk: User-uploaded files stored in uploads/ directory without explicit size limits in code
-- Files: `src/socialsim4/backend/api/routes/uploads.py:433`
+- Files: `src/socialsim4/backend/api/routes/uploads.py` (433 lines)
 - Current mitigation: Basic file type checking via extension
 - Recommendations:
   - Add file size limits
@@ -76,7 +124,7 @@
 **Debug File Creation:**
 - Risk: Debug files created in test_results/ directory with potentially sensitive prompts
 - Files: `src/socialsim4/core/agent/agent.py:23-25`, `src/socialsim4/core/experiment/runner.py:34-37`
-- Current mitigation: .gitignore excludes test_results/
+- Current mitigation: `.gitignore` excludes test_results/
 - Recommendations:
   - Consider redacting sensitive info from debug logs
   - Add optional debug mode flag to disable file creation
@@ -93,6 +141,12 @@
 
 ## Performance Bottlenecks
 
+**Synchronous LLM Calls in Async Context:**
+- Problem: `await asyncio.to_thread(simulator.run, ...)` wraps synchronous simulator runs
+- Files: `src/socialsim4/backend/api/routes/simulations/tree_operations.py` (lines 197, 277, 350)
+- Cause: Core simulator is synchronous, wrapped for async API
+- Improvement path: Refactor core simulator to be natively async or use thread pool more efficiently
+
 **ChromaDB vs JSON Fallback:**
 - Problem: JSON cosine similarity is significantly slower than ChromaDB for large document sets
 - Files: `src/socialsim4/backend/services/vector_store.py:146-208`
@@ -102,14 +156,29 @@
   - Add startup warning if running in JSON fallback mode
   - Consider alternative vector stores (Qdrant, Weaviate)
 
-**LLM Client Pool Cloning:**
-- Problem: Deep copy of LLM clients in isolated mode is expensive
-- Files: `src/socialsim4/services/llm_client_pool.py:754-758`
-- Cause: deepcopy() called for each branch in isolated mode
+**Large File Uploads:**
+- Problem: Document uploads processed synchronously
+- Files: `src/socialsim4/backend/api/routes/uploads.py` (433 lines)
+- Cause: File parsing and embedding generation blocks request thread
 - Improvement path:
-  - Implement lightweight client cloning
-  - Cache commonly used client configurations
-  - Consider shared mode as default for performance
+  - Move to background task queue (Celery already configured)
+  - Implement chunked uploads for large files
+  - Add progress reporting for long-running uploads
+
+**Simulation Tree Serialization:**
+- Problem: Full tree state serialized to database on each operation
+- Files: `src/socialsim4/core/simtree.py`, `src/socialsim4/backend/services/simtree_runtime.py`
+- Cause: `sim.latest_state = tree.serialize()` called after every tree modification
+- Improvement path:
+  - Implement incremental state persistence
+  - Consider tree diff instead of full serialization
+  - Add lazy loading for large tree branches
+
+**RAG Vector Store Queries:**
+- Problem: Synchronous vector similarity search in async handlers
+- Files: `src/socialsim4/backend/services/documents.py`, `src/socialsim4/core/agent/rag.py`
+- Cause: Vector store operations wrapped with `asyncio.to_thread`
+- Improvement path: Use async-native vector store client or optimize query patterns
 
 **Debug File I/O:**
 - Problem: Synchronous file writes in async context for debug logging
@@ -120,19 +189,19 @@
   - Buffer debug output and flush periodically
   - Make debug logging optional via configuration
 
-**Large Frontend Components:**
-- Problem: Components over 1000 lines cause slower renders and hot reload
-- Files: `frontend/components/SimulationWizard.tsx` (1295 lines), `frontend/components/NetworkEditorModal.tsx` (1010 lines)
-- Cause: Complex state management and UI rendering in single file
+**Frontend Store Performance:**
+- Problem: Large Zustand stores with complex state updates
+- Files: `frontend/store/experiments.ts` (967 lines), `frontend/store/simulation.ts` (774 lines)
+- Cause: Monolithic stores with many interconnected state updates
 - Improvement path:
-  - Extract sub-components for each wizard step
-  - Use React.memo() for expensive renders
-  - Consider virtualizing long lists
+  - Split into smaller, focused stores
+  - Implement state normalization for large arrays
+  - Add immer middleware for better change tracking
 
 ## Fragile Areas
 
 **Experiment Runner State Management:**
-- Files: `src/socialsim4/core/experiment/runner.py`
+- Files: `src/socialsim4/core/experiment/runner.py` (830 lines)
 - Why fragile: Complex state synchronization between rounds, history replay, and visibility modes
 - Safe modification:
   - Always round-trip through _replay_history_to_events() when modifying round history
@@ -141,7 +210,7 @@
 - Test coverage: Good for basic flows, gaps in edge cases (odd agent counts, mid-experiment errors)
 
 **SimTree Serialization/Deserialization:**
-- Files: `src/socialsim4/core/simtree.py`, `src/socialsim4/backend/services/simtree_runtime.py`
+- Files: `src/socialsim4/core/simtree.py` (719 lines), `src/socialsim4/backend/services/simtree_runtime.py` (635 lines)
 - Why fragile: Complex object graph with simulator states, agent memories, and event queues
 - Safe modification:
   - Test round-trip: serialize → deserialize → serialize and compare
@@ -149,17 +218,45 @@
   - Check LLM client pool restoration
 - Test coverage: Basic serialization tested, missing tests for complex tree structures
 
-**Agent Knowledge Base Synchronization:**
-- Files: `src/socialsim4/core/agent/rag.py`, `src/socialsim4/backend/services/documents.py`
-- Why fragile: Multiple sources (free-text KB, documents, global knowledge) must stay synchronized
+**Agent RAG System:**
+- Files: `src/socialsim4/core/agent/rag.py` (450 lines)
+- Why fragile: Complex multi-source knowledge aggregation (free-text KB, documents, global knowledge)
 - Safe modification:
   - Always use agent.add_knowledge()/remove_knowledge() methods
+  - Test with empty knowledge bases
+  - Verify context length limits
   - Test ChromaDB and JSON fallback modes
-  - Verify document deletion removes all chunks
-- Test coverage: Limited, mostly integration tests
+- Test coverage: Limited, no dedicated RAG test files found
+
+**Simulation Tree Operations:**
+- Files: `src/socialsim4/backend/api/routes/simulations/tree_operations.py` (872 lines)
+- Why fragile: Multiple tree manipulation endpoints with complex state management
+- Safe modification:
+  - Test tree invariants after each operation
+  - Verify node reference counting
+  - Test with deeply nested trees
+- Test coverage: No dedicated tree operation tests found
+
+**WebSocket Event Broadcasting:**
+- Files: `src/socialsim4/backend/api/routes/simulations/websocket_handlers.py`
+- Why fragile: Real-time event distribution with potential race conditions
+- Safe modification:
+  - Test concurrent tree operations
+  - Verify event ordering guarantees
+  - Test with slow/disconnected clients
+- Test coverage: Unclear if WebSocket edge cases are tested
+
+**Frontend SimulationWizard Component:**
+- Files: `frontend/components/SimulationWizard.tsx` (1295 lines)
+- Why fragile: Handles wizard state, file uploads, AI generation, and form validation
+- Safe modification:
+  - Test each wizard step independently
+  - Verify file upload error handling
+  - Test AI generation failure modes
+- Test coverage: `frontend/components/__tests__/SimulationWizard.test.tsx` exists but may not cover all paths
 
 **Frontend Store State:**
-- Files: `frontend/store/simulation.ts`, `frontend/store/experiments.ts`
+- Files: `frontend/store/simulation.ts` (774 lines), `frontend/store/experiments.ts` (967 lines)
 - Why fragile: Complex state updates from multiple sources (WebSocket, REST API, user actions)
 - Safe modification:
   - Use immer for immutable updates
@@ -185,13 +282,29 @@
   - Add batch operations for bulk inserts
   - Consider distributed vector store for production
 
-**Concurrent Experiment Execution:**
-- Current capacity: Limited by asyncio.gather() in runner
-- Limit: Single-threaded async execution, no parallel processing
+**Concurrent Simulation Execution:**
+- Current capacity: Limited by `asyncio.to_thread` pool size (not explicitly configured)
+- Limit: Default Python thread pool size (typically CPU count)
 - Scaling path:
-  - Implement Celery task queue for experiment execution
-  - Add experiment queue management
-  - Consider multiprocessing for CPU-bound operations
+  - Configure custom thread pool executor
+  - Consider distributed execution for large experiments
+  - Add queue management for concurrent simulations
+
+**WebSocket Connections:**
+- Current capacity: Limited by Litestar's WebSocket handler limits
+- Limit: Not documented in code
+- Scaling path:
+  - Add connection pooling documentation
+  - Consider Redis pub/sub for multi-instance deployments
+  - Implement connection rate limiting
+
+**Database Connection Pool:**
+- Current capacity: Configurable via environment variables
+- Limit: Default SQLAlchemy pool sizes (typically 5 connections)
+- Scaling path:
+  - Document production pool sizing
+  - Add connection pool monitoring
+  - Consider read replicas for read-heavy operations
 
 **Frontend WebSocket Reconnection:**
 - Current capacity: Handles single reconnection attempt
@@ -227,7 +340,40 @@
   - Provide synchronous fallback for development
   - Document Redis requirement clearly
 
+**Deprecated Files Referenced:**
+- Risk: `.deprecated` files may still be imported somewhere
+- Impact: Could accidentally use old implementations
+- Migration plan:
+  1. Search for imports of deprecated files
+  2. Update all references to new implementations
+  3. Remove `.deprecated` files
+  4. Add CI check to prevent new deprecated files
+
+**LLM Provider Fallback Logic:**
+- Risk: Ollama and OpenAI providers have complex fallback logic for empty JSON responses
+- Files: `src/socialsim4/core/llm/providers/ollama.py`, `src/socialsim4/core/llm/providers/openai.py`
+- Impact: If models change behavior, fallbacks may break
+- Migration plan:
+  - Document the specific model behaviors that require fallbacks
+  - Add tests for empty response scenarios
+  - Monitor for model changes that affect JSON mode
+
+**Python 3.14 Incompatibility:**
+- Risk: Project explicitly requires Python 3.12, incompatible with 3.14
+- Files: Project documentation (`CLAUDE.md`)
+- Impact: Cannot upgrade Python until dependencies are updated
+- Migration plan:
+  - Track which dependencies require 3.12
+  - Test with new Python releases
+  - Update dependencies when compatible versions become available
+
 ## Missing Critical Features
+
+**Comprehensive Test Coverage:**
+- Problem: Only 2 test files found for entire backend (`tests/test_action_controller.py`, `tests/test_scenarios.py`)
+- Blocks: Confidence in refactoring, catching regressions
+- Priority: High
+- Impact areas: Untested code includes RAG system, experiment runner, tree operations, websocket handlers
 
 **Observability/Monitoring:**
 - Problem: No centralized logging, metrics, or tracing
@@ -253,19 +399,100 @@
   - Implement per-user quotas
   - Add API key authentication for external access
 
+**Simulation Result Export:**
+- Problem: Limited export functionality (mainly JSON)
+- Blocks: Users who need CSV/Excel exports, integration with analysis tools
+- Priority: Low
+- Impact: Reduced usability for researchers
+
+**User Activity Logging:**
+- Problem: No audit trail for user actions
+- Blocks: Security investigations, compliance requirements
+- Priority: Medium
+- Impact: Cannot track who created/modified/deleted simulations
+
+**i18n Coverage Gaps:**
+- Problem: Only 11 backend files use `T()` function out of ~150+ Python files
+- Files using i18n:
+  - `src/socialsim4/core/agent/agent.py`
+  - `src/socialsim4/scenarios/resource_scarcity.py`
+  - `src/socialsim4/scenarios/policy_erosion.py`
+  - `src/socialsim4/scenarios/echo_chamber.py`
+  - `src/socialsim4/scenarios/social_norm_disruption.py`
+  - `src/socialsim4/backend/api/routes/simulations/lifecycle.py`
+  - `src/socialsim4/backend/api/routes/experiment_templates.py`
+  - `src/socialsim4/backend/api/routes/providers.py`
+  - `src/socialsim4/backend/api/routes/environment.py`
+  - `src/socialsim4/backend/api/routes/auth.py`
+- Blocks: Full bilingual support (English/Chinese)
+- Priority: Medium
+- Impact: Backend error messages and logs not translatable
+
 ## Test Coverage Gaps
 
 **Backend Core Simulation:**
-- What's not tested: Edge cases in SimTree branching, agent offline recovery, LLM error handling
-- Files: `src/socialsim4/core/simtree.py`, `src/socialsim4/core/agent/agent.py`, `src/socialsim4/core/simulator.py`
-- Risk: Critical bugs in simulation branching or agent behavior
+- What's not tested:
+  - Agent decision-making logic
+  - Scene state transitions
+  - Action validation and execution
+  - Simulator orchestration
+  - SimTree branching and edge cases
+  - Agent offline recovery
+  - LLM error handling
+- Files: `src/socialsim4/core/` (agent, simulator, scene, actions, simtree)
+- Risk: Critical path failures could break all simulations
 - Priority: High
-- Current test ratio: ~83 test files for 121 Python files (68%)
+- Current test ratio: Only 2 test files found (test_action_controller.py, test_scenarios.py)
+
+**RAG Knowledge System:**
+- What's not tested:
+  - Document embedding and retrieval
+  - Knowledge base queries
+  - Context building from multiple sources
+  - Composite RAG retrieval
+  - Document deletion removes all chunks
+  - ChromaDB vs JSON fallback modes
+- Files: `src/socialsim4/core/agent/rag.py`, `src/socialsim4/backend/services/documents.py`
+- Risk: Knowledge features may fail silently
+- Priority: High
+
+**Experiment Framework:**
+- What's not tested:
+  - Round execution with all visibility modes
+  - Payoff calculation for all game types
+  - Information model filtering
+  - Agent overrides and injections
+  - Odd agent counts
+  - Mid-experiment errors
+- Files: `src/socialsim4/core/experiment/`
+- Risk: Experiment results may be incorrect
+- Priority: High
+
+**API Endpoints:**
+- What's not tested:
+  - Most CRUD endpoints
+  - File upload handling
+  - WebSocket connections
+  - Error responses
+  - Tree operation endpoints
+- Files: `src/socialsim4/backend/api/routes/`
+- Risk: API contract violations
+- Priority: Medium
 
 **Frontend Complex Components:**
-- What's not tested: SimulationWizard error states, NetworkEditorModal edge cases, store error handling
-- Files: `frontend/components/SimulationWizard.tsx`, `frontend/components/NetworkEditorModal.tsx`, `frontend/store/*.ts`
-- Risk: UI bugs in complex workflows, state corruption
+- What's not tested:
+  - SimulationWizard error states
+  - NetworkEditorModal edge cases
+  - Store error handling
+  - Most components lack test files
+- Files: `frontend/components/`
+- Only found tests:
+  - `frontend/components/__tests__/SimulationWizard.test.tsx`
+  - `frontend/components/__tests__/ParameterField.test.tsx`
+  - `frontend/components/__tests__/Step1InteractionType.test.tsx`
+  - `frontend/components/__tests__/Step3Scenario.test.tsx`
+  - `frontend/store/index.test.ts`
+- Risk: UI bugs and regressions
 - Priority: Medium
 - Current test ratio: ~5 test files for 167 TypeScript files (3%)
 
@@ -287,6 +514,16 @@
 - Risk: Critical user journeys broken
 - Priority: High
 
+**LLM Client Integration:**
+- What's not tested:
+  - Provider-specific behavior (OpenAI, Ollama, Gemini)
+  - JSON mode fallbacks
+  - Error handling and retries
+  - Client pool management
+- Files: `src/socialsim4/core/llm/`, `src/socialsim4/services/llm_client_pool.py`
+- Risk: LLM failures not properly handled
+- Priority: Medium
+
 ---
 
-*Concerns audit: 2025-03-08*
+*Concerns audit: 2025-03-09*
