@@ -341,14 +341,17 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         )
     elif scene_key == "experiment_template":
         # ExperimentScene - standalone, no legacy Simulator needed
+        # Unwrap generic_config if the config is nested (frontend sends nested structure)
+        inner_cfg = cfg.get("generic_config") or cfg
+
         config = ExperimentConfig(
             agents=agent_config.get("agents", []),
-            actions=cfg.get("actions", []),
-            parameters=cfg.get("parameters", {}),
-            description=cfg.get("description", ""),
-            scenario_id=cfg.get("scenario_id", "custom"),
-            round_visibility=cfg.get("round_visibility", "simultaneous"),
-            social_network=cfg.get("social_network") or {},
+            actions=inner_cfg.get("actions", []),
+            parameters=inner_cfg.get("parameters", {}),
+            description=inner_cfg.get("description", ""),
+            scenario_id=inner_cfg.get("scenario_id", "custom"),
+            round_visibility=inner_cfg.get("round_visibility", "simultaneous"),
+            social_network=inner_cfg.get("social_network") or {},
         )
         logger.debug(f"[EXPERIMENT] Creating ExperimentConfig with parameters: {cfg.get('parameters', {})}")
         scene = ExperimentScene(config)

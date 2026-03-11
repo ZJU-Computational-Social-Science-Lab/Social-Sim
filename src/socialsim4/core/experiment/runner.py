@@ -10,10 +10,9 @@ The runner manages the main experiment loop:
 
 import asyncio
 import logging
+from datetime import datetime
 from typing import List, Dict, Any, Literal, Optional
 from dataclasses import dataclass
-from pathlib import Path
-from datetime import datetime
 
 from socialsim4.core.experiment.agent import ExperimentAgent
 from socialsim4.core.experiment.information_model import InformationModel
@@ -25,16 +24,11 @@ from socialsim4.core.experiment.prompt_builder import build_prompt, build_reprom
 from socialsim4.core.experiment.action_handler import ActionHandler
 from socialsim4.core.experiment.payoff.engine import PayoffEngine
 from socialsim4.core.experiment.feedback.builder import CoordinationFeedbackBuilder
+from socialsim4.core.experiment.debug_log import get_debug_file, write_debug, reset_debug_file
 from socialsim4.core.llm.client import LLMClient
-from socialsim4.core.context_builder import build_context_summary
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
-# Debug file for full prompts/responses (won't be truncated)
-_debug_dir = Path("test_results")
-_debug_dir.mkdir(exist_ok=True)
-_debug_file = _debug_dir / f"experiment_debug_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
 
 
 @dataclass
@@ -110,10 +104,9 @@ class ExperimentRunner:
         self.scene_state.update(state)
 
     async def _write_debug_atomically(self, buffer: list) -> None:
-        """Write debug buffer to file atomically using lock."""
+        """Write debug buffer to shared debug file atomically using lock."""
         async with self._debug_lock:
-            with open(_debug_file, 'a', encoding='utf-8') as f:
-                f.write(''.join(buffer))
+            write_debug(''.join(buffer))
 
     def execute_action(self, action_name, agent_name, params, state):
         """Delegate action execution to ActionHandler."""
@@ -784,24 +777,35 @@ class ExperimentRunner:
             # parameters (e.g., Speak → what do you want to say?) trigger a
             # second prompt automatically. Falls back gracefully for simple
             # game-theory actions that have no follow-up schema.
+            # Build action_schemas from:
+            # 1. Kernel action types (e.g., "speak", "vote")
+            # 2. Game config's action_followup_modes mapping (e.g., "Speak" -> "plain_text")
             action_schemas = self.kernel.get_action_schemas() if self.kernel else {}
+
+            logger.debug(f"[RUNNER] game_config.action_followup_modes={self.game_config.action_followup_modes}")
+
+            # Add schemas for game config actions that specify followup modes
+            if self.game_config.action_followup_modes:
+                for action_name, mode in self.game_config.action_followup_modes.items():
+                    action_schemas[action_name] = {
+                        "schema": {"message": {"type": "string", "description": f"Content for {action_name}"}},
+                        "mode": mode,
+                    }
+                    logger.debug(f"[RUNNER] Added action_schema for '{action_name}': mode={mode}")
+
+            logger.debug(f"[RUNNER] Final action_schemas keys: {list(action_schemas.keys())}")
+
             result = await self.controller.process_response_with_followup(
                 raw_response, agent, self.game_config,
                 self.llm_client, round_num,
                 action_schemas=action_schemas
             )
 
-            # Add processed result to debug buffer
-            debug_buffer.append(f"\n--- PROCESSED RESULT ---\n")
-            debug_buffer.append(f"  action: {result.action_name}\n")
-            debug_buffer.append(f"  success: {result.success}\n")
-            debug_buffer.append(f"  skipped: {result.skipped}\n")
-            debug_buffer.append(f"  summary: {result.summary}\n")
-            if result.error:
-                debug_buffer.append(f"  error: {result.error}\n")
-            debug_buffer.append("\n" + "-"*80 + "\n\n")
+            # Append controller's debug log to our buffer
+            if result.debug_log:
+                debug_buffer.extend(result.debug_log)
 
-            # Write debug output atomically
+            # Write all debug output atomically (prompt + response + controller + followup)
             await self._write_debug_atomically(debug_buffer)
 
             logger.debug(f"Processed result: action={result.action_name}, success={result.success}, skipped={result.skipped}")

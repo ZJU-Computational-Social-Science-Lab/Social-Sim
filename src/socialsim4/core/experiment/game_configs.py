@@ -48,6 +48,10 @@ class GameConfig:
     grouping_mode: str = "pairwise"
     payoff_type: str = "matrix"
     payoff_config: dict[str, Any] = field(default_factory=dict)
+    # Mapping of action names to follow-up modes for reprompting
+    # e.g., {"Speak": "plain_text", "Vote": "json"}
+    # Actions not in this dict are treated as simple discrete choices (no reprompt)
+    action_followup_modes: dict[str, str] = field(default_factory=dict)
 
 
 # Predefined game configs for the 6 social science patterns

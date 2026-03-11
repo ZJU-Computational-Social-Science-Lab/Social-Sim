@@ -2,6 +2,7 @@ class Action:
     NAME = "base_action"
     INSTRUCTION = ""
     DESC = ""
+    REPROMPT_PARAM = None  # Override to param name (e.g. "message") to trigger free-text reprompt
 
     def handle(self, action_data, agent, simulator, scene):
         """
