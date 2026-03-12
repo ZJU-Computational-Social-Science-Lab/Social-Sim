@@ -21,6 +21,7 @@ export const HostPanel: React.FC = () => {
   const [broadcastMsg, setBroadcastMsg] = useState('');
   const [envEvent, setEnvEvent] = useState('');
   const [envImage, setEnvImage] = useState<string | null>(null);
+  const [broadcastRecipients, setBroadcastRecipients] = useState<string[]>([]);
   
   // God Mode State
   const [selectedAgentId, setSelectedAgentId] = useState(agents[0]?.id || '');
@@ -40,6 +41,7 @@ export const HostPanel: React.FC = () => {
         event_type: eventType,
         description,
         severity: 'mild',
+        receivers: broadcastRecipients.length > 0 ? broadcastRecipients : undefined,
       });
     }
 
@@ -152,6 +154,31 @@ export const HostPanel: React.FC = () => {
           <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
             <Megaphone size={14} /> {t('components.hostPanel.systemBroadcast')}
           </label>
+          <div className="text-[11px] text-slate-500 mb-1">
+            {t('components.hostPanel.recipientHint', '选择接收者（为空则全员）：')}
+          </div>
+          <div className="flex flex-wrap gap-1 mb-2">
+            {agents.map((a) => {
+              const checked = broadcastRecipients.includes(a.name) || broadcastRecipients.includes(a.id);
+              return (
+                <label key={a.id} className="flex items-center gap-1 text-[11px] px-2 py-1 border border-slate-200 rounded bg-white hover:bg-slate-50 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="accent-brand-500"
+                    checked={checked}
+                    onChange={(e) => {
+                      setBroadcastRecipients((prev) => {
+                        const key = a.name;
+                        if (e.target.checked) return Array.from(new Set([...prev, key]));
+                        return prev.filter((v) => v !== key);
+                      });
+                    }}
+                  />
+                  <span>{a.name}</span>
+                </label>
+              );
+            })}
+          </div>
           <div className="flex gap-2">
             <textarea
               value={broadcastMsg}

@@ -179,6 +179,7 @@ export const Step5Network: React.FC = () => {
   // Local state
   const [selectedPreset, setSelectedPreset] = useState<PresetType | null>(null);
   const [params, setParams] = useState<PresetParams>(JSON.parse(JSON.stringify(defaultParams)));
+  const [hoverInfo, setHoverInfo] = useState<{ name: string; profile?: string; x: number; y: number } | null>(null);
 
   // D3 refs
   const containerRef = useRef<HTMLDivElement>(null);
@@ -187,16 +188,20 @@ export const Step5Network: React.FC = () => {
   const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
 
   // Get agent IDs from agent types
-  const agentIds = useMemo(() => {
+  const { agentIds, profileMap } = useMemo(() => {
     const ids: string[] = [];
+    const profiles: Record<string, string> = {};
     for (const type of agentTypes) {
       const count = type.count || 1;
       for (let i = 0; i < count; i++) {
         const suffix = count > 1 ? ` ${i + 1}` : '';
-        ids.push(`${type.label}${suffix}`);
+        const name = `${type.label}${suffix}`;
+        ids.push(name);
+        const summary = type.userProfile || type.rolePrompt || '';
+        profiles[name] = summary;
       }
     }
-    return ids;
+    return { agentIds: ids, profileMap: profiles };
   }, [agentTypes]);
 
   // Keep manual link selectors in sync with current agents
@@ -390,13 +395,22 @@ export const Step5Network: React.FC = () => {
     const width = containerRef.current.clientWidth;
     const height = containerRef.current.clientHeight;
 
+    const tooltipCoords = (evt: MouseEvent | PointerEvent) => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      const w = rect?.width || containerRef.current?.clientWidth || 0;
+      const h = rect?.height || containerRef.current?.clientHeight || 0;
+      const x = Math.max(8, Math.min(w - 220, evt.clientX - (rect?.left || 0) + 12));
+      const y = Math.max(8, Math.min(h - 160, evt.clientY - (rect?.top || 0) + 12));
+      return { x, y };
+    };
+
     // Clear existing
     main.selectAll('*').remove();
 
     // Build nodes and links
     const nodeIds = Object.keys(socialNetwork);
-    const nodes: { id: string; name: string; x?: number; y?: number; fx?: number | null; fy?: number | null }[] =
-      nodeIds.map((id) => ({ id, name: id }));
+    const nodes: { id: string; name: string; x?: number; y?: number; fx?: number | null; fy?: number | null; profile?: string }[] =
+      nodeIds.map((id) => ({ id, name: id, profile: profileMap[id] }));
     const links: { source: string; target: string }[] = [];
 
     // Create links (avoid duplicates)
@@ -470,6 +484,20 @@ export const Step5Network: React.FC = () => {
       .text((d) => d.name)
       .attr('class', 'text-[10px] font-medium fill-slate-700 pointer-events-none select-none');
 
+    node.append('title').text((d) => (d.profile ? `${d.name}\n${d.profile}` : t('experimentBuilder.step5.noProfile', '无简介')));
+
+    // Hover tooltip using React state for reliability
+    node
+      .on('mouseenter', (event, d: any) => {
+        const pos = tooltipCoords(event);
+        setHoverInfo({ name: d.name, profile: d.profile, ...pos });
+      })
+      .on('mousemove', (event) => {
+        const pos = tooltipCoords(event);
+        setHoverInfo((prev) => (prev ? { ...prev, ...pos } : null));
+      })
+      .on('mouseleave', () => setHoverInfo(null));
+
     // Update positions on tick
     simulation.on('tick', () => {
       link
@@ -486,7 +514,7 @@ export const Step5Network: React.FC = () => {
       simulation.stop();
     };
 
-  }, [socialNetwork]);
+  }, [socialNetwork, profileMap, t]);
 
   // Zoom controls
   const handleZoomIn = () => {
@@ -761,6 +789,16 @@ export const Step5Network: React.FC = () => {
       {/* Canvas */}
       <div ref={containerRef} className="lg:col-span-3 bg-slate-50 relative overflow-hidden group">
         <svg ref={svgRef} className="block w-full h-full"></svg>
+
+        {hoverInfo && (
+          <div
+            className="absolute z-20 pointer-events-none bg-white border border-slate-200 shadow-md rounded px-2 py-1 text-[11px] text-slate-700 max-w-xs"
+            style={{ left: hoverInfo.x, top: hoverInfo.y }}
+          >
+            <div className="font-semibold">{hoverInfo.name}</div>
+            <div className="text-slate-500 whitespace-pre-wrap break-words">{hoverInfo.profile || t('experimentBuilder.step5.noProfile', '无简介')}</div>
+          </div>
+        )}
 
         {/* Zoom Controls */}
         <div className="absolute top-4 right-4 flex flex-col gap-1 bg-white border rounded shadow-sm p-1">
