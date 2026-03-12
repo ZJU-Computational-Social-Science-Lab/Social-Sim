@@ -7,7 +7,6 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useExperimentBuilder } from '../../store/experiment-builder';
-import { useSimulationStore } from '../../store';
 import { Button } from '../ui/button';
 import * as d3 from 'd3';
 import * as d3Force from 'd3-force';
@@ -174,6 +173,8 @@ const ParamSlider: React.FC<ParamSliderProps> = ({
 export const Step5Network: React.FC = () => {
   const { t } = useTranslation();
   const { socialNetwork, setSocialNetwork, agentTypes } = useExperimentBuilder();
+  const [linkFrom, setLinkFrom] = useState('');
+  const [linkTo, setLinkTo] = useState('');
 
   // Local state
   const [selectedPreset, setSelectedPreset] = useState<PresetType | null>(null);
@@ -197,6 +198,57 @@ export const Step5Network: React.FC = () => {
     }
     return ids;
   }, [agentTypes]);
+
+  // Keep manual link selectors in sync with current agents
+  useEffect(() => {
+    if (agentIds.length === 0) return;
+    if (!agentIds.includes(linkFrom)) {
+      setLinkFrom(agentIds[0]);
+    }
+    if (!agentIds.includes(linkTo)) {
+      setLinkTo(agentIds[Math.min(1, agentIds.length - 1)]);
+    }
+  }, [agentIds, linkFrom, linkTo]);
+
+  const edges = useMemo(() => {
+    const list: { key: string; source: string; target: string }[] = [];
+    const dedup = new Set<string>();
+    for (const [source, targets] of Object.entries(socialNetwork)) {
+      for (const target of targets) {
+        if (!agentIds.includes(source) || !agentIds.includes(target)) continue;
+        const key = source < target ? `${source}|${target}` : `${target}|${source}`;
+        if (dedup.has(key)) continue;
+        dedup.add(key);
+        list.push({ key, source, target });
+      }
+    }
+    return list;
+  }, [agentIds, socialNetwork]);
+
+  const addLink = () => {
+    if (!linkFrom || !linkTo || linkFrom === linkTo) return;
+    const key = linkFrom < linkTo ? `${linkFrom}|${linkTo}` : `${linkTo}|${linkFrom}`;
+    const alreadyExists = edges.some((edge) => edge.key === key);
+    if (alreadyExists) return;
+
+    const next: Record<string, string[]> = {};
+    for (const id of agentIds) {
+      next[id] = [...(socialNetwork[id] || [])];
+    }
+
+    next[linkFrom] = [...(next[linkFrom] || []), linkTo];
+    next[linkTo] = [...(next[linkTo] || []), linkFrom];
+    setSocialNetwork(next);
+  };
+
+  const removeLink = (key: string) => {
+    const [a, b] = key.split('|');
+    const next: Record<string, string[]> = {};
+    for (const id of agentIds) {
+      next[id] = (socialNetwork[id] || []).filter((target) => target !== a && target !== b);
+    }
+    setSocialNetwork(next);
+  };
 
   // Reset params when preset changes
   const resetParams = useCallback((presetKey: keyof PresetParams) => {
@@ -631,6 +683,65 @@ export const Step5Network: React.FC = () => {
               {t('experimentBuilder.step5.reset')}
             </button>
           </div>
+        </div>
+
+        {/* Manual Links */}
+        <div className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm space-y-2">
+          <div className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+            <Settings2 size={12} />
+            {t('experimentBuilder.step5.manualLinks', 'Manual links')}
+          </div>
+          <div className="flex items-center gap-2 text-[11px] text-slate-600">
+            <select
+              value={linkFrom}
+              onChange={(e) => setLinkFrom(e.target.value)}
+              className="flex-1 border border-slate-200 rounded px-2 py-1 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand-400"
+            >
+              {agentIds.map((id) => (
+                <option key={id} value={id}>{id}</option>
+              ))}
+            </select>
+            <span className="text-slate-400">→</span>
+            <select
+              value={linkTo}
+              onChange={(e) => setLinkTo(e.target.value)}
+              className="flex-1 border border-slate-200 rounded px-2 py-1 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand-400"
+            >
+              {agentIds.map((id) => (
+                <option key={id} value={id}>{id}</option>
+              ))}
+            </select>
+          </div>
+          <Button
+            size="sm"
+            className="w-full text-xs"
+            disabled={!linkFrom || !linkTo || linkFrom === linkTo}
+            onClick={addLink}
+          >
+            {t('experimentBuilder.step5.addLink', 'Add link')}
+          </Button>
+
+          {edges.length > 0 ? (
+            <div className="max-h-32 overflow-y-auto border-t border-slate-100 pt-2 space-y-1 text-[11px] text-slate-600">
+              {edges.map(({ key, source, target }) => (
+                <div key={key} className="flex items-center justify-between bg-slate-50 px-2 py-1 rounded">
+                  <span className="truncate">
+                    {source} ↔ {target}
+                  </span>
+                  <button
+                    className="text-red-500 text-[10px] hover:text-red-600"
+                    onClick={() => removeLink(key)}
+                  >
+                    {t('common.remove', 'Remove')}
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-[10px] text-slate-400 border-t border-slate-100 pt-2">
+              {t('experimentBuilder.step5.noLinks', 'No links yet')}
+            </div>
+          )}
         </div>
 
         {/* Parameter Controls */}

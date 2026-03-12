@@ -16,6 +16,7 @@ Contains:
 from datetime import datetime, timezone
 
 from litestar import Router, delete, get, patch, post
+from litestar.exceptions import HTTPException
 from litestar.connection import Request
 from sqlalchemy import select
 
@@ -28,6 +29,16 @@ from ...dependencies import extract_bearer_token, resolve_current_user
 from ...models.user import ProviderConfig
 from ...schemas.common import Message
 from ...schemas.provider import ProviderBase, ProviderCreate, ProviderUpdate
+
+
+def _normalize_dialect(raw: str, base_url: str | None) -> str:
+    val = (raw or "").lower().strip()
+    if val == "ollama":
+        return "ollama"
+    # Heuristic: openai + localhost base_url ⇒ treat as ollama-compatible API
+    if val == "openai" and base_url and "localhost" in base_url:
+        return "ollama"
+    return val
 
 
 def _serialize_provider(provider: ProviderConfig) -> ProviderBase:
@@ -138,7 +149,7 @@ async def test_provider(request: Request, provider_id: int) -> Message:
         provider = await session.get(ProviderConfig, provider_id)
         assert provider is not None and provider.user_id == current_user.id
 
-        dialect = (provider.provider or "").lower()
+        dialect = _normalize_dialect(provider.provider, provider.base_url)
         cfg = LLMConfig(
             dialect=dialect,
             api_key=provider.api_key or "",
@@ -153,12 +164,25 @@ async def test_provider(request: Request, provider_id: int) -> Message:
         )
 
         provider.last_tested_at = datetime.now(timezone.utc)
-        client = create_llm_client(cfg)
-        client.chat([{"role": "user", "content": "ping"}])
-        provider.last_test_status = "success"
-        provider.last_error = None
-        await session.commit()
-        return Message(message=T('api.providers.connectivity_verified'))
+        try:
+            client = create_llm_client(cfg)
+            client.chat([{"role": "user", "content": "ping"}])
+            provider.last_test_status = "success"
+            provider.last_error = None
+            await session.commit()
+            return Message(message=T('api.providers.connectivity_verified'))
+        except Exception as exc:  # Surface connectivity/auth errors
+            # Ollama JSON format can return empty content with 200; treat as connectivity OK
+            if "Ollama returned empty response" in str(exc):
+                provider.last_test_status = "success"
+                provider.last_error = None
+                await session.commit()
+                return Message(message=T('api.providers.connectivity_verified'))
+
+            provider.last_test_status = "failed"
+            provider.last_error = str(exc)
+            await session.commit()
+            raise HTTPException(status_code=502, detail=f"Provider test failed: {exc}")
 
 
 @post("/{provider_id:int}/activate")
