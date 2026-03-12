@@ -76,25 +76,6 @@ export const HostPanel: React.FC = () => {
       });
     }
 
-  
-  const pushEnvironmentEvent = async (description: string, eventType: string) => {
-    if (!description.trim()) return;
-
-    const shouldCallBackend = engineMode === 'connected' && currentSimulation?.id;
-    if (shouldCallBackend) {
-      await applyEnvironmentEvent(currentSimulation!.id, {
-        event_type: eventType,
-        description,
-        severity: 'mild',
-      });
-    }
-
-    injectLog(eventType === 'broadcast' ? 'SYSTEM' : 'ENVIRONMENT', description, envImage || undefined);
-  };
-
-  const handleBroadcast = async () => {
-    if (!broadcastMsg.trim()) return;
-    await pushEnvironmentEvent(`${t('components.hostPanel.logPrefixSystemAnnouncement')} ${broadcastMsg}`, 'broadcast');
     setBroadcastMsg('');
   };
 
