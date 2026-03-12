@@ -8,6 +8,7 @@ from socialsim4.core.agent import Agent
 from socialsim4.core.event import Event, StatusEvent
 from socialsim4.core.ordering import ORDERING_MAP, Ordering, SequentialOrdering
 from socialsim4.core.environment_config import EnvironmentConfig
+from socialsim4.core.actions.base_actions import YieldAction
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +73,37 @@ class Simulator:
         if broadcast_initial:
             self.scene.pre_run(self)
         self.started = True
+
+        # Repair action spaces on load/clone when only Yield is present
+        self._ensure_action_spaces()
+
+    def _ensure_action_spaces(self) -> None:
+        """If an agent only has Yield, refill with scene defaults and allowed actions."""
+        from socialsim4.core.registry import ACTION_SPACE_MAP, SCENE_ACTIONS
+
+        scene_key = getattr(self.scene, "TYPE", "")
+        reg = SCENE_ACTIONS.get(scene_key, {})
+        basic = reg.get("basic") or []
+        allowed = reg.get("allowed") or []
+        for agent in self.agents.values():
+            names = [getattr(a, "NAME", None) for a in agent.action_space]
+            if len(names) == 1 and names[0] == "yield":
+                merged = []
+                seen = set()
+                # include scene.get_scene_actions (e.g., mechanics) plus registry defaults
+                scene_actions = self.scene.get_scene_actions(agent) or []
+                for act in scene_actions:
+                    n = getattr(act, "NAME", None)
+                    if n and n not in seen:
+                        merged.append(act)
+                        seen.add(n)
+                for n in basic + allowed:
+                    act = ACTION_SPACE_MAP.get(n)
+                    if act is not None and getattr(act, "NAME", None) not in seen:
+                        merged.append(act)
+                        seen.add(getattr(act, "NAME", None))
+                if merged:
+                    agent.action_space = merged
 
     # ----- Event plumbing: forward to ordering and external handler -----
 

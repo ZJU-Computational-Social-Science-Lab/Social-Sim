@@ -107,6 +107,11 @@ async def get_tree_record(
             detail="LLM provider not configured"
         )
     dialect = (provider.provider or "").lower()
+    base_url = provider.base_url or ("http://127.0.0.1:11434" if dialect == "ollama" else None)
+
+    # Heuristic: openai + localhost base_url without /v1 => append /v1 for OpenAI-compatible servers like Ollama
+    if dialect == "openai" and base_url and "localhost" in base_url and "/v1" not in base_url:
+        base_url = base_url.rstrip("/") + "/v1"
 
     if dialect not in {"openai", "gemini", "mock", "ollama"}:
         raise HTTPException(status_code=400, detail="Invalid LLM provider dialect")
@@ -122,9 +127,7 @@ async def get_tree_record(
         dialect=dialect,
         api_key=provider.api_key or "",
         model=provider.model,
-        base_url=provider.base_url or (
-            "http://127.0.0.1:11434" if dialect == "ollama" else None
-        ),
+        base_url=base_url,
         temperature=0.7,
         top_p=1.0,
         frequency_penalty=0.0,

@@ -229,6 +229,9 @@ def _apply_agent_config(simulator, agent_config: dict | None):
         cfg = items[i] or {}
         agent = agents_list[i]
         selected = [str(a) for a in (cfg.get("action_space") or [])]
+        if not selected:
+            reg = SCENE_ACTIONS.get(scene_key, {}) if 'scene_key' in locals() else {}
+            selected = (reg.get("basic") or []) + (reg.get("allowed") or [])
         scene_actions = simulator.scene.get_scene_actions(agent) or []
         print(f"[ACTION_DEBUG] Agent {agent.name}: scene_actions={[getattr(a, 'NAME', a) for a in scene_actions]}, selected={selected}")
         picked = []
@@ -333,7 +336,19 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         scene = scene_cls(name, initial, role_map=role_map, moderator_names=moderator_names)
     elif scene_key == "generic_scene":
         # GenericScene needs available_actions from scene_config
-        available_actions = cfg.get("available_actions")
+        raw_actions = cfg.get("available_actions") or []
+        available_actions: list[str] | None = None
+        if isinstance(raw_actions, list):
+            names: list[str] = []
+            for item in raw_actions:
+                if isinstance(item, str):
+                    names.append(item)
+                elif isinstance(item, dict) and "name" in item:
+                    # Frontend sometimes sends objects; use the name field
+                    n = str(item.get("name") or "").strip()
+                    if n:
+                        names.append(n)
+            available_actions = names if names else None
         scene = scene_cls(
             name,
             str(cfg.get("initial_event") or ""),
@@ -389,10 +404,12 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         # Use normalized scene_key so short names (e.g., 'village') map correctly.
         reg = SCENE_ACTIONS.get(scene_key, {})
         basic_names = list(reg.get("basic", []))
+        allowed_names = list(reg.get("allowed", []))
 
         seen = set()
         merged_names = []
-        for n in basic_names + selected:
+        source_names = basic_names + (selected if selected else allowed_names)
+        for n in source_names:
             if n and n not in seen:
                 seen.add(n)
                 merged_names.append(n)

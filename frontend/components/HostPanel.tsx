@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSimulationStore, fetchEnvironmentSuggestions } from '../store';
+import { applyEnvironmentEvent } from '../services/environmentSuggestions';
 import { Megaphone, CloudLightning, Edit, Save, Sparkles, Loader2, Check, FilePlus } from 'lucide-react';
 import { MultimodalInput } from './MultimodalInput';
 import { InitialEventsModal } from './InitialEventsModal';
@@ -12,6 +13,8 @@ export const HostPanel: React.FC = () => {
    const { t } = useTranslation();
   const agents = useSimulationStore(state => state.agents);
   const logs = useSimulationStore(state => state.logs);
+  const currentSimulation = useSimulationStore(state => state.currentSimulation);
+  const engineMode = useSimulationStore(state => state.engineConfig.mode);
   const injectLog = useSimulationStore(state => state.injectLog);
   const updateAgentProperty = useSimulationStore(state => state.updateAgentProperty);
   const addNotification = useSimulationStore(state => state.addNotification);
@@ -51,12 +54,31 @@ export const HostPanel: React.FC = () => {
       }
     }
 
+  
+  const pushEnvironmentEvent = async (description: string, eventType: string) => {
+    if (!description.trim()) return;
+
+    const shouldCallBackend = engineMode === 'connected' && currentSimulation?.id;
+    if (shouldCallBackend) {
+      await applyEnvironmentEvent(currentSimulation!.id, {
+        event_type: eventType,
+        description,
+        severity: 'mild',
+      });
+    }
+
+    injectLog(eventType === 'broadcast' ? 'SYSTEM' : 'ENVIRONMENT', description, envImage || undefined);
+  };
+
+  const handleBroadcast = async () => {
+    if (!broadcastMsg.trim()) return;
+    await pushEnvironmentEvent(`${t('components.hostPanel.logPrefixSystemAnnouncement')} ${broadcastMsg}`, 'broadcast');
     setBroadcastMsg('');
   };
 
-  const handleEnvEvent = (text: string = envEvent) => {
+  const handleEnvEvent = async (text: string = envEvent) => {
     if (!text.trim() && !envImage) return;
-    injectLog('ENVIRONMENT', `${t('components.hostPanel.logPrefixEnvironmentEvent')} ${text}`, envImage || undefined);
+    await pushEnvironmentEvent(`${t('components.hostPanel.logPrefixEnvironmentEvent')} ${text}`, 'environment');
     if (text === envEvent) {
        setEnvEvent('');
        setEnvImage(null);

@@ -37,7 +37,20 @@ class Scene:
         return ""
 
     def parse_and_handle_action(self, action_data, agent: Agent, simulator: Simulator):
-        action_name = action_data.get("action")
+        raw_action = action_data.get("action")
+
+        # Normalize action payload: LLM may return {action: {name: ..., ...}}
+        if isinstance(raw_action, dict):
+            action_name = raw_action.get("name") or raw_action.get("action")
+            merged = {k: v for k, v in raw_action.items() if k != "name"}
+            for k, v in action_data.items():
+                if k != "action":
+                    merged[k] = v
+            merged["action"] = action_name
+            action_data = merged
+        else:
+            action_name = raw_action
+
         print(f"Action Space({agent.name}):", agent.action_space)
 
         # Find the action instance first (for validation)
