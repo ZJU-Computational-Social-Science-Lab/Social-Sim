@@ -10,7 +10,7 @@ import { injectHostMessage } from '../services/simulationTree';
 import { getBackendUrl, getToken } from '../services/client';
 
 export const HostPanel: React.FC = () => {
-   const { t } = useTranslation();
+  const { t } = useTranslation();
   const agents = useSimulationStore(state => state.agents);
   const logs = useSimulationStore(state => state.logs);
   const currentSimulation = useSimulationStore(state => state.currentSimulation);
@@ -19,7 +19,6 @@ export const HostPanel: React.FC = () => {
   const updateAgentProperty = useSimulationStore(state => state.updateAgentProperty);
   const addNotification = useSimulationStore(state => state.addNotification);
   const toggleInitialEvents = useSimulationStore((state: any) => state.toggleInitialEvents);
-  const currentSimulation = useSimulationStore((state: any) => state.currentSimulation);
   const selectedNodeId = useSimulationStore((state: any) => state.selectedNodeId);
 
   const [broadcastMsg, setBroadcastMsg] = useState('');
@@ -35,23 +34,46 @@ export const HostPanel: React.FC = () => {
   const [suggestions, setSuggestions] = useState<Array<{event: string, reason: string}>>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
 
+  // Shared function for pushing environment events (from policy_hierarchy branch)
+  const pushEnvironmentEvent = async (description: string, eventType: string) => {
+    if (!description.trim()) return;
+
+    const shouldCallBackend = engineMode === 'connected' && currentSimulation?.id;
+    if (shouldCallBackend) {
+      await applyEnvironmentEvent(currentSimulation!.id, {
+        event_type: eventType,
+        description,
+        severity: 'mild',
+      });
+    }
+
+    injectLog(eventType === 'broadcast' ? 'SYSTEM' : 'ENVIRONMENT', description, envImage || undefined);
+  };
+
   const handleBroadcast = async () => {
     if (!broadcastMsg.trim()) return;
 
-    // Log to UI
-    injectLog('SYSTEM', `${t('components.hostPanel.logPrefixSystemAnnouncement')} ${broadcastMsg}`);
+    const message = `${t('components.hostPanel.logPrefixSystemAnnouncement')} ${broadcastMsg}`;
 
-    // Send to backend for experiment simulations
+    // Log to UI
+    injectLog('SYSTEM', message);
+
+    // Experiment simulations: use experiment-specific API for message injection
     if (currentSimulation?.id && selectedNodeId) {
       try {
-        const baseUrl = getBackendUrl();
-        const token = getToken();
-        await injectHostMessage(baseUrl, currentSimulation.id, selectedNodeId, broadcastMsg, token);
+        await injectHostMessage(getBackendUrl(), currentSimulation.id, selectedNodeId, broadcastMsg, getToken());
         addNotification('success', t('components.hostPanel.broadcastSent'));
       } catch (error) {
         console.error('Failed to inject host message:', error);
         addNotification('error', t('components.hostPanel.broadcastFailed'));
       }
+    } else if (engineMode === 'connected' && currentSimulation?.id) {
+      // Regular connected simulations: use general environment event API
+      await applyEnvironmentEvent(currentSimulation.id, {
+        event_type: 'broadcast',
+        description: message,
+        severity: 'mild',
+      });
     }
 
   
@@ -80,8 +102,8 @@ export const HostPanel: React.FC = () => {
     if (!text.trim() && !envImage) return;
     await pushEnvironmentEvent(`${t('components.hostPanel.logPrefixEnvironmentEvent')} ${text}`, 'environment');
     if (text === envEvent) {
-       setEnvEvent('');
-       setEnvImage(null);
+      setEnvEvent('');
+      setEnvImage(null);
     }
   };
 
