@@ -534,6 +534,7 @@ class ExperimentScene:
             },
             "current_round": self.current_round,
             "history": self._history,
+            "pending_host_messages": self._pending_host_messages,
         }
 
     @classmethod
@@ -543,4 +544,5 @@ class ExperimentScene:
         scene = cls(config)
         scene.current_round = data.get("current_round", 0)
         scene._history = data.get("history", [])
+        scene._pending_host_messages = data.get("pending_host_messages", [])
         return scene

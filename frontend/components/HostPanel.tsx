@@ -5,6 +5,8 @@ import { useSimulationStore, fetchEnvironmentSuggestions } from '../store';
 import { Megaphone, CloudLightning, Edit, Save, Sparkles, Loader2, Check, FilePlus } from 'lucide-react';
 import { MultimodalInput } from './MultimodalInput';
 import { InitialEventsModal } from './InitialEventsModal';
+import { injectHostMessage } from '../services/simulationTree';
+import { getBackendUrl, getToken } from '../services/client';
 
 export const HostPanel: React.FC = () => {
    const { t } = useTranslation();
@@ -14,11 +16,13 @@ export const HostPanel: React.FC = () => {
   const updateAgentProperty = useSimulationStore(state => state.updateAgentProperty);
   const addNotification = useSimulationStore(state => state.addNotification);
   const toggleInitialEvents = useSimulationStore((state: any) => state.toggleInitialEvents);
+  const currentSimulation = useSimulationStore((state: any) => state.currentSimulation);
+  const selectedNodeId = useSimulationStore((state: any) => state.selectedNodeId);
 
   const [broadcastMsg, setBroadcastMsg] = useState('');
   const [envEvent, setEnvEvent] = useState('');
   const [envImage, setEnvImage] = useState<string | null>(null);
-  
+
   // God Mode State
   const [selectedAgentId, setSelectedAgentId] = useState(agents[0]?.id || '');
   const [selectedProp, setSelectedProp] = useState('');
@@ -27,10 +31,26 @@ export const HostPanel: React.FC = () => {
   // #12 Environment Suggestions
   const [suggestions, setSuggestions] = useState<Array<{event: string, reason: string}>>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
-  
-  const handleBroadcast = () => {
+
+  const handleBroadcast = async () => {
     if (!broadcastMsg.trim()) return;
+
+    // Log to UI
     injectLog('SYSTEM', `${t('components.hostPanel.logPrefixSystemAnnouncement')} ${broadcastMsg}`);
+
+    // Send to backend for experiment simulations
+    if (currentSimulation?.id && selectedNodeId) {
+      try {
+        const baseUrl = getBackendUrl();
+        const token = getToken();
+        await injectHostMessage(baseUrl, currentSimulation.id, selectedNodeId, broadcastMsg, token);
+        addNotification('success', t('components.hostPanel.broadcastSent'));
+      } catch (error) {
+        console.error('Failed to inject host message:', error);
+        addNotification('error', t('components.hostPanel.broadcastFailed'));
+      }
+    }
+
     setBroadcastMsg('');
   };
 

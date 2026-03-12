@@ -1080,7 +1080,9 @@
       "modifyState": "Modify State",
       "selectProperty": "Select property...",
       "enterNewValue": "Enter new value",
-      "updateProperty": "Update Property"
+      "updateProperty": "Update Property",
+      "broadcastSent": "Broadcast sent to agents",
+      "broadcastFailed": "Failed to send broadcast"
     },
     "initialEventsModal": {
       "title": "Initial Event Editor",
