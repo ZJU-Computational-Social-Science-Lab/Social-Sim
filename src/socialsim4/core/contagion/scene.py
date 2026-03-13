@@ -370,7 +370,8 @@ class ContagionScene(VillageScene):
         """
         Return actions available in the contagion scene for this agent.
 
-        Provides contagion-specific actions (move, speak) plus base scene actions.
+        Provides ONLY contagion-specific actions (move, speak).
+        Does NOT inherit parent scene actions to keep the action space focused.
 
         Args:
             agent: Agent requesting available actions
@@ -381,7 +382,6 @@ class ContagionScene(VillageScene):
         return [
             MoveAdjacentAction(),
             SpeakToAction(),
-            *super().get_scene_actions(agent),
         ]
 
     def check_action_transmission(self, sender: "Agent", target: "Agent", simulator: "Simulator"):

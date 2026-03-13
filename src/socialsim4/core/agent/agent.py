@@ -412,6 +412,17 @@ Use the above context to inform your responses when relevant.
 
         for action_item in (action_data or []):
             action_name = action_item.get("action") or action_item.get("name")
+
+            # Handle nested action format: {"action": {"name": "look_around"}}
+            # Some LLMs return actions as dicts instead of strings
+            if isinstance(action_name, dict):
+                action_name = action_name.get("name") or action_name.get("action")
+
+            # Skip if action_name is not a string (unhashable as dict key)
+            if not isinstance(action_name, str):
+                print(f"[AGENT DEBUG] {self.name} got non-string action: {action_name} (type: {type(action_name).__name__})")
+                continue
+
             act = action_lookup.get(action_name)
 
             if not act:

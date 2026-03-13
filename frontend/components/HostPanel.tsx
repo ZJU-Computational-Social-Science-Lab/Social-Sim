@@ -7,7 +7,8 @@ import { Megaphone, CloudLightning, Edit, Save, Sparkles, Loader2, Check, FilePl
 import { MultimodalInput } from './MultimodalInput';
 import { InitialEventsModal } from './InitialEventsModal';
 import { injectHostMessage } from '../services/simulationTree';
-import { getBackendUrl, getToken } from '../services/client';
+import { API_BASE_URL } from '../services/client';
+import { useAuthStore } from '../store/auth';
 
 export const HostPanel: React.FC = () => {
   const { t } = useTranslation();
@@ -61,7 +62,7 @@ export const HostPanel: React.FC = () => {
     // Experiment simulations: use experiment-specific API for message injection
     if (currentSimulation?.id && selectedNodeId) {
       try {
-        await injectHostMessage(getBackendUrl(), currentSimulation.id, selectedNodeId, broadcastMsg, getToken());
+        await injectHostMessage(API_BASE_URL, currentSimulation.id, selectedNodeId, broadcastMsg, useAuthStore.getState().accessToken);
         addNotification('success', t('components.hostPanel.broadcastSent'));
       } catch (error) {
         console.error('Failed to inject host message:', error);

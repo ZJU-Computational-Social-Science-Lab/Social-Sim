@@ -71,15 +71,23 @@ class ExperimentRunnerAdapter:
 
     def run(self, max_turns: int = 1) -> None:
         """Run experiment rounds (each 'turn' = one round)."""
-        import asyncio
-
         if not self.scene.runner:
             self.scene.initialize(self._llm_client)
 
         for _ in range(max_turns):
             if self.scene.is_complete():
                 break
-            asyncio.run(self.scene.run_round(self._emit_event))
+            # scene.run_round is async, so we need to handle it properly
+            # When called from asyncio.to_thread(), we're in a thread with NO event loop
+            # When called directly (standalone), we can use asyncio.run()
+            try:
+                loop = asyncio.get_running_loop()
+                # We're inside an async context - use run_until_complete
+                loop.run_until_complete(self.scene.run_round(self._emit_event))
+            except RuntimeError:
+                # No running loop - we're in a thread or standalone
+                # Use asyncio.run() to create a new event loop
+                asyncio.run(self.scene.run_round(self._emit_event))
 
     def _emit_event(self, event_type: str, data: dict) -> None:
         """Collect events for SimTree and emit to log handler."""
