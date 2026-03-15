@@ -22,6 +22,7 @@ class CoordinationFeedbackBuilder:
         agent_choice: str,
         neighbors: list[str],
         all_choices: dict[str, str],
+        goal: str = "match",
     ) -> str:
         """Build coordination feedback for an agent.
 
@@ -30,6 +31,7 @@ class CoordinationFeedbackBuilder:
             agent_choice: What this agent chose
             neighbors: List of neighbor agent names
             all_choices: Dict mapping all agent names to their choices
+            goal: Coordination objective - "match" or "differ"
 
         Returns:
             Human-readable feedback string
@@ -47,7 +49,10 @@ class CoordinationFeedbackBuilder:
             if not neighbor_choice:
                 continue  # Skip neighbors without choices
 
-            if neighbor_choice.lower() == agent_choice_lower:
+            same_choice = neighbor_choice.lower() == agent_choice_lower
+            coordinated_condition = same_choice if goal == "match" else not same_choice
+
+            if coordinated_condition:
                 coordinated.append((neighbor, neighbor_choice))
             else:
                 conflicted.append((neighbor, neighbor_choice))
@@ -55,7 +60,10 @@ class CoordinationFeedbackBuilder:
         parts = []
 
         if coordinated:
-            coord_str = ", ".join([f"{n} (both {c})" for n, c in coordinated])
+            if goal == "differ":
+                coord_str = ", ".join([f"{n} (you {agent_choice}, they {c})" for n, c in coordinated])
+            else:
+                coord_str = ", ".join([f"{n} (both {c})" for n, c in coordinated])
             parts.append(f"Coordinated with: {coord_str}")
 
         if conflicted:

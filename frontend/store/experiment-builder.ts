@@ -179,7 +179,11 @@ export const useExperimentBuilder = create<ExperimentBuilderState & ExperimentBu
     return { selectedScenarioId: id, validationErrors: newErrors };
   }),
 
-  setSelectedScenarioData: (data) => set({ selectedScenarioData: data }),
+  setSelectedScenarioData: (data) => set((state) => ({
+    selectedScenarioData: data,
+    roundVisibility: data?.interaction_mode === 'sequential' ? 'sequential' : 'simultaneous',
+    turnOrder: data?.interaction_mode === 'sequential' ? state.turnOrder : 'fixed',
+  })),
 
   // Step 2: Scenario configuration
   setScenarioDescription: (description) => set((state) => {

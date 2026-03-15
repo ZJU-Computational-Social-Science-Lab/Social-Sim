@@ -29,6 +29,7 @@ class GameConfig:
         grouping_mode: How agents are grouped - "pairwise", "group", "neighbor", "individual"
         payoff_type: Type of payoff - "matrix", "pool", "feedback", "none"
         payoff_config: Configuration for payoff calculation
+        action_schemas: Optional follow-up parameter schemas for per-action prompts
     """
     name: str
     description: str
@@ -48,6 +49,7 @@ class GameConfig:
     grouping_mode: str = "pairwise"
     payoff_type: str = "matrix"
     payoff_config: dict[str, Any] = field(default_factory=dict)
+    action_schemas: dict[str, dict[str, Any]] = field(default_factory=dict)
 
 
 # Predefined game configs for the 6 social science patterns

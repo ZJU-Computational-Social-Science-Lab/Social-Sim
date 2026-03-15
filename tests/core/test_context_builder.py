@@ -329,3 +329,50 @@ class TestCoordinationFeedbackInContext:
         # Should show feedback
         assert "Coordinated with: Bob" in context
         assert "Conflicted with: Charlie" in context
+
+
+def test_structured_context_includes_numeric_contributions_and_payoff():
+    """Public-goods history should include numeric contribution feedback."""
+    from socialsim4.core.context_builder import build_structured_context
+    from socialsim4.core.experiment.round_context import RoundEvent
+    from socialsim4.core.experiment.information_model import InformationModel
+
+    events = [
+        RoundEvent(
+            round_num=1,
+            agent_name="Alice",
+            action_name="contribute",
+            parameters={"amount": 7},
+            summary="Alice chose contribute (amount=7)",
+            observed_by=["Alice", "Bob"],
+            payoff=13.75,
+        ),
+        RoundEvent(
+            round_num=1,
+            agent_name="Bob",
+            action_name="contribute",
+            parameters={"amount": 3},
+            summary="Bob chose contribute (amount=3)",
+            observed_by=["Alice", "Bob"],
+            payoff=17.75,
+        ),
+    ]
+
+    info_model = InformationModel(
+        scope_type="all",
+        pairing_fn=None,
+        include_scores=True,
+        recent_window=5,
+    )
+
+    context = build_structured_context(
+        for_agent="Alice",
+        events=events,
+        info_model=info_model,
+        agent_score=13.75,
+    )
+
+    assert "Round 1: I contribute 7, Bob contribute 3." in context
+    assert "Total contribution: 10." in context
+    assert "My payoff: 13.75." in context
+    assert "My score: 13.75" in context

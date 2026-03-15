@@ -90,3 +90,16 @@ class TestCoordinationFeedbackBuilder:
         # Should only mention Bob, not error on Charlie
         assert "Conflicted with: Bob (you red, they blue)" in feedback
         assert "Charlie" not in feedback
+
+    def test_differ_goal_treats_different_choices_as_coordinated(self, builder):
+        """When goal=differ, different choices should count as coordination."""
+        feedback = builder.build_feedback(
+            agent_name="Alice",
+            agent_choice="red",
+            neighbors=["Bob", "Charlie"],
+            all_choices={"Alice": "red", "Bob": "blue", "Charlie": "red"},
+            goal="differ",
+        )
+
+        assert "Coordinated with: Bob (you red, they blue)" in feedback
+        assert "Conflicted with: Charlie (you red, they red)" in feedback

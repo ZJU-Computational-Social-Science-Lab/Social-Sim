@@ -241,7 +241,11 @@ class ExperimentController:
         game_config: GameConfig,
         llm_client: LLMClient,
         round_num: int,
-        action_schemas: Optional[Dict[str, Dict[str, Any]]] = None
+        action_schemas: Optional[Dict[str, Dict[str, Any]]] = None,
+        context_summary: str = "",
+        information_model=None,
+        kb_context: str = "",
+        neighbor_context: str = "",
     ) -> ActionResult:
         """Process an LLM response with potential follow-up prompt for parameters.
 
@@ -255,6 +259,10 @@ class ExperimentController:
             llm_client: LLM client (for re-prompting)
             round_num: Current round number
             action_schemas: Dict mapping action names to their parameter schemas
+            context_summary: The exact context used in the main prompt
+            information_model: Information model used when building the prompt
+            kb_context: Knowledge-base context used in the main prompt
+            neighbor_context: Social-network context used in the main prompt
 
         Returns:
             ActionResult with outcome
@@ -270,11 +278,26 @@ class ExperimentController:
 
         action_name = initial_result.action_name
         debug_file = _get_current_debug_file()
+        schema_keys = list(action_schemas.keys()) if action_schemas else []
+        canonical_action_name = action_name
+        if action_schemas:
+            for schema_key in action_schemas.keys():
+                if schema_key.lower() == action_name.lower():
+                    canonical_action_name = schema_key
+                    break
+        should_follow_up = bool(action_schemas and canonical_action_name in action_schemas)
+
+        with open(debug_file, 'a', encoding='utf-8') as f:
+            f.write(f"\n--- FOLLOW-UP GATING ---\n")
+            f.write(f"  action_name: {action_name}\n")
+            f.write(f"  canonical_action_name: {canonical_action_name}\n")
+            f.write(f"  schema_keys: {schema_keys}\n")
+            f.write(f"  should_follow_up: {should_follow_up}\n")
 
         # Check if this action requires a follow-up prompt.
         # action_schemas format: {action_name: {"schema": param_schema, "mode": "json"|"plain_text"}}
-        if action_schemas and action_name in action_schemas:
-            schema_info = action_schemas[action_name]
+        if should_follow_up:
+            schema_info = action_schemas[canonical_action_name]
             # Support both flat {param: schema} and wrapped {"schema": ..., "mode": ...} formats
             if "schema" in schema_info:
                 param_schema = schema_info["schema"]
@@ -293,18 +316,23 @@ class ExperimentController:
 
             print(f"\n[CONTROLLER] Action '{action_name}' requires follow-up prompt (mode={followup_mode})")
 
-            # Get context for follow-up
-            context = self.context_manager.get_context(agent.name)
+            followup_context = context_summary or self.context_manager.get_context_for_agent(
+                agent.name,
+                agent_score=agent.score,
+            )
 
             # Build follow-up prompt using the action's parameter mode
             followup_prompt = build_reprompt(
                 agent=agent,
                 game_config=game_config,
-                context_summary=context,
+                context_summary=followup_context,
                 chosen_action=action_name,
                 parameter_schema=param_schema,
                 mode=followup_mode,
-                include_section_markers=True
+                include_section_markers=True,
+                information_model=information_model,
+                kb_context=kb_context,
+                neighbor_context=neighbor_context,
             )
 
             # Log the follow-up prompt
@@ -336,11 +364,17 @@ class ExperimentController:
                 if followup_mode == "plain_text":
                     # Plain text response (e.g., Speak action): store the whole string as "message"
                     parameters = {"message": followup_response.strip()}
+                    parameter_source = "followup_plain_text"
                 else:
                     # JSON response: parse and extract expected parameters
                     cleaned = extract_json(followup_response)
                     parsed_followup = json.loads(cleaned)
                     parameters = {k: parsed_followup.get(k) for k in param_schema.keys() if k in parsed_followup}
+                    parameter_source = "followup_json"
+
+                with open(debug_file, 'a', encoding='utf-8') as f:
+                    f.write(f"  final_parameter_source: {parameter_source}\n")
+                    f.write(f"  final_parameters: {parameters}\n")
 
                 # Update summary with parameters
                 param_str = ", ".join(f"{k}={v}" for k, v in parameters.items())
@@ -348,9 +382,9 @@ class ExperimentController:
 
                 return ActionResult(
                     success=True,
-                    action_name=action_name,
+                    action_name=canonical_action_name,
                     parameters=parameters,
-                    summary=summary,
+                    summary=f"{agent.name} chose {canonical_action_name} ({param_str})",
                     agent_name=agent.name,
                     round_num=round_num,
                     skipped=False
@@ -365,4 +399,7 @@ class ExperimentController:
                 return initial_result
 
         # No follow-up needed
+        with open(debug_file, 'a', encoding='utf-8') as f:
+            f.write(f"  final_parameter_source: none\n")
+            f.write(f"  final_parameters: {initial_result.parameters}\n")
         return initial_result

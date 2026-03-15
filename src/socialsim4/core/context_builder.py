@@ -10,6 +10,16 @@ Contains: build_context_summary, build_structured_context
 from typing import Dict, Any, List, Optional
 
 
+def _format_action_with_parameters(agent_label: str, action_name: str, parameters: Dict[str, Any]) -> str:
+    """Render an action with its numeric parameters for prompt context."""
+    if "amount" in parameters:
+        return f"{agent_label} {action_name} {parameters['amount']}"
+    if not parameters:
+        return f"{agent_label} {action_name}"
+    param_str = ", ".join(f"{key}={value}" for key, value in parameters.items())
+    return f"{agent_label} {action_name} ({param_str})"
+
+
 def build_context_summary(
     round_history: List[Dict[str, Any]],
     max_rounds: int = 5,
@@ -218,10 +228,15 @@ def build_structured_context(
         else:
             parts = []
             if my_event:
-                parts.append(f"I {my_event.action_name}")
+                parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))
             for e in other_events:
-                parts.append(f"{e.agent_name} {e.action_name}")
+                parts.append(_format_action_with_parameters(e.agent_name, e.action_name, e.parameters))
             line = f"Round {r}: {', '.join(parts)}." if parts else f"Round {r}: (no actions)"
+            if any("amount" in e.parameters for e in round_events):
+                total_contribution = sum(e.parameters.get("amount", 0) for e in round_events)
+                line += f" Total contribution: {total_contribution}."
+            if my_event and my_event.payoff is not None:
+                line += f" My payoff: {my_event.payoff}."
 
         lines.append(line)
 

@@ -503,6 +503,7 @@ export const mapBackendEventsToLogs = (
       const actionName: string = data.action || '';
       const parameters = data.parameters || {};
       const summary: string = data.summary || '';
+      const payoff = data.payoff;
       const round: number = data.round || 0;
       const skipped: boolean = data.skipped || false;
       const agentId = agentName ? nameToId.get(agentName) : undefined;
@@ -512,8 +513,10 @@ export const mapBackendEventsToLogs = (
 
       // Use summary if available (it contains action result info)
       if (summary) {
-        // summary already contains "Agent chose action" format from backend
-        return { ...base, type: 'AGENT_ACTION', agentId, content: summary };
+        const content = payoff !== null && payoff !== undefined
+          ? `${summary} -> payoff=${payoff}`
+          : summary;
+        return { ...base, type: 'AGENT_ACTION', agentId, content };
       }
 
       // Otherwise build our own label
@@ -540,6 +543,10 @@ export const mapBackendEventsToLogs = (
         if (meaningfulParams) {
           label += ` (${meaningfulParams})`;
         }
+      }
+
+      if (payoff !== null && payoff !== undefined) {
+        label += ` -> payoff=${payoff}`;
       }
 
       return { ...base, type: 'AGENT_ACTION', agentId, content: label };

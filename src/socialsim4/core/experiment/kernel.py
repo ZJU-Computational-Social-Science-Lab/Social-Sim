@@ -9,6 +9,8 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Literal, Optional
 from dataclasses import dataclass
 
+from socialsim4.core.experiment.actions.registry import ACTION_REGISTRY
+
 
 class ExperimentAction(ABC):
     """Base class for all experiment actions.
@@ -234,7 +236,34 @@ class ExperimentKernel:
                     "schema": schema,
                     "mode": action_class.parameter_mode(),
                 }
+        for name, action_def in ACTION_REGISTRY.items():
+            if name in schemas or not action_def.parameters:
+                continue
+            schemas[name] = {
+                "schema": {
+                    param.name: cls._parameter_spec_to_schema(param)
+                    for param in action_def.parameters
+                },
+                "mode": "json",
+            }
         return schemas
+
+    @staticmethod
+    def _parameter_spec_to_schema(param) -> Dict[str, Any]:
+        type_map = {
+            "number": "integer",
+            "text": "string",
+            "agent": "string",
+            "enum": "string",
+        }
+        schema = {
+            "type": type_map.get(param.type, "string"),
+            "description": param.name,
+        }
+        if param.options:
+            schema["enum"] = param.options
+            schema["description"] = f"{param.name} ({', '.join(param.options)})"
+        return schema
 
 
 # Register built-in action types at module load

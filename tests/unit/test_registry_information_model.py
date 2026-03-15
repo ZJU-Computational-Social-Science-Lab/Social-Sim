@@ -33,6 +33,26 @@ def test_get_information_model_default_fallback():
     assert model.scope_type == "all"
 
 
+def test_get_information_model_derives_council_chamber_from_scenario_registry():
+    from socialsim4.core.registry import get_information_model
+
+    model = get_information_model("council_chamber")
+
+    assert isinstance(model, InformationModel)
+    assert model.scope_type == "all"
+    assert model.include_scores is False
+
+
+def test_get_information_model_derives_contagion_neighborhood_scope():
+    from socialsim4.core.registry import get_information_model
+
+    model = get_information_model("contagion")
+
+    assert isinstance(model, InformationModel)
+    assert model.scope_type == "neighborhood"
+    assert model.include_scores is False
+
+
 def test_pair_agents_randomly_is_deterministic():
     from socialsim4.core.registry import pair_agents_randomly
 
