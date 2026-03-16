@@ -72,6 +72,8 @@ export const Step4Agents: React.FC = () => {
     setSelectedProviderId,
     loadProviders,
     getSelectedProviderId,
+    selectedScenarioId,
+    selectedScenarioData,
   } = useExperimentBuilder();
 
   // Load providers on mount
@@ -107,6 +109,25 @@ export const Step4Agents: React.FC = () => {
 
   // Initialize demographics on first render
   useEffect(() => {
+    const scenarioId = selectedScenarioData?.id || selectedScenarioId || '';
+    const scenarioName = (selectedScenarioData?.name || '').toLowerCase();
+    const isPolicyCascade =
+      scenarioId === 'policy_diffusion' ||
+      scenarioId === 'policyDiffusion' ||
+      scenarioName.includes('policy') ||
+      scenarioName.includes('政策');
+
+    if (isPolicyCascade) {
+      const alreadyTier = demographics.length === 1 && demographics[0]?.name === '政治职位层级';
+      if (!alreadyTier) {
+        setDemographics([{ id: generateId(), name: '政治职位层级', categories: ['top', 'mid', 'low'] }]);
+      }
+      if (genCount < 3) {
+        setGenCount(3);
+      }
+      return;
+    }
+
     if (demographics.length === 0) {
       setDemographics([
         {
@@ -121,7 +142,7 @@ export const Step4Agents: React.FC = () => {
         },
       ]);
     }
-  }, []);
+  }, [selectedScenarioId, selectedScenarioData, demographics, genCount]);
 
   // Update archetypes when demographics change
   useEffect(() => {

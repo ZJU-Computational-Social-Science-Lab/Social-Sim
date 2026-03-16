@@ -38,6 +38,7 @@ from .ordering import ORDERING_MAP as _ORDERING_MAP
 from .scenes.council_scene import CouncilScene
 from .scenes.landlord_scene import LandlordPokerScene
 from .scenes.simple_chat_scene import SimpleChatScene
+from .scenes.policy_cascade_scene import PolicyCascadeScene
 from .scenes.village_scene import VillageScene
 from .scenes.werewolf_scene import WerewolfScene
 from socialsim4.core.experiment.scene import ExperimentScene
@@ -95,6 +96,7 @@ SCENE_MAP = {
     "werewolf_scene": WerewolfScene,
     "landlord_scene": LandlordPokerScene,
     "generic_scene": GenericScene,
+    "policy_cascade_scene": PolicyCascadeScene,
     "experiment_template": ExperimentScene,
 }
 
@@ -168,6 +170,10 @@ SCENE_ACTIONS: dict[str, dict[str, list[str]]] = {
             "call_landlord", "rob_landlord", "pass", "play_cards", "double", "no_double",
         ],
     },
+    "policy_cascade_scene": {
+        "basic": ["send_message", "yield"],
+        "allowed": [],
+    },
     "experiment_template": {
         "basic": [],
         "allowed": [],
@@ -219,6 +225,7 @@ INFORMATION_MODEL_MAP: dict = {
     ),
     "landlord_scene": InformationModel(scope_type="all", recent_window=3),
     "generic_scene": InformationModel(scope_type="all", recent_window=3),
+    "policy_cascade_scene": InformationModel(scope_type="all", recent_window=3),
     "experiment_template": InformationModel(scope_type="all", recent_window=3),
     # Scenario-level keys (used when scene_type == scenario id)
     "prisoners_dilemma": InformationModel(

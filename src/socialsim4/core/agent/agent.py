@@ -11,6 +11,7 @@ Contains:
     - Agent: Main agent class with state and orchestration logic
 """
 
+import json
 import logging
 from pathlib import Path
 from datetime import datetime
@@ -170,65 +171,105 @@ Recent Context Summary:
 {context_summary}
 """
 
+        default_example = """Example JSON response:
+    ```json
+    {
+        "thoughts": "I need to respond to the greeting and consider next steps",
+        "response": "Hello! Nice to meet you.",
+        "action": {
+        "name": "send_message",
+        "target": "other_agent",
+        "message": "Hello! Nice to meet you."
+        },
+        "context_update": "Met a new agent, should learn more about them",
+        "metadata": {}
+    }
+    ```
+
+    If you only want to speak without taking an action:
+    ```json
+    {
+        "thoughts": "Just responding to the question",
+        "response": "My opinion is...",
+        "action": {
+            "name": "send_message",
+            "message": "My opinion is..."
+        },
+        "context_update": "Shared my opinion on the topic",
+        "metadata": {}
+    }
+    ```"""
+
+        example_block = default_example
+        if scene and getattr(scene, "TYPE", "") == "policy_cascade_scene":
+            policy_text = str(scene.state.get("latest_policy", "") or "").strip()
+            example_policy = policy_text or "[POLICY_CONTENT]"
+            example_message = f"{example_policy}\n态度：完全支持并按原文执行。\n计划：指定负责人，按月 1 日前提交进度与整改报告。"
+            message_json = json.dumps(example_message, ensure_ascii=False)
+            example_block = f"""Example JSON response:
+    ```json
+    {{
+        "thoughts": "转发最新政策，保持原文并附执行计划。",
+        "response": "",
+        "action": {{
+        "name": "send_message",
+        "message": {message_json}
+        }},
+        "context_update": "已按原文转发并说明执行态度与计划",
+        "metadata": {{}}
+    }}
+    ```
+
+    If you only want to speak without taking an action:
+    ```json
+    {{
+        "thoughts": "无需转发时保持静默等待。",
+        "response": "",
+        "action": {{
+            "name": "yield"
+        }},
+        "context_update": "等待下一级反馈",
+        "metadata": {{}}
+    }}
+    ```"""
+
         # Build the prompt with new JSON output format
         prompt = f"""{identity_line}
 
-{self.user_profile if len(self.user_profile) < 500 else self.user_profile[:500] + "..."}
+    {self.user_profile if len(self.user_profile) < 500 else self.user_profile[:500] + "..."}
 
-{self.role_prompt if len(self.role_prompt or "") < 500 else ""}{knowledge_block}
-Language: {self.language}. Respond in {self.language} for content; use English for action names.
+    {self.role_prompt if len(self.role_prompt or "") < 500 else ""}{knowledge_block}
+    Language: {self.language}. Respond in {self.language} for content; use English for action names.
 
-{scene_block}
-{context_block}
-Action Space:
-{action_catalog}
+    {scene_block}
+    {context_block}
+    Action Space:
+    {action_catalog}
 
-Usage:
-{action_instructions}
+    Usage:
+    {action_instructions}
 
-{self.initial_instruction}
+    {self.initial_instruction}
 
-IMPORTANT - Output Format:
-You MUST respond with a valid JSON object containing these 5 sections:
+    IMPORTANT - Output Format:
+    You MUST respond with a valid JSON object containing these 5 sections:
 
-1. "thoughts": Your brief thinking about the current situation (1-2 sentences)
+    1. "thoughts": Your brief thinking about the current situation (1-2 sentences)
 
-2. "response": What you want to communicate (can be empty string if no speech needed)
+    2. "response": What you want to communicate (can be empty string if no speech needed)
 
-3. "action": The action you want to take, containing:
-   - "name": action name from the Action Space above
-   - Additional key-value pairs for action parameters (if required)
+    3. "action": The action you want to take, containing:
+       - "name": action name from the Action Space above
+       - Additional key-value pairs for action parameters (if required)
 
-4. "context_update": Brief notes to remember for future (goals, observations, plans)
+    4. "context_update": Brief notes to remember for future (goals, observations, plans)
 
-5. "metadata": Optional object with any additional metadata
+    5. "metadata": Optional object with any additional metadata
 
-Example JSON response:
-```json
-{{
-  "thoughts": "I need to respond to the greeting and consider next steps",
-  "response": "Hello! Nice to meet you.",
-  "action": {{
-    "name": "send_message",
-    "target": "other_agent",
-    "message": "Hello! Nice to meet you."
-  }},
-  "context_update": "Met a new agent, should learn more about them",
-  "metadata": {{}}
-}}
-```
+    {example_block}
 
-If you only want to speak without taking an action:
-```json
-{{
-  "thoughts": "Just responding to the question",
-  "response": "My opinion is...",
-  "action": null,
-  "context_update": "Shared my opinion on the topic",
-  "metadata": {{}}
-}}
-```
-"""
+    You must always provide an "action" with a valid "name" from the Action Space. If you only want to speak, use "send_message" and include the text in the "message" field. Use "yield" when you are done with your turn.
+    """
         return prompt
 
     # -------------------------------------------------------------------------

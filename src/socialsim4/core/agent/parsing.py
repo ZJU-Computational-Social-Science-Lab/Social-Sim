@@ -172,17 +172,32 @@ def parse_agent_response(response_text: str) -> dict:
 
 def parse_actions(response_text: str) -> list:
     """Parse actions from LLM response using JSON format.
-
-    Returns [data] if "action" key present, else [].
-    Maintains compatibility with existing code expecting list return.
+    Enforces presence of an action with a non-empty name.
 
     Args:
         response_text: Raw LLM response string
 
     Returns:
-        List containing action dict, or empty list
+        List containing the parsed action dict.
+
+    Raises:
+        ValueError: If the response JSON is missing or lacks a valid action name.
     """
     data = parse_agent_response(response_text)
-    if data and 'action' in data:
-        return [data]
-    return []
+    if not data:
+        raise ValueError("LLM response is missing the required JSON object with an action.")
+
+    if "action" not in data:
+        raise ValueError("LLM response must include an 'action' field with a valid name.")
+
+    raw_action = data["action"]
+    action_name = None
+    if isinstance(raw_action, dict):
+        action_name = raw_action.get("name") or raw_action.get("action")
+    else:
+        action_name = raw_action
+
+    if not action_name or not isinstance(action_name, str):
+        raise ValueError("LLM response action is missing a valid 'name' from the Action Space.")
+
+    return [data]

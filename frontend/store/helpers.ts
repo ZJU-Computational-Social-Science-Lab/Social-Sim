@@ -891,7 +891,7 @@ export const SYSTEM_TEMPLATES: SimulationTemplate[] = [
     name: '政策传播中的意义磨损',
     description: '街头官僚制视角：模拟三层级组织(政府→社区→居民)中政策的重构与异化。验证底层逻辑如何消解宏观规划。',
     category: 'system',
-    sceneType: 'village',
+    sceneType: 'policy_cascade_scene',
     agents: generatePolicyDiffusionAgents({ provider: 'OpenAI', model: 'gpt-4o' }),
     defaultTimeConfig: DEFAULT_TIME_CONFIG
   },

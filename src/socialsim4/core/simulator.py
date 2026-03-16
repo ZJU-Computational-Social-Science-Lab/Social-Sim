@@ -182,10 +182,21 @@ class Simulator:
             enriched = f"{formatted}\n" + "\n".join(attachment_texts)
 
         recipients = []
+        allow_set: Optional[set[str]] = None
+        if receivers is not None:
+            allow_set = {str(r).strip() for r in receivers if str(r).strip()}
+
         for agent in self.agents.values():
-            if agent.name != sender and (receivers is None or agent.name in receivers):
-                agent.add_env_feedback(enriched, images=images, audio=audio, video=video)
-                recipients.append(agent.name)
+            if agent.name == sender:
+                continue
+
+            if allow_set is not None:
+                agent_key = str(getattr(agent, "name", "") or "").strip()
+                if not agent_key or agent_key not in allow_set:
+                    continue
+
+            agent.add_env_feedback(enriched, images=images, audio=audio, video=video)
+            recipients.append(agent.name)
 
         # Timeline: keep minimal
         payload = {

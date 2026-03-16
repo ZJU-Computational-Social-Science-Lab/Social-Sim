@@ -491,6 +491,12 @@ export const createSimulationSlice: StateCreator<
             language: i18n.language || 'en',
           };
 
+          // Provide initial policy/event text to backend scenes
+          if (template.description) {
+            sceneConfig.initial_event = template.description;
+            sceneConfig.initial_events = [template.description];
+          }
+
           if (isExperimentTemplate && templateActions.length > 0) {
             // Use the new experiment template format
             sceneConfig.description = template.genericConfig?.description || name || 'Experiment';

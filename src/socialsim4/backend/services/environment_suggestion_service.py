@@ -201,9 +201,14 @@ async def broadcast_environment_event(
         severity=event_data.get("severity", "mild"),
     )
 
-    receivers = event_data.get("receivers") or None
-    if receivers is not None:
-        receivers = [str(r) for r in receivers]
+    receivers = None
+    if "receivers" in event_data:
+        raw = event_data.get("receivers")
+        if not raw:
+            raise ValueError("receivers cannot be empty when provided")
+        receivers = [str(r).strip() for r in raw if str(r).strip()]
+        if not receivers:
+            raise ValueError("receivers cannot be empty when provided")
 
     # Broadcast to all agents
     simulator.broadcast(event, receivers=receivers)

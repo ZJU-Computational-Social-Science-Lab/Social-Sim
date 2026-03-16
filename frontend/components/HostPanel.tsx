@@ -37,6 +37,10 @@ export const HostPanel: React.FC = () => {
 
     const shouldCallBackend = engineMode === 'connected' && currentSimulation?.id;
     if (shouldCallBackend) {
+      if (broadcastRecipients && broadcastRecipients.length === 0) {
+        addNotification('error', t('components.hostPanel.selectRecipientsError', '请选择接收者或留空发送给全员'));
+        return;
+      }
       await applyEnvironmentEvent(currentSimulation!.id, {
         event_type: eventType,
         description,

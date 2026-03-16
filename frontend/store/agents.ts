@@ -193,6 +193,26 @@ export const createAgentsSlice: StateCreator<
       initialEvents: [...(state.initialEvents || []), newEvent]
     }));
 
+    // If connected to backend, also broadcast as an environment event so agents receive it
+    const currentSimulation = (get() as any).currentSimulation;
+    const mode = (get() as any).engineConfig?.mode;
+    if (mode === 'connected' && currentSimulation?.id) {
+      (async () => {
+        try {
+          const { applyEnvironmentEvent } = await import('../services/environmentSuggestions');
+          await applyEnvironmentEvent(currentSimulation.id, {
+            event_type: 'initial_event',
+            description: `[初始事件] ${title}\n${content}`,
+            severity: 'mild',
+          });
+        } catch (e) {
+          console.error('Failed to broadcast initial event', e);
+          const addNotification = (get() as any).addNotification;
+          addNotification?.('error', '初始事件广播失败');
+        }
+      })();
+    }
+
     // Also add to logs via the logs slice
     const setLogs = (get() as any).setLogs;
     if (setLogs && selectedNodeId) {
