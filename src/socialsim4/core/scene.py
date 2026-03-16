@@ -184,6 +184,9 @@ class Scene:
         """Generates a status prompt for a given agent based on the scene's state."""
         return ""
 
+    def on_event(self, sim, event_type: str, data):
+        return None
+
     def initialize_agent(self, agent: Agent):
         """Initializes an agent with scene-specific properties."""
         pass

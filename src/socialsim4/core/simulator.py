@@ -198,6 +198,10 @@ class Simulator:
             agent.add_env_feedback(enriched, images=images, audio=audio, video=video)
             recipients.append(agent.name)
 
+        code = getattr(event, "code", None)
+        if code == "environment_event":
+            self.scene.on_event(self, "environment", getattr(event, "params", {}))
+
         # Timeline: keep minimal
         payload = {
             "time": time,
@@ -209,7 +213,6 @@ class Simulator:
             "audio": audio,
             "video": video,
         }
-        code = getattr(event, "code", None)
         if code is not None:
             payload["code"] = code
         params = getattr(event, "params", None)
@@ -365,7 +368,13 @@ class Simulator:
         turns = 0
         print(f"Running for {max_turns} turns.")
 
+        if hasattr(self.scene, "reset_for_run"):
+            self.scene.reset_for_run()
+
         while turns < max_turns:
+            # Process any pending events before checking completion so scenes can reopen
+            self.emit_remaining_events()
+
             if self.scene.is_complete():
                 print("Scenario complete. Simulation ends.")
                 break
