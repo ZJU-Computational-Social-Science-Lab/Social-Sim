@@ -103,6 +103,8 @@ class PayoffEngine:
             List of groups, each group is a list of agent names
         """
         edges = graph.get("edges", [])
+        if not edges:
+            return [agent_names] if agent_names else []
 
         # Build adjacency list
         adjacency = {name: set() for name in agent_names}

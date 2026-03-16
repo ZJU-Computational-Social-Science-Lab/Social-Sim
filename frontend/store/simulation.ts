@@ -494,11 +494,15 @@ export const createSimulationSlice: StateCreator<
           if (isExperimentTemplate && templateActions.length > 0) {
             // Use the new experiment template format
             sceneConfig.description = template.genericConfig?.description || name || 'Experiment';
+            sceneConfig.scenario_id = template.genericConfig?.scenario_id || 'custom';
             sceneConfig.actions = templateActions.map((action: any) => ({
               action_type: action.action_type || action,
               name: action.name || action,
               description: action.description || `${action} action`,
+              parameters: action.parameters || [],
             }));
+            sceneConfig.round_visibility = template.genericConfig?.round_visibility || 'simultaneous';
+            sceneConfig.max_rounds = template.genericConfig?.max_rounds || 50;
             sceneConfig.settings = {
               round_visibility: template.genericConfig?.round_visibility || 'simultaneous',
               max_rounds: template.genericConfig?.max_rounds || 50,

@@ -77,11 +77,17 @@ def _convert_action_to_dict(action: Any) -> dict[str, Any]:
     else:
         action_name = getattr(action, "action_type", "action")
 
-    # Build parameters list
-    parameters = {}
+    # Preserve the full parameter schema so runtime follow-up can reconstruct types.
+    parameters = []
     if hasattr(action, "parameters") and action.parameters:
         for param in action.parameters:
-            parameters[param.name] = param.description
+            parameters.append({
+                "name": param.name,
+                "type": param.type,
+                "description": param.description,
+                "required": param.required,
+                "default": param.default,
+            })
 
     return {
         "name": action_name,

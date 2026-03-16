@@ -277,7 +277,31 @@ def get_information_model(scene_type: str) -> InformationModel:
     backend uses 'prisoners_dilemma').
     """
     normalized = scene_type.replace("-", "_")
-    return INFORMATION_MODEL_MAP.get(normalized, INFORMATION_MODEL_MAP["_default"])
+    if normalized in INFORMATION_MODEL_MAP:
+        return INFORMATION_MODEL_MAP[normalized]
+
+    from socialsim4.core.scenarios.registry import get_scenario
+
+    scenario = get_scenario(normalized)
+    if scenario is None:
+        return INFORMATION_MODEL_MAP["_default"]
+
+    grouping_mode = scenario.get("grouping_mode", "all")
+    payoff_type = scenario.get("payoff_type", "none")
+
+    if grouping_mode == "neighbor":
+        scope_type = "neighborhood"
+    elif grouping_mode == "pairwise":
+        scope_type = "pair"
+    else:
+        scope_type = "all"
+
+    return InformationModel(
+        scope_type=scope_type,
+        pairing_fn=pair_agents_randomly if scope_type == "pair" else None,
+        recent_window=3,
+        include_scores=payoff_type not in ("none", "feedback", ""),
+    )
 
 # Scene descriptions for selection UI and docs
 SCENE_DESCRIPTIONS: dict[str, str] = {

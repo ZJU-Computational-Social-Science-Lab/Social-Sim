@@ -6,6 +6,7 @@ runs rounds, and emits events without any legacy Agent/Simulator bridge.
 """
 
 import logging
+from copy import deepcopy
 from typing import Any, Callable
 
 from socialsim4.core.experiment.config import ExperimentConfig
@@ -74,8 +75,9 @@ class ExperimentScene:
 
         logger.debug(f"Created {len(self.agents)} ExperimentAgents")
 
-        # Initialize experiment state
-        self._initialize_state()
+        # Initialize experiment state only for fresh scenes.
+        if not self.state.agents and not self.state.extensions and not self.state.history and self.state.round == 0:
+            self._initialize_state()
 
         # Get InformationModel from registry (deferred import to avoid circular dependency)
         from socialsim4.core.registry import get_information_model, pair_agents_randomly
@@ -170,7 +172,25 @@ class ExperimentScene:
             round_history=self._history
         )
 
+        round_events = {
+            event.agent_name: event
+            for event in self.runner.context_manager.get_round_events(round_num)
+        }
+
+        # Apply action effects to durable experiment state.
+        for action in result.actions:
+            if action.skipped:
+                continue
+            self.runner.execute_action(
+                action.action_name,
+                action.agent_name,
+                action.parameters,
+                self.state,
+            )
+
         # Update history for next round's context
+        completed_actions = [action for action in result.actions if not action.skipped]
+
         history_entry: dict = {
             "round": round_num,
             "actions": [
@@ -178,20 +198,31 @@ class ExperimentScene:
                     "agent": a.agent_name,
                     "action": a.action_name,
                     "parameters": a.parameters,
-                    "summary": a.summary
+                    "summary": a.summary,
+                    "feedback": round_events.get(a.agent_name).feedback if round_events.get(a.agent_name) else None,
                 }
-                for a in result.actions
+                for a in completed_actions
             ]
         }
         if result.payoffs:
             history_entry["payoffs"] = result.payoffs
         self._history.append(history_entry)
+        self.state.round = round_num
+        self.state.history.append(history_entry)
+        for agent in self.agents:
+            if agent.name not in self.state.agents:
+                self.state.agents[agent.name] = AgentState()
+            self.state.agents[agent.name].score = agent.score
 
         # Emit events for frontend
         for action in result.actions:
+            payoff = result.payoffs.get(action.agent_name) if result.payoffs else None
             event_emitter("experiment_action", {
                 "agent": action.agent_name,
                 "action": action.action_name,
+                "parameters": action.parameters,
+                "summary": action.summary,
+                "payoff": payoff,
                 "round": round_num,
                 "success": action.success,
                 "skipped": action.skipped,
@@ -216,35 +247,113 @@ class ExperimentScene:
             agent_state = AgentState(
                 score=0,
                 position=agent_config.get("position"),
-                resources=agent_config.get("resources", {}),
-                properties=agent_config.get("properties", {}),
+                resources=deepcopy(agent_config.get("resources", {})),
+                properties=deepcopy(agent_config.get("properties", {})),
             )
             self.state.agents[name] = agent_state
 
         # Apply state_schema extensions
         if self.config.state_schema:
             if "extensions" in self.config.state_schema:
-                self.state.extensions.update(self.config.state_schema["extensions"])
+                self.state.extensions.update(deepcopy(self.config.state_schema["extensions"]))
 
         logger.debug(f"Initialized state for {len(self.state.agents)} agents")
 
     def _create_game_config(self) -> GameConfig:
         """Create GameConfig from config data."""
-        # Extract action descriptions
-        action_descriptions = {}
-        for a in self.config.actions:
-            name = a.get("name")
-            desc = a.get("description")
-            if name and desc:
-                action_descriptions[name] = desc
-
-        # Get action names
-        action_names = list(action_descriptions.keys())
-        if not action_names:
-            action_names = [a.get("name", "unknown") for a in self.config.actions if a.get("name")]
-
-        # Get payoff parameters
         params = self.config.parameters or {}
+        scenario = None
+        try:
+            from socialsim4.core.scenarios.registry import get_scenario as _get_scenario
+            scenario = _get_scenario(self.config.scenario_id)
+        except Exception:
+            scenario = None
+
+        scenario_actions = scenario.get("actions", []) if scenario else []
+        if not scenario_actions and scenario and scenario.get("category_actions"):
+            category_actions = scenario.get("category_actions", [])
+            default_action_ids = scenario.get("default_action_ids", [])
+            if default_action_ids:
+                scenario_actions = [
+                    action for action in category_actions
+                    if action.get("id") in default_action_ids
+                ]
+            else:
+                scenario_actions = category_actions
+        action_lookup = {}
+        for action in scenario_actions:
+            action_id = action.get("id")
+            action_name = action.get("name")
+            if action_id:
+                action_lookup[str(action_id).lower()] = action
+            if action_name:
+                action_lookup[str(action_name).lower()] = action
+
+        # Normalize selected actions back to canonical scenario action ids so runtime
+        # semantics use stable machine names instead of frontend display labels.
+        normalized_actions = []
+        for action in self.config.actions:
+            raw_name = str(action.get("name") or "").strip()
+            if not raw_name:
+                continue
+            matched = action_lookup.get(raw_name.lower())
+            if matched:
+                normalized_actions.append(
+                    {
+                        "name": matched.get("id", raw_name),
+                        "description": action.get("description") or matched.get("description") or raw_name,
+                        "parameters": action.get("parameters", []),
+                    }
+                )
+            else:
+                normalized_actions.append(
+                    {
+                        "name": raw_name,
+                        "description": action.get("description") or raw_name,
+                        "parameters": action.get("parameters", []),
+                    }
+                )
+
+        if not normalized_actions and scenario_actions:
+            normalized_actions = [
+                {
+                    "name": action.get("id"),
+                    "description": action.get("description") or action.get("name") or action.get("id"),
+                    "parameters": action.get("parameters", []),
+                }
+                for action in scenario_actions
+                if action.get("id")
+            ]
+
+        action_descriptions = {
+            action["name"]: action["description"]
+            for action in normalized_actions
+            if action.get("name") and action.get("description")
+        }
+        action_names = [action["name"] for action in normalized_actions if action.get("name")]
+        action_schemas = {}
+        type_map = {
+            "string": "string",
+            "text": "string",
+            "integer": "integer",
+            "float": "number",
+            "number": "number",
+            "boolean": "boolean",
+        }
+        for action in normalized_actions:
+            parameter_specs = action.get("parameters", [])
+            if not parameter_specs:
+                continue
+            action_schemas[action["name"]] = {
+                "schema": {
+                    param["name"]: {
+                        "type": type_map.get(param.get("type", "string"), "string"),
+                        "description": param.get("description", param["name"]),
+                    }
+                    for param in parameter_specs
+                },
+                "mode": "json",
+            }
 
         # Handle configurable choices for coordination games (e.g., coordination_game)
         if self.config.scenario_id in ("coordination_game", "graph_coloring"):
@@ -265,8 +374,7 @@ class ExperimentScene:
         # Build description: use description_template if present on the scenario
         description = self.config.description
         try:
-            from socialsim4.core.scenarios.registry import get_scenario as _get_scenario
-            _scenario = _get_scenario(self.config.scenario_id)
+            _scenario = scenario
             if _scenario and "description_template" in _scenario and params.get("action_1") and params.get("action_2"):
                 description = _scenario["description_template"].format(
                     action_1=params["action_1"],
@@ -288,10 +396,7 @@ class ExperimentScene:
         payoff_config = {}
         scenario_id = self.config.scenario_id
         try:
-            _scenario_for_payoff = _scenario if '_scenario' in dir() else None
-            if _scenario_for_payoff is None:
-                from socialsim4.core.scenarios.registry import get_scenario as _get_scenario2
-                _scenario_for_payoff = _get_scenario2(scenario_id)
+            _scenario_for_payoff = scenario
             if _scenario_for_payoff and "matrix_meta" in _scenario_for_payoff:
                 cells = _scenario_for_payoff["matrix_meta"].get("cells", {})
                 # Remap matrix keys if action names were customized
@@ -319,6 +424,17 @@ class ExperimentScene:
                         "threshold_failure": 0,
                         "safe_reward": params.get("hare_reward", _defaults["hare_reward"]),
                     }
+            if _scenario_for_payoff and _scenario_for_payoff.get("payoff_type") == "pool":
+                defaults = {p["id"]: p.get("default") for p in _scenario_for_payoff.get("parameters", [])}
+                payoff_config = {
+                    "multiplier": params.get("multiplier", defaults.get("multiplier", 1.5)),
+                    "initial_tokens": params.get("initial_amount", defaults.get("initial_amount", 20)),
+                }
+            if _scenario_for_payoff and _scenario_for_payoff.get("payoff_type") == "feedback":
+                defaults = {p["id"]: p.get("default") for p in _scenario_for_payoff.get("parameters", [])}
+                payoff_config = {
+                    "goal": params.get("goal", defaults.get("goal", "match")),
+                }
         except Exception:
             pass
 
@@ -330,13 +446,14 @@ class ExperimentScene:
             action_descriptions=action_descriptions or None,
             payoff_summary="\n\n".join(supplementary_parts),
             output_field="action",
-            payoff_type=params.get("payoff_type", "matrix"),
-            grouping_mode=params.get("grouping_mode", "pairwise"),
+            payoff_type=params.get("payoff_type", (scenario or {}).get("payoff_type", "matrix")),
+            grouping_mode=params.get("grouping_mode", (scenario or {}).get("grouping_mode", "pairwise")),
             cooperate_reward=params.get("cooperate_reward"),
             sucker_penalty=params.get("sucker_penalty"),
             temptation_reward=params.get("temptation_reward"),
             defect_penalty=params.get("defect_penalty"),
             payoff_config=payoff_config,
+            action_schemas=action_schemas,
         )
 
     def _build_payoff_summary(self) -> str:
@@ -479,12 +596,15 @@ class ExperimentScene:
                 "agents": self.config.agents,
                 "actions": self.config.actions,
                 "parameters": self.config.parameters,
+                "state_schema": self.config.state_schema,
                 "description": self.config.description,
                 "scenario_id": self.config.scenario_id,
                 "round_visibility": self.config.round_visibility,
+                "social_network": self.config.social_network,
             },
             "current_round": self.current_round,
             "history": self._history,
+            "state": self.state.to_dict(),
         }
 
     @classmethod
@@ -494,4 +614,6 @@ class ExperimentScene:
         scene = cls(config)
         scene.current_round = data.get("current_round", 0)
         scene._history = data.get("history", [])
+        if data.get("state") is not None:
+            scene.state = ExperimentState.from_dict(data["state"])
         return scene

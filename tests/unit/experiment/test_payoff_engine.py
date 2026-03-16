@@ -149,6 +149,15 @@ class TestGraphGrouping:
         assert {"Alice", "Bob"} in group_sets
         assert {"Charlie"} in group_sets
 
+    def test_get_groups_without_edges_returns_single_group(self, engine):
+        """Group-mode games without a graph treat everyone as one group."""
+        graph = {"edges": []}
+        agent_names = ["Alice", "Bob", "Charlie"]
+
+        groups = engine.get_groups_from_graph(graph, agent_names)
+
+        assert groups == [["Alice", "Bob", "Charlie"]]
+
 
 class TestMatrixPayoffPairwise:
     """Test matrix payoff calculation for pairwise mode."""
@@ -385,6 +394,20 @@ class TestMatrixPayoffGroupThreshold:
 
         assert result["Alice"] == 1
         assert result["Bob"] == 1
+        assert result["Charlie"] == 1
+
+    def test_mixed_choices_without_graph_still_use_single_group(self, engine, stag_hunt_config, mixed_actions):
+        """Group threshold games without a graph still evaluate the whole group together."""
+        result = engine.calculate_round_payoffs(
+            payoff_type="matrix",
+            actions=mixed_actions,
+            config=stag_hunt_config,
+            grouping_mode="group",
+            graph={"edges": []},
+        )
+
+        assert result["Alice"] == 0
+        assert result["Bob"] == 0
         assert result["Charlie"] == 1
 
 

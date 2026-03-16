@@ -88,6 +88,7 @@ class RoundContextManager:
         summary: str,
         observed_by: List[str] | None = None,
         payoff: int | None = None,
+        feedback: str | None = None,
     ) -> None:
         """Record an action for context tracking.
 
@@ -99,6 +100,7 @@ class RoundContextManager:
             summary: Human-readable summary
             observed_by: Agents who observe this event (default: [agent_name])
             payoff: Optional payoff earned this round
+            feedback: Optional coordination feedback for this round
         """
         event = RoundEvent(
             agent_name=agent_name,
@@ -108,6 +110,7 @@ class RoundContextManager:
             summary=summary,
             observed_by=observed_by or [],
             payoff=payoff,
+            feedback=feedback,
         )
         self._round_events.append(event)
 

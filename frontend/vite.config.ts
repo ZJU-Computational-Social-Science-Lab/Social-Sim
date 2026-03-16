@@ -60,11 +60,11 @@ export default defineConfig(({ mode }) => {
       port,
       proxy: {
         "/api": {
-          target: `http://localhost:${backendPort}`,
+          target: `http://127.0.0.1:${backendPort}`,
           changeOrigin: true,
         },
         "/uploads": {
-          target: `http://localhost:${backendPort}`,
+          target: `http://127.0.0.1:${backendPort}`,
           changeOrigin: true,
         },
       },

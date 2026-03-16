@@ -119,6 +119,13 @@ class ExperimentRunner:
         """Delegate action execution to ActionHandler."""
         return self.action_handler.execute(action_name, agent_name, params, state)
 
+    def _scene_has_followup_actions(self) -> bool:
+        """Whether any allowed action in this scene requires a follow-up prompt."""
+        action_schemas = self.kernel.get_action_schemas()
+        action_schemas.update(self.game_config.action_schemas)
+        allowed_actions = {str(action).lower() for action in self.game_config.actions}
+        return any(schema_name.lower() in allowed_actions for schema_name in action_schemas)
+
     def _replay_history_to_events(self, round_history: list) -> None:
         """Replay round_history into context_manager._round_events.
 
@@ -129,6 +136,9 @@ class ExperimentRunner:
         Args:
             round_history: List of round entries with "round", "actions", and optional "payoffs"
         """
+        # Rebuild the structured event log from persisted history each round.
+        self.context_manager._round_events.clear()
+
         # Reset agent scores before rebuilding from history so we don't
         # double-count when this method is called on a reused runner.
         agent_objs = {a.name: a for a in self.agents}
@@ -165,6 +175,7 @@ class ExperimentRunner:
                     summary=summary,
                     observed_by=observed_by,
                     payoff=agent_payoff,
+                    feedback=action.get("feedback"),
                 )
 
             # Restore cumulative scores from this round's historical payoffs
@@ -332,6 +343,7 @@ class ExperimentRunner:
             agent_choice=agent_choice,
             neighbors=neighbors,
             all_choices=all_choices,
+            goal=self.game_config.payoff_config.get("goal", "match"),
         )
 
     async def _run_simultaneous_round(self, round_num: int) -> RoundResult:
@@ -341,12 +353,21 @@ class ExperimentRunner:
         """
         actions = []
 
-        # Collect all decisions (parallel for efficiency)
-        tasks = [
-            self._prompt_agent(agent, round_num)
-            for agent in self.agents
-        ]
-        action_results = await asyncio.gather(*tasks, return_exceptions=True)
+        # For follow-up actions, keep prompt/follow-up pairs isolated so one
+        # agent's second call cannot interleave with another agent's first call.
+        if self._scene_has_followup_actions():
+            action_results = []
+            for agent in self.agents:
+                try:
+                    action_results.append(await self._prompt_agent(agent, round_num))
+                except Exception as result:
+                    action_results.append(result)
+        else:
+            tasks = [
+                self._prompt_agent(agent, round_num)
+                for agent in self.agents
+            ]
+            action_results = await asyncio.gather(*tasks, return_exceptions=True)
 
         for result in action_results:
             if isinstance(result, Exception):
@@ -703,8 +724,8 @@ class ExperimentRunner:
                     neighbor_map[a].append(b)
                     neighbor_map[b].append(a)
                 # Show each agent's connections
-                for agent_obj in sorted(self.agents, key=lambda x: neighbor_map.get(agent_obj.name, [])):
-                    neighbor_names = sorted(neighbor_map[agent_obj.name])
+                for agent_obj in sorted(self.agents, key=lambda x: neighbor_map.get(x.name, [])):
+                    neighbor_names = sorted(neighbor_map.get(agent_obj.name, []))
                     debug_buffer.append(f"  {agent_obj.name}: connected to {neighbor_names}\n")
             else:
                 debug_buffer.append(f"  (No network edges configured)\n")
@@ -785,10 +806,15 @@ class ExperimentRunner:
             # second prompt automatically. Falls back gracefully for simple
             # game-theory actions that have no follow-up schema.
             action_schemas = self.kernel.get_action_schemas() if self.kernel else {}
+            action_schemas.update(self.game_config.action_schemas)
             result = await self.controller.process_response_with_followup(
                 raw_response, agent, self.game_config,
                 self.llm_client, round_num,
-                action_schemas=action_schemas
+                action_schemas=action_schemas,
+                context_summary=context,
+                information_model=self.information_model,
+                kb_context=kb_context,
+                neighbor_context=neighbor_context,
             )
 
             # Add processed result to debug buffer
