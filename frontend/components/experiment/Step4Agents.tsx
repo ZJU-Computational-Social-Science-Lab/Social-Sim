@@ -18,11 +18,94 @@ import { Step2DemographicsEditor, Demographic, Archetype, TraitConfig } from '..
 import type { Agent } from '../../types';
 import { Button } from '../ui/button';
 
+type TierValue = string;
+
 // =============================================================================
 // Helper Functions
 // =============================================================================
 
 const generateId = () => `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+const normalizeTierValue = (value: string): TierValue => {
+  const normalized = value.toLowerCase().replace(/[\s_-]/g, '');
+  if (normalized.includes('top') || normalized.includes('high') || value.includes('高层')) return 'top';
+  if (normalized.includes('mid') || normalized.includes('middle') || value.includes('中层')) return 'mid';
+  if (normalized.includes('low') || normalized.includes('base') || value.includes('基层')) return 'low';
+  return '';
+};
+
+const inferTierFromAgent = (agent: Partial<ManualAgentType>): TierValue => {
+  const explicitTier = normalizeTierValue(String(agent.properties?.tier || ''));
+  if (explicitTier) return explicitTier;
+  return normalizeTierValue([
+    agent.label || '',
+    agent.rolePrompt || '',
+    agent.userProfile || '',
+  ].join(' '));
+};
+
+const parseTierOrder = (rawValue: unknown): string[] => {
+  const values = Array.isArray(rawValue)
+    ? rawValue.map((item) => String(item).trim())
+    : String(rawValue || 'top, mid, low')
+      .split(/[\n,，]+/)
+      .map((item) => item.trim());
+
+  const cleaned: string[] = [];
+  const seen = new Set<string>();
+  values.forEach((value) => {
+    if (!value) return;
+    const key = value.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    cleaned.push(value);
+  });
+  return cleaned.length > 0 ? cleaned : ['top', 'mid', 'low'];
+};
+
+const inferOrderedTier = (agent: Partial<ManualAgentType>, tierOrder: string[]): string => {
+  const explicit = String(agent.properties?.tier || '').trim();
+  if (explicit) {
+    const matched = tierOrder.find((tier) => tier.toLowerCase() === explicit.toLowerCase());
+    if (matched) return matched;
+  }
+
+  const profileTier = String(agent.properties?.['政治职位层级'] || '').trim();
+  if (profileTier) {
+    const matched = tierOrder.find((tier) => tier.toLowerCase() === profileTier.toLowerCase());
+    if (matched) return matched;
+  }
+
+  const normalizedTier = inferTierFromAgent(agent);
+  if (!normalizedTier) return '';
+  const matched = tierOrder.find((tier) => normalizeTierValue(tier) === normalizedTier);
+  return matched || '';
+};
+
+const defaultTierName = (index: number): string => {
+  if (index === 0) return 'top';
+  if (index === 1) return 'mid';
+  if (index === 2) return 'low';
+  return `level_${index + 1}`;
+};
+
+const resizeTierOrder = (current: string[], count: number): string[] => {
+  const nextCount = Math.max(2, count || 2);
+  const next: string[] = [];
+  for (let i = 0; i < nextCount; i += 1) {
+    next.push(current[i] || defaultTierName(i));
+  }
+  return next;
+};
+
+const isPolicyCascadeScenario = (scenarioId: string, scenarioName: string): boolean => {
+  return (
+    scenarioId === 'policy_diffusion' ||
+    scenarioId === 'policyDiffusion' ||
+    scenarioName.includes('policy') ||
+    scenarioName.includes('政策')
+  );
+};
 
 // Generate archetypes from demographics (cross-product)
 const generateArchetypes = (demographics: Demographic[]): Archetype[] => {
@@ -70,6 +153,8 @@ export const Step4Agents: React.FC = () => {
     llmProviders,
     selectedProviderId,
     setSelectedProviderId,
+    scenarioParams,
+    setScenarioParams,
     loadProviders,
     getSelectedProviderId,
     selectedScenarioId,
@@ -91,7 +176,7 @@ export const Step4Agents: React.FC = () => {
     count: 1,
     rolePrompt: '',
     userProfile: '',
-    properties: {},
+    properties: { tier: '' },
     providerId: null,
   });
 
@@ -102,33 +187,49 @@ export const Step4Agents: React.FC = () => {
   const [traits, setTraits] = useState<TraitConfig[]>([
     { id: generateId(), name: 'Trust', mean: 50, std: 15 }
   ]);
+  const [propertyDrafts, setPropertyDrafts] = useState<Record<string, Array<{ id: string; originalKey: string; key: string; value: string }>>>({});
   const [genCount, setGenCount] = useState(5);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedAgents, setGeneratedAgents] = useState<Agent[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
+  const [tierOrderDraft, setTierOrderDraft] = useState<string[]>(['top', 'mid', 'low']);
+
+  const scenarioId = selectedScenarioData?.id || selectedScenarioId || '';
+  const scenarioName = (selectedScenarioData?.name || '').toLowerCase();
+  const showTierControls = isPolicyCascadeScenario(scenarioId, scenarioName);
+  const tierOrder = useMemo(() => parseTierOrder(scenarioParams?.tier_order), [scenarioParams]);
+  const tierOrderDraftValid =
+    tierOrderDraft.length >= 2 &&
+    tierOrderDraft.every((tier) => tier.trim()) &&
+    new Set(tierOrderDraft.map((tier) => tier.trim().toLowerCase())).size === tierOrderDraft.length;
+
+  useEffect(() => {
+    if (!showTierControls) return;
+    if (scenarioParams?.tier_order) return;
+    setScenarioParams({ ...scenarioParams, tier_order: ['top', 'mid', 'low'] });
+  }, [showTierControls, scenarioParams, setScenarioParams]);
+
+  useEffect(() => {
+    if (!showTierControls) return;
+    setTierOrderDraft(tierOrder);
+  }, [showTierControls, tierOrder]);
 
   // Initialize demographics on first render
   useEffect(() => {
-    const scenarioId = selectedScenarioData?.id || selectedScenarioId || '';
-    const scenarioName = (selectedScenarioData?.name || '').toLowerCase();
-    const isPolicyCascade =
-      scenarioId === 'policy_diffusion' ||
-      scenarioId === 'policyDiffusion' ||
-      scenarioName.includes('policy') ||
-      scenarioName.includes('政策');
-
-    if (isPolicyCascade) {
+    if (showTierControls) {
       const alreadyTier = demographics.length === 1 && demographics[0]?.name === '政治职位层级';
-      if (!alreadyTier) {
-        setDemographics([{ id: generateId(), name: '政治职位层级', categories: ['top', 'mid', 'low'] }]);
+      const sameCategories = alreadyTier && demographics[0]?.categories.join('|') === tierOrder.join('|');
+      if (!sameCategories) {
+        setDemographics([{ id: generateId(), name: '政治职位层级', categories: tierOrder }]);
       }
-      if (genCount < 3) {
-        setGenCount(3);
+      if (genCount < tierOrder.length) {
+        setGenCount(tierOrder.length);
       }
       return;
     }
 
-    if (demographics.length === 0) {
+    const hasPolicyOnlyDemographics = demographics.length === 1 && demographics[0]?.name === '政治职位层级';
+    if (demographics.length === 0 || hasPolicyOnlyDemographics) {
       setDemographics([
         {
           id: generateId(),
@@ -142,7 +243,29 @@ export const Step4Agents: React.FC = () => {
         },
       ]);
     }
-  }, [selectedScenarioId, selectedScenarioData, demographics, genCount]);
+  }, [showTierControls, demographics, genCount, tierOrder]);
+
+  useEffect(() => {
+    if (showTierControls) return;
+
+    if (Object.prototype.hasOwnProperty.call(newAgentType.properties || {}, 'tier')) {
+      const nextProperties = { ...(newAgentType.properties || {}) };
+      delete nextProperties.tier;
+      setNewAgentType((current) => ({
+        ...current,
+        properties: nextProperties,
+      }));
+    }
+
+    agentTypes.forEach((agent) => {
+      if (!Object.prototype.hasOwnProperty.call(agent.properties || {}, 'tier')) {
+        return;
+      }
+      const nextProperties = { ...(agent.properties || {}) };
+      delete nextProperties.tier;
+      updateAgentType(agent.id, { properties: nextProperties });
+    });
+  }, [showTierControls]);
 
   // Update archetypes when demographics change
   useEffect(() => {
@@ -152,6 +275,28 @@ export const Step4Agents: React.FC = () => {
       setArchetypes([]);
     }
   }, [demographics]);
+
+  useEffect(() => {
+    setPropertyDrafts((current) => {
+      const next: Record<string, Array<{ id: string; originalKey: string; key: string; value: string }>> = {};
+      agentTypes.forEach((agent) => {
+        const existing = current[agent.id] || [];
+        const existingByOriginalKey = new Map(existing.map((item) => [item.originalKey, item]));
+        next[agent.id] = Object.entries(agent.properties || {})
+          .filter(([key]) => key !== 'avatarUrl')
+          .map(([key, value]) => {
+            const match = existingByOriginalKey.get(key);
+            return {
+              id: match?.id || generateId(),
+              originalKey: key,
+              key: match?.key ?? key,
+              value: match?.value ?? String(value ?? ''),
+            };
+          });
+      });
+      return next;
+    });
+  }, [agentTypes]);
 
   // ==================== Agent Mode Options ====================
 
@@ -180,20 +325,167 @@ export const Step4Agents: React.FC = () => {
 
   const handleAddAgentType = () => {
     if (!newAgentType.label.trim()) return;
-    addAgentType({
-      ...newAgentType,
-      id: newAgentType.id || `agent-${Date.now()}`,
-      providerId: selectedProviderId,
-    });
+    const inferredTier = inferOrderedTier(newAgentType, tierOrder);
+    const count = Math.max(1, newAgentType.count || 1);
+    for (let i = 0; i < count; i++) {
+      const nextProperties = { ...(newAgentType.properties || {}) };
+      if (showTierControls) {
+        nextProperties.tier = inferredTier || String(newAgentType.properties?.tier || '');
+      } else {
+        delete nextProperties.tier;
+      }
+      const suffix = count > 1 ? ` ${i + 1}` : '';
+      addAgentType({
+        ...newAgentType,
+        id: `${newAgentType.id || `agent-${Date.now()}`}-${i}`,
+        label: `${newAgentType.label}${suffix}`,
+        count: 1,
+        providerId: selectedProviderId,
+        properties: nextProperties,
+      });
+    }
     setNewAgentType({
       id: '',
       label: '',
       count: 1,
       rolePrompt: '',
       userProfile: '',
-      properties: {},
+      properties: showTierControls ? { tier: '' } : {},
       providerId: selectedProviderId,
     });
+  };
+
+  const handleUpdateTier = (id: string, tier: TierValue) => {
+    const current = agentTypes.find((agent) => agent.id === id);
+    updateAgentType(id, {
+      properties: {
+        ...(current?.properties || {}),
+        tier,
+      },
+    });
+  };
+
+  const handleTierCountChange = (value: string) => {
+    const nextCount = Math.max(2, parseInt(value, 10) || 2);
+    setTierOrderDraft((current) => resizeTierOrder(current, nextCount));
+  };
+
+  const handleTierNameChange = (index: number, value: string) => {
+    setTierOrderDraft((current) => current.map((tier, idx) => (idx === index ? value : tier)));
+  };
+
+  const handleApplyTierOrder = () => {
+    const nextTierOrder = tierOrderDraft.map((tier) => tier.trim());
+    setScenarioParams({
+      ...scenarioParams,
+      tier_order: nextTierOrder,
+    });
+
+    if (showTierControls) {
+      const selectedTier = String(newAgentType.properties?.tier || '').trim();
+      if (selectedTier && !nextTierOrder.some((tier) => tier.toLowerCase() === selectedTier.toLowerCase())) {
+        const nextProperties = { ...(newAgentType.properties || {}) };
+        delete nextProperties.tier;
+        setNewAgentType((current) => ({ ...current, properties: nextProperties }));
+      }
+
+      agentTypes.forEach((agent) => {
+        const currentTier = String(agent.properties?.tier || '').trim();
+        if (!currentTier) return;
+        if (nextTierOrder.some((tier) => tier.toLowerCase() === currentTier.toLowerCase())) return;
+        const nextProperties = { ...(agent.properties || {}) };
+        delete nextProperties.tier;
+        updateAgentType(agent.id, { properties: nextProperties });
+      });
+    }
+  };
+
+  const handleAddProperty = (id: string) => {
+    const current = agentTypes.find((agent) => agent.id === id);
+    const properties = { ...(current?.properties || {}) };
+    let nextKey = 'new_property';
+    let idx = 1;
+    while (properties[nextKey] !== undefined) {
+      idx += 1;
+      nextKey = `new_property_${idx}`;
+    }
+    properties[nextKey] = '';
+    updateAgentType(id, { properties });
+  };
+
+  const handleDraftPropertyChange = (agentId: string, rowId: string, field: 'key' | 'value', value: string) => {
+    setPropertyDrafts((current) => ({
+      ...current,
+      [agentId]: (current[agentId] || []).map((item) =>
+        item.id === rowId ? { ...item, [field]: value } : item
+      ),
+    }));
+  };
+
+  const handleCommitPropertyKey = (agentId: string, rowId: string) => {
+    const row = (propertyDrafts[agentId] || []).find((item) => item.id === rowId);
+    if (!row) return;
+
+    const oldKey = row.originalKey;
+    const newKey = row.key.trim();
+    if (!newKey) {
+      setPropertyDrafts((current) => ({
+        ...current,
+        [agentId]: (current[agentId] || []).map((item) =>
+          item.id === rowId ? { ...item, key: item.originalKey } : item
+        ),
+      }));
+      return;
+    }
+    if (newKey === oldKey) return;
+
+    const linkedAgents = agentTypes.filter((agent) => Object.prototype.hasOwnProperty.call(agent.properties || {}, oldKey));
+    if (linkedAgents.length > 1) {
+      const confirmed = window.confirm(
+        t('experimentBuilder.step4.sharedPropertyConfirm', {
+          defaultValue: 'This property is shared by multiple agents. Rename it for all linked agents?',
+          key: oldKey,
+          count: linkedAgents.length,
+        })
+      );
+      if (!confirmed) {
+        setPropertyDrafts((current) => ({
+          ...current,
+          [agentId]: (current[agentId] || []).map((item) =>
+            item.id === rowId ? { ...item, key: item.originalKey } : item
+          ),
+        }));
+        return;
+      }
+    }
+
+    linkedAgents.forEach((agent) => {
+      const properties = { ...(agent.properties || {}) };
+      const value = properties[oldKey];
+      delete properties[oldKey];
+      properties[newKey] = value;
+      updateAgentType(agent.id, { properties });
+    });
+  };
+
+  const handleCommitPropertyValue = (agentId: string, rowId: string) => {
+    const row = (propertyDrafts[agentId] || []).find((item) => item.id === rowId);
+    if (!row) return;
+    const effectiveKey = row.key.trim() || row.originalKey;
+    const current = agentTypes.find((agent) => agent.id === agentId);
+    const properties = { ...(current?.properties || {}) };
+    if (effectiveKey !== row.originalKey) {
+      delete properties[row.originalKey];
+    }
+    properties[effectiveKey] = row.value;
+    updateAgentType(agentId, { properties });
+  };
+
+  const handleRemoveProperty = (id: string, key: string) => {
+    const current = agentTypes.find((agent) => agent.id === id);
+    const properties = { ...(current?.properties || {}) };
+    delete properties[key];
+    updateAgentType(id, { properties });
   };
 
   // ==================== Demographic Mode Handlers ====================
@@ -334,18 +626,33 @@ export const Step4Agents: React.FC = () => {
 
       // Convert generated agents to ManualAgentType format and add to store
       agents.forEach((agent) => {
+        const inferredTier = inferOrderedTier({
+          properties: {
+            tier: agent.properties?.tier,
+            政治职位层级: agent.properties?.['政治职位层级'],
+          },
+          rolePrompt: agent.profile,
+          userProfile: agent.profile,
+          label: agent.name,
+        }, tierOrder);
+        const nextProperties: Record<string, unknown> = {
+          avatarUrl: agent.avatarUrl,
+          ...agent.properties,
+          archetype_id: agent.properties?.archetype_id || '',
+          demographic_attributes: JSON.stringify(agent.properties || {}),
+        };
+        if (showTierControls) {
+          nextProperties.tier = inferredTier || String(agent.properties?.tier || agent.properties?.['政治职位层级'] || '');
+        } else {
+          delete nextProperties.tier;
+        }
         const agentType: ManualAgentType = {
           id: `demo-agent-${agent.id}`,
           label: agent.name,
           count: 1,
           rolePrompt: agent.profile,
           userProfile: agent.profile,
-          properties: {
-            avatarUrl: agent.avatarUrl,
-            ...agent.properties,
-            archetype_id: agent.properties?.archetype_id || '',
-            demographic_attributes: JSON.stringify(agent.properties || {}),
-          },
+          properties: nextProperties,
           providerId: selectedProviderId ?? undefined,
         };
         addAgentType(agentType);
@@ -361,6 +668,20 @@ export const Step4Agents: React.FC = () => {
   // ==================== Computed Values ====================
 
   const totalAgents = agentTypes.reduce((sum, t) => sum + t.count, 0);
+  const sharedPropertyOwners = useMemo(() => {
+    const owners: Record<string, string[]> = {};
+    agentTypes.forEach((agent) => {
+      Object.keys(agent.properties || {})
+        .filter((key) => key !== 'avatarUrl')
+        .forEach((key) => {
+          if (!owners[key]) {
+            owners[key] = [];
+          }
+          owners[key].push(agent.label);
+        });
+    });
+    return owners;
+  }, [agentTypes]);
 
   // ==================== Render ====================
 
@@ -392,10 +713,59 @@ export const Step4Agents: React.FC = () => {
         </div>
       </div>
 
+      {showTierControls && (
+        <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
+          <h4 className="font-semibold text-gray-900 mb-2">政策层级顺序</h4>
+          <p className="text-sm text-gray-700 mb-3">
+            按顺序填写传递层级。系统会严格按这里的顺序逐级向下传递，支持 3 层、5 层或更多层级。
+          </p>
+          <div className="mb-3 grid grid-cols-1 md:grid-cols-[160px_1fr] gap-3 items-end">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">自定义层级数</label>
+              <input
+                type="number"
+                min="2"
+                value={tierOrderDraft.length}
+                onChange={(e) => handleTierCountChange(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+              />
+            </div>
+            <div className="text-xs text-gray-600">
+              修改层级数后，会保留已有名称，并为新增层级补上默认名称。点击“确定层级设置”后，下方层级下拉框会同步更新。
+            </div>
+          </div>
+          <div className="space-y-2">
+            {tierOrderDraft.map((tierName, index) => (
+              <div key={index} className="grid grid-cols-[96px_1fr] gap-3 items-center">
+                <div className="text-sm font-medium text-gray-700">第 {index + 1} 层</div>
+                <input
+                  type="text"
+                  value={tierName}
+                  onChange={(e) => handleTierNameChange(index, e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                  placeholder={`例如：${defaultTierName(index)}`}
+                />
+              </div>
+            ))}
+          </div>
+          {!tierOrderDraftValid && (
+            <div className="mt-3 text-xs text-red-600">层级名称不能为空，且不能重复。</div>
+          )}
+          <div className="mt-3">
+            <Button size="sm" onClick={handleApplyTierOrder} disabled={!tierOrderDraftValid}>
+              确定层级设置
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Manual Agent Types */}
       {agentMode === 'manual' && (
         <div className="p-4 border border-gray-200 rounded-lg bg-white">
           <h4 className="font-semibold text-gray-900 mb-3">{t('experimentBuilder.step4.defineTypes')}</h4>
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {t('experimentBuilder.step4.manualHint')}
+          </div>
 
           {/* Add New Agent Type */}
           <div className="mb-4 p-3 bg-gray-50 rounded-md">
@@ -406,7 +776,7 @@ export const Step4Agents: React.FC = () => {
                   type="text"
                   value={newAgentType.label}
                   onChange={(e) => setNewAgentType({ ...newAgentType, label: e.target.value })}
-                  placeholder="e.g., Participant"
+                  placeholder={t('experimentBuilder.step4.typeLabelPlaceholder')}
                   className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
                 />
               </div>
@@ -423,6 +793,36 @@ export const Step4Agents: React.FC = () => {
                 />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              {showTierControls && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.tier')}</label>
+                  <select
+                    value={String(newAgentType.properties?.tier || '')}
+                    onChange={(e) => setNewAgentType({
+                      ...newAgentType,
+                      properties: { ...newAgentType.properties, tier: e.target.value },
+                    })}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
+                  >
+                    <option value="">{t('experimentBuilder.step4.autoDetectTier')}</option>
+                      {tierOrder.map((tier) => (
+                        <option key={tier} value={tier}>{tier}</option>
+                      ))}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.userProfile')}</label>
+                <input
+                  type="text"
+                  value={newAgentType.userProfile}
+                  onChange={(e) => setNewAgentType({ ...newAgentType, userProfile: e.target.value })}
+                  placeholder={t('experimentBuilder.step4.userProfilePlaceholder')}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
+                />
+              </div>
+            </div>
             <div className="mb-3">
               <label className="block text-xs font-medium text-gray-700 mb-1">
                 {t('experimentBuilder.step4.rolePrompt')}
@@ -430,7 +830,7 @@ export const Step4Agents: React.FC = () => {
               <textarea
                 value={newAgentType.rolePrompt}
                 onChange={(e) => setNewAgentType({ ...newAgentType, rolePrompt: e.target.value })}
-                placeholder="e.g., A concerned citizen interested in policy..."
+                placeholder={t('experimentBuilder.step4.rolePromptPlaceholder')}
                 className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
                 rows={2}
               />
@@ -439,54 +839,6 @@ export const Step4Agents: React.FC = () => {
               {t('experimentBuilder.step4.addAgentType')}
             </Button>
           </div>
-
-          {/* Agent Types List */}
-          {agentTypes.length === 0 ? (
-            <p className="text-sm text-gray-600 text-center py-4">{t('experimentBuilder.step4.noTypes')}</p>
-          ) : (
-            <div className="space-y-2">
-              {agentTypes.map((type) => {
-                // Generate avatar URL from seed if not in properties
-                const avatarUrl = type.properties?.avatarUrl as string ||
-                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(type.label)}`;
-                return (
-                  <div
-                    key={type.id}
-                    className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-md"
-                  >
-                    <img
-                      src={avatarUrl}
-                      alt={type.label}
-                      className="w-10 h-10 rounded-full border border-gray-200 bg-gray-50"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900">{type.label}</span>
-                        <span className="text-sm text-gray-600">({type.count})</span>
-                      </div>
-                      {type.userProfile && (
-                        <p className="text-xs text-gray-600 truncate mt-1" title={type.userProfile}>
-                          {type.userProfile}
-                        </p>
-                      )}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeAgentType(type.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      {t('experimentBuilder.step4.remove')}
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {totalAgents > 0 && (
-            <div className="mt-3 text-sm text-gray-600">{t('experimentBuilder.step4.totalAgents', { count: totalAgents })}</div>
-          )}
         </div>
       )}
 
@@ -542,6 +894,155 @@ export const Step4Agents: React.FC = () => {
           />
         </div>
       )}
+
+      {/* Editable Agent List */}
+      <div className="p-4 border border-gray-200 rounded-lg bg-white">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="font-semibold text-gray-900">{t('experimentBuilder.step4.agentListTitle')}</h4>
+          {totalAgents > 0 && (
+            <div className="text-sm text-gray-600">{t('experimentBuilder.step4.totalAgents', { count: totalAgents })}</div>
+          )}
+        </div>
+
+        {agentTypes.length === 0 ? (
+          <p className="text-sm text-gray-600 text-center py-4">{t('experimentBuilder.step4.noTypes')}</p>
+        ) : (
+          <div className="space-y-4">
+            {agentTypes.map((type) => {
+              const avatarUrl = type.properties?.avatarUrl as string ||
+                `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(type.label)}`;
+              const tier = inferOrderedTier(type, tierOrder);
+              const editableProperties = propertyDrafts[type.id] || [];
+
+              return (
+                <div key={type.id} className="rounded-lg border border-gray-200 p-4">
+                  <div className="mb-4 flex items-start gap-3">
+                    <img
+                      src={avatarUrl}
+                      alt={type.label}
+                      className="w-12 h-12 rounded-full border border-gray-200 bg-gray-50"
+                    />
+                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.agentName')}</label>
+                        <input
+                          type="text"
+                          value={type.label}
+                          onChange={(e) => updateAgentType(type.id, { label: e.target.value })}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                        />
+                      </div>
+                      {showTierControls && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.tier')}</label>
+                          <select
+                            value={tier}
+                            onChange={(e) => handleUpdateTier(type.id, e.target.value as TierValue)}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                          >
+                            <option value="">{t('experimentBuilder.step4.autoDetectTier')}</option>
+                            {tierOrder.map((tierOption) => (
+                              <option key={tierOption} value={tierOption}>{tierOption}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.userProfile')}</label>
+                        <input
+                          type="text"
+                          value={type.userProfile || ''}
+                          onChange={(e) => updateAgentType(type.id, { userProfile: e.target.value })}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.rolePrompt')}</label>
+                        <textarea
+                          value={type.rolePrompt || ''}
+                          onChange={(e) => updateAgentType(type.id, { rolePrompt: e.target.value })}
+                          rows={3}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.llmProvider')}</label>
+                        <select
+                          value={type.providerId ?? ''}
+                          onChange={(e) => updateAgentType(type.id, { providerId: e.target.value ? Number(e.target.value) : null })}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                        >
+                          <option value="">{t('experimentBuilder.step4.defaultProvider')}</option>
+                          {llmProviders.map((p) => (
+                            <option key={p.id} value={p.id}>{p.name}{p.model ? ` (${p.model})` : ''}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeAgentType(type.id)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      {t('experimentBuilder.step4.remove')}
+                    </Button>
+                  </div>
+
+                  <div className="rounded-md bg-gray-50 p-3">
+                    <div className="mb-3 flex items-center justify-between">
+                      <div className="text-xs font-medium text-gray-700">{t('experimentBuilder.step4.properties')}</div>
+                      <Button size="sm" variant="outline" onClick={() => handleAddProperty(type.id)}>
+                        {t('experimentBuilder.step4.addProperty')}
+                      </Button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {editableProperties.length === 0 && (
+                        <div className="text-xs text-gray-500">{t('experimentBuilder.step4.noProperties')}</div>
+                      )}
+                      {editableProperties.map((item) => (
+                        <div key={item.id} className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={item.key}
+                              onChange={(e) => handleDraftPropertyChange(type.id, item.id, 'key', e.target.value)}
+                              onBlur={() => handleCommitPropertyKey(type.id, item.id)}
+                              className="w-full px-2 py-1.5 pr-14 text-sm border border-gray-300 rounded bg-white"
+                            />
+                            {(sharedPropertyOwners[item.originalKey] || []).length > 1 && (
+                              <span
+                                title={t('experimentBuilder.step4.sharedPropertyTooltip', {
+                                  key: item.originalKey,
+                                  agents: sharedPropertyOwners[item.originalKey].join('、'),
+                                })}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 cursor-help"
+                              >
+                                {t('experimentBuilder.step4.sharedPropertyBadge')}
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            type="text"
+                            value={item.value}
+                            onChange={(e) => handleDraftPropertyChange(type.id, item.id, 'value', e.target.value)}
+                            onBlur={() => handleCommitPropertyValue(type.id, item.id)}
+                            className="px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
+                          />
+                          <Button variant="ghost" size="sm" onClick={() => handleRemoveProperty(type.id, item.originalKey)} className="text-red-600 hover:text-red-700">
+                            {t('experimentBuilder.step4.remove')}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* File Import */}
       {agentMode === 'import' && (

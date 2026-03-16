@@ -328,6 +328,9 @@ export const mapBackendEventsToLogs = (
       yieldTurn: pickText('Yielded the floor', '结束本轮发言'),
       planUpdate: pickText('Plan updated', '更新计划'),
       agentError: pickText('Agent error', '智能体发生错误'),
+      llmCallError: pickText('LLM call failed', 'LLM 调用失败'),
+      llmParseError: pickText('LLM output parse failed', 'LLM 输出解析失败'),
+      agentOffline: pickText('Agent went offline', '智能体已掉线'),
       actionStart: pickText('Started action', '开始执行动作'),
       actionEnd: pickText('performed action', '执行了动作'),
       systemEvent: pickText('System event', '系统事件'),
@@ -438,8 +441,15 @@ export const mapBackendEventsToLogs = (
       const kind: string = data.kind || '';
       const errText: string = String(data.error || data.message || '').slice(0, 400);
       const agentLabel = agentName || pickText('Unknown', '未知');
-      const baseLabel = isZh() ? `智能体「${agentLabel}」发生错误` : `Agent "${agentLabel}" error`;
-      const label = baseLabel + (kind ? pickText(` (${kind})`, `（${kind}）`) : '') + (errText ? pickText(`: ${errText}`, `：${errText}`) : '');
+      const kindLabel = kind === 'llm_call'
+        ? labels.llmCallError
+        : kind === 'parse'
+          ? labels.llmParseError
+          : kind === 'offline'
+            ? labels.agentOffline
+            : labels.agentError;
+      const baseLabel = isZh() ? `智能体「${agentLabel}」${kindLabel}` : `Agent "${agentLabel}" ${kindLabel}`;
+      const label = baseLabel + (errText ? pickText(`: ${errText}`, `：${errText}`) : '');
       return { ...base, type: 'SYSTEM', content: label };
     }
 

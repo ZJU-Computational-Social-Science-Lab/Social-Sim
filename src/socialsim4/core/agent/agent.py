@@ -575,7 +575,9 @@ Use the above context to inform your responses when relevant.
         """Record an LLM call/parse error and mark agent offline if threshold exceeded."""
         self.consecutive_llm_errors += 1
 
-        if self.log_event:
+        should_emit_error = bool(final)
+
+        if self.log_event and should_emit_error:
             self.log_event(
                 "agent_error",
                 {

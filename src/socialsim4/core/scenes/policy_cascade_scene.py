@@ -11,7 +11,7 @@ from socialsim4.core.agent.parsing import strip_thinking_tokens
 from socialsim4.core.scene import Scene
 
 
-TIER_ORDER = ["top", "mid", "low"]
+DEFAULT_TIER_ORDER = ["top", "mid", "low"]
 POLICY_MARKERS = ["原文", "不可改写条款", "报告要求", "执行要求", "目标："]
 NOTICE_ANALYSIS_MARKERS = [
     "解读", "评估", "合理性", "优点", "缺点", "优缺点", "利弊", "优势", "不足",
@@ -25,20 +25,35 @@ _scene_debug_dir.mkdir(exist_ok=True)
 _scene_debug_file = _scene_debug_dir / f"policy_cascade_final_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
 
 
-def _extract_tier(agent: Agent) -> str:
-    tier = str(agent.properties.get("tier", "")).strip().lower() if hasattr(agent, "properties") else ""
-    if tier in TIER_ORDER:
-        return tier
+def _normalize_tier_token(value: str) -> str:
+    normalized = value.strip().lower().replace("_", "-").replace(" ", "-")
+    if normalized in {"top", "top-tier", "high", "high-tier"} or "高层" in value:
+        return "top"
+    if normalized in {"mid", "mid-tier", "middle", "middle-tier"} or "中层" in value:
+        return "mid"
+    if normalized in {"low", "low-tier", "base", "base-tier"} or "基层" in value:
+        return "low"
+    return ""
 
-    text = " ".join([
-        str(getattr(agent, "role_prompt", "")),
-        str(getattr(agent, "user_profile", "")),
-    ]).lower()
-    match = re.search(r"政治职位层级[:：]\s*(top|mid|low)", text)
-    if match:
-        return match.group(1)
 
-    return "mid"
+def _parse_tier_order(raw_value) -> List[str]:
+    if type(raw_value) is list:
+        values = [str(item).strip() for item in raw_value]
+    else:
+        values = re.split(r"[,，\n]+", str(raw_value or ""))
+        values = [value.strip() for value in values]
+
+    cleaned: List[str] = []
+    seen = set()
+    for value in values:
+        if not value:
+            continue
+        key = value.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(value)
+    return cleaned or list(DEFAULT_TIER_ORDER)
 
 
 class PolicyCascadeScene(Scene):
@@ -48,15 +63,24 @@ class PolicyCascadeScene(Scene):
 
     def __init__(self, name: str, initial_event: str):
         super().__init__(name, initial_event)
+        self.tier_order = list(DEFAULT_TIER_ORDER)
         self.state["current_tier_idx"] = 0
-        self.state["tier_seen"] = {t: [] for t in TIER_ORDER}
+        self.state["tier_seen"] = {t: [] for t in self.tier_order}
         self.state["latest_policy"] = ""
         self.state["latest_notice"] = str(initial_event or "")
         self.state["task_mode"] = "notice"
         self.state["notice_kind"] = "execution"
         self.state["complete"] = False
         self._tier_map: Dict[str, str] = {}
-        self._agents_by_tier: Dict[str, List[str]] = {t: [] for t in TIER_ORDER}
+        self._agents_by_tier: Dict[str, List[str]] = {t: [] for t in self.tier_order}
+
+    def configure_from_config(self, config: dict) -> None:
+        params = config.get("parameters") or {}
+        raw_order = params.get("tier_order") or config.get("tier_order")
+        self.tier_order = _parse_tier_order(raw_order)
+        self.state["tier_order"] = list(self.tier_order)
+        self.state["tier_seen"] = {tier: [] for tier in self.tier_order}
+        self._agents_by_tier = {tier: [] for tier in self.tier_order}
 
     # ----- Lifecycle -----
 
@@ -68,13 +92,13 @@ class PolicyCascadeScene(Scene):
     def reset_for_run(self):
         self.state["current_tier_idx"] = 0
         self.state["complete"] = False
-        self.state["tier_seen"] = {t: [] for t in TIER_ORDER}
+        self.state["tier_seen"] = {t: [] for t in self.tier_order}
         self._normalize_active_tier()
 
     def on_event(self, sim, event_type: str, data):
         if event_type in {"environment", "broadcast"}:
             self.state["current_tier_idx"] = 0
-            self.state["tier_seen"] = {t: [] for t in TIER_ORDER}
+            self.state["tier_seen"] = {t: [] for t in self.tier_order}
             desc = data.get("description") or data.get("content") or data.get("message") or ""
             cleaned_desc = self._clean_policy_text(str(desc))
             self.state["latest_notice"] = cleaned_desc
@@ -92,46 +116,102 @@ class PolicyCascadeScene(Scene):
 
     # ----- Tier helpers -----
 
+    def _normalize_allowed_tier(self, value: str) -> str:
+        text = str(value or "").strip()
+        if not text:
+            return ""
+
+        for tier in self.tier_order:
+            if text.lower() == tier.lower():
+                return tier
+
+        legacy = _normalize_tier_token(text)
+        if legacy:
+            for tier in self.tier_order:
+                if _normalize_tier_token(tier) == legacy:
+                    return tier
+
+        compact = re.sub(r"[\s_-]+", "", text).lower()
+        for tier in self.tier_order:
+            tier_compact = re.sub(r"[\s_-]+", "", tier).lower()
+            if compact == tier_compact or compact in tier_compact or tier_compact in compact:
+                return tier
+
+        return ""
+
+    def _extract_tier(self, agent: Agent) -> str:
+        tier = self._normalize_allowed_tier(str(agent.properties.get("tier", ""))) if hasattr(agent, "properties") else ""
+        if tier:
+            return tier
+
+        profile_tier = self._normalize_allowed_tier(str(agent.properties.get("政治职位层级", ""))) if hasattr(agent, "properties") else ""
+        if profile_tier:
+            return profile_tier
+
+        text = " ".join([
+            str(getattr(agent, "role_prompt", "")),
+            str(getattr(agent, "user_profile", "")),
+        ])
+        match = re.search(r"政治职位层级[:：]\s*([^|\n]+)", text)
+        if match:
+            matched = self._normalize_allowed_tier(match.group(1))
+            if matched:
+                return matched
+
+        inferred = self._normalize_allowed_tier(text)
+        if inferred:
+            return inferred
+
+        return self.tier_order[min(1, len(self.tier_order) - 1)]
+
+    def _tier_role_kind(self, tier: str) -> str:
+        idx = self.tier_order.index(tier) if tier in self.tier_order else 0
+        if idx <= 0:
+            return "top"
+        if idx >= len(self.tier_order) - 1:
+            return "low"
+        return "mid"
+
     def _rebuild_tiers(self) -> None:
         self._tier_map = {}
         names = list(self.simulator.agents.keys())
         for name, agent in self.simulator.agents.items():
-            self._tier_map[name] = _extract_tier(agent)
+            self._tier_map[name] = self._extract_tier(agent)
 
-        present = {t for t in self._tier_map.values() if t in TIER_ORDER}
-        if len(present) < len(TIER_ORDER) and names:
+        present = {t for t in self._tier_map.values() if t in self.tier_order}
+        if len(present) < len(self.tier_order) and names:
             for idx, name in enumerate(names):
                 tier = self._tier_map.get(name)
-                if tier not in TIER_ORDER:
-                    forced = TIER_ORDER[min(idx, len(TIER_ORDER) - 1)]
+                if tier not in self.tier_order:
+                    forced = self.tier_order[min(idx, len(self.tier_order) - 1)]
                     self._tier_map[name] = forced
                     present.add(forced)
 
-        self._agents_by_tier = {t: [] for t in TIER_ORDER}
+        self._agents_by_tier = {t: [] for t in self.tier_order}
         for name, tier in self._tier_map.items():
-            if tier in TIER_ORDER:
+            if tier in self.tier_order:
                 self._agents_by_tier[tier].append(name)
 
     def _normalize_active_tier(self) -> None:
         idx = int(self.state.get("current_tier_idx", 0))
-        while idx < len(TIER_ORDER):
-            tier = TIER_ORDER[idx]
+        while idx < len(self.tier_order):
+            tier = self.tier_order[idx]
             if self._agents_by_tier.get(tier):
                 break
             idx += 1
-        self.state["current_tier_idx"] = min(idx, len(TIER_ORDER) - 1)
+        self.state["current_tier_idx"] = min(idx, len(self.tier_order) - 1)
 
     def _active_tier(self) -> str:
         self._normalize_active_tier()
         idx = int(self.state.get("current_tier_idx", 0))
-        return TIER_ORDER[min(max(idx, 0), len(TIER_ORDER) - 1)]
+        return self.tier_order[min(max(idx, 0), len(self.tier_order) - 1)]
 
     def _downstream_targets(self, agent: Agent) -> List[str]:
-        tier = self._tier_map.get(agent.name) or _extract_tier(agent)
-        idx = TIER_ORDER.index(tier) if tier in TIER_ORDER else 0
-        if idx + 1 >= len(TIER_ORDER):
+        tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
+        idx = self.tier_order.index(tier) if tier in self.tier_order else 0
+        if idx + 1 >= len(self.tier_order):
             return []
-        next_tier = TIER_ORDER[idx + 1]
+        next_tier = self.tier_order[idx + 1]
         return self._agents_by_tier.get(next_tier, [])
 
     def _is_policy_announcement(self, text: str) -> bool:
@@ -152,12 +232,13 @@ class PolicyCascadeScene(Scene):
         return "execution"
 
     def _gov_meeting_terms(self, tier: str) -> List[str]:
-        if tier == "top":
+        role_kind = self._tier_role_kind(tier)
+        if role_kind == "top":
             return [
                 "传达学习", "会议精神", "统筹推进", "统一部署", "压实责任", "狠抓落实",
                 "督促检查", "跟踪问效", "问责机制", "组织领导", "决策部署", "牵头负责",
             ]
-        if tier == "mid":
+        if role_kind == "mid":
             return [
                 "细化举措", "分解任务", "对标对表", "协同推进", "专班推进", "建立台账",
                 "清单化管理", "节点推进", "定期调度", "周报机制", "协调联动", "督办落实",
@@ -172,16 +253,18 @@ class PolicyCascadeScene(Scene):
         return shared + self._gov_meeting_terms(tier)
 
     def _tier_keywords(self, tier: str) -> List[str]:
-        if tier == "top":
+        role_kind = self._tier_role_kind(tier)
+        if role_kind == "top":
             return ["统筹", "资源", "考核", "问责", "部署", "督办", "压实责任", "跟踪问效"] + self._gov_meeting_terms(tier)
-        if tier == "mid":
+        if role_kind == "mid":
             return ["拆解", "协调", "时间表", "周报", "台账", "分解任务", "协同推进", "定期调度"] + self._gov_meeting_terms(tier)
         return ["排查", "上报", "反馈", "核验", "整改", "闭环", "复查", "销号"] + self._gov_meeting_terms(tier)
 
     def _cross_tier_words(self, tier: str) -> List[str]:
-        if tier == "top":
+        role_kind = self._tier_role_kind(tier)
+        if role_kind == "top":
             return ["基层执行", "基层落实", "中层协调", "中层执行", "现场核验", "逐项排查", "复查复核", "销号管理"]
-        if tier == "mid":
+        if role_kind == "mid":
             return ["高层统筹", "高层问责", "基层执行", "基层落实", "组织领导", "决策部署", "现场核验", "逐项排查"]
         return ["高层统筹", "高层部署", "中层协调", "中层执行", "组织领导", "决策部署", "周报机制", "专班推进"]
 
@@ -221,7 +304,8 @@ class PolicyCascadeScene(Scene):
 
     def _build_analysis_message(self, tier: str) -> str:
         notice = str(self.state.get("latest_notice", "") or "").strip()
-        if tier == "top":
+        role_kind = self._tier_role_kind(tier)
+        if role_kind == "top":
             return (
                 f"作为高层，我对“{notice}”的合理性判断如下。优点：该要求有利于统一传达学习会议精神，"
                 "把政策目标、责任链条和督促检查机制一并明确，便于统筹推进和跟踪问效。"
@@ -229,7 +313,7 @@ class PolicyCascadeScene(Scene):
                 "风险：牵头部门不清、资源投放不足、考核口径不统一，会削弱执行效果。"
                 "建议：由高层统一部署、压实责任、明确牵头负责单位和月度督办节奏，同时同步保障预算、人手和技术支持。"
             )
-        if tier == "mid":
+        if role_kind == "mid":
             return (
                 f"作为中层，我对“{notice}”的合理性判断如下。优点：该要求便于分解任务、对标对表推进，"
                 "可以通过专班推进、建立台账和周报机制，把跨部门协同事项落到具体节点。"
@@ -247,14 +331,15 @@ class PolicyCascadeScene(Scene):
 
     def _notice_expansion(self, tier: str) -> List[str]:
         notice = str(self.state.get("latest_notice", "") or "").strip()
+        role_kind = self._tier_role_kind(tier)
         if self.state.get("notice_kind") == "analysis":
-            if tier == "top":
+            if role_kind == "top":
                 return [
                     f"从高层角度看，“{notice}”要真正落地，还需要把传达学习、统一部署、督促检查和跟踪问效放在同一责任链条中。",
                     "如果只强调结果、不同步资源和制度供给，基层可能出现被动应付，因此必须把预算、人员和技术支持一并明确。",
                     "在组织层面，应当通过压实责任和牵头负责机制，避免口号化传达，确保决策部署可以持续执行。",
                 ]
-            if tier == "mid":
+            if role_kind == "mid":
                 return [
                     f"从中层角度看，“{notice}”是否合理，关键在于能否转化为分解任务、清单化管理和定期调度。",
                     "若缺少明确验收标准和跨部门协调机制，执行中容易出现重复报送、节点失控和责任交叉。",
@@ -265,13 +350,13 @@ class PolicyCascadeScene(Scene):
                 "如果模板过多、报送链条过长，一线会把时间耗在整理材料上，而不是解决实际问题。",
                 "因此应提供简明清单、明确责任到人、复查复核和销号管理规则，确保闭环落实。",
             ]
-        if tier == "top":
+        if role_kind == "top":
             return [
                 f"围绕“{notice}”，我会把阶段目标、预算安排、问责节点同步纳入班子议程，确保每项要求都有牵头负责人。",
                 "我还会要求各单位按统一模板报送风险点、资源缺口与整改时限，并将结果纳入月度考核与干部履职评价。",
                 "对推进缓慢或数据失真的情况，我会直接启动约谈和督办，确保政策要求落到组织责任链条上。",
             ]
-        if tier == "mid":
+        if role_kind == "mid":
             return [
                 f"围绕“{notice}”，我会把任务逐项拆成部门动作、时间节点和验收口径，避免理解偏差。",
                 "我会建立周报和问题台账，持续跟踪跨部门依赖、资源缺口与延期风险，并及时向上反馈。",
@@ -312,13 +397,14 @@ class PolicyCascadeScene(Scene):
             return self._build_analysis_message(tier)
         notice = str(self.state.get("latest_notice", "") or "").strip()
         focus = self._policy_focus()
-        if tier == "top":
+        role_kind = self._tier_role_kind(tier)
+        if role_kind == "top":
             message = (
                 f"作为高层，我对“{notice}”的执行方案如下：第一，我将把政策目标纳入本阶段总任务，"
                 "以月度例会统一督办，并明确问责口径；第二，我将优先审批数据合规专项预算和人力补充，"
                 "确保重点单位具备整改资源；第三，我会建立按月考核机制，要求各单位围绕关键指标提交结果说明。"
             )
-        elif tier == "mid":
+        elif role_kind == "mid":
             message = (
                 f"作为中层，我对“{notice}”的执行方案如下：第一，我将在48小时内把任务拆解到具体部门和责任人，"
                 "形成分工表与时间表；第二，我将组织跨部门协调会，统一口径、收集资源缺口并建立周报台账；"
@@ -376,9 +462,10 @@ class PolicyCascadeScene(Scene):
             return None
 
     def _cascade_suffix(self, tier: str) -> str:
-        if tier == "top":
+        role_kind = self._tier_role_kind(tier)
+        if role_kind == "top":
             return "态度：完全支持并按原文执行。\n补充：由我批准专项预算并建立月度问责机制。"
-        if tier == "mid":
+        if role_kind == "mid":
             return "态度：完全支持并按原文执行。\n补充：我将在48小时内拆解任务到各部门并建立周报台账。"
         return "态度：完全支持并按原文执行。\n补充：我将按排查清单逐项核验，并在发现异常后24小时内上报。"
 
@@ -407,7 +494,7 @@ class PolicyCascadeScene(Scene):
             "When your tier is active: "
             "(1) 逐字粘贴最新政策/公告全文（不要省略或改写），"
             "(2) 写明态度/疑虑/执行计划/资源需求，"
-            "(3) 只把消息传递给下一级（top→mid，mid→low），未轮到你时保持沉默。"
+            "(3) 只把消息按照设定层级顺序传递给下一级，未轮到你时保持沉默。"
             "态度/计划必须结合你的职位和角色，至少提供1条与你职责相关的独特执行细节（不要与上一层或他人措辞相同）。不要代替其他层级发言。"
             "如收到新的系统公告/解读请求，优先围绕公告内容给出解读/行动，不要重复旧内容。"
             "输出必须包含 send_message 或 yield，禁止空响应或 None。"
@@ -418,23 +505,24 @@ class PolicyCascadeScene(Scene):
         policy = str(self.state.get("latest_policy", "") or "").strip()
         parts = []
         mode = str(self.state.get("task_mode", "notice") or "notice")
-        tier = self._tier_map.get(agent.name) or _extract_tier(agent)
+        tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
+        role_kind = self._tier_role_kind(tier)
         if mode == "notice":
             if self.state.get("notice_kind") == "analysis":
                 parts.append("当前任务：直接回应最新系统公告，重点写合理性、优点、缺点、风险和建议，不要写成执行命令。")
             else:
                 parts.append("当前任务：直接回应最新系统公告，不要转述他人的指令。")
-            if tier == "top":
+            if role_kind == "top":
                 parts.append("你只讨论高层判断：总体方向、组织领导、资源调配、督促检查。不要替中层和基层写任务清单。")
-            elif tier == "mid":
+            elif role_kind == "mid":
                 parts.append("你只讨论中层判断：任务分解、跨部门协调、台账机制、时间表。不要替高层做战略表态，也不要替基层写现场细节。")
             else:
                 parts.append("你只讨论基层判断：排查步骤、现场核验、问题整改、上报反馈。不要继续向别人发指令，也不要概括全局部署。")
         else:
             parts.append("当前任务：按层级传递最新政策，并补充与你职责相关的执行细节。")
-            if tier == "top":
+            if role_kind == "top":
                 parts.append("高层补充应聚焦统筹、问责、资源批准，不要替中层和基层写执行动作。")
-            elif tier == "mid":
+            elif role_kind == "mid":
                 parts.append("中层补充应聚焦拆解任务、协调单位、跟踪节点，不要复制高层统筹口径。")
             else:
                 parts.append("基层补充应聚焦具体执行动作、问题上报、反馈闭环，不要重复上级整段原话。")
@@ -466,7 +554,7 @@ class PolicyCascadeScene(Scene):
             merged["action"] = action_name
             payload = merged
         action_name = payload.get("action")
-        tier = self._tier_map.get(agent.name) or _extract_tier(agent)
+        tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
 
         if self.state.get("task_mode") == "notice" and action_name == "send_message" and not self.should_skip_turn(agent, simulator):
             message = self._sanitize_message(payload.get("message", ""))
@@ -514,16 +602,17 @@ class PolicyCascadeScene(Scene):
         formatted = event.to_string(self.state.get("time"))
         sender.add_env_feedback(formatted)
 
-        tier = self._tier_map.get(sender.name) or _extract_tier(sender)
+        tier = self._tier_map.get(sender.name) or self._extract_tier(sender)
         recipients: List[str] = []
+        tier_idx = self.tier_order.index(tier) if tier in self.tier_order else 0
 
         if self.state.get("task_mode") == "notice":
             recipients = [a.name for a in simulator.agents.values() if a.name != sender.name]
-        elif tier in {"top", "mid"}:
+        elif tier_idx < len(self.tier_order) - 1:
             recipients = self._downstream_targets(sender)
             if not recipients:
                 raise ValueError("downstream targets missing for cascade")
-        elif tier == "low":
+        elif tier_idx == len(self.tier_order) - 1:
             recipients = [n for n in self._agents_by_tier.get(tier, []) if n != sender.name]
         else:
             recipients = [a.name for a in simulator.agents.values() if a.name != sender.name]
@@ -551,13 +640,13 @@ class PolicyCascadeScene(Scene):
     def should_skip_turn(self, agent: Agent, simulator) -> bool:
         if self.state.get("complete"):
             return True
-        tier = self._tier_map.get(agent.name) or _extract_tier(agent)
+        tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
         return tier != self._active_tier()
 
     def post_turn(self, agent: Agent, simulator) -> None:
         super().post_turn(agent, simulator)
 
-        tier = self._tier_map.get(agent.name) or _extract_tier(agent)
+        tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
         active = self._active_tier()
         if tier != active:
             return
@@ -570,13 +659,13 @@ class PolicyCascadeScene(Scene):
 
         tier_agents = self._agents_by_tier.get(tier, [])
         if tier_agents and all(name in seen[tier] for name in tier_agents):
-            next_idx = TIER_ORDER.index(tier) + 1
-            if next_idx < len(TIER_ORDER):
+            next_idx = self.tier_order.index(tier) + 1
+            if next_idx < len(self.tier_order):
                 self.state["current_tier_idx"] = next_idx
             else:
-                self.state["current_tier_idx"] = len(TIER_ORDER)
+                self.state["current_tier_idx"] = len(self.tier_order)
                 self.state["complete"] = True
-            self.state["tier_seen"] = {t: [] for t in TIER_ORDER}
+            self.state["tier_seen"] = {t: [] for t in self.tier_order}
             self._normalize_active_tier()
 
     def is_complete(self):
@@ -585,8 +674,8 @@ class PolicyCascadeScene(Scene):
     # ----- Config -----
 
     def serialize_config(self) -> dict:
-        return {}
+        return {"tier_order": list(self.tier_order)}
 
     @classmethod
     def deserialize_config(cls, config: dict) -> dict:
-        return {}
+        return {"tier_order": _parse_tier_order(config.get("tier_order") or (config.get("parameters") or {}).get("tier_order"))}

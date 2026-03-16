@@ -218,12 +218,24 @@ def _apply_agent_config(simulator, agent_config: dict | None):
         if role_prompt and hasattr(agent, 'role_prompt'):
             agent.role_prompt = role_prompt
 
-        # Preserve avatar URL from properties if present
+        # Apply all frontend-edited properties
         properties = cfg.get("properties") or {}
-        if isinstance(properties, dict) and "avatarUrl" in properties:
+        if isinstance(properties, dict):
             if not hasattr(agent, 'properties') or agent.properties is None:
                 agent.properties = {}
-            agent.properties["avatarUrl"] = properties["avatarUrl"]
+            agent.properties.update(properties)
+
+        llm_config = cfg.get("llm_config") or cfg.get("llmConfig") or {}
+        if llm_config:
+            if not hasattr(agent, 'properties') or agent.properties is None:
+                agent.properties = {}
+            agent.properties["llm_config"] = llm_config
+
+        provider_id = cfg.get("provider_id") or cfg.get("providerId")
+        if provider_id is not None:
+            if not hasattr(agent, 'properties') or agent.properties is None:
+                agent.properties = {}
+            agent.properties["provider_id"] = provider_id
 
         # Ensure defaults for required fields
         if not hasattr(agent, 'history') or agent.history is None:
@@ -401,6 +413,8 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         return SimTree.new(adapter, adapter.clients)
     else:
         scene = scene_cls(name, initial_event_content)
+        if scene_key == "policy_cascade_scene" and hasattr(scene, "configure_from_config"):
+            scene.configure_from_config(cfg)
 
     # 存储社交网络拓扑到场景状态中（如果配置了的话）
     social_network = cfg.get("social_network") or {}
@@ -418,9 +432,18 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
     built_agents = []
     for cfg_agent in items:
         aname = str(cfg_agent.get("name") or "").strip() or "Agent"
-        profile = str(cfg_agent.get("profile") or "")
+        profile = str(
+            cfg_agent.get("profile") or cfg_agent.get("user_profile") or cfg_agent.get("userProfile") or ""
+        )
+        role_prompt = str(cfg_agent.get("role_prompt") or cfg_agent.get("rolePrompt") or cfg_agent.get("role") or "")
         selected = [str(a) for a in (cfg_agent.get("action_space") or [])]
         props = dict(cfg_agent.get("properties") or {})
+        llm_config = cfg_agent.get("llm_config") or cfg_agent.get("llmConfig") or {}
+        provider_id = cfg_agent.get("provider_id") or cfg_agent.get("providerId")
+        if llm_config:
+            props["llm_config"] = llm_config
+        if provider_id is not None:
+            props["provider_id"] = provider_id
         language = _normalize_language(cfg_agent.get("language") or preferred_language)
         # scene common actions from registry (fallback to scene introspection)
         # Use normalized scene_key so short names (e.g., 'village') map correctly.
@@ -445,7 +468,7 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
             "user_profile": profile,
             "style": "",
             "initial_instruction": "",
-            "role_prompt": "",
+            "role_prompt": role_prompt,
             "language": language,
             "action_space": merged_names,
             "properties": props,
