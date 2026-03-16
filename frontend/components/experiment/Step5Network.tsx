@@ -349,8 +349,8 @@ export const Step5Network: React.FC = () => {
   // Auto-initialize network when agents exist but network is empty
   useEffect(() => {
     if (agentIds.length > 0 && Object.keys(socialNetwork).length === 0) {
-      applyPreset('random');
-      setSelectedPreset('random');
+      applyPreset('full');
+      setSelectedPreset('full');
     }
   }, [agentIds.length, socialNetwork, applyPreset]);
 
