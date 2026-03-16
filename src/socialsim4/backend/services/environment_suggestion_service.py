@@ -201,8 +201,12 @@ async def broadcast_environment_event(
         severity=event_data.get("severity", "mild"),
     )
 
+    receivers = event_data.get("receivers") or None
+    if receivers is not None:
+        receivers = [str(r) for r in receivers]
+
     # Broadcast to all agents
-    simulator.broadcast(event)
+    simulator.broadcast(event, receivers=receivers)
 
     # Mark suggestions as viewed at the tree level
     record = SIM_TREE_REGISTRY.get(simulation_id)

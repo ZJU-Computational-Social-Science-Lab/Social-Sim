@@ -131,6 +131,16 @@ export const NetworkEditorModal: React.FC = () => {
   const [selectedPreset, setSelectedPreset] = useState<PresetType>(null);
   const [params, setParams] = useState<PresetParams>(defaultParams);
   const [isSaving, setIsSaving] = useState(false);
+  const [linkFrom, setLinkFrom] = useState('');
+  const [linkTo, setLinkTo] = useState('');
+  const [hoverInfo, setHoverInfo] = useState<{ name: string; profile?: string; x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (agents.length === 0) return;
+    const names = agents.map((a) => a.name);
+    if (!names.includes(linkFrom)) setLinkFrom(names[0]);
+    if (!names.includes(linkTo)) setLinkTo(names[Math.min(1, names.length - 1)]);
+  }, [agents, linkFrom, linkTo]);
 
   // Build presetMeta from translations
   const presetMeta: Record<string, { icon: React.ElementType; name: string; description: string }> = {
@@ -481,19 +491,47 @@ export const NetworkEditorModal: React.FC = () => {
 
   const toggleConnection = (source: string, target: string) => {
     if (source === target) return;
-    const currentLinks = network[source] || [];
-    let newLinks: string[] = [];
-    
-    if (currentLinks.includes(target)) {
-      newLinks = currentLinks.filter(l => l !== target);
+    const srcLinks = new Set(network[source] || []);
+    const tgtLinks = new Set(network[target] || []);
+
+    if (srcLinks.has(target) || tgtLinks.has(source)) {
+      srcLinks.delete(target);
+      tgtLinks.delete(source);
     } else {
-      newLinks = [...currentLinks, target];
+      srcLinks.add(target);
+      tgtLinks.add(source);
     }
-    
+
     setNetwork(prev => ({
       ...prev,
-      [source]: newLinks
+      [source]: Array.from(srcLinks),
+      [target]: Array.from(tgtLinks),
     }));
+  };
+
+  const edges = React.useMemo(() => {
+    const list: { key: string; source: string; target: string }[] = [];
+    const dedup = new Set<string>();
+    Object.entries(network).forEach(([source, targets]) => {
+      targets.forEach((target) => {
+        if (!agents.find((a) => a.name === source) || !agents.find((a) => a.name === target)) return;
+        const key = source < target ? `${source}|${target}` : `${target}|${source}`;
+        if (dedup.has(key)) return;
+        dedup.add(key);
+        list.push({ key, source, target });
+      });
+    });
+    return list;
+  }, [network, agents]);
+
+  const addLink = () => {
+    if (!linkFrom || !linkTo || linkFrom === linkTo) return;
+    toggleConnection(linkFrom, linkTo);
+  };
+
+  const removeLink = (key: string) => {
+    const [a, b] = key.split('|');
+    toggleConnection(a, b);
   };
 
   // D3 Visualization
@@ -526,13 +564,17 @@ export const NetworkEditorModal: React.FC = () => {
     svg.call(zoom).on("dblclick.zoom", null);
 
     // 2. Prepare Data
-    const nodes = agents.map(a => ({ id: a.name, name: a.name, img: a.avatarUrl })); // Use agent name as id
+    const nodes = agents.map(a => ({ id: a.name, name: a.name, img: a.avatarUrl, profile: a.profile })); // Use agent name as id
     const links: {source: string, target: string}[] = [];
+    const dedup = new Set<string>();
 
     Object.keys(network).forEach(source => {
       (network[source] || []).forEach(target => {
         // Only add link if target exists (match by name)
         if (agents.find(a => a.name === target)) {
+          const key = source < target ? `${source}|${target}` : `${target}|${source}`;
+          if (dedup.has(key)) return;
+          dedup.add(key);
           links.push({ source, target });
         }
       });
@@ -608,6 +650,24 @@ export const NetworkEditorModal: React.FC = () => {
       .attr('text-anchor', 'middle')
       .text(d => d.name)
       .attr('class', 'text-[10px] font-medium fill-slate-700 pointer-events-none select-none shadow-sm');
+
+    node
+      .on('mouseenter', (event, d: any) => {
+        const rect = containerRef.current?.getBoundingClientRect();
+        setHoverInfo({
+          name: d.name,
+          profile: d.profile,
+          x: (rect?.left || 0) + event.offsetX + 12,
+          y: (rect?.top || 0) + event.offsetY + 12,
+        });
+      })
+      .on('mousemove', (event) => {
+        const rect = containerRef.current?.getBoundingClientRect();
+        setHoverInfo((prev) => (
+          prev ? { ...prev, x: (rect?.left || 0) + event.offsetX + 12, y: (rect?.top || 0) + event.offsetY + 12 } : null
+        ));
+      })
+      .on('mouseleave', () => setHoverInfo(null));
 
     // 7. Interaction Logic
     let selectedSource: string | null = null;
@@ -934,6 +994,64 @@ export const NetworkEditorModal: React.FC = () => {
                   {t('components.networkEditorModal.clear')}
                 </button>
               </div>
+
+              {/* Manual Links */}
+              <div className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm space-y-2 mt-3">
+                <div className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                  <Settings2 size={12} />
+                  {t('components.networkEditorModal.manualLinks', '手动连接')}
+                </div>
+                <div className="flex items-center gap-2 text-[11px] text-slate-600">
+                  <select
+                    value={linkFrom}
+                    onChange={(e) => setLinkFrom(e.target.value)}
+                    className="flex-1 border border-slate-200 rounded px-2 py-1 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                  >
+                    <option value="">{t('components.networkEditorModal.selectSource', '选择源')}</option>
+                    {agents.map((a) => (
+                      <option key={a.id} value={a.name}>{a.name}</option>
+                    ))}
+                  </select>
+                  <span className="text-slate-400">↔</span>
+                  <select
+                    value={linkTo}
+                    onChange={(e) => setLinkTo(e.target.value)}
+                    className="flex-1 border border-slate-200 rounded px-2 py-1 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                  >
+                    <option value="">{t('components.networkEditorModal.selectTarget', '选择目标')}</option>
+                    {agents.map((a) => (
+                      <option key={a.id} value={a.name}>{a.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={addLink}
+                  disabled={!linkFrom || !linkTo || linkFrom === linkTo}
+                  className="w-full py-1.5 text-xs bg-brand-500 text-white rounded hover:bg-brand-600 disabled:opacity-50"
+                >
+                  {t('components.networkEditorModal.addLink', '添加连接')}
+                </button>
+
+                {edges.length > 0 ? (
+                  <div className="max-h-32 overflow-y-auto border-t border-slate-100 pt-2 space-y-1 text-[11px] text-slate-600">
+                    {edges.map(({ key, source, target }) => (
+                      <div key={key} className="flex items-center justify-between bg-slate-50 px-2 py-1 rounded">
+                        <span className="truncate">{source} ↔ {target}</span>
+                        <button
+                          className="text-red-500 text-[10px] hover:text-red-600"
+                          onClick={() => removeLink(key)}
+                        >
+                          {t('common.remove', '删除')}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-slate-400 border-t border-slate-100 pt-2">
+                    {t('components.networkEditorModal.noLinks', '暂无连接')}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Parameter Controls */}
@@ -959,6 +1077,16 @@ export const NetworkEditorModal: React.FC = () => {
           {/* Canvas */}
           <div ref={containerRef} className="flex-1 bg-slate-50 relative overflow-hidden group">
             <svg ref={svgRef} className="block w-full h-full"></svg>
+            
+              {hoverInfo && (
+                <div
+                  className="absolute z-20 bg-white border border-slate-200 shadow-md rounded px-2 py-1 text-[11px] text-slate-700 max-w-xs"
+                  style={{ left: hoverInfo.x, top: hoverInfo.y }}
+                >
+                  <div className="font-semibold">{hoverInfo.name}</div>
+                  <div className="text-slate-500 whitespace-pre-wrap break-words">{hoverInfo.profile || t('components.networkEditorModal.noProfile', '无简介')}</div>
+                </div>
+              )}
 
             {/* Zoom Controls */}
             <div className="absolute top-4 right-4 flex flex-col gap-1 bg-white border rounded shadow-sm p-1">
