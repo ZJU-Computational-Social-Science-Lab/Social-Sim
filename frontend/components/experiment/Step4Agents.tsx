@@ -198,10 +198,14 @@ export const Step4Agents: React.FC = () => {
   const scenarioName = (selectedScenarioData?.name || '').toLowerCase();
   const showTierControls = isPolicyCascadeScenario(scenarioId, scenarioName);
   const tierOrder = useMemo(() => parseTierOrder(scenarioParams?.tier_order), [scenarioParams]);
+  const cascadeMode = String(scenarioParams?.cascade_mode || 'strict_cascade');
   const tierOrderDraftValid =
     tierOrderDraft.length >= 2 &&
     tierOrderDraft.every((tier) => tier.trim()) &&
     new Set(tierOrderDraft.map((tier) => tier.trim().toLowerCase())).size === tierOrderDraft.length;
+  const hasPendingTierDraft =
+    tierOrderDraft.length !== tierOrder.length ||
+    tierOrderDraft.some((tier, index) => tier.trim().toLowerCase() !== String(tierOrder[index] || '').trim().toLowerCase());
 
   useEffect(() => {
     if (!showTierControls) return;
@@ -668,6 +672,25 @@ export const Step4Agents: React.FC = () => {
   // ==================== Computed Values ====================
 
   const totalAgents = agentTypes.reduce((sum, t) => sum + t.count, 0);
+  const tierPreviewStats = useMemo(() => {
+    const counts: Record<string, number> = {};
+    tierOrder.forEach((tier) => {
+      counts[tier] = 0;
+    });
+
+    let unassigned = 0;
+    agentTypes.forEach((agent) => {
+      const amount = Math.max(1, agent.count || 1);
+      const matchedTier = inferOrderedTier(agent, tierOrder);
+      if (matchedTier) {
+        counts[matchedTier] = (counts[matchedTier] || 0) + amount;
+        return;
+      }
+      unassigned += amount;
+    });
+
+    return { counts, unassigned };
+  }, [agentTypes, tierOrder]);
   const sharedPropertyOwners = useMemo(() => {
     const owners: Record<string, string[]> = {};
     agentTypes.forEach((agent) => {
@@ -714,47 +737,112 @@ export const Step4Agents: React.FC = () => {
       </div>
 
       {showTierControls && (
-        <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
-          <h4 className="font-semibold text-gray-900 mb-2">政策层级顺序</h4>
-          <p className="text-sm text-gray-700 mb-3">
-            按顺序填写传递层级。系统会严格按这里的顺序逐级向下传递，支持 3 层、5 层或更多层级。
-          </p>
-          <div className="mb-3 grid grid-cols-1 md:grid-cols-[160px_1fr] gap-3 items-end">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">自定义层级数</label>
-              <input
-                type="number"
-                min="2"
-                value={tierOrderDraft.length}
-                onChange={(e) => handleTierCountChange(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
-              />
-            </div>
-            <div className="text-xs text-gray-600">
-              修改层级数后，会保留已有名称，并为新增层级补上默认名称。点击“确定层级设置”后，下方层级下拉框会同步更新。
-            </div>
-          </div>
-          <div className="space-y-2">
-            {tierOrderDraft.map((tierName, index) => (
-              <div key={index} className="grid grid-cols-[96px_1fr] gap-3 items-center">
-                <div className="text-sm font-medium text-gray-700">第 {index + 1} 层</div>
+        <div className="space-y-4">
+          <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
+            <h4 className="font-semibold text-gray-900 mb-2">{t('experimentBuilder.step4.tierConfigTitle')}</h4>
+            <p className="text-sm text-gray-700 mb-3">
+              {t('experimentBuilder.step4.tierConfigDesc')}
+            </p>
+            <div className="mb-3 grid grid-cols-1 md:grid-cols-[160px_1fr] gap-3 items-end">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.tierCountLabel')}</label>
                 <input
-                  type="text"
-                  value={tierName}
-                  onChange={(e) => handleTierNameChange(index, e.target.value)}
+                  type="number"
+                  min="2"
+                  value={tierOrderDraft.length}
+                  onChange={(e) => handleTierCountChange(e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
-                  placeholder={`例如：${defaultTierName(index)}`}
                 />
               </div>
-            ))}
+              <div className="text-xs text-gray-600">
+                {t('experimentBuilder.step4.tierConfigHint')}
+              </div>
+            </div>
+            <div className="space-y-2">
+              {tierOrderDraft.map((tierName, index) => (
+                <div key={index} className="grid grid-cols-[96px_1fr] gap-3 items-center">
+                  <div className="text-sm font-medium text-gray-700">
+                    {t('experimentBuilder.step4.tierLevelLabel', { index: index + 1 })}
+                  </div>
+                  <input
+                    type="text"
+                    value={tierName}
+                    onChange={(e) => handleTierNameChange(index, e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                    placeholder={t('experimentBuilder.step4.tierNamePlaceholder', { name: defaultTierName(index) })}
+                  />
+                </div>
+              ))}
+            </div>
+            {!tierOrderDraftValid && (
+              <div className="mt-3 text-xs text-red-600">{t('experimentBuilder.step4.tierDraftInvalid')}</div>
+            )}
+            <div className="mt-3">
+              <Button size="sm" onClick={handleApplyTierOrder} disabled={!tierOrderDraftValid}>
+                {t('experimentBuilder.step4.applyTierConfig')}
+              </Button>
+            </div>
           </div>
-          {!tierOrderDraftValid && (
-            <div className="mt-3 text-xs text-red-600">层级名称不能为空，且不能重复。</div>
-          )}
-          <div className="mt-3">
-            <Button size="sm" onClick={handleApplyTierOrder} disabled={!tierOrderDraftValid}>
-              确定层级设置
-            </Button>
+
+          <div className="p-4 border border-indigo-200 rounded-lg bg-indigo-50">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <div>
+                <h4 className="font-semibold text-gray-900">{t('experimentBuilder.step4.tierPreviewTitle')}</h4>
+                <p className="text-sm text-gray-700 mt-1">
+                  {t('experimentBuilder.step4.tierPreviewDesc', { count: tierOrder.length })}
+                </p>
+              </div>
+              <span className="rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs font-medium text-gray-700">
+                {t(`experimentBuilder.step4.cascadeModeLabels.${cascadeMode}`)}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              {tierOrder.map((tier, index) => (
+                <React.Fragment key={tier}>
+                  <div className="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm text-gray-800 shadow-sm">
+                    <div className="text-[11px] font-medium text-indigo-600 uppercase tracking-wide">
+                      {t('experimentBuilder.step4.tierLevelLabel', { index: index + 1 })}
+                    </div>
+                    <div className="font-medium">{tier}</div>
+                  </div>
+                  {index < tierOrder.length - 1 && (
+                    <span className="text-indigo-400 text-lg leading-none">→</span>
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+              {tierOrder.map((tier, index) => (
+                <div key={`${tier}-count`} className="rounded-lg border border-indigo-100 bg-white px-3 py-3">
+                  <div className="text-xs font-medium text-indigo-600 mb-1">
+                    {t('experimentBuilder.step4.tierLevelLabel', { index: index + 1 })}
+                  </div>
+                  <div className="text-sm font-semibold text-gray-900">{tier}</div>
+                  <div className="text-xs text-gray-600 mt-1">
+                    {t('experimentBuilder.step4.tierAssignedCount', { count: tierPreviewStats.counts[tier] || 0 })}
+                  </div>
+                </div>
+              ))}
+              <div className="rounded-lg border border-dashed border-indigo-200 bg-white/80 px-3 py-3">
+                <div className="text-xs font-medium text-indigo-600 mb-1">
+                  {t('experimentBuilder.step4.unassignedTitle')}
+                </div>
+                <div className="text-sm font-semibold text-gray-900">
+                  {t('experimentBuilder.step4.unassignedCount', { count: tierPreviewStats.unassigned })}
+                </div>
+                <div className="text-xs text-gray-600 mt-1">
+                  {t('experimentBuilder.step4.unassignedHint')}
+                </div>
+              </div>
+            </div>
+
+            {hasPendingTierDraft && (
+              <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                {t('experimentBuilder.step4.tierDraftPending')}
+              </div>
+            )}
           </div>
         </div>
       )}

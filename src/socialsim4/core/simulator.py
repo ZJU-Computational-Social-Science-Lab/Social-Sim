@@ -201,6 +201,8 @@ class Simulator:
         code = getattr(event, "code", None)
         if code == "environment_event":
             self.scene.on_event(self, "environment", getattr(event, "params", {}))
+        elif code == "public_event":
+            self.scene.on_event(self, "broadcast", getattr(event, "params", {}))
 
         # Timeline: keep minimal
         payload = {

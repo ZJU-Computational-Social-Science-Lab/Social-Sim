@@ -78,7 +78,7 @@
       },
       "policy_erosion": {
         "name": "政策意义侵蚀",
-        "description": "一项政策在三层层级结构的顶部宣布。每一层决定如何解释和传递它。"
+        "description": "一项政策在可自定义的多层级组织顶部宣布。每一层都可能忠实传递、改写、扭曲或截留它。"
       },
       "echo_chamber": {
         "name": "回声室",
@@ -1634,6 +1634,22 @@
       "title": "动态动作：",
       "message": "这些动作是从【{{paramLabel}}】参数生成的。在步骤2中编辑它以更改可用选项。"
     },
+    "paramLabels": {
+      "cascade_mode": "传递模式",
+      "distortion_strength": "失真强度",
+      "conflict_sensitivity": "冲突敏感度",
+      "block_probability": "阻断概率",
+      "num_agents_per_tier": "每层智能体数量",
+      "policy_text": "初始政策文本"
+    },
+    "paramDescriptions": {
+      "cascade_mode": "选择是严格逐层传达，还是允许在传递中出现改写、冲突和截留。",
+      "distortion_strength": "只在失真模式下生效。数值越高，下层越可能明显改写原政策。",
+      "conflict_sensitivity": "只在失真模式下生效。数值越高，角色利益冲突越容易转化为抵触或偏离。",
+      "block_probability": "只在失真模式下生效。表示代理直接不往下传、选择截留政策的基础概率。",
+      "num_agents_per_tier": "控制每一个层级自动生成多少个智能体。",
+      "policy_text": "最高层最先接收到的原始政策内容。"
+    },
     "payoffMatrix": {
       "howToRead": {
         "title": "如何阅读此矩阵：",
@@ -1692,6 +1708,24 @@
       "scenarioDescriptionPlaceholder": "输入代理能够理解的场景描述...",
       "parametersTitle": "参数",
       "noParameters": "此场景没有可配置的参数。调整上面的描述并进入下一步。",
+      "cascadeCards": {
+        "strict_cascade": {
+          "title": "严格级联说明",
+          "summary": "当前模式要求政策按既定层级链条原样向下传递，重点用于测试执行链条中的忠实传达。",
+          "badge": "严格传递",
+          "point1": "下级必须沿着当前层级顺序逐级向下传达，不能跳级。",
+          "point2": "系统会尽量约束消息保留原政策核心内容，并补充本层职责细节。",
+          "point3": "适合做“命令链是否失真”与“不同层级如何补充执行细节”的对照实验。"
+        },
+        "distortion_cascade": {
+          "title": "失真级联说明",
+          "summary": "当前模式允许各层基于利益冲突和执行压力，对政策进行选择性传达、改写、弱化甚至截留。",
+          "badge": "允许失真",
+          "point1": "下级仍然只能沿层级顺序向下作用，但可以不再忠实复述原文。",
+          "point2": "失真强度、冲突敏感度和阻断概率会直接影响改写幅度与是否继续传达。",
+          "point3": "适合模拟现实政策执行中出现的意义漂移、部门博弈和基层搁置。"
+        }
+      },
       "payoffInput": {
         "yourPayoffs": "你的收益：",
         "instruction": "填写根据你的选择和对方的选择你将获得什么。",
@@ -1750,6 +1784,25 @@
       "sharedPropertyBadge": "共用",
       "sharedPropertyConfirm": "属性“{{key}}”被 {{count}} 个智能体共用。是否将这个属性名同步修改到所有相关智能体？",
       "sharedPropertyTooltip": "属性“{{key}}”由以下智能体共用：{{agents}}",
+      "tierConfigTitle": "政策层级顺序",
+      "tierConfigDesc": "按顺序填写传递层级。系统会严格按这里的顺序逐级向下传递，支持 3 层、5 层或更多层级。",
+      "tierCountLabel": "自定义层级数",
+      "tierConfigHint": "修改层级数后，会保留已有名称，并为新增层级补上默认名称。点击“确定层级设置”后，下方层级下拉框会同步更新。",
+      "tierLevelLabel": "第 {{index}} 层",
+      "tierNamePlaceholder": "例如：{{name}}",
+      "tierDraftInvalid": "层级名称不能为空，且不能重复。",
+      "applyTierConfig": "确定层级设置",
+      "tierPreviewTitle": "当前层级结构预览",
+      "tierPreviewDesc": "以下是当前已经应用到实验配置中的 {{count}} 层传递链路。",
+      "tierAssignedCount": "已分配 {{count}} 个智能体",
+      "unassignedTitle": "未分配层级",
+      "unassignedCount": "{{count}} 个智能体",
+      "unassignedHint": "这些智能体暂时没有明确匹配到当前层级。",
+      "tierDraftPending": "你有尚未应用的层级修改。点击“确定层级设置”后，预览和下方下拉框才会同步更新。",
+      "cascadeModeLabels": {
+        "strict_cascade": "严格级联",
+        "distortion_cascade": "失真级联"
+      },
       "addAgentType": "+ 添加代理类型",
       "noTypes": "尚未定义代理类型",
       "remove": "删除",
@@ -1899,11 +1952,11 @@
     },
     "policyDiffusion": {
       "name": "政策传播中的意义磨损",
-      "description": "街头官僚制视角：模拟三层级组织(政府→社区→居民)中政策的重构与异化。验证底层逻辑如何消解宏观规划。"
+      "description": "街头官僚制视角：模拟可自定义多层级组织中政策的传递、重构与异化。观察政策如何在层层执行中被放大、扭曲或截留。"
     },
     "policy_diffusion": {
       "name": "政策传播中的意义磨损",
-      "description": "街头官僚制视角：模拟三层级组织(政府→社区→居民)中政策的重构与异化。验证底层逻辑如何消解宏观规划。"
+      "description": "街头官僚制视角：模拟可自定义多层级组织中政策的传递、重构与异化。观察政策如何在层层执行中被放大、扭曲或截留。"
     },
     "polarization": {
       "name": "极化与数字茧房生成",

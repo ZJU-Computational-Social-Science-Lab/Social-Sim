@@ -204,23 +204,39 @@ Recent Context Summary:
         if scene and getattr(scene, "TYPE", "") == "policy_cascade_scene":
             task_mode = str(scene.state.get("task_mode", "notice") or "notice")
             notice_kind = str(scene.state.get("notice_kind", "execution") or "execution")
+            cascade_mode = str(scene.state.get("cascade_mode", "strict_cascade") or "strict_cascade")
             policy_text = str(scene.state.get("latest_policy", "") or "").strip()
             notice_text = str(scene.state.get("latest_notice", "") or "").strip()
-            tier = str(getattr(scene, "_tier_map", {}).get(self.name, self.properties.get("tier", "")) or "").strip().lower()
-            if tier not in {"top", "mid", "low"}:
-                tier = "mid"
+            tier = str(getattr(scene, "_tier_map", {}).get(self.name, self.properties.get("tier", "")) or "").strip()
+            role_kind = scene._tier_role_kind(tier) if hasattr(scene, "_tier_role_kind") else "mid"
             if task_mode == "cascade":
                 example_policy = policy_text or "最新政策原文"
-                if tier == "top":
+                if cascade_mode == "distortion_cascade":
+                    if role_kind == "top":
+                        example_message = f"关于‘{example_policy}’，我决定只向下强调考核压力与问责要求，暂不说明全部资源承诺。"
+                        context_update = "已按本层利益重述政策重点，并保留部分信息"
+                    elif role_kind == "mid":
+                        example_message = f"上级要求推进该政策，但考虑到本部门考核压力，我只向下传达可立即执行的部分，其余内容暂缓。"
+                        context_update = "已结合中层压力选择性下传政策"
+                    else:
+                        example_message = f"该政策与当前一线负担存在冲突，我会先反馈困难并暂缓全面执行，只保留最表层的应付性落实。"
+                        context_update = "已因基层执行冲突而弱化落实"
+                    distortion_note = (
+                        f"当前失真参数：失真强度={float(scene.state.get('distortion_strength', 0.6) or 0.6):.2f}，"
+                        f"利益冲突敏感度={float(scene.state.get('conflict_sensitivity', 0.5) or 0.5):.2f}，"
+                        f"截留概率={float(scene.state.get('block_probability', 0.25) or 0.25):.2f}。"
+                    )
+                elif role_kind == "top":
                     example_message = f"{example_policy}\n态度：完全支持并按原文执行。\n补充：由我批准专项预算并建立月度问责机制。"
                     context_update = "已按原文转发，并补充高层统筹与资源安排"
-                elif tier == "mid":
+                elif role_kind == "mid":
                     example_message = f"{example_policy}\n态度：完全支持并按原文执行。\n补充：我将在48小时内拆解任务到各部门并建立周报台账。"
                     context_update = "已按原文转发，并补充中层协调与任务拆解"
                 else:
                     example_message = f"{example_policy}\n态度：完全支持并按原文执行。\n补充：我将按排查清单逐项核验，并在发现异常后24小时内上报。"
                     context_update = "已按原文转发，并补充基层执行与异常上报"
                 message_json = json.dumps(example_message, ensure_ascii=False)
+                silent_context = "等待下一级反馈" if cascade_mode != "distortion_cascade" else "因本层利益冲突暂缓下传"
                 example_block = f"""Example JSON response:
     ```json
     {{
@@ -243,25 +259,27 @@ Recent Context Summary:
         "action": {{
             "name": "yield"
         }},
-        "context_update": "等待下一级反馈",
+        "context_update": "{silent_context}",
         "metadata": {{}}
     }}
     ```"""
+                if cascade_mode == "distortion_cascade":
+                    example_block = distortion_note + "\n\n" + example_block
             else:
                 if notice_kind == "analysis":
-                    if tier == "top":
+                    if role_kind == "top":
                         notice_message = f"作为高层，我对“{notice_text or '最新任务'}”的看法是：优点在于有利于统一部署、压实责任和跟踪问效；缺点在于如果资源和配套制度不足，容易形成层层加码；建议同步明确牵头单位、预算安排和督促检查节奏。"
                         context_update = "已从高层视角完成政策解读与优缺点分析"
-                    elif tier == "mid":
+                    elif role_kind == "mid":
                         notice_message = f"作为中层，我对“{notice_text or '最新任务'}”的看法是：优点在于便于分解任务、建立台账和协同推进；缺点在于若验收标准不清，容易造成重复报送和责任交叉；建议尽快细化举措、明确时间表和周报机制。"
                         context_update = "已从中层视角完成政策解读与优缺点分析"
                     else:
                         notice_message = f"作为基层执行者，我对“{notice_text or '最新任务'}”的看法是：优点在于有助于逐项排查、现场核验和及时上报；缺点在于若模板过多、口径频繁变化，会增加执行负担；建议简化报送字段并明确整改、复查和销号标准。"
                         context_update = "已从基层视角完成政策解读与优缺点分析"
-                elif tier == "top":
+                elif role_kind == "top":
                     notice_message = f"关于系统公告“{notice_text or '最新任务'}”，作为高层，我将明确总体目标、资源投放、压实责任和考核机制，并指定牵头负责人。"
                     context_update = "已从高层视角回应系统公告"
-                elif tier == "mid":
+                elif role_kind == "mid":
                     notice_message = f"关于系统公告“{notice_text or '最新任务'}”，作为中层，我将分解任务、协调相关单位、建立工作台账，并给出周度推进时间表。"
                     context_update = "已从中层视角回应系统公告"
                 else:

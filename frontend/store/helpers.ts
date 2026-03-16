@@ -331,6 +331,14 @@ export const mapBackendEventsToLogs = (
       llmCallError: pickText('LLM call failed', 'LLM 调用失败'),
       llmParseError: pickText('LLM output parse failed', 'LLM 输出解析失败'),
       agentOffline: pickText('Agent went offline', '智能体已掉线'),
+      distortionBlocked: pickText('Policy transmission blocked', '政策传递被截留'),
+      distortionAdjusted: pickText('Policy transmission distorted', '政策传递发生失真'),
+      distortionInput: pickText('Announcement classified as distortion cascade input', '本条公告被识别为：distortion cascade input'),
+      nonDistortionInput: pickText('Announcement did not enter distortion cascade', '本条公告未进入 distortion cascade'),
+      originalMessage: pickText('Original', '原始下传内容'),
+      finalMessage: pickText('Final', '最终下传内容'),
+      reasonLabel: pickText('Reason', '原因'),
+      metricsLabel: pickText('Metrics', '参数/评分'),
       actionStart: pickText('Started action', '开始执行动作'),
       actionEnd: pickText('performed action', '执行了动作'),
       systemEvent: pickText('System event', '系统事件'),
@@ -451,6 +459,40 @@ export const mapBackendEventsToLogs = (
       const baseLabel = isZh() ? `智能体「${agentLabel}」${kindLabel}` : `Agent "${agentLabel}" ${kindLabel}`;
       const label = baseLabel + (errText ? pickText(`: ${errText}`, `：${errText}`) : '');
       return { ...base, type: 'SYSTEM', content: label };
+    }
+
+    if (evType === 'cascade_distortion') {
+      const agentName: string = data.agent || '';
+      const tier: string = data.tier || '';
+      const blocked = Boolean(data.blocked);
+      const originalMessage = String(data.original_message || '').trim() || pickText('(empty)', '（空）');
+      const finalMessage = String(data.final_message || '').trim() || pickText('(blocked / no downstream message)', '（已截留 / 无下传内容）');
+      const reason = String(data.reason || '').trim() || pickText('No reason provided', '未提供原因');
+      const metrics = `${pickText('strength', '失真强度')}=${data.distortion_strength ?? '-'}, `
+        + `${pickText('conflict', '冲突敏感度')}=${data.conflict_sensitivity ?? '-'}, `
+        + `${pickText('block', '阻断概率')}=${data.block_probability ?? '-'}, `
+        + `${pickText('pressure', '冲突压力')}=${data.pressure ?? '-'}, `
+        + `${pickText('tendency', '截留倾向')}=${data.block_tendency ?? '-'}`;
+      const title = blocked ? labels.distortionBlocked : labels.distortionAdjusted;
+      const content = [
+        agentName ? `${agentName}${tier ? ` (${tier})` : ''} - ${title}` : title,
+        `${labels.originalMessage}: ${originalMessage}`,
+        `${labels.finalMessage}: ${finalMessage}`,
+        `${labels.reasonLabel}: ${reason}`,
+        `${labels.metricsLabel}: ${metrics}`,
+      ].join('\n');
+      return { ...base, type: 'SYSTEM', content };
+    }
+
+    if (evType === 'cascade_input_classified') {
+      const entered = Boolean(data.entered_distortion_chain);
+      const content = String(data.content || '').trim();
+      const label = entered ? labels.distortionInput : labels.nonDistortionInput;
+      return {
+        ...base,
+        type: 'ENVIRONMENT',
+        content: content ? `${label}\n${content}` : label,
+      };
     }
 
     // Public broadcast / environment event

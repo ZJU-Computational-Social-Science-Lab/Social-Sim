@@ -5,6 +5,7 @@
 export interface ScenarioParam {
   key: string;
   label: string;
+  description?: string;
   type: 'number' | 'text';
   default: unknown;
   ui_hint?: string;
