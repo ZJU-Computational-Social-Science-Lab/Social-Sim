@@ -147,7 +147,7 @@ class PayoffEngine:
 
         payoffs = {}
         action_map = {
-            a.agent_name: a.action_name.lower()
+            a.agent_name: str(a.action_name).lower()
             for a in actions if not a.skipped
         }
         agent_names = list(action_map.keys())

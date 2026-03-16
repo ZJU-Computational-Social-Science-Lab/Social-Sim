@@ -255,7 +255,8 @@ class ExperimentController:
         canonical_action_name = action_name
         if action_schemas:
             for schema_key in action_schemas.keys():
-                if schema_key.lower() == action_name.lower():
+                # Convert to strings for comparison (action_name may be int for integer-type games)
+                if str(schema_key).lower() == str(action_name).lower():
                     canonical_action_name = schema_key
                     break
         should_follow_up = bool(action_schemas and canonical_action_name in action_schemas)
