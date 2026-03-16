@@ -335,6 +335,10 @@ export const mapBackendEventsToLogs = (
       distortionAdjusted: pickText('Policy transmission distorted', '政策传递发生失真'),
       distortionInput: pickText('Announcement classified as distortion cascade input', '本条公告被识别为：distortion cascade input'),
       nonDistortionInput: pickText('Announcement did not enter distortion cascade', '本条公告未进入 distortion cascade'),
+      privateBroadcast: pickText('Targeted private broadcast', '定向私有广播'),
+      globalBroadcast: pickText('Global broadcast', '全局广播'),
+      recipientsLabel: pickText('Recipients', '接收者'),
+      allAgents: pickText('All agents', '全体智能体'),
       originalMessage: pickText('Original', '原始下传内容'),
       finalMessage: pickText('Final', '最终下传内容'),
       reasonLabel: pickText('Reason', '原因'),
@@ -500,6 +504,10 @@ export const mapBackendEventsToLogs = (
       const text = data.text || data.message || JSON.stringify(ev);
       const senderName: string = data.sender || '';
       const eventType: string = data.type || '';
+      const recipients = Array.isArray(data.recipients)
+        ? data.recipients.map((value: unknown) => String(value || '').trim()).filter(Boolean)
+        : [];
+      const scoped = Boolean(data.scoped);
 
       if (eventType === 'TalkToEvent' && senderName) {
         const agentId = senderName ? nameToId.get(senderName) : undefined;
@@ -519,7 +527,14 @@ export const mapBackendEventsToLogs = (
         return { ...base, type: 'AGENT_SAY', agentId, content: text };
       }
 
-      return { ...base, type: 'ENVIRONMENT', content: text };
+      const scopeLabel = scoped ? labels.privateBroadcast : labels.globalBroadcast;
+      const recipientText = recipients.length > 0 ? recipients.join(', ') : labels.allAgents;
+      const content = [
+        scopeLabel,
+        `${labels.recipientsLabel}: ${recipientText}`,
+        text,
+      ].join('\n');
+      return { ...base, type: 'ENVIRONMENT', content };
     }
 
     // Action end

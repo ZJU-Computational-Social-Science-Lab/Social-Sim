@@ -186,6 +186,12 @@ class Simulator:
         if receivers is not None:
             allow_set = {str(r).strip() for r in receivers if str(r).strip()}
 
+        expected_recipients = {
+            str(getattr(agent, "name", "") or "").strip()
+            for agent in self.agents.values()
+            if str(getattr(agent, "name", "") or "").strip() and str(getattr(agent, "name", "") or "").strip() != str(sender or "").strip()
+        }
+
         for agent in self.agents.values():
             if agent.name == sender:
                 continue
@@ -198,10 +204,13 @@ class Simulator:
             agent.add_env_feedback(enriched, images=images, audio=audio, video=video)
             recipients.append(agent.name)
 
+        recipient_set = {name for name in recipients if name}
+        scoped_delivery = allow_set is not None and recipient_set != expected_recipients
+
         code = getattr(event, "code", None)
-        if code == "environment_event":
+        if code == "environment_event" and not scoped_delivery:
             self.scene.on_event(self, "environment", getattr(event, "params", {}))
-        elif code == "public_event":
+        elif code == "public_event" and not scoped_delivery:
             self.scene.on_event(self, "broadcast", getattr(event, "params", {}))
 
         # Timeline: keep minimal
@@ -210,6 +219,7 @@ class Simulator:
             "type": event.__class__.__name__,
             "sender": sender,
             "recipients": recipients,
+            "scoped": scoped_delivery,
             "text": event.to_string(),
             "images": images,
             "audio": audio,
