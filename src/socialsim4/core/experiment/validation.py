@@ -117,7 +117,14 @@ def validate_and_clamp(result: dict, game_config: GameConfig) -> Optional[dict]:
 
     if game_config.action_type == "discrete":
         valid_actions = game_config.actions
-        raw_action = str(result[field]).strip().lower()
+
+        # Handle nested action format: {"action": {"name": "speak"}}
+        # Some LLMs return actions as dicts instead of strings
+        action_value = result[field]
+        if isinstance(action_value, dict):
+            action_value = action_value.get("name") or action_value.get("action") or ""
+
+        raw_action = str(action_value).strip().lower()
 
         # Exact match (case-insensitive)
         for valid in valid_actions:

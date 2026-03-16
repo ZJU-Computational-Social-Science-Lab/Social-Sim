@@ -6,9 +6,12 @@ import { applyEnvironmentEvent } from '../services/environmentSuggestions';
 import { Megaphone, CloudLightning, Edit, Save, Sparkles, Loader2, Check, FilePlus } from 'lucide-react';
 import { MultimodalInput } from './MultimodalInput';
 import { InitialEventsModal } from './InitialEventsModal';
+import { injectHostMessage } from '../services/simulationTree';
+import { API_BASE_URL } from '../services/client';
+import { useAuthStore } from '../store/auth';
 
 export const HostPanel: React.FC = () => {
-   const { t } = useTranslation();
+  const { t } = useTranslation();
   const agents = useSimulationStore(state => state.agents);
   const logs = useSimulationStore(state => state.logs);
   const currentSimulation = useSimulationStore(state => state.currentSimulation);
@@ -17,11 +20,12 @@ export const HostPanel: React.FC = () => {
   const updateAgentProperty = useSimulationStore(state => state.updateAgentProperty);
   const addNotification = useSimulationStore(state => state.addNotification);
   const toggleInitialEvents = useSimulationStore((state: any) => state.toggleInitialEvents);
+  const selectedNodeId = useSimulationStore((state: any) => state.selectedNodeId);
 
   const [broadcastMsg, setBroadcastMsg] = useState('');
   const [envEvent, setEnvEvent] = useState('');
   const [envImage, setEnvImage] = useState<string | null>(null);
-  
+
   // God Mode State
   const [selectedAgentId, setSelectedAgentId] = useState(agents[0]?.id || '');
   const [selectedProp, setSelectedProp] = useState('');
@@ -30,7 +34,8 @@ export const HostPanel: React.FC = () => {
   // #12 Environment Suggestions
   const [suggestions, setSuggestions] = useState<Array<{event: string, reason: string}>>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
-  
+
+  // Shared function for pushing environment events (from policy_hierarchy branch)
   const pushEnvironmentEvent = async (description: string, eventType: string) => {
     if (!description.trim()) return;
 
@@ -48,7 +53,30 @@ export const HostPanel: React.FC = () => {
 
   const handleBroadcast = async () => {
     if (!broadcastMsg.trim()) return;
-    await pushEnvironmentEvent(`${t('components.hostPanel.logPrefixSystemAnnouncement')} ${broadcastMsg}`, 'broadcast');
+
+    const message = `${t('components.hostPanel.logPrefixSystemAnnouncement')} ${broadcastMsg}`;
+
+    // Log to UI
+    injectLog('SYSTEM', message);
+
+    // Experiment simulations: use experiment-specific API for message injection
+    if (currentSimulation?.id && selectedNodeId) {
+      try {
+        await injectHostMessage(API_BASE_URL, currentSimulation.id, selectedNodeId, broadcastMsg, useAuthStore.getState().accessToken);
+        addNotification('success', t('components.hostPanel.broadcastSent'));
+      } catch (error) {
+        console.error('Failed to inject host message:', error);
+        addNotification('error', t('components.hostPanel.broadcastFailed'));
+      }
+    } else if (engineMode === 'connected' && currentSimulation?.id) {
+      // Regular connected simulations: use general environment event API
+      await applyEnvironmentEvent(currentSimulation.id, {
+        event_type: 'broadcast',
+        description: message,
+        severity: 'mild',
+      });
+    }
+
     setBroadcastMsg('');
   };
 
@@ -56,8 +84,8 @@ export const HostPanel: React.FC = () => {
     if (!text.trim() && !envImage) return;
     await pushEnvironmentEvent(`${t('components.hostPanel.logPrefixEnvironmentEvent')} ${text}`, 'environment');
     if (text === envEvent) {
-       setEnvEvent('');
-       setEnvImage(null);
+      setEnvEvent('');
+      setEnvImage(null);
     }
   };
 

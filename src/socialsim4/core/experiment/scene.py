@@ -438,6 +438,9 @@ class ExperimentScene:
         except Exception:
             pass
 
+        followup_modes = self._get_action_followup_modes(action_names)
+        logger.info(f"[GAME_CONFIG] scenario_id='{self.config.scenario_id}', action_names={action_names}, followup_modes={followup_modes}")
+
         return GameConfig(
             name=self.config.scenario_id,
             description=description,
@@ -454,7 +457,53 @@ class ExperimentScene:
             defect_penalty=params.get("defect_penalty"),
             payoff_config=payoff_config,
             action_schemas=action_schemas,
+            # Actions that require follow-up reprompt for free-text input
+            action_followup_modes=followup_modes,
         )
+
+    def _get_action_followup_modes(self, action_names: list[str]) -> dict[str, str]:
+        """Determine which actions require follow-up prompts.
+
+        Discussion scenarios (council_chamber, open_discussion, werewolf, contagion)
+        need plain_text follow-up for Speak actions.
+
+        Fallback: Auto-detect speak-like actions for any scenario, including "custom".
+
+        Args:
+            action_names: List of action names in this scenario
+
+        Returns:
+            Dict mapping action names to follow-up modes ("plain_text" or "json")
+        """
+        followup_modes = {}
+
+        # Scenarios where "Speak" action needs free-text message input
+        discussion_scenarios = {
+            "council_chamber",
+            "open_discussion",
+            "werewolf",
+            "contagion",
+        }
+
+        logger.debug(f"[FOLLOWUP] scenario_id={self.config.scenario_id}, action_names={action_names}")
+        logger.debug(f"[FOLLOWUP] is_discussion={self.config.scenario_id in discussion_scenarios}")
+
+        if self.config.scenario_id in discussion_scenarios:
+            # Map any speak-like action to plain_text mode
+            for action_name in action_names:
+                if action_name.lower() in ("speak", "say", "talk"):
+                    followup_modes[action_name] = "plain_text"
+                    logger.debug(f"[FOLLOWUP] Added followup mode for '{action_name}': plain_text")
+
+        # Fallback: Auto-detect speak-like actions for any scenario
+        # This handles "custom" scenarios that have speak actions
+        for action_name in action_names:
+            if action_name.lower() in ("speak", "say", "talk") and action_name not in followup_modes:
+                followup_modes[action_name] = "plain_text"
+                logger.info(f"[FOLLOWUP] Auto-detected speak action '{action_name}' (scenario_id={self.config.scenario_id})")
+
+        logger.debug(f"[FOLLOWUP] Final followup_modes={followup_modes}")
+        return followup_modes
 
     def _build_payoff_summary(self) -> str:
         """Build payoff_summary from scenario parameters - GENERIC version.
@@ -605,6 +654,7 @@ class ExperimentScene:
             "current_round": self.current_round,
             "history": self._history,
             "state": self.state.to_dict(),
+            "pending_host_messages": self._pending_host_messages,
         }
 
     @classmethod
@@ -616,4 +666,5 @@ class ExperimentScene:
         scene._history = data.get("history", [])
         if data.get("state") is not None:
             scene.state = ExperimentState.from_dict(data["state"])
+        scene._pending_host_messages = data.get("pending_host_messages", [])
         return scene

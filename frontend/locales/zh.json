@@ -1080,7 +1080,9 @@
       "modifyState": "强制修改属性",
       "selectProperty": "选择属性...",
       "enterNewValue": "输入新值",
-      "updateProperty": "更新属性"
+      "updateProperty": "更新属性",
+      "broadcastSent": "广播已发送给智能体",
+      "broadcastFailed": "广播发送失败"
     },
     "initialEventsModal": {
       "title": "初始事件编辑器",

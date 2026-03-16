@@ -155,7 +155,8 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
                              scenarioData?.category === 'discussion' ||
                              scenarioData?.category === 'grid' ||
                              scenarioData?.category === 'social_dynamics' ||
-                             scenarioData?.category === 'social_deduction';
+                             scenarioData?.category === 'social_deduction' ||
+                             scenarioData?.category === 'spatial';
 
     addSimulation(
       name,

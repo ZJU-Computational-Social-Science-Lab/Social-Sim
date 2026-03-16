@@ -92,3 +92,13 @@ export async function applyNodeOverrides(
 ): Promise<{ ok: boolean }> {
   return await httpPost<{ ok: boolean }>(base, `/simulations/${id}/tree/sim/${node}/overrides`, { overrides }, token);
 }
+
+export async function injectHostMessage(
+  base: string,
+  id: string,
+  node: number,
+  message: string,
+  token?: string,
+): Promise<{ status: string; message: string }> {
+  return await httpPost<{ status: string; message: string }>(base, `/simulations/${id}/tree/sim/${node}/inject-message`, { message }, token);
+}

@@ -404,15 +404,99 @@ Use the above context to inform your responses when relevant.
         if not success:
             return {}
 
-        # Store LLM output in memory
-        self.short_memory.append("assistant", llm_output)
-        if self.log_event:
-            self.log_event(
-                "agent_ctx_delta",
-                {"agent": self.name, "role": "assistant", "content": llm_output},
-            )
-        self.last_history_length = len(self.short_memory)
+        # --- Reprompt handling for actions requiring free-text input ---
+        reprompt_storage_handled = False
 
+        # Build lookup for action classes
+        action_lookup = {getattr(act, "NAME", None): act for act in self.action_space}
+
+        for action_item in (action_data or []):
+            action_name = action_item.get("action") or action_item.get("name")
+
+            # Handle nested action format: {"action": {"name": "look_around"}}
+            # Some LLMs return actions as dicts instead of strings
+            if isinstance(action_name, dict):
+                action_name = action_name.get("name") or action_name.get("action")
+
+            # Skip if action_name is not a string (unhashable as dict key)
+            if not isinstance(action_name, str):
+                print(f"[AGENT DEBUG] {self.name} got non-string action: {action_name} (type: {type(action_name).__name__})")
+                continue
+
+            act = action_lookup.get(action_name)
+
+            if not act:
+                continue
+
+            reprompt_param = getattr(act, "REPROMPT_PARAM", None)
+            if reprompt_param:
+                # Store first response (action choice) in memory
+                self.short_memory.append("assistant", llm_output)
+                if self.log_event:
+                    self.log_event(
+                        "agent_ctx_delta",
+                        {"agent": self.name, "role": "assistant", "content": llm_output},
+                    )
+                reprompt_storage_handled = True
+
+                # Build and store the reprompt instruction
+                reprompt_instruction = (
+                    f"You selected the '{action_name}' action. "
+                    f"Now write your message (plain text only, no JSON):"
+                )
+                self.short_memory.append("user", reprompt_instruction)
+                if self.log_event:
+                    self.log_event(
+                        "agent_ctx_delta",
+                        {"agent": self.name, "role": "user", "content": reprompt_instruction},
+                    )
+
+                # Build reprompt context from updated memory
+                reprompt_ctx = self.short_memory.searilize(dialect="default")
+                reprompt_ctx.insert(0, {"role": "system", "content": system_prompt})
+
+                # Call LLM for free-text response
+                try:
+                    reprompt_output = self.call_llm(clients, reprompt_ctx)
+                    reprompt_output = reprompt_output.strip()
+
+                    # Inject the free-text response as the action parameter
+                    action_item[reprompt_param] = reprompt_output
+
+                    # Store reprompt response in memory
+                    self.short_memory.append("assistant", reprompt_output)
+                    if self.log_event:
+                        self.log_event(
+                            "agent_ctx_delta",
+                            {"agent": self.name, "role": "assistant", "content": reprompt_output},
+                        )
+
+                    # Debug logging
+                    try:
+                        with open(_debug_file, 'a', encoding='utf-8') as f:
+                            f.write(f"\n--- REPROMPT for '{action_name}' ---\n")
+                            f.write(f"Instruction: {reprompt_instruction}\n")
+                            f.write(f"Response: {reprompt_output}\n")
+                            f.write(f"--- END REPROMPT ---\n\n")
+                    except Exception:
+                        pass
+
+                except Exception as e:
+                    print(f"[REPROMPT] {self.name} failed to get reprompt for '{action_name}': {e}")
+                    # Fall through — action will fail naturally if param missing
+
+        # --- End reprompt handling ---
+
+        # Store LLM output in memory (only if reprompt didn't already handle it)
+        if not reprompt_storage_handled:
+            self.short_memory.append("assistant", llm_output)
+            if self.log_event:
+                self.log_event(
+                    "agent_ctx_delta",
+                    {"agent": self.name, "role": "assistant", "content": llm_output},
+                )
+
+        self.last_history_length = len(self.short_memory)
         return action_data
 
     # -------------------------------------------------------------------------
