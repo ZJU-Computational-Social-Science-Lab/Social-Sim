@@ -11,6 +11,7 @@ Contains:
     - Agent: Main agent class with state and orchestration logic
 """
 
+import json
 import logging
 from pathlib import Path
 from datetime import datetime
@@ -170,65 +171,185 @@ Recent Context Summary:
 {context_summary}
 """
 
+        default_example = """Example JSON response:
+    ```json
+    {
+        "thoughts": "I need to respond to the greeting and consider next steps",
+        "response": "Hello! Nice to meet you.",
+        "action": {
+        "name": "send_message",
+        "target": "other_agent",
+        "message": "Hello! Nice to meet you."
+        },
+        "context_update": "Met a new agent, should learn more about them",
+        "metadata": {}
+    }
+    ```
+
+    If you only want to speak without taking an action:
+    ```json
+    {
+        "thoughts": "Just responding to the question",
+        "response": "My opinion is...",
+        "action": {
+            "name": "send_message",
+            "message": "My opinion is..."
+        },
+        "context_update": "Shared my opinion on the topic",
+        "metadata": {}
+    }
+    ```"""
+
+        example_block = default_example
+        if scene and getattr(scene, "TYPE", "") == "policy_cascade_scene":
+            task_mode = str(scene.state.get("task_mode", "notice") or "notice")
+            notice_kind = str(scene.state.get("notice_kind", "execution") or "execution")
+            cascade_mode = str(scene.state.get("cascade_mode", "strict_cascade") or "strict_cascade")
+            policy_text = str(scene.state.get("latest_policy", "") or "").strip()
+            notice_text = str(scene.state.get("latest_notice", "") or "").strip()
+            tier = str(getattr(scene, "_tier_map", {}).get(self.name, self.properties.get("tier", "")) or "").strip()
+            role_kind = scene._tier_role_kind(tier) if hasattr(scene, "_tier_role_kind") else "mid"
+            if task_mode == "cascade":
+                example_policy = policy_text or "最新政策原文"
+                if cascade_mode == "distortion_cascade":
+                    if role_kind == "top":
+                        example_message = f"关于‘{example_policy}’，我决定只向下强调考核压力与问责要求，暂不说明全部资源承诺。"
+                        context_update = "已按本层利益重述政策重点，并保留部分信息"
+                    elif role_kind == "mid":
+                        example_message = f"上级要求推进该政策，但考虑到本部门考核压力，我只向下传达可立即执行的部分，其余内容暂缓。"
+                        context_update = "已结合中层压力选择性下传政策"
+                    else:
+                        example_message = f"该政策与当前一线负担存在冲突，我会先反馈困难并暂缓全面执行，只保留最表层的应付性落实。"
+                        context_update = "已因基层执行冲突而弱化落实"
+                    distortion_note = (
+                        f"当前失真参数：失真强度={float(scene.state.get('distortion_strength', 0.6) or 0.6):.2f}，"
+                        f"利益冲突敏感度={float(scene.state.get('conflict_sensitivity', 0.5) or 0.5):.2f}，"
+                        f"截留概率={float(scene.state.get('block_probability', 0.25) or 0.25):.2f}。"
+                    )
+                elif role_kind == "top":
+                    example_message = f"{example_policy}\n态度：完全支持并按原文执行。\n补充：由我批准专项预算并建立月度问责机制。"
+                    context_update = "已按原文转发，并补充高层统筹与资源安排"
+                elif role_kind == "mid":
+                    example_message = f"{example_policy}\n态度：完全支持并按原文执行。\n补充：我将在48小时内拆解任务到各部门并建立周报台账。"
+                    context_update = "已按原文转发，并补充中层协调与任务拆解"
+                else:
+                    example_message = f"{example_policy}\n态度：完全支持并按原文执行。\n补充：我将按排查清单逐项核验，并在发现异常后24小时内上报。"
+                    context_update = "已按原文转发，并补充基层执行与异常上报"
+                message_json = json.dumps(example_message, ensure_ascii=False)
+                silent_context = "等待下一级反馈" if cascade_mode != "distortion_cascade" else "因本层利益冲突暂缓下传"
+                example_block = f"""Example JSON response:
+    ```json
+    {{
+        "thoughts": "转发最新政策，保持原文并附执行计划。",
+        "response": "",
+        "action": {{
+        "name": "send_message",
+        "message": {message_json}
+        }},
+        "context_update": "{context_update}",
+        "metadata": {{}}
+    }}
+    ```
+
+    If you only want to speak without taking an action:
+    ```json
+    {{
+        "thoughts": "无需转发时保持静默等待。",
+        "response": "",
+        "action": {{
+            "name": "yield"
+        }},
+        "context_update": "{silent_context}",
+        "metadata": {{}}
+    }}
+    ```"""
+                if cascade_mode == "distortion_cascade":
+                    example_block = distortion_note + "\n\n" + example_block
+            else:
+                if notice_kind == "analysis":
+                    if role_kind == "top":
+                        notice_message = f"作为高层，我对“{notice_text or '最新任务'}”的看法是：优点在于有利于统一部署、压实责任和跟踪问效；缺点在于如果资源和配套制度不足，容易形成层层加码；建议同步明确牵头单位、预算安排和督促检查节奏。"
+                        context_update = "已从高层视角完成政策解读与优缺点分析"
+                    elif role_kind == "mid":
+                        notice_message = f"作为中层，我对“{notice_text or '最新任务'}”的看法是：优点在于便于分解任务、建立台账和协同推进；缺点在于若验收标准不清，容易造成重复报送和责任交叉；建议尽快细化举措、明确时间表和周报机制。"
+                        context_update = "已从中层视角完成政策解读与优缺点分析"
+                    else:
+                        notice_message = f"作为基层执行者，我对“{notice_text or '最新任务'}”的看法是：优点在于有助于逐项排查、现场核验和及时上报；缺点在于若模板过多、口径频繁变化，会增加执行负担；建议简化报送字段并明确整改、复查和销号标准。"
+                        context_update = "已从基层视角完成政策解读与优缺点分析"
+                elif role_kind == "top":
+                    notice_message = f"关于系统公告“{notice_text or '最新任务'}”，作为高层，我将明确总体目标、资源投放、压实责任和考核机制，并指定牵头负责人。"
+                    context_update = "已从高层视角回应系统公告"
+                elif role_kind == "mid":
+                    notice_message = f"关于系统公告“{notice_text or '最新任务'}”，作为中层，我将分解任务、协调相关单位、建立工作台账，并给出周度推进时间表。"
+                    context_update = "已从中层视角回应系统公告"
+                else:
+                    notice_message = f"关于系统公告“{notice_text or '最新任务'}”，作为基层执行者，我将按清单落实排查步骤、现场核验问题、推进整改复查并及时上报反馈。"
+                    context_update = "已从基层视角回应系统公告"
+                message_json = json.dumps(notice_message, ensure_ascii=False)
+                example_block = f"""Example JSON response:
+    ```json
+    {{
+        "thoughts": "需要直接回应最新系统公告，并给出符合本职位职责的解读。",
+        "response": "",
+        "action": {{
+        "name": "send_message",
+        "message": {message_json}
+        }},
+        "context_update": "{context_update}",
+        "metadata": {{}}
+    }}
+    ```
+
+    If you only want to speak without taking an action:
+    ```json
+    {{
+        "thoughts": "当前没有新增任务时可以结束回合。",
+        "response": "",
+        "action": {{
+            "name": "yield"
+        }},
+        "context_update": "等待下一条系统公告",
+        "metadata": {{}}
+    }}
+    ```"""
+
         # Build the prompt with new JSON output format
         prompt = f"""{identity_line}
 
-{self.user_profile if len(self.user_profile) < 500 else self.user_profile[:500] + "..."}
+    {self.user_profile if len(self.user_profile) < 500 else self.user_profile[:500] + "..."}
 
-{self.role_prompt if len(self.role_prompt or "") < 500 else ""}{knowledge_block}
-Language: {self.language}. Respond in {self.language} for content; use English for action names.
+    {self.role_prompt if len(self.role_prompt or "") < 500 else ""}{knowledge_block}
+    Language: {self.language}. Respond in {self.language} for content; use English for action names.
 
-{scene_block}
-{context_block}
-Action Space:
-{action_catalog}
+    {scene_block}
+    {context_block}
+    Action Space:
+    {action_catalog}
 
-Usage:
-{action_instructions}
+    Usage:
+    {action_instructions}
 
-{self.initial_instruction}
+    {self.initial_instruction}
 
-IMPORTANT - Output Format:
-You MUST respond with a valid JSON object containing these 5 sections:
+    IMPORTANT - Output Format:
+    You MUST respond with a valid JSON object containing these 5 sections:
 
-1. "thoughts": Your brief thinking about the current situation (1-2 sentences)
+    1. "thoughts": Your brief thinking about the current situation (1-2 sentences)
 
-2. "response": What you want to communicate (can be empty string if no speech needed)
+    2. "response": What you want to communicate (can be empty string if no speech needed)
 
-3. "action": The action you want to take, containing:
-   - "name": action name from the Action Space above
-   - Additional key-value pairs for action parameters (if required)
+    3. "action": The action you want to take, containing:
+       - "name": action name from the Action Space above
+       - Additional key-value pairs for action parameters (if required)
 
-4. "context_update": Brief notes to remember for future (goals, observations, plans)
+    4. "context_update": Brief notes to remember for future (goals, observations, plans)
 
-5. "metadata": Optional object with any additional metadata
+    5. "metadata": Optional object with any additional metadata
 
-Example JSON response:
-```json
-{{
-  "thoughts": "I need to respond to the greeting and consider next steps",
-  "response": "Hello! Nice to meet you.",
-  "action": {{
-    "name": "send_message",
-    "target": "other_agent",
-    "message": "Hello! Nice to meet you."
-  }},
-  "context_update": "Met a new agent, should learn more about them",
-  "metadata": {{}}
-}}
-```
+    {example_block}
 
-If you only want to speak without taking an action:
-```json
-{{
-  "thoughts": "Just responding to the question",
-  "response": "My opinion is...",
-  "action": null,
-  "context_update": "Shared my opinion on the topic",
-  "metadata": {{}}
-}}
-```
-"""
+    You must always provide an "action" with a valid "name" from the Action Space. If you only want to speak, use "send_message" and include the text in the "message" field. Use "yield" when you are done with your turn.
+    """
         return prompt
 
     # -------------------------------------------------------------------------
@@ -487,13 +608,40 @@ Use the above context to inform your responses when relevant.
 
         # --- End reprompt handling ---
 
-        # Store LLM output in memory (only if reprompt didn't already handle it)
+        # Store compact assistant memory (if reprompt didn't handle it)
+        # This reduces self-copying by storing structured memory instead of raw JSON
         if not reprompt_storage_handled:
-            self.short_memory.append("assistant", llm_output)
+            memory_parts = []
+            scene_type = getattr(scene, "TYPE", "") if scene else ""
+            scene_mode = str(scene.state.get("task_mode", "") or "") if scene else ""
+
+            for item in action_data:
+                response = str(item.get("response", "") or "").strip()
+                if response:
+                    memory_parts.append(response)
+
+                action_payload = item.get("action") or {}
+                action_name = ""
+                action_message = ""
+                if type(action_payload) is dict:
+                    action_name = str(action_payload.get("name") or action_payload.get("action") or "").strip()
+                    action_message = str(action_payload.get("message", "") or "").strip()
+
+                if action_name:
+                    memory_parts.append(f"[Action] {action_name}")
+                if action_message and action_message != response and not (scene_type == "policy_cascade_scene" and scene_mode == "notice"):
+                    memory_parts.append(action_message)
+
+                context_update = str(item.get("context_update", "") or "").strip()
+                if context_update:
+                    memory_parts.append(f"[Remember] {context_update}")
+
+            assistant_memory = "\n".join(memory_parts).strip() or llm_output
+            self.short_memory.append("assistant", assistant_memory)
             if self.log_event:
                 self.log_event(
                     "agent_ctx_delta",
-                    {"agent": self.name, "role": "assistant", "content": llm_output},
+                    {"agent": self.name, "role": "assistant", "content": assistant_memory},
                 )
 
         self.last_history_length = len(self.short_memory)
@@ -531,7 +679,9 @@ Use the above context to inform your responses when relevant.
         """Record an LLM call/parse error and mark agent offline if threshold exceeded."""
         self.consecutive_llm_errors += 1
 
-        if self.log_event:
+        should_emit_error = bool(final)
+
+        if self.log_event and should_emit_error:
             self.log_event(
                 "agent_error",
                 {

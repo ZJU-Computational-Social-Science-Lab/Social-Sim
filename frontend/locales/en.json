@@ -56,8 +56,19 @@
     "resume": "Resume",
     "copy": "Copy",
     "delete": "Delete",
+    "bulkActions": "Bulk actions",
+    "closeBulkActions": "Close bulk actions",
+    "bulkActionsTitle": "Bulk manage saved simulations",
+    "bulkActionsHint": "Select the simulations you want to remove, then confirm the bulk deletion.",
+    "cancelBulkActions": "Cancel",
+    "bulkDelete": "Delete selected",
+    "deleting": "Deleting…",
+    "selectAll": "Select all",
+    "selectedCount": "Selected: {{count}}",
     "type": "Type",
     "confirmDelete": "Delete this simulation?",
+    "confirmBulkDelete": "Delete {{count}} selected simulations?",
+    "bulkDeleteResult": "Deleted {{success}} simulations / Failed {{failed}} simulations",
     "loading": "Loading…",
     "error": "Unable to load simulations."
   },
@@ -78,7 +89,7 @@
       },
       "policy_erosion": {
         "name": "Policy Meaning Erosion",
-        "description": "A policy is announced at the top of a three-tier hierarchy. Each tier decides how to interpret and pass it on."
+        "description": "A policy is announced at the top of a configurable multi-level hierarchy. Each level may preserve, reinterpret, distort, or block it."
       },
       "echo_chamber": {
         "name": "Echo Chamber",
@@ -1652,6 +1663,22 @@
       "title": "Dynamic Actions:",
       "message": "These actions are generated from the \"{{paramLabel}}\" parameter. Edit it in Step 2 to change the available choices."
     },
+    "paramLabels": {
+      "cascade_mode": "Cascade Mode",
+      "distortion_strength": "Distortion Strength",
+      "conflict_sensitivity": "Conflict Sensitivity",
+      "block_probability": "Block Probability",
+      "num_agents_per_tier": "Agents per Tier",
+      "policy_text": "Source Policy Text"
+    },
+    "paramDescriptions": {
+      "cascade_mode": "Choose whether each level must relay the policy faithfully or may distort and block it during transmission.",
+      "distortion_strength": "Only used in distortion mode. Higher values make downstream rewrites of the policy more severe.",
+      "conflict_sensitivity": "Only used in distortion mode. Higher values make value conflicts more likely to become resistance or deviation.",
+      "block_probability": "Only used in distortion mode. The base probability that an agent withholds the policy instead of forwarding it.",
+      "num_agents_per_tier": "Controls how many agents are generated for each hierarchy level.",
+      "policy_text": "The original directive first issued to the highest tier."
+    },
     "payoffMatrix": {
       "howToRead": {
         "title": "How to read this matrix:",
@@ -1710,6 +1737,24 @@
       "scenarioDescriptionPlaceholder": "Enter a description of the scenario that agents will understand...",
       "parametersTitle": "Parameters",
       "noParameters": "This scenario has no configurable parameters. Adjust the description above and proceed to the next step.",
+      "cascadeCards": {
+        "strict_cascade": {
+          "title": "Strict Cascade Overview",
+          "summary": "This mode requires the policy to move downward through the configured hierarchy without intentional meaning drift.",
+          "badge": "Faithful relay",
+          "point1": "Each level must pass the directive to the next tier only, without skipping levels.",
+          "point2": "The system tries to preserve the original policy content while allowing role-specific execution details.",
+          "point3": "Useful for testing chain-of-command fidelity and how each level operationalizes the same directive."
+        },
+        "distortion_cascade": {
+          "title": "Distortion Cascade Overview",
+          "summary": "This mode allows each level to selectively reinterpret, weaken, reshape, or block the policy during transmission.",
+          "badge": "Distortion enabled",
+          "point1": "The policy still moves downward tier by tier, but downstream agents do not need to preserve the original wording.",
+          "point2": "Distortion strength, conflict sensitivity, and block probability directly affect rewriting and withholding behavior.",
+          "point3": "Useful for simulating meaning drift, departmental conflict, and street-level nonimplementation."
+        }
+      },
       "payoffInput": {
         "yourPayoffs": "Your Payoffs:",
         "instruction": "Fill in what YOU receive based on YOUR choice and THEIR choice.",
@@ -1719,6 +1764,8 @@
     "step3": {
       "title": "Select Actions",
       "subtitle": "Choose what actions agents can take. At least one action must be selected.",
+      "linkedTitle": "This step directly affects the final simulation",
+      "linkedDesc": "Selected actions are written into the created agents' action space and are used in the Step 6 prompt preview and the backend runtime config. Custom actions are persisted too.",
       "categoryInfo": "Showing all available actions for the {{category}} category. This scenario starts with a pre-selected set of actions.",
       "noActions": "No actions available. Please select a scenario first or add custom actions.",
       "addCustomAction": "Add custom action",
@@ -1748,9 +1795,43 @@
         }
       },
       "defineTypes": "Define Agent Types",
+      "manualHint": "Manual mode now creates individually editable agents. Even if you add several at once, you can edit each name, tier, profile, prompt, and properties below.",
       "typeLabel": "Type Label",
+      "typeLabelPlaceholder": "e.g., top-tier official / Agent 1",
       "count": "Count",
+      "tier": "Tier",
+      "autoDetectTier": "Auto-detect",
+      "agentName": "Agent name",
+      "agentListTitle": "Configured agents",
       "rolePrompt": "Role Prompt (what is this agent's role?)",
+      "rolePromptPlaceholder": "e.g., A senior official responsible for passing down policy and supervising execution",
+      "userProfile": "Profile / Summary",
+      "userProfilePlaceholder": "e.g., Values strict execution, data governance, and accountability",
+      "properties": "Agent properties",
+      "addProperty": "Add property",
+      "noProperties": "No extra properties yet",
+      "sharedPropertyBadge": "Shared",
+      "sharedPropertyConfirm": "Property \"{{key}}\" is shared by {{count}} agents. Rename this property for all linked agents?",
+      "sharedPropertyTooltip": "Property \"{{key}}\" is shared by: {{agents}}",
+      "tierConfigTitle": "Policy Tier Order",
+      "tierConfigDesc": "Define the transmission tiers in order. The system will relay policy downward strictly in this order, whether you use 3, 5, or more levels.",
+      "tierCountLabel": "Custom tier count",
+      "tierConfigHint": "Changing the tier count keeps existing names and fills new tiers with defaults. After you click apply, the dropdowns below update to match.",
+      "tierLevelLabel": "Level {{index}}",
+      "tierNamePlaceholder": "e.g. {{name}}",
+      "tierDraftInvalid": "Tier names cannot be empty or duplicated.",
+      "applyTierConfig": "Apply tier settings",
+      "tierPreviewTitle": "Current tier structure preview",
+      "tierPreviewDesc": "This is the {{count}}-level transmission chain currently applied to the experiment.",
+      "tierAssignedCount": "{{count}} agent(s) assigned",
+      "unassignedTitle": "Unassigned tier",
+      "unassignedCount": "{{count}} agent(s)",
+      "unassignedHint": "These agents do not currently match any explicit tier.",
+      "tierDraftPending": "You have unapplied tier edits. The preview and tier dropdowns update only after you apply the new settings.",
+      "cascadeModeLabels": {
+        "strict_cascade": "Strict cascade",
+        "distortion_cascade": "Distortion cascade"
+      },
       "addAgentType": "+ Add Agent Type",
       "noTypes": "No agent types defined yet",
       "remove": "Remove",
@@ -1900,11 +1981,11 @@
     },
     "policyDiffusion": {
       "name": "Policy Diffusion and Meaning Erosion",
-      "description": "Street bureaucracy perspective: Simulate policy reconstruction and alienation in a three-tier organization (government → community → residents). Verify how underlying logic undermines macro planning."
+      "description": "Street bureaucracy perspective: Simulate policy transmission, reconstruction, and alienation in a configurable multi-level organization. Observe how the policy is amplified, distorted, or blocked as it moves downward."
     },
     "policy_diffusion": {
       "name": "Policy Diffusion and Meaning Erosion",
-      "description": "Street bureaucracy perspective: Simulate policy reconstruction and alienation in a three-tier organization (government → community → residents). Verify how underlying logic undermines macro planning."
+      "description": "Street bureaucracy perspective: Simulate policy transmission, reconstruction, and alienation in a configurable multi-level organization. Observe how the policy is amplified, distorted, or blocked as it moves downward."
     },
     "polarization": {
       "name": "Polarization and Digital Cocoon Formation",

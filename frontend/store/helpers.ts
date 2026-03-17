@@ -328,6 +328,21 @@ export const mapBackendEventsToLogs = (
       yieldTurn: pickText('Yielded the floor', '结束本轮发言'),
       planUpdate: pickText('Plan updated', '更新计划'),
       agentError: pickText('Agent error', '智能体发生错误'),
+      llmCallError: pickText('LLM call failed', 'LLM 调用失败'),
+      llmParseError: pickText('LLM output parse failed', 'LLM 输出解析失败'),
+      agentOffline: pickText('Agent went offline', '智能体已掉线'),
+      distortionBlocked: pickText('Policy transmission blocked', '政策传递被截留'),
+      distortionAdjusted: pickText('Policy transmission distorted', '政策传递发生失真'),
+      distortionInput: pickText('Announcement classified as distortion cascade input', '本条公告被识别为：distortion cascade input'),
+      nonDistortionInput: pickText('Announcement did not enter distortion cascade', '本条公告未进入 distortion cascade'),
+      privateBroadcast: pickText('Targeted private broadcast', '定向私有广播'),
+      globalBroadcast: pickText('Global broadcast', '全局广播'),
+      recipientsLabel: pickText('Recipients', '接收者'),
+      allAgents: pickText('All agents', '全体智能体'),
+      originalMessage: pickText('Original', '原始下传内容'),
+      finalMessage: pickText('Final', '最终下传内容'),
+      reasonLabel: pickText('Reason', '原因'),
+      metricsLabel: pickText('Metrics', '参数/评分'),
       actionStart: pickText('Started action', '开始执行动作'),
       actionEnd: pickText('performed action', '执行了动作'),
       systemEvent: pickText('System event', '系统事件'),
@@ -438,9 +453,50 @@ export const mapBackendEventsToLogs = (
       const kind: string = data.kind || '';
       const errText: string = String(data.error || data.message || '').slice(0, 400);
       const agentLabel = agentName || pickText('Unknown', '未知');
-      const baseLabel = isZh() ? `智能体「${agentLabel}」发生错误` : `Agent "${agentLabel}" error`;
-      const label = baseLabel + (kind ? pickText(` (${kind})`, `（${kind}）`) : '') + (errText ? pickText(`: ${errText}`, `：${errText}`) : '');
+      const kindLabel = kind === 'llm_call'
+        ? labels.llmCallError
+        : kind === 'parse'
+          ? labels.llmParseError
+          : kind === 'offline'
+            ? labels.agentOffline
+            : labels.agentError;
+      const baseLabel = isZh() ? `智能体「${agentLabel}」${kindLabel}` : `Agent "${agentLabel}" ${kindLabel}`;
+      const label = baseLabel + (errText ? pickText(`: ${errText}`, `：${errText}`) : '');
       return { ...base, type: 'SYSTEM', content: label };
+    }
+
+    if (evType === 'cascade_distortion') {
+      const agentName: string = data.agent || '';
+      const tier: string = data.tier || '';
+      const blocked = Boolean(data.blocked);
+      const originalMessage = String(data.original_message || '').trim() || pickText('(empty)', '（空）');
+      const finalMessage = String(data.final_message || '').trim() || pickText('(blocked / no downstream message)', '（已截留 / 无下传内容）');
+      const reason = String(data.reason || '').trim() || pickText('No reason provided', '未提供原因');
+      const metrics = `${pickText('strength', '失真强度')}=${data.distortion_strength ?? '-'}, `
+        + `${pickText('conflict', '冲突敏感度')}=${data.conflict_sensitivity ?? '-'}, `
+        + `${pickText('block', '阻断概率')}=${data.block_probability ?? '-'}, `
+        + `${pickText('pressure', '冲突压力')}=${data.pressure ?? '-'}, `
+        + `${pickText('tendency', '截留倾向')}=${data.block_tendency ?? '-'}`;
+      const title = blocked ? labels.distortionBlocked : labels.distortionAdjusted;
+      const content = [
+        agentName ? `${agentName}${tier ? ` (${tier})` : ''} - ${title}` : title,
+        `${labels.originalMessage}: ${originalMessage}`,
+        `${labels.finalMessage}: ${finalMessage}`,
+        `${labels.reasonLabel}: ${reason}`,
+        `${labels.metricsLabel}: ${metrics}`,
+      ].join('\n');
+      return { ...base, type: 'SYSTEM', content };
+    }
+
+    if (evType === 'cascade_input_classified') {
+      const entered = Boolean(data.entered_distortion_chain);
+      const content = String(data.content || '').trim();
+      const label = entered ? labels.distortionInput : labels.nonDistortionInput;
+      return {
+        ...base,
+        type: 'ENVIRONMENT',
+        content: content ? `${label}\n${content}` : label,
+      };
     }
 
     // Public broadcast / environment event
@@ -448,6 +504,10 @@ export const mapBackendEventsToLogs = (
       const text = data.text || data.message || JSON.stringify(ev);
       const senderName: string = data.sender || '';
       const eventType: string = data.type || '';
+      const recipients = Array.isArray(data.recipients)
+        ? data.recipients.map((value: unknown) => String(value || '').trim()).filter(Boolean)
+        : [];
+      const scoped = Boolean(data.scoped);
 
       if (eventType === 'TalkToEvent' && senderName) {
         const agentId = senderName ? nameToId.get(senderName) : undefined;
@@ -467,7 +527,14 @@ export const mapBackendEventsToLogs = (
         return { ...base, type: 'AGENT_SAY', agentId, content: text };
       }
 
-      return { ...base, type: 'ENVIRONMENT', content: text };
+      const scopeLabel = scoped ? labels.privateBroadcast : labels.globalBroadcast;
+      const recipientText = recipients.length > 0 ? recipients.join(', ') : labels.allAgents;
+      const content = [
+        scopeLabel,
+        `${labels.recipientsLabel}: ${recipientText}`,
+        text,
+      ].join('\n');
+      return { ...base, type: 'ENVIRONMENT', content };
     }
 
     // Action end
@@ -898,7 +965,7 @@ export const SYSTEM_TEMPLATES: SimulationTemplate[] = [
     name: '政策传播中的意义磨损',
     description: '街头官僚制视角：模拟三层级组织(政府→社区→居民)中政策的重构与异化。验证底层逻辑如何消解宏观规划。',
     category: 'system',
-    sceneType: 'village',
+    sceneType: 'policy_cascade_scene',
     agents: generatePolicyDiffusionAgents({ provider: 'OpenAI', model: 'gpt-4o' }),
     defaultTimeConfig: DEFAULT_TIME_CONFIG
   },

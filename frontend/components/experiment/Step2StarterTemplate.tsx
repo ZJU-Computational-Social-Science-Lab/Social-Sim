@@ -13,6 +13,14 @@ import ParameterField from './ParameterField';
 import { ActionEditor } from './ActionEditor';
 import { ResourceConfig } from './ResourceConfig';
 
+const DISTORTION_ONLY_PARAM_KEYS = new Set([
+  'distortion_strength',
+  'conflict_sensitivity',
+  'block_probability',
+]);
+
+const isCascadeScenario = (parameterKeys: string[]) => parameterKeys.includes('cascade_mode');
+
 // Payoff Input Component - 4 explicit inputs with dynamic action labels
 interface PayoffInputProps {
   value: {
@@ -175,6 +183,14 @@ export const Step2StarterTemplate: React.FC = () => {
       : param.default;
   };
 
+  const getParamLabel = (param: { key: string; label: string }) => {
+    return t(`experimentBuilder.paramLabels.${param.key}`, { defaultValue: param.label });
+  };
+
+  const getParamDescription = (param: { key: string; description?: string }) => {
+    return t(`experimentBuilder.paramDescriptions.${param.key}`, { defaultValue: param.description || '' });
+  };
+
   // Determine which editor to show based on scenario
   const getActionEditor = () => {
     const scenarioId = selectedScenarioData.id;
@@ -232,6 +248,24 @@ export const Step2StarterTemplate: React.FC = () => {
   }
 
   const hasParameters = selectedScenarioData.parameters.length > 0;
+  const cascadeMode = String(
+    scenarioParams.cascade_mode
+      ?? selectedScenarioData.parameters.find((param) => param.key === 'cascade_mode')?.default
+      ?? 'strict_cascade'
+  );
+  const visibleParameters = selectedScenarioData.parameters.filter((param) => {
+    if (!DISTORTION_ONLY_PARAM_KEYS.has(param.key)) {
+      return true;
+    }
+    return cascadeMode === 'distortion_cascade';
+  });
+  const showCascadeModeCard = isCascadeScenario(selectedScenarioData.parameters.map((param) => param.key));
+  const cascadeCardTone = cascadeMode === 'distortion_cascade'
+    ? 'border-amber-200 bg-amber-50'
+    : 'border-blue-200 bg-blue-50';
+  const cascadeBulletKeys = cascadeMode === 'distortion_cascade'
+    ? ['point1', 'point2', 'point3']
+    : ['point1', 'point2', 'point3'];
 
   return (
     <div className="space-y-6">
@@ -262,6 +296,32 @@ export const Step2StarterTemplate: React.FC = () => {
         />
       </div>
 
+      {showCascadeModeCard && (
+        <div className={`rounded-lg border p-4 ${cascadeCardTone}`}>
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">
+                {t(`experimentBuilder.step2.cascadeCards.${cascadeMode}.title`)}
+              </h3>
+              <p className="text-sm text-gray-700 mt-1">
+                {t(`experimentBuilder.step2.cascadeCards.${cascadeMode}.summary`)}
+              </p>
+            </div>
+            <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-gray-700 border border-white/70">
+              {t(`experimentBuilder.step2.cascadeCards.${cascadeMode}.badge`)}
+            </span>
+          </div>
+          <ul className="mt-3 space-y-2 text-sm text-gray-700">
+            {cascadeBulletKeys.map((key) => (
+              <li key={key} className="flex items-start gap-2">
+                <span className="mt-0.5 text-gray-500">•</span>
+                <span>{t(`experimentBuilder.step2.cascadeCards.${cascadeMode}.${key}`)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Dynamic Parameter Fields or Payoff Input */}
       {/* Action Editor for configurable scenarios */}
       {getActionEditor()}
@@ -277,14 +337,20 @@ export const Step2StarterTemplate: React.FC = () => {
           <h3 className="text-sm font-medium text-gray-700">
             {t('experimentBuilder.step2.parametersTitle')}
           </h3>
-          {selectedScenarioData.parameters.map((param) => {
+          {visibleParameters.map((param) => {
             const value = getParamValue(param);
+            const description = getParamDescription(param);
 
             return (
               <div key={param.key} className="space-y-1">
                 <label className="block text-sm font-medium text-gray-700">
-                  {param.label}
+                  {getParamLabel(param)}
                 </label>
+                {description && (
+                  <p className="text-xs text-gray-500 leading-5">
+                    {description}
+                  </p>
+                )}
                 <ParameterField
                   param={{
                     type: param.type === 'number' ? 'integer' : 'string',

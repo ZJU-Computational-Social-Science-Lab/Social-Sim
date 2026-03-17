@@ -36,9 +36,23 @@ export const HostPanel: React.FC = () => {
   const [suggestions, setSuggestions] = useState<Array<{event: string, reason: string}>>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
 
+  const formatBroadcastLog = (description: string) => {
+    const recipients = broadcastRecipients.filter(Boolean);
+    const scopeLabel = recipients.length > 0
+      ? t('components.hostPanel.privateBroadcastLog', '定向私有广播')
+      : t('components.hostPanel.globalBroadcastLog', '全局广播');
+    const recipientLabel = recipients.length > 0
+      ? recipients.join(', ')
+      : t('components.hostPanel.allAgentsLog', '全体智能体');
+    return `${scopeLabel}\n${t('components.hostPanel.recipientsLog', '接收者')}: ${recipientLabel}\n${description}`;
+  };
+
   // Shared function for pushing environment events
   const pushEnvironmentEvent = async (description: string, eventType: string) => {
     if (!description.trim()) return;
+    const recipients = eventType === 'broadcast' && broadcastRecipients.length > 0
+      ? broadcastRecipients
+      : undefined;
 
     const shouldCallBackend = engineMode === 'connected' && currentSimulation?.id;
     if (shouldCallBackend) {
@@ -46,11 +60,12 @@ export const HostPanel: React.FC = () => {
         event_type: eventType,
         description,
         severity: 'mild',
-        receivers: broadcastRecipients.length > 0 ? broadcastRecipients : undefined,
+        receivers: recipients,
       });
     }
 
-    injectLog(eventType === 'broadcast' ? 'SYSTEM' : 'ENVIRONMENT', description, envImage || undefined);
+    const logContent = eventType === 'broadcast' ? formatBroadcastLog(description) : description;
+    injectLog(eventType === 'broadcast' ? 'SYSTEM' : 'ENVIRONMENT', logContent, envImage || undefined);
   };
 
   const handleBroadcast = async () => {
