@@ -107,6 +107,7 @@ class PolicyCascadeScene(Scene):
         self.state["conflict_sensitivity"] = conflict_sensitivity
         self.state["block_probability"] = block_probability
         self.state["private_events"] = {}
+        self.state["active_tier_targets"] = {}
         self.state["complete"] = False
         self._tier_map: Dict[str, str] = {}
         self._agents_by_tier: Dict[str, List[str]] = {t: [] for t in self.tier_order}
@@ -129,6 +130,7 @@ class PolicyCascadeScene(Scene):
         self.state["source_policy"] = ""
         self.state["relayed_policy"] = ""
         self.state["private_events"] = {}
+        self.state["active_tier_targets"] = {}
         self._agents_by_tier = {tier: [] for tier in self.tier_order}
 
     # ----- Lifecycle -----
@@ -142,6 +144,7 @@ class PolicyCascadeScene(Scene):
         self.state["complete"] = False
         self.state["tier_seen"] = {t: [] for t in self.tier_order}
         self.state["tier_transmitted"] = {t: False for t in self.tier_order}
+        self.state["active_tier_targets"] = {}
         self._rebuild_tiers()
         if self._private_recipient_names():
             self.state["current_tier_idx"] = self._private_active_tier_idx()
@@ -155,6 +158,7 @@ class PolicyCascadeScene(Scene):
             self.state["tier_seen"] = {t: [] for t in self.tier_order}
             self.state["tier_transmitted"] = {t: False for t in self.tier_order}
             self.state["private_events"] = {}
+            self.state["active_tier_targets"] = {}
             desc = data.get("description") or data.get("content") or data.get("message") or ""
             cleaned_desc = self._clean_policy_text(str(desc))
             self.state["latest_notice"] = cleaned_desc
@@ -206,6 +210,16 @@ class PolicyCascadeScene(Scene):
         for name in recipients:
             private_events[name] = dict(private_payload)
         self.state["private_events"] = private_events
+        active_targets = self.state.get("active_tier_targets") or {}
+        for name in recipients:
+            tier = self._tier_map.get(name) or ""
+            if not tier:
+                continue
+            current = list(active_targets.get(tier) or [])
+            if name not in current:
+                current.append(name)
+            active_targets[tier] = current
+        self.state["active_tier_targets"] = active_targets
 
         if enters_cascade:
             visible_to = recipients[0] if recipients else ""
@@ -736,13 +750,73 @@ class PolicyCascadeScene(Scene):
             return 0
         return min(self.tier_order.index(tier) for tier in tiers)
 
+    def _network_connections_for(self, agent_name: str) -> List[str]:
+        social_network = self.state.get("social_network") or {}
+        if type(social_network) is not dict or not social_network:
+            return []
+        raw_connections = social_network.get(agent_name) or []
+        if type(raw_connections) is not list:
+            return []
+        return [name for name in raw_connections if name in self.simulator.agents and name != agent_name]
+
+    def _active_targets_for_tier(self, tier: str) -> List[str]:
+        active_targets = self.state.get("active_tier_targets") or {}
+        targets = list(active_targets.get(tier) or [])
+        return [name for name in targets if (self._tier_map.get(name) or self._extract_tier(self.simulator.agents[name])) == tier]
+
+    def _upstream_merge_message(self, recipient: str, upstream_messages: List[dict]) -> str:
+        if len(upstream_messages) == 1:
+            return str(upstream_messages[0].get("message") or "")
+        lines = ["你同时收到多个上层版本，请先综合这些意见，再形成一个统一的本层传递版本："]
+        for idx, item in enumerate(upstream_messages, start=1):
+            sender = str(item.get("sender") or f"上层节点{idx}")
+            message = str(item.get("message") or "").strip()
+            lines.append(f"版本{idx}（来自 {sender}）：\n{message}")
+        lines.append("请综合以上多个上层版本后，再按你当前层级职责继续向下传递。")
+        return "\n\n".join(lines)
+
+    def _queue_private_cascade_targets(self, recipients: List[str], sender: Agent, relayed_message: str, source_policy: str) -> None:
+        if not recipients:
+            return
+        private_events = self.state.get("private_events") or {}
+        active_targets = self.state.get("active_tier_targets") or {}
+        notice = str(self.state.get("latest_notice") or source_policy or relayed_message or "")
+        for recipient in recipients:
+            existing = dict(private_events.get(recipient) or {})
+            upstream_messages = list(existing.get("upstream_messages") or [])
+            candidate = {"sender": sender.name, "message": relayed_message}
+            if candidate not in upstream_messages:
+                upstream_messages.append(candidate)
+            merged_message = self._upstream_merge_message(recipient, upstream_messages)
+            private_events[recipient] = {
+                "latest_notice": notice,
+                "latest_policy": merged_message,
+                "source_policy": source_policy,
+                "relayed_policy": merged_message,
+                "task_mode": "cascade",
+                "notice_kind": "execution",
+                "upstream_messages": upstream_messages,
+            }
+            tier = self._tier_map.get(recipient) or ""
+            if tier:
+                current = list(active_targets.get(tier) or [])
+                if recipient not in current:
+                    current.append(recipient)
+                active_targets[tier] = current
+        self.state["private_events"] = private_events
+        self.state["active_tier_targets"] = active_targets
+
     def _downstream_targets(self, agent: Agent) -> List[str]:
         tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
         idx = self.tier_order.index(tier) if tier in self.tier_order else 0
         if idx + 1 >= len(self.tier_order):
             return []
         next_tier = self.tier_order[idx + 1]
-        return self._agents_by_tier.get(next_tier, [])
+        candidates = self._agents_by_tier.get(next_tier, [])
+        social_connections = self._network_connections_for(agent.name)
+        if not social_connections:
+            return candidates
+        return [name for name in candidates if name in social_connections]
 
     def _is_policy_announcement(self, text: str) -> bool:
         return any(marker in text for marker in POLICY_MARKERS)
@@ -1237,6 +1311,10 @@ class PolicyCascadeScene(Scene):
             parts.append(f"上一层传达版本摘要：{self._policy_prompt_excerpt(relayed_policy)}")
         if private_event and source_policy and source_policy != relayed_policy:
             parts.append(f"原始政策摘要：{self._policy_prompt_excerpt(source_policy)}")
+        upstream_messages = list(private_event.get("upstream_messages") or [])
+        if len(upstream_messages) > 1:
+            senders = "、".join(str(item.get("sender") or "上层节点") for item in upstream_messages)
+            parts.append(f"你同时收到来自 {senders} 的多个上层版本；请先综合这些版本，再形成一个统一的本层下传版本。")
         return "\n".join(parts)
 
     # ----- Actions -----
@@ -1348,11 +1426,6 @@ class PolicyCascadeScene(Scene):
                 self.state["relayed_policy"] = str(payload.get("message") or private_event.get("relayed_policy") or private_event.get("latest_policy") or "")
                 self.state["task_mode"] = "cascade"
                 self.state["notice_kind"] = "execution"
-
-                tier_agents = self._agents_by_tier.get(tier, [])
-                seen = self.state.get("tier_seen") or {}
-                seen[tier] = list(tier_agents)
-                self.state["tier_seen"] = seen
             elif not self._private_recipient_names():
                 self.state["complete"] = bool(self.state.get("complete"))
 
@@ -1382,10 +1455,16 @@ class PolicyCascadeScene(Scene):
             recipients = [a.name for a in simulator.agents.values() if a.name != sender.name]
         elif tier_idx < len(self.tier_order) - 1:
             recipients = self._downstream_targets(sender)
-            if not recipients:
-                raise ValueError("downstream targets missing for cascade")
+            self._queue_private_cascade_targets(
+                recipients,
+                sender,
+                event.message,
+                str(self.state.get("source_policy") or self.state.get("latest_policy") or event.message or ""),
+            )
         elif tier_idx == len(self.tier_order) - 1:
-            recipients = [n for n in self._agents_by_tier.get(tier, []) if n != sender.name]
+            same_tier = [n for n in self._agents_by_tier.get(tier, []) if n != sender.name]
+            social_connections = self._network_connections_for(sender.name)
+            recipients = [n for n in same_tier if not social_connections or n in social_connections]
         else:
             recipients = [a.name for a in simulator.agents.values() if a.name != sender.name]
 
@@ -1434,8 +1513,11 @@ class PolicyCascadeScene(Scene):
         if agent.name not in seen[tier]:
             seen[tier].append(agent.name)
 
-        tier_agents = self._agents_by_tier.get(tier, [])
-        if tier_agents and all(name in seen[tier] for name in tier_agents):
+        expected_agents = self._active_targets_for_tier(tier) or self._agents_by_tier.get(tier, [])
+        if expected_agents and all(name in seen[tier] for name in expected_agents):
+            active_targets = self.state.get("active_tier_targets") or {}
+            active_targets.pop(tier, None)
+            self.state["active_tier_targets"] = active_targets
             transmitted = bool((self.state.get("tier_transmitted") or {}).get(tier, False))
             if self.state.get("task_mode") == "cascade" and self._cascade_mode() == "distortion_cascade" and not transmitted:
                 self.state["current_tier_idx"] = len(self.tier_order)
@@ -1446,6 +1528,9 @@ class PolicyCascadeScene(Scene):
             next_idx = self.tier_order.index(tier) + 1
             if next_idx < len(self.tier_order):
                 self.state["current_tier_idx"] = next_idx
+                if (self.state.get("social_network") or {}) and not self._active_targets_for_tier(self.tier_order[next_idx]) and not self._private_recipient_names():
+                    self.state["current_tier_idx"] = len(self.tier_order)
+                    self.state["complete"] = True
             else:
                 self.state["current_tier_idx"] = len(self.tier_order)
                 self.state["complete"] = True
