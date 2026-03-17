@@ -15,7 +15,11 @@ import json
 import re
 
 
-def _merge_action_values(existing, new_value):
+class DuplicateActionError(ValueError):
+    pass
+
+
+def _merge_action_values(existing, new_value, *, strict_duplicate_actions: bool):
     if type(existing) is not dict:
         return new_value
     if type(new_value) is not dict:
@@ -25,6 +29,11 @@ def _merge_action_values(existing, new_value):
     new_name = str(new_value.get("name") or new_value.get("action") or "").strip()
     existing_has_message = bool(str(existing.get("message", "") or "").strip())
     new_has_message = bool(str(new_value.get("message", "") or "").strip())
+
+    if strict_duplicate_actions and existing_name and new_name and existing_name != new_name:
+        raise DuplicateActionError(
+            f"LLM response contains conflicting duplicate action fields: '{existing_name}' and '{new_name}'."
+        )
 
     if existing_name == "send_message" and new_name == "yield":
         merged = dict(existing)
@@ -60,18 +69,24 @@ def _merge_action_values(existing, new_value):
     return merged
 
 
-def _merge_object_pairs(pairs):
+def _merge_object_pairs(pairs, *, strict_duplicate_actions: bool):
     merged = {}
     for key, value in pairs:
         if key == "action" and key in merged:
-            merged[key] = _merge_action_values(merged[key], value)
+            merged[key] = _merge_action_values(merged[key], value, strict_duplicate_actions=strict_duplicate_actions)
             continue
         merged[key] = value
     return merged
 
 
-def _load_json_object(text: str) -> dict:
-    return json.loads(text, object_pairs_hook=_merge_object_pairs)
+def _load_json_object(text: str, *, strict_duplicate_actions: bool = False) -> dict:
+    return json.loads(
+        text,
+        object_pairs_hook=lambda pairs: _merge_object_pairs(
+            pairs,
+            strict_duplicate_actions=strict_duplicate_actions,
+        ),
+    )
 
 
 def strip_thinking_tokens(text: str) -> str:
@@ -142,10 +157,17 @@ def strip_thinking_tokens(text: str) -> str:
         flags=re.IGNORECASE | re.DOTALL
     )
 
+    # Pattern 7: dangling inline reasoning markers that slip into final text
+    text = re.sub(
+        r'(?i)\s+/(?:think|reasoning|analysis)\b(?=\s|$)',
+        '',
+        text,
+    )
+
     return text.strip()
 
 
-def _extract_json_objects(text: str) -> list[dict]:
+def _extract_json_objects(text: str, *, strict_duplicate_actions: bool = False) -> list[dict]:
     """Extract all valid JSON objects from text using balanced brace matching.
 
     This is more robust than regex for deeply nested JSON structures.
@@ -187,15 +209,15 @@ def _extract_json_objects(text: str) -> list[dict]:
             if depth == 0 and start is not None:
                 candidate = text[start:i + 1]
                 try:
-                    results.append(_load_json_object(candidate))
-                except json.JSONDecodeError:
+                    results.append(_load_json_object(candidate, strict_duplicate_actions=strict_duplicate_actions))
+                except (json.JSONDecodeError, DuplicateActionError):
                     pass
                 start = None
 
     return results
 
 
-def parse_agent_response(response_text: str) -> dict:
+def parse_agent_response(response_text: str, *, strict_duplicate_actions: bool = False) -> dict:
     """Extract the first valid JSON object from LLM output.
 
     Handles:
@@ -225,19 +247,19 @@ def parse_agent_response(response_text: str) -> dict:
     if matches:
         for match in matches:
             try:
-                return _load_json_object(match.strip())
-            except json.JSONDecodeError:
+                return _load_json_object(match.strip(), strict_duplicate_actions=strict_duplicate_actions)
+            except (json.JSONDecodeError, DuplicateActionError):
                 continue
 
     # Use robust brace matching for plain JSON objects
-    json_objects = _extract_json_objects(cleaned_text)
+    json_objects = _extract_json_objects(cleaned_text, strict_duplicate_actions=strict_duplicate_actions)
     if json_objects:
         return json_objects[0]
 
     return {}
 
 
-def parse_actions(response_text: str) -> list:
+def parse_actions(response_text: str, *, strict_duplicate_actions: bool = False) -> list:
     """Parse actions from LLM response using JSON format.
     Enforces presence of an action with a non-empty name.
 
@@ -250,7 +272,7 @@ def parse_actions(response_text: str) -> list:
     Raises:
         ValueError: If the response JSON is missing or lacks a valid action name.
     """
-    data = parse_agent_response(response_text)
+    data = parse_agent_response(response_text, strict_duplicate_actions=strict_duplicate_actions)
     if not data:
         raise ValueError("LLM response is missing the required JSON object with an action.")
 

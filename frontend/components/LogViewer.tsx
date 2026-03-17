@@ -15,6 +15,294 @@ import { LogEntry, ViewMode } from '../types';
 import { List, CreditCard, Clock, Filter, Search, X, Check, GitCommit, Image as ImageIcon } from 'lucide-react';
 import { getActionConfig, getResourceName } from '../utils/scenarioHelpers';
 
+type DiffOp<T> = {
+  type: 'equal' | 'add' | 'remove';
+  value: T;
+};
+
+type PolicyDiffRow = {
+  kind: 'unchanged' | 'added' | 'removed' | 'modified';
+  left: string;
+  right: string;
+};
+
+type InlineDiffSegment = {
+  kind: 'unchanged' | 'added' | 'removed';
+  text: string;
+};
+
+const splitDiffText = (text: string): string[] =>
+  String(text || '')
+    .split('\n')
+    .map(line => line.trimEnd())
+    .filter(line => line.trim().length > 0);
+
+const buildDiffOps = <T,>(left: T[], right: T[], isEqual: (a: T, b: T) => boolean): DiffOp<T>[] => {
+  const dp: number[][] = Array.from({ length: left.length + 1 }, () => Array(right.length + 1).fill(0));
+
+  for (let i = left.length - 1; i >= 0; i -= 1) {
+    for (let j = right.length - 1; j >= 0; j -= 1) {
+      if (isEqual(left[i], right[j])) {
+        dp[i][j] = dp[i + 1][j + 1] + 1;
+      } else {
+        dp[i][j] = Math.max(dp[i + 1][j], dp[i][j + 1]);
+      }
+    }
+  }
+
+  const ops: DiffOp<T>[] = [];
+  let i = 0;
+  let j = 0;
+
+  while (i < left.length && j < right.length) {
+    if (isEqual(left[i], right[j])) {
+      ops.push({ type: 'equal', value: left[i] });
+      i += 1;
+      j += 1;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      ops.push({ type: 'remove', value: left[i] });
+      i += 1;
+    } else {
+      ops.push({ type: 'add', value: right[j] });
+      j += 1;
+    }
+  }
+
+  while (i < left.length) {
+    ops.push({ type: 'remove', value: left[i] });
+    i += 1;
+  }
+
+  while (j < right.length) {
+    ops.push({ type: 'add', value: right[j] });
+    j += 1;
+  }
+
+  return ops;
+};
+
+const buildPolicyDiffRows = (leftText: string, rightText: string): PolicyDiffRow[] => {
+  const leftLines = splitDiffText(leftText);
+  const rightLines = splitDiffText(rightText);
+  const ops = buildDiffOps(leftLines, rightLines, (a, b) => a === b);
+  const rows: PolicyDiffRow[] = [];
+  let removedGroup: string[] = [];
+  let addedGroup: string[] = [];
+
+  const flushGroups = () => {
+    const count = Math.max(removedGroup.length, addedGroup.length);
+    for (let idx = 0; idx < count; idx += 1) {
+      const left = removedGroup[idx] || '';
+      const right = addedGroup[idx] || '';
+      if (left && right) {
+        rows.push({ kind: 'modified', left, right });
+      } else if (left) {
+        rows.push({ kind: 'removed', left, right: '' });
+      } else if (right) {
+        rows.push({ kind: 'added', left: '', right });
+      }
+    }
+    removedGroup = [];
+    addedGroup = [];
+  };
+
+  ops.forEach(op => {
+    if (op.type === 'equal') {
+      flushGroups();
+      rows.push({ kind: 'unchanged', left: String(op.value), right: String(op.value) });
+      return;
+    }
+    if (op.type === 'remove') {
+      removedGroup.push(String(op.value));
+      return;
+    }
+    addedGroup.push(String(op.value));
+  });
+
+  flushGroups();
+  return rows;
+};
+
+const buildInlineDiffSegments = (leftText: string, rightText: string, side: 'left' | 'right'): InlineDiffSegment[] => {
+  const leftChars = Array.from(leftText || '');
+  const rightChars = Array.from(rightText || '');
+  const ops = buildDiffOps(leftChars, rightChars, (a, b) => a === b);
+  const segments: InlineDiffSegment[] = [];
+
+  const pushSegment = (kind: InlineDiffSegment['kind'], text: string) => {
+    if (!text) {
+      return;
+    }
+    const last = segments[segments.length - 1];
+    if (last && last.kind === kind) {
+      last.text += text;
+      return;
+    }
+    segments.push({ kind, text });
+  };
+
+  ops.forEach(op => {
+    if (op.type === 'equal') {
+      pushSegment('unchanged', String(op.value));
+      return;
+    }
+    if (side === 'left' && op.type === 'remove') {
+      pushSegment('removed', String(op.value));
+      return;
+    }
+    if (side === 'right' && op.type === 'add') {
+      pushSegment('added', String(op.value));
+    }
+  });
+
+  return segments;
+};
+
+const inlineSegmentClassName = (kind: InlineDiffSegment['kind']) => {
+  if (kind === 'added') {
+    return 'bg-emerald-200/70 text-emerald-900 rounded px-0.5';
+  }
+  if (kind === 'removed') {
+    return 'bg-rose-200/70 text-rose-900 rounded px-0.5';
+  }
+  return '';
+};
+
+const diffCellClassName = (kind: PolicyDiffRow['kind'], side: 'left' | 'right') => {
+  if (kind === 'modified') {
+    return 'border-amber-200 bg-amber-50/80';
+  }
+  if (kind === 'removed' && side === 'left') {
+    return 'border-rose-200 bg-rose-50';
+  }
+  if (kind === 'added' && side === 'right') {
+    return 'border-emerald-200 bg-emerald-50';
+  }
+  return 'border-transparent bg-transparent';
+};
+
+const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
+  const data = entry.structuredData;
+  const showDraftExpanded = import.meta.env.DEV;
+  const rows = useMemo(
+    () => buildPolicyDiffRows(data?.leftContent || '', data?.rightContent || ''),
+    [data?.leftContent, data?.rightContent]
+  );
+
+  if (!data || data.kind !== 'policy_diff') {
+    return null;
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        {data.agentLabel && <span className="text-sm font-semibold text-slate-800">{data.agentLabel}</span>}
+        <span className="text-sm font-semibold text-slate-700">{data.title}</span>
+      </div>
+
+      <div className="text-xs text-slate-500">
+        左侧显示该层收到的上级政策版本，右侧显示最终真正发给下一级的内容；若下方出现附加框，则表示 agent 原始草稿。
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 overflow-hidden">
+          <div className="border-b border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">
+            {data.leftTitle}
+          </div>
+          <div className="max-h-80 overflow-auto px-3 py-3 text-sm leading-6 text-slate-700 space-y-1">
+            {rows.filter(row => row.left).map((row, idx) => {
+              const segments = row.kind === 'modified'
+                ? buildInlineDiffSegments(row.left, row.right, 'left')
+                : [];
+              return (
+                <div
+                  key={`left-${idx}`}
+                  className={`rounded px-2 py-1 whitespace-pre-wrap break-words border ${diffCellClassName(row.kind, 'left')}`}
+                >
+                  {row.kind === 'modified' ? (
+                    segments.map((segment, segmentIdx) => (
+                      <span key={`left-${idx}-${segmentIdx}`} className={inlineSegmentClassName(segment.kind)}>
+                        {segment.text}
+                      </span>
+                    ))
+                  ) : (
+                    row.left
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-blue-200 bg-blue-50 overflow-hidden">
+          <div className="border-b border-blue-200 bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-700 uppercase tracking-wide">
+            {data.rightTitle}
+          </div>
+          <div className="max-h-80 overflow-auto px-3 py-3 text-sm leading-6 text-slate-700 space-y-1">
+            {rows.filter(row => row.right).map((row, idx) => {
+              const segments = row.kind === 'modified'
+                ? buildInlineDiffSegments(row.left, row.right, 'right')
+                : [];
+              return (
+                <div
+                  key={`right-${idx}`}
+                  className={`rounded px-2 py-1 whitespace-pre-wrap break-words border ${diffCellClassName(row.kind, 'right')}`}
+                >
+                  {row.kind === 'modified' ? (
+                    segments.map((segment, segmentIdx) => (
+                      <span key={`right-${idx}-${segmentIdx}`} className={inlineSegmentClassName(segment.kind)}>
+                        {segment.text}
+                      </span>
+                    ))
+                  ) : (
+                    row.right
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {data.draftContent && (
+        <details
+          open={showDraftExpanded}
+          className="rounded-lg border border-slate-200 bg-white overflow-hidden group"
+        >
+          <summary className="flex cursor-pointer list-none items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">
+            <span>{data.draftTitle}</span>
+            <span className="text-[11px] font-medium normal-case tracking-normal text-slate-400 group-open:hidden">
+              调试信息，点击展开
+            </span>
+            <span className="hidden text-[11px] font-medium normal-case tracking-normal text-slate-400 group-open:inline">
+              调试信息，点击折叠
+            </span>
+          </summary>
+          <div className="max-h-64 overflow-auto px-3 py-3 text-sm leading-6 text-slate-700 whitespace-pre-wrap break-words">
+            {data.draftContent}
+          </div>
+        </details>
+      )}
+
+      <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+        <span className="rounded-full bg-emerald-100 px-2 py-1 text-emerald-700">新增</span>
+        <span className="rounded-full bg-rose-100 px-2 py-1 text-rose-700">删除</span>
+        <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-700">改写</span>
+      </div>
+
+      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        <div className="font-medium">{data.reasonLabel}：</div>
+        <div className="mt-1 whitespace-pre-wrap break-words">{data.reason}</div>
+      </div>
+
+      <div className="text-xs text-slate-500 whitespace-pre-wrap break-words">
+        <span className="font-medium">{data.metricsLabel}：</span>
+        {data.metrics}
+      </div>
+    </div>
+  );
+};
+
 // Helper for displaying time niceliy
 const formatLogTime = (dateStr: string) => {
   if (!dateStr || dateStr.length < 10) return dateStr;
@@ -164,6 +452,7 @@ const LogItem: React.FC<{
   };
 
   const displayContent = getProcessedContent(entry.content);
+  const hasPolicyDiff = entry.structuredData?.kind === 'policy_diff';
 
   const ImageComponent = () => (
     entry.imageUrl ? (
@@ -225,7 +514,11 @@ const LogItem: React.FC<{
           {entry.agentId && entry.type !== 'AGENT_METADATA' && (
             <span className="font-bold text-slate-700 mr-2">{entry.agentId}:</span>
           )}
-          <span className="text-slate-600">{displayContent}</span>
+          {hasPolicyDiff ? (
+            <PolicyDiffCard entry={entry} />
+          ) : (
+            <span className="text-slate-600">{displayContent}</span>
+          )}
           <ImageComponent />
           <MediaBadges />
         </div>
@@ -251,7 +544,11 @@ const LogItem: React.FC<{
         </div>
         <span className="text-[10px] font-mono text-slate-400">{displayTime}</span>
       </div>
-      <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{displayContent}</p>
+      {hasPolicyDiff ? (
+        <PolicyDiffCard entry={entry} />
+      ) : (
+        <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{displayContent}</p>
+      )}
       <ImageComponent />
       <MediaBadges />
     </div>

@@ -212,6 +212,10 @@ class Simulator:
             self.scene.on_event(self, "environment", getattr(event, "params", {}))
         elif code == "public_event" and not scoped_delivery:
             self.scene.on_event(self, "broadcast", getattr(event, "params", {}))
+        elif code == "environment_event" and scoped_delivery:
+            self.scene.on_private_event(self, "environment", getattr(event, "params", {}), recipients)
+        elif code == "public_event" and scoped_delivery:
+            self.scene.on_private_event(self, "broadcast", getattr(event, "params", {}), recipients)
 
         # Timeline: keep minimal
         payload = {

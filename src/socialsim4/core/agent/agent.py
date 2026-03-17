@@ -202,24 +202,45 @@ Recent Context Summary:
 
         example_block = default_example
         if scene and getattr(scene, "TYPE", "") == "policy_cascade_scene":
-            task_mode = str(scene.state.get("task_mode", "notice") or "notice")
-            notice_kind = str(scene.state.get("notice_kind", "execution") or "execution")
+            def _compact_policy_example(text: str) -> str:
+                if hasattr(scene, "_policy_prompt_excerpt"):
+                    summary = scene._policy_prompt_excerpt(text)
+                    if summary:
+                        return summary
+                cleaned = str(text or "").strip()
+                return cleaned[:48] if cleaned else "逐级传达政策，并保留关键执行条款"
+
+            private_event = scene._private_event_for(self.name) if hasattr(scene, "_private_event_for") else {}
+            has_private_source = bool(private_event)
+            task_mode = str(private_event.get("task_mode") or scene.state.get("task_mode", "notice") or "notice")
+            notice_kind = str(private_event.get("notice_kind") or scene.state.get("notice_kind", "execution") or "execution")
             cascade_mode = str(scene.state.get("cascade_mode", "strict_cascade") or "strict_cascade")
-            policy_text = str(scene.state.get("latest_policy", "") or "").strip()
-            notice_text = str(scene.state.get("latest_notice", "") or "").strip()
+            policy_text = str(private_event.get("relayed_policy") or private_event.get("latest_policy") or scene.state.get("relayed_policy", "") or scene.state.get("latest_policy", "") or "").strip()
+            source_policy_text = str(private_event.get("source_policy") or scene.state.get("source_policy", "") or policy_text).strip()
+            notice_text = str(private_event.get("latest_notice") or scene.state.get("latest_notice", "") or "").strip()
             tier = str(getattr(scene, "_tier_map", {}).get(self.name, self.properties.get("tier", "")) or "").strip()
             role_kind = scene._tier_role_kind(tier) if hasattr(scene, "_tier_role_kind") else "mid"
             if task_mode == "cascade":
-                example_policy = policy_text or "最新政策原文"
+                example_policy = policy_text or source_policy_text or "最新政策原文"
+                example_policy_summary = _compact_policy_example(source_policy_text or example_policy)
                 if cascade_mode == "distortion_cascade":
                     if role_kind == "top":
-                        example_message = f"关于‘{example_policy}’，我决定只向下强调考核压力与问责要求，暂不说明全部资源承诺。"
+                        if has_private_source:
+                            example_message = f"对于这条仅向我私下传达的政策，我决定先强调“{example_policy_summary}”，暂不展开全部资源承诺。"
+                        else:
+                            example_message = f"关于上级刚才的传达，我决定继续强调“{example_policy_summary}”，暂不展开全部资源承诺。"
                         context_update = "已按本层利益重述政策重点，并保留部分信息"
                     elif role_kind == "mid":
-                        example_message = f"上级要求推进该政策，但考虑到本部门考核压力，我只向下传达可立即执行的部分，其余内容暂缓。"
+                        if has_private_source:
+                            example_message = f"我会只向下传达可立即执行的部分，先保留“{example_policy_summary}”，其余内容暂缓。"
+                        else:
+                            example_message = f"考虑到本部门考核压力，我只向下传达可立即执行的部分，先保留“{example_policy_summary}”。"
                         context_update = "已结合中层压力选择性下传政策"
                     else:
-                        example_message = f"该政策与当前一线负担存在冲突，我会先反馈困难并暂缓全面执行，只保留最表层的应付性落实。"
+                        if has_private_source:
+                            example_message = f"该政策与一线负担存在冲突，我会先按基层可执行口径保留“{example_policy_summary}”，并上报执行困难。"
+                        else:
+                            example_message = f"该政策与一线负担存在冲突，我会先保留“{example_policy_summary}”中的最低执行要求。"
                         context_update = "已因基层执行冲突而弱化落实"
                     distortion_note = (
                         f"当前失真参数：失真强度={float(scene.state.get('distortion_strength', 0.6) or 0.6):.2f}，"
@@ -227,13 +248,13 @@ Recent Context Summary:
                         f"截留概率={float(scene.state.get('block_probability', 0.25) or 0.25):.2f}。"
                     )
                 elif role_kind == "top":
-                    example_message = f"{example_policy}\n态度：完全支持并按原文执行。\n补充：由我批准专项预算并建立月度问责机制。"
+                    example_message = f"我会按原文继续传达“{example_policy_summary}”。态度：完全支持并按原文执行。补充：由我批准专项预算并建立月度问责机制。"
                     context_update = "已按原文转发，并补充高层统筹与资源安排"
                 elif role_kind == "mid":
-                    example_message = f"{example_policy}\n态度：完全支持并按原文执行。\n补充：我将在48小时内拆解任务到各部门并建立周报台账。"
+                    example_message = f"我会按原文继续传达“{example_policy_summary}”。态度：完全支持并按原文执行。补充：我将在48小时内拆解任务到各部门并建立周报台账。"
                     context_update = "已按原文转发，并补充中层协调与任务拆解"
                 else:
-                    example_message = f"{example_policy}\n态度：完全支持并按原文执行。\n补充：我将按排查清单逐项核验，并在发现异常后24小时内上报。"
+                    example_message = f"我会按原文继续传达“{example_policy_summary}”。态度：完全支持并按原文执行。补充：我将按排查清单逐项核验，并在发现异常后24小时内上报。"
                     context_update = "已按原文转发，并补充基层执行与异常上报"
                 message_json = json.dumps(example_message, ensure_ascii=False)
                 silent_context = "等待下一级反馈" if cascade_mode != "distortion_cascade" else "因本层利益冲突暂缓下传"
@@ -493,7 +514,10 @@ Use the above context to inform your responses when relevant.
 
             # Step 2: Parse response (JSON format)
             try:
-                action_data = parse_actions(llm_output)
+                action_data = parse_actions(
+                    llm_output,
+                    strict_duplicate_actions=bool(scene and getattr(scene, "TYPE", "") == "policy_cascade_scene"),
+                )
 
                 # Debug: Write parsed actions to file
                 try:

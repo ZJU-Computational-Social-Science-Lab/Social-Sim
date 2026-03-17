@@ -1667,7 +1667,7 @@
       "conflict_sensitivity": "Conflict Sensitivity",
       "block_probability": "Block Probability",
       "num_agents_per_tier": "Agents per Tier",
-      "policy_text": "Source Policy Text"
+      "policy_text": "Initial Background Context"
     },
     "paramDescriptions": {
       "cascade_mode": "Choose whether each level must relay the policy faithfully or may distort and block it during transmission.",
@@ -1675,7 +1675,7 @@
       "conflict_sensitivity": "Only used in distortion mode. Higher values make value conflicts more likely to become resistance or deviation.",
       "block_probability": "Only used in distortion mode. The base probability that an agent withholds the policy instead of forwarding it.",
       "num_agents_per_tier": "Controls how many agents are generated for each hierarchy level.",
-      "policy_text": "The original directive first issued to the highest tier."
+      "policy_text": "Used only to set the opening background or situation for round 1. It does not automatically become the protected source policy for later relay."
     },
     "payoffMatrix": {
       "howToRead": {

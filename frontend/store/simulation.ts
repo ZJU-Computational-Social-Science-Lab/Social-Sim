@@ -491,8 +491,15 @@ export const createSimulationSlice: StateCreator<
             language: i18n.language || 'en',
           };
 
-          // Provide initial policy/event text to backend scenes
-          if (template.description) {
+          // Provide opening notice text to backend scenes
+          if (backendSceneType === 'policy_cascade_scene') {
+            const openingNotice = String((template.genericConfig as any)?.parameters?.policy_text || '').trim();
+            if (openingNotice) {
+              sceneConfig.initial_event = openingNotice;
+            } else if (template.description) {
+              sceneConfig.initial_event = template.description;
+            }
+          } else if (template.description) {
             sceneConfig.initial_event = template.description;
             sceneConfig.initial_events = [template.description];
           }

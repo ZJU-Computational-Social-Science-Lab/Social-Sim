@@ -15,11 +15,14 @@ from socialsim4.core.scene import Scene
 DEFAULT_TIER_ORDER = ["top", "mid", "low"]
 POLICY_MARKERS = ["原文", "不可改写条款", "报告要求", "执行要求", "目标："]
 POLICY_LINE_MARKERS = {
-    "goal": ["目标", "原则", "总体要求", "工作要求"],
+    "goal": ["政策目标", "目标", "总体要求", "工作要求"],
+    "scope": ["调整范围", "适用范围", "覆盖范围"],
+    "standard": ["调整标准", "下调", "比例", "薪酬标准", "固定薪酬"],
+    "support": ["配套要求", "稳岗安排", "心理支持", "申诉反馈渠道"],
     "execution": ["执行要求", "落实", "整改", "排查", "培训", "核验", "完成"],
     "report": ["报告要求", "报送", "汇总", "周报", "台账", "上报", "签到表", "填报"],
     "resource": ["资源", "预算", "经费", "人员", "保障", "技术支持", "专项"],
-    "accountability": ["问责", "考核", "督办", "责任", "压实责任", "跟踪问效"],
+    "accountability": ["责任分工", "问责", "考核", "督办", "责任", "压实责任", "跟踪问效"],
     "invariant": ["不可改写条款", "严禁", "不得", "必须", "一律"],
 }
 AGENT_SIGNAL_MARKERS = {
@@ -94,6 +97,8 @@ class PolicyCascadeScene(Scene):
         self.state["tier_transmitted"] = {t: False for t in self.tier_order}
         self.state["tier_order"] = list(self.tier_order)
         self.state["latest_policy"] = ""
+        self.state["source_policy"] = ""
+        self.state["relayed_policy"] = ""
         self.state["latest_notice"] = str(initial_event or "")
         self.state["task_mode"] = "notice"
         self.state["notice_kind"] = "execution"
@@ -101,6 +106,7 @@ class PolicyCascadeScene(Scene):
         self.state["distortion_strength"] = distortion_strength
         self.state["conflict_sensitivity"] = conflict_sensitivity
         self.state["block_probability"] = block_probability
+        self.state["private_events"] = {}
         self.state["complete"] = False
         self._tier_map: Dict[str, str] = {}
         self._agents_by_tier: Dict[str, List[str]] = {t: [] for t in self.tier_order}
@@ -120,6 +126,9 @@ class PolicyCascadeScene(Scene):
         self.state["distortion_strength"] = distortion_strength
         self.state["conflict_sensitivity"] = conflict_sensitivity
         self.state["block_probability"] = block_probability
+        self.state["source_policy"] = ""
+        self.state["relayed_policy"] = ""
+        self.state["private_events"] = {}
         self._agents_by_tier = {tier: [] for tier in self.tier_order}
 
     # ----- Lifecycle -----
@@ -130,10 +139,14 @@ class PolicyCascadeScene(Scene):
         self._normalize_active_tier()
 
     def reset_for_run(self):
-        self.state["current_tier_idx"] = 0
         self.state["complete"] = False
         self.state["tier_seen"] = {t: [] for t in self.tier_order}
         self.state["tier_transmitted"] = {t: False for t in self.tier_order}
+        self._rebuild_tiers()
+        if self._private_recipient_names():
+            self.state["current_tier_idx"] = self._private_active_tier_idx()
+        else:
+            self.state["current_tier_idx"] = 0
         self._normalize_active_tier()
 
     def on_event(self, sim, event_type: str, data):
@@ -141,15 +154,21 @@ class PolicyCascadeScene(Scene):
             self.state["current_tier_idx"] = 0
             self.state["tier_seen"] = {t: [] for t in self.tier_order}
             self.state["tier_transmitted"] = {t: False for t in self.tier_order}
+            self.state["private_events"] = {}
             desc = data.get("description") or data.get("content") or data.get("message") or ""
             cleaned_desc = self._clean_policy_text(str(desc))
             self.state["latest_notice"] = cleaned_desc
             enters_cascade = self._should_enter_cascade(cleaned_desc, event_type)
             if enters_cascade:
                 self.state["latest_policy"] = cleaned_desc
+                self.state["source_policy"] = cleaned_desc
+                self.state["relayed_policy"] = cleaned_desc
                 self.state["task_mode"] = "cascade"
                 self.state["notice_kind"] = "execution"
             else:
+                self.state["latest_policy"] = ""
+                self.state["source_policy"] = ""
+                self.state["relayed_policy"] = ""
                 self.state["task_mode"] = "notice"
                 self.state["notice_kind"] = self._detect_notice_kind(cleaned_desc)
             if self._cascade_mode() == "distortion_cascade":
@@ -165,6 +184,55 @@ class PolicyCascadeScene(Scene):
             self.state["complete"] = False
             self._rebuild_tiers()
             self._normalize_active_tier()
+        return None
+
+    def on_private_event(self, sim, event_type: str, data, recipients: List[str]):
+        if event_type not in {"environment", "broadcast"}:
+            return None
+
+        desc = data.get("description") or data.get("content") or data.get("message") or ""
+        cleaned_desc = self._clean_policy_text(str(desc))
+        enters_cascade = self._should_enter_cascade(cleaned_desc, event_type)
+        private_payload = {
+            "latest_notice": cleaned_desc,
+            "latest_policy": cleaned_desc if enters_cascade else "",
+            "source_policy": cleaned_desc if enters_cascade else "",
+            "relayed_policy": cleaned_desc if enters_cascade else "",
+            "task_mode": "cascade" if enters_cascade else "notice",
+            "notice_kind": "execution" if enters_cascade else self._detect_notice_kind(cleaned_desc),
+        }
+
+        private_events = self.state.get("private_events") or {}
+        for name in recipients:
+            private_events[name] = dict(private_payload)
+        self.state["private_events"] = private_events
+
+        if enters_cascade:
+            visible_to = recipients[0] if recipients else ""
+            visible_tier = self._tier_map.get(visible_to) or ""
+            sim.emit_event(
+                "private_cascade_input",
+                {
+                    "event_type": event_type,
+                    "content": cleaned_desc,
+                    "visible_to": visible_to,
+                    "visible_tier": visible_tier,
+                    "recipients": list(recipients),
+                },
+            )
+
+        self.state["complete"] = False
+        self.state["tier_seen"] = {t: [] for t in self.tier_order}
+        self.state["tier_transmitted"] = {t: False for t in self.tier_order}
+        self._rebuild_tiers()
+
+        recipient_tiers = [self._tier_map.get(name) for name in recipients if self._tier_map.get(name)]
+        if recipient_tiers:
+            first_tier = min(self.tier_order.index(tier) for tier in recipient_tiers)
+            self.state["current_tier_idx"] = first_tier
+        else:
+            self.state["current_tier_idx"] = 0
+        self._normalize_active_tier()
         return None
 
     # ----- Tier helpers -----
@@ -276,7 +344,8 @@ class PolicyCascadeScene(Scene):
 
     def _policy_signal_profile(self) -> Dict[str, float]:
         text = "\n".join([
-            str(self.state.get("latest_policy", "") or ""),
+            str(self.state.get("source_policy", "") or ""),
+            str(self.state.get("relayed_policy", "") or ""),
             str(self.state.get("latest_notice", "") or ""),
         ])
         profile = {
@@ -303,10 +372,20 @@ class PolicyCascadeScene(Scene):
             "block",
             agent.name,
             tier,
-            self.state.get("latest_policy", ""),
+            self.state.get("source_policy", ""),
+            self.state.get("relayed_policy", ""),
             self.state.get("latest_notice", ""),
         )
-        return self._clamp01(self._block_probability() * 0.45 + pressure * 0.75 + seed * 0.2)
+        activation = self._clamp01(
+            0.1
+            + self._distortion_strength() * 0.55
+            + self._conflict_sensitivity() * 0.35
+        )
+        return self._clamp01(
+            self._block_probability()
+            + pressure * activation * 0.55
+            + seed * 0.05
+        )
 
     def _distortion_reason(self, agent: Agent, tier: str) -> str:
         agent_profile = self._agent_signal_profile(agent)
@@ -331,9 +410,12 @@ class PolicyCascadeScene(Scene):
 
         return "；".join(top_reasons + [role_note])
 
-    def _emit_distortion_event(self, simulator, agent: Agent, tier: str, original_message: str, final_action: str, final_message: str) -> None:
+    def _emit_distortion_event(self, simulator, agent: Agent, tier: str, input_policy: str, agent_draft: str, final_action: str, final_message: str) -> None:
         pressure = self._conflict_pressure(agent, tier)
         tendency = self._block_tendency(agent, tier)
+        original_norm = " ".join(str(input_policy or "").split())
+        final_norm = " ".join(str(final_message or "").split())
+        changed = final_action == "yield" or original_norm != final_norm
         simulator.emit_event(
             "cascade_distortion",
             {
@@ -341,7 +423,9 @@ class PolicyCascadeScene(Scene):
                 "tier": tier,
                 "mode": self._cascade_mode(),
                 "blocked": final_action == "yield",
-                "original_message": original_message,
+                "changed": changed,
+                "original_message": input_policy,
+                "agent_draft_message": agent_draft,
                 "final_message": final_message,
                 "reason": self._distortion_reason(agent, tier),
                 "pressure": round(pressure, 4),
@@ -359,17 +443,51 @@ class PolicyCascadeScene(Scene):
         return "", line.strip()
 
     def _line_kind(self, line: str) -> str:
+        normalized = re.sub(r'^\s*(?:\d+[\.、]\s*)?', '', str(line or '').strip())
+        if normalized == "原文：":
+            return "meta"
+        if ("通知" in normalized or "公告" in normalized) and (
+            normalized.startswith("关于")
+            or "关于" in normalized
+            or normalized.startswith("「")
+            or normalized.startswith("【")
+        ):
+            return "title"
+        header, _ = self._split_policy_line(normalized)
+        if header:
+            for kind, markers in POLICY_LINE_MARKERS.items():
+                if any(marker in header for marker in markers):
+                    return kind
         for kind, markers in POLICY_LINE_MARKERS.items():
-            if any(marker in line for marker in markers):
+            if any(marker in normalized for marker in markers):
                 return kind
         return "general"
 
     def _policy_lines_for_distortion(self, message: str) -> List[tuple[str, str]]:
-        source = self._sanitize_message(message)
+        source = str(self.state.get("source_policy", "") or "").strip()
         if not source:
-            source = str(self.state.get("latest_policy", "") or "")
-        lines = [line.strip() for line in source.splitlines() if line.strip()]
-        return [(self._line_kind(line), line) for line in lines]
+            source = self._sanitize_message(message)
+        if not source:
+            source = str(self.state.get("relayed_policy", "") or self.state.get("latest_policy", "") or "")
+        lines = [line.rstrip() for line in source.splitlines() if line.strip()]
+        result: List[tuple[str, str]] = []
+        current_kind = "general"
+        for raw_line in lines:
+            stripped = raw_line.strip()
+            kind = self._line_kind(stripped)
+            if stripped.startswith("*") or stripped.startswith("•") or stripped.startswith("-"):
+                kind = current_kind
+            elif current_kind == "invariant" and stripped.startswith(("“", '"', "'", "‘")):
+                kind = "invariant"
+            elif kind == "general" and current_kind in {"report", "execution"} and stripped.startswith(("（", "(", "附", "其中", "包括")):
+                kind = current_kind
+            elif kind not in {"general", "meta", "title"}:
+                current_kind = kind
+            result.append((kind, stripped))
+        return result
+
+    def _clean_policy_body(self, text: str) -> str:
+        return str(text or "").strip().rstrip("。；;，,:：")
 
     def _soften_body(self, body: str, strength: float) -> str:
         softened = str(body or "").strip()
@@ -391,54 +509,112 @@ class PolicyCascadeScene(Scene):
     def _rewrite_line_for_distortion(self, kind: str, tier: str, line: str, strength: float, pressure: float) -> str:
         role_kind = self._tier_role_kind(tier)
         header, body = self._split_policy_line(line)
-        softened = self._soften_body(body, strength)
+        softened = self._clean_policy_body(self._soften_body(body, strength))
+        clean_body = self._clean_policy_body(body)
+        if kind == "title":
+            return line
+        if kind == "meta":
+            return line
+        if strength < 0.35:
+            return line
+        elif strength <= 0.55:
+            if kind == "goal":
+                return f"政策目标：{softened or clean_body}。"
+            if kind == "scope":
+                return f"适用范围仍按原文执行：{softened or clean_body}。"
+            if kind == "standard":
+                return f"调整标准原则上保持不变：{softened or clean_body}。"
+            if kind == "support":
+                return f"配套安排继续同步说明：{softened or clean_body}。"
+            if kind == "execution":
+                return f"执行时继续按原要求推进：{softened or clean_body}。"
+            if kind == "report":
+                return f"报告要求继续保留：{softened or clean_body}。"
+            if kind == "resource":
+                return f"资源支持继续保留原则安排：{softened or clean_body}。"
+            if kind == "accountability":
+                return f"责任链条继续明确：{softened or clean_body}。"
+            if kind == "invariant":
+                return line
+            return line
         if kind == "goal":
             if role_kind == "top":
-                return f"阶段目标：继续围绕{softened or body}推进，但先突出最核心指标。"
+                return f"阶段目标：继续围绕{softened or clean_body}推进，但先突出最核心指标。"
             if role_kind == "mid":
-                return f"当前先按阶段性目标处理：{softened or body}，其余部分分批推进。"
-            return f"一线仅保留最低目标：{softened or body}。"
+                return f"当前先按阶段性目标处理：{softened or clean_body}，其余部分分批推进。"
+            return f"一线仅保留最低目标：{softened or clean_body}。"
+        if kind == "scope":
+            if role_kind == "top":
+                return f"适用范围暂按原口径掌握：{softened or clean_body}。"
+            if role_kind == "mid":
+                return f"当前执行范围先收敛为：{softened or clean_body}。"
+            return f"一线当前仅按以下范围理解：{softened or clean_body}。"
+        if kind == "standard":
+            if role_kind == "top":
+                return f"调整标准先保留关键口径：{softened or clean_body}。"
+            if role_kind == "mid":
+                return f"本层只下传最核心的调整标准：{softened or clean_body}。"
+            return f"基层仅掌握与执行直接相关的标准：{softened or clean_body}。"
+        if kind == "support":
+            if role_kind == "top":
+                return f"配套安排原则上保留：{softened or clean_body}。"
+            if role_kind == "mid":
+                return f"配套安排先保留必要部分：{softened or clean_body}。"
+            return f"一线仅保留必要配套说明：{softened or clean_body}。"
         if kind == "execution":
             if role_kind == "top":
-                return f"执行重点：各单位先围绕{softened or body}落实，细项后续再补。"
+                return f"执行重点：各单位先围绕{softened or clean_body}落实，细项后续再补。"
             if role_kind == "mid":
-                return f"现阶段执行安排调整为：优先处理{softened or body}。"
-            return f"基层先完成最小动作：{softened or body}。"
+                return f"现阶段执行安排调整为：优先处理{softened or clean_body}。"
+            return f"基层先完成最小动作：{softened or clean_body}。"
         if kind == "report":
             if strength >= 0.75:
                 return "报送要求调整为：先内部掌握情况，后续视条件统一汇总。"
             if role_kind == "low":
-                return f"报送部分先简化为现场记录：{softened or body}。"
-            return f"报送安排改为部门内部先汇总：{softened or body}。"
+                return f"报送部分先简化为现场记录：{softened or clean_body}。"
+            return f"报送安排改为部门内部先汇总：{softened or clean_body}。"
         if kind == "resource":
             if role_kind == "top":
-                return f"资源保障部分暂保留原则性表述：{softened or body}。"
+                return f"资源保障部分暂保留原则性表述：{softened or clean_body}。"
             return "资源支持暂按现有条件消化，新增保障后续再协调。"
         if kind == "accountability":
             if role_kind == "top":
-                return f"考核问责仍然保留，但先聚焦关键事项：{softened or body}。"
+                return f"考核问责仍然保留，但先聚焦关键事项：{softened or clean_body}。"
             if pressure >= 0.6:
                 return "考核要求暂不向下展开，先看本轮执行反馈。"
-            return f"跟踪要求调整为阶段性检查：{softened or body}。"
+            return f"跟踪要求调整为阶段性检查：{softened or clean_body}。"
         if kind == "invariant":
-            if strength >= 0.8 and role_kind != "top":
-                return f"当前仅口头强调底线要求：{softened or body}。"
-            return f"保留底线要求：{softened or body}。"
+            return line
+        if kind == "title":
+            return line
+        if kind == "meta":
+            return line
         if role_kind == "top":
-            return f"本层转述：{softened or body or header}。"
+            return f"本层转述：{softened or clean_body or header}。"
         if role_kind == "mid":
-            return f"结合本层压力，改写为：{softened or body or header}。"
-        return f"一线暂按以下方式理解：{softened or body or header}。"
+            return f"结合本层压力，改写为：{softened or clean_body or header}。"
+        return f"一线暂按以下方式理解：{softened or clean_body or header}。"
 
     def _line_priority(self, kind: str, tier: str) -> int:
         role_kind = self._tier_role_kind(tier)
         if role_kind == "top":
-            order = ["goal", "accountability", "resource", "execution", "report", "invariant", "general"]
+            order = ["goal", "scope", "standard", "support", "resource", "report", "accountability", "execution", "invariant", "general"]
         elif role_kind == "mid":
-            order = ["execution", "report", "goal", "accountability", "resource", "invariant", "general"]
+            order = ["standard", "execution", "scope", "support", "report", "goal", "accountability", "resource", "invariant", "general"]
         else:
-            order = ["execution", "report", "goal", "general", "resource", "accountability", "invariant"]
+            order = ["execution", "support", "report", "standard", "scope", "goal", "general", "resource", "accountability", "invariant"]
         return order.index(kind) if kind in order else len(order)
+
+    def _must_keep_line(self, kind: str, line: str, strength: float, tier: str) -> bool:
+        if kind in {"title", "meta"}:
+            return True
+        if kind == "invariant":
+            return True
+        if strength <= 0.55:
+            return kind in {"goal", "scope", "standard", "support", "report", "resource", "accountability"}
+        if self._tier_role_kind(tier) == "top":
+            return kind in {"goal", "standard", "resource", "report"}
+        return kind in {"standard", "execution", "report"}
 
     def _conflict_pressure(self, agent: Agent, tier: str) -> float:
         role_kind = self._tier_role_kind(tier)
@@ -476,30 +652,40 @@ class PolicyCascadeScene(Scene):
         if not lines:
             return normalized
 
-        role_kind = self._tier_role_kind(tier)
-        if role_kind == "top":
-            prefix = "经本层统筹后，现仅保留关键考核要求："
-        elif role_kind == "mid":
-            prefix = "结合本层执行压力，现转化为以下可操作要求："
-        else:
-            prefix = "考虑一线负担，当前仅落实以下最低要求："
+        content_lines = [item for item in lines if item[0] not in {"title", "meta"}]
+        if content_lines:
+            lines = content_lines
+
+        prefix = self._distortion_intro(tier, strength)
 
         pressure = self._conflict_pressure(agent, tier)
-        if strength < 0.35:
-            return normalized
-
-        keep_ratio = 0.8 if strength < 0.5 else 0.6 if strength < 0.75 else 0.4
-        keep_count = max(1, min(len(lines), int(round(len(lines) * keep_ratio))))
-        selected = sorted(lines, key=lambda item: self._line_priority(item[0], tier))[:keep_count]
+        keep_count = max(1, min(len(lines), self._distortion_anchor_limit(tier, strength)))
+        ranked = sorted(lines, key=lambda item: self._line_priority(item[0], tier))
+        required: List[tuple[str, str]] = []
+        for item in ranked:
+            if self._must_keep_line(item[0], item[1], strength, tier) and item not in required:
+                required.append(item)
+        selected: List[tuple[str, str]] = list(required)
+        for item in ranked:
+            if len(selected) >= keep_count:
+                break
+            if item not in selected:
+                selected.append(item)
+        if len(required) > keep_count:
+            keep_count = len(required)
+        selected = selected[:keep_count]
         rewritten = [
             self._rewrite_line_for_distortion(kind, tier, line, strength, pressure)
             for kind, line in selected
         ]
+        if not rewritten:
+            return normalized
+
+        parts = [prefix, normalized, self._distortion_constraint_label(tier, strength)]
+        parts.extend(rewritten)
         if pressure >= 0.75:
-            rewritten.append("其余部分待条件成熟后再决定是否继续下传。")
-        if strength < 0.7:
-            return f"{prefix}\n" + "\n".join(rewritten)
-        return f"{prefix}\n" + "；".join(rewritten[:max(1, min(3, len(rewritten)))])
+            parts.append("其余内容待条件成熟后再决定是否继续下传。")
+        return "\n".join(part for part in parts if part)
 
     def _rebuild_tiers(self) -> None:
         self._tier_map = {}
@@ -535,6 +721,21 @@ class PolicyCascadeScene(Scene):
         idx = int(self.state.get("current_tier_idx", 0))
         return self.tier_order[min(max(idx, 0), len(self.tier_order) - 1)]
 
+    def _private_event_for(self, agent_name: str) -> dict:
+        private_events = self.state.get("private_events") or {}
+        return private_events.get(agent_name) or {}
+
+    def _private_recipient_names(self) -> List[str]:
+        private_events = self.state.get("private_events") or {}
+        return [name for name in private_events.keys() if name]
+
+    def _private_active_tier_idx(self) -> int:
+        names = self._private_recipient_names()
+        tiers = [self._tier_map.get(name) for name in names if self._tier_map.get(name)]
+        if not tiers:
+            return 0
+        return min(self.tier_order.index(tier) for tier in tiers)
+
     def _downstream_targets(self, agent: Agent) -> List[str]:
         tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
         idx = self.tier_order.index(tier) if tier in self.tier_order else 0
@@ -547,16 +748,16 @@ class PolicyCascadeScene(Scene):
         return any(marker in text for marker in POLICY_MARKERS)
 
     def _should_enter_cascade(self, text: str, event_type: str) -> bool:
-        if self._cascade_mode() != "distortion_cascade":
-            return self._is_policy_announcement(text)
-
         cleaned = str(text or "").strip()
         if not cleaned:
             return False
 
         initial_text = self._clean_policy_text(str(getattr(self.initial_event, "content", "") or ""))
-        if event_type == "broadcast" and cleaned == initial_text and not str(self.state.get("latest_policy", "") or "").strip():
+        if event_type == "broadcast" and cleaned == initial_text and not str(self.state.get("relayed_policy", "") or self.state.get("latest_policy", "") or "").strip():
             return False
+
+        if self._cascade_mode() != "distortion_cascade":
+            return self._is_policy_announcement(text)
 
         return True
 
@@ -606,13 +807,22 @@ class PolicyCascadeScene(Scene):
     def _cross_tier_words(self, tier: str) -> List[str]:
         role_kind = self._tier_role_kind(tier)
         if role_kind == "top":
-            return ["基层执行", "基层落实", "中层协调", "中层执行", "现场核验", "逐项排查", "复查复核", "销号管理"]
+            return [
+                "基层执行", "基层落实", "中层协调", "中层执行", "现场核验", "逐项排查", "复查复核", "销号管理",
+                "任务拆解", "周报台账", "跨部门协调", "排查步骤", "问题整改", "上报反馈",
+            ]
         if role_kind == "mid":
-            return ["高层统筹", "高层问责", "基层执行", "基层落实", "组织领导", "决策部署", "现场核验", "逐项排查"]
-        return ["高层统筹", "高层部署", "中层协调", "中层执行", "组织领导", "决策部署", "周报机制", "专班推进"]
+            return [
+                "高层统筹", "高层问责", "基层执行", "基层落实", "组织领导", "决策部署", "现场核验", "逐项排查",
+                "总体目标", "资源调配", "督促检查", "责任落实", "问题整改", "上报反馈", "闭环",
+            ]
+        return [
+            "高层统筹", "高层部署", "中层协调", "中层执行", "组织领导", "决策部署", "周报机制", "专班推进",
+            "总体目标", "资源调配", "督促检查", "跨层级协同治理", "任务拆解", "跨部门协调", "台账机制",
+        ]
 
     def _policy_focus(self) -> List[str]:
-        policy = str(self.state.get("latest_policy", "") or "")
+        policy = str(self.state.get("source_policy", "") or self.state.get("relayed_policy", "") or self.state.get("latest_policy", "") or "")
         lines = [line.strip(" *") for line in policy.splitlines() if line.strip()]
         picks = []
         for line in lines:
@@ -620,12 +830,101 @@ class PolicyCascadeScene(Scene):
                 picks.append(line)
         return picks[:3]
 
+    def _policy_prompt_excerpt(self, text: str) -> str:
+        cleaned = self._clean_policy_text(text)
+        if not cleaned:
+            return ""
+        lines = [line.strip() for line in cleaned.splitlines() if line.strip()]
+        picked: List[str] = []
+        seen = set()
+        for line in lines:
+            normalized = line.strip(" *")
+            kind = self._line_kind(normalized)
+            summary = ""
+            if kind == "goal":
+                if "6 个月内" in normalized and "岗位稳定" in normalized:
+                    summary = "目标：6个月内完成成本优化与岗位稳定"
+                else:
+                    _, body = self._split_policy_line(normalized)
+                    summary = f"目标：{body[:24]}" if body else "目标：保持政策目标不变"
+            elif kind == "scope":
+                if "中层及以下" in normalized and ("暂不纳入" in normalized or "关键" in normalized):
+                    summary = "范围：中层及以下，关键岗位原则上暂不纳入"
+                else:
+                    summary = "范围：保持原适用范围"
+            elif kind == "standard":
+                if "10%" in normalized and "阶段性下调" in normalized:
+                    summary = "标准：10%阶段性下调"
+                else:
+                    summary = "标准：保持原调整标准"
+            elif kind == "support":
+                summary = "配套：同步说明稳岗安排、心理支持与申诉渠道"
+            elif kind == "report":
+                if "5 个工作日" in normalized or "5个工作日" in normalized:
+                    summary = "报告：5个工作日内提交落实情况"
+                else:
+                    summary = "报告：保留落实情况报送要求"
+            elif kind == "resource":
+                summary = "资源：可申请沟通、人力和缓冲预算支持"
+            elif kind == "accountability":
+                if "不得跳级" in normalized:
+                    summary = "责任：逐级传达，不得跳级通知"
+                else:
+                    summary = "责任：明确负责人对接与责任链条"
+            elif kind == "invariant":
+                summary = "硬约束：保留不可改写条款"
+            elif kind == "title" and not picked:
+                summary = normalized[:24]
+            if summary and summary not in seen:
+                picked.append(summary)
+                seen.add(summary)
+        if not picked:
+            picked = ["按当前政策版本执行"]
+        return "；".join(picked[:4])
+
     def _sanitize_message(self, message: str) -> str:
         sanitized = strip_thinking_tokens(str(message or "")).strip()
         sanitized = re.sub(r'(^|\n)\s*/(?:think|reasoning|analysis)\b.*?(?=\n|\Z)', '\\1', sanitized, flags=re.IGNORECASE | re.DOTALL)
+        sanitized = re.sub(r'(?i)(?:^|(?<=\s))/(?:think|reasoning|analysis)\b[^\S\r\n]*$', '', sanitized, flags=re.MULTILINE)
+        sanitized = re.sub(r'\s*/(?:think|reasoning|analysis)\b', '', sanitized, flags=re.IGNORECASE)
         sanitized = re.sub(r'<[^>]+>', '', sanitized)
         sanitized = re.sub(r'\n{3,}', '\n\n', sanitized)
         return sanitized.strip()
+
+    def _cascade_tier_detail(self, tier: str) -> str:
+        role_kind = self._tier_role_kind(tier)
+        if role_kind == "top":
+            return "补充：本层只补充高层统筹、资源批准和督办问责安排。"
+        if role_kind == "mid":
+            return "补充：本层只补充任务拆解、跨部门协调和周报台账安排。"
+        return "补充：本层只补充逐项排查、现场核验、整改复查和上报反馈。"
+
+    def _normalize_cascade_message(self, agent: Agent, tier: str, policy: str, message: str) -> str:
+        normalized = self._sanitize_message(message)
+        if not normalized:
+            if self._cascade_mode() == "distortion_cascade":
+                normalized = self._distort_message(agent, tier, policy)
+            else:
+                normalized = f"{policy}\n{self._cascade_suffix(tier)}"
+
+        if not self._message_has_tier_drift(tier, normalized):
+            return self._sanitize_message(normalized)
+
+        detail = self._cascade_tier_detail(tier)
+        if detail not in normalized:
+            normalized = f"{normalized}\n{detail}".strip()
+
+        if not self._message_has_tier_drift(tier, normalized):
+            return self._sanitize_message(normalized)
+
+        if self._cascade_mode() == "distortion_cascade":
+            distorted = self._distort_message(agent, tier, policy)
+            normalized = distorted or normalized
+            if detail not in normalized:
+                normalized = f"{normalized}\n{detail}".strip()
+            return self._sanitize_message(normalized)
+
+        return self._sanitize_message(f"{policy}\n{self._cascade_suffix(tier)}")
 
     def _clean_policy_text(self, text: str) -> str:
         cleaned = self._sanitize_message(text)
@@ -644,6 +943,36 @@ class PolicyCascadeScene(Scene):
         normalized = re.sub(r'\n{3,}', '\n\n', normalized)
         normalized = re.sub(r'[ \t]+\n', '\n', normalized)
         return normalized.strip()
+
+    def _distortion_anchor_limit(self, tier: str, strength: float) -> int:
+        role_kind = self._tier_role_kind(tier)
+        if strength <= 0.55:
+            return 3 if role_kind == "top" else 4
+        if strength < 0.75:
+            return 3 if role_kind != "low" else 2
+        return 2
+
+    def _distortion_constraint_label(self, tier: str, strength: float) -> str:
+        role_kind = self._tier_role_kind(tier)
+        if strength <= 0.55:
+            if role_kind == "top":
+                return "下传时同步保留以下政策要点："
+            if role_kind == "mid":
+                return "继续下传时请同步保留以下硬约束："
+            return "一线执行时至少同步保留以下要点："
+        if role_kind == "top":
+            return "本层筛选后保留以下关键口径："
+        if role_kind == "mid":
+            return "本层筛选后仅继续保留以下要求："
+        return "当前仅继续保留以下最低要求："
+
+    def _distortion_intro(self, tier: str, strength: float) -> str:
+        role_kind = self._tier_role_kind(tier)
+        if role_kind == "top":
+            return "经本层统筹，现按本层判断向下传达：" if strength <= 0.55 else "经本层统筹，现压缩后向下传达："
+        if role_kind == "mid":
+            return "结合本层执行压力，现按本层理解继续传达：" if strength <= 0.55 else "结合本层执行压力，现筛选后继续传达："
+        return "考虑一线执行条件，现按一线可执行口径转述：" if strength <= 0.55 else "考虑一线负担，现仅保留最低执行口径："
 
     def _build_analysis_message(self, tier: str) -> str:
         notice = str(self.state.get("latest_notice", "") or "").strip()
@@ -794,6 +1123,8 @@ class PolicyCascadeScene(Scene):
                 f.write(f"\n{'=' * 80}\n")
                 f.write(f"[FINAL ACTION] {agent.name}\n")
                 f.write(f"mode={mode} notice_kind={self.state.get('notice_kind', '')}\n")
+                f.write(f"source_policy={self.state.get('source_policy', '')}\n")
+                f.write(f"relayed_policy={self.state.get('relayed_policy', '')}\n")
                 f.write("--- ORIGINAL PAYLOAD ---\n")
                 f.write(f"{original_payload}\n")
                 f.write("--- FINAL PAYLOAD ---\n")
@@ -815,8 +1146,13 @@ class PolicyCascadeScene(Scene):
     # ----- Description -----
 
     def get_behavior_guidelines(self):
-        if self.state.get("task_mode") == "notice":
-            if self.state.get("notice_kind") == "analysis":
+        private_recipients = self._private_recipient_names()
+        private_event = self._private_event_for(private_recipients[0]) if private_recipients else {}
+        effective_mode = str(private_event.get("task_mode") or self.state.get("task_mode") or "notice")
+        effective_notice_kind = str(private_event.get("notice_kind") or self.state.get("notice_kind") or "execution")
+
+        if effective_mode == "notice":
+            if effective_notice_kind == "analysis":
                 return (
                     "When your tier is active: "
                     "(1) 直接回应最新系统公告，重点做政策解读、合理性评估、优点/缺点/风险/建议分析，"
@@ -854,23 +1190,29 @@ class PolicyCascadeScene(Scene):
         )
 
     def get_agent_status_prompt(self, agent: Agent) -> str:
-        notice = str(self.state.get("latest_notice", "") or "").strip()
-        policy = str(self.state.get("latest_policy", "") or "").strip()
+        private_event = self._private_event_for(agent.name)
+        notice = str(private_event.get("latest_notice") or self.state.get("latest_notice", "") or "").strip()
+        source_policy = str(private_event.get("source_policy") or self.state.get("source_policy", "") or "").strip()
+        relayed_policy = str(private_event.get("relayed_policy") or self.state.get("relayed_policy", "") or private_event.get("latest_policy") or self.state.get("latest_policy", "") or "").strip()
         parts = []
-        mode = str(self.state.get("task_mode", "notice") or "notice")
+        mode = str(private_event.get("task_mode") or self.state.get("task_mode", "notice") or "notice")
         tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
         role_kind = self._tier_role_kind(tier)
         if mode == "notice":
-            if self.state.get("notice_kind") == "analysis":
+            notice_kind = str(private_event.get("notice_kind") or self.state.get("notice_kind") or "execution")
+            if notice_kind == "analysis":
                 parts.append("当前任务：直接回应最新系统公告，重点写合理性、优点、缺点、风险和建议，不要写成执行命令。")
             else:
                 parts.append("当前任务：直接回应最新系统公告，不要转述他人的指令。")
             if role_kind == "top":
                 parts.append("你只讨论高层判断：总体方向、组织领导、资源调配、督促检查。不要替中层和基层写任务清单。")
+                parts.append("如果出现‘任务拆解’‘跨部门协调’‘现场核验’‘问题整改’等字样，视为越层。")
             elif role_kind == "mid":
                 parts.append("你只讨论中层判断：任务分解、跨部门协调、台账机制、时间表。不要替高层做战略表态，也不要替基层写现场细节。")
+                parts.append("禁止出现‘总体目标’‘资源调配’‘督促检查’等高层口径，也不要写‘现场核验’‘问题整改’等基层动作。")
             else:
                 parts.append("你只讨论基层判断：排查步骤、现场核验、问题整改、上报反馈。不要继续向别人发指令，也不要概括全局部署。")
+                parts.append("禁止出现‘总体目标’‘资源调配’‘督促检查’‘任务拆解’‘跨部门协调’等上层口径。")
         else:
             parts.append("当前任务：按层级传递最新政策，并补充与你职责相关的执行细节。")
             if self._cascade_mode() == "distortion_cascade":
@@ -880,19 +1222,21 @@ class PolicyCascadeScene(Scene):
                     f"本次参数：失真强度={self._distortion_strength():.2f}，利益冲突敏感度={self._conflict_sensitivity():.2f}，截留概率={self._block_probability():.2f}。"
                 )
             if role_kind == "top":
-                parts.append("高层补充应聚焦统筹、问责、资源批准，不要替中层和基层写执行动作。")
+                parts.append("只写高层统筹、资源批准、问责安排。")
             elif role_kind == "mid":
-                parts.append("中层补充应聚焦拆解任务、协调单位、跟踪节点，不要复制高层统筹口径。")
+                parts.append("只写中层任务拆解、协同推进、节点跟踪。")
             else:
-                parts.append("基层补充应聚焦具体执行动作、问题上报、反馈闭环，不要重复上级整段原话。")
+                parts.append("只写基层排查、上报、反馈闭环。")
         parts.append("禁止复述你上一条 assistant 回复；请给出新的、与你当前层级匹配的内容。")
         if notice:
             parts.append(f"最新系统公告：{notice}")
             min_chars = self._extract_min_chars(notice)
             if min_chars:
                 parts.append(f"本次回复长度要求：不少于{min_chars}字。")
-        if policy and policy != notice:
-            parts.append(f"最新政策：{policy}")
+        if relayed_policy and relayed_policy != notice:
+            parts.append(f"上一层传达版本摘要：{self._policy_prompt_excerpt(relayed_policy)}")
+        if private_event and source_policy and source_policy != relayed_policy:
+            parts.append(f"原始政策摘要：{self._policy_prompt_excerpt(source_policy)}")
         return "\n".join(parts)
 
     # ----- Actions -----
@@ -914,16 +1258,30 @@ class PolicyCascadeScene(Scene):
             payload = merged
         action_name = payload.get("action")
         tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
+        private_event = self._private_event_for(agent.name)
+        effective_task_mode = str(private_event.get("task_mode") or self.state.get("task_mode", "notice") or "notice")
 
-        if self.state.get("task_mode") == "notice" and action_name == "send_message" and not self.should_skip_turn(agent, simulator):
+        if effective_task_mode == "notice" and action_name == "send_message" and not self.should_skip_turn(agent, simulator):
             message = self._sanitize_message(payload.get("message", ""))
-            payload["message"] = self._normalize_notice_message(tier, message)
+            if private_event:
+                payload["message"] = message
+            else:
+                payload["message"] = self._normalize_notice_message(tier, message)
 
-        if self.state.get("task_mode") == "cascade" and action_name == "send_message" and not self.should_skip_turn(agent, simulator):
-            policy = str(self.state.get("latest_policy", "") or "").strip()
+        if effective_task_mode == "cascade" and action_name == "send_message" and not self.should_skip_turn(agent, simulator):
+            policy = str(private_event.get("relayed_policy") or private_event.get("latest_policy") or self.state.get("relayed_policy", "") or self.state.get("latest_policy", "") or "").strip()
+            source_policy = str(private_event.get("source_policy") or self.state.get("source_policy", "") or policy).strip()
             message = self._sanitize_message(payload.get("message", ""))
             if not policy:
                 raise ValueError("latest policy missing for cascade")
+
+            if private_event:
+                self.state["latest_notice"] = str(private_event.get("latest_notice") or self.state.get("latest_notice") or "")
+                self.state["latest_policy"] = policy
+                self.state["source_policy"] = source_policy
+                self.state["relayed_policy"] = policy
+                self.state["task_mode"] = "cascade"
+                self.state["notice_kind"] = "execution"
 
             if self._cascade_mode() == "distortion_cascade":
                 if self._should_block(agent, tier):
@@ -936,6 +1294,7 @@ class PolicyCascadeScene(Scene):
                     simulator,
                     agent,
                     tier,
+                    policy,
                     message,
                     str(payload.get("action") or ""),
                     str(payload.get("message") or ""),
@@ -962,8 +1321,44 @@ class PolicyCascadeScene(Scene):
                 else:
                     payload["message"] = message
 
-        if action_name == "send_message":
-            self._write_final_debug(agent, str(self.state.get("task_mode", "")), original_payload, payload)
+            if str(payload.get("action") or "") == "send_message":
+                payload["message"] = self._normalize_cascade_message(
+                    agent,
+                    tier,
+                    policy,
+                    str(payload.get("message", "") or ""),
+                )
+
+            if str(payload.get("action") or "") == "send_message":
+                self.state["latest_policy"] = str(payload.get("message") or policy)
+                self.state["relayed_policy"] = str(payload.get("message") or policy)
+                self.state["source_policy"] = source_policy
+                self.state["task_mode"] = "cascade"
+                self.state["notice_kind"] = "execution"
+
+        if private_event:
+            private_events = self.state.get("private_events") or {}
+            private_events.pop(agent.name, None)
+            self.state["private_events"] = private_events
+
+            if effective_task_mode == "cascade":
+                self.state["latest_notice"] = str(private_event.get("latest_notice") or "")
+                self.state["latest_policy"] = str(payload.get("message") or private_event.get("relayed_policy") or private_event.get("latest_policy") or "")
+                self.state["source_policy"] = source_policy
+                self.state["relayed_policy"] = str(payload.get("message") or private_event.get("relayed_policy") or private_event.get("latest_policy") or "")
+                self.state["task_mode"] = "cascade"
+                self.state["notice_kind"] = "execution"
+
+                tier_agents = self._agents_by_tier.get(tier, [])
+                seen = self.state.get("tier_seen") or {}
+                seen[tier] = list(tier_agents)
+                self.state["tier_seen"] = seen
+            elif not self._private_recipient_names():
+                self.state["complete"] = bool(self.state.get("complete"))
+
+        if str(payload.get("action") or action_name) == "send_message":
+            payload["message"] = self._sanitize_message(payload.get("message", ""))
+            self._write_final_debug(agent, effective_task_mode, original_payload, payload)
 
         success, result, summary, meta, _ = super().parse_and_handle_action(payload, agent, simulator)
         return success, result, summary, meta, True
@@ -1017,6 +1412,11 @@ class PolicyCascadeScene(Scene):
     def should_skip_turn(self, agent: Agent, simulator) -> bool:
         if self.state.get("complete"):
             return True
+        private_recipients = self._private_recipient_names()
+        if private_recipients:
+            private_tier = self.tier_order[self._private_active_tier_idx()]
+            tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
+            return agent.name not in private_recipients or tier != private_tier
         tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
         return tier != self._active_tier()
 

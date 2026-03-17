@@ -1651,7 +1651,7 @@
       "conflict_sensitivity": "冲突敏感度",
       "block_probability": "阻断概率",
       "num_agents_per_tier": "每层智能体数量",
-      "policy_text": "初始政策文本"
+      "policy_text": "初始背景设定"
     },
     "paramDescriptions": {
       "cascade_mode": "选择是严格逐层传达，还是允许在传递中出现改写、冲突和截留。",
@@ -1659,7 +1659,7 @@
       "conflict_sensitivity": "只在失真模式下生效。数值越高，角色利益冲突越容易转化为抵触或偏离。",
       "block_probability": "只在失真模式下生效。表示代理直接不往下传、选择截留政策的基础概率。",
       "num_agents_per_tier": "控制每一个层级自动生成多少个智能体。",
-      "policy_text": "最高层最先接收到的原始政策内容。"
+      "policy_text": "仅用于设定第一轮的开场背景或情境，不会自动作为后续逐级传递时必须保留的原始政策。"
     },
     "payoffMatrix": {
       "howToRead": {
