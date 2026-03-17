@@ -7,8 +7,16 @@ from pathlib import Path
 from typing import Dict, List
 
 from socialsim4.core.actions.base_actions import SendMessageAction, YieldAction
+from socialsim4.core.actions.policy_feedback_actions import (
+    AnnouncePolicyAdjustmentAction,
+    ConsultPeerAction,
+    EscalateComplaintAction,
+    NotifySubordinateAction,
+    ReportUpwardAction,
+)
 from socialsim4.core.agent import Agent
 from socialsim4.core.agent.parsing import strip_thinking_tokens
+from socialsim4.core.event import PublicEvent
 from socialsim4.core.scene import Scene
 
 
@@ -108,6 +116,16 @@ class PolicyCascadeScene(Scene):
         self.state["block_probability"] = block_probability
         self.state["private_events"] = {}
         self.state["active_tier_targets"] = {}
+        self.state["policy_version"] = 0
+        self.state["processed_policy_version"] = -1
+        self.state["conversation_threads"] = {}
+        self.state["thread_inboxes"] = {}
+        self.state["thread_counter"] = 0
+        self.state["persistent_conditions"] = {}
+        self.state["pending_follow_up_conditions"] = {}
+        self.state["follow_up_thread_seeds"] = []
+        self.state["informal_network"] = {}
+        self.state["branch_interpretations"] = {}
         self.state["complete"] = False
         self._tier_map: Dict[str, str] = {}
         self._agents_by_tier: Dict[str, List[str]] = {t: [] for t in self.tier_order}
@@ -131,6 +149,16 @@ class PolicyCascadeScene(Scene):
         self.state["relayed_policy"] = ""
         self.state["private_events"] = {}
         self.state["active_tier_targets"] = {}
+        self.state.setdefault("policy_version", 0)
+        self.state.setdefault("processed_policy_version", -1)
+        self.state.setdefault("conversation_threads", {})
+        self.state.setdefault("thread_inboxes", {})
+        self.state.setdefault("thread_counter", 0)
+        self.state.setdefault("persistent_conditions", {})
+        self.state.setdefault("pending_follow_up_conditions", {})
+        self.state.setdefault("follow_up_thread_seeds", [])
+        self.state.setdefault("informal_network", {})
+        self.state.setdefault("branch_interpretations", {})
         self._agents_by_tier = {tier: [] for tier in self.tier_order}
 
     # ----- Lifecycle -----
@@ -146,6 +174,12 @@ class PolicyCascadeScene(Scene):
         self.state["tier_transmitted"] = {t: False for t in self.tier_order}
         self.state["active_tier_targets"] = {}
         self._rebuild_tiers()
+        self._apply_pending_follow_up_conditions()
+        self._materialize_seeded_threads()
+        if self._follow_up_has_pending_threads():
+            self.state["task_mode"] = "follow_up"
+        elif self._policy_follow_up_ready() and not self._private_recipient_names():
+            self.state["task_mode"] = "follow_up"
         if self._private_recipient_names():
             self.state["current_tier_idx"] = self._private_active_tier_idx()
         else:
@@ -154,16 +188,43 @@ class PolicyCascadeScene(Scene):
 
     def on_event(self, sim, event_type: str, data):
         if event_type in {"environment", "broadcast"}:
+            if self._apply_persistent_condition_event(sim, event_type, data):
+                return None
+
+            # If this incoming event is explicitly marked as notice_only,
+            # treat it as a notice: update latest_notice/notice_kind and
+            # emit a lightweight notice event for analytics, but do NOT
+            # reset cascade state or start a new cascade.
+            if bool(data.get("notice_only")):
+                desc = data.get("description") or data.get("content") or data.get("message") or ""
+                cleaned_desc = self._clean_policy_text(str(desc))
+                self.state["latest_notice"] = cleaned_desc
+                self.state["notice_kind"] = self._detect_notice_kind(cleaned_desc)
+                sim.emit_event(
+                    "environment_notice_received",
+                    {
+                        "event_type": event_type,
+                        "content": cleaned_desc,
+                        "mode": self._cascade_mode(),
+                    },
+                )
+                return None
+
+            # Otherwise, this is a full event that restarts the cascade.
             self.state["current_tier_idx"] = 0
             self.state["tier_seen"] = {t: [] for t in self.tier_order}
             self.state["tier_transmitted"] = {t: False for t in self.tier_order}
             self.state["private_events"] = {}
             self.state["active_tier_targets"] = {}
+            self.state["conversation_threads"] = {}
+            self.state["thread_inboxes"] = {}
+            self.state["branch_interpretations"] = {}
             desc = data.get("description") or data.get("content") or data.get("message") or ""
             cleaned_desc = self._clean_policy_text(str(desc))
             self.state["latest_notice"] = cleaned_desc
             enters_cascade = self._should_enter_cascade(cleaned_desc, event_type)
             if enters_cascade:
+                self.state["policy_version"] = int(self.state.get("policy_version", 0) or 0) + 1
                 self.state["latest_policy"] = cleaned_desc
                 self.state["source_policy"] = cleaned_desc
                 self.state["relayed_policy"] = cleaned_desc
@@ -192,6 +253,28 @@ class PolicyCascadeScene(Scene):
 
     def on_private_event(self, sim, event_type: str, data, recipients: List[str]):
         if event_type not in {"environment", "broadcast"}:
+            return None
+
+        if self._apply_persistent_condition_event(sim, event_type, data):
+            return None
+
+        # If this private event is marked notice_only, deliver as a private
+        # notice without restarting the cascade state. This keeps follow-up
+        # interventions scoped to notice semantics.
+        if bool(data.get("notice_only")):
+            desc = data.get("description") or data.get("content") or data.get("message") or ""
+            cleaned_desc = self._clean_policy_text(str(desc))
+            # store latest notice but do not reset tiers or start cascade
+            self.state["latest_notice"] = cleaned_desc
+            self.state["notice_kind"] = self._detect_notice_kind(cleaned_desc)
+            sim.emit_event(
+                "environment_private_notice_received",
+                {
+                    "event_type": event_type,
+                    "content": cleaned_desc,
+                    "recipients": recipients,
+                },
+            )
             return None
 
         desc = data.get("description") or data.get("content") or data.get("message") or ""
@@ -238,6 +321,9 @@ class PolicyCascadeScene(Scene):
         self.state["complete"] = False
         self.state["tier_seen"] = {t: [] for t in self.tier_order}
         self.state["tier_transmitted"] = {t: False for t in self.tier_order}
+        self.state["conversation_threads"] = {}
+        self.state["thread_inboxes"] = {}
+        self.state["branch_interpretations"] = {}
         self._rebuild_tiers()
 
         recipient_tiers = [self._tier_map.get(name) for name in recipients if self._tier_map.get(name)]
@@ -246,6 +332,8 @@ class PolicyCascadeScene(Scene):
             self.state["current_tier_idx"] = first_tier
         else:
             self.state["current_tier_idx"] = 0
+        if enters_cascade:
+            self.state["policy_version"] = int(self.state.get("policy_version", 0) or 0) + 1
         self._normalize_active_tier()
         return None
 
@@ -378,6 +466,15 @@ class PolicyCascadeScene(Scene):
             + profile["accountability"] * 0.2
             - profile["resource"] * 0.45
         )
+        resource_shortage = self._condition_value("resource_shortage")
+        assessment_cycle = self._condition_value("assessment_cycle")
+        public_opinion_pressure = self._condition_value("public_opinion_pressure")
+        inspection_pressure = self._condition_value("inspection_pressure")
+        profile["burden"] = self._clamp01(profile["burden"] + resource_shortage * 0.25 + assessment_cycle * 0.1)
+        profile["resource_gap"] = self._clamp01(profile["resource_gap"] + resource_shortage * 0.45)
+        profile["accountability"] = self._clamp01(profile["accountability"] + inspection_pressure * 0.35 + assessment_cycle * 0.15)
+        profile["report"] = self._clamp01(profile["report"] + assessment_cycle * 0.3 + inspection_pressure * 0.1)
+        profile["goal"] = self._clamp01(profile["goal"] + public_opinion_pressure * 0.1)
         return profile
 
     def _block_tendency(self, agent: Agent, tier: str) -> float:
@@ -647,6 +744,10 @@ class PolicyCascadeScene(Scene):
             semantic_conflict -= 0.08
         elif role_kind == "low":
             semantic_conflict += 0.08
+        semantic_conflict += self._condition_value("resource_shortage") * 0.12
+        semantic_conflict += self._condition_value("assessment_cycle") * 0.08
+        semantic_conflict += self._condition_value("inspection_pressure") * 0.1
+        semantic_conflict += self._condition_value("public_opinion_pressure") * 0.06
         semantic_conflict = self._clamp01(semantic_conflict)
         sensitivity = self._conflict_sensitivity()
         return self._clamp01(tier_base * (1 - sensitivity) + semantic_conflict * sensitivity)
@@ -749,6 +850,417 @@ class PolicyCascadeScene(Scene):
         if not tiers:
             return 0
         return min(self.tier_order.index(tier) for tier in tiers)
+
+    def _persistent_conditions(self) -> dict:
+        conditions = self.state.get("persistent_conditions") or {}
+        return conditions if type(conditions) is dict else {}
+
+    def _pending_follow_up_conditions(self) -> dict:
+        conditions = self.state.get("pending_follow_up_conditions") or {}
+        return conditions if type(conditions) is dict else {}
+
+    def _apply_pending_follow_up_conditions(self) -> None:
+        pending = self._pending_follow_up_conditions()
+        if not pending:
+            return
+        merged = dict(self._persistent_conditions())
+        for key, value in pending.items():
+            merged[key] = self._clamp01(float(value))
+        self.state["persistent_conditions"] = merged
+        self.state["pending_follow_up_conditions"] = {}
+
+    def _follow_up_thread_seeds(self) -> List[dict]:
+        seeds = self.state.get("follow_up_thread_seeds") or []
+        return seeds if type(seeds) is list else []
+
+    def _materialize_seeded_threads(self) -> None:
+        seeds = list(self._follow_up_thread_seeds())
+        if not seeds:
+            return
+        self.state["follow_up_thread_seeds"] = []
+        self.state["task_mode"] = "follow_up"
+        for seed in seeds:
+            sender_name = str(seed.get("sender") or "").strip()
+            recipient_name = str(seed.get("recipient") or "").strip()
+            kind = str(seed.get("kind") or "peer_consult").strip() or "peer_consult"
+            message = self._sanitize_message(str(seed.get("message") or ""))
+            metadata = dict(seed.get("metadata") or {})
+            notice = str(seed.get("notice") or "").strip()
+            if notice:
+                self.state["latest_notice"] = notice
+            sender = self.simulator.agents[sender_name]
+            self._open_thread(kind, sender, recipient_name, message, self.simulator, metadata)
+
+    def _condition_value(self, *keys: str) -> float:
+        conditions = self._persistent_conditions()
+        for key in keys:
+            if key in conditions:
+                return self._clamp01(float(conditions.get(key) or 0.0))
+        return 0.0
+
+    def _parse_persistent_condition_payload(self, raw_text: str) -> dict:
+        text = str(raw_text or "").strip()
+        if not text:
+            return {}
+        cleaned = text.replace("；", ",").replace("\n", ",")
+        pairs = [part.strip() for part in re.split(r"[,，]+", cleaned) if part.strip()]
+        result = {}
+        aliases = {
+            "resource_shortage": "resource_shortage",
+            "长期资源短缺": "resource_shortage",
+            "assessment_cycle": "assessment_cycle",
+            "考核周期": "assessment_cycle",
+            "public_opinion_pressure": "public_opinion_pressure",
+            "舆论高压": "public_opinion_pressure",
+            "inspection_pressure": "inspection_pressure",
+            "监察强化": "inspection_pressure",
+        }
+        for pair in pairs:
+            if ":" in pair:
+                key, value = pair.split(":", 1)
+            elif "=" in pair:
+                key, value = pair.split("=", 1)
+            else:
+                continue
+            normalized = aliases.get(key.strip(), key.strip())
+            result[normalized] = self._clamp01(float(value.strip()))
+        return result
+
+    def _apply_persistent_condition_event(self, sim, event_type: str, data: dict) -> bool:
+        if event_type != "environment":
+            return False
+        env_type = str(data.get("event_type") or "").strip().lower()
+        if env_type not in {"persistent_condition", "institutional_condition", "system_condition"}:
+            return False
+        updates = self._parse_persistent_condition_payload(str(data.get("description") or ""))
+        if not updates:
+            return True
+        merged = dict(self._persistent_conditions())
+        for key, value in updates.items():
+            merged[key] = self._clamp01(value)
+        self.state["persistent_conditions"] = merged
+        sim.emit_event(
+            "persistent_conditions_updated",
+            {
+                "conditions": merged,
+                "source": env_type,
+            },
+        )
+        return True
+
+    def _formal_network(self) -> dict:
+        social_network = self.state.get("social_network") or {}
+        return social_network if type(social_network) is dict else {}
+
+    def _informal_network(self) -> dict:
+        informal_network = self.state.get("informal_network") or {}
+        return informal_network if type(informal_network) is dict else {}
+
+    def _reverse_connections_for(self, agent_name: str) -> List[str]:
+        result = []
+        for sender, targets in self._formal_network().items():
+            if type(targets) is not list:
+                continue
+            if agent_name in targets and sender in self.simulator.agents:
+                result.append(sender)
+        return result
+
+    def _peer_targets(self, agent: Agent) -> List[str]:
+        tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
+        same_tier = [name for name in self._agents_by_tier.get(tier, []) if name != agent.name]
+        connected = []
+        informal = self._informal_network().get(agent.name) or []
+        formal = self._formal_network().get(agent.name) or []
+        for name in same_tier:
+            if name in informal or name in formal:
+                connected.append(name)
+        if connected:
+            return connected
+        return same_tier
+
+    def _upstream_targets(self, agent: Agent, skip_levels: int = 1) -> List[str]:
+        tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
+        idx = self.tier_order.index(tier) if tier in self.tier_order else 0
+        target_idx = idx - skip_levels
+        if target_idx < 0:
+            return []
+        target_tier = self.tier_order[target_idx]
+        reverse = self._reverse_connections_for(agent.name)
+        candidates = [name for name in reverse if (self._tier_map.get(name) or self._extract_tier(self.simulator.agents[name])) == target_tier]
+        if candidates:
+            return candidates
+        return list(self._agents_by_tier.get(target_tier, []))
+
+    def _notify_targets(self, agent: Agent) -> List[str]:
+        tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
+        idx = self.tier_order.index(tier) if tier in self.tier_order else 0
+        if idx + 1 >= len(self.tier_order):
+            return []
+        next_tier = self.tier_order[idx + 1]
+        direct = self._network_connections_for(agent.name)
+        candidates = [name for name in direct if (self._tier_map.get(name) or self._extract_tier(self.simulator.agents[name])) == next_tier]
+        if candidates:
+            return candidates
+        return list(self._agents_by_tier.get(next_tier, []))
+
+    def _branch_descendants(self, sender: Agent) -> List[str]:
+        seen = set()
+        queue = list(self._network_connections_for(sender.name) or [])
+        while queue:
+            name = queue.pop(0)
+            if name in seen:
+                continue
+            seen.add(name)
+            queue.extend(self._network_connections_for(name))
+        return [name for name in seen if name in self.simulator.agents]
+
+    def _policy_follow_up_ready(self) -> bool:
+        latest_policy = str(self.state.get("latest_policy") or "").strip()
+        if not latest_policy:
+            return False
+        policy_version = int(self.state.get("policy_version", 0) or 0)
+        processed = int(self.state.get("processed_policy_version", -1) or -1)
+        return policy_version <= processed
+
+    def _follow_up_has_pending_threads(self) -> bool:
+        if self._private_recipient_names():
+            return any(
+                str((self._private_event_for(name).get("task_mode") or "")) == "follow_up_thread"
+                for name in self._private_recipient_names()
+            )
+        inboxes = self.state.get("thread_inboxes") or {}
+        return any(list(items or []) for items in inboxes.values())
+
+    def _next_thread_id(self) -> str:
+        current = int(self.state.get("thread_counter", 0) or 0) + 1
+        self.state["thread_counter"] = current
+        return f"thread-{current}"
+
+    def _thread_store(self) -> dict:
+        threads = self.state.get("conversation_threads") or {}
+        if type(threads) is not dict:
+            threads = {}
+        self.state["conversation_threads"] = threads
+        return threads
+
+    def _thread_for_id(self, thread_id: str) -> dict:
+        return dict((self._thread_store().get(thread_id) or {}))
+
+    def _replace_thread(self, thread_id: str, thread: dict) -> None:
+        threads = self._thread_store()
+        threads[thread_id] = thread
+        self.state["conversation_threads"] = threads
+
+    def _thread_issue_candidates(self, agent: Agent, tier: str) -> List[str]:
+        policy_profile = self._policy_signal_profile()
+        issues = []
+        if policy_profile["burden"] >= 0.45:
+            issues.append("执行成本过高")
+        if policy_profile["resource_gap"] >= 0.35 or self._condition_value("resource_shortage") >= 0.35:
+            issues.append("资源不足")
+        if self._conflict_pressure(agent, tier) >= 0.55:
+            issues.append("目标冲突")
+        if self._condition_value("public_opinion_pressure") >= 0.4:
+            issues.append("群体反弹")
+        if self._condition_value("assessment_cycle") >= 0.45 or policy_profile["report"] >= 0.45:
+            issues.append("无法按时完成")
+        return issues[:3]
+
+    def _branch_interpretations(self) -> dict:
+        interpretations = self.state.get("branch_interpretations") or {}
+        if type(interpretations) is not dict:
+            interpretations = {}
+        self.state["branch_interpretations"] = interpretations
+        return interpretations
+
+    def _record_branch_interpretation(self, agent: Agent, tier: str, message: str, mode: str) -> None:
+        if not str(message or "").strip():
+            return
+        interpretations = self._branch_interpretations()
+        interpretations[agent.name] = {
+            "agent": agent.name,
+            "tier": tier,
+            "message": str(message),
+            "mode": mode,
+            "policy_version": int(self.state.get("policy_version", 0) or 0),
+            "turn": int(getattr(self.simulator, "turns", 0) or 0),
+        }
+        self.state["branch_interpretations"] = interpretations
+
+    def _competing_interpretations_for(self, agent: Agent) -> List[dict]:
+        current_version = int(self.state.get("policy_version", 0) or 0)
+        candidates = []
+        seen = set()
+        for name in self._reverse_connections_for(agent.name) + self._peer_targets(agent):
+            if name in seen:
+                continue
+            seen.add(name)
+            item = dict((self._branch_interpretations().get(name) or {}))
+            if not item:
+                continue
+            if int(item.get("policy_version", -1) or -1) != current_version:
+                continue
+            candidates.append(item)
+        return candidates
+
+    def _queue_thread_event(self, recipient: str, thread: dict, reply_target: str, notice: str = "") -> None:
+        private_events = self.state.get("private_events") or {}
+        inboxes = self.state.get("thread_inboxes") or {}
+        payload = {
+            "task_mode": "follow_up_thread",
+            "latest_notice": str(self.state.get("latest_notice") or notice or ""),
+            "latest_policy": str(self.state.get("latest_policy") or ""),
+            "source_policy": str(self.state.get("source_policy") or ""),
+            "relayed_policy": str(self.state.get("relayed_policy") or self.state.get("latest_policy") or ""),
+            "notice_kind": "execution",
+            "thread_id": thread["id"],
+            "thread_kind": thread["kind"],
+            "thread_sender": thread.get("last_sender") or thread.get("sender"),
+            "reply_target": reply_target,
+            "thread_message": thread.get("last_message") or thread.get("message") or "",
+            "thread_status": thread.get("status") or "open",
+            "conversation_history": list(thread.get("history") or []),
+            "thread_root_sender": thread.get("root_sender") or thread.get("sender"),
+            "thread_notice": notice,
+        }
+        existing = private_events.get(recipient) or {}
+        if existing:
+            queued = list(inboxes.get(recipient) or [])
+            queued.append(thread["id"])
+            inboxes[recipient] = queued
+        else:
+            private_events[recipient] = payload
+        self.state["private_events"] = private_events
+        self.state["thread_inboxes"] = inboxes
+
+    def _activate_next_thread(self, recipient: str) -> None:
+        private_events = self.state.get("private_events") or {}
+        if private_events.get(recipient):
+            return
+        inboxes = self.state.get("thread_inboxes") or {}
+        queued = list(inboxes.get(recipient) or [])
+        if not queued:
+            return
+        thread_id = queued.pop(0)
+        inboxes[recipient] = queued
+        self.state["thread_inboxes"] = inboxes
+        thread = self._thread_for_id(thread_id)
+        if not thread:
+            return
+        reply_target = str(thread.get("last_sender") or thread.get("sender") or "")
+        self._queue_thread_event(recipient, thread, reply_target)
+
+    def _consume_thread_event(self, recipient: str) -> None:
+        private_events = self.state.get("private_events") or {}
+        private_events.pop(recipient, None)
+        self.state["private_events"] = private_events
+        self._activate_next_thread(recipient)
+
+    def _open_thread(self, kind: str, sender: Agent, recipient: str, message: str, simulator, metadata: dict | None = None) -> dict:
+        thread_id = self._next_thread_id()
+        history = [
+            {
+                "sender": sender.name,
+                "recipient": recipient,
+                "message": message,
+                "kind": kind,
+                "turn": int(simulator.turns),
+            }
+        ]
+        thread = {
+            "id": thread_id,
+            "kind": kind,
+            "sender": sender.name,
+            "root_sender": sender.name,
+            "root_recipient": recipient,
+            "last_sender": sender.name,
+            "last_recipient": recipient,
+            "last_message": message,
+            "status": "open",
+            "created_turn": int(simulator.turns),
+            "history": history,
+            "metadata": metadata or {},
+        }
+        self._replace_thread(thread_id, thread)
+        self._queue_thread_event(recipient, thread, sender.name)
+        simulator.emit_event(
+            "policy_thread_opened",
+            {
+                "thread_id": thread_id,
+                "kind": kind,
+                "sender": sender.name,
+                "recipient": recipient,
+                "message": message,
+                "metadata": metadata or {},
+            },
+        )
+        return thread
+
+    def _reply_to_thread(self, thread: dict, agent: Agent, message: str, simulator) -> None:
+        reply_target = str(thread.get("last_sender") or thread.get("sender") or "")
+        history = list(thread.get("history") or [])
+        history.append(
+            {
+                "sender": agent.name,
+                "recipient": reply_target,
+                "message": message,
+                "kind": "reply",
+                "turn": int(simulator.turns),
+            }
+        )
+        thread["history"] = history
+        thread["last_sender"] = agent.name
+        thread["last_recipient"] = reply_target
+        thread["last_message"] = message
+        thread["status"] = "responded"
+        self._replace_thread(thread["id"], thread)
+        self._queue_thread_event(reply_target, thread, agent.name)
+        simulator.emit_event(
+            "policy_thread_reply",
+            {
+                "thread_id": thread["id"],
+                "kind": thread.get("kind"),
+                "sender": agent.name,
+                "recipient": reply_target,
+                "message": message,
+            },
+        )
+
+    def _ignore_thread(self, thread: dict, agent: Agent, simulator) -> None:
+        thread["status"] = "ignored"
+        self._replace_thread(thread["id"], thread)
+        last_sender = str(thread.get("last_sender") or thread.get("sender") or "")
+        notice = f"{agent.name} 暂未处理你发起的会话。"
+        if last_sender and last_sender != agent.name:
+            thread["last_sender"] = agent.name
+            thread["last_recipient"] = last_sender
+            thread["last_message"] = notice
+            self._replace_thread(thread["id"], thread)
+            self._queue_thread_event(last_sender, thread, agent.name, notice=notice)
+        simulator.emit_event(
+            "policy_thread_ignored",
+            {
+                "thread_id": thread["id"],
+                "kind": thread.get("kind"),
+                "agent": agent.name,
+                "notice": notice,
+            },
+        )
+
+    def _follow_up_visible_targets(self, agent_name: str) -> List[str]:
+        visible = []
+        for name in self._network_connections_for(agent_name):
+            if name not in visible:
+                visible.append(name)
+        for name in self._reverse_connections_for(agent_name):
+            if name not in visible:
+                visible.append(name)
+        for name in (self._informal_network().get(agent_name) or []):
+            if name in self.simulator.agents and name != agent_name and name not in visible:
+                visible.append(name)
+        if visible:
+            return visible
+        return [name for name in self.simulator.agents.keys() if name != agent_name]
 
     def _network_connections_for(self, agent_name: str) -> List[str]:
         social_network = self.state.get("social_network") or {}
@@ -1000,6 +1512,35 @@ class PolicyCascadeScene(Scene):
 
         return self._sanitize_message(f"{policy}\n{self._cascade_suffix(tier)}")
 
+    def _agent_led_distortion(self, agent: Agent, tier: str, policy: str, draft: str) -> str:
+        normalized = self._sanitize_message(draft)
+        if not normalized:
+            return self._distort_message(agent, tier, policy)
+
+        policy_norm = " ".join(str(policy or "").split())
+        draft_norm = " ".join(normalized.split())
+        if draft_norm == policy_norm:
+            return self._distort_message(agent, tier, policy)
+
+        strength = self._distortion_strength()
+        pressure = self._conflict_pressure(agent, tier)
+        if self._message_has_tier_drift(tier, normalized):
+            detail = self._cascade_tier_detail(tier)
+            if detail not in normalized:
+                normalized = f"{normalized}\n{detail}".strip()
+
+        if strength >= 0.45 and pressure >= 0.5:
+            issues = self._thread_issue_candidates(agent, tier)
+            if issues:
+                issue_line = "本层当前最担心：" + "、".join(issues) + "。"
+                if issue_line not in normalized:
+                    normalized = f"{normalized}\n{issue_line}".strip()
+
+        if strength >= 0.65 and not any(marker in normalized for marker in ["暂缓", "分批", "优先", "内部掌握", "条件具备后"]):
+            normalized = f"{normalized}\n后续其余部分视资源与反馈情况分批推进。".strip()
+
+        return self._sanitize_message(normalized)
+
     def _clean_policy_text(self, text: str) -> str:
         cleaned = self._sanitize_message(text)
         lines = []
@@ -1243,6 +1784,22 @@ class PolicyCascadeScene(Scene):
                 "(4) 如果系统公告里有字数、格式、重点要求，必须直接遵守。"
                 "输出必须包含 send_message 或 yield，禁止空响应或 None。"
             )
+        if effective_mode == "follow_up_thread":
+            return (
+                "When your tier is active: "
+                "(1) 你正在处理一条私有会话或反馈线程；"
+                "(2) 你可以使用 send_message 私下回复当前来件，也可以用 yield 暂时回避；"
+                "(3) 你也可以进一步 report_upward、escalate_complaint、consult_peer 或 notify_subordinate，把当前问题继续上传、协商或转办；"
+                "(4) 如果你认为必须调整既有政策口径，可使用 announce_policy_adjustment 发布新的政策调整并重新开启下传。"
+            )
+        if effective_mode == "follow_up":
+            return (
+                "When your tier is active: "
+                "(1) 当前没有新的广播政策，你可以围绕既有政策的执行困难、资源缺口、口径冲突和群体反弹展开后续互动；"
+                "(2) 基层可以向直属上级 report_upward，也可以在必要时 escalate_complaint 越级反映；"
+                "(3) 同层可通过 consult_peer 进行私下协商与口径统一；"
+                "(4) 上级可用 notify_subordinate 私下回访或转办，也可用 announce_policy_adjustment 重新发布政策调整。"
+            )
         if self._cascade_mode() == "distortion_cascade":
             return (
                 "When your tier is active: "
@@ -1272,6 +1829,7 @@ class PolicyCascadeScene(Scene):
         mode = str(private_event.get("task_mode") or self.state.get("task_mode", "notice") or "notice")
         tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
         role_kind = self._tier_role_kind(tier)
+        issue_candidates = self._thread_issue_candidates(agent, tier)
         if mode == "notice":
             notice_kind = str(private_event.get("notice_kind") or self.state.get("notice_kind") or "execution")
             if notice_kind == "analysis":
@@ -1287,7 +1845,7 @@ class PolicyCascadeScene(Scene):
             else:
                 parts.append("你只讨论基层判断：排查步骤、现场核验、问题整改、上报反馈。不要继续向别人发指令，也不要概括全局部署。")
                 parts.append("禁止出现‘总体目标’‘资源调配’‘督促检查’‘任务拆解’‘跨部门协调’等上层口径。")
-        else:
+        elif mode == "cascade":
             parts.append("当前任务：按层级传递最新政策，并补充与你职责相关的执行细节。")
             if self._cascade_mode() == "distortion_cascade":
                 parts.append("当前为‘失真级联’模式：你可以忠实传达，也可以基于本层利益选择性转述、弱化、改写、拖延，或直接不传。")
@@ -1301,6 +1859,38 @@ class PolicyCascadeScene(Scene):
                 parts.append("只写中层任务拆解、协同推进、节点跟踪。")
             else:
                 parts.append("只写基层排查、上报、反馈闭环。")
+        elif mode == "follow_up_thread":
+            thread_kind = str(private_event.get("thread_kind") or "thread")
+            thread_sender = str(private_event.get("thread_sender") or "")
+            thread_message = str(private_event.get("thread_message") or "")
+            reply_target = str(private_event.get("reply_target") or thread_sender)
+            thread_notice = str(private_event.get("thread_notice") or "")
+            parts.append("当前任务：处理一条私有反馈/协商线程。你可以 send_message 私下回复，也可以 yield 暂时回避。")
+            if thread_notice:
+                parts.append(f"线程状态提示：{thread_notice}")
+            parts.append(f"会话类型：{thread_kind}；当前来件人：{thread_sender or '未知'}；默认回复对象：{reply_target or '未知'}。")
+            if thread_message:
+                parts.append(f"当前来件内容：{thread_message}")
+            if thread_kind in {"upward_feedback", "escalation"}:
+                parts.append("你也可以把该问题继续上报、转办、私下协调，或发布新的政策调整。")
+        else:
+            parts.append("当前没有新的广播政策，进入后续反馈与协商阶段。")
+            if issue_candidates:
+                parts.append(f"当前最可能出现的执行问题：{'、'.join(issue_candidates)}。")
+            direct_up = self._upstream_targets(agent, 1)
+            skip_up = self._upstream_targets(agent, 2)
+            peers = self._peer_targets(agent)
+            down = self._notify_targets(agent)
+            if direct_up:
+                parts.append(f"你可向直属上级反馈：{'、'.join(direct_up)}。")
+            if skip_up:
+                parts.append(f"若直属上级不处理，你可越级反映：{'、'.join(skip_up)}。")
+            if peers:
+                parts.append(f"你可与同层连接对象私下协商：{'、'.join(peers)}。")
+            if down:
+                parts.append(f"你也可私下通知下级或转办：{'、'.join(down)}。")
+            if role_kind != "low":
+                parts.append("若你认为必须修正现有口径，可直接发布新的政策调整并重新开启级联。")
         parts.append("禁止复述你上一条 assistant 回复；请给出新的、与你当前层级匹配的内容。")
         if notice:
             parts.append(f"最新系统公告：{notice}")
@@ -1311,6 +1901,17 @@ class PolicyCascadeScene(Scene):
             parts.append(f"上一层传达版本摘要：{self._policy_prompt_excerpt(relayed_policy)}")
         if private_event and source_policy and source_policy != relayed_policy:
             parts.append(f"原始政策摘要：{self._policy_prompt_excerpt(source_policy)}")
+        conditions = self._persistent_conditions()
+        if conditions:
+            rendered = "、".join(f"{key}={value:.2f}" for key, value in conditions.items())
+            parts.append(f"当前持续制度条件：{rendered}。")
+        competing = self._competing_interpretations_for(agent)
+        if competing:
+            summary = "；".join(
+                f"{item.get('agent')}({item.get('tier')})：{self._policy_prompt_excerpt(str(item.get('message') or ''))}"
+                for item in competing[:3]
+            )
+            parts.append(f"当前存在可竞争的解释口径：{summary}。请判断你要靠拢、折中还是反驳这些口径。")
         upstream_messages = list(private_event.get("upstream_messages") or [])
         if len(upstream_messages) > 1:
             senders = "、".join(str(item.get("sender") or "上层节点") for item in upstream_messages)
@@ -1320,7 +1921,15 @@ class PolicyCascadeScene(Scene):
     # ----- Actions -----
 
     def get_scene_actions(self, agent: Agent):
-        return [SendMessageAction(), YieldAction()]
+        return [
+            SendMessageAction(),
+            YieldAction(),
+            ReportUpwardAction(),
+            EscalateComplaintAction(),
+            ConsultPeerAction(),
+            NotifySubordinateAction(),
+            AnnouncePolicyAdjustmentAction(),
+        ]
 
     def parse_and_handle_action(self, action_data, agent: Agent, simulator):
         payload = action_data
@@ -1338,6 +1947,33 @@ class PolicyCascadeScene(Scene):
         tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
         private_event = self._private_event_for(agent.name)
         effective_task_mode = str(private_event.get("task_mode") or self.state.get("task_mode", "notice") or "notice")
+        thread = self._thread_for_id(str(private_event.get("thread_id") or "")) if effective_task_mode == "follow_up_thread" else {}
+        special_actions = {
+            "report_upward",
+            "escalate_complaint",
+            "consult_peer",
+            "notify_subordinate",
+            "announce_policy_adjustment",
+        }
+
+        if effective_task_mode == "follow_up_thread":
+            if action_name == "send_message" and not self.should_skip_turn(agent, simulator):
+                message = self._sanitize_message(payload.get("message", ""))
+                self._reply_to_thread(thread, agent, message, simulator)
+                self._consume_thread_event(agent.name)
+                self._write_final_debug(agent, effective_task_mode, original_payload, {"action": "send_message", "message": message})
+                return True, {"message": message}, f"{agent.name} 私下回复了线程", {}, True
+            if action_name == "yield" and not self.should_skip_turn(agent, simulator):
+                self._ignore_thread(thread, agent, simulator)
+                self._consume_thread_event(agent.name)
+                return True, {}, f"{agent.name} 暂未处理线程", {}, True
+            if action_name in special_actions and not self.should_skip_turn(agent, simulator):
+                success, result, summary, meta, pass_control = self.handle_policy_special_action(action_name, payload, agent, simulator)
+                self._consume_thread_event(agent.name)
+                return success, result, summary, meta, pass_control
+
+        if action_name in special_actions and not self.should_skip_turn(agent, simulator):
+            return self.handle_policy_special_action(action_name, payload, agent, simulator)
 
         if effective_task_mode == "notice" and action_name == "send_message" and not self.should_skip_turn(agent, simulator):
             message = self._sanitize_message(payload.get("message", ""))
@@ -1366,7 +2002,7 @@ class PolicyCascadeScene(Scene):
                     payload["action"] = "yield"
                     payload.pop("message", None)
                 else:
-                    distorted = self._distort_message(agent, tier, message)
+                    distorted = self._agent_led_distortion(agent, tier, policy, message)
                     payload["message"] = distorted or message
                 self._emit_distortion_event(
                     simulator,
@@ -1414,7 +2050,7 @@ class PolicyCascadeScene(Scene):
                 self.state["task_mode"] = "cascade"
                 self.state["notice_kind"] = "execution"
 
-        if private_event:
+        if private_event and effective_task_mode != "follow_up_thread":
             private_events = self.state.get("private_events") or {}
             private_events.pop(agent.name, None)
             self.state["private_events"] = private_events
@@ -1431,10 +2067,134 @@ class PolicyCascadeScene(Scene):
 
         if str(payload.get("action") or action_name) == "send_message":
             payload["message"] = self._sanitize_message(payload.get("message", ""))
+            self._record_branch_interpretation(agent, tier, payload["message"], effective_task_mode)
             self._write_final_debug(agent, effective_task_mode, original_payload, payload)
 
         success, result, summary, meta, _ = super().parse_and_handle_action(payload, agent, simulator)
         return success, result, summary, meta, True
+
+    def handle_policy_special_action(self, action_name: str, action_data: dict, agent: Agent, simulator):
+        target = str(action_data.get("target") or action_data.get("to") or "").strip()
+        message = self._sanitize_message(str(action_data.get("message") or ""))
+        tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
+        current_thread_event = self._private_event_for(agent.name)
+        current_thread = self._thread_for_id(str(current_thread_event.get("thread_id") or "")) if current_thread_event else {}
+
+        if action_name == "announce_policy_adjustment":
+            if tier == self.tier_order[-1]:
+                error = "基层不能直接发布新的政策调整。"
+                agent.add_env_feedback(error)
+                return False, {"error": error}, error, {}, True
+            if not message:
+                error = "Missing message."
+                agent.add_env_feedback(error)
+                return False, {"error": error}, error, {}, True
+            text = f"【政策调整】{message}"
+            if tier == self.tier_order[0]:
+                simulator.broadcast(PublicEvent(text, prefix="Policy Update"))
+                recipients = [name for name in simulator.agents.keys() if name != agent.name]
+            else:
+                recipients = self._branch_descendants(agent)
+                simulator.broadcast(PublicEvent(text, prefix="Policy Update"), receivers=recipients)
+            simulator.emit_event(
+                "policy_adjustment_issued",
+                {
+                    "sender": agent.name,
+                    "tier": tier,
+                    "message": text,
+                    "recipients": recipients,
+                },
+            )
+            self._write_final_debug(agent, "follow_up", action_data, {"action": action_name, "message": text})
+            return True, {"message": text, "recipients": recipients}, f"{agent.name} 发布了新的政策调整", {}, True
+
+        if not target:
+            error = "Provide 'target'."
+            agent.add_env_feedback(error)
+            return False, {"error": error}, error, {}, True
+        if target not in simulator.agents:
+            error = f"No such person: {target}."
+            agent.add_env_feedback(error)
+            return False, {"error": error}, error, {}, True
+        if not message:
+            error = "Missing message."
+            agent.add_env_feedback(error)
+            return False, {"error": error}, error, {}, True
+
+        if action_name == "report_upward":
+            allowed = self._upstream_targets(agent, 1)
+            if target not in allowed:
+                error = f"{target} 不是你的直属上级反馈对象。"
+                agent.add_env_feedback(error)
+                return False, {"error": error}, error, {}, True
+            metadata = {
+                "tier": tier,
+                "issues": self._thread_issue_candidates(agent, tier),
+                "source_thread": current_thread.get("id") if current_thread else "",
+            }
+            thread = self._open_thread("upward_feedback", agent, target, message, simulator, metadata)
+            if current_thread:
+                current_thread["status"] = "forwarded"
+                self._replace_thread(current_thread["id"], current_thread)
+            self._write_final_debug(agent, "follow_up", action_data, {"action": action_name, "target": target, "message": message})
+            return True, {"thread_id": thread["id"], "target": target, "message": message}, f"{agent.name} 向 {target} 反馈了执行困难", {}, True
+
+        if action_name == "escalate_complaint":
+            allowed = self._upstream_targets(agent, 2)
+            if target not in allowed:
+                error = f"{target} 不是可用的越级反馈对象。"
+                agent.add_env_feedback(error)
+                return False, {"error": error}, error, {}, True
+            metadata = {
+                "tier": tier,
+                "issues": self._thread_issue_candidates(agent, tier),
+                "source_thread": current_thread.get("id") if current_thread else "",
+                "escalated": True,
+            }
+            thread = self._open_thread("escalation", agent, target, message, simulator, metadata)
+            if current_thread:
+                current_thread["status"] = "escalated"
+                self._replace_thread(current_thread["id"], current_thread)
+            self._write_final_debug(agent, "follow_up", action_data, {"action": action_name, "target": target, "message": message})
+            return True, {"thread_id": thread["id"], "target": target, "message": message}, f"{agent.name} 向 {target} 发起了越级投诉", {}, True
+
+        if action_name == "consult_peer":
+            allowed = self._peer_targets(agent)
+            if target not in allowed:
+                error = f"{target} 不是可用的同层协商对象。"
+                agent.add_env_feedback(error)
+                return False, {"error": error}, error, {}, True
+            metadata = {
+                "tier": tier,
+                "issues": self._thread_issue_candidates(agent, tier),
+                "source_thread": current_thread.get("id") if current_thread else "",
+                "informal": True,
+            }
+            thread = self._open_thread("peer_consult", agent, target, message, simulator, metadata)
+            self._write_final_debug(agent, "follow_up", action_data, {"action": action_name, "target": target, "message": message})
+            return True, {"thread_id": thread["id"], "target": target, "message": message}, f"{agent.name} 与 {target} 发起了同层协商", {}, True
+
+        if action_name == "notify_subordinate":
+            allowed = self._notify_targets(agent)
+            if target not in allowed:
+                error = f"{target} 不是可用的下级通知对象。"
+                agent.add_env_feedback(error)
+                return False, {"error": error}, error, {}, True
+            metadata = {
+                "tier": tier,
+                "source_thread": current_thread.get("id") if current_thread else "",
+                "notified_by": agent.name,
+            }
+            thread = self._open_thread("subordinate_notice", agent, target, message, simulator, metadata)
+            if current_thread:
+                current_thread["status"] = "redirected"
+                self._replace_thread(current_thread["id"], current_thread)
+            self._write_final_debug(agent, "follow_up", action_data, {"action": action_name, "target": target, "message": message})
+            return True, {"thread_id": thread["id"], "target": target, "message": message}, f"{agent.name} 私下通知了 {target}", {}, True
+
+        error = f"Unknown special action: {action_name}"
+        agent.add_env_feedback(error)
+        return False, {"error": error}, error, {}, True
 
     # ----- Delivery -----
 
@@ -1453,6 +2213,8 @@ class PolicyCascadeScene(Scene):
 
         if self.state.get("task_mode") == "notice":
             recipients = [a.name for a in simulator.agents.values() if a.name != sender.name]
+        elif self.state.get("task_mode") == "follow_up":
+            recipients = self._follow_up_visible_targets(sender.name)
         elif tier_idx < len(self.tier_order) - 1:
             recipients = self._downstream_targets(sender)
             self._queue_private_cascade_targets(
@@ -1491,6 +2253,13 @@ class PolicyCascadeScene(Scene):
     def should_skip_turn(self, agent: Agent, simulator) -> bool:
         if self.state.get("complete"):
             return True
+        mode = str(self.state.get("task_mode") or "notice")
+        if mode == "follow_up":
+            private_event = self._private_event_for(agent.name)
+            private_recipients = self._private_recipient_names()
+            if private_recipients:
+                return not private_event
+            return False
         private_recipients = self._private_recipient_names()
         if private_recipients:
             private_tier = self.tier_order[self._private_active_tier_idx()]
@@ -1501,6 +2270,10 @@ class PolicyCascadeScene(Scene):
 
     def post_turn(self, agent: Agent, simulator) -> None:
         super().post_turn(agent, simulator)
+
+        if str(self.state.get("task_mode") or "") == "follow_up":
+            self._activate_next_thread(agent.name)
+            return
 
         tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
         active = self._active_tier()
@@ -1522,6 +2295,7 @@ class PolicyCascadeScene(Scene):
             if self.state.get("task_mode") == "cascade" and self._cascade_mode() == "distortion_cascade" and not transmitted:
                 self.state["current_tier_idx"] = len(self.tier_order)
                 self.state["complete"] = True
+                self.state["processed_policy_version"] = int(self.state.get("policy_version", 0) or 0)
                 self.state["tier_seen"] = {t: [] for t in self.tier_order}
                 self._normalize_active_tier()
                 return
@@ -1531,13 +2305,17 @@ class PolicyCascadeScene(Scene):
                 if (self.state.get("social_network") or {}) and not self._active_targets_for_tier(self.tier_order[next_idx]) and not self._private_recipient_names():
                     self.state["current_tier_idx"] = len(self.tier_order)
                     self.state["complete"] = True
+                    self.state["processed_policy_version"] = int(self.state.get("policy_version", 0) or 0)
             else:
                 self.state["current_tier_idx"] = len(self.tier_order)
                 self.state["complete"] = True
+                self.state["processed_policy_version"] = int(self.state.get("policy_version", 0) or 0)
             self.state["tier_seen"] = {t: [] for t in self.tier_order}
             self._normalize_active_tier()
 
     def is_complete(self):
+        if str(self.state.get("task_mode") or "") == "follow_up":
+            return False
         return bool(self.state.get("complete"))
 
     # ----- Config -----
