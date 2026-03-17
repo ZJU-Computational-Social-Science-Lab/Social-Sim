@@ -137,9 +137,15 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
     // Get scenario for backend
     const scenarioData = state.selectedScenarioData;
 
+    // Resolve description: prefer user-edited, otherwise scenario default, then generic fallback
+    const resolvedDescription =
+      scenarioDescription && scenarioDescription.trim().length > 0
+        ? scenarioDescription
+        : scenarioData?.description || t('experimentBuilder.customExperiment');
+
     // Build generic config with full action objects and parameters
     const genericConfig: any = {
-      description: scenarioDescription || t('experimentBuilder.customExperiment'),
+      description: resolvedDescription,
       scenario_id: state.selectedScenarioId || 'custom',
       actions: selectedActionObjects.map((a: any) => ({
         name: a.name,
@@ -149,22 +155,30 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
       round_visibility: state.roundVisibility || 'simultaneous',
     };
 
+    // Determine scene type: policy cascade uses dedicated scene, otherwise experiment/generic
+    const isPolicyCascade =
+      scenarioData?.id === 'policy_diffusion' ||
+      scenarioData?.id === 'policyDiffusion' ||
+      (scenarioData?.name || '').toLowerCase().includes('policy') ||
+      (scenarioData?.name || '').includes('政策');
+
     // Determine if this uses the new Three-Layer Architecture
     // (strategic_decisions or any scenario with structured actions)
     const isNewArchitecture = scenarioData?.category === 'game_theory' ||
                              scenarioData?.category === 'discussion' ||
                              scenarioData?.category === 'grid' ||
                              scenarioData?.category === 'social_dynamics' ||
-                             scenarioData?.category === 'social_deduction';
+                             scenarioData?.category === 'social_deduction' ||
+                             scenarioData?.category === 'spatial';
 
     addSimulation(
       name,
       {
         id: 'experiment-template',
         name: name,
-        description: scenarioDescription || t('experimentBuilder.customExperiment'),
+        description: resolvedDescription,
         category: (scenarioData?.category || 'custom') as const,
-        sceneType: isNewArchitecture ? 'experiment' : 'generic',
+        sceneType: isPolicyCascade ? 'policy_cascade_scene' : isNewArchitecture ? 'experiment' : 'generic',
         agents: customAgents,
         defaultTimeConfig: {
           baseTime: new Date().toISOString(),

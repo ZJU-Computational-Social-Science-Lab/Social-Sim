@@ -201,8 +201,17 @@ async def broadcast_environment_event(
         severity=event_data.get("severity", "mild"),
     )
 
+    receivers = None
+    if "receivers" in event_data:
+        raw = event_data.get("receivers")
+        if not raw:
+            raise ValueError("receivers cannot be empty when provided")
+        receivers = [str(r).strip() for r in raw if str(r).strip()]
+        if not receivers:
+            raise ValueError("receivers cannot be empty when provided")
+
     # Broadcast to all agents
-    simulator.broadcast(event)
+    simulator.broadcast(event, receivers=receivers)
 
     # Mark suggestions as viewed at the tree level
     record = SIM_TREE_REGISTRY.get(simulation_id)

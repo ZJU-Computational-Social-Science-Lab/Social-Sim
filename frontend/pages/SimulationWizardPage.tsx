@@ -98,7 +98,29 @@ export const SimulationWizard: React.FC = () => {
       werewolf: 9
     };
     setGenCount(counts[selectedTemplateId] ?? 5);
+
+    // Only for policy_diffusion template, enforce recommended political tier demographics
+    if (selectedTemplateId === 'policy_diffusion') {
+      setDemographics([{ name: '政治职位层级', categories: ['top', 'mid', 'low'] }]);
+    }
   }, [selectedTemplateId, t]);
+
+  // Re-apply recommended demographics when wizard opens on policy_diffusion to override stale state
+  useEffect(() => {
+    if (isOpen && selectedTemplateId === 'policy_diffusion') {
+      setDemographics([{ name: '政治职位层级', categories: ['top', 'mid', 'low'] }]);
+    }
+  }, [isOpen, selectedTemplateId]);
+
+  // Guard against lingering Age/Location defaults when policy_diffusion is selected
+  useEffect(() => {
+    if (selectedTemplateId === 'policy_diffusion') {
+      const onlyTier = demographics.length === 1 && demographics[0]?.name === '政治职位层级';
+      if (!onlyTier) {
+        setDemographics([{ name: '政治职位层级', categories: ['top', 'mid', 'low'] }]);
+      }
+    }
+  }, [selectedTemplateId, demographics]);
 
   const selectedTemplate =
     savedTemplates.find((t) => t.id === selectedTemplateId) ||

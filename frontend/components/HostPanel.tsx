@@ -6,9 +6,12 @@ import { applyEnvironmentEvent } from '../services/environmentSuggestions';
 import { Megaphone, CloudLightning, Edit, Save, Sparkles, Loader2, Check, FilePlus } from 'lucide-react';
 import { MultimodalInput } from './MultimodalInput';
 import { InitialEventsModal } from './InitialEventsModal';
+import { injectHostMessage } from '../services/simulationTree';
+import { API_BASE_URL } from '../services/client';
+import { useAuthStore } from '../store/auth';
 
 export const HostPanel: React.FC = () => {
-   const { t } = useTranslation();
+  const { t } = useTranslation();
   const agents = useSimulationStore(state => state.agents);
   const logs = useSimulationStore(state => state.logs);
   const currentSimulation = useSimulationStore(state => state.currentSimulation);
@@ -17,11 +20,13 @@ export const HostPanel: React.FC = () => {
   const updateAgentProperty = useSimulationStore(state => state.updateAgentProperty);
   const addNotification = useSimulationStore(state => state.addNotification);
   const toggleInitialEvents = useSimulationStore((state: any) => state.toggleInitialEvents);
+  const selectedNodeId = useSimulationStore((state: any) => state.selectedNodeId);
 
   const [broadcastMsg, setBroadcastMsg] = useState('');
   const [envEvent, setEnvEvent] = useState('');
   const [envImage, setEnvImage] = useState<string | null>(null);
-  
+  const [broadcastRecipients, setBroadcastRecipients] = useState<string[]>([]);
+
   // God Mode State
   const [selectedAgentId, setSelectedAgentId] = useState(agents[0]?.id || '');
   const [selectedProp, setSelectedProp] = useState('');
@@ -30,9 +35,24 @@ export const HostPanel: React.FC = () => {
   // #12 Environment Suggestions
   const [suggestions, setSuggestions] = useState<Array<{event: string, reason: string}>>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
-  
+
+  const formatBroadcastLog = (description: string) => {
+    const recipients = broadcastRecipients.filter(Boolean);
+    const scopeLabel = recipients.length > 0
+      ? t('components.hostPanel.privateBroadcastLog', '定向私有广播')
+      : t('components.hostPanel.globalBroadcastLog', '全局广播');
+    const recipientLabel = recipients.length > 0
+      ? recipients.join(', ')
+      : t('components.hostPanel.allAgentsLog', '全体智能体');
+    return `${scopeLabel}\n${t('components.hostPanel.recipientsLog', '接收者')}: ${recipientLabel}\n${description}`;
+  };
+
+  // Shared function for pushing environment events
   const pushEnvironmentEvent = async (description: string, eventType: string) => {
     if (!description.trim()) return;
+    const recipients = eventType === 'broadcast' && broadcastRecipients.length > 0
+      ? broadcastRecipients
+      : undefined;
 
     const shouldCallBackend = engineMode === 'connected' && currentSimulation?.id;
     if (shouldCallBackend) {
@@ -40,15 +60,41 @@ export const HostPanel: React.FC = () => {
         event_type: eventType,
         description,
         severity: 'mild',
+        receivers: recipients,
       });
     }
 
-    injectLog(eventType === 'broadcast' ? 'SYSTEM' : 'ENVIRONMENT', description, envImage || undefined);
+    const logContent = eventType === 'broadcast' ? formatBroadcastLog(description) : description;
+    injectLog(eventType === 'broadcast' ? 'SYSTEM' : 'ENVIRONMENT', logContent, envImage || undefined);
   };
 
   const handleBroadcast = async () => {
     if (!broadcastMsg.trim()) return;
-    await pushEnvironmentEvent(`${t('components.hostPanel.logPrefixSystemAnnouncement')} ${broadcastMsg}`, 'broadcast');
+
+    const message = `${t('components.hostPanel.logPrefixSystemAnnouncement')} ${broadcastMsg}`;
+
+    // Log to UI
+    injectLog('SYSTEM', message);
+
+    // Experiment simulations: use experiment-specific API for message injection
+    if (currentSimulation?.id && selectedNodeId) {
+      try {
+        await injectHostMessage(API_BASE_URL, currentSimulation.id, selectedNodeId, broadcastMsg, useAuthStore.getState().accessToken);
+        addNotification('success', t('components.hostPanel.broadcastSent'));
+      } catch (error) {
+        console.error('Failed to inject host message:', error);
+        addNotification('error', t('components.hostPanel.broadcastFailed'));
+      }
+    } else if (engineMode === 'connected' && currentSimulation?.id) {
+      // Regular connected simulations: use general environment event API
+      await applyEnvironmentEvent(currentSimulation.id, {
+        event_type: 'broadcast',
+        description: message,
+        severity: 'mild',
+        receivers: broadcastRecipients.length > 0 ? broadcastRecipients : undefined,
+      });
+    }
+
     setBroadcastMsg('');
   };
 
@@ -56,8 +102,8 @@ export const HostPanel: React.FC = () => {
     if (!text.trim() && !envImage) return;
     await pushEnvironmentEvent(`${t('components.hostPanel.logPrefixEnvironmentEvent')} ${text}`, 'environment');
     if (text === envEvent) {
-       setEnvEvent('');
-       setEnvImage(null);
+      setEnvEvent('');
+      setEnvImage(null);
     }
   };
 
@@ -152,6 +198,31 @@ export const HostPanel: React.FC = () => {
           <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
             <Megaphone size={14} /> {t('components.hostPanel.systemBroadcast')}
           </label>
+          <div className="text-[11px] text-slate-500 mb-1">
+            {t('components.hostPanel.recipientHint', '选择接收者（为空则全员）：')}
+          </div>
+          <div className="flex flex-wrap gap-1 mb-2">
+            {agents.map((a) => {
+              const checked = broadcastRecipients.includes(a.name) || broadcastRecipients.includes(a.id);
+              return (
+                <label key={a.id} className="flex items-center gap-1 text-[11px] px-2 py-1 border border-slate-200 rounded bg-white hover:bg-slate-50 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="accent-brand-500"
+                    checked={checked}
+                    onChange={(e) => {
+                      setBroadcastRecipients((prev) => {
+                        const key = a.name;
+                        if (e.target.checked) return Array.from(new Set([...prev, key]));
+                        return prev.filter((v) => v !== key);
+                      });
+                    }}
+                  />
+                  <span>{a.name}</span>
+                </label>
+              );
+            })}
+          </div>
           <div className="flex gap-2">
             <textarea
               value={broadcastMsg}

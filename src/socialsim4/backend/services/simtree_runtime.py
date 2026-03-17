@@ -29,6 +29,20 @@ def _normalize_language(value: str | None) -> str:
     lang = str(value or "").strip()
     return lang or "en"
 
+def _resolve_initial_event(cfg: dict, fallback: str = "") -> str:
+    """Pick initial event content from scene_config with simple fallbacks."""
+    val = str(cfg.get("initial_event") or "").strip()
+    if not val:
+        events = cfg.get("initial_events") or []
+        if isinstance(events, list) and events:
+            first = str(events[0] or "").strip()
+            if first:
+                val = first
+    if not val:
+        desc = str(cfg.get("description") or "").strip()
+        if desc:
+            val = desc
+    return val or fallback
 
 def _is_english_language(lang: str) -> bool:
     lower = lang.lower()
@@ -71,15 +85,23 @@ class ExperimentRunnerAdapter:
 
     def run(self, max_turns: int = 1) -> None:
         """Run experiment rounds (each 'turn' = one round)."""
-        import asyncio
-
         if not self.scene.runner:
             self.scene.initialize(self._llm_client)
 
         for _ in range(max_turns):
             if self.scene.is_complete():
                 break
-            asyncio.run(self.scene.run_round(self._emit_event))
+            # scene.run_round is async, so we need to handle it properly
+            # When called from asyncio.to_thread(), we're in a thread with NO event loop
+            # When called directly (standalone), we can use asyncio.run()
+            try:
+                loop = asyncio.get_running_loop()
+                # We're inside an async context - use run_until_complete
+                loop.run_until_complete(self.scene.run_round(self._emit_event))
+            except RuntimeError:
+                # No running loop - we're in a thread or standalone
+                # Use asyncio.run() to create a new event loop
+                asyncio.run(self.scene.run_round(self._emit_event))
 
     def _emit_event(self, event_type: str, data: dict) -> None:
         """Collect events for SimTree and emit to log handler."""
@@ -204,12 +226,24 @@ def _apply_agent_config(simulator, agent_config: dict | None):
         if role_prompt and hasattr(agent, 'role_prompt'):
             agent.role_prompt = role_prompt
 
-        # Preserve avatar URL from properties if present
+        # Apply all frontend-edited properties
         properties = cfg.get("properties") or {}
-        if isinstance(properties, dict) and "avatarUrl" in properties:
+        if isinstance(properties, dict):
             if not hasattr(agent, 'properties') or agent.properties is None:
                 agent.properties = {}
-            agent.properties["avatarUrl"] = properties["avatarUrl"]
+            agent.properties.update(properties)
+
+        llm_config = cfg.get("llm_config") or cfg.get("llmConfig") or {}
+        if llm_config:
+            if not hasattr(agent, 'properties') or agent.properties is None:
+                agent.properties = {}
+            agent.properties["llm_config"] = llm_config
+
+        provider_id = cfg.get("provider_id") or cfg.get("providerId")
+        if provider_id is not None:
+            if not hasattr(agent, 'properties') or agent.properties is None:
+                agent.properties = {}
+            agent.properties["provider_id"] = provider_id
 
         # Ensure defaults for required fields
         if not hasattr(agent, 'history') or agent.history is None:
@@ -263,6 +297,18 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
 
     cfg = getattr(sim_record, "scene_config", {}) or {}
     name = getattr(sim_record, "name", scene_type)
+    fallback_initial = str(
+        getattr(sim_record, "description", "")
+        or getattr(sim_record, "notes", "")
+        or name
+        or ""
+    )
+    initial_event_content = _resolve_initial_event(cfg, fallback_initial)
+    if not initial_event_content and scene_key == "policy_cascade_scene":
+        initial_event_content = (
+            "Three-tier policy cascade: transmit the full policy top → mid → low; "
+            "each level may reinterpret or resist."
+        )
 
     # Debug logging to show which scene type is being used
     logger.debug(f"\n{'='*60}")
@@ -329,8 +375,7 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
             num_decks=num_decks,
         )
     elif scene_key == "werewolf_scene":
-        initial_cfg = str(cfg.get("initial_event") or "").strip()
-        initial = initial_cfg or _localized("Welcome to Werewolf.", "欢迎来到狼人游戏。")
+        initial = initial_event_content or _localized("Welcome to Werewolf.", "欢迎来到狼人游戏。")
         role_map = cfg.get("role_map") or None
         moderator_names = cfg.get("moderator_names") or None
         scene = scene_cls(name, initial, role_map=role_map, moderator_names=moderator_names)
@@ -351,19 +396,22 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
             available_actions = names if names else None
         scene = scene_cls(
             name,
-            str(cfg.get("initial_event") or ""),
+            initial_event_content,
             available_actions=available_actions,
         )
     elif scene_key == "experiment_template":
         # ExperimentScene - standalone, no legacy Simulator needed
+        # Unwrap generic_config if the config is nested (frontend sends nested structure)
+        inner_cfg = cfg.get("generic_config") or cfg
+
         config = ExperimentConfig(
             agents=agent_config.get("agents", []),
-            actions=cfg.get("actions", []),
-            parameters=cfg.get("parameters", {}),
-            description=cfg.get("description", ""),
-            scenario_id=cfg.get("scenario_id", "custom"),
-            round_visibility=cfg.get("round_visibility", "simultaneous"),
-            social_network=cfg.get("social_network") or {},
+            actions=inner_cfg.get("actions", []),
+            parameters=inner_cfg.get("parameters", {}),
+            description=inner_cfg.get("description", ""),
+            scenario_id=inner_cfg.get("scenario_id", "custom"),
+            round_visibility=inner_cfg.get("round_visibility", "simultaneous"),
+            social_network=inner_cfg.get("social_network") or {},
         )
         logger.debug(f"[EXPERIMENT] Creating ExperimentConfig with parameters: {cfg.get('parameters', {})}")
         scene = ExperimentScene(config)
@@ -375,7 +423,9 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
 
         return SimTree.new(adapter, adapter.clients)
     else:
-        scene = scene_cls(name, str(cfg.get("initial_event") or ""))
+        scene = scene_cls(name, initial_event_content)
+        if scene_key == "policy_cascade_scene" and hasattr(scene, "configure_from_config"):
+            scene.configure_from_config(cfg)
 
     # 存储社交网络拓扑到场景状态中（如果配置了的话）
     social_network = cfg.get("social_network") or {}
@@ -393,9 +443,18 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
     built_agents = []
     for cfg_agent in items:
         aname = str(cfg_agent.get("name") or "").strip() or "Agent"
-        profile = str(cfg_agent.get("profile") or "")
+        profile = str(
+            cfg_agent.get("profile") or cfg_agent.get("user_profile") or cfg_agent.get("userProfile") or ""
+        )
+        role_prompt = str(cfg_agent.get("role_prompt") or cfg_agent.get("rolePrompt") or cfg_agent.get("role") or "")
         selected = [str(a) for a in (cfg_agent.get("action_space") or [])]
         props = dict(cfg_agent.get("properties") or {})
+        llm_config = cfg_agent.get("llm_config") or cfg_agent.get("llmConfig") or {}
+        provider_id = cfg_agent.get("provider_id") or cfg_agent.get("providerId")
+        if llm_config:
+            props["llm_config"] = llm_config
+        if provider_id is not None:
+            props["provider_id"] = provider_id
         language = _normalize_language(cfg_agent.get("language") or preferred_language)
         # scene common actions from registry (fallback to scene introspection)
         # Use normalized scene_key so short names (e.g., 'village') map correctly.
@@ -420,7 +479,7 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
             "user_profile": profile,
             "style": "",
             "initial_instruction": "",
-            "role_prompt": "",
+            "role_prompt": role_prompt,
             "language": language,
             "action_space": merged_names,
             "properties": props,

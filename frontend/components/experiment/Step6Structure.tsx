@@ -18,6 +18,7 @@ interface PromptPreviewPanelProps {
   agentTypeLabel: string;
   agentTypeProfile: string;
   agentTypeRolePrompt: string;
+  agentTypeProperties: Record<string, unknown>;
   scenarioDescription: string;
   scenarioParams: Record<string, unknown>;
   availableActions: Array<{ name: string; description: string }>;
@@ -37,6 +38,7 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
   agentTypeLabel,
   agentTypeProfile,
   agentTypeRolePrompt,
+  agentTypeProperties,
   scenarioDescription,
   scenarioParams,
   availableActions,
@@ -59,6 +61,10 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
   const formatParamKey = (key: string): string => {
     return key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
   };
+
+  const previewProperties = Object.entries(agentTypeProperties || {}).filter(
+    ([key]) => !['avatarUrl', 'llm_config', 'provider_id'].includes(key)
+  );
 
   return (
     <div className="border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50">
@@ -87,6 +93,18 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
             </>
           )}
         </div>
+
+        {/* Section 1b: Agent Properties */}
+        {previewProperties.length > 0 && (
+          <div className="mb-4">
+            <div className="font-semibold text-gray-900 mb-1">Agent Properties:</div>
+            <div className="pl-2">
+              {previewProperties.map(([key, value]) => (
+                <div key={key}>- {formatParamKey(key)}: {String(value)}</div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Section 2: Scenario */}
         <div className="mb-4">
@@ -193,6 +211,7 @@ export const Step6Structure: React.FC = () => {
         agentTypeLabel={firstAgentType.label}
         agentTypeProfile={firstAgentType.userProfile || ''}
         agentTypeRolePrompt={firstAgentType.rolePrompt || ''}
+        agentTypeProperties={firstAgentType.properties || {}}
         scenarioDescription={scenarioDescription}
         scenarioParams={scenarioParams}
         availableActions={availableActions}
@@ -217,6 +236,15 @@ export const Step6Structure: React.FC = () => {
                 {type.userProfile && (
                   <div className="text-sm text-gray-600 mt-1">
                     Profile: {type.userProfile}
+                  </div>
+                )}
+                {Object.entries(type.properties || {}).filter(([key]) => !['avatarUrl', 'llm_config', 'provider_id'].includes(key)).length > 0 && (
+                  <div className="text-sm text-gray-600 mt-1">
+                    Properties:{' '}
+                    {Object.entries(type.properties || {})
+                      .filter(([key]) => !['avatarUrl', 'llm_config', 'provider_id'].includes(key))
+                      .map(([key, value]) => `${key}=${String(value)}`)
+                      .join(', ')}
                   </div>
                 )}
               </div>

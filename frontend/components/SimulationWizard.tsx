@@ -172,8 +172,9 @@ export const SimulationWizard: React.FC = () => {
   useEffect(() => {
     if (isOpen) {
       loadProviders();
-      // Initialize demographics on open
-      if (demographics.length === 0) {
+      if (selectedTemplateId === 'policy_diffusion') {
+        setDemographics([{ id: generateId(), name: '政治职位层级', categories: ['top', 'mid', 'low'] }]);
+      } else if (demographics.length === 0) {
         setDemographics([
           { id: generateId(), name: t('wizard.tabs.age'), categories: [
             t('wizard.defaults.ageRanges.young'),
@@ -187,17 +188,19 @@ export const SimulationWizard: React.FC = () => {
           ] }
         ]);
       }
-      // Set default description if empty
       if (!genDesc) {
         setGenDesc(t('wizard.templateDefaults.village'));
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, loadProviders]);
+  }, [isOpen, loadProviders, selectedTemplateId]);
 
   // Update demographics when language changes
   useEffect(() => {
-    if (demographics.length >= 2) {
+    if (selectedTemplateId === 'policy_diffusion') {
+      const existingId = demographics[0]?.id || generateId();
+      setDemographics([{ id: existingId, name: '政治职位层级', categories: ['top', 'mid', 'low'] }]);
+    } else if (demographics.length >= 2) {
       setDemographics([
         { id: demographics[0].id, name: t('wizard.tabs.age'), categories: [
           t('wizard.defaults.ageRanges.young'),
@@ -211,29 +214,36 @@ export const SimulationWizard: React.FC = () => {
         ] }
       ]);
     }
-    // Update traits when language changes
     setTraits([
       { id: traits[0]?.id || generateId(), name: t('wizard.defaults.traits.trust'), mean: 50, std: 15 },
       { id: traits[1]?.id || generateId(), name: t('wizard.defaults.traits.empathy'), mean: 50, std: 15 },
       { id: traits[2]?.id || generateId(), name: t('wizard.defaults.traits.assertiveness'), mean: 50, std: 15 }
     ]);
-  }, [i18n.language]);
+  }, [i18n.language, selectedTemplateId]);
 
   // Auto-adjust generation description and count based on template
   useEffect(() => {
     const defaults: Record<string, string> = {
       village: t('wizard.templateDefaults.village'),
       council: t('wizard.templateDefaults.council'),
-      werewolf: t('wizard.templateDefaults.werewolf')
+      werewolf: t('wizard.templateDefaults.werewolf'),
+      policy_diffusion: t('wizard.templateDefaults.policyDiffusion', { defaultValue: '三层级政策扩散场景' })
     };
     setGenDesc(defaults[selectedTemplateId] || defaults['village']);
     const counts: Record<string, number> = {
       village: 5,
       council: 5,
-      werewolf: 9
+      werewolf: 9,
+      policy_diffusion: 20
     };
     setGenCount(counts[selectedTemplateId] ?? 5);
   }, [selectedTemplateId, t]);
+
+  useEffect(() => {
+    if (selectedTemplateId === 'policy_diffusion') {
+      setDemographics([{ id: generateId(), name: '政治职位层级', categories: ['top', 'mid', 'low'] }]);
+    }
+  }, [selectedTemplateId]);
 
   // Update archetypes when demographics change (AgentTorch)
   useEffect(() => {

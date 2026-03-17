@@ -182,10 +182,36 @@ class Simulator:
             enriched = f"{formatted}\n" + "\n".join(attachment_texts)
 
         recipients = []
+        allow_set: Optional[set[str]] = None
+        if receivers is not None:
+            allow_set = {str(r).strip() for r in receivers if str(r).strip()}
+
+        expected_recipients = {
+            str(getattr(agent, "name", "") or "").strip()
+            for agent in self.agents.values()
+            if str(getattr(agent, "name", "") or "").strip() and str(getattr(agent, "name", "") or "").strip() != str(sender or "").strip()
+        }
+
         for agent in self.agents.values():
-            if agent.name != sender and (receivers is None or agent.name in receivers):
-                agent.add_env_feedback(enriched, images=images, audio=audio, video=video)
-                recipients.append(agent.name)
+            if agent.name == sender:
+                continue
+
+            if allow_set is not None:
+                agent_key = str(getattr(agent, "name", "") or "").strip()
+                if not agent_key or agent_key not in allow_set:
+                    continue
+
+            agent.add_env_feedback(enriched, images=images, audio=audio, video=video)
+            recipients.append(agent.name)
+
+        recipient_set = {name for name in recipients if name}
+        scoped_delivery = allow_set is not None and recipient_set != expected_recipients
+
+        code = getattr(event, "code", None)
+        if code == "environment_event" and not scoped_delivery:
+            self.scene.on_event(self, "environment", getattr(event, "params", {}))
+        elif code == "public_event" and not scoped_delivery:
+            self.scene.on_event(self, "broadcast", getattr(event, "params", {}))
 
         # Timeline: keep minimal
         payload = {
@@ -193,12 +219,12 @@ class Simulator:
             "type": event.__class__.__name__,
             "sender": sender,
             "recipients": recipients,
+            "scoped": scoped_delivery,
             "text": event.to_string(),
             "images": images,
             "audio": audio,
             "video": video,
         }
-        code = getattr(event, "code", None)
         if code is not None:
             payload["code"] = code
         params = getattr(event, "params", None)
@@ -354,7 +380,13 @@ class Simulator:
         turns = 0
         print(f"Running for {max_turns} turns.")
 
+        if hasattr(self.scene, "reset_for_run"):
+            self.scene.reset_for_run()
+
         while turns < max_turns:
+            # Process any pending events before checking completion so scenes can reopen
+            self.emit_remaining_events()
+
             if self.scene.is_complete():
                 print("Scenario complete. Simulation ends.")
                 break

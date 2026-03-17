@@ -427,6 +427,7 @@ const Toolbar: React.FC = () => {
       <ReportModal />
       <GlobalKnowledgePanel />
       <GuideAssistant />
+      <SyncModal />
       <ToastContainer />
     </div>
   );

@@ -12,21 +12,15 @@ The controller implements the validation layer:
 import asyncio
 import json
 import logging
-import sys
-from dataclasses import dataclass
-from typing import Dict, Any, Literal, Optional
-from pathlib import Path
-from datetime import datetime
+from dataclasses import dataclass, field
+from typing import Dict, Any, Optional, List
 
 from socialsim4.core.experiment.agent import ExperimentAgent
 from socialsim4.core.experiment.game_configs import GameConfig
-from socialsim4.core.experiment.kernel import ExperimentKernel, ExperimentAction
+from socialsim4.core.experiment.kernel import ExperimentKernel
 from socialsim4.core.experiment.round_context import RoundContextManager
-from socialsim4.core.experiment.schema_builder import build_schema
 from socialsim4.core.experiment.prompt_builder import build_reprompt
 from socialsim4.core.experiment.validation import (
-    strip_markdown_fences,
-    strip_think_tags,
     validate_and_clamp,
     extract_json,
 )
@@ -34,24 +28,6 @@ from socialsim4.core.llm.client import LLMClient
 
 
 logger = logging.getLogger(__name__)
-
-# Debug file for full prompts/responses (shared with runner)
-_debug_dir = Path("test_results")
-_debug_dir.mkdir(exist_ok=True)
-# Find the most recent debug file from runner
-_debug_files = sorted(_debug_dir.glob("experiment_debug_*.txt"), key=lambda x: x.stat().st_mtime, reverse=True)
-_debug_file = _debug_files[0] if _debug_files else _debug_dir / "experiment_debug.txt"
-
-
-def _get_current_debug_file() -> Path:
-    """Get the most recent debug file, creating a new one if needed."""
-    global _debug_file
-    files = sorted(_debug_dir.glob("experiment_debug_*.txt"), key=lambda x: x.stat().st_mtime, reverse=True)
-    if files:
-        _debug_file = files[0]
-    else:
-        _debug_file = _debug_dir / f"experiment_debug_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-    return _debug_file
 
 
 @dataclass
@@ -67,6 +43,7 @@ class ActionResult:
         round_num: Round number
         skipped: True if validation failed and turn was skipped
         error: Error message if skipped
+        debug_log: List of debug log lines (for atomic writing by runner)
     """
     success: bool
     action_name: str
@@ -76,6 +53,7 @@ class ActionResult:
     round_num: int
     skipped: bool = False
     error: str = ""
+    debug_log: List[str] = field(default_factory=list)
 
 
 class ExperimentController:
@@ -120,16 +98,14 @@ class ExperimentController:
             round_num: Current round number
 
         Returns:
-            ActionResult with outcome
+            ActionResult with outcome and debug_log
         """
-        debug_file = _get_current_debug_file()
+        debug_log = []
 
-        # Write to debug file
-        with open(debug_file, 'a', encoding='utf-8') as f:
-            f.write(f"\n--- CONTROLLER: Processing Response ---\n")
-            f.write(f"  agent: {agent.name}\n")
-            f.write(f"  output_field: {game_config.output_field}\n")
-            f.write(f"  allowed actions: {game_config.actions}\n")
+        debug_log.append(f"\n--- CONTROLLER: Processing Response ---\n")
+        debug_log.append(f"  agent: {agent.name}\n")
+        debug_log.append(f"  output_field: {game_config.output_field}\n")
+        debug_log.append(f"  allowed actions: {game_config.actions}\n")
 
         print(f"\n[CONTROLLER] Processing response from {agent.name}")
 
@@ -144,14 +120,12 @@ class ExperimentController:
             if start != -1 and end != -1 and end > start:
                 cleaned = cleaned[start:end + 1]
 
-        with open(debug_file, 'a', encoding='utf-8') as f:
-            f.write(f"  cleaned JSON: {cleaned[:200]}...\n" if len(cleaned) > 200 else f"  cleaned JSON: {cleaned}\n")
+        debug_log.append(f"  cleaned JSON: {cleaned[:200]}...\n" if len(cleaned) > 200 else f"  cleaned JSON: {cleaned}\n")
 
         try:
             parsed = json.loads(cleaned)
 
-            with open(debug_file, 'a', encoding='utf-8') as f:
-                f.write(f"  parsed OK: {parsed}\n")
+            debug_log.append(f"  parsed OK: {parsed}\n")
 
             print(f"[CONTROLLER] Parsed OK, action={parsed.get(game_config.output_field)}")
         except json.JSONDecodeError as e:
@@ -162,12 +136,10 @@ class ExperimentController:
                 candidate = match.group(0)
                 try:
                     parsed = json.loads(candidate)
-                    with open(debug_file, 'a', encoding='utf-8') as f:
-                        f.write(f"  parsed via salvage: {parsed}\n")
+                    debug_log.append(f"  parsed via salvage: {parsed}\n")
                     print(f"[CONTROLLER] Parsed via salvage, action={parsed.get(game_config.output_field)}")
                 except json.JSONDecodeError as e2:
-                    with open(debug_file, 'a', encoding='utf-8') as f:
-                        f.write(f"  ERROR: Failed to parse JSON after salvage: {e2}\n")
+                    debug_log.append(f"  ERROR: Failed to parse JSON after salvage: {e2}\n")
                     print(f"[CONTROLLER] ERROR: Failed to parse JSON after salvage")
                     logger.error(f"Failed to parse JSON from {agent.name}: {e2}")
                     return ActionResult(
@@ -178,11 +150,11 @@ class ExperimentController:
                         agent_name=agent.name,
                         round_num=round_num,
                         skipped=True,
-                        error=f"Invalid JSON: {e2}"
+                        error=f"Invalid JSON: {e2}",
+                        debug_log=debug_log
                     )
             else:
-                with open(debug_file, 'a', encoding='utf-8') as f:
-                    f.write(f"  ERROR: Failed to parse JSON: {e}\n")
+                debug_log.append(f"  ERROR: Failed to parse JSON: {e}\n")
                 print(f"[CONTROLLER] ERROR: Failed to parse JSON")
                 logger.error(f"Failed to parse JSON from {agent.name}: {e}")
                 return ActionResult(
@@ -193,15 +165,15 @@ class ExperimentController:
                     agent_name=agent.name,
                     round_num=round_num,
                     skipped=True,
-                    error=f"Invalid JSON: {e}"
+                    error=f"Invalid JSON: {e}",
+                    debug_log=debug_log
                 )
 
         # Step 2: Validate against game config
         validated = validate_and_clamp(parsed, game_config)
         if validated is None:
-            with open(debug_file, 'a', encoding='utf-8') as f:
-                f.write(f"  ERROR: Validation failed - action not in allowed set\n")
-                f.write(f"  parsed action field: {parsed.get(game_config.output_field, '')}\n")
+            debug_log.append(f"  ERROR: Validation failed - action not in allowed set\n")
+            debug_log.append(f"  parsed action field: {parsed.get(game_config.output_field, '')}\n")
             print(f"[CONTROLLER] ERROR: Validation failed")
             logger.error(f"Validation failed for {agent.name}: {parsed}")
             return ActionResult(
@@ -212,14 +184,14 @@ class ExperimentController:
                 agent_name=agent.name,
                 round_num=round_num,
                 skipped=True,
-                error="Action not in allowed set"
+                error="Action not in allowed set",
+                debug_log=debug_log
             )
 
         # Step 3: Extract action
         action_value = validated.get(game_config.output_field)
 
-        with open(debug_file, 'a', encoding='utf-8') as f:
-            f.write(f"  extracted action: {action_value}\n")
+        debug_log.append(f"  extracted action: {action_value}\n")
 
         print(f"[CONTROLLER] Extracted action: {action_value}")
         summary = f"{agent.name} chose {action_value}"
@@ -231,7 +203,8 @@ class ExperimentController:
             summary=summary,
             agent_name=agent.name,
             round_num=round_num,
-            skipped=False
+            skipped=False,
+            debug_log=debug_log
         )
 
     async def process_response_with_followup(
@@ -241,7 +214,11 @@ class ExperimentController:
         game_config: GameConfig,
         llm_client: LLMClient,
         round_num: int,
-        action_schemas: Optional[Dict[str, Dict[str, Any]]] = None
+        action_schemas: Optional[Dict[str, Dict[str, Any]]] = None,
+        context_summary: str = "",
+        information_model=None,
+        kb_context: str = "",
+        neighbor_context: str = "",
     ) -> ActionResult:
         """Process an LLM response with potential follow-up prompt for parameters.
 
@@ -255,9 +232,13 @@ class ExperimentController:
             llm_client: LLM client (for re-prompting)
             round_num: Current round number
             action_schemas: Dict mapping action names to their parameter schemas
+            context_summary: The exact context used in the main prompt
+            information_model: Information model used when building the prompt
+            kb_context: Knowledge-base context used in the main prompt
+            neighbor_context: Social-network context used in the main prompt
 
         Returns:
-            ActionResult with outcome
+            ActionResult with outcome and debug_log
         """
         # First, process normally
         initial_result = await self.process_response(
@@ -269,12 +250,27 @@ class ExperimentController:
             return initial_result
 
         action_name = initial_result.action_name
-        debug_file = _get_current_debug_file()
+        debug_log = initial_result.debug_log.copy()
+        schema_keys = list(action_schemas.keys()) if action_schemas else []
+        canonical_action_name = action_name
+        if action_schemas:
+            for schema_key in action_schemas.keys():
+                # Convert to strings for comparison (action_name may be int for integer-type games)
+                if str(schema_key).lower() == str(action_name).lower():
+                    canonical_action_name = schema_key
+                    break
+        should_follow_up = bool(action_schemas and canonical_action_name in action_schemas)
+
+        debug_log.append(f"\n--- FOLLOW-UP GATING ---\n")
+        debug_log.append(f"  action_name: {action_name}\n")
+        debug_log.append(f"  canonical_action_name: {canonical_action_name}\n")
+        debug_log.append(f"  schema_keys: {schema_keys}\n")
+        debug_log.append(f"  should_follow_up: {should_follow_up}\n")
 
         # Check if this action requires a follow-up prompt.
         # action_schemas format: {action_name: {"schema": param_schema, "mode": "json"|"plain_text"}}
-        if action_schemas and action_name in action_schemas:
-            schema_info = action_schemas[action_name]
+        if should_follow_up:
+            schema_info = action_schemas[canonical_action_name]
             # Support both flat {param: schema} and wrapped {"schema": ..., "mode": ...} formats
             if "schema" in schema_info:
                 param_schema = schema_info["schema"]
@@ -283,35 +279,38 @@ class ExperimentController:
                 param_schema = schema_info
                 followup_mode = "json"
 
-            with open(debug_file, 'a', encoding='utf-8') as f:
-                f.write(f"\n{'='*80}\n")
-                f.write(f"FOLLOW-UP PROMPT REQUIRED\n")
-                f.write(f"{'='*80}\n")
-                f.write(f"  action: {action_name}\n")
-                f.write(f"  mode: {followup_mode}\n")
-                f.write(f"  required params: {list(param_schema.keys())}\n")
+            debug_log.append(f"\n{'='*80}\n")
+            debug_log.append(f"FOLLOW-UP PROMPT REQUIRED\n")
+            debug_log.append(f"{'='*80}\n")
+            debug_log.append(f"  action: {action_name}\n")
+            debug_log.append(f"  mode: {followup_mode}\n")
+            debug_log.append(f"  required params: {list(param_schema.keys())}\n")
 
             print(f"\n[CONTROLLER] Action '{action_name}' requires follow-up prompt (mode={followup_mode})")
 
-            # Get context for follow-up
-            context = self.context_manager.get_context(agent.name)
+            followup_context = context_summary or self.context_manager.get_context_for_agent(
+                agent.name,
+                agent_score=agent.score,
+            )
 
             # Build follow-up prompt using the action's parameter mode
             followup_prompt = build_reprompt(
                 agent=agent,
                 game_config=game_config,
-                context_summary=context,
+                context_summary=followup_context,
                 chosen_action=action_name,
                 parameter_schema=param_schema,
                 mode=followup_mode,
-                include_section_markers=True
+                include_section_markers=True,
+                information_model=information_model,
+                kb_context=kb_context,
+                neighbor_context=neighbor_context,
             )
 
             # Log the follow-up prompt
-            with open(debug_file, 'a', encoding='utf-8') as f:
-                f.write(f"\n--- FOLLOW-UP PROMPT ---\n")
-                f.write(followup_prompt)
-                f.write(f"\n--- END FOLLOW-UP PROMPT ---\n\n")
+            debug_log.append(f"\n--- FOLLOW-UP PROMPT ---\n")
+            debug_log.append(followup_prompt)
+            debug_log.append(f"\n--- END FOLLOW-UP PROMPT ---\n\n")
 
             print(f"[CONTROLLER] Sending follow-up prompt to {agent.name}")
 
@@ -322,13 +321,10 @@ class ExperimentController:
                     llm_client.chat, messages, json_mode=(followup_mode == "json")
                 )
 
-                # Log the follow-up response
-                with open(debug_file, 'a', encoding='utf-8') as f:
-                    f.write(f"\n{'='*80}\n")
-                    f.write(f"FOLLOW-UP RESPONSE\n")
-                    f.write(f"{'='*80}\n\n")
-                    f.write(followup_response)
-                    f.write(f"\n\n{'='*80}\n\n")
+                # Log the follow-up response IMMEDIATELY after the prompt
+                debug_log.append(f"\n--- FOLLOW-UP RESPONSE ---\n")
+                debug_log.append(followup_response)
+                debug_log.append(f"\n--- END FOLLOW-UP RESPONSE ---\n\n")
 
                 print(f"[CONTROLLER] Received follow-up response from {agent.name}")
 
@@ -336,33 +332,55 @@ class ExperimentController:
                 if followup_mode == "plain_text":
                     # Plain text response (e.g., Speak action): store the whole string as "message"
                     parameters = {"message": followup_response.strip()}
+                    parameter_source = "followup_plain_text"
                 else:
                     # JSON response: parse and extract expected parameters
                     cleaned = extract_json(followup_response)
                     parsed_followup = json.loads(cleaned)
                     parameters = {k: parsed_followup.get(k) for k in param_schema.keys() if k in parsed_followup}
+                    parameter_source = "followup_json"
+
+                debug_log.append(f"  final_parameter_source: {parameter_source}\n")
+                debug_log.append(f"  final_parameters: {parameters}\n")
 
                 # Update summary with parameters
                 param_str = ", ".join(f"{k}={v}" for k, v in parameters.items())
                 summary = f"{agent.name} chose {action_name} ({param_str})"
 
+                # Add final result to debug log
+                debug_log.append(f"\n--- PROCESSED RESULT ---\n")
+                debug_log.append(f"  action: {action_name}\n")
+                debug_log.append(f"  success: True\n")
+                debug_log.append(f"  skipped: False\n")
+                debug_log.append(f"  summary: {summary}\n")
+                debug_log.append("\n" + "-"*80 + "\n\n")
+
                 return ActionResult(
                     success=True,
-                    action_name=action_name,
+                    action_name=canonical_action_name,
                     parameters=parameters,
-                    summary=summary,
+                    summary=f"{agent.name} chose {canonical_action_name} ({param_str})",
                     agent_name=agent.name,
                     round_num=round_num,
-                    skipped=False
+                    skipped=False,
+                    debug_log=debug_log
                 )
 
             except Exception as e:
-                with open(debug_file, 'a', encoding='utf-8') as f:
-                    f.write(f"\n  ERROR in follow-up: {e}\n")
+                debug_log.append(f"\n  ERROR in follow-up: {e}\n")
                 print(f"[CONTROLLER] ERROR in follow-up: {e}")
                 logger.error(f"Follow-up prompt failed for {agent.name}: {e}")
-                # Return the initial result without parameters
+                # Return the initial result without parameters but with updated debug log
+                initial_result.debug_log = debug_log
                 return initial_result
 
-        # No follow-up needed
+        # No follow-up needed - add final result to debug log
+        debug_log.append(f"\n--- PROCESSED RESULT ---\n")
+        debug_log.append(f"  action: {action_name}\n")
+        debug_log.append(f"  success: True\n")
+        debug_log.append(f"  skipped: False\n")
+        debug_log.append(f"  summary: {initial_result.summary}\n")
+        debug_log.append("\n" + "-"*80 + "\n\n")
+
+        initial_result.debug_log = debug_log
         return initial_result

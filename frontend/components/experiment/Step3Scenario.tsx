@@ -190,10 +190,14 @@ export const Step3Scenario: React.FC = () => {
   const isCustom = selectedScenarioData?.id === 'custom';
 
   // Combine preset and custom actions
-  const allActions = [
-    ...availableActions.map((action) => ({ ...action, isCustom: false })),
-    ...customActions.map((action) => ({ ...action, isCustom: true })),
-  ];
+  const presetActionNames = new Set(
+    (selectedScenarioData?.category_actions || selectedScenarioData?.actions || []).map((action) => action.name)
+  );
+
+  const allActions = availableActions.map((action) => ({
+    ...action,
+    isCustom: !presetActionNames.has(action.name),
+  }));
 
   const handleToggleAction = (actionName: string) => {
     // Prevent deselecting if it's the last action
@@ -219,6 +223,7 @@ export const Step3Scenario: React.FC = () => {
     };
 
     setCustomActions([...customActions, newAction]);
+    setAvailableActions([...availableActions, newAction]);
     setSelectedActionIds([...selectedActionIds, newAction.name]);
 
     // Reset form
@@ -229,6 +234,7 @@ export const Step3Scenario: React.FC = () => {
 
   const handleRemoveCustomAction = (actionName: string) => {
     setCustomActions(customActions.filter((a) => a.name !== actionName));
+    setAvailableActions(availableActions.filter((a) => a.name !== actionName));
     setSelectedActionIds(selectedActionIds.filter((id) => id !== actionName));
   };
 
@@ -241,6 +247,10 @@ export const Step3Scenario: React.FC = () => {
         <p className="text-sm text-gray-600 mt-1">
           {t('experimentBuilder.step3.subtitle')}
         </p>
+        <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+          <div className="font-medium">{t('experimentBuilder.step3.linkedTitle')}</div>
+          <div className="mt-1">{t('experimentBuilder.step3.linkedDesc')}</div>
+        </div>
         {selectedScenarioData?.category_actions && (
           <p className="text-xs text-gray-600 mt-2">
             {t('experimentBuilder.step3.categoryInfo', { category: selectedScenarioData.category })}

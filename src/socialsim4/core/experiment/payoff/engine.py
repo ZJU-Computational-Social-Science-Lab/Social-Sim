@@ -103,6 +103,8 @@ class PayoffEngine:
             List of groups, each group is a list of agent names
         """
         edges = graph.get("edges", [])
+        if not edges:
+            return [agent_names] if agent_names else []
 
         # Build adjacency list
         adjacency = {name: set() for name in agent_names}
@@ -145,7 +147,7 @@ class PayoffEngine:
 
         payoffs = {}
         action_map = {
-            a.agent_name: a.action_name.lower()
+            a.agent_name: str(a.action_name).lower()
             for a in actions if not a.skipped
         }
         agent_names = list(action_map.keys())

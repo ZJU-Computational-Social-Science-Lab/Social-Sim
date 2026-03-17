@@ -141,6 +141,10 @@ class SimTree:
         # 2) 克隆点的 event_queue 必须是“干净”的
         sim_clone.reset_event_queue()
 
+        # 让克隆体的代理在新节点重新尝试发言：把 last_history_length 向前挪一步
+        for agent in sim_clone.agents.values():
+            agent.last_history_length = max(0, len(agent.short_memory) - 1)
+
         # 3) 基础自检：检查 agents/scene/orderings 的独立性 + ordering 状态一致性 + queue 为空
         tree._check_simulator_clone(sim, sim_clone)
 
@@ -203,6 +207,10 @@ class SimTree:
 
         # 轻量状态自检：确保没有错误的共享引用 & 关键状态一致
         self._check_simulator_clone(base_sim, sim_copy)
+
+        # 让 clone 在新节点重新发言：把 last_history_length 向前挪一步
+        for agent in sim_copy.agents.values():
+            agent.last_history_length = max(0, len(agent.short_memory) - 1)
 
         return sim_copy
 

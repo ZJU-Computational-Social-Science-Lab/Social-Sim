@@ -301,7 +301,63 @@ def build_reprompt(
     Returns:
         Re-prompt string
     """
-    # Reuse the base prompt (all 5 sections)
+    # For plain_text mode, build a simplified prompt without JSON format instructions
+    # The agent should respond with natural language, not JSON
+    if mode == "plain_text":
+        sections = []
+
+        # Section 1: Agent Description
+        agent_desc = build_agent_description(
+            agent.get_properties_dict(),
+            role_prompt=getattr(agent, 'role_prompt', None),
+            agent_name=agent.name
+        )
+        if include_section_markers:
+            sections.append("=== SECTION 1: AGENT DESCRIPTION ===")
+        sections.append(agent_desc)
+
+        # Section 2: Scenario
+        scenario_text = game_config.description
+        if game_config.payoff_summary:
+            scenario_text += f"\n\n{game_config.payoff_summary}"
+        if include_section_markers:
+            sections.append("\n=== SECTION 2: SCENARIO ===")
+        sections.append(f"\n## Scenario\n{scenario_text}")
+
+        # Section 4: Context (truncated if needed)
+        if include_section_markers:
+            sections.append("\n=== SECTION 4: CONTEXT ===")
+        budget = getattr(information_model, 'context_budget_chars', 0) if information_model else 0
+        display_context = (
+            truncate_context_to_budget(context_summary, budget)
+            if context_summary else ""
+        )
+        if display_context:
+            sections.append(f"\n## Context\n{display_context}")
+        else:
+            sections.append("\n## Context\nThis is the first round - no previous context.")
+
+        # Follow-up instruction - NO JSON format for plain_text mode
+        if include_section_markers:
+            sections.append("\n=== FOLLOW-UP PROMPT (Action Requires Parameters) ===")
+
+        sections.append(f"\nYou chose to {chosen_action}. Please provide your response.")
+        sections.append("Your response:")
+
+        full_prompt = "\n".join(sections)
+
+        if include_section_markers:
+            logger.debug(f"\n{'='*60}")
+            logger.debug(f"FOLLOW-UP PROMPT (plain_text) FOR AGENT: {agent.name}")
+            logger.debug(f"CHOSEN ACTION: {chosen_action}")
+            logger.debug(f"REQUIRED PARAMS: {list(parameter_schema.keys())}")
+            logger.debug(f"{'='*60}")
+            logger.debug(full_prompt)
+            logger.debug(f"{'='*60}\n")
+
+        return full_prompt
+
+    # For JSON mode, include the full base prompt with JSON format instructions
     base_prompt = build_prompt(agent, game_config, context_summary, include_section_markers, information_model=information_model, kb_context=kb_context, neighbor_context=neighbor_context)
 
     # Add re-prompt instruction with section marker
@@ -310,18 +366,15 @@ def build_reprompt(
     else:
         reprompt_header = ""
 
-    if mode == "json":
-        params_desc = ", ".join(f'"{k}": <{v.get("description", k)}>' for k, v in parameter_schema.items())
-        reprompt = f"{reprompt_header}\n\nYou chose to {chosen_action}. This action requires parameters.\nRespond ONLY with valid JSON: {{\"action\": \"{chosen_action}\", {params_desc}}}"
-    else:  # plain_text
-        reprompt = f"{reprompt_header}\n\nYou chose to {chosen_action}. Please provide your response.\nYour response:"
+    params_desc = ", ".join(f'"{k}": <{v.get("description", k)}>' for k, v in parameter_schema.items())
+    reprompt = f"{reprompt_header}\n\nYou chose to {chosen_action}. This action requires parameters.\nRespond ONLY with valid JSON: {{\"action\": \"{chosen_action}\", {params_desc}}}"
 
     full_prompt = base_prompt + reprompt
 
     # Log the follow-up prompt
     if include_section_markers:
         logger.debug(f"\n{'='*60}")
-        logger.debug(f"FOLLOW-UP PROMPT FOR AGENT: {agent.name}")
+        logger.debug(f"FOLLOW-UP PROMPT (json) FOR AGENT: {agent.name}")
         logger.debug(f"CHOSEN ACTION: {chosen_action}")
         logger.debug(f"REQUIRED PARAMS: {list(parameter_schema.keys())}")
         logger.debug(f"{'='*60}")
