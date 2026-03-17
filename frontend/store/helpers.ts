@@ -333,14 +333,20 @@ export const mapBackendEventsToLogs = (
       agentOffline: pickText('Agent went offline', '智能体已掉线'),
       distortionBlocked: pickText('Policy transmission blocked', '政策传递被截留'),
       distortionAdjusted: pickText('Policy transmission distorted', '政策传递发生失真'),
+      distortionUnchanged: pickText('Policy transmission stayed effectively unchanged', '政策传递基本保持原样'),
+      distortedReason: pickText('Distortion reason', '已发生失真，原因'),
+      pressureReason: pickText('Distortion pressure', '存在失真压力，但本次保持原样，原因'),
       distortionInput: pickText('Announcement classified as distortion cascade input', '本条公告被识别为：distortion cascade input'),
       nonDistortionInput: pickText('Announcement did not enter distortion cascade', '本条公告未进入 distortion cascade'),
+      privateCascadeInput: pickText('This is a private cascade input, visible only to', '这是一条私有级联输入，仅'),
+      waitingForTopTier: pickText('waiting for top-tier relay', '可见，等待其作为 top tier 下传'),
       privateBroadcast: pickText('Targeted private broadcast', '定向私有广播'),
       globalBroadcast: pickText('Global broadcast', '全局广播'),
       recipientsLabel: pickText('Recipients', '接收者'),
       allAgents: pickText('All agents', '全体智能体'),
-      originalMessage: pickText('Original', '原始下传内容'),
-      finalMessage: pickText('Final', '最终下传内容'),
+      originalMessage: pickText('Received upstream policy version', '收到的上级政策版本'),
+      draftMessage: pickText('Agent draft before scene rewrite', 'Agent 原始下传草稿'),
+      finalMessage: pickText('Actual downstream message', '实际对下发送内容'),
       reasonLabel: pickText('Reason', '原因'),
       metricsLabel: pickText('Metrics', '参数/评分'),
       actionStart: pickText('Started action', '开始执行动作'),
@@ -469,7 +475,9 @@ export const mapBackendEventsToLogs = (
       const agentName: string = data.agent || '';
       const tier: string = data.tier || '';
       const blocked = Boolean(data.blocked);
+      const changed = data.changed !== false;
       const originalMessage = String(data.original_message || '').trim() || pickText('(empty)', '（空）');
+      const draftMessage = String(data.agent_draft_message || '').trim();
       const finalMessage = String(data.final_message || '').trim() || pickText('(blocked / no downstream message)', '（已截留 / 无下传内容）');
       const reason = String(data.reason || '').trim() || pickText('No reason provided', '未提供原因');
       const metrics = `${pickText('strength', '失真强度')}=${data.distortion_strength ?? '-'}, `
@@ -477,21 +485,58 @@ export const mapBackendEventsToLogs = (
         + `${pickText('block', '阻断概率')}=${data.block_probability ?? '-'}, `
         + `${pickText('pressure', '冲突压力')}=${data.pressure ?? '-'}, `
         + `${pickText('tendency', '截留倾向')}=${data.block_tendency ?? '-'}`;
-      const title = blocked ? labels.distortionBlocked : labels.distortionAdjusted;
+      const title = blocked ? labels.distortionBlocked : changed ? labels.distortionAdjusted : labels.distortionUnchanged;
+      const reasonLine = blocked || changed
+        ? `${labels.distortedReason}: ${reason}`
+        : `${labels.pressureReason}: ${reason}`;
+      const agentLabel = agentName ? `${agentName}${tier ? ` (${tier})` : ''}` : '';
       const content = [
-        agentName ? `${agentName}${tier ? ` (${tier})` : ''} - ${title}` : title,
+        agentLabel ? `${agentLabel} - ${title}` : title,
         `${labels.originalMessage}: ${originalMessage}`,
+        draftMessage ? `${labels.draftMessage}: ${draftMessage}` : '',
         `${labels.finalMessage}: ${finalMessage}`,
-        `${labels.reasonLabel}: ${reason}`,
+        reasonLine,
         `${labels.metricsLabel}: ${metrics}`,
-      ].join('\n');
-      return { ...base, type: 'SYSTEM', content };
+      ].filter(Boolean).join('\n');
+      return {
+        ...base,
+        type: 'SYSTEM',
+        content,
+        structuredData: {
+          kind: 'policy_diff',
+          title,
+          agentLabel,
+          leftTitle: labels.originalMessage,
+          leftContent: originalMessage,
+          draftTitle: draftMessage ? labels.draftMessage : undefined,
+          draftContent: draftMessage || undefined,
+          rightTitle: labels.finalMessage,
+          rightContent: finalMessage,
+          reasonLabel: blocked || changed ? labels.distortedReason : labels.pressureReason,
+          reason,
+          metricsLabel: labels.metricsLabel,
+          metrics,
+        },
+      };
     }
 
     if (evType === 'cascade_input_classified') {
       const entered = Boolean(data.entered_distortion_chain);
       const content = String(data.content || '').trim();
       const label = entered ? labels.distortionInput : labels.nonDistortionInput;
+      return {
+        ...base,
+        type: 'ENVIRONMENT',
+        content: content ? `${label}\n${content}` : label,
+      };
+    }
+
+    if (evType === 'private_cascade_input') {
+      const visibleTo = String(data.visible_to || '').trim();
+      const content = String(data.content || '').trim();
+      const label = visibleTo
+        ? `${labels.privateCascadeInput} ${visibleTo} ${labels.waitingForTopTier}`
+        : `${labels.privateCascadeInput} ? ${labels.waitingForTopTier}`;
       return {
         ...base,
         type: 'ENVIRONMENT',

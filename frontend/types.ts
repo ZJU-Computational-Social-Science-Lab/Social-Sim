@@ -74,6 +74,21 @@ export interface LogEntry {
   type: 'SYSTEM' | 'AGENT_ACTION' | 'AGENT_SAY' | 'ENVIRONMENT' | 'HOST_INTERVENTION' | 'AGENT_METADATA';
   agentId?: string;
   content: string;
+  structuredData?: {
+    kind: 'policy_diff';
+    title: string;
+    agentLabel?: string;
+    leftTitle: string;
+    leftContent: string;
+    draftTitle?: string;
+    draftContent?: string;
+    rightTitle: string;
+    rightContent: string;
+    reasonLabel: string;
+    reason: string;
+    metricsLabel: string;
+    metrics: string;
+  };
   imageUrl?: string; // #24 Multimodal Content
   imageAlt?: string; // Alt text for accessibility
   audioUrl?: string;

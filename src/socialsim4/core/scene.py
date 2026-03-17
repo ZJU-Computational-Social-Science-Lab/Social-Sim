@@ -187,6 +187,9 @@ class Scene:
     def on_event(self, sim, event_type: str, data):
         return None
 
+    def on_private_event(self, sim, event_type: str, data, recipients: list[str]):
+        return None
+
     def initialize_agent(self, agent: Agent):
         """Initializes an agent with scene-specific properties."""
         pass

@@ -304,6 +304,11 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         or ""
     )
     initial_event_content = _resolve_initial_event(cfg, fallback_initial)
+    if scene_key == "policy_cascade_scene":
+        params = cfg.get("parameters") or {}
+        opening_notice = str(params.get("policy_text") or "").strip()
+        if opening_notice:
+            initial_event_content = opening_notice
     if not initial_event_content and scene_key == "policy_cascade_scene":
         initial_event_content = (
             "Three-tier policy cascade: transmit the full policy top → mid → low; "
