@@ -117,6 +117,7 @@ export const ExperimentDesignModal: React.FC = () => {
   const engineConfig = useSimulationStore(state => state.engineConfig);
   const currentSimulation = useSimulationStore(state => state.currentSimulation);
   const addNotification = useSimulationStore(state => state.addNotification);
+  const isPolicyCascadeTemplate = currentSimulation?.scene_type === 'policy_cascade_scene';
 
   const baseNode = nodes.find(n => n.id === selectedNodeId);
 
@@ -189,6 +190,18 @@ export const ExperimentDesignModal: React.FC = () => {
       toggle(false);
     }
   }, [isOpen, baseNode, addNotification, t, toggle]);
+
+  useEffect(() => {
+    if (isPolicyCascadeTemplate) return;
+    setVariants((prev) => prev.map((variant) => ({
+      ...variant,
+      interventions: (variant.interventions || []).map((iv) => (
+        iv.type === 'FOLLOW_UP_CONDITION' || iv.type === 'FOLLOW_UP_THREAD_SEED'
+          ? { ...iv, type: 'ENVIRONMENT' }
+          : iv
+      )),
+    })));
+  }, [isPolicyCascadeTemplate]);
 
   if (!isOpen || !baseNode) return null;
 
@@ -289,10 +302,10 @@ export const ExperimentDesignModal: React.FC = () => {
           ops.push({ op: 'public_broadcast', text: iv.description || '' });
         } else if (iv.type === 'ENVIRONMENT') {
           ops.push({ op: 'public_broadcast', text: iv.description || '' });
-        } else if (iv.type === 'FOLLOW_UP_CONDITION') {
+        } else if (iv.type === 'FOLLOW_UP_CONDITION' && isPolicyCascadeTemplate) {
           const updates = parseConditionUpdates(iv.description || '');
           Object.assign(pendingFollowUpConditions, updates);
-        } else if (iv.type === 'FOLLOW_UP_THREAD_SEED' && iv.targetId) {
+        } else if (iv.type === 'FOLLOW_UP_THREAD_SEED' && iv.targetId && isPolicyCascadeTemplate) {
           const seed = parseThreadSeed(iv.description || '', agents.map((a) => a.name));
           const target = agents.find((a) => a.id === iv.targetId);
           const recipient = seed.recipient || (target ? target.name : iv.targetId);
@@ -467,8 +480,8 @@ export const ExperimentDesignModal: React.FC = () => {
                                   <option value="INSTRUCTION">{t('components.experimentDesignModal.instructionType')}</option>
                                   <option value="AGENT_PROPERTY">{t('components.experimentDesignModal.propertyType')}</option>
                                   <option value="ENVIRONMENT">{t('components.experimentDesignModal.environmentType')}</option>
-                                  <option value="FOLLOW_UP_CONDITION">{t('components.experimentDesignModal.followUpConditionType', { defaultValue: 'Follow-up condition' })}</option>
-                                  <option value="FOLLOW_UP_THREAD_SEED">{t('components.experimentDesignModal.followUpThreadSeedType', { defaultValue: 'Follow-up thread seed' })}</option>
+                                  {isPolicyCascadeTemplate && <option value="FOLLOW_UP_CONDITION">{t('components.experimentDesignModal.followUpConditionType', { defaultValue: 'Follow-up condition' })}</option>}
+                                  {isPolicyCascadeTemplate && <option value="FOLLOW_UP_THREAD_SEED">{t('components.experimentDesignModal.followUpThreadSeedType', { defaultValue: 'Follow-up thread seed' })}</option>}
                                 </select>
 
                                 {(iv.type === 'AGENT_PROPERTY' || iv.type === 'FOLLOW_UP_THREAD_SEED') && (

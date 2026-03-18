@@ -373,6 +373,16 @@ Recent Context Summary:
     """
         return prompt
 
+    def _json_retry_feedback(self, error) -> str:
+        return (
+            "Your previous reply could not be parsed. "
+            f"Error: {error}. "
+            "Return ONLY one valid JSON object with exactly these top-level keys: "
+            '"thoughts", "response", "action", "context_update", "metadata". '
+            "Do not use Markdown code fences. Do not use [Action] shorthand. "
+            "The action field must contain a valid action name from the Action Space."
+        )
+
     # -------------------------------------------------------------------------
     # LLM Interaction
     # -------------------------------------------------------------------------
@@ -509,6 +519,7 @@ Use the above context to inform your responses when relevant.
                 if getattr(self, "is_offline", False):
                     break
                 if i < attempts - 1:
+                    ctx.append({"role": "user", "content": self._json_retry_feedback(e)})
                     continue
                 break
 
@@ -539,6 +550,7 @@ Use the above context to inform your responses when relevant.
                 if getattr(self, "is_offline", False):
                     break
                 if i < attempts - 1:
+                    ctx.append({"role": "user", "content": self._json_retry_feedback(e)})
                     print(f"{self.name} action parse error: {e}; retry {i + 1}/{attempts - 1}...")
                     continue
                 print(f"{self.name} action parse error after {attempts} attempts: {e}")
@@ -565,8 +577,6 @@ Use the above context to inform your responses when relevant.
                 action_name = str(action_payload.get("name") or action_payload.get("action") or "").strip()
                 action_message = str(action_payload.get("message", "") or "").strip()
 
-            if action_name:
-                memory_parts.append(f"[Action] {action_name}")
             if action_message and action_message != response and not (scene_type == "policy_cascade_scene" and scene_mode == "notice"):
                 memory_parts.append(action_message)
 
@@ -615,9 +625,12 @@ Use the above context to inform your responses when relevant.
 
     def _record_llm_error(self, kind: str, error, attempt: int, final: bool):
         """Record an LLM call/parse error and mark agent offline if threshold exceeded."""
+        if not final:
+            return
+
         self.consecutive_llm_errors += 1
 
-        should_emit_error = bool(final)
+        should_emit_error = True
 
         if self.log_event and should_emit_error:
             self.log_event(

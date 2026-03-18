@@ -351,9 +351,31 @@ export const mapBackendEventsToLogs = (
       metricsLabel: pickText('Metrics', '参数/评分'),
       actionStart: pickText('Started action', '开始执行动作'),
       actionEnd: pickText('performed action', '执行了动作'),
+      privateThreadOpened: pickText('opened a private thread', '发起了私下线程'),
+      privateThreadReplied: pickText('replied privately', '进行了私下回复'),
+      privateThreadIgnored: pickText('temporarily ignored a private thread', '暂未处理私下线程'),
+      privateThreadTo: pickText('to', '向'),
+      privateThreadKindUpward: pickText('upward feedback', '向上反馈'),
+      privateThreadKindEscalation: pickText('escalation', '升级投诉'),
+      privateThreadKindSkipLevel: pickText('skip-level complaint', '越级投诉'),
+      privateThreadKindPeer: pickText('peer consultation', '同层协商'),
+      privateThreadKindSubordinate: pickText('subordinate notification', '下级通知'),
+      policyAdjustmentIssued: pickText('issued a policy adjustment', '发布了政策调整'),
+      idleTurn: pickText('had no new request and kept current stance', '当前未收到新请求，维持既有立场'),
       systemEvent: pickText('System event', '系统事件'),
       agentResponse: pickText('Agent response', 'Agent responded'),
       choseAction: (agent: string, action: string) => pickText(`${agent} chose ${action}`, `${agent} 选择了 ${action}`)
+    };
+
+    const threadKindLabel = (kind: string): string => {
+      switch (kind) {
+        case 'upward_feedback': return labels.privateThreadKindUpward;
+        case 'escalation': return labels.privateThreadKindEscalation;
+        case 'skip_level_complaint': return labels.privateThreadKindSkipLevel;
+        case 'peer_consult': return labels.privateThreadKindPeer;
+        case 'subordinate_notice': return labels.privateThreadKindSubordinate;
+        default: return kind || labels.systemEvent;
+      }
     };
 
     // Agent context delta
@@ -453,6 +475,25 @@ export const mapBackendEventsToLogs = (
       return { ...base, type: 'AGENT_METADATA', agentId, content: labels.planUpdate };
     }
 
+    if (evType === 'error') {
+      const agentName: string = data.agent || '';
+      const agentLabel = agentName || pickText('System', '系统');
+      const errorType = String(data.error_type || '').trim();
+      const errText = String(data.error || data.message || '').trim();
+      const stepText = data.step !== undefined && data.step !== null
+        ? pickText(`, step ${data.step}`, `，步骤 ${data.step}`)
+        : '';
+      const turnText = data.turn !== undefined && data.turn !== null
+        ? pickText(`, turn ${data.turn}`, `，回合 ${data.turn}`)
+        : '';
+      const prefix = isZh()
+        ? `${agentLabel} 发生运行错误`
+        : `${agentLabel} runtime error`;
+      const detail = [errorType, errText].filter(Boolean).join(': ');
+      const content = `${prefix}${stepText}${turnText}${detail ? pickText(`: ${detail}`, `：${detail}`) : ''}`;
+      return { ...base, type: 'SYSTEM', content };
+    }
+
     // Agent error
     if (evType === 'agent_error') {
       const agentName: string = data.agent || '';
@@ -542,6 +583,57 @@ export const mapBackendEventsToLogs = (
         type: 'ENVIRONMENT',
         content: content ? `${label}\n${content}` : label,
       };
+    }
+
+    if (evType === 'policy_thread_opened') {
+      const senderName = String(data.sender || '').trim();
+      const recipient = String(data.recipient || '').trim();
+      const message = String(data.message || '').trim();
+      const kind = threadKindLabel(String(data.kind || ''));
+      const agentId = senderName ? nameToId.get(senderName) : undefined;
+      const header = senderName
+        ? `${senderName} ${labels.privateThreadOpened} ${labels.privateThreadTo} ${recipient}（${kind}）`
+        : `${labels.privateThreadOpened} ${labels.privateThreadTo} ${recipient}（${kind}）`;
+      return { ...base, type: 'AGENT_SAY', agentId, content: message ? `${header}：${message}` : header };
+    }
+
+    if (evType === 'policy_thread_reply') {
+      const senderName = String(data.sender || '').trim();
+      const recipient = String(data.recipient || '').trim();
+      const message = String(data.message || '').trim();
+      const kind = threadKindLabel(String(data.kind || ''));
+      const agentId = senderName ? nameToId.get(senderName) : undefined;
+      const header = senderName
+        ? `${senderName} ${labels.privateThreadReplied} ${labels.privateThreadTo} ${recipient}（${kind}）`
+        : `${labels.privateThreadReplied} ${labels.privateThreadTo} ${recipient}（${kind}）`;
+      return { ...base, type: 'AGENT_SAY', agentId, content: message ? `${header}：${message}` : header };
+    }
+
+    if (evType === 'policy_thread_ignored') {
+      const actorName = String(data.agent || '').trim();
+      const notice = String(data.notice || '').trim();
+      const kind = threadKindLabel(String(data.kind || ''));
+      const agentId = actorName ? nameToId.get(actorName) : undefined;
+      const header = actorName
+        ? `${actorName} ${labels.privateThreadIgnored}（${kind}）`
+        : `${labels.privateThreadIgnored}（${kind}）`;
+      return { ...base, type: 'AGENT_ACTION', agentId, content: notice ? `${header}\n${notice}` : header };
+    }
+
+    if (evType === 'policy_adjustment_issued') {
+      const actorName = String(data.sender || '').trim();
+      const message = String(data.message || '').trim();
+      const agentId = actorName ? nameToId.get(actorName) : undefined;
+      const header = actorName ? `${actorName} ${labels.policyAdjustmentIssued}` : labels.policyAdjustmentIssued;
+      return { ...base, type: 'AGENT_ACTION', agentId, content: message ? `${header}\n${message}` : header };
+    }
+
+    if (evType === 'agent_idle') {
+      const actorName = String(data.agent || '').trim();
+      const reason = String(data.reason || '').trim();
+      const agentId = actorName ? nameToId.get(actorName) : undefined;
+      const content = actorName ? `${actorName} ${labels.idleTurn}${reason ? `\n${reason}` : ''}` : (reason || labels.idleTurn);
+      return { ...base, type: 'AGENT_ACTION', agentId, content };
     }
 
     // Public broadcast / environment event

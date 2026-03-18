@@ -1054,10 +1054,14 @@
       "instructionType": "全局指令",
       "propertyType": "修改属性",
       "environmentType": "环境事件",
+      "followUpConditionType": "后续干预条件",
+      "followUpThreadSeedType": "后续对话种子",
       "selectAgent": "选择智能体...",
       "imageLabel": "图片 (可选)",
       "imageHelper": "拖拽/点击上传后将图片以 markdown 链接插入",
       "propertyPlaceholder": "例如：将信任值降低至 10",
+      "followUpConditionPlaceholder": "例如: resource_shortage=0.8, public_opinion_pressure=0.6 或 {\"resource_shortage\": 0.8}",
+      "followUpThreadSeedPlaceholder": "例如: 智能体3想要给智能体4发消息，消息内容为执行困难，需要回应。也支持 JSON。",
       "descriptionPlaceholder": "描述具体的干预内容...",
       "addIntervention": "添加干预项",
       "addVariant": "添加新的实验组",
@@ -1758,7 +1762,37 @@
       "descriptionPlaceholder": "描述这个动作的作用...",
       "addAction": "添加动作",
       "actionsSelected": "已选择 {{selected}} / {{total}} 个动作",
-      "removeAction": "删除动作"
+      "removeAction": "删除动作",
+      "policyActions": {
+        "send_message": {
+          "label": "正式传达 / 回复",
+          "description": "用于正式传达当前政策内容，或在后续线程中私下回复当前会话。"
+        },
+        "yield": {
+          "label": "暂缓 / 回避",
+          "description": "用于暂不处理当前传递或私有会话，在严格级联中也可表示不继续传达。"
+        },
+        "report_upward": {
+          "label": "向上反馈",
+          "description": "向直属上级私下反馈执行困难、资源不足、目标冲突或时限压力。"
+        },
+        "escalate_complaint": {
+          "label": "升级反馈 / 越级反映",
+          "description": "当直属上级不处理或压制反馈时，向更高层私下升级报告风险。"
+        },
+        "consult_peer": {
+          "label": "同级对话 / 协商",
+          "description": "与同层连接对象私下协商口径、交换执行经验或共享非正式解释。"
+        },
+        "notify_subordinate": {
+          "label": "私下通知下级",
+          "description": "将 follow-up 中形成的新要求、解释或转办意见定向发送给下级。"
+        },
+        "announce_policy_adjustment": {
+          "label": "发布政策调整",
+          "description": "由上级重新发布新的政策调整，正式重启一轮新的政策级联。"
+        }
+      }
     },
     "step4": {
       "modeTitle": "您想如何创建代理？",

@@ -1054,10 +1054,14 @@
       "instructionType": "Global Instruction",
       "propertyType": "Modify Property",
       "environmentType": "Environment Event",
+      "followUpConditionType": "Follow-up Condition",
+      "followUpThreadSeedType": "Follow-up Thread Seed",
       "selectAgent": "Select agent...",
       "imageLabel": "Image (optional)",
       "imageHelper": "Drag/click to upload and insert image as markdown link",
       "propertyPlaceholder": "e.g., Reduce trust value to 10",
+      "followUpConditionPlaceholder": "e.g., resource_shortage=0.8, public_opinion_pressure=0.6 or {\"resource_shortage\": 0.8}",
+      "followUpThreadSeedPlaceholder": "e.g., Agent 3 wants to message Agent 4: execution is difficult and needs a response. JSON is also supported.",
       "descriptionPlaceholder": "Describe specific intervention content...",
       "addIntervention": "Add Intervention",
       "addVariant": "Add New Variant",
@@ -1774,7 +1778,37 @@
       "descriptionPlaceholder": "Describe what this action does...",
       "addAction": "Add Action",
       "actionsSelected": "{{selected}} of {{total}} actions selected",
-      "removeAction": "Remove action"
+      "removeAction": "Remove action",
+      "policyActions": {
+        "send_message": {
+          "label": "Formal relay / reply",
+          "description": "Formally relay the current policy content, or privately reply within the current follow-up thread."
+        },
+        "yield": {
+          "label": "Defer / avoid",
+          "description": "Temporarily avoid the current relay or private thread; in strict cascade it can also represent withholding."
+        },
+        "report_upward": {
+          "label": "Report upward",
+          "description": "Privately report execution difficulty, resource shortage, goal conflict, or deadline pressure to a direct superior."
+        },
+        "escalate_complaint": {
+          "label": "Escalate complaint",
+          "description": "Privately escalate a risk report to a higher-level superior when the direct superior suppresses or ignores feedback."
+        },
+        "consult_peer": {
+          "label": "Peer consultation",
+          "description": "Privately coordinate with a same-tier contact to align interpretation or share informal execution knowledge."
+        },
+        "notify_subordinate": {
+          "label": "Notify subordinate",
+          "description": "Privately send a follow-up instruction, clarification, or transfer notice to a subordinate."
+        },
+        "announce_policy_adjustment": {
+          "label": "Announce policy adjustment",
+          "description": "Issue a formal policy adjustment that reopens a new cascade round."
+        }
+      }
     },
     "step4": {
       "modeTitle": "How would you like to create agents?",

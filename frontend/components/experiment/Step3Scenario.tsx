@@ -13,6 +13,37 @@ import { useExperimentBuilder } from '../../store/experiment-builder';
 import { Circle, Plus, X } from 'lucide-react';
 import { ActionDef } from '../../services/scenarios';
 
+const POLICY_SCENE_ACTION_IDS = [
+  'send_message',
+  'yield',
+  'report_upward',
+  'escalate_complaint',
+  'consult_peer',
+  'notify_subordinate',
+  'announce_policy_adjustment',
+];
+
+const isPolicyCascadeScenarioData = (scenario: {
+  id?: string;
+  name?: string;
+  sceneType?: string;
+  parameters?: Array<{ key: string }>;
+} | null | undefined): boolean => {
+  if (!scenario) return false;
+  const scenarioId = String(scenario.id || '').toLowerCase();
+  const scenarioName = String(scenario.name || '').toLowerCase();
+  const parameterKeys = (scenario.parameters || []).map((param) => String(param.key || '').toLowerCase());
+
+  return (
+    scenario.sceneType === 'policy_cascade_scene' ||
+    scenarioId === 'policy_diffusion' ||
+    scenarioId === 'policy_erosion' ||
+    scenarioName.includes('policy') ||
+    scenarioName.includes('政策') ||
+    parameterKeys.includes('cascade_mode')
+  );
+};
+
 interface ActionToggleCardProps {
   name: string;
   description: string;
@@ -114,6 +145,41 @@ export const Step3Scenario: React.FC = () => {
   const [newActionName, setNewActionName] = useState('');
   const [newActionDescription, setNewActionDescription] = useState('');
 
+  const buildPolicySceneActions = (): ActionDef[] => [
+    {
+      name: 'send_message',
+      description: t('experimentBuilder.step3.policyActions.send_message.description'),
+    },
+    {
+      name: 'yield',
+      description: t('experimentBuilder.step3.policyActions.yield.description'),
+    },
+    {
+      name: 'report_upward',
+      description: t('experimentBuilder.step3.policyActions.report_upward.description'),
+    },
+    {
+      name: 'escalate_complaint',
+      description: t('experimentBuilder.step3.policyActions.escalate_complaint.description'),
+    },
+    {
+      name: 'consult_peer',
+      description: t('experimentBuilder.step3.policyActions.consult_peer.description'),
+    },
+    {
+      name: 'notify_subordinate',
+      description: t('experimentBuilder.step3.policyActions.notify_subordinate.description'),
+    },
+    {
+      name: 'announce_policy_adjustment',
+      description: t('experimentBuilder.step3.policyActions.announce_policy_adjustment.description'),
+    },
+  ];
+
+  const getPolicyActionLabel = (actionName: string): string => {
+    return t(`experimentBuilder.step3.policyActions.${actionName}.label`, { defaultValue: actionName });
+  };
+
   // Check if actions are dynamically generated
   const generatorParam = selectedScenarioData?.parameters?.find(
     (p) => p.generates_actions === true
@@ -174,13 +240,19 @@ export const Step3Scenario: React.FC = () => {
         }
       } else {
         // Use category_actions if available, otherwise use scenario.actions
-        const actionsToShow =
+        const isPolicyCascadeScenario = isPolicyCascadeScenarioData(selectedScenarioData);
+        const rawActions =
           selectedScenarioData.category_actions || selectedScenarioData.actions || [];
+        const actionsToShow = isPolicyCascadeScenario
+          ? buildPolicySceneActions()
+          : rawActions;
         setAvailableActions(actionsToShow);
 
         // Use default_action_ids if available, otherwise select all actions by default
-        const defaultIds =
-          selectedScenarioData.default_action_ids || actionsToShow.map((a) => a.name);
+        const preferredIds = isPolicyCascadeScenario
+          ? POLICY_SCENE_ACTION_IDS
+          : (selectedScenarioData.default_action_ids || actionsToShow.map((a) => a.name));
+        const defaultIds = preferredIds.filter((id) => actionsToShow.some((action) => action.name === id));
         setSelectedActionIds(defaultIds);
       }
     }
@@ -188,6 +260,7 @@ export const Step3Scenario: React.FC = () => {
   }, [selectedScenarioData, scenarioParams, setAvailableActions, setSelectedActionIds]);
 
   const isCustom = selectedScenarioData?.id === 'custom';
+  const isPolicyCascadeScenario = isPolicyCascadeScenarioData(selectedScenarioData);
 
   // Combine preset and custom actions
   const presetActionNames = new Set(
@@ -287,7 +360,7 @@ export const Step3Scenario: React.FC = () => {
           allActions.map((action) => (
             <ActionToggleCard
               key={action.name}
-              name={action.name}
+              name={isPolicyCascadeScenario ? getPolicyActionLabel(action.name) : action.name}
               description={action.description}
               selected={selectedActionIds.includes(action.name)}
               onToggle={() => handleToggleAction(action.name)}

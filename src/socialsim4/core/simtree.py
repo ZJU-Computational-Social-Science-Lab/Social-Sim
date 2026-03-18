@@ -144,6 +144,8 @@ class SimTree:
         # 让克隆体的代理在新节点重新尝试发言：把 last_history_length 向前挪一步
         for agent in sim_clone.agents.values():
             agent.last_history_length = max(0, len(agent.short_memory) - 1)
+            agent.consecutive_llm_errors = 0
+            agent.is_offline = False
 
         # 3) 基础自检：检查 agents/scene/orderings 的独立性 + ordering 状态一致性 + queue 为空
         tree._check_simulator_clone(sim, sim_clone)
@@ -211,6 +213,8 @@ class SimTree:
         # 让 clone 在新节点重新发言：把 last_history_length 向前挪一步
         for agent in sim_copy.agents.values():
             agent.last_history_length = max(0, len(agent.short_memory) - 1)
+            agent.consecutive_llm_errors = 0
+            agent.is_offline = False
 
         return sim_copy
 
