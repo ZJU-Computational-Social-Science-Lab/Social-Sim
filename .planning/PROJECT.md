@@ -1,67 +1,83 @@
-# Social-Sim
+# Social-Sim Bug Fixes & Game Features Milestone
 
+```
 ## What This Is
 
-A multi-agent social simulation platform with LLM-driven agents, branching timeline exploration (SimTree), and structured A/B testing experiments. Agents interact in configurable scenes (council chambers, werewolf games, grid worlds), making autonomous decisions via LLM calls while tracked for analysis and "what-if" exploration.
+A maintenance and feature milestone addressing 8 critical bugs and 2 new game features for the Social-Sim multi-agent simulation platform. The bugs fix context inheritance, voting mechanics, token endowment enforcement, event broadcast duplication, session management, Docker deployment stability, and UI cleanup. The features add punishment mechanisms to Public Goods Game and blind choice mode to Coordination Game.
 
+```
 ## Core Value
-
-Agents make meaningful autonomous decisions that reveal emergent social dynamics — whether cooperating, competing, spreading information, or navigating complex scenarios.
-
+```
+Ensure simulation experiments are scientifically valid and reproducible for the NeurIPS paper deadline.
+```
 ## Requirements
-
+```
 ### Validated
-
-<!-- Inferred from existing codebase -->
-
-- ✓ Agent-based simulation with LLM decision-making
-- ✓ Branching timeline exploration (SimTree)
-- ✓ Experiment framework with A/B testing and payoff calculation
-- ✓ Council chamber and Werewolf game scenarios
-- ✓ Real-time WebSocket simulation control
-- ✓ RAG/knowledge base integration for agents
-- ✓ Grid-based positioning (GridScene)
-- ✓ Multi-language support (English/Chinese)
-
+```
+(None yet — ship to validate)
+```
 ### Active
-
-<!-- Current milestone: v1.0 Contagion Spread Framework -->
-
-- [ ] General-purpose contagion/spread model for disease and information
-- [ ] Configurable state transition rules (proximity-based and action-directed)
-- [ ] Grid-based agent movement with adjacent visibility
-- [ ] Speak action for targeted agent communication
-- [ ] State decay/recovery rules per configuration
-
+```
+**Bugs:**
+- [ ] **BUG-01**: Speak follow-up prompt correctly inherits previous-round context
+- [ ] **BUG-02**: Remove Max Rounds field from simulation designer UI
+- [ ] **BUG-03**: Fix session loss during advance node (redirects to login)
+- [ ] **BUG-04**: Fix SimTree disappearing after ~1 week on Docker deployment
+- [ ] **BUG-05**: Eliminate duplicate event broadcasts in UI
+- [ ] **BUG-06**: Connection error retry enforces voting stage constraints correctly
+- [ ] **BUG-07**: Enforce token endowment constraint in Public Goods Game
+```
+**Features:**
+- [ ] **FEAT-01**: Add punishment mechanism to Public Goods Game (customizable)
+- [ ] **FEAT-02**: Add simultaneous (blind) choice mode to Coordination Game (UI toggle)
+```
+**i18n:**
+- [ ] **I18N-01**: Audit and fix all hardcoded user-facing text
+```
 ### Out of Scope
-
-<!-- Explicit boundaries -->
-
-- Non-LLM mathematical modeling (SIR equations without agents) — this framework requires agent decisions
-- Real-time multiplayer — single-user simulation control only
-- 3D spatial simulation — 2D grid only
-
+```
+- Mobile responsiveness improvements — focus on core functionality first
+- Performance optimization beyond fixing identified bugs — separate milestone
+- New game types — scope limited to fixing and enhancing existing games
+```
 ## Context
+```
+**Research Context:**
+- NeurIPS paper deadline approaching (1-2 weeks for critical bugs)
+- Multi-round deliberation experiments blocked by context inheritance bug
+- Voting data corrupted by retry mechanism not enforcing stage constraints
+- PGG experiments showing impossible token contributions
 
-This is a research platform for studying social dynamics through simulation. The existing codebase has a mature core engine (agents, scenes, actions, simulator) with an experiment framework for structured testing. The frontend provides visualization and control via React/TypeScript.
+**Technical Context:**
+- Python 3.12 backend (Litestar, simulation engine)
+- TypeScript frontend (React-based)
+- Docker deployment showing SimTree rendering failure after ~1 week uptime
+- Session management issues during long-running experiments
 
-The contagion framework will extend the existing GridScene and add a new rule-based state transition system applicable to both epidemiological modeling and information diffusion studies.
-
+**User Feedback:**
+- Context inheritance bug blocks all multi-round deliberation
+- Max Rounds field is misleading (no backend enforcement)
+- Platform becomes unusable after extended rounds
+- Duplicate broadcasts confuse users and distort experiment logs
+```
 ## Constraints
-
-- **Tech Stack**: Python 3.12 backend (Litestar), TypeScript frontend (React, Vite)
-- **LLM Integration**: Must work with OpenAI, Gemini, and Ollama providers
-- **Grid System**: Build on existing GridScene infrastructure
-- **Backward Compatible**: Existing scenarios must continue to work
-
+```
+**Timeline**: 1-2 weeks for critical bugs (BUG-01, BUG-06, BUG-07) — NeurIPS deadline
+**Branches**: Use `bug-fix/bugfix-milestone` for bugs, `feature/game-features` for features
+**Testing**: Full stack testing required (pytest backend + Jest/Vitest frontend)
+**Testing Checkpoints**: Pause after each fix for manual testing before proceeding
+**Code Quality**: Follow CLAUDE.md guidelines (file headers, size limits, docstrings)
+**i18n**: Full codebase audit required — all user-facing text must translation keys
+```
 ## Key Decisions
-
+```
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| LLM-driven agents for spread model | Consistent with platform's agent architecture, enables studying decision-making in contagion scenarios | — Pending |
-| Hidden states (agents infer from behavior) | More realistic social dynamics, agents must communicate to learn states | — Pending |
-| Per-rule decay configuration | Flexibility for different models (disease recovery vs permanent information) | — Pending |
-| Single-target speak action | Focused communication for gossip/rumors, simpler to implement | — Pending |
-
+| Two branches instead of individual branches | Easier to manage related changes, cleaner git history | — Pending |
+| Full codebase i18n audit | User requested comprehensive approach, prevents future issues | — Pending |
+| Testing checkpoint after each fix | Allows validation before moving to next item | — Pending |
+| PGG punishment: customizable design | Balance flexibility with usability, avoid over-engineering | — Pending |
+| Coord Game blind mode: UI toggle | Simpler implementation, easier for researchers to use | — Pending |
+```
 ---
-*Last updated: 2026-03-08 after milestone v1.0 initialization*
+*Last updated: 2026-03-18 after initialization*
