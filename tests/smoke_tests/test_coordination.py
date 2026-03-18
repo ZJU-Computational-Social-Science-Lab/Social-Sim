@@ -63,7 +63,7 @@ async def test_coordination_game_basic(default_llm_client, output_dir):
     graph = {"edges": [("NodeA", "NodeB"), ("NodeB", "NodeC"), ("NodeC", "NodeA")]}
 
     information_model = InformationModel(
-        scope_type="neighbor",
+        scope_type="neighborhood",
         pairing_fn=None,
         context_budget_chars=0,
     )
@@ -125,7 +125,7 @@ async def test_coordination_game_no_scores(default_llm_client, output_dir):
     graph = {"edges": [("Node1", "Node2")]}
 
     information_model = InformationModel(
-        scope_type="neighbor",
+        scope_type="neighborhood",
         pairing_fn=None,
         context_budget_chars=0,
     )
