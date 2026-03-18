@@ -1,280 +1,235 @@
 # Codebase Structure
 
-**Analysis Date:** 2025-03-09
+**Analysis Date:** 2026-03-18
 
 ## Directory Layout
 
 ```
 Social-Sim/
-├── frontend/                    # React TypeScript frontend application
-│   ├── components/              # Reusable UI components
-│   │   ├── experiment/          # Experiment builder components
-│   │   │   └── parameter_widgets/  # Parameter input widgets
-│   │   ├── ui/                  # Base UI components (Radix-based)
-│   │   ├── wizard/              # Simulation setup wizard steps
-│   │   └── __tests__/           # Component tests
-│   ├── hooks/                   # Custom React hooks
-│   ├── locales/                 # i18next translation files (en.json, zh.json)
-│   ├── pages/                   # Full-page route components
-│   ├── public/                  # Static assets
-│   ├── services/                # API client functions
-│   ├── store/                   # Zustand state management slices
-│   └── test/                    # Test utilities and fixtures
-├── scripts/                     # Utility scripts (database seeding, etc.)
+├── frontend/              # TypeScript React SPA
+│   ├── components/        # Reusable UI components
+│   ├── pages/            # Full page views
+│   ├── services/         # API client functions
+│   ├── store/            # Zustand state management
+│   ├── locales/          # i18n translation files (en, zh)
+│   ├── public/           # Static assets
+│   └── test/             # Frontend tests
 ├── src/
-│   └── socialsim4/
-│       ├── backend/             # Litestar web application
-│       │   ├── api/
-│       │   │   └── routes/      # API route modules
-│       │   │       └── simulations/  # Modular simulation routes
-│       │   ├── core/            # Backend-specific configuration
-│       │   ├── db/              # Database base classes and mixins
-│       │   ├── migrations/      # Alembic database migrations
-│       │   ├── models/          # SQLAlchemy ORM models
-│       │   ├── schemas/         # Pydantic request/response schemas
-│       │   ├── scripts/         # Backend utility scripts
-│       │   ├── services/        # Business logic services
-│       │   └── main.py          # Application entry point
-│       ├── core/                # Simulation engine
-│       │   ├── actions/         # Action class implementations
-│       │   ├── agent/           # Agent implementation modules
-│       │   ├── contagion/       # Contagion simulation mechanics
-│       │   ├── experiment/      # A/B testing framework
-│       │   │   ├── actions/     # Experiment action definitions
-│       │   │   ├── feedback/    # Feedback generation
-│       │   │   └── payoff/      # Payoff calculation
-│       │   ├── llm/             # LLM client abstraction
-│       │   │   └── providers/   # OpenAI, Gemini, Ollama, Mock providers
-│       │   ├── scenes/          # Scene implementations
-│       │   ├── scenarios/       # Scenario registry and descriptions
-│       │   ├── templates/       # Template loader for generic scenes
-│       │   └── tools/           # Web search and HTTP tools
-│       ├── locales/             # gettext locale files (en, zh)
-│       ├── scenarios/           # Pre-built scenario configurations
-│       ├── services/            # Shared services (llm_client_pool)
-│       ├── templates/           # Jinja2 templates for mechanics
-│       └── registry.py          # Scene/action/information model registry
-├── docs/                        # Documentation
-├── tests/                       # Python test files (pytest)
-├── .planning/                   # Planning documents (git-ignored)
-├── requirements.txt             # Python dependencies
-└── frontend/package.json        # Node dependencies
+│   └── socialsim4/       # Main Python package
+│       ├── backend/      # Web API layer
+│       │   ├── api/      # Litestar routes
+│       │   ├── core/     # Backend config, database
+│       │   ├── models/   # SQLAlchemy ORM models
+│       │   ├── schemas/  # Pydantic schemas
+│       │   ├── services/ # Business logic, orchestration
+│       │   └── migrations/ # Alembic DB migrations
+│       ├── core/         # Simulation engine
+│       │   ├── agent/    # Modular agent implementation
+│       │   ├── actions/  # Action classes
+│       │   ├── scenes/   # Scene implementations
+│       │   ├── llm/      # LLM providers, client
+│       │   ├── prompts/  # Prompt templates
+│       │   ├── experiment/ # A/B testing framework
+│       │   ├── tools/    # Web search, scraping
+│       │   └── contagion/ # Contagion mechanics
+│       ├── scenarios/    # Pre-built scenario configs
+│       ├── templates/    # Generic scene templates
+│       ├── services/     # Shared services (email, sync)
+│       ├── locales/      # i18n locale files (en, zh)
+│       └── cli.py        # Command-line interface
+├── tests/                # Backend tests
+├── uploads/              # User-uploaded files
+├── docs/                 # Documentation
+├── scripts/              # Utility scripts
+└── templates/            # Jinja2 templates (if any)
 ```
 
 ## Directory Purposes
 
-**frontend/components:**
+**frontend/components/**:
 - Purpose: Reusable React UI components
-- Contains: Page components, modal components, panel components, form components, wizard steps
-- Key files: `SimulationWizard.tsx`, `AgentPanel.tsx`, `SimTree.tsx`, `ExperimentBuilder.tsx`
+- Contains: Agent panels, simulation controls, modals, visualizations
+- Key files: `AgentPanel.tsx`, `SimulationWizard.tsx`, `LogViewer.tsx`, `SimTree.tsx`
 
-**frontend/components/wizard:**
-- Purpose: Multi-step wizard for simulation creation
-- Contains: Step components (Step1BasicInfo, Step2DefaultMode, Step3Confirmation), shared wizard components
-- Key files: `Step1BasicInfo.tsx`, `Step2DefaultMode.tsx`, `Step3Confirmation.tsx`, `WizardFooter.tsx`
+**frontend/pages/**:
+- Purpose: Full-page route components
+- Contains: Dashboard, simulation views, settings, admin
+- Key files: `SimulationPage.tsx`, `SimulationWizardPage.tsx`, `DashboardPage.tsx`
 
-**frontend/components/experiment:**
-- Purpose: Experiment builder UI components
-- Contains: Experiment preview, parameter widgets
-- Key files: `ExperimentPreview.tsx`, `parameter_widgets/` (SliderField, TextField, SelectField, etc.)
-
-**frontend/services:**
+**frontend/services/**:
 - Purpose: API client functions for backend communication
-- Contains: HTTP client wrappers, WebSocket handling, data transformation
-- Key files: `simulations.ts`, `experiments.ts`, `backendClient.ts`, `providers.ts`
+- Contains: HTTP clients, WebSocket integration, backend-specific calls
+- Key files: `simulations.ts`, `simulationTree.ts`, `client.ts`
 
-**frontend/store:**
-- Purpose: Zustand state management with slice-based architecture
-- Contains: Simulation state, agent state, logs, UI state, experiments, providers, environment, auth, theme
-- Key files: `index.ts` (store composition), `simulation.ts`, `agents.ts`, `experiments.ts`, `logs.ts`, `ui.ts`
+**frontend/store/**:
+- Purpose: Zustand state management stores
+- Contains: Simulation state, auth state, UI state, experiment builder state
+- Key files: `simulation.ts`, `agents.ts`, `experiment-builder.ts`, `index.ts`
 
-**src/socialsim4/core:**
-- Purpose: Core simulation engine independent of web framework
-- Contains: Agent, Scene, Action, Simulator, SimTree, Memory, LLM integration, Registry
-- Key files: `simulator.py`, `agent/agent.py`, `scene.py`, `simtree.py`, `action.py`, `registry.py`
+**src/socialsim4/backend/api/routes/**:
+- Purpose: Litestar route handlers for REST/WebSocket endpoints
+- Contains: Simulations, experiments, auth, admin, uploads routes
+- Key files: `simulations/__init__.py`, `experiments.py`, `auth.py`
 
-**src/socialsim4/core/agent:**
-- Purpose: Modular agent implementation with delegated responsibilities
-- Contains: Main agent class, RAG module, parsing utilities, serialization, registry
-- Key files: `agent.py`, `rag.py`, `parsing.py`, `serialization.py`, `registry.py`
+**src/socialsim4/backend/services/**:
+- Purpose: Business logic layer for simulation orchestration
+- Contains: SimTree runtime, experiment runner, document processing
+- Key files: `simtree_runtime.py`, `experiment_runner.py`, `vector_store.py`
 
-**src/socialsim4/core/experiment:**
-- Purpose: Structured A/B testing and experiment execution framework
-- Contains: Controller, Kernel, Runner, Agent, Schema/Prompt builders, Payoff engine, Information model
-- Key files: `controller.py`, `kernel.py`, `runner.py`, `schema_builder.py`, `prompt_builder.py`, `payoff/engine.py`, `information_model.py`
+**src/socialsim4/core/agent/**:
+- Purpose: Modular agent implementation
+- Contains: Main Agent class, parsing, RAG, serialization, registry
+- Key files: `agent.py`, `parsing.py`, `rag.py`, `serialization.py`, `registry.py`
 
-**src/socialsim4/core/actions:**
-- Purpose: Action class implementations for different scene types
-- Contains: Base actions (send_message, yield), scene-specific actions (council, village, werewolf, landlord, moderation, web, rag)
-- Key files: `base_actions.py`, `council_actions.py`, `village_actions.py`, `werewolf_actions.py`, `landlord_actions.py`
+**src/socialsim4/core/actions/**:
+- Purpose: Action classes defining agent behaviors
+- Contains: Base actions (speak, yield), scene-specific actions
+- Key files: `base_actions.py`, `council_actions.py`, `village_actions.py`
 
-**src/socialsim4/core/scenes:**
+**src/socialsim4/core/scenes/**:
 - Purpose: Scene implementations (environment types)
-- Contains: Council, village, werewolf, landlord, simple chat scenes
-- Key files: `council_scene.py`, `village_scene.py`, `werewolf_scene.py`, `landlord_scene.py`, `simple_chat_scene.py`
+- Contains: Council, village, werewolf, landlord, policy cascade scenes
+- Key files: `council_scene.py`, `village_scene.py`, `policy_cascade_scene.py`
 
-**src/socialsim4/core/llm:**
-- Purpose: LLM client abstraction and provider implementations
-- Contains: LLMClient, OpenAI/Ollama/Gemini/Mock providers, validation, config
-- Key files: `client.py`, `providers/openai.py`, `providers/ollama.py`, `providers/gemini.py`, `validation.py`, `llm_config.py`
+**src/socialsim4/core/llm/**:
+- Purpose: LLM provider abstraction and client
+- Contains: Unified client, generation, provider implementations
+- Key files: `client.py`, `generation.py`, `providers/openai.py`, `providers/ollama.py`
 
-**src/socialsim4/backend/api/routes:**
-- Purpose: Litestar route handlers organized by domain
-- Contains: Auth, simulations (modular), experiments, scenarios, providers, uploads, admin, environment
-- Key files: `simulations/__init__.py`, `simulations/websocket_handlers.py`, `experiments.py`, `auth.py`
-
-**src/socialsim4/backend/models:**
-- Purpose: SQLAlchemy ORM models for database persistence
-- Contains: User, Simulation, Experiment, ExperimentTemplate, LLMUsage, Token
-- Key files: `user.py`, `simulation.py`, `experiment.py`, `experiment_template.py`, `llm_usage.py`
-
-**src/socialsim4/backend/services:**
-- Purpose: Business logic and integration services
-- Contains: Vector store, LLM client pool, simulation runtime, experiment runner, document processing
-- Key files: `vector_store.py`, `llm_client_pool.py`, `simtree_runtime.py`, `experiment_runner.py`, `documents.py`
+**src/socialsim4/core/experiment/**:
+- Purpose: A/B testing framework for social experiments
+- Contains: Runner, controller, scene, engines, payoff, feedback
+- Key files: `runner.py`, `controller.py`, `scene.py`, `engines/`
 
 ## Key File Locations
 
 **Entry Points:**
-- `src/socialsim4/backend/main.py`: Litestar application factory, route registration, CORS config
-- `frontend/index.tsx`: React application bootstrap, router setup
-- `frontend/App.tsx`: Route definitions with lazy-loaded pages
-- `src/socialsim4/cli.py`: CLI entry point for standalone simulation
+- `src/socialsim4/backend/main.py`: Litestar web server entry point
+- `src/socialsim4/cli.py`: Command-line interface
+- `frontend/index.tsx`: React SPA mount point
 
 **Configuration:**
-- `src/socialsim4/core/config.py`: Core simulation constants and environment settings (MAX_REPEAT, RAG_AUTO_INJECT)
 - `src/socialsim4/backend/core/config.py`: Backend settings (Pydantic Settings)
-- `frontend/vite.config.ts`: Vite build configuration
-- `frontend/i18n.ts`: i18next configuration
+- `src/socialsim4/core/llm/llm_config.py`: LLM configuration
+- `frontend/vite.config.ts`: Vite build config
+- `.env.example`: Environment variable template
 
 **Core Logic:**
-- `src/socialsim4/core/simulator.py`: Main simulation loop, turn management, event emission
-- `src/socialsim4/core/agent/agent.py`: Agent decision-making, LLM interaction, memory, knowledge base
-- `src/socialsim4/core/scene.py`: Scene base class, action handling, message delivery, social network filtering
-- `src/socialsim4/core/simtree.py`: Branching timeline tree structure, simulator cloning, node subscriptions
-- `src/socialsim4/core/ordering.py`: Agent scheduling strategies (Sequential, Cycled, Controlled)
-- `src/socialsim4/core/action_controller.py`: Action validation and constraint checking
+- `src/socialsim4/core/simulator.py`: Simulation orchestration engine
+- `src/socialsim4/core/simtree.py`: Branching timeline implementation
+- `src/socialsim4/core/scene.py`: Base scene class
+- `src/socialsim4/core/agent/agent.py`: Main agent class
+- `src/socialsim4/core/registry.py`: Action/scene registry
 
 **Testing:**
-- `tests/`: Python pytest tests (mirrors src/socialsim4 structure)
-- `frontend/components/__tests__/`: Component tests with Vitest
-- `frontend/store/index.test.ts`: Store tests
-- `frontend/vitest.config.ts`: Vitest configuration
+- `tests/`: Backend pytest tests
+- `frontend/test/`, `frontend/components/__tests__/`: Frontend tests
 
-**Utilities:**
-- `src/socialsim4/core/registry.py`: Scene, action, ordering, and information model registries
-- `src/socialsim4/services/llm_client_pool.py`: LLM client connection pooling for parallel branches
-- `src/socialsim4/backend/services/vector_store.py`: ChromaDB/JSON vector store for RAG
+**API Integration:**
+- `src/socialsim4/backend/api/routes/`: All API route definitions
+- `frontend/services/`: Frontend API client functions
 
 ## Naming Conventions
 
 **Files:**
-- Python modules: `snake_case.py` (e.g., `simulator.py`, `action_controller.py`, `experiment_runner.py`)
-- Python packages: `snake_case/` (e.g., `core/experiment/`, `backend/api/routes/`)
-- TypeScript components: `PascalCase.tsx` (e.g., `AgentPanel.tsx`, `SimulationWizard.tsx`)
-- TypeScript utilities: `camelCase.ts` (e.g., `backendClient.ts`, `simulations.ts`)
-- Test files: `<name>.test.ts` or `test_<name>.py`
+- **Python modules**: `snake_case.py` (e.g., `simulator.py`, `action_controller.py`)
+- **TypeScript components**: `PascalCase.tsx` (e.g., `AgentPanel.tsx`, `SimulationWizard.tsx`)
+- **TypeScript utilities/services**: `camelCase.ts` (e.g., `client.ts`, `simulations.ts`)
+- **Test files**: `test_*.py` (Python), `*.test.ts` (TypeScript)
 
 **Directories:**
-- Python packages: `snake_case/` (e.g., `backend/`, `core/experiment/`)
-- Frontend directories: `camelCase/` or `snake_case/` (e.g., `components/experiment/`, `locales/`)
-- Feature groupings: `__tests__/` for co-located tests
+- **Python packages**: `snake_case` (e.g., `backend/`, `core/`, `agent/`)
+- **Frontend directories**: `snake_case` or `camelCase` (e.g., `components/`, `__tests__/`)
 
 **Classes:**
-- Python: `PascalCase` (e.g., `Simulator`, `Agent`, `ExperimentController`, `LLMClient`)
-- TypeScript: `PascalCase` (e.g., `ExperimentBuilder`, `AgentPanel`, `SimulationStore`)
+- **Python**: `PascalCase` (e.g., `Simulator`, `Agent`, `CouncilScene`)
+- **TypeScript**: `PascalCase` (e.g., `SimulationPage`, `AgentPanel`)
 
 **Functions/Methods:**
-- Python: `snake_case` (e.g., `run_simulation`, `add_env_feedback`, `parse_actions`)
-- TypeScript: `camelCase` (e.g., `useSimulationStore`, `generateAgents`, `createSimulation`)
-
-**Constants:**
-- Python: `UPPER_SNAKE_CASE` (e.g., `MAX_REPEAT`, `RAG_AUTO_INJECT`, `ACTION_SPACE_MAP`)
-- TypeScript: `UPPER_SNAKE_CASE` or `PascalCase` for enums
+- **Python**: `snake_case` (e.g., `run_simulation()`, `parse_actions()`)
+- **TypeScript**: `camelCase` (e.g., `createSimulation()`, `handleAdvance()`)
 
 ## Where to Add New Code
 
-**New Scene Type:**
-- Implementation: `src/socialsim4/core/scenes/<scene_name>_scene.py`
-- Actions: `src/socialsim4/core/actions/<scene_name>_actions.py` (if scene-specific)
-- Register: Add to `SCENE_MAP` in `src/socialsim4/core/registry.py`
-- Scene actions: Add to `SCENE_ACTIONS` dict in registry.py
-- Information model: Add to `INFORMATION_MODEL_MAP` if custom visibility needed
+**New Agent Behavior (Action):**
+- Primary code: `src/socialsim4/core/actions/{scene}_actions.py`
+- Register in: `src/socialsim4/core/registry.py` (ACTION_SPACE_MAP)
+- Tests: `tests/test_actions.py` or create new test file
 
-**New Agent Action:**
-- Implementation: `src/socialsim4/core/actions/<action_name>_actions.py` or add to existing file
-- Register: Add to `ACTION_SPACE_MAP` in `src/socialsim4/core/registry.py`
-- Scene integration: Add to scene's `get_scene_actions()` method or `SCENE_ACTIONS` registry
+**New Scene Type:**
+- Primary code: `src/socialsim4/core/scenes/{scene}_scene.py`
+- Register in: `src/socialsim4/core/registry.py` (SCENE_MAP)
+- Tests: `tests/test_scenes.py` or create new test file
 
 **New API Endpoint:**
-- Route handler: `src/socialsim4/backend/api/routes/<feature>.py`
-- Schema: `src/socialsim4/backend/schemas/<feature>.py`
-- Model (if needed): `src/socialsim4/backend/models/<feature>.py`
-- Service logic: `src/socialsim4/backend/services/<feature>.py`
-- Register router: Import and add to router in `backend/api/routes/__init__.py`
+- Route handler: `src/socialsim4/backend/api/routes/{feature}.py`
+- Schema: `src/socialsim4/backend/schemas/{feature}.py`
+- Model: `src/socialsim4/backend/models/{feature}.py` (if needed)
+- Service: `src/socialsim4/backend/services/{feature}.py` (if needed)
+- Register in: `src/socialsim4/backend/api/routes/__init__.py`
 
 **New Frontend Component:**
-- Implementation: `frontend/components/<ComponentName>.tsx`
-- Tests: `frontend/components/__tests__/<ComponentName>.test.tsx`
-- Export: Add barrel export if needed
+- Implementation: `frontend/components/{ComponentName}.tsx`
+- Tests: `frontend/components/__tests__/{ComponentName}.test.tsx`
+- Export from: Index file if creating barrel
 
 **New Frontend Page:**
-- Implementation: `frontend/pages/<PageName>.tsx`
-- Route: Add to `frontend/App.tsx` Routes component
-- Lazy load: Use lazy() for code splitting
+- Implementation: `frontend/pages/{PageName}.tsx`
+- Route: Add to `frontend/App.tsx` Routes
 
-**New Zustand Slice:**
-- Implementation: `frontend/store/<slice-name>.ts`
-- Integration: Import and compose in `frontend/store/index.ts`
-- Cross-slice deps: Wire up in store composition if needed
-
-**New Experiment Action Type:**
-- Implementation: Add to experiment actions in `src/socialsim4/core/experiment/actions/definitions.py`
-- Handler: Add handler in `src/socialsim4/core/experiment/actions/handlers.py`
-- Register: Kernel auto-discovers via registry pattern
+**New Frontend Store:**
+- Implementation: `frontend/store/{feature}.ts`
+- Export from: `frontend/store/index.ts`
 
 **New LLM Provider:**
-- Implementation: `src/socialsim4/core/llm/providers/<provider>.py`
-- Functions: Implement `create_<provider>_client()`, `<provider>_chat()`, `<provider>_embedding()`
-- Integration: Add import and dialect support in `llm/client.py`
+- Implementation: `src/socialsim4/core/llm/providers/{provider}.py`
+- Register in: `src/socialsim4/core/llm/providers/` (import in `__init__.py`)
+
+**New Experiment Type:**
+- Implementation: `src/socialsim4/core/experiment/engines/{engine}.py`
+- Register in: Experiment controller or scene configuration
+
+**Utilities:**
+- Backend utilities: `src/socialsim4/core/tools/` or new module in `src/socialsim4/`
+- Frontend utilities: `frontend/utils/`
 
 ## Special Directories
 
-**frontend/node_modules:**
-- Purpose: NPM package dependencies
+**frontend/dist/**:
+- Purpose: Vite build output (production bundle)
 - Generated: Yes
-- Committed: No
+- Committed: No (in .gitignore)
 
-**src/socialsim4/backend/migrations:**
-- Purpose: Alembic database schema migrations
-- Generated: Partially (alembic revision --autogenerate)
+**frontend/node_modules/**:
+- Purpose: NPM dependencies
+- Generated: Yes
+- Committed: No (in .gitignore)
+
+**uploads/**:
+- Purpose: User-uploaded documents and assets
+- Generated: Runtime (user uploads)
+- Committed: No (in .gitignore)
+
+**src/socialsim4/backend/migrations/**:
+- Purpose: Alembic database migration scripts
+- Generated: Alembic (via `alembic revision`)
 - Committed: Yes
 
-**frontend/dist:**
-- Purpose: Production build output
-- Generated: Yes (vite build)
-- Committed: No
+**src/socialsim4/__pycache__/**:
+- Purpose: Python bytecode cache
+- Generated: Python interpreter
+- Committed: No (in .gitignore)
 
-**test_results:**
-- Purpose: Debug output from simulation runs (agent prompts, LLM responses)
-- Generated: Yes
-- Committed: No
+**test_results/**:
+- Purpose: Debug output from agent runs
+- Generated: Runtime (debug mode)
+- Committed: No (in .gitignore)
 
-**.planning:**
-- Purpose: Planning documents generated by GSD commands
-- Generated: Yes
-- Committed: No (git-ignored)
-
-**uploads:**
-- Purpose: User-uploaded documents (PDF, DOCX) for RAG
-- Generated: Yes
-- Committed: No
-
-**.venv / venv:**
-- Purpose: Python virtual environment
-- Generated: Yes
-- Committed: No
+**.planning/**:
+- Purpose: Planning documents, phases, research notes
+- Generated: GSD tools
+- Committed: No (in .gitignore - contains working documents)
 
 ---
 
-*Structure analysis: 2025-03-09*
+*Structure analysis: 2026-03-18*

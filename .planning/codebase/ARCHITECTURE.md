@@ -1,192 +1,199 @@
 # Architecture
 
-**Analysis Date:** 2025-03-09
+**Analysis Date:** 2026-03-18
 
 ## Pattern Overview
 
-**Overall:** Multi-tier simulation platform with branching timeline support
+**Overall:** Event-driven simulation with modular agent intelligence and branching timeline support
 
 **Key Characteristics:**
-- **Agent-Scene isolation**: Agents never know about the Simulator. All decisions flow from their context and scene feedback.
-- **Three-layer experiment framework**: Schema Builder → Prompt Builder → Validation/Execution
-- **Branching timelines**: SimTree enables "what-if" exploration with deep-copy simulator cloning
-- **Fail-fast error handling**: Core simulation engine uses no defensive coding; errors surface immediately
-- **Modular agent architecture**: Agent responsibilities split into focused modules (parsing, RAG, serialization, registry)
+- **Agent-Scene Isolation**: Agents never know about the Simulator; all decisions flow from context and scene feedback
+- **Action-Based Architecture**: All agent behaviors are discrete, validated actions handled by scenes
+- **Branching Timelines**: SimTree enables "what-if" exploration through simulator cloning
+- **LLM Provider Abstraction**: Multiple LLM providers (OpenAI, Ollama, Gemini) with unified client interface
+- **Event Streaming**: Real-time event propagation via WebSocket for live simulation monitoring
+- **Modular Frontend**: React-based SPA with Zustand state management and component isolation
 
 ## Layers
 
+**API Layer (Backend):**
+- Purpose: HTTP/WebSocket interface, authentication, persistence
+- Location: `src/socialsim4/backend/api/routes/`
+- Contains: Route handlers, request/response schemas, JWT auth
+- Depends on: Service layer, Core simulation engine
+- Used by: Frontend client, external API consumers
+
+**Service Layer (Backend):**
+- Purpose: Business logic, simulation runtime management, orchestration
+- Location: `src/socialsim4/backend/services/`
+- Contains: SimTree runtime, experiment runner, document processing, vector store
+- Depends on: Core simulation engine, Database models
+- Used by: API layer
+
 **Core Simulation Engine:**
-- Purpose: Autonomous agent simulation with LLM-driven decision making
+- Purpose: Simulation execution, agent logic, scene mechanics
 - Location: `src/socialsim4/core/`
-- Contains: Agents, Scenes, Actions, Simulator, SimTree, Memory, LLM integration, Registry
-- Depends on: LLM providers (OpenAI, Gemini, Ollama), Vector stores (ChromaDB), sentence-transformers
-- Used by: Backend API routes, Experiment Runner
+- Contains: Simulator, Agent, Scene, Action classes, LLM integration
+- Depends on: LLM providers, Agent submodules, Scene implementations
+- Used by: Service layer, SimTree
 
-**Backend API Layer:**
-- Purpose: HTTP/WebSocket interface to simulation engine
-- Location: `src/socialsim4/backend/`
-- Contains: Litestar routes, Database models, Services, Schemas, Configuration
-- Depends on: Core simulation engine, SQLAlchemy, PostgreSQL/SQLite, Celery
-- Used by: Frontend via REST/WebSocket
-
-**Frontend Application:**
-- Purpose: React-based SPA for simulation control and visualization
+**Frontend Presentation Layer:**
+- Purpose: UI rendering, user interaction, state management
 - Location: `frontend/`
-- Contains: Pages, Components, Services, Zustand stores, Hooks
-- Depends on: Backend API, React, TanStack Query, React Router, Zustand
-- Used by: End users
+- Contains: React components, Zustand stores, API client services
+- Depends on: Backend API, WebSocket events
+- Used by: Browser clients
 
-**Experiment Framework:**
-- Purpose: A/B testing and structured experiment execution
-- Location: `src/socialsim4/core/experiment/`
-- Contains: Controller, Kernel, Runner, Agent, Schema Builder, Prompt Builder, Payoff Engine, Information Model
-- Depends on: Core simulation abstractions, LLM clients, Round context manager
-- Used by: Backend experiments API, Experiment Builder UI
+**Data Persistence Layer:**
+- Purpose: Data storage, retrieval, caching
+- Location: `src/socialsim4/backend/models/`, `src/socialsim4/backend/db/`
+- Contains: SQLAlchemy ORM models, Alembic migrations
+- Depends on: PostgreSQL/SQLite database
+- Used by: Service layer, API layer
 
 ## Data Flow
 
-**Simulation Execution:**
+**Simulation Creation Flow:**
 
-1. Frontend initiates simulation via WebSocket connection to `backend/api/routes/simulations/websocket_handlers.py`
-2. Backend creates `Simulator` with `Agent` instances and `Scene` configuration
-3. Simulator wraps simulation in `SimTree` for branching timeline support
-4. On each turn, `Ordering` determines next agent to act
-5. Agent receives context via `add_env_feedback()` (memory + scene state)
-6. Agent calls LLM via `core/llm/client.py` through provider abstraction
-7. LLM returns JSON response with 5-section output (thoughts, response, action, context_update, metadata)
-8. Agent parses response via `agent/parsing.py`
-9. Scene validates and executes action via `parse_and_handle_action()`
-10. Scene broadcasts results to other agents (with social network filtering if configured)
-11. Simulator emits events to WebSocket subscribers
-12. Frontend updates Zustand stores and re-renders components
+1. User creates simulation via `SimulationWizard` → Frontend store
+2. Frontend calls `POST /api/simulations` → Backend API
+3. Backend creates Simulator instance with Agents and Scene
+4. Simulator serialized to database via SQLAlchemy models
+5. Response returns simulation ID to frontend
 
-**Experiment Execution:**
+**Live Simulation Flow:**
 
-1. User configures experiment via Experiment Builder UI
-2. `ExperimentBuilder` constructs `GameConfig` with selected actions and parameters
-3. Backend creates `ExperimentRunner` with `ExperimentAgent` instances
-4. Runner builds JSON schema via `schema_builder.py` (Layer 1: constrained decoding)
-5. Runner builds prompt via `prompt_builder.py` with schema instructions (Layer 2: structured prompts)
-6. LLM generates response; Controller validates via `controller.py` (Layer 3: validation)
-7. Action executed via `kernel.py` registry
-8. Payoff calculated via `payoff/engine.py`
-9. Feedback generated via `feedback/builder.py` (for coordination games)
-10. Round context updated via `round_context.py` for next iteration
-11. Information model filters visibility based on scope type (all, neighborhood, pair, role_based)
+1. Frontend connects via WebSocket to `/api/simulations/{id}/ws`
+2. Backend creates SimTree with root node containing Simulator
+3. User advances simulation: `POST /api/simulations/{id}/advance`
+4. Simulator.run() executes agent turns using configured Ordering
+5. Each agent turn: calls Agent.process() → LLM client → returns actions
+6. Actions validated by Scene.parse_and_handle_action()
+7. Events emitted via Simulator.emit_event() → WebSocket broadcast
+8. Frontend Zustand store updates from WebSocket events
+9. UI re-renders with new simulation state
 
-**SimTree Branching:**
+**Branching Flow:**
 
-1. User creates branch at current node via tree_operations.py
-2. `SimTree.branch()` clones simulator via `serialize()` → `deserialize()`
-3. Clone receives new `LLMClient` instances from `LLMClientPool` (ensures isolation)
-4. Parent node's `event_queue` is reset in clone
-5. Clone can diverge with different agent decisions
-6. Each node maintains separate log stream for timeline visualization
+1. User creates branch from existing node via SimTree.branch()
+2. Simulator cloned via serialize/deserialize (deep copy)
+3. Ops applied to cloned simulator (agent overrides, state patches)
+4. New node attached to tree as sibling of parent
+5. Independent simulation state maintained per branch
+
+**LLM Request Flow:**
+
+1. Agent.process() builds context prompt
+2. Context includes: scenario description, agent profile, memory, knowledge base
+3. LLMClient.generate() called with provider-specific config
+4. Provider (OpenAI/Ollama/Gemini) makes HTTP request
+5. Response parsed via parse_actions() into structured actions
+6. Actions validated and executed by scene
 
 **State Management:**
 
-- **Backend**: Simulator state is serialized as JSON in SimTree nodes
-- **Frontend**: Zustand stores manage slice-based state with cross-slice dependencies (simulation, agents, logs, UI, experiments, providers, environment)
-- **Database**: SQLAlchemy ORM with declarative base; models in `backend/models/`
-- **Session**: Litestar request-scoped dependency injection
+- **Backend**: Immutable snapshots via serialize/deserialize, event logs per node
+- **Frontend**: Zustand stores with selective subscriptions, WebSocket sync
+- **Persistence**: SQLAlchemy ORM with JSON columns for simulator snapshots
 
 ## Key Abstractions
 
+**Simulator:**
+- Purpose: Orchestrates agent turns, manages event queue, handles execution
+- Examples: `src/socialsim4/core/simulator.py`
+- Pattern: Turn-based execution loop with configurable ordering strategies
+
 **Agent:**
-- Purpose: Autonomous decision-making entity with memory, knowledge, and action space
-- Examples: `src/socialsim4/core/agent/agent.py`, `src/socialsim4/core/experiment/agent.py`
-- Pattern: JSON-based LLM prompting with 5-section output (thoughts, response, action, context_update, metadata)
-- Modules: parsing.py (response parsing), rag.py (knowledge management), serialization.py (state persistence), registry.py (action space management)
+- Purpose: Autonomous entity with memory, knowledge, LLM integration
+- Examples: `src/socialsim4/core/agent/agent.py`
+- Pattern: Modular design with submodules for parsing, RAG, serialization
 
 **Scene:**
-- Purpose: Environment that defines available actions, rules, and completion conditions
-- Examples: `src/socialsim4/core/scenes/council_scene.py`, `src/socialsim4/core/scenes/werewolf_scene.py`, `src/socialsim4/core/scenes/village_scene.py`
-- Pattern: Base Scene class with hooks for `pre_run()`, `post_turn()`, `should_skip_turn()`, `get_scene_actions()`, `get_agent_status_prompt()`
-- Social Network: Optional `state["social_network"]` dict for filtered message delivery
+- Purpose: Environment that defines available actions and rules
+- Examples: `src/socialsim4/core/scenes/council_scene.py`, `policy_cascade_scene.py`
+- Pattern: Abstract base class with hooks for action handling, state management
 
 **Action:**
 - Purpose: Individual behaviors agents can perform
-- Examples: `src/socialsim4/core/actions/base_actions.py`, `src/socialsim4/core/experiment/actions/definitions.py`
-- Pattern: Action classes with `NAME`, `DESC`, `INSTRUCTION` attributes and `handle()` method
-- Return: 5-tuple (success, result, summary, meta, pass_control)
-
-**Ordering:**
-- Purpose: Determines which agent acts next in the simulation
-- Examples: `src/socialsim4/core/ordering.py` (SequentialOrdering, CycledOrdering, ControlledOrdering)
-- Pattern: Iterator-based with `post_turn()` hook for scheduling updates
-- Registry: ORDERING_MAP in registry.py
+- Examples: `src/socialsim4/core/actions/base_actions.py`, `council_actions.py`
+- Pattern: Declarative constraints, state guards, parameter validation
 
 **SimTree:**
-- Purpose: Branching timeline structure for exploring alternate simulation outcomes
+- Purpose: Branching timeline structure for "what-if" exploration
 - Examples: `src/socialsim4/core/simtree.py`
-- Pattern: Tree data structure with node-level logs, deep-copy simulator cloning, and LLMClientPool integration
-- Key operations: `advance()` (time progression), `branch()` (what-if scenarios), `copy_sim()` (cloning)
+- Pattern: Tree data structure with node cloning, event streaming, GC
 
-**LLMClientPool:**
-- Purpose: Provides isolated LLM client instances per branch for parallel simulation
-- Examples: `src/socialsim4/services/llm_client_pool.py`
-- Pattern: Pool with acquire/release semantics; each branch gets fresh client instances
-- Isolation: Strong isolation mode via `clone()` method for independent connections
+**LLMClient:**
+- Purpose: Unified interface for multiple LLM providers
+- Examples: `src/socialsim4/core/llm/client.py`
+- Pattern: Provider abstraction with JSON mode fallback handling
 
-**InformationModel:**
-- Purpose: Controls agent visibility and context filtering in experiments
-- Examples: `src/socialsim4/core/experiment/information_model.py`
-- Scope types: all, neighborhood, pair, role_based
-- Features: Recent window, pairing functions, payoff templates, score inclusion toggle
+**Ordering:**
+- Purpose: Determines agent turn sequence
+- Examples: `src/socialsim4/core/ordering.py`
+- Pattern: Pluggable strategies (Sequential, Cycled, Controlled)
 
 ## Entry Points
 
-**Backend Server:**
+**Backend Web Server:**
 - Location: `src/socialsim4/backend/main.py`
-- Triggers: `uvicorn socialsim4.backend.main:app` or `python -m socialsim4.backend.main`
-- Responsibilities: Litestar app creation, database initialization, route registration, static file serving, CORS configuration, vector store initialization
+- Triggers: `uvicorn socialsim4.backend.main:app`
+- Responsibilities: Litestar app initialization, route registration, static file serving, database setup, WebSocket handlers
 
-**Frontend Application:**
-- Location: `frontend/index.tsx`
-- Triggers: Vite dev server or production build
-- Responsibilities: React root rendering, router setup, query client configuration, i18n initialization
-
-**Simulation WebSocket Endpoint:**
-- Location: `src/socialsim4/backend/api/routes/simulations/websocket_handlers.py`
-- Triggers: WebSocket connection from frontend
-- Responsibilities: Real-time event streaming, simulation lifecycle management, step control
-
-**Experiment Runner:**
-- Location: `src/socialsim4/core/experiment/runner.py`
-- Triggers: Backend experiments API endpoint
-- Responsibilities: Round-based execution, visibility management (simultaneous/sequential/random/paired), payoff calculation, feedback generation
-
-**CLI Entry Point:**
+**CLI Interface:**
 - Location: `src/socialsim4/cli.py`
 - Triggers: `python -m socialsim4.cli`
-- Responsibilities: Standalone simulation execution without web layer
+- Responsibilities: Command-line simulation execution, scenario running
+
+**Frontend SPA:**
+- Location: `frontend/index.tsx`
+- Triggers: Browser loads `/` or `/simulations/{id}`
+- Responsibilities: React app mounting, router setup, i18n initialization, WebSocket connection
+
+**Simulation Runtime:**
+- Location: `src/socialsim4/backend/services/simtree_runtime.py`
+- Triggers: API requests to advance/branch simulations
+- Responsibilities: SimTree management, simulator execution, event broadcasting
 
 ## Error Handling
 
-**Strategy:** Core engine fails fast; API layer converts exceptions to HTTP responses
+**Strategy:** Fail fast with clear error messages, event-based error propagation
 
 **Patterns:**
-- **Core Engine**: No try/except in core simulation code (`src/socialsim4/core/`). Exceptions surface immediately with full traceback per AGENTS.md philosophy.
-- **Agent LLM Errors**: Tracked via `consecutive_llm_errors`; agent marked `is_offline` after threshold (default: 3). Emits `agent_error` event with kind "offline". Automatic system_log generated for offline events.
-- **Backend API**: Litestar exception handlers convert to HTTP responses. Custom handler in `main.py` returns 500 JSON errors. Try/except used only for HTTP semantics and external service calls.
-- **Frontend**: ErrorBoundary component catches React errors. API errors displayed as toast notifications.
+- **Core Engine**: No try/except (per AGENTS.md philosophy) - let exceptions surface
+- **Backend API**: try/except for HTTP semantics - convert exceptions to HTTP responses
+- **Frontend**: try/catch for API calls and async operations
+- **Error Events**: Errors wrapped as events and emitted via `emit_event("error", data)`
+- **LLM Errors**: Tracked per-agent with offline state after consecutive failures
 
-**Cross-Cutting Concerns:**
+**Error Propagation Flow:**
+1. Exception occurs in Simulator or Agent
+2. Simulator._emit_error_event() wraps error with context (agent, turn, traceback)
+3. Error event emitted via log_event handler
+4. SimTree attaches to node logs
+5. WebSocket broadcasts to frontend
+6. Frontend displays error in LogViewer or toast notification
 
-**Logging:** Python `logging` module with named loggers. Frontend uses Zustand log store with inject pattern. Debug output written to `test_results/agent_debug_*.txt` and `test_results/experiment_debug_*.txt`.
+## Cross-Cutting Concerns
 
-**Validation:** Pydantic schemas for request/response validation in backend. Experiment framework has dedicated `validation.py` module with JSON extraction, parameter clamping, and type checking. ActionController for action constraint validation.
+**Logging:** Python logging with structured extra fields, frontend console logging for debugging
 
-**Authentication:** JWT-based auth in `backend/api/routes/auth.py`. bcrypt password hashing. `RequireAuth` component wraps protected routes in frontend. Token stored in Zustand auth slice.
+**Validation:** Action constraints via ActionConstraints mixin, parameter validators, state guards
 
-**Internationalization:** Backend uses `gettext` via `socialsim4/i18n.py` with locale files in `src/socialsim4/locales/`. Frontend uses `i18next` with `react-i18next` and JSON files in `frontend/locales/`. All user-facing strings must use `T()` (backend) or `t()` (frontend) functions.
+**Authentication:** JWT-based auth in backend, React Context for auth state in frontend
 
-**RAG (Retrieval Augmented Generation):**
-- Agent knowledge base: `core/agent/rag.py` with keyword-based retrieval
-- Document embeddings: sentence-transformers with ChromaDB vector store
-- Auto-injection: RAG_AUTO_INJECT config enables automatic context injection
-- Global knowledge: Shared knowledge base accessible to all agents
+**Internationalization (i18n):**
+- Backend: gettext via `socialsim4.i18n.T()`, locale files in `src/socialsim4/locales/`
+- Frontend: i18next with `useTranslation()`, locale files in `frontend/locales/`
+
+**State Persistence:** SQLAlchemy ORM with JSON columns, deep-copy serialization via pickle/json
+
+**Real-time Communication:** WebSocket integration via Litestar, event broadcast to tree and node subscribers
+
+**Vector Storage:** ChromaDB (optional) with JSON fallback for RAG knowledge base
+
+**Document Processing:** pdfplumber, python-docx, pytesseract for OCR, embeddings via sentence-transformers
 
 ---
 
-*Architecture analysis: 2025-03-09*
+*Architecture analysis: 2026-03-18*

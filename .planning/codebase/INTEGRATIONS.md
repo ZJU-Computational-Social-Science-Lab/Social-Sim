@@ -1,196 +1,185 @@
 # External Integrations
 
-**Analysis Date:** 2026-03-09
+**Analysis Date:** 2026-03-18
 
 ## APIs & External Services
 
 **LLM Providers:**
-- **OpenAI** - GPT models for agent reasoning and simulation
-  - SDK/Client: `openai` Python package 1.58.1+
+- OpenAI API - GPT models for agent reasoning
+  - SDK: `openai` Python package
   - Implementation: `src/socialsim4/core/llm/providers/openai.py`
-  - Supports: Chat, completion, embedding APIs
-  - Features: Vision/multimodal support, JSON mode with fallback
+  - Config: API key, base URL, model name
+  - Environment: `OPENAI_API_KEY` or provider config in database
 
-- **Google Gemini** - Google's LLM models
-  - SDK/Client: `google-generativeai` Python package 0.7.2+
+- Google Gemini - Gemini models for agent reasoning
+  - SDK: `google-generativeai` Python package
   - Implementation: `src/socialsim4/core/llm/providers/gemini.py`
-  - Supports: Chat, completion, embedding APIs
-  - Features: Vision support, JSON mode
+  - Config: API key, model name
+  - Environment: Provider config in database
 
-- **Ollama** - Local LLM hosting
-  - SDK/Client: HTTP-based (via `httpx`)
+- Ollama - Local LLM server
+  - SDK: HTTP client to Ollama API
   - Implementation: `src/socialsim4/core/llm/providers/ollama.py`
-  - Supports: Chat, completion, embedding APIs
-  - Features: OpenAI-compatible endpoint support, JSON mode with fallback
+  - Config: Base URL (default: http://127.0.0.1:11434), model name
+  - Environment: Provider config in database
+
+- Mock - Testing/offline mode
+  - Implementation: `src/socialsim4/core/llm/providers/mock.py`
+  - No external dependencies
 
 **Search Providers:**
-- **DuckDuckGo** - Free web search (no API key)
-  - SDK/Client: `duckduckgo-search` Python package 7.3.2+
-  - Implementation: `src/socialsim4/core/tools/web/search.py` (DDGSearchClient)
-  - Use case: Default search provider for agent web tools
+- DuckDuckGo - Free web search
+  - SDK: `duckduckgo-search` Python package
+  - Implementation: `src/socialsim4/core/tools/web/search.py`
+  - Config: Region, safesearch settings
+  - Environment: Search provider config in database
 
-- **SerpApi** - Google search via API
-  - SDK/Client: Custom HTTP client via `httpx`
-  - Implementation: `src/socialsim4/core/tools/web/search.py` (SerpApiSearchClient)
-  - Auth: `api_key` in SearchConfig
-  - Use case: Google search results with API
+- SerpApi - Google search API
+  - SDK: `httpx` HTTP client
+  - Implementation: `src/socialsim4/core/tools/web/search.py`
+  - Auth: `api_key` required
+  - Environment: `SERPAPI_API_KEY` or provider config
 
-- **Serper** - Google search via API
-  - SDK/Client: Custom HTTP client via `httpx`
-  - Implementation: `src/socialsim4/core/tools/web/search.py` (SerperSearchClient)
+- Serper - Google search API
+  - SDK: `httpx` HTTP client
+  - Implementation: `src/socialsim4/core/tools/web/search.py`
   - Auth: `X-API-KEY` header
-  - Use case: Alternative Google search API
+  - Environment: Provider config in database
 
-- **Tavily** - AI-optimized search API
-  - SDK/Client: Custom HTTP client via `httpx`
-  - Implementation: `src/socialsim4/core/tools/web/search.py` (TavilySearchClient)
-  - Auth: `api_key` in request payload
-  - Use case: Search with advanced options (depth, domains, etc.)
+- Tavily - AI-powered search
+  - SDK: `httpx` HTTP client
+  - Implementation: `src/socialsim4/core/tools/web/search.py`
+  - Auth: `api_key` required
+  - Environment: `TAVILY_API_KEY` or provider config
 
-**Web Content Extraction:**
-- **Trafilatura** - Web page content extraction
-  - Package: `trafilatura` 1.12.2+
+**Web Content:**
+- Trafilatura - Web page content extraction
+  - Package: `trafilatura`
   - Implementation: `src/socialsim4/core/tools/web/view.py`
-  - Use case: Extract main content from web pages for agent knowledge
+  - Purpose: Extract main content from web pages
 
 ## Data Storage
 
 **Databases:**
-- **SQLite (aiosqlite)**
-  - Connection: `sqlite+aiosqlite:///./socialsim4.db` (default)
-  - Client: SQLAlchemy 2.0.23+ async ORM
-  - Implementation: `src/socialsim4/backend/core/database.py`
-  - Use case: Default development database, embedded in backend
+- SQLite (default)
+  - Connection: `sqlite+aiosqlite:///./socialsim4.db`
+  - ORM: SQLAlchemy
+  - Client: aiosqlite
+  - Config: `SOCIALSIM4_DATABASE_URL`
 
-- **PostgreSQL**
-  - Connection: `postgresql+asyncpg://...` (optional)
-  - Client: SQLAlchemy 2.0.23+ async ORM with `psycopg` binary driver
-  - Implementation: `src/socialsim4/backend/core/database.py`
-  - Use case: Production database for multi-instance deployments
+- PostgreSQL (production)
+  - Connection: `postgresql+asyncpg://...`
+  - ORM: SQLAlchemy
+  - Client: psycopg with async support
+  - Config: `SOCIALSIM4_DATABASE_URL`
+
+- Alembic - Database migrations
+  - Location: `src/socialsim4/backend/migrations/`
 
 **File Storage:**
-- **Local filesystem**
-  - Upload directory: `uploads/` (configurable via `SOCIALSIM4_UPLOAD_DIR`)
-  - Implementation: `src/socialsim4/backend/main.py` (static file router)
-  - Served at: `/uploads` path
-  - Use case: Document uploads, agent knowledge files
+- Local filesystem - Primary storage
+  - Directory: `uploads/` (configurable via `SOCIALSIM4_UPLOAD_DIR`)
+  - Serving: `/uploads` route
+  - Config: Cloud base URL support available
 
-- **Cloud storage (optional)**
-  - Backend: Configurable via `SOCIALSIM4_UPLOAD_BACKEND=cloud`
-  - Implementation: Writes to mounted directory with cloud URL return
-  - Use case: S3-compatible bucket mounting for distributed deployments
-
-**Vector Store (Optional):**
-- **ChromaDB**
-  - Package: `chromadb` 0.4.0+ (optional dependency)
+**Vector Store:**
+- ChromaDB (optional)
+  - Purpose: RAG document similarity search
   - Implementation: `src/socialsim4/backend/services/vector_store.py`
-  - Config: `SOCIALSIM4_USE_CHROMADB=true`
-  - Persist dir: `SOCIALSIM4_CHROMADB_PERSIST_DIR` (default: `./chroma_db`)
-  - Use case: Hybrid vector store for RAG/knowledge base
+  - Config: `SOCIALSIM4_USE_CHROMADB`, `SOCIALSIM4_CHROMADB_PERSIST_DIR`
+  - Fallback: In-memory JSON cosine similarity
 
-- **JSON fallback** - In-memory JSON-based vector store
-  - Implementation: `src/socialsim4/backend/services/vector_store.py`
-  - Use case: Default fallback when ChromaDB is not enabled
-
-**Embeddings:**
-- **sentence-transformers**
-  - Model: `all-MiniLM-L6-v2` (default)
-  - Implementation: `src/socialsim4/backend/services/documents.py`
-  - Use case: Local text embedding generation for RAG/knowledge base
+- sentence-transformers - Embeddings
+  - Model: MiniLM (default)
+  - Purpose: Generate embeddings for RAG
 
 **Caching:**
-- **Redis**
-  - Connection: `redis://localhost:6379/0` (default)
-  - Environment: `REDIS_URL` or `SOCIALSIM4_REDIS_URL`
-  - Implementation: `src/socialsim4/backend/celery_app.py`
-  - Use case: Celery task queue broker for async experiment runs
+- Not implemented (no Redis caching layer yet)
 
 ## Authentication & Identity
 
 **Auth Provider:**
-- **Custom JWT-based authentication**
-  - Implementation: `src/socialsim4/backend/api/routes/auth.py`
-  - JWT signing: `python-jose` with `SOCIALSIM4_JWT_SIGNING_KEY`
-  - Algorithm: HS256 (default)
-  - Token expiration: Access token 15 min, refresh token 14 days
-  - Password hashing: bcrypt 5.0.0+
+- Custom JWT-based authentication
+  - Implementation: `src/socialsim4/backend/core/security.py`
+  - Token library: python-jose
+  - Password hashing: bcrypt
+  - Signing key: `SOCIALSIM4_JWT_SIGNING_KEY`
+  - Token expiry: 15 min access, 14 days refresh
 
-**Email Verification (Optional):**
-- SMTP-based email delivery
-  - Config: `SOCIALSIM4_EMAIL_SMTP_HOST`, `SOCIALSIM4_EMAIL_SMTP_PORT`
-  - Auth: `SOCIALSIM4_EMAIL_SMTP_USERNAME`, `SOCIALSIM4_EMAIL_SMTP_PASSWORD`
+**Email Verification:**
+- Optional email verification flow
+  - SMTP support via `SOCIALSIM4_EMAIL_SMTP_*` vars
   - Implementation: `src/socialsim4/backend/services/email.py`
-  - Use case: User verification emails, password reset
 
 ## Monitoring & Observability
 
 **Error Tracking:**
-- None (errors handled via Litestar exception handlers)
+- None (no Sentry or similar integration)
 
 **Logs:**
-- Console/stdout logging
-- Implementation: `src/socialsim4/backend/main.py` (internal_error_handler)
-- Debug mode: `SOCIALSIM4_DEBUG=true` enables SQLAlchemy query echo
+- Python standard logging
+- Console output for development
+- No centralized logging configured
+
+**LLM Usage Tracking:**
+- Database table: `llm_usage`
+  - Tracks token usage, costs, model info
+  - Implementation: `src/socialsim4/backend/models/llm_usage.py`
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- Self-hosted (backend serves frontend static files in production)
-- Frontend: Vite build output served via Litestar static file router
-- SPA fallback: All non-API routes return `index.html` for client-side routing
+- Self-hosted (no cloud platform specified)
 
 **CI Pipeline:**
-- None detected (manual deployment)
+- None detected (no GitHub Actions, GitLab CI, etc.)
+
+**Task Queue:**
+- Celery 5.3.0
+  - Implementation: `src/socialsim4/backend/celery_app.py`
+  - Broker: Redis
+  - Config: `SOCIALSIM4_REDIS_URL` or `REDIS_URL`
 
 ## Environment Configuration
 
 **Required env vars:**
-- `SOCIALSIM4_DATABASE_URL` - Database connection string
-- `SOCIALSIM4_JWT_SIGNING_KEY` - Secret for JWT token signing
-- `SOCIALSIM4_ALLOWED_ORIGINS` - Comma-separated CORS origins
+- `SOCIALSIM4_JWT_SIGNING_KEY` - JWT token signing (default: "change-me")
+- `SOCIALSIM4_DATABASE_URL` - Database connection (default: SQLite)
 
 **Optional env vars:**
-- `REDIS_URL` or `SOCIALSIM4_REDIS_URL` - Redis connection for Celery
-- `SOCIALSIM4_USE_CHROMADB` - Enable ChromaDB vector store (true/false)
-- `SOCIALSIM4_CHROMADB_PERSIST_DIR` - ChromaDB persistence directory
-- `SOCIALSIM4_UPLOAD_DIR` - File upload directory (default: "uploads")
-- `SOCIALSIM4_UPLOAD_BACKEND` - "local" or "cloud"
-- `SOCIALSIM4_EMAIL_SMTP_HOST` - SMTP server for emails
-- `SOCIALSIM4_EMAIL_SMTP_PORT` - SMTP port
-- `SOCIALSIM4_EMAIL_SMTP_USERNAME` - SMTP username
-- `SOCIALSIM4_EMAIL_SMTP_PASSWORD` - SMTP password
-- `SOCIALSIM4_DEBUG` - Enable debug mode (true/false)
-
-**LLM Configuration:**
-- Stored in database `llm_providers` table
-- Per-provider: `dialect`, `api_key`, `base_url`, `model`, `temperature`, etc.
-- Implementation: `src/socialsim4/backend/api/routes/providers.py`
-
-**Search Provider Configuration:**
-- Stored in database `search_providers` table
-- Per-provider: `dialect`, `api_key`, `base_url`, `params`
-- Implementation: `src/socialsim4/backend/api/routes/search_providers.py`
+- `SOCIALSIM4_REDIS_URL` / `REDIS_URL` - Redis connection for Celery
+- `SOCIALSIM4_USE_CHROMADB` - Enable ChromaDB vector store
+- `SOCIALSIM4_CHROMADB_PERSIST_DIR` - ChromaDB storage path
+- `SOCIALSIM4_UPLOAD_DIR` - File upload directory
+- `SOCIALSIM4_REQUIRE_EMAIL_VERIFICATION` - Enable email verification
+- `SOCIALSIM4_EMAIL_SMTP_*` - SMTP configuration for emails
 
 **Secrets location:**
-- Environment variables (`.env` file, gitignored)
-- Database for provider credentials (api_key stored in `llm_providers` and `search_providers` tables)
+- Environment variables (.env file)
+- Database: Provider API keys stored in `providers` table
 
 ## Webhooks & Callbacks
 
 **Incoming:**
-- None (no webhook endpoints)
+- WebSocket endpoints for real-time simulation updates
+  - Implementation: `src/socialsim4/backend/api/routes/simulations/websocket_handlers.py`
+  - Purpose: Live simulation state streaming
 
 **Outgoing:**
-- None (no outgoing webhooks)
+- None detected (no external webhooks configured)
 
-## WebSocket Connections
+## Internationalization
 
-**Real-time communication:**
-- **Simulation events** - Live simulation progress updates
-  - Endpoint: `/api/simulations/{simulation_id}/ws`
-  - Implementation: `src/socialsim4/backend/api/routes/simulations/websocket_handlers.py`
-  - Use case: Stream agent actions, turn events, simulation status
+**Backend:**
+- Custom i18n implementation
+  - Location: `src/socialsim4/i18n.py`
+  - Languages: English (en), Chinese (zh)
+  - Locale files: `src/socialsim4/locales/{en,zh}.json`
+  - Function: `T(key, locale=None, **kwargs)`
+
+**Frontend:**
+- i18next + react-i18next
+  - Locale files: `frontend/locales/{en,zh}.json`
+  - Hook: `useTranslation()`
 
 ---
-
-*Integration audit: 2026-03-09*
