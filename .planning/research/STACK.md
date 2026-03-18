@@ -1,300 +1,225 @@
 # Technology Stack
 
-**Project:** Social-Sim Contagion Spread Framework
-**Researched:** 2026-03-08
-**Focus:** Stack additions for contagion/spread modeling on grid-based agents
+**Project:** Social-Sim Bug Fixes & Game Features Milestone
+**Researched:** 2026-03-18
+**Overall confidence:** HIGH
 
 ## Executive Summary
 
-**NO NEW EXTERNAL DEPENDENCIES REQUIRED.** The contagion framework can be built entirely using Python's standard library and existing infrastructure. The project already has GridMechanic, a robust agent system, action framework, and all necessary utilities. Adding state machine libraries or epidemiological packages would increase complexity without meaningful benefit for this use case.
+This is a **brownfield project** — the stack is already established. Research confirms the existing technologies are current and appropriate for the required bug fixes and feature additions. No major stack changes are needed. Focus should be on:
 
-### Key Decision: Minimal Dependencies Philosophy
+1. **Testing infrastructure** — Full stack testing for bug validation
+2. **i18n completion** — Extending existing JSON-based translation system
+3. **Game mechanics** — Using existing simulation engine patterns
 
-- **Use Python standard library** for random, probability, and state management
-- **Build on existing GridMechanic** for spatial operations and adjacency
-- **Create lightweight contagion-specific classes** rather than generic frameworks
-- **Leverage existing action system** for speak/move behaviors
+## Recommended Stack
 
-This approach maintains consistency with the project's prototype-first philosophy while keeping the codebase maintainable.
-
----
-
-## Recommended Additions
-
-### Core Framework
+### Core Framework (Existing)
 
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
-| **Python standard library** | Built-in | State management, probability, random | `random` module sufficient for probabilistic rules |
-| **Existing GridMechanic** | Current | Grid positioning, movement, adjacency | Already provides GameMap, Tile, coordinates |
-| **Existing action system** | Current | Agent behaviors (speak, move) | Extend with SpeakAction for targeted communication |
-| **Pydantic** | ^2.4.2 (existing) | Config validation for contagion rules | Already in stack, validates rule definitions |
+| **Python** | 3.12 | Backend runtime | Required by project; 3.14 incompatible with dependencies |
+| **Litestar** | >=2.8.3 | Web framework | Modern async framework, already integrated |
+| **Pydantic** | >=2.4.2 | Data validation | Type-safe schemas, already integrated |
+| **SQLAlchemy** | >=2.0.23 | Database ORM | Async support, already integrated |
+| **React** | 19.2.0 | Frontend UI | Latest stable, already integrated |
+| **TypeScript** | ~5.8.2 | Frontend typing | Type safety, already integrated |
+| **Vite** | 6.2.0 | Build tool | Fast dev server, already integrated |
 
-### State Management
+### Testing Infrastructure (Critical for Bug Fixes)
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| **Python Enum** | Built-in | State representation (SUSCEPTIBLE, INFECTED, etc.) | Type-safe, readable, self-documenting |
-| **Python dataclasses** | Built-in | Agent state containers | Minimal boilerplate, integrates with Pydantic |
+| Technology | Version | Purpose | When to Use |
+|---------|---------|---------|-------------|
+| **pytest** | (existing) | Backend test runner | All backend testing |
+| **pytest-asyncio** | (add if missing) | Async test support | For testing async scene methods |
+| **Vitest** | 4.0.18 | Frontend test runner | All frontend testing (already in package.json) |
+| **@testing-library/react** | 16.3.2 | Component testing | UI component testing |
+| **@testing-library/user-event** | 14.6.1 | User interaction simulation | Realistic user behavior testing |
 
-### Probability & Randomness
+**Confidence:** HIGH — These are standard, current tools for the respective frameworks.
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| **random module** | Built-in | Probabilistic transitions | `random.random()` for all probability checks |
-| **Existing random usage** | Current | Consistent with codebase patterns | Project already uses `random` module throughout |
+### Internationalization (i18n)
 
----
+| Technology | Version | Purpose | When to Use |
+|---------|---------|---------|-------------|
+| **i18next** | 25.7.1 | Frontend i18n framework | Already integrated |
+| **react-i18next** | 16.3.5 | React i18n bindings | Already integrated |
+| **Custom JSON system** | (existing) | Backend i18n via `i18n.py` | Use existing T() function for all backend strings |
+| **gettext** | (built-in) | Python standard library | NOT recommended — use existing JSON system instead |
 
-## What NOT to Add
+**Confidence:** HIGH — Frontend uses industry-standard i18next. Backend has custom JSON system that mirrors frontend structure.
 
-### Epidemiological Libraries
+### Game Theory Mechanics
 
-**DO NOT ADD:**
-- `ndlib` (Network Diffusion Library) — Designed for network graphs, not grid-based agent systems
-- `EpiModel` — R package, not Python
-- `epydemic` — Network-focused, overkill for agent grid
-- `SIRModels/PyRoss` — Differential equation models, not agent-based
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| **Simulation Engine** | `src/socialsim4/core/` | Existing agent/scene/action system |
+| **Experiment Runner** | `src/socialsim4/core/experiment/` | Round execution, payoff calculation |
+| **Game Configs** | `src/socialsim4/core/experiment/game_configs.py` | Payoff matrices, rules |
+| **Scenario Registry** | `src/socialsim4/core/scenarios/registry.py` | Game metadata, parameters |
 
-**Why:** These libraries solve different problems (mathematical compartmental models on networks). Our contagion model is agent-based with LLM decision-making, not equation-based.
+**Confidence:** HIGH — Existing architecture already supports Public Goods Game and Coordination Game. New features extend this pattern.
 
-### State Machine Libraries
+## Installation
 
-**DO NOT ADD:**
-- `transitions` — Adds dependency for simple state transitions
-- `state-machine` — Overkill for enum-based states
-- `automachine` — Unnecessary abstraction
+### Backend Dependencies (Additions Only)
 
-**Why:** Contagion states are simple enums (SUSCEPTIBLE → INFECTED → RECOVERED). Python's built-in `Enum` and `if` statements are clearer and maintainable. External state machine libraries add complexity for linear state transitions.
+```bash
+# Testing - add if not present
+pip install pytest pytest-asyncio pytest-cov
 
-### Grid/Spatial Libraries
-
-**DO NOT ADD:**
-- `numpy` — No numerical operations requiring arrays
-- `scipy.ndimage` — No image processing or advanced grids
-- `pygame` — Visualization only, not simulation logic
-
-**Why:** The existing GameMap class already handles sparse grids, coordinates, and locations. Contagion spread only needs adjacency checks (distance calculation), which GameMap or simple coordinate math provides.
-
----
-
-## Implementation Strategy
-
-### 1. State Representation (Standard Library)
-
-```python
-from enum import Enum
-
-class ContagionState(Enum):
-    SUSCEPTIBLE = "susceptible"
-    INFECTED = "infected"
-    RECOVERED = "recovered"
-    DECEASED = "deceased"
+# No new runtime dependencies needed for features
 ```
 
-### 2. Transition Rules (Dataclasses + Pydantic)
+### Frontend Dependencies (Additions Only)
 
-```python
-from dataclasses import dataclass
-from typing import Optional
+```bash
+# Already present in package.json:
+# - vitest: 4.0.18
+# - @testing-library/react: 16.3.2
+# - @testing-library/user-event: 14.6.1
+# - i18next: 25.7.1
+# - react-i18next: 16.3.5
 
-@dataclass
-class StateTransition:
-    """Probabilistic transition between contagion states."""
-    from_state: ContagionState
-    to_state: ContagionState
-    probability: float  # 0.0 to 1.0
-    requires_contact: bool = True
-    decay_turns: Optional[int] = None
+# No new installations needed
 ```
 
-### 3. Probabilistic Checks (Standard Library)
+## Implementation-Specific Stack
 
-```python
-import random
+### FEAT-01: Public Goods Game Punishment
 
-def check_transition(probability: float) -> bool:
-    """Check if a probabilistic transition occurs."""
-    return random.random() < probability
-```
+**What to add:**
+- New parameter in `PUBLIC_GOODS` scenario registry entry
+- Extension to payoff calculation in `ExperimentRunner`
+- New translation keys in `locales/en.json` and `locales/zh.json`
 
-### 4. Grid Adjacency (Existing Infrastructure)
+**No new libraries required** — uses existing:
+- `GameConfig` for parameter passing
+- `ExperimentState` for tracking punishment history
+- Custom payoff calculation (extend existing pool mechanism)
 
-```python
-# Use existing GridMechanic's GameMap
-# Calculate Manhattan distance for adjacency
-def is_adjacent(pos1: tuple[int, int], pos2: tuple[int, int]) -> bool:
-    x1, y1 = pos1
-    x2, y2 = pos2
-    return abs(x1 - x2) + abs(y1 - y2) <= 1  # Including diagonals: use max(abs(x1-x2), abs(y1-y2)) <= 1
-```
+**Confidence:** HIGH — Pattern exists for extending game parameters.
 
-### 5. Speak Action (Extend Existing Actions)
+### FEAT-02: Coordination Game Blind Choice Mode
 
-```python
-# Add to core/actions/contagion_actions.py
-# Inherits from existing Action base class
-class SpeakAction(Action):
-    """Targeted communication for contagion spread."""
-    # Use existing action framework, add target_agent parameter
-```
+**What to add:**
+- Toggle parameter in `COORDINATION_GAME` scenario registry
+- UI toggle component (using existing Radix UI components)
+- Conditional context filtering in `ExperimentRunner`
 
----
+**No new libraries required** — uses existing:
+- Radix UI for form controls
+- Existing visibility/information model system
 
-## Integration with Existing Stack
+**Confidence:** HIGH — Interaction mode parameter already exists in registry schema.
 
-### Backend Architecture (No Changes)
+### BUG-01/BUG-06: Context & Voting Constraints
 
-```
-src/socialsim4/
-├── core/
-│   ├── actions/
-│   │   └── contagion_actions.py      # NEW: SpeakAction
-│   ├── mechanics/
-│   │   └── contagion_mechanic.py     # NEW: StateTransition, rules
-│   └── scenes/
-│       └── contagion_scene.py        # NEW: GridScene + ContagionMechanic
-├── backend/
-│   └── api/routes/
-│       └── contagion.py              # NEW: Scenario configuration endpoints
-```
+**Stack approach:**
+- Extend existing `context_builder.py` for context inheritance
+- Add stage validation in backend routes
+- Add frontend validation for UI forms
 
-### Dependencies
+**No new libraries required** — uses existing validation patterns.
 
-**No new pip installs required.** All functionality uses:
+**Confidence:** HIGH — Validation patterns exist in codebase.
 
-1. **Existing dependencies** (from pyproject.toml):
-   - `pydantic ^2.4.2` — Rule configuration validation
-   - `litestar ^2.8.3` — API endpoints for scenario config
-   - SQLAlchemy — Persist simulation results
+### BUG-07: Token Endowment Enforcement
 
-2. **Python standard library**:
-   - `enum` — State definitions
-   - `random` — Probabilistic transitions
-   - `dataclasses` — State containers
-   - `typing` — Type hints
+**Stack approach:**
+- Add validation in `ExperimentScene._initialize_state()`
+- Add runtime check in action execution
+- Use Pydantic for parameter validation
 
----
+**No new libraries required** — Pydantic already integrated.
+
+**Confidence:** HIGH — Pydantic validation pattern exists for all action parameters.
+
+### I18N-01: Full i18n Audit
+
+**Frontend approach:**
+- Use existing `i18next` + `react-i18next`
+- Add missing keys to `frontend/locales/en.json` and `frontend/locales/zh.json`
+- Replace hardcoded strings with `t('key')` calls
+
+**Backend approach:**
+- Use existing `T()` function from `i18n.py`
+- Add keys to `src/socialsim4/locales/en.json` and `zh.json`
+- Replace f-strings with `T('key', var=value)` calls
+
+**No new libraries required** — systems already in place.
+
+**Confidence:** HIGH — Both systems are functional and follow best practices.
 
 ## Alternatives Considered
 
 | Category | Recommended | Alternative | Why Not |
 |----------|-------------|-------------|---------|
-| State management | Python Enum | `transitions` library | Adds dependency for simple linear transitions |
-| Probability | `random` module | `numpy.random` | No array operations needed |
-| Epidemiology | Custom implementation | `ndlib`, `epydemic` | Wrong paradigm (network graphs vs agent grid) |
-| Grid operations | Existing GameMap | `scipy.ndimage` | No image processing, adjacency is simple math |
+| Backend i18n | Custom JSON system (existing) | Python gettext | gettext requires .po/.mo compilation, harder for non-developers to edit. JSON matches frontend structure for consistency |
+| Frontend testing | Vitest + RTL | Jest + RTL | Vitest is faster, integrated with Vite, already in package.json |
+| Async testing | pytest-asyncio | AnyIO | pytest-asyncio is pytest standard, simpler fixture handling |
+| State management | Zustand (existing) | Redux Toolkit | Zustand is simpler, already integrated, no need to migrate |
 
----
+## What NOT to Use
 
-## Configuration Example
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| **Python 3.14** | Incompatible with current dependencies (verified in requirements.txt) | Python 3.12 |
+| **gettext for backend** | Requires .po/.mo compilation, adds tooling complexity | Existing JSON system in `i18n.py` |
+| **New state management** | Zustand already works, migration is scope creep | Existing Zustand stores |
+| **New UI libraries** | Radix UI + Tailwind already integrated | Existing component patterns |
+| **Complex mocking libraries** | pytest.mock and vi.mock() sufficient for this scope | Built-in mocking |
 
-Using existing Pydantic settings pattern:
+## Testing Strategy by Bug/Feature
 
-```python
-from pydantic import BaseModel, Field
-from typing import Dict, List
-
-class ContagionConfig(BaseModel):
-    """Configuration for contagion simulation rules."""
-
-    # States
-    initial_state: ContagionState = ContagionState.SUSCEPTIBLE
-    patient_zero_fraction: float = Field(default=0.05, ge=0, le=1)
-
-    # Transition probabilities
-    transmission_probability: float = Field(default=0.3, ge=0, le=1)
-    recovery_probability: float = Field(default=0.1, ge=0, le=1)
-    mortality_probability: float = Field(default=0.01, ge=0, le=1)
-
-    # Spatial rules
-    infection_distance: int = Field(default=1, ge=1)  # Adjacent tiles
-    require_visibility: bool = True  # Must see target to infect
-
-    # Decay rules
-    recovery_turns_range: tuple[int, int] = (7, 14)
-    immunity_duration: Optional[int] = None  # None = permanent
-```
-
----
-
-## Installation
-
-### No New Dependencies
-
-```bash
-# Existing environment setup (already done)
-# Just add new files to codebase
-
-# Backend (no changes)
-pip install -r requirements.txt
-
-# Frontend (no changes)
-cd frontend && npm install
-```
-
-### Development Setup
-
-```bash
-# Activate virtual environment
-.\\venv\\Scripts\\Activate.ps1
-$env:PYTHONPATH = "."
-
-# No new packages needed
-```
-
----
+| Item | Backend Test | Frontend Test | Notes |
+|------|--------------|---------------|-------|
+| BUG-01: Context inheritance | pytest async test of multi-round context | — | Verify previous round content appears in follow-up prompts |
+| BUG-02: Max Rounds removal | — | Vitest component test | Verify field removed from UI |
+| BUG-03: Session loss | pytest integration test | — | Test session persistence during advance_node |
+| BUG-04: SimTree disappearing | pytest + Docker test | — | Requires Docker environment |
+| BUG-05: Duplicate broadcasts | pytest websocket test | Vitest event test | Verify deduplication logic |
+| BUG-06: Voting stage retry | pytest route test | Vitest form test | Test constraint enforcement |
+| BUG-07: Token enforcement | pytest action test | Vitest form test | Test validation logic |
+| FEAT-01: Punishment | pytest payoff calculation | Vitest parameter UI | Test punishment parameter flow |
+| FEAT-02: Blind choice | pytest visibility test | Vitest toggle UI | Test simultaneous vs sequential modes |
+| I18N-01: Full audit | pytest translation test | Vitest i18n test | Verify all keys exist in both languages |
 
 ## Version Compatibility
 
-| Component | Version Required | Already Installed | Compatible |
-|-----------|------------------|-------------------|------------|
-| Python | 3.11+ | 3.12 | Yes |
-| Pydantic | ^2.4.2 | ^2.4.2 | Yes |
-| Litestar | ^2.8.3 | ^2.8.3 | Yes |
-| Enum | Built-in (3.4+) | Built-in | Yes |
-| dataclasses | Built-in (3.7+) | Built-in | Yes |
-| random | Built-in | Built-in | Yes |
+| Package A | Compatible With | Notes |
+|-----------|-----------------|-------|
+| Python 3.12 | All current dependencies | Do NOT upgrade to 3.14 |
+| Litestar 2.8.3+ | SQLAlchemy 2.0+ | Async patterns require SA 2.0 |
+| Pydantic 2.4+ | Litestar 2.8.3+ | Type validation integration |
+| React 19.2.0 | i18next 25.7+ | Both current versions |
+| Vitest 4.0+ | React Testing Library 16.3+ | Coordinated versions in package.json |
 
----
+## Development Tools
 
-## Rationale Summary
-
-### Why No External Dependencies?
-
-1. **Simplicity**: Contagion rules are straightforward probability checks
-2. **Maintainability**: Fewer dependencies = fewer breaking changes
-3. **Consistency**: Uses same patterns as existing mechanics (GridMechanic, VotingMechanic)
-4. **Performance**: Python's `random` is fast enough for agent-based simulations
-5. **Flexibility**: Custom implementation allows LLM integration, network effects, hidden states
-
-### When to Reconsider
-
-**Add dependencies if:**
-- Need complex spatial queries (consider `scipy.spatial`)
-- Require high-performance array operations (consider `numpy`)
-- Want mathematical compartmental models (consider `SIRModels`)
-
-**Current requirements don't justify these.**
-
----
+| Tool | Purpose | Notes |
+|------|---------|-------|
+| **pytest** | Backend testing | Add `pytest-asyncio` for async tests |
+| **pytest-cov** | Coverage reports | Optional but recommended for bug fix validation |
+| **Vitest** | Frontend testing | Already configured with UI mode |
+| **Vitest UI** | Visual test runner | Use `npm run test:ui` |
+| **TypeScript 5.8** | Type checking | Strict mode already enabled |
 
 ## Sources
 
-### Official Documentation
-- Python `enum` module: https://docs.python.org/3/library/enum.html
-- Python `dataclasses`: https://docs.python.org/3/library/dataclasses.html
-- Python `random`: https://docs.python.org/3/library/random.html
-- Pydantic 2.4: https://docs.pydantic.dev/latest/
+- **Existing codebase analysis** — HIGH confidence
+  - `requirements.txt` — Verified all current backend dependencies
+  - `package.json` — Verified all current frontend dependencies
+  - `src/socialsim4/core/experiment/scene.py` — Game execution architecture
+  - `src/socialsim4/i18n.py` — Backend i18n implementation
+  - `src/socialsim4/locales/en.json` — Translation structure
 
-### Existing Infrastructure Analysis
-- GridMechanic implementation: `src/socialsim4/templates/mechanics/grid_mechanic.py`
-- GameMap class: `src/socialsim4/core/scenes/village_scene.py`
-- Action base classes: `src/socialsim4/core/action.py`
-- Current dependencies: `pyproject.toml`
+- **Documentation verification** — HIGH confidence
+  - Litestar 2.8+ documentation confirms async patterns
+  - pytest-asyncio documentation for async test fixtures
+  - i18next 25.x documentation for React integration
+  - Vitest 4.x documentation for testing patterns
 
-### LOW Confidence Sources (training data only - not verified)
-- **ndlib**: Mentioned as network diffusion library (NOT suitable for grid agents)
-- **transitions**: Popular Python state machine library (unnecessary for enum states)
-
-**Note:** Web search for epidemiological libraries was inconclusive due to rate limits. However, based on domain knowledge, epidemiological packages focus on mathematical compartmental models (SIR/SEIR differential equations) or network-based diffusion, which are different paradigms from LLM-driven agent-based grid simulations.
+---
+*Stack research for: Social-Sim Bug Fixes & Game Features Milestone*
+*Researched: 2026-03-18*

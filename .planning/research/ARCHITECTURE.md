@@ -1,620 +1,439 @@
-# Architecture: Contagion Spread Framework
+# Architecture Research
 
-**Project:** Social-Sim Contagion/Spread Model
-**Researched:** 2026-03-08
-**Overall confidence:** HIGH
+**Domain:** Multi-agent simulation platform with game theory scenarios
+**Researched:** 2025-03-18
+**Confidence:** HIGH
 
-## Executive Summary
+## Standard Architecture
 
-The contagion/spread framework should integrate with the existing multi-agent simulation architecture by extending the Scene-based pattern established in VillageScene, introducing a rule-based state transition system that operates independently of agent decision-making. State tracking lives at the Scene level (via scene.state), rule evaluation occurs in a dedicated ContagionRules module, and state transitions happen through Scene hooks (pre_run, post_turn). This approach maintains agent isolation while enabling epidemiological and information diffusion modeling.
-
-The framework reuses existing grid infrastructure (GameMap, positioning, pathfinding) from VillageScene and adds a new SpeakAction variant for targeted communication. Rules are configured via a declarative YAML/JSON schema that defines states, transitions, conditions, and decay parameters.
-
-## Key Findings
-
-**Stack:** Extend existing Scene/Action architecture with new ContagionScene class and state machine rules engine
-**Architecture:** Scene-orchestrated rule evaluation with agent-hidden states and observation-based inference
-**Critical pitfall:** Don't make state visible to agents directly — they should infer from observed behavior
-
-## Recommended Architecture
-
-### Component Overview
+### System Overview
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      ContagionScene                          │
-│  ┌──────────────┐  ┌──────────────────┐  ┌───────────────┐ │
-│  │ GameMap      │  │ scene.state      │  │ ContagionRules│ │
-│  │ (inherited)  │  │ - agent_states   │  │ (new module)  │ │
-│  │              │  │ - global_stats   │  │               │ │
-│  └──────────────┘  │ - turn_count     │  │ - evaluate()  │ │
-│                    └──────────────────┘  │ - transitions │ │
-│                                           └───────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-         │                    │                     │
-         ▼                    ▼                     ▼
-┌──────────────┐    ┌─────────────────┐    ┌──────────────┐
-│ Grid Actions │    │ State Tracking  │    │ Rule Engine  │
-│ - move       │    │ Per-agent       │    │ Proximity    │
-│ - look_around│    │ Hidden states   │    │ Action-based │
-│ - speak_to   │    │ Decay tracking  │    │ Configurable │
-└──────────────┘    └─────────────────┘    └──────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              Frontend Layer (TypeScript)                      │
+├──────────────────────────────────────────────────────────────────────────────┤
+│  ┌──────────────────┐  ┌──────────────┐  ┌────────────────┐  ┌───────────┐  │
+│  │   Experiment     │  │  SimTree     │  │  Wizard        │  │  i18n     │  │
+│  │   Builder        │  │  Workspace   │  │  Components    │  │  Layer    │  │
+│  └────────┬─────────┘  └──────┬───────┘  └────────┬───────┘  └─────┬─────┘  │
+│           │                   │                   │                  │         │
+├───────────┴───────────────────┴───────────────────┴──────────────────┴───────┤
+│                              Backend API Layer (Python/Litestar)             │
+├──────────────────────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │
+│  │ Experiments  │  │ Simulations  │  │ Auth/Config  │  │ WebSocket    │   │
+│  │ Routes       │  │ CRUD/Tree    │  │ Routes       │  │ Streaming    │   │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘   │
+│         │                 │                 │                  │            │
+├─────────┴─────────────────┴─────────────────┴──────────────────┴────────────┤
+│                           Experiment Engine Layer                             │
+├──────────────────────────────────────────────────────────────────────────────┤
+│  ┌────────────────────────────────────────────────────────────────────┐     │
+│  │                    ExperimentScene (Orchestrator)                   │     │
+│  │  - run_round() execution                                           │     │
+│  │  - State persistence (ExperimentState)                             │     │
+│  └───────────────────────────┬────────────────────────────────────┘     │
+│                              │                                            │
+│  ┌───────────────────────────┴────────────────────────────────────┐     │
+│  │                    ExperimentRunner (Controller)                │     │
+│  │  - Round visibility modes (simultaneous/sequential/random/paired)│     │
+│  │  - RoundContextManager (history tracking)                       │     │
+│  └───────────────────────────┬────────────────────────────────────┘     │
+│                              │                                            │
+│  ┌──────────┬─────────────────┼──────────────────┬──────────────┐        │
+│  │          │                 │                  │              │        │
+│  ▼          ▼                 ▼                  ▼              ▼        │
+│ ┌──────┐ ┌──────┐       ┌──────────┐     ┌──────────┐   ┌──────────┐  │
+│ │Agent │ │Agent │  ...  │ Payoff   │     │ Action   │   │ Round    │  │
+│ │      │ │      │       │ Engine   │     │ Handler  │   │ Context  │  │
+│ └───▲──┘ └───▲──┘       └──────────┘     └──────────┘   └──────────┘  │
+├────┴───────┴───────────────────────────────────────────────────────────────┤
+│                           Core Simulation Layer                             │
+├──────────────────────────────────────────────────────────────────────────────┤
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐              │
+│  │Simulator │  │  Scene   │  │ Agent    │  │ SimTree      │              │
+│  │(Legacy)  │  │(Base)    │  │(Legacy)  │  │(Branching)   │              │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────────┘              │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                           Infrastructure Layer                              │
+├──────────────────────────────────────────────────────────────────────────────┤
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐              │
+│  │PostgreSQL│  │ LLM      │  │ Session  │  │ i18n         │              │
+│  │Database  │  │ Providers│  │ Manager  │  │ (T() func)   │              │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────────┘              │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Integration Points with Existing Architecture
+### Component Responsibilities
 
-| Existing Component | Integration Method | New Extension |
-|-------------------|-------------------|---------------|
-| **Scene** | Extend for ContagionScene | Adds state machine hooks |
-| **VillageScene** | Reuse grid/map logic | Inherit or compose GameMap |
-| **Agent.properties** | Store contagion state | Add state_key field |
-| **ActionController** | Validate speak constraints | Add proximity checks |
-| **Simulator** | No changes needed | Scene orchestrates rules |
-| **SimTree** | No changes needed | State serializes with scene |
-| **TalkToAction** | Extend for SpeakAction | Add state transmission |
+| Component | Responsibility | Typical Implementation |
+|-----------|----------------|------------------------|
+| **ExperimentScene** | Standalone orchestrator for game theory scenarios. No Scene inheritance. Manages ExperimentAgents directly. | `core/experiment/scene.py` |
+| **ExperimentRunner** | Executes rounds with visibility modes. Manages RoundContextManager, PayoffEngine, ActionHandler. | `core/experiment/runner.py` |
+| **RoundContextManager** | Tracks action history per agent. Builds filtered context based on InformationModel. | `core/experiment/round_context.py` |
+| **ExperimentAgent** | LLM-driven agent with role, knowledge base, score. No dependency on Simulator. | `core/experiment/agent.py` |
+| **PayoffEngine** | Calculates payoffs for matrix/pool/feedback games. Supports pair/group modes. | `core/experiment/payoff/engine.py` |
+| **ActionHandler** | Executes action effects on ExperimentState (resources, properties). | `core/experiment/action_handler.py` |
+| **Simulator (Legacy)** | Core turn-based loop. Agent-Scene isolation principle. | `core/simulator.py` |
+| **SimTree** | Branching timeline for "what-if" exploration. Clones simulators. | `core/simtree.py` |
+| **Backend API** | Litestar routes. Experiments, simulations CRUD, tree operations, WebSocket streaming. | `backend/api/routes/` |
+| **Frontend** | React + TypeScript. Experiment builder UI, SimTree workspace, i18n integration. | `frontend/components/` |
 
-### Data Flow
-
-**Simulation Turn Flow:**
-
-```
-1. Simulator.next_agent()
-   │
-2. Scene.pre_run() ──────────────────► Evaluate contagion rules
-   │                                      - Proximity transitions
-   │                                      - Decay/recovery
-   │                                      - Update scene.state
-   ▼
-3. Agent.decide() ◄───────────────────── Context includes observed behaviors
-   │                                      NOT direct state visibility
-   ▼
-4. Agent chooses action
-   │
-5. Scene.parse_and_handle_action()
-   │
-6. Action.handle() ────────────────────► May trigger contagion transitions
-   │                                      - speak_to: spread information
-   │                                      - move: change proximity context
-   ▼
-7. Scene.post_turn()
-   │
-8. Simulator.emit_event() ◄────────────── Broadcast to WebSocket
-```
-
-**Contagion Rule Evaluation Flow:**
+## Recommended Project Structure
 
 ```
-Scene.pre_run()
-    │
-    ▼
-ContagionRules.evaluate(scene, simulator)
-    │
-    ├─► For each agent pair (by proximity)
-    │     └─► Check transition rules
-    │           ├─► Condition satisfied?
-    │           │     └─► Apply transition
-    │           │           └─► Update agent.properties[state_key]
-    │           │
-    │           └─► Record transition
-    │
-    ├─► For each agent (decay/recovery)
-    │     └─► Check duration in state
-    │           └─► Apply decay rule
-    │                 └─► Transition or stay
-    │
-    └─► Update global statistics
-          └─► scene.state["contagion_stats"]
+src/socialsim4/
+├── backend/                    # Web API layer
+│   └── api/routes/
+│       ├── experiments.py      # Experiment CRUD and run endpoints
+│       ├── simulations/
+│       │   ├── lifecycle.py    # Start/stop simulations
+│       │   ├── tree_operations.py # SimTree branching ops
+│       │   └── websocket_handlers.py # Real-time event streaming
+│       └── auth.py             # JWT authentication
+├── core/
+│   ├── experiment/             # Game theory experiment engine
+│   │   ├── scene.py           # ExperimentScene (main orchestrator)
+│   │   ├── runner.py          # ExperimentRunner (round execution)
+│   │   ├── agent.py           # ExperimentAgent (LLM wrapper)
+│   │   ├── round_context.py   # RoundContextManager (history)
+│   │   ├── payoff/            # Payoff calculation
+│   │   ├── feedback/          # Coordination feedback
+│   │   └── state.py           # ExperimentState persistence
+│   ├── agent.py               # Legacy Agent (for non-experiment sims)
+│   ├── simulator.py           # Legacy Simulator loop
+│   └── simtree.py             # Branching timeline engine
+├── i18n.py                    # T() translation function
+└── locales/
+    ├── en.json                # English translations
+    └── zh.json                # Chinese translations
+frontend/
+├── components/
+│   ├── experiment/            # Game theory experiment UI
+│   │   ├── ExperimentBuilder.tsx
+│   │   ├── Step1InteractionType.tsx
+│   │   ├── ResourceConfig.tsx # For PGG token endowment
+│   │   └── PayoffMatrixEditor.tsx
+│   └── wizard/                # Scenario creation wizard
+├── services/                  # API client functions
+└── locales/
+    ├── en.json                # English translations (frontend)
+    └── zh.json                # Chinese translations (frontend)
 ```
 
-## Component Boundaries
+### Structure Rationale
 
-### ContagionScene (NEW)
+- **`core/experiment/`**: Isolated from legacy simulator. Clean API for game theory scenarios. RoundContextManager provides history tracking separate from Agent memory.
+- **`backend/api/routes/experiments.py`**: REST API for experiment lifecycle (create, run, compare). Integrates with SimTree for variant execution.
+- **Frontend `experiment/` components**: Domain-specific UI for game theory configuration. Separate from wizard to avoid clutter.
+- **i18n split (backend/frontend)**: Backend uses `T()` from `socialsim4.i18n`, frontend uses `i18next`. Shared translation keys structure.
 
-**Location:** `src/socialsim4/core/scenes/contagion_scene.py`
+## Architectural Patterns
 
-**Responsibility:**
-- Manage grid-based positioning (reuse VillageScene patterns)
-- Orchestrate contagion rule evaluation each turn
-- Track agent contagion states in scene.state
-- Provide state prompts to agents (observed behaviors, not hidden states)
-- Handle speak_to action for targeted communication
+### Pattern 1: Agent Isolation (Core Principle)
 
-**Communicates With:**
-- ContagionRules (rule evaluation)
-- GameMap (position/proximity queries)
-- Agents (via add_env_feedback for observations)
-- Simulator (via Scene hooks)
+**What:** Agents never know about the Simulator. All decisions flow from their context and scene feedback.
 
-**Key Methods:**
-```python
-class ContagionScene(Scene):
-    TYPE = "contagion_scene"
+**When to use:** All simulation scenarios. Critical for reproducibility and testability.
 
-    def __init__(self, name, initial_event, game_map, contagion_config, ...):
-        # Initialize with GameMap and contagion rules
+**Trade-offs:** Pro: Clean boundaries, easy to test. Con: Cannot implement "meta" agents that inspect simulation state.
 
-    def pre_run(self, simulator):
-        # Evaluate contagion rules before agent actions
-        self._evaluate_contagion_rules(simulator)
-
-    def get_scene_actions(self, agent):
-        # Return [SpeakToAction, MoveAction, LookAction, YieldAction, ...]
-
-    def get_agent_status_prompt(self, agent):
-        # Return observed behaviors, NOT hidden states
-        # "You see Agent X coughing" vs "Agent X is infected"
-```
-
-### ContagionRules (NEW MODULE)
-
-**Location:** `src/socialsim4/core/contagion/`
-
-**Files:**
-- `rules.py` — Core rule evaluation engine
-- `config.py` — Configuration schema and validation
-- `transitions.py` — State transition logic
-
-**Responsibility:**
-- Load and validate contagion configuration
-- Evaluate proximity-based transitions (infection spread)
-- Evaluate action-based transitions (speak_to spreads information)
-- Apply decay/recovery rules per state
-- Track transition history for analysis
-
-**Communicates With:**
-- ContagionScene (called via pre_run hook)
-- GameMap (queries for proximity)
-- Agent.properties (reads/writes state)
-
-**Key Classes:**
-```python
-@dataclass
-class StateConfig:
-    name: str
-    decay_rule: Optional[DecayRule] = None
-    visible_behaviors: list[str] = field(default_factory=list)
-
-@dataclass
-class TransitionRule:
-    from_state: str
-    to_state: str
-    condition: Condition  # proximity, action, probability
-    trigger: str  # "proximity" | "action"
-
-class ContagionRules:
-    def __init__(self, config: dict):
-        self.states: dict[str, StateConfig] = {}
-        self.transitions: list[TransitionRule] = []
-        self._load_config(config)
-
-    def evaluate(self, scene, simulator):
-        """Evaluate all rules and apply transitions."""
-        for agent_pair in self._get_adjacent_agents(scene, simulator):
-            self._check_proximity_transitions(agent_pair, scene)
-
-        for agent in simulator.agents.values():
-            self._check_decay_transitions(agent, scene)
-
-    def _check_proximity_transitions(self, agent_pair, scene):
-        """Check if contagion spreads between adjacent agents."""
-
-    def _check_decay_transitions(self, agent, scene):
-        """Check if agent recovers/decays to new state."""
-```
-
-### SpeakToAction (NEW OR EXTEND)
-
-**Location:** `src/socialsim4/core/actions/contagion_actions.py`
-
-**Option 1: Extend existing TalkToAction**
-- Add state transmission logic to existing action
-- Maintain consistency with current codebase
-
-**Option 2: Create new SpeakToAction**
-- Separate contagion-specific communication
-- More explicit about contagion mechanics
-
-**Recommendation:** Extend TalkToAction with optional contagion parameter
-
-```python
-class TalkToAction(Action):
-    NAME = "talk_to"
-    DESC = "Say something to a nearby person by name."
-    INSTRUCTION = """- talk_to: Speak to nearby agent
-  <Action name="talk_to"><target>Name</target><message>Hi!</message></Action>
-"""
-
-    def handle(self, action_data, agent, simulator, scene):
-        # ... existing validation and range checks ...
-
-        # NEW: Check if this is a ContagionScene and handle state transmission
-        if hasattr(scene, 'contagion_rules'):
-            scene.contagion_rules.handle_action_transmission(
-                sender=agent,
-                receiver=target,
-                action="talk_to",
-                scene=scene
-            )
-
-        # ... existing message delivery ...
-```
-
-### Configuration Schema (NEW)
-
-**Location:** `src/socialsim4/core/scenarios/contagion_configs/`
-
-**Format:** YAML or JSON (recommend YAML for readability)
-
-**Example Structure:**
-```yaml
-# disease_spread.yaml
-states:
-  - name: susceptible
-    decay_rule: null
-    visible_behaviors:
-      - "appears healthy"
-
-  - name: infected
-    decay_rule:
-      duration: 10  # turns
-      recovery_state: recovered
-      probability: 0.8
-    visible_behaviors:
-      - "coughing"
-      - "appears unwell"
-      - "lethargic"
-
-  - name: recovered
-    decay_rule: null  # permanent
-    visible_behaviors:
-      - "appears healthy"
-
-transitions:
-  - from: susceptible
-    to: infected
-    trigger: proximity
-    condition:
-      distance: 1  # adjacent tiles
-      probability: 0.3
-      required_states:
-        - infected  # neighbor must be infected
-
-  - from: infected
-    to: recovered
-    trigger: decay
-    condition:
-      min_duration: 10
-      probability: 0.8
-
-  - from: susceptible
-    to: informed
-    trigger: action
-    condition:
-      action: talk_to
-      source_state: infected
-      probability: 1.0
-```
-
-## Patterns to Follow
-
-### Pattern 1: Scene-Orchestrated Rule Evaluation
-
-**What:** Rules are evaluated in Scene.pre_run() before agents act
-**When:** Contagion spread happens independently of agent decisions
 **Example:**
 ```python
-class ContagionScene(Scene):
-    def pre_run(self, simulator: Simulator):
-        """Evaluate contagion rules each turn."""
-        super().pre_run(simulator)
-        self.contagion_rules.evaluate(self, simulator)
+# Agent.process() only receives: clients, initiative, scene
+# No access to simulator, other agents, or global state
+action_data = agent.process(clients, initiative=False, scene=scene)
 ```
 
-**Why:** Maintains agent isolation — agents never trigger their own contagion transitions. Rules are environment-driven, not agent-driven.
+### Pattern 2: Three-Layer LLM Response Handling
 
-### Pattern 2: Hidden States with Observable Behaviors
+**What:** Controller (parse) → Validation (fuzzy match/clamp) → Reprompt (if needed).
 
-**What:** Agent contagion state is stored in agent.properties but NOT shown in status prompts
-**When:** Agents must infer states from observed behaviors
+**When to use:** All LLM-driven agent actions. Handles small model errors robustly.
+
+**Trade-offs:** Pro: Handles malformed LLM output gracefully. Con: Adds complexity to action processing.
+
 **Example:**
 ```python
-# DON'T DO THIS — shows hidden state
-def get_agent_status_prompt(self, agent):
-    state = agent.properties["contagion_state"]
-    return f"You are {state}"
-
-# DO THIS — shows observable behaviors
-def get_agent_status_prompt(self, agent):
-    state_key = self.contagion_rules.get_state_key()
-    state = agent.properties.get(state_key)
-    behaviors = self.contagion_rules.get_visible_behaviors(state)
-    return f"You observe: {', '.join(behaviors)}"
+# Layer 1: Controller parses JSON
+result = controller.parse_response(raw_response)
+# Layer 2: Validation fixes/clamps
+validated = validation.validate_and_clamp(result, game_config)
+# Layer 3: Reprompt for follow-up actions (e.g., Speak → what do you want to say?)
+if needs_followup:
+    result = await controller.process_response_with_followup(...)
 ```
 
-**Why:** More realistic social dynamics. Information spread becomes meaningful when agents must communicate to learn states.
+### Pattern 3: Round Context Inheritance
 
-### Pattern 3: Proximity-Based Adjacency
+**What:** Each round builds context from previous rounds via RoundContextManager. History is filtered by InformationModel (all/pair/neighbor/none).
 
-**What:** Use Manhattan distance on grid for contagion spread calculations
-**When:** Evaluating proximity-based transitions
+**When to use:** Multi-round experiments where agents need cumulative context.
+
+**Trade-offs:** Pro: Deterministic context building (no LLM dependency). Con: Context grows large, must budget tokens.
+
 **Example:**
 ```python
-def _get_adjacent_agents(self, scene, simulator):
-    """Yield pairs of agents within contagion distance."""
-    for agent_a in simulator.agents.values():
-        for agent_b in simulator.agents.values():
-            if agent_a.name == agent_b.name:
-                continue
-            pos_a = agent_a.properties.get("map_xy")
-            pos_b = agent_b.properties.get("map_xy")
-            if not pos_a or not pos_b:
-                continue
-            dist = abs(pos_a[0] - pos_b[0]) + abs(pos_a[1] - pos_b[1])
-            if dist <= self.proximity_distance:
-                yield (agent_a, agent_b, dist)
+# Record actions with observer tracking
+context_manager.record_action_with_observers(
+    agent_name="Alice",
+    action_name="contribute",
+    parameters={"amount": 10},
+    round_num=1,
+    summary="Alice contributed 10 tokens",
+    payoff=8
+)
+
+# Build filtered context for next round
+context = context_manager.get_context_for_agent("Alice", agent_score=alice.score)
 ```
 
-**Why:** Consistent with existing VillageScene chat_range logic. Reuses GameMap infrastructure.
+### Pattern 4: SimTree Branching (What-If Exploration)
 
-### Pattern 4: Declarative Rule Configuration
+**What:** Each SimTreeNode stores a cloned Simulator. Operations: advance, branch, multi, chain.
 
-**What:** Rules defined in YAML/JSON, loaded at scene initialization
-**When:** Need flexible contagion models without code changes
+**When to use:** Exploring alternate outcomes, A/B testing, parameter sweeps.
+
+**Trade-offs:** Pro: No shared state between branches. Con: Memory intensive (deep copies).
+
 **Example:**
 ```python
-@dataclass
-class ContagionConfig:
-    states: list[StateConfig]
-    transitions: list[TransitionRule]
-    proximity_distance: int = 1
-
-    @classmethod
-    def from_yaml(cls, path: str) -> "ContagionConfig":
-        with open(path) as f:
-            data = yaml.safe_load(f)
-        return cls(**data)
+# Create branch where agent contributes differently
+child = tree.branch(parent_node, [{
+    "type": "agent_ctx",
+    "agent": "Alice",
+    "key": "override_contribution",
+    "value": 20
+}])
 ```
 
-**Why:** Researchers can experiment with different models (SIR, SEIR, information diffusion) by changing config files, not code.
+## Data Flow
 
-## Anti-Patterns to Avoid
+### Request Flow (Create and Run Experiment)
 
-### Anti-Pattern 1: Agents Knowing Their Own Contagion State
-
-**What:** Showing agent.properties["contagion_state"] in status prompts
-**Why bad:** Eliminates the need for communication and observation. Breaks the "hidden state" design principle.
-**Instead:** Show observable behaviors only. Let agents ask "Are you sick?" or observe coughing.
-
-### Anti-Pattern 2: Action-Triggered State Transitions
-
-**What:** Agent.move() or Agent.speak() directly triggering contagion spread
-**Why bad:** Violates agent isolation. Agents would control contagion mechanics.
-**Instead:** Scene.pre_run() evaluates rules. Agent actions only affect transitions if the rule specifies trigger="action".
-
-### Anti-Pattern 3: Tight Coupling to Specific Models
-
-**What:** Hardcoding SIR/SEIR logic into ContagionScene
-**Why bad:** Can't reuse for information diffusion, rumor spread, or other contagion types.
-**Instead:** Generic state machine with configurable transitions.
-
-### Anti-Pattern 4: State Stored in Multiple Places
-
-**What:** Duplicating contagion state in scene.state AND agent.properties
-**Why bad:** Inconsistent state, complex synchronization, bugs during SimTree cloning.
-**Instead:** Single source of truth in agent.properties[state_key]. Scene.state only holds aggregates/stats.
-
-## Scalability Considerations
-
-| Concern | At 10 agents | At 100 agents | At 1000 agents |
-|---------|--------------|---------------|----------------|
-| **Rule evaluation** | O(n²) pairs, negligible | O(n²) pairs, ~10K iterations | O(n²) pairs, ~1M iterations — may need spatial partitioning |
-| **State storage** | agent.properties, trivial | agent.properties, trivial | agent.properties, OK |
-| **Serialization** | SimTree cloning, fast | SimTree cloning, moderate | SimTree cloning, may need lazy state copy |
-| **Proximity queries** | Nested loop, fine | Nested loop, fine | Spatial index (quadtree or grid buckets) recommended |
-
-**Optimization for 1000+ agents:**
-```python
-# Instead of O(n²) nested loop:
-def _get_adjacent_agents_slow(self, simulator):
-    for a in simulator.agents.values():
-        for b in simulator.agents.values():
-            # ... distance check ...
-
-# Use spatial partitioning:
-def _get_adjacent_agents_fast(self, simulator):
-    # Build spatial buckets
-    buckets = self._build_spatial_buckets(simulator)
-    # Only check adjacent buckets
-    for bucket in buckets:
-        for agent_pair in self._check_bucket_adjacency(bucket):
-            yield agent_pair
+```
+[User: Create Experiment]
+    ↓
+[Frontend: ExperimentBuilder] → POST /api/simulations/{id}/experiments
+    ↓
+[Backend: experiments.create_experiment] → Create Experiment DB record
+    ↓
+[Frontend: User clicks "Run"] → POST /api/simulations/{id}/experiments/{exp_id}/run
+    ↓
+[Backend: experiments.run_experiment] → start_experiment_run_background()
+    ↓
+[ExperimentScene] → initialize(llm_client)
+    ↓
+[ExperimentRunner] → _run_single_round(round_num, context_summary, round_history)
+    ↓
+[For each agent: _prompt_agent()]
+    ├── [RoundContextManager] → get_context_for_agent() (filtered by InformationModel)
+    ├── [build_prompt()] → Assemble context + role + game config
+    ├── [LLM Client] → chat(messages, json_mode=True)
+    ├── [ExperimentController] → process_response_with_followup()
+    └── [RoundContextManager] → record_action_with_observers()
+    ↓
+[PayoffEngine] → calculate_round_payoffs() → Update agent scores
+    ↓
+[ExperimentScene] → Apply action effects to ExperimentState
+    ↓
+[SimTree] → Store result in node logs
+    ↓
+[WebSocket] → Stream events to frontend → Update UI
 ```
 
-## Data Structures
+### State Management
 
-### State Tracking
+```
+[ExperimentState] (Durable, persisted)
+    ├── agents: Dict[str, AgentState]
+    │   ├── score: int
+    │   ├── resources: Dict[str, Any]
+    │   └── properties: Dict[str, Any]
+    ├── extensions: Dict[str, Any]
+    ├── history: List[RoundHistory]
+    └── round: int
 
-**Location:** `agent.properties[contagion_state]`
+[RoundContextManager] (Ephemeral, rebuilt each round)
+    ├── _round_events: List[RoundEvent]
+    └── information_model: InformationModel (scope_type, pairing_fn)
 
-**Structure:**
-```python
-agent.properties = {
-    "map_xy": [5, 10],
-    "hunger": 30,
-    "energy": 80,
-    # NEW: Contagion state
-    "contagion_state": {
-        "current": "infected",
-        "duration": 5,  # turns in current state
-        "history": ["susceptible", "infected"],
-        "last_transition_turn": 42
-    }
-}
+[ExperimentAgent] (In-memory, per simulation)
+    ├── name: str
+    ├── role_prompt: str
+    ├── knowledge_base: List[str]
+    ├── score: int (cumulative)
+    └── action_history: List[Dict]
 ```
 
-### Scene-Level Aggregates
+### Key Data Flows
 
-**Location:** `scene.state[contagion_stats]`
+1. **Context Inheritance:** `round_history` → `RoundContextManager._replay_history_to_events()` → `_round_events` → `get_context_for_agent()` (filtered by InformationModel)
+2. **Action Execution:** Agent action → `ActionHandler.execute()` → Mutates `ExperimentState` (resources, properties)
+3. **Payoff Calculation:** Round actions → `PayoffEngine.calculate_round_payoffs()` → Update `Agent.score` → Stored in `RoundEvent.payoff`
+4. **i18n Flow:** Backend `T('key')` → Lookup `locales/{locale}.json` → Return translated string → Frontend displays
 
-**Structure:**
-```python
-scene.state = {
-    "time": 1080,
-    # NEW: Contagion statistics
-    "contagion_stats": {
-        "state_counts": {
-            "susceptible": 7,
-            "infected": 2,
-            "recovered": 1
-        },
-        "transition_history": [
-            {"turn": 5, "agent": "Alice", "from": "susceptible", "to": "infected", "trigger": "proximity"},
-            {"turn": 5, "agent": "Bob", "from": "susceptible", "to": "infected", "trigger": "proximity"}
-        ],
-        "patient_zeros": ["Alice"]
-    }
-}
-```
+## Scaling Considerations
 
-### Configuration Schema
+| Scale | Architecture Adjustments |
+|-------|--------------------------|
+| 0-1k concurrent simulations | Monolith is fine. PostgreSQL handles load. LLM providers are the bottleneck. |
+| 1k-10k concurrent simulations | Use background task queue (Celery) for experiment runs. Cache LLM responses. |
+| 100k+ concurrent simulations | Microservices: separate experiment engine from API. Distributed SimTree storage. |
 
-**File:** `src/socialsim4/core/contagion/config.py`
+### Scaling Priorities
 
-```python
-@dataclass
-class DecayRule:
-    duration: int  # turns before decay possible
-    recovery_state: str  # target state after decay
-    probability: float  # chance of recovery per turn after duration
+1. **First bottleneck:** LLM API rate limits. Mitigation: Queue requests, use multiple providers, cache prompt-response pairs.
+2. **Second bottleneck:** SimTree memory usage. Mitigation: Serialize inactive nodes to disk, limit tree depth.
 
-@dataclass
-class StateConfig:
-    name: str
-    decay_rule: Optional[DecayRule]
-    visible_behaviors: list[str]
-    initial: bool = False  # Is this an initial state?
+## Anti-Patterns
 
-@dataclass
-class Condition:
-    distance: Optional[int] = None  # For proximity rules
-    probability: float = 1.0
-    required_states: list[str] = field(default_factory=list)
-    min_duration: Optional[int] = None  # For decay rules
+### Anti-Pattern 1: Breaking Agent Isolation
 
-@dataclass
-class TransitionRule:
-    from_state: str
-    to_state: str
-    trigger: str  # "proximity" | "decay" | "action"
-    condition: Condition
-```
+**What people do:** Pass Simulator reference to Agent for "meta-awareness."
 
-## Backward Compatibility
+**Why it's wrong:** Violates core architecture principle. Makes agents unreproducible. Makes testing impossible.
 
-### Existing Scenes (No Impact)
+**Do this instead:** If agent needs global info, inject it via context or scene feedback. Keep agent decision-making pure.
 
-- CouncilScene, WerewolfScene, etc. remain unchanged
-- No contagion rules added by default
-- Opt-in via scene type selection
+### Anti-Pattern 2: Defensive Coding in Core Engine
 
-### VillageScene (Optional Enhancement)
+**What people do:** Add try/except blocks around action parsing, fallback to default actions.
 
-- Could add optional contagion_config parameter
-- If not provided, behaves identically to current version
-- If provided, adds contagion mechanics to existing village simulation
+**Why it's wrong:** Masks real errors. Makes debugging impossible. Violates "fail fast" philosophy.
 
-### Migration Path
+**Do this instead:** Let exceptions surface. Fix root causes. Use validation layer (Layer 3) for LLM fuzziness, not try/except.
+
+### Anti-Pattern 3: Direct Database Access from Experiment Engine
+
+**What people do:** Query database directly in ExperimentRunner for agent state.
+
+**Why it's wrong:** Tight coupling to DB. Hard to test. Breaks experiment isolation.
+
+**Do this instead:** Pass all state via ExperimentConfig. Use ExperimentScene to persist state after rounds.
+
+### Anti-Pattern 4: Hardcoded User-Facing Strings
+
+**What people do:** Write error messages, labels, and prompts directly in code.
+
+**Why it's wrong:** Breaks i18n. Impossible to translate. Violates project requirements.
+
+**Do this instead:** Always use `T('key')` in backend, `t('key')` in frontend. Add translations to locale files.
+
+## Integration Points
+
+### External Services
+
+| Service | Integration Pattern | Notes |
+|---------|---------------------|-------|
+| **LLM Providers** | Abstract client interface (`LLMClient`) | Swap OpenAI/Ollama/Gemini via config. Retry with fallback on empty responses. |
+| **PostgreSQL** | Async SQLAlchemy | Simulation snapshots, SimTree nodes, experiment records. |
+| **WebSocket** | Socket.IO or native WS | Stream `agent_process_start`, `action_end`, `experiment_action` events to frontend. |
+
+### Internal Boundaries
+
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| **Frontend ↔ Backend API** | REST (AXios) + WebSocket | Use `T()` for all error messages. Pass locale header. |
+| **Backend API ↔ Experiment Engine** | Direct Python calls | No HTTP overhead. `ExperimentScene.run_round(event_emitter)` |
+| **ExperimentScene ↔ Simulator** | None (isolated) | ExperimentScene does NOT inherit from Scene. Uses ExperimentAgents directly. |
+| **ExperimentRunner ↔ RoundContextManager** | Direct method calls | `get_context_for_agent()`, `record_action_with_observers()` |
+| **Backend i18n ↔ Frontend i18n** | Shared key structure | Backend uses `socialsim4/i18n.py`, frontend uses `i18next`. Keys must match. |
+
+## Feature Integration Architecture
+
+### Context Inheritance (BUG-01)
+
+**Component:** `RoundContextManager` in `core/experiment/round_context.py`
+
+**Integration Point:** `ExperimentRunner._run_single_round()`
 
 ```python
-# Current usage (unchanged)
-scene = VillageScene("village", "Welcome", game_map)
-
-# New usage (with contagion)
-scene = ContagionScene("outbreak", "Disease outbreak", game_map, contagion_config)
-# OR
-scene = VillageScene("village", "Welcome", game_map, contagion_config=config)
+# Flow:
+round_history → _replay_history_to_events() → _round_events → get_context_for_agent()
 ```
 
-## Suggested Build Order
+**Build Order:** Must be fixed first. Blocks all multi-round experiments.
 
-### Phase 1: Core Infrastructure (No contagion logic yet)
-1. Create `src/socialsim4/core/contagion/` directory
-2. Implement `config.py` with StateConfig, TransitionRule, Condition dataclasses
-3. Implement `rules.py` skeleton with ContagionRules class
-4. Add YAML config loader and validation
-5. Write unit tests for config parsing
+### Retry Enforcement (BUG-06)
 
-### Phase 2: Scene Integration
-1. Create `ContagionScene` extending Scene
-2. Inherit or compose VillageScene's GameMap logic
-3. Implement `pre_run()` hook for rule evaluation
-4. Add state tracking to scene.state
-5. Implement `get_agent_status_prompt()` with observable behaviors
+**Component:** `ExperimentController` in `core/experiment/controller.py`
 
-### Phase 3: Rule Engine
-1. Implement `_evaluate_proximity_rules()` in ContagionRules
-2. Implement `_evaluate_decay_rules()` in ContagionRules
-3. Implement `_evaluate_action_rules()` in ContagionRules
-4. Add transition tracking and history
-5. Write integration tests with mock agents
+**Integration Point:** Action validation layer. When retrying after connection error, enforce stage constraints.
 
-### Phase 4: Action Integration
-1. Extend TalkToAction for contagion transmission
-2. Add action-based transition support in rules engine
-3. Implement SpeakAction if separate from TalkToAction
-4. Add proximity validation for speak actions
+```python
+# Flow:
+_parse_action() fails → Connection error → Retry → Check stage constraint in scene_state
+```
 
-### Phase 5: Configuration and Scenarios
-1. Create example contagion configs (SIR, rumor spread)
-2. Add scenario builder support in frontend
-3. Add contagion state visualization in UI
-4. Write end-to-end tests
+**Build Order:** After context inheritance. Depends on stable round execution.
 
-### Phase 6: Analysis and Visualization
-1. Add transition history export
-2. Implement state timeline charts
-3. Add infection/recovery curve visualization
-4. Statistical analysis tools
+### Token Endowment Validation (BUG-07)
 
-## Confidence Assessment
+**Component:** `validation.py` in `core/experiment/`
 
-| Area | Confidence | Notes |
-|------|------------|-------|
-| Stack | HIGH | Based on existing VillageScene implementation |
-| State management | HIGH | agent.properties pattern is well-established |
-| Rule engine | HIGH | Similar to experiment framework's action handlers |
-| Agent isolation | HIGH | Scene-orchestrated rules maintain this principle |
-| Hidden states | HIGH | Confirmed in PROJECT.md as design requirement |
-| Action-based transitions | MEDIUM | Need to verify ActionController integration |
-| Configuration schema | MEDIUM | May need iteration for complex models |
-| Scalability optimizations | LOW | Won't know until testing with 1000+ agents |
+**Integration Point:** LLM response validation. Clamp integer values to valid range.
 
-## Gaps to Address
+```python
+# Flow:
+validate_and_clamp(result, game_config) → Check action_type="integer" → Clamp to min/max
+```
 
-1. **ActionController Integration:** Need to verify if contagion rules should integrate with ActionController or run independently in Scene.pre_run()
+**Build Order:** Can be done in parallel with context inheritance.
 
-2. **SimTree Cloning Performance:** State serialization with large transition histories may impact branching performance. Consider lazy history copy.
+### Punishment Mechanism (FEAT-01)
 
-3. **Multi-Language Support:** Contagion config and visible behaviors need i18n support (English/Chinese)
+**Component:** New action handler in `ActionHandler` + new payoff mode in `PayoffEngine`
 
-4. **Probabilistic Transitions:** Random number generation during rule evaluation — ensure deterministic replay for SimTree branches?
+**Integration Point:** ExperimentScene action execution and payoff calculation.
 
-5. **Spatial Indexing:** For 1000+ agents, need to implement spatial partitioning. Not blocking for MVP.
+```python
+# Flow:
+ActionHandler.execute("punish", agent, params, state) → Deduct tokens from target
+PayoffEngine → Add punishment payoff mode
+```
 
-6. **Frontend Visualization:** How to display hidden states vs observable behaviors in UI? Show all to user but hide from agents?
+**Build Order:** After token validation is fixed. Extends existing payoff engine.
+
+### Blind Choice Mode (FEAT-02)
+
+**Component:** UI toggle + ExperimentRunner visibility mode
+
+**Integration Point:** Frontend ExperimentBuilder → GameConfig parameters
+
+```python
+# Flow:
+Frontend toggle → round_visibility="simultaneous" (blind) vs "sequential" (visible)
+```
+
+**Build Order:** Independent. Can be done anytime.
+
+### i18n Audit (I18N-01)
+
+**Component:** Backend `T()` function + Frontend `i18next`
+
+**Integration Point:** All user-facing text throughout the stack.
+
+```python
+# Backend:
+T('error.simulation.not_found')
+# Frontend:
+t('dashboard.title')
+```
+
+**Build Order:** Can be done incrementally. High priority but not blocking.
 
 ## Sources
 
-- **Existing Codebase Analysis:**
-  - `src/socialsim4/core/scene.py` — Base Scene class with hooks
-  - `src/socialsim4/core/scenes/village_scene.py` — Grid-based positioning, GameMap, proximity chat
-  - `src/socialsim4/core/actions/base_actions.py` — TalkToAction pattern
-  - `src/socialsim4/core/actions/village_actions.py` — Movement, look_around actions
-  - `src/socialsim4/core/experiment/state.py` — State management patterns
-  - `src/socialsim4/core/simulator.py` — Simulator lifecycle, event emission
-  - `src/socialsim4/core/agent/agent.py` — Agent.properties pattern
+- AGENTS.md (Core architecture principles)
+- Source code analysis of:
+  - `core/simulator.py` (Legacy simulator loop)
+  - `core/experiment/scene.py` (ExperimentScene orchestrator)
+  - `core/experiment/runner.py` (ExperimentRunner round execution)
+  - `core/experiment/round_context.py` (RoundContextManager)
+  - `backend/api/routes/experiments.py` (REST API)
+  - `i18n.py` (Translation infrastructure)
 
-- **Project Context:**
-  - `.planning/PROJECT.md` — Contagion requirements and key decisions
-  - `.planning/codebase/ARCHITECTURE.md` — Overall platform architecture
-  - `.planning/codebase/STRUCTURE.md` — Directory structure and conventions
+---
+*Architecture research for: Multi-agent simulation platform*
+*Researched: 2025-03-18*
