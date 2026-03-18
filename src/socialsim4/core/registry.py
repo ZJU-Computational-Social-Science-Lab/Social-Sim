@@ -15,6 +15,13 @@ from .actions.landlord_actions import (
     RobLandlordAction,
 )
 from .actions.moderation_actions import ScheduleOrderAction
+from .actions.policy_feedback_actions import (
+    AnnouncePolicyAdjustmentAction,
+    ConsultPeerAction,
+    EscalateComplaintAction,
+    NotifySubordinateAction,
+    ReportUpwardAction,
+)
 from .actions.village_actions import (
     # ExploreAction,
     GatherResourceAction,
@@ -69,6 +76,12 @@ ACTION_SPACE_MAP = {
     "list_knowledge": ListKnowledgeAction(),
     # Moderation actions
     "schedule_order": ScheduleOrderAction(),
+    # Policy follow-up actions
+    "report_upward": ReportUpwardAction(),
+    "escalate_complaint": EscalateComplaintAction(),
+    "consult_peer": ConsultPeerAction(),
+    "notify_subordinate": NotifySubordinateAction(),
+    "announce_policy_adjustment": AnnouncePolicyAdjustmentAction(),
     # Werewolf actions
     "vote_lynch": VoteLynchAction(),
     "night_kill": NightKillAction(),
@@ -172,7 +185,13 @@ SCENE_ACTIONS: dict[str, dict[str, list[str]]] = {
     },
     "policy_cascade_scene": {
         "basic": ["send_message", "yield"],
-        "allowed": [],
+        "allowed": [
+            "report_upward",
+            "escalate_complaint",
+            "consult_peer",
+            "notify_subordinate",
+            "announce_policy_adjustment",
+        ],
     },
     "experiment_template": {
         "basic": [],

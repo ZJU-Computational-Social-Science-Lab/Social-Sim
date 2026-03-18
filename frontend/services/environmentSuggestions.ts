@@ -4,6 +4,7 @@ export interface EnvironmentSuggestion {
   event_type: string;
   description: string;
   severity: string;
+  notice_only?: boolean;
   receivers?: string[];
 }
 

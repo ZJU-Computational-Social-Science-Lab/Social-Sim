@@ -166,7 +166,7 @@ export enum ViewMode {
 // #18 Parallel Experiment Types
 export interface Intervention {
   id: string;
-  type: 'ENVIRONMENT' | 'AGENT_PROPERTY' | 'INSTRUCTION';
+  type: 'ENVIRONMENT' | 'AGENT_PROPERTY' | 'INSTRUCTION' | 'FOLLOW_UP_CONDITION' | 'FOLLOW_UP_THREAD_SEED';
   targetId?: string; // agentId if applicable
   description: string;
 }

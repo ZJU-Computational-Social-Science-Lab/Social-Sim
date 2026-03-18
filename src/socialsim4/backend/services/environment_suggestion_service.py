@@ -194,12 +194,20 @@ async def broadcast_environment_event(
     if not simulator:
         raise ValueError("Simulator not found")
 
-    # Create event
-    event = EnvironmentEvent(
-        event_type=event_data["event_type"],
-        description=event_data["description"],
-        severity=event_data.get("severity", "mild"),
-    )
+    # Decide mode: honor explicit `notice_only` if present; otherwise
+    # explicit "broadcast" causes a system broadcast. All other
+    # invocations are treated as notice-only environment interventions.
+    # Determine whether the simulator's scene is the policy cascade scene.
+    is_policy_scene = False
+    try:
+        is_policy_scene = getattr(simulator.scene, "TYPE", "") == "policy_cascade_scene"
+    except Exception:
+        is_policy_scene = False
+
+    # Only honor an explicit `notice_only` flag for the policy cascade scene.
+    notice_only_flag = bool(event_data.get("notice_only")) if is_policy_scene else False
+    mode = str(event_data.get("event_type") or "").strip().lower()
+    description = str(event_data.get("description") or "")
 
     receivers = None
     if "receivers" in event_data:
@@ -210,8 +218,36 @@ async def broadcast_environment_event(
         if not receivers:
             raise ValueError("receivers cannot be empty when provided")
 
-    # Broadcast to all agents
-    simulator.broadcast(event, receivers=receivers)
+    if not notice_only_flag and mode == "broadcast":
+        # Explicit system broadcast: create a PublicEvent and broadcast
+        from socialsim4.core.event import PublicEvent
+
+        event = PublicEvent(content=description, prefix="SYSTEM BROADCAST")
+        simulator.broadcast(event, receivers=receivers)
+    else:
+        # Notice-only environment injection: directly deliver feedback to
+        # target agents (or all agents) and call scene handlers with
+        # a 'notice_only' flag for the policy cascade scene so scenes do not treat this as a cascade.
+        images = []
+        # deliver to scoped recipients or all agents
+        if receivers is not None:
+            for name in receivers:
+                agent = simulator.agents.get(name)
+                if agent:
+                    agent.add_env_feedback(description, images=images)
+            # inform scene about private notice (no cascade)
+            if is_policy_scene:
+                simulator.scene.on_private_event(simulator, "environment", {"description": description, "event_type": mode, "notice_only": True}, receivers)
+            else:
+                simulator.scene.on_private_event(simulator, "environment", {"description": description, "event_type": mode}, receivers)
+        else:
+            for agent in simulator.agents.values():
+                agent.add_env_feedback(description, images=images)
+            # inform scene about global notice (no cascade)
+            if is_policy_scene:
+                simulator.scene.on_event(simulator, "environment", {"description": description, "event_type": mode, "notice_only": True})
+            else:
+                simulator.scene.on_event(simulator, "environment", {"description": description, "event_type": mode})
 
     # Mark suggestions as viewed at the tree level
     record = SIM_TREE_REGISTRY.get(simulation_id)
