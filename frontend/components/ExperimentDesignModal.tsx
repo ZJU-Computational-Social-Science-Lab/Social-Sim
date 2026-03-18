@@ -12,6 +12,100 @@ const extractMarkdownImages = (text: string): string[] => {
   return matches.map((m) => m[1]).filter(Boolean);
 };
 
+const parseConditionUpdates = (text: string): Record<string, any> => {
+  let updates: Record<string, any> = {};
+
+  try {
+    const parsed = JSON.parse(text || '{}');
+    if (parsed && typeof parsed === 'object' && parsed.updates) {
+      updates = parsed.updates;
+    } else if (parsed && typeof parsed === 'object') {
+      updates = parsed;
+    }
+  } catch {
+    String(text || '')
+      .split(',')
+      .map((s) => s.trim())
+      .forEach((pair) => {
+        const [k, ...rest] = pair.split('=');
+        if (!k) return;
+        const valStr = rest.join('=').trim();
+        const num = Number(valStr);
+        updates[k.trim()] = Number.isNaN(num) ? valStr : num;
+      });
+  }
+
+  return updates;
+};
+
+const inferThreadKind = (text: string): string => {
+  const normalized = String(text || '');
+  if (/越级|投诉|告状/.test(normalized)) return 'escalation';
+  if (/反馈|汇报|上报/.test(normalized)) return 'upward_feedback';
+  if (/通知|转办/.test(normalized)) return 'subordinate_notice';
+  if (/协商|讨论|商量|私聊|发消息|发送消息/.test(normalized)) return 'peer_consult';
+  return 'peer_consult';
+};
+
+const parseThreadSeed = (text: string, agentNames: string[]): Record<string, any> => {
+  let seed: Record<string, any> = {};
+
+  try {
+    const parsed = JSON.parse(text || '{}');
+    if (parsed && typeof parsed === 'object') {
+      seed = parsed;
+    }
+  } catch {
+    String(text || '')
+      .split(',')
+      .map((s) => s.trim())
+      .forEach((pair) => {
+        const [k, ...rest] = pair.split('=');
+        if (!k) return;
+        seed[k.trim()] = rest.join('=').trim();
+      });
+
+    if (!Object.keys(seed).length) {
+      const rawText = String(text || '').trim();
+      const compact = rawText.replace(/，/g, ',').replace(/：/g, ':');
+      const orderedNames = [...agentNames].sort((a, b) => b.length - a.length);
+      const matches = orderedNames
+        .map((name) => ({ name, idx: compact.indexOf(name) }))
+        .filter((item) => item.idx >= 0)
+        .sort((a, b) => a.idx - b.idx);
+
+      if (matches[0]) seed.sender = matches[0].name;
+      if (matches[1]) seed.recipient = matches[1].name;
+
+      const msgPatterns = [
+        /消息内容(?:为|是)?[:：]?\s*(.+)$/,
+        /内容(?:为|是)?[:：]?\s*(.+)$/,
+        /说[:：]?\s*(.+)$/,
+        /发消息[:：]?\s*(.+)$/,
+        /发送消息[:：]?\s*(.+)$/,
+      ];
+      for (const pattern of msgPatterns) {
+        const matched = compact.match(pattern);
+        if (matched && matched[1]) {
+          seed.message = matched[1].trim();
+          break;
+        }
+      }
+
+      if (!seed.message) {
+        const generic = compact.match(/(?:给|向).+?(?:发消息|发送消息|私聊|反馈|汇报|上报|通知|转办)[,，:]?\s*(.+)$/);
+        if (generic && generic[1]) {
+          seed.message = generic[1].trim();
+        }
+      }
+
+      seed.kind = inferThreadKind(compact);
+    }
+  }
+
+  return seed;
+};
+
 export const ExperimentDesignModal: React.FC = () => {
   const { t } = useTranslation();
   const isOpen = useSimulationStore(state => state.isExperimentDesignerOpen);
@@ -180,30 +274,12 @@ export const ExperimentDesignModal: React.FC = () => {
     // Build ops for each variant based on interventions
     const variantsWithOps = variants.map((v) => {
       const ops: any[] = [];
+      const pendingFollowUpConditions: Record<string, any> = {};
+      const pendingThreadSeeds: any[] = [];
       (v.interventions || []).forEach((iv) => {
         if (iv.type === 'AGENT_PROPERTY' && iv.targetId) {
           // parse description as JSON updates or key=value pairs
-          let updates: any = {};
-          try {
-            const parsed = JSON.parse(iv.description || '{}');
-            if (parsed && typeof parsed === 'object' && parsed.updates) {
-              updates = parsed.updates;
-            } else if (parsed && typeof parsed === 'object') {
-              updates = parsed;
-            }
-          } catch {
-            // fallback parse key=value,comma separated
-            String(iv.description || '')
-              .split(',')
-              .map((s) => s.trim())
-              .forEach((pair) => {
-                const [k, ...rest] = pair.split('=');
-                if (!k) return;
-                const valStr = rest.join('=').trim();
-                const num = Number(valStr);
-                updates[k.trim()] = Number.isNaN(num) ? valStr : num;
-              });
-          }
+          const updates = parseConditionUpdates(iv.description || '');
 
           const target = agents.find((a) => a.id === iv.targetId);
           const name = target ? target.name : iv.targetId;
@@ -213,8 +289,39 @@ export const ExperimentDesignModal: React.FC = () => {
           ops.push({ op: 'public_broadcast', text: iv.description || '' });
         } else if (iv.type === 'ENVIRONMENT') {
           ops.push({ op: 'public_broadcast', text: iv.description || '' });
+        } else if (iv.type === 'FOLLOW_UP_CONDITION') {
+          const updates = parseConditionUpdates(iv.description || '');
+          Object.assign(pendingFollowUpConditions, updates);
+        } else if (iv.type === 'FOLLOW_UP_THREAD_SEED' && iv.targetId) {
+          const seed = parseThreadSeed(iv.description || '', agents.map((a) => a.name));
+          const target = agents.find((a) => a.id === iv.targetId);
+          const recipient = seed.recipient || (target ? target.name : iv.targetId);
+          pendingThreadSeeds.push({
+            recipient,
+            sender: seed.sender,
+            kind: seed.kind || 'peer_consult',
+            message: seed.message || '',
+            notice: seed.notice || '',
+            metadata: seed.metadata || {},
+          });
         }
       });
+      if (Object.keys(pendingFollowUpConditions).length > 0) {
+        ops.push({
+          op: 'scene_state_patch',
+          updates: {
+            pending_follow_up_conditions: pendingFollowUpConditions,
+          },
+        });
+      }
+      if (pendingThreadSeeds.length > 0) {
+        ops.push({
+          op: 'scene_state_patch',
+          updates: {
+            follow_up_thread_seeds: pendingThreadSeeds,
+          },
+        });
+      }
       return { ...v, ops };
     });
 
@@ -360,9 +467,11 @@ export const ExperimentDesignModal: React.FC = () => {
                                   <option value="INSTRUCTION">{t('components.experimentDesignModal.instructionType')}</option>
                                   <option value="AGENT_PROPERTY">{t('components.experimentDesignModal.propertyType')}</option>
                                   <option value="ENVIRONMENT">{t('components.experimentDesignModal.environmentType')}</option>
+                                  <option value="FOLLOW_UP_CONDITION">{t('components.experimentDesignModal.followUpConditionType', { defaultValue: 'Follow-up condition' })}</option>
+                                  <option value="FOLLOW_UP_THREAD_SEED">{t('components.experimentDesignModal.followUpThreadSeedType', { defaultValue: 'Follow-up thread seed' })}</option>
                                 </select>
 
-                                {iv.type === 'AGENT_PROPERTY' && (
+                                {(iv.type === 'AGENT_PROPERTY' || iv.type === 'FOLLOW_UP_THREAD_SEED') && (
                                   <select
                                     value={iv.targetId || ''}
                                     onChange={(e) => updateIntervention(variant.id, iv.id, 'targetId', e.target.value)}
@@ -382,7 +491,15 @@ export const ExperimentDesignModal: React.FC = () => {
                               <textarea
                                 value={iv.description}
                                 onChange={(e) => updateIntervention(variant.id, iv.id, 'description', e.target.value)}
-                                placeholder={iv.type === 'AGENT_PROPERTY' ? t('components.experimentDesignModal.propertyPlaceholder') : t('components.experimentDesignModal.descriptionPlaceholder')}
+                                placeholder={
+                                  iv.type === 'AGENT_PROPERTY'
+                                    ? t('components.experimentDesignModal.propertyPlaceholder')
+                                    : iv.type === 'FOLLOW_UP_CONDITION'
+                                      ? t('components.experimentDesignModal.followUpConditionPlaceholder', { defaultValue: '例如: resource_shortage=0.8, public_opinion_pressure=0.6 或 {"resource_shortage": 0.8}' })
+                                      : iv.type === 'FOLLOW_UP_THREAD_SEED'
+                                        ? t('components.experimentDesignModal.followUpThreadSeedPlaceholder', { defaultValue: '例如: 智能体3想要给智能体4发消息，消息内容为执行困难，需要回应。也支持 JSON。' })
+                                      : t('components.experimentDesignModal.descriptionPlaceholder')
+                                }
                                 className="w-full text-xs bg-white border rounded p-2 focus:ring-1 focus:ring-indigo-500 outline-none resize-none h-16"
                               />
                               {extractMarkdownImages(iv.description || '').length > 0 && (

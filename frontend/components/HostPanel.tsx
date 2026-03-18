@@ -56,12 +56,19 @@ export const HostPanel: React.FC = () => {
 
     const shouldCallBackend = engineMode === 'connected' && currentSimulation?.id;
     if (shouldCallBackend) {
-      await applyEnvironmentEvent(currentSimulation!.id, {
+      const isPolicyScene = currentSimulation?.scene_type === 'policy_cascade_scene';
+      const payload: any = {
         event_type: eventType,
         description,
         severity: 'mild',
         receivers: recipients,
-      });
+      };
+      // Only include explicit notice_only for policy cascade scene to avoid
+      // changing semantics in other scene types.
+      if (isPolicyScene) {
+        payload.notice_only = eventType !== 'broadcast';
+      }
+      await applyEnvironmentEvent(currentSimulation!.id, payload);
     }
 
     const logContent = eventType === 'broadcast' ? formatBroadcastLog(description) : description;
@@ -247,6 +254,11 @@ export const HostPanel: React.FC = () => {
           <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
             <CloudLightning size={14} /> {t('components.hostPanel.injectEvent')}
           </label>
+          {currentSimulation?.scene_type === 'policy_cascade_scene' && (
+            <div className="text-[11px] text-slate-400 italic">
+              {t('components.hostPanel.injectNoticeOnly', '注：注入环境事件为 notice-only（不触发系统广播），用于干预后续事件。')}
+            </div>
+          )}
           <div className="flex flex-col gap-2">
             <input
               type="text"
