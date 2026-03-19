@@ -1,3 +1,13 @@
+/**
+ * Authentication store for session management.
+ *
+ * Manages user authentication state, tokens, and proactive token refresh.
+ * Tokens refresh automatically before expiry when WebSocket is connected
+ * to prevent mid-experiment logouts.
+ *
+ * Exports: useAuthStore (Zustand store hook)
+ */
+
 import { create } from "zustand";
 
 type AuthState = {
@@ -6,6 +16,9 @@ type AuthState = {
   isAuthenticated: boolean;
   user: Record<string, unknown> | null;
   hasRestored: boolean;
+  // Proactive refresh state
+  refreshTimerId: ReturnType<typeof setTimeout> | null;
+  webSocketConnected: boolean;
   setSession: (payload: {
     accessToken: string;
     refreshToken: string;
@@ -14,14 +27,36 @@ type AuthState = {
   clearSession: () => void;
   restoreSession: () => void;
   updateTokens: (accessToken: string, refreshToken: string) => void;
+  // Proactive refresh methods
+  setWebSocketConnected: (connected: boolean) => void;
+  setupProactiveRefresh: () => void;
+  clearProactiveRefresh: () => void;
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
+/**
+ * Decode JWT token to extract expiry timestamp.
+ * Returns expiry time in milliseconds, or null if decoding fails.
+ */
+function getTokenExpiry(token: string): number | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1]));
+    return payload.exp ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
   accessToken: null,
   refreshToken: null,
   isAuthenticated: false,
   user: null,
   hasRestored: false,
+  refreshTimerId: null,
+  webSocketConnected: false,
+
   setSession: ({ accessToken, refreshToken, user }) => {
     localStorage.setItem("socialsim4.access", accessToken);
     localStorage.setItem("socialsim4.refresh", refreshToken);
@@ -33,13 +68,22 @@ export const useAuthStore = create<AuthState>((set) => ({
       isAuthenticated: true,
       hasRestored: true,
     });
+    // Setup proactive refresh if WebSocket is connected
+    const state = get();
+    if (state.webSocketConnected) {
+      state.setupProactiveRefresh();
+    }
   },
+
   clearSession: () => {
+    // Clear proactive refresh timer
+    get().clearProactiveRefresh();
     localStorage.removeItem("socialsim4.access");
     localStorage.removeItem("socialsim4.refresh");
     localStorage.removeItem("socialsim4.user");
     set({ accessToken: null, refreshToken: null, user: null, isAuthenticated: false, hasRestored: true });
   },
+
   updateTokens: (accessToken, refreshToken) => {
     const userRaw = localStorage.getItem("socialsim4.user");
     if (accessToken) {
@@ -55,7 +99,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       isAuthenticated: true,
       hasRestored: true,
     }));
+    // Setup proactive refresh if WebSocket is connected
+    const currentState = get();
+    if (currentState.webSocketConnected) {
+      currentState.setupProactiveRefresh();
+    }
   },
+
   restoreSession: () => {
     const access = localStorage.getItem("socialsim4.access");
     const refresh = localStorage.getItem("socialsim4.refresh");
@@ -67,12 +117,121 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const user = JSON.parse(userRaw) as Record<string, unknown>;
       set({ accessToken: access, refreshToken: refresh, user, isAuthenticated: true, hasRestored: true });
+      // Setup proactive refresh if WebSocket is already connected
+      const state = get();
+      if (state.webSocketConnected) {
+        state.setupProactiveRefresh();
+      }
     } catch (error) {
       console.error("Failed to parse stored user", error);
       localStorage.removeItem("socialsim4.access");
       localStorage.removeItem("socialsim4.refresh");
       localStorage.removeItem("socialsim4.user");
       set({ accessToken: null, refreshToken: null, user: null, isAuthenticated: false, hasRestored: true });
+    }
+  },
+
+  setWebSocketConnected: (connected: boolean) => {
+    set({ webSocketConnected: connected });
+    if (connected) {
+      get().setupProactiveRefresh();
+    } else {
+      get().clearProactiveRefresh();
+    }
+  },
+
+  setupProactiveRefresh: () => {
+    const state = get();
+
+    // Clear existing timer
+    if (state.refreshTimerId) {
+      clearTimeout(state.refreshTimerId);
+      set({ refreshTimerId: null });
+    }
+
+    // Only setup if authenticated and WebSocket connected
+    if (!state.isAuthenticated || !state.webSocketConnected || !state.accessToken) {
+      return;
+    }
+
+    const expiry = getTokenExpiry(state.accessToken);
+    if (!expiry) {
+      console.warn("Could not determine token expiry - skipping proactive refresh");
+      return;
+    }
+
+    const now = Date.now();
+    const fiveMinutes = 5 * 60 * 1000;
+    const timeUntilRefresh = expiry - now - fiveMinutes;
+
+    // Edge case: token already expired
+    if (expiry <= now) {
+      console.warn("Token already expired - clearing session");
+      state.clearSession();
+      return;
+    }
+
+    // Edge case: token expires in less than 5 minutes - refresh immediately via reactive mechanism
+    if (timeUntilRefresh <= 0) {
+      console.log("Token expires soon - refreshing immediately");
+      // Import API_BASE_URL dynamically to avoid circular dependency
+      import("../services/client").then(({ API_BASE_URL }) => {
+        fetch(`${API_BASE_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${state.accessToken}` }
+        }).catch(() => {
+          // 401 will trigger reactive refresh in client.ts
+        });
+      });
+      return;
+    }
+
+    // Schedule refresh for 5 minutes before expiry
+    const timerId = setTimeout(async () => {
+      const currentState = get();
+
+      // Re-check conditions at execution time
+      if (!currentState.webSocketConnected) {
+        console.log("WebSocket no longer connected - skipping refresh");
+        return;
+      }
+
+      if (!currentState.refreshToken) {
+        console.warn("No refresh token available - cannot refresh");
+        return;
+      }
+
+      try {
+        const { API_BASE_URL } = await import("../services/client");
+        const response = await fetch(`${API_BASE_URL}/auth/token/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh_token: currentState.refreshToken }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Token refresh failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        currentState.updateTokens(data.access_token, data.refresh_token);
+
+        console.log("Proactive token refresh successful");
+        currentState.setupProactiveRefresh();
+      } catch (error) {
+        console.error("Proactive token refresh failed:", error);
+        // Don't clear session - reactive handler in client.ts will deal with 401
+      }
+    }, timeUntilRefresh);
+
+    set({ refreshTimerId: timerId });
+    console.log(`Proactive refresh scheduled in ${Math.round(timeUntilRefresh / 1000 / 60)} minutes`);
+  },
+
+  clearProactiveRefresh: () => {
+    const state = get();
+    if (state.refreshTimerId) {
+      clearTimeout(state.refreshTimerId);
+      set({ refreshTimerId: null });
     }
   },
 }));
