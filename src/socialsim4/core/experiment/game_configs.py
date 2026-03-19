@@ -145,3 +145,26 @@ SPATIAL_COOPERATION = GameConfig(
     actions=["cooperate", "defect"],
     payoff_summary="Your payoff is the sum of outcomes with all neighbors.",
 )
+
+
+@dataclass
+class CouncilConfig(GameConfig):
+    """Configuration for Council experiment scene.
+
+    Extends GameConfig with council-specific parameters for
+    multi-round deliberation and voting.
+
+    Attributes:
+        deliberation_rounds: Number of rounds for discussion before voting
+        voting_threshold: Fraction of yes votes needed to pass (0.0-1.0)
+        proposal_text: Text of the proposal being voted on
+    """
+    # Override parent fields with defaults
+    name: str = "Council Meeting"
+    description: str = "Multi-round deliberation with voting"
+    action_type: Literal["discrete", "integer"] = "discrete"
+    actions: list[str] = field(default_factory=lambda: ["speak", "skip", "start_voting", "vote", "conclude"])
+    # Council-specific fields
+    deliberation_rounds: int = 3
+    voting_threshold: float = 0.5
+    proposal_text: str = ""
