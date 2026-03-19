@@ -3,7 +3,14 @@ Council scene with system facilitation.
 
 Based on Agent Kernel's controller pattern: the scene manages conversation flow
 through explicit phases without requiring a dedicated "host" agent.
+
+Provides phase-based action filtering to ensure agents only see actions
+appropriate for the current phase (discussion, voting, or concluded).
+
+Contains: CouncilScene class.
 """
+
+import logging
 
 from socialsim4.core.actions.council_actions import VotingStatusAction
 from socialsim4.core.agent import Agent
@@ -34,8 +41,46 @@ class CouncilScene(SimpleChatScene):
             self.facilitator.set_simulator(simulator)
 
     def get_scene_actions(self, agent: Agent):
+        """Get available actions for agent, filtered by current phase.
+
+        During voting phase, only Vote actions are visible.
+        During discussion phase, most actions are visible except vote.
+
+        Args:
+            agent: The agent requesting available actions
+
+        Returns:
+            List of Action instances allowed in the current phase
+        """
+        logger = logging.getLogger(__name__)
+
+        # Get all actions from parent (includes speak, etc.)
         actions = super().get_scene_actions(agent)
+
+        # Add voting status action (allowed in all phases)
         actions.append(VotingStatusAction())
+
+        # Filter actions based on current phase using facilitator
+        if hasattr(self, 'facilitator') and self.facilitator:
+            filtered_actions = []
+            for action in actions:
+                # Get action name from NAME attribute (uppercase convention)
+                action_name = getattr(action, 'NAME', action.__class__.__name__.lower().replace('action', ''))
+
+                # Check if action is allowed in current phase
+                allowed, _ = self.facilitator.is_action_allowed(action_name)
+
+                if allowed:
+                    filtered_actions.append(action)
+                else:
+                    logger.debug(
+                        f"Filtered action '{action_name}' for {agent.name} "
+                        f"in {self.facilitator.phase.value} phase"
+                    )
+
+            return filtered_actions
+
+        # No facilitator: return unfiltered (shouldn't happen in normal operation)
         return actions
 
     def get_behavior_guidelines(self):
