@@ -23,6 +23,7 @@ from socialsim4.core.experiment.round_context import RoundContextManager
 from socialsim4.core.experiment.information_model import InformationModel
 from socialsim4.core.phase_controller import SystemFacilitator, CouncilPhase
 from socialsim4.core.scenes.simple_chat_scene import SimpleChatScene
+from socialsim4.core.simulator import Simulator
 
 
 class CouncilScene(SimpleChatScene):
@@ -216,6 +217,43 @@ class CouncilScene(SimpleChatScene):
                 summary=summary,
                 observed_by=observed_by
             )
+
+    def parse_and_handle_action(self, action_data, agent: "Agent", simulator: "Simulator"):
+        """Override to record actions to round context manager before handling.
+
+        This ensures all agent actions (speak, vote, etc.) are recorded for
+        multi-round context tracking.
+        """
+        # Extract action info for recording
+        raw_action = action_data.get("action")
+        if isinstance(raw_action, dict):
+            action_name = raw_action.get("name") or raw_action.get("action")
+            parameters = raw_action
+        else:
+            action_name = raw_action
+            parameters = action_data
+
+        # Record the action to context manager BEFORE handling
+        if action_name and hasattr(self, '_record_action_to_context'):
+            # Build a summary from the action
+            if action_name == "speak" or action_name == "send_message":
+                message = parameters.get("message", "")[:100]
+                summary = f"{agent.name} spoke: {message}..."
+            elif action_name == "vote":
+                choice = parameters.get("choice", "unknown")
+                summary = f"{agent.name} voted {choice}"
+            else:
+                summary = f"{agent.name} chose {action_name}"
+
+            self._record_action_to_context(
+                agent_name=agent.name,
+                action_name=action_name,
+                parameters=parameters,
+                summary=summary
+            )
+
+        # Call parent implementation to actually handle the action
+        return super().parse_and_handle_action(action_data, agent, simulator)
 
     def post_turn(self, agent: Agent, simulator):
         """
