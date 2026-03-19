@@ -168,3 +168,31 @@ class CouncilConfig(GameConfig):
     deliberation_rounds: int = 3
     voting_threshold: float = 0.5
     proposal_text: str = ""
+
+
+def create_council_config(
+    proposal_text: str,
+    deliberation_rounds: int = 3,
+    voting_threshold: float = 0.5
+) -> CouncilConfig:
+    """Create a CouncilConfig with specified parameters.
+
+    Factory function for creating council experiment configurations
+    with proper action definitions.
+
+    Args:
+        proposal_text: The text of the proposal to vote on
+        deliberation_rounds: Number of discussion rounds before voting
+        voting_threshold: Fraction of yes votes needed to pass
+
+    Returns:
+        CouncilConfig instance with all actions configured
+    """
+    return CouncilConfig(
+        name="Council Meeting",
+        description=f"Deliberation on: {proposal_text[:50]}...",
+        actions=["speak", "skip", "start_voting", "vote", "conclude"],
+        deliberation_rounds=deliberation_rounds,
+        voting_threshold=voting_threshold,
+        proposal_text=proposal_text,
+    )
