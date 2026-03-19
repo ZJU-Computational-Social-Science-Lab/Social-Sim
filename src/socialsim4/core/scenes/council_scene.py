@@ -14,6 +14,16 @@ voting results, and system announcements.
 Contains: CouncilScene class.
 """
 
+import warnings
+
+warnings.warn(
+    "CouncilScene is deprecated. Use CouncilExperimentScene from "
+    "socialsim4.core.experiment.scenes.council_experiment instead. "
+    "This module will be removed in a future version (see MIGRATION.md for timeline).",
+    DeprecationWarning,
+    stacklevel=2
+)
+
 import logging
 
 from socialsim4.core.actions.council_actions import VotingStatusAction
