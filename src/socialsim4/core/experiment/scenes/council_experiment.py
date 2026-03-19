@@ -164,18 +164,19 @@ class CouncilExperimentScene(ExperimentScene):
         - Voting phase: vote, conclude
 
         Args:
-            agent_name: Name of agent requesting actions
+            agent_name: Name of agent requesting actions (unused, all agents see same actions)
 
         Returns:
             List of action names allowed in current phase
         """
+        _ = agent_name  # All agents see same actions based on phase
         # Get all available actions from config
         all_actions = [a.get("name") for a in self.config.actions]
 
         # Filter by phase using facilitator
         filtered_actions = []
         for action_name in all_actions:
-            allowed, reason = self.facilitator.is_action_allowed(action_name)
+            allowed, _ = self.facilitator.is_action_allowed(action_name)
             if allowed:
                 filtered_actions.append(action_name)
 
