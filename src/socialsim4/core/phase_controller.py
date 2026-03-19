@@ -121,7 +121,7 @@ class SystemFacilitator:
             return False, f"Need at least {self.min_turns_before_vote} discussion turns"
 
         # Check if voting is already in progress via scene state
-        if self.scene.state.get("voting_started", False):
+        if self.scene.state.extensions.get("voting_started", False):
             return False, "Voting already started"
 
         # Use LLM to evaluate if discussion has reached natural conclusion
@@ -138,8 +138,8 @@ class SystemFacilitator:
             return True, "Meeting already concluded"
 
         # Check if voting completed and results announced
-        past_votes = self.scene.state.get("past_votes", [])
-        if past_votes and not self.scene.state.get("voting_started", False):
+        past_votes = self.scene.state.extensions.get("past_votes", [])
+        if past_votes and not self.scene.state.extensions.get("voting_started", False):
             # Has completed votes, could be ready to conclude
             if self.turn_count > 10:
                 return True, "Voting completed and discussion exhausted"
@@ -216,7 +216,7 @@ class SystemFacilitator:
         if self.phase == CouncilPhase.VOTING:
             voting_actions = {"vote"}  # Vote Yes/No/Abstain are all "vote" action with different params
             if action_name in voting_actions:
-                if not self.scene.state.get("voting_started", False):
+                if not self.scene.state.extensions.get("voting_started", False):
                     return False, "Cannot vote: voting has not started yet"
                 return True, None
             # All other actions blocked during voting
@@ -227,7 +227,7 @@ class SystemFacilitator:
             if action_name == "vote":
                 return False, "Cannot vote during discussion phase - wait for voting to start"
             if action_name == "start_voting":
-                if self.scene.state.get("voting_started", False):
+                if self.scene.state.extensions.get("voting_started", False):
                     return False, "Cannot start voting: a vote is already in progress"
                 return True, None
             if action_name == "finish_meeting":
@@ -261,7 +261,7 @@ class SystemFacilitator:
         ])
 
         # Get the scene's topic for context
-        vote_title = self.scene.state.get("vote_title", "the proposal")
+        vote_title = self.scene.state.extensions.get("vote_title", "the proposal")
 
         # Build evaluation prompt
         system_prompt = (
@@ -371,8 +371,8 @@ Respond with 'YES: [brief reason]' or 'NO: [brief reason]'."""
         status = f"Phase: {phase_desc.get(self.phase, self.phase.value)}"
 
         if self.phase == CouncilPhase.VOTING:
-            title = self.scene.state.get("vote_title", "the proposal")
-            votes = self.scene.state.get("votes", {})
+            title = self.scene.state.extensions.get("vote_title", "the proposal")
+            votes = self.scene.state.extensions.get("votes", {})
             status += f"\nVoting on: {title}\nVotes cast: {len(votes)}"
 
         return status
