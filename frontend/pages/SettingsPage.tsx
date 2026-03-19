@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { createProvider as apiCreateProvider, listProviders, testProvider as apiTestProvider, updateProvider, deleteProvider as apiDeleteProvider, activateProvider as apiActivateProvider, type Provider } from "../services/providers";
 import { listSearchProviders, createSearchProvider, updateSearchProvider, type SearchProvider } from "../services/searchProviders";
@@ -11,6 +12,22 @@ import { AppSelect } from "../components/AppSelect";
 import { Link2Icon, TrashIcon, FilePlusIcon, StarIcon, StarFilledIcon, EyeOpenIcon, EyeClosedIcon } from "@radix-ui/react-icons";
 
 type Tab = "profile" | "security" | "providers_llm" | "providers_search" | "files";
+
+const TAB_PATHS: Record<Tab, string> = {
+  profile: "/settings/profile",
+  security: "/settings/security",
+  providers_llm: "/settings/providers",
+  providers_search: "/settings/search",
+  files: "/settings/files",
+};
+
+function getTabFromPath(pathname: string): Tab {
+  if (pathname.startsWith("/settings/security")) return "security";
+  if (pathname.startsWith("/settings/providers")) return "providers_llm";
+  if (pathname.startsWith("/settings/search")) return "providers_search";
+  if (pathname.startsWith("/settings/files")) return "files";
+  return "profile";
+}
 
 // Helper to get capability rows with translations
 const getCapabilityRows = (t: (key: string) => string) => [
@@ -52,6 +69,8 @@ const getCapabilityRows = (t: (key: string) => string) => [
 
 export function SettingsPage() {
   const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // Format file size helper
   const formatSize = (bytes: number): string => {
@@ -64,7 +83,8 @@ export function SettingsPage() {
   const formatDate = (timestamp: number): string => {
     return new Date(timestamp * 1000).toLocaleString();
   };
-  const [activeTab, setActiveTab] = useState<Tab>("profile");
+  const routeTab = getTabFromPath(location.pathname);
+  const [activeTab, setActiveTab] = useState<Tab>(routeTab);
   const user = useAuthStore((state) => state.user);
   const clearSession = useAuthStore((state) => state.clearSession);
   const queryClient = useQueryClient();
@@ -122,6 +142,10 @@ export function SettingsPage() {
   });
 
   useEffect(() => {
+    setActiveTab(routeTab);
+  }, [routeTab]);
+
+  useEffect(() => {
     if (!searchProvider) return;
     setSearchDraft({
       provider: searchProvider.provider || "ddg",
@@ -130,6 +154,11 @@ export function SettingsPage() {
       config: (searchProvider as any).config || {},
     });
   }, [searchProvider]);
+
+  const changeTab = (tab: Tab) => {
+    setActiveTab(tab);
+    navigate(TAB_PATHS[tab]);
+  };
 
   const createProvider = useMutation({
     mutationFn: async () =>
@@ -219,134 +248,226 @@ export function SettingsPage() {
     createProvider.mutate();
   };
 
+  const providers = providersQuery.data ?? [];
+  const activeProvider = providers.find((provider) => provider.is_active) || null;
+  const uploadedFiles = filesQuery.data ?? [];
+  const totalUploadedSize = uploadedFiles.reduce((sum, file) => sum + file.size, 0);
+
   const tabContent = useMemo(() => {
     if (activeTab === "profile") {
       return (
-        <div className="panel" style={{ gap: "0.5rem" }}>
-          <div className="panel-title">{t('settings.tabs.profile')}</div>
-          <div className="card">
-            <div><strong>{t('settings.profile.email')}:</strong> {String(user?.email ?? "")}</div>
-            <div><strong>{t('settings.profile.username')}:</strong> {String(user?.username ?? "")}</div>
-            <div><strong>{t('settings.profile.fullName')}:</strong> {String(user?.full_name ?? "")}</div>
-            <div><strong>{t('settings.profile.organization')}:</strong> {String(user?.organization ?? "")}</div>
+        <div className="settings-content">
+          <div className="settings-overview-grid">
+            <div className="settings-metric-card">
+              <div className="page-hero__eyebrow w-fit">Identity</div>
+              <div className="text-lg font-semibold text-[var(--sim-text-strong)]">{String(user?.full_name || user?.username || "-")}</div>
+              <div className="text-sm text-[var(--sim-text-muted)]">{String(user?.email ?? "")}</div>
+            </div>
+            <div className="settings-metric-card">
+              <div className="page-hero__eyebrow w-fit">Workspace</div>
+              <div className="text-lg font-semibold text-[var(--sim-text-strong)]">
+                {String(user?.organization || "Personal workspace")}
+              </div>
+              <div className="text-sm text-[var(--sim-text-muted)]">
+                Keep this section in sync with the backend identity record used across simulations and saved archives.
+              </div>
+            </div>
           </div>
+
+          <section className="settings-section-card">
+            <div className="settings-section-card__header">
+              <div>
+                <div className="page-hero__eyebrow w-fit">{t('settings.tabs.profile')}</div>
+                <h2 className="mt-2 text-lg font-semibold text-[var(--sim-text-strong)]">Account details</h2>
+              </div>
+            </div>
+            <div className="settings-list">
+              <div className="settings-list-item">
+                <span className="text-sm text-[var(--sim-text-soft)]">{t('settings.profile.email')}</span>
+                <span className="text-sm font-medium text-[var(--sim-text-strong)]">{String(user?.email ?? "-")}</span>
+              </div>
+              <div className="settings-list-item">
+                <span className="text-sm text-[var(--sim-text-soft)]">{t('settings.profile.username')}</span>
+                <span className="text-sm font-medium text-[var(--sim-text-strong)]">{String(user?.username ?? "-")}</span>
+              </div>
+              <div className="settings-list-item">
+                <span className="text-sm text-[var(--sim-text-soft)]">{t('settings.profile.fullName')}</span>
+                <span className="text-sm font-medium text-[var(--sim-text-strong)]">{String(user?.full_name ?? "-")}</span>
+              </div>
+              <div className="settings-list-item">
+                <span className="text-sm text-[var(--sim-text-soft)]">{t('settings.profile.organization')}</span>
+                <span className="text-sm font-medium text-[var(--sim-text-strong)]">{String(user?.organization ?? "-")}</span>
+              </div>
+            </div>
+          </section>
         </div>
       );
     }
 
     if (activeTab === "security") {
       return (
-        <div className="panel" style={{ gap: "0.5rem" }}>
-          <div className="panel-title">{t('settings.tabs.security')}</div>
-          <div className="card">
-            <p>{t('settings.security.placeholder')}</p>
-            <button type="button" className="button button-danger" style={{ alignSelf: "flex-start" }} onClick={() => clearSession()}>
+        <div className="settings-content">
+          <div className="settings-overview-grid">
+            <div className="settings-metric-card">
+              <div className="page-hero__eyebrow w-fit">Session</div>
+              <div className="text-lg font-semibold text-[var(--sim-text-strong)]">Browser authenticated</div>
+              <div className="text-sm text-[var(--sim-text-muted)]">
+                This workspace keeps your local session active for dashboard, creation studio, and runtime collaboration.
+              </div>
+            </div>
+            <div className="settings-metric-card">
+              <div className="page-hero__eyebrow w-fit">Protection</div>
+              <div className="text-lg font-semibold text-[var(--sim-text-strong)]">Manual sign-out controls</div>
+              <div className="text-sm text-[var(--sim-text-muted)]">{t('settings.security.placeholder')}</div>
+            </div>
+          </div>
+
+          <section className="settings-section-card">
+            <div className="settings-section-card__header">
+              <div>
+                <div className="page-hero__eyebrow w-fit">{t('settings.tabs.security')}</div>
+                <h2 className="mt-2 text-lg font-semibold text-[var(--sim-text-strong)]">Session controls</h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--sim-text-muted)]">{t('settings.security.placeholder')}</p>
+              </div>
+            </div>
+            <div className="rounded-[20px] border border-[rgba(196,107,114,0.18)] bg-[rgba(196,107,114,0.08)] p-4 text-sm leading-6 text-[var(--sim-text)]">
+              Use this if you need to immediately clear the current browser session and disconnect any authenticated workflow.
+            </div>
+            <button type="button" className="button-danger w-fit" onClick={() => clearSession()}>
               {t('settings.security.signoutAll')}
             </button>
-          </div>
+          </section>
         </div>
       );
     }
 
-    return (
-      <div className="panel" style={{ gap: "0.75rem" }}>
-        <div className="panel-header" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <div className="panel-title">{t('settings.providers.title')}</div>
-          {activeTab === 'providers_llm' && (
-            (() => {
-              const activeProv = (providersQuery.data || []).find((p) => p.is_active);
-              const name = activeProv ? activeProv.name : '-';
-              return (
-                <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>
-                  {t('settings.providers.current', { name })}
-                </div>
-              );
-            })()
-          )}
-        </div>
+    if (activeTab === "providers_llm") {
+      return (
+        <div className="settings-content">
+          <div className="settings-overview-grid">
+            <div className="settings-metric-card">
+              <div className="page-hero__eyebrow w-fit">Active provider</div>
+              <div className="text-lg font-semibold text-[var(--sim-text-strong)]">{activeProvider?.name || "-"}</div>
+              <div className="text-sm text-[var(--sim-text-muted)]">
+                {activeProvider ? `${activeProvider.provider} · ${activeProvider.model}` : t('settings.providers.none')}
+              </div>
+            </div>
+            <div className="settings-metric-card">
+              <div className="page-hero__eyebrow w-fit">Registry</div>
+              <div className="text-lg font-semibold text-[var(--sim-text-strong)]">{providers.length} configured</div>
+              <div className="text-sm text-[var(--sim-text-muted)]">
+                Test, activate, and rotate models without changing the experiment payload schema.
+              </div>
+            </div>
+          </div>
 
-        {/* LLM Providers: list above, add form below */}
-        {activeTab === 'providers_llm' && (
-          <>
-            {/* List (no outer card) */}
-            <div className="card" style={{ display: 'grid', gap: 0, padding: '0.2rem 0.6rem' }}>
-              {providersQuery.isLoading && <div>{t('settings.providers.loading')}</div>}
-              {providersQuery.error && <div style={{ color: "#f87171" }}>{t('settings.providers.error')}</div>}
-              {(providersQuery.data ?? []).map((provider, idx) => {
-                const active = provider.is_active;
-                return (
-                  <div key={provider.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', padding: '0.5rem 0' }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>{provider.name}</div>
-                      <div style={{ color: 'var(--muted)', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {provider.provider} · {provider.model} · {provider.base_url || '-'}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                      {testHints[provider.id] && (
-                        <span style={{ fontSize: '0.8rem', color: testHints[provider.id].ok ? '#22c55e' : '#f87171' }}>
-                          {testHints[provider.id].ok ? '✓' : '✕'} {testHints[provider.id].msg}
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        className="icon-button square"
-                        title={t('settings.providers.test')}
-                        aria-label={t('settings.providers.test')}
-                        onClick={() => testProvider.mutate(provider.id)}
-                        disabled={testingId !== null}
-                        style={{ borderColor: 'var(--border)', color: '#2563eb' }}
-                      >
-                        {testingId === provider.id ? <span className="spinner" aria-hidden /> : <Link2Icon />}
-                      </button>
-                      <button
-                        type="button"
-                        className="icon-button square"
-                        title={active ? (t('settings.providers.activeTag') || 'Active') : (t('settings.providers.makeActive') || 'Use')}
-                        aria-label={active ? (t('settings.providers.activeTag') || 'Active') : (t('settings.providers.makeActive') || 'Use')}
-                        onClick={() => !active && activateProvider.mutate(provider.id)}
-                        disabled={active || activateProvider.isPending}
-                        style={{ borderColor: 'var(--border)', color: '#f59e0b' }}
-                      >
-                        {active ? <StarFilledIcon /> : <StarIcon />}
-                      </button>
-                      <button
-                        type="button"
-                        className="icon-button square"
-                        title={t('saved.delete')}
-                        aria-label={t('saved.delete')}
-                        onClick={() => {
-                          if (active) {
-                            const msg = t('settings.providers.deleteActiveConfirm') || 'This provider is active. Delete anyway?';
-                            if (!window.confirm(msg)) return;
-                          }
-                          deleteProvider.mutate(provider.id);
-                        }}
-                        disabled={deleteProvider.isPending}
-                        style={{ borderColor: 'var(--border)', color: '#ef4444' }}
-                      >
-                        <TrashIcon />
-                      </button>
-                    </div>
-                    {idx < (providersQuery.data?.length || 0) - 1 && <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border)', margin: '0.4rem 0 0 0', opacity: 0.8 }} />}
-                  </div>
-                );
-              })}
-              {(providersQuery.data ?? []).length === 0 && <div style={{ color: "#94a3b8" }}>{t('settings.providers.none')}</div>}
+          <section className="settings-section-card">
+            <div className="settings-section-card__header">
+              <div>
+                <div className="page-hero__eyebrow w-fit">{t('settings.providers.title')}</div>
+                <h2 className="mt-2 text-lg font-semibold text-[var(--sim-text-strong)]">Provider registry</h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--sim-text-muted)]">
+                  {t('settings.providers.current', { name: activeProvider?.name || '-' })}
+                </p>
+              </div>
             </div>
 
-            {/* Add form */}
-            <form onSubmit={handleCreateProvider} className="card" style={{ gap: "0.25rem", padding: '0.45rem 0.55rem', marginTop: '0.6rem', fontSize: '0.85rem' }}>
-              <h2 style={{ margin: 0, fontSize: "0.9rem" }}>{t('settings.providers.add')}</h2>
-              <label>
+            {providersQuery.isLoading && <div className="text-sm text-[var(--sim-text-muted)]">{t('settings.providers.loading')}</div>}
+            {providersQuery.error && <div className="text-sm text-[var(--sim-danger)]">{t('settings.providers.error')}</div>}
+
+            {!providersQuery.isLoading && providers.length === 0 && (
+              <div className="studio-empty-state">
+                <div className="text-sm font-semibold text-[var(--sim-text-strong)]">{t('settings.providers.none')}</div>
+                <p className="max-w-md text-sm leading-6 text-[var(--sim-text-muted)]">
+                  Add at least one LLM provider to unlock connected-mode generation and model-specific agent assignment.
+                </p>
+              </div>
+            )}
+
+            {providers.length > 0 && (
+              <div>
+                {providers.map((provider) => {
+                  const active = provider.is_active;
+                  return (
+                    <div key={provider.id} className="settings-provider-row">
+                      <div className="min-w-0">
+                        <div className="text-base font-semibold text-[var(--sim-text-strong)]">{provider.name}</div>
+                        <div className="mt-1 text-sm text-[var(--sim-text-muted)]">
+                          {provider.provider} · {provider.model} · {provider.base_url || '-'}
+                        </div>
+                        <div className="settings-provider-row__meta">
+                          {active && <span className="status-pill">{t('settings.providers.activeTag') || 'Active'}</span>}
+                          {provider.is_default && <span className="status-pill">Default</span>}
+                          {testHints[provider.id] && (
+                            <span className="status-pill">
+                              {testHints[provider.id].ok ? 'Healthy' : 'Needs attention'} · {testHints[provider.id].msg}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="settings-provider-row__actions">
+                        <button
+                          type="button"
+                          className="icon-button square"
+                          title={t('settings.providers.test')}
+                          aria-label={t('settings.providers.test')}
+                          onClick={() => testProvider.mutate(provider.id)}
+                          disabled={testingId !== null}
+                        >
+                          {testingId === provider.id ? <span className="spinner" aria-hidden /> : <Link2Icon />}
+                        </button>
+                        <button
+                          type="button"
+                          className="icon-button square"
+                          title={active ? (t('settings.providers.activeTag') || 'Active') : (t('settings.providers.makeActive') || 'Use')}
+                          aria-label={active ? (t('settings.providers.activeTag') || 'Active') : (t('settings.providers.makeActive') || 'Use')}
+                          onClick={() => !active && activateProvider.mutate(provider.id)}
+                          disabled={active || activateProvider.isPending}
+                        >
+                          {active ? <StarFilledIcon /> : <StarIcon />}
+                        </button>
+                        <button
+                          type="button"
+                          className="icon-button square"
+                          title={t('saved.delete')}
+                          aria-label={t('saved.delete')}
+                          onClick={() => {
+                            if (active) {
+                              const msg = t('settings.providers.deleteActiveConfirm') || 'This provider is active. Delete anyway?';
+                              if (!window.confirm(msg)) return;
+                            }
+                            deleteProvider.mutate(provider.id);
+                          }}
+                          disabled={deleteProvider.isPending}
+                        >
+                          <TrashIcon />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          <section className="settings-section-card">
+            <div className="settings-section-card__header">
+              <div>
+                <div className="page-hero__eyebrow w-fit">{t('settings.providers.add')}</div>
+                <h2 className="mt-2 text-lg font-semibold text-[var(--sim-text-strong)]">Add a provider</h2>
+              </div>
+            </div>
+            <form onSubmit={handleCreateProvider} className="settings-form-grid two">
+              <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
                 {t('settings.providers.fields.label')}
-                <input className="input small"
+                <input
+                  className="input small"
                   required
                   value={providerDraft.name}
                   onChange={(event) => setProviderDraft((prev) => ({ ...prev, name: event.target.value }))}
                 />
               </label>
-              <label>
+              <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
                 {t('settings.providers.fields.provider')}
                 <AppSelect
                   value={providerDraft.provider}
@@ -354,36 +475,43 @@ export function SettingsPage() {
                     { value: 'openai', label: t('settings.providers.type.openai') },
                     { value: 'gemini', label: t('settings.providers.type.gemini') },
                   ]}
-                  onChange={(val) => setProviderDraft((prev) => ({ ...prev, provider: val, base_url: val === 'openai' ? 'https://api.openai.com/v1' : '' }))}
+                  onChange={(val) =>
+                    setProviderDraft((prev) => ({
+                      ...prev,
+                      provider: val,
+                      base_url: val === 'openai' ? 'https://api.openai.com/v1' : '',
+                    }))
+                  }
                   size="small"
                 />
               </label>
-              <label>
+              <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
                 {t('settings.providers.fields.model')}
-                <input className="input small"
+                <input
+                  className="input small"
                   required
                   value={providerDraft.model}
                   onChange={(event) => setProviderDraft((prev) => ({ ...prev, model: event.target.value }))}
                 />
               </label>
-              <label>
+              <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
                 {t('settings.providers.fields.baseUrl')}
-                <input className="input small"
+                <input
+                  className="input small"
                   required
                   value={providerDraft.base_url}
                   onChange={(event) => setProviderDraft((prev) => ({ ...prev, base_url: event.target.value }))}
                 />
               </label>
-              <label>
+              <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)] md:col-span-2">
                 {t('settings.providers.fields.apiKey')}
-                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginTop: "0.5rem" }}>
+                <div className="flex items-center gap-3">
                   <input
                     required
                     type={keyVisible ? "text" : "password"}
                     className="input small"
                     value={providerDraft.api_key}
                     onChange={(event) => setProviderDraft((prev) => ({ ...prev, api_key: event.target.value }))}
-                    style={{ flex: 1 }}
                   />
                   <button
                     type="button"
@@ -396,228 +524,266 @@ export function SettingsPage() {
                   </button>
                 </div>
               </label>
-              {createProvider.error && <div style={{ color: "#f87171" }}>{t('settings.providers.createFailed') || 'Failed to add provider.'}</div>}
-              <button
-                type="submit"
-                className="icon-button square"
-                title={t('settings.providers.save')}
-                aria-label={t('settings.providers.save')}
-                disabled={createProvider.isPending}
-                style={{ color: '#16a34a' }}
-              >
-                {createProvider.isPending ? <span className="spinner" aria-hidden /> : <FilePlusIcon />}
-              </button>
+              {createProvider.error && (
+                <div className="md:col-span-2 text-sm text-[var(--sim-danger)]">
+                  {t('settings.providers.createFailed') || 'Failed to add provider.'}
+                </div>
+              )}
+              <div className="md:col-span-2 flex items-center gap-3">
+                <button type="submit" className="button" disabled={createProvider.isPending}>
+                  {createProvider.isPending ? <span className="spinner" aria-hidden /> : <FilePlusIcon />}
+                  {t('settings.providers.save')}
+                </button>
+                <span className="settings-inline-note">Credentials stay bound to the existing provider API contract.</span>
+              </div>
             </form>
+          </section>
 
-            <div className="card" style={{ padding: '0.6rem 0.7rem', display: 'grid', gap: '0.4rem' }}>
-              <div className="panel-subtitle" style={{ margin: 0 }}>{t('settings.providers.capabilities.title')}</div>
-              <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>{t('settings.providers.capabilities.hint')}</div>
-              <div style={{ display: 'grid', gap: '0.5rem' }}>
-                {getCapabilityRows(t).map((row) => (
-                  <div key={row.model} style={{ border: '1px solid var(--border)', borderRadius: '10px', padding: '0.6rem 0.7rem', background: 'rgba(255,255,255,0.02)', display: 'grid', gap: '0.35rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '0.6rem', flexWrap: 'wrap' }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: '1rem' }}>{row.model}</div>
-                        <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>{t('settings.providers.capabilities.modalities')}: {row.modalities}</div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                        <span className="pill" style={{ background: 'rgba(37, 99, 235, 0.12)', color: '#1d4ed8', padding: '0.2rem 0.45rem', borderRadius: '999px', fontSize: '0.85rem' }}>
-                          {t('settings.providers.capabilities.context')}: {row.context}
-                        </span>
-                        <span className="pill" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#059669', padding: '0.2rem 0.45rem', borderRadius: '999px', fontSize: '0.85rem' }}>
-                          {t('settings.providers.capabilities.input')}: {row.input}
-                        </span>
-                        <span className="pill" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#b45309', padding: '0.2rem 0.45rem', borderRadius: '999px', fontSize: '0.85rem' }}>
-                          {t('settings.providers.capabilities.output')}: {row.output}
-                        </span>
-                      </div>
+          <section className="settings-section-card">
+            <div className="settings-section-card__header">
+              <div>
+                <div className="page-hero__eyebrow w-fit">{t('settings.providers.capabilities.title')}</div>
+                <h2 className="mt-2 text-lg font-semibold text-[var(--sim-text-strong)]">Model guide</h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--sim-text-muted)]">
+                  {t('settings.providers.capabilities.hint')}
+                </p>
+              </div>
+            </div>
+            <div className="settings-list">
+              {getCapabilityRows(t).map((row) => (
+                <div key={row.model} className="settings-list-item">
+                  <div>
+                    <div className="text-base font-semibold text-[var(--sim-text-strong)]">{row.model}</div>
+                    <div className="mt-1 text-sm text-[var(--sim-text-muted)]">
+                      {t('settings.providers.capabilities.modalities')}: {row.modalities}
                     </div>
-                    <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>
+                    <div className="mt-2 text-sm text-[var(--sim-text-soft)]">
                       {t('settings.providers.capabilities.note')}: {t(row.note)}
                     </div>
                   </div>
-                ))}
-              </div>
-              <div style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{t('settings.providers.capabilities.disclaimer')}</div>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="status-pill">{t('settings.providers.capabilities.context')}: {row.context}</span>
+                    <span className="status-pill">{t('settings.providers.capabilities.input')}: {row.input}</span>
+                    <span className="status-pill">{t('settings.providers.capabilities.output')}: {row.output}</span>
+                  </div>
+                </div>
+              ))}
             </div>
-          </>
-        )}
+            <div className="settings-inline-note">{t('settings.providers.capabilities.disclaimer')}</div>
+          </section>
+        </div>
+      );
+    }
 
-        {/* Search Providers */}
-        {activeTab === 'providers_search' && (
-          <>
-            <div className="card" style={{ padding: '0.6rem 0.7rem', display: 'grid', gap: '0.25rem' }}>
-              <div className="panel-subtitle" style={{ margin: 0 }}>{t('settings.providers.searchTab') || 'Search providers'}</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: '0.5rem', rowGap: '0.2rem', alignItems: 'baseline', fontSize: '0.9rem', lineHeight: 1.25 }}>
-                <div style={{ color: 'var(--muted)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{t('settings.providers.fields.provider')}</div>
-                <div>{searchProvider ? (searchProvider.provider || '-') : '-'}</div>
-                <div style={{ color: 'var(--muted)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{t('settings.providers.fields.baseUrl')}</div>
-                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{searchProvider ? (searchProvider.base_url || '-') : '-'}</div>
+    if (activeTab === "providers_search") {
+      return (
+        <div className="settings-content">
+          <div className="settings-overview-grid">
+            <div className="settings-metric-card">
+              <div className="page-hero__eyebrow w-fit">Active engine</div>
+              <div className="text-lg font-semibold text-[var(--sim-text-strong)]">{searchProvider?.provider || "-"}</div>
+              <div className="text-sm text-[var(--sim-text-muted)]">{searchProvider?.base_url || "Local/default settings"}</div>
+            </div>
+            <div className="settings-metric-card">
+              <div className="page-hero__eyebrow w-fit">Research flow</div>
+              <div className="text-lg font-semibold text-[var(--sim-text-strong)]">Prompt-time retrieval</div>
+              <div className="text-sm text-[var(--sim-text-muted)]">
+                Tune search behavior without changing the simulation runtime or file schema.
               </div>
             </div>
-            <div className="card" style={{ gap: "0.3rem", padding: '0.5rem 0.6rem', fontSize: '0.85rem' }}>
-              <h2 style={{ margin: 0, fontSize: "0.9rem" }}>{t('settings.providers.setSearchProvider')}</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
-                <label>
-                  {t('settings.providers.fields.provider')}
-                  <AppSelect
-                    value={searchDraft.provider}
-                    options={[
-                      { value: "ddg", label: t('settings.providers.searchEngine.ddg') },
-                      { value: "serpapi", label: t('settings.providers.searchEngine.serpapi') },
-                      { value: "serper", label: t('settings.providers.searchEngine.serper') },
-                      { value: "tavily", label: t('settings.providers.searchEngine.tavily') },
-                      { value: "mock", label: "Mock" },
-                    ]}
-                    onChange={(val) => setSearchDraft((p) => ({ ...p, provider: val }))}
-                    size="small"
-                  />
-                </label>
-                {(searchDraft.provider === "serpapi" || searchDraft.provider === "serper" || searchDraft.provider === "tavily") && (
-                  <>
-                    <label>
-                      {t('settings.providers.fields.baseUrl')}
-                      <input className="input small" value={searchDraft.base_url} onChange={(e) => setSearchDraft((p) => ({ ...p, base_url: e.target.value }))} />
-                    </label>
-                    <label>
-                      {t('settings.providers.fields.apiKey')}
-                      <input className="input small" value={searchDraft.api_key} onChange={(e) => setSearchDraft((p) => ({ ...p, api_key: e.target.value }))} />
-                    </label>
-                  </>
-                )}
-                {searchDraft.provider === "ddg" && (
-                  <>
-                    <label>
-                      {t('settings.providers.search.region')}
-                      <input className="input small" value={String((searchDraft.config as any).region || "")} onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), region: e.target.value } }))} />
-                    </label>
-                    <label>
-                      {t('settings.providers.search.safeSearch')}
-                      <input className="input small" value={String((searchDraft.config as any).safesearch || "moderate")} onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), safesearch: e.target.value } }))} />
-                    </label>
-                  </>
-                )}
-                {searchDraft.provider === "tavily" && (
-                  <>
-                    <label>
-                      {t('settings.providers.search.searchDepth')}
-                      <AppSelect
-                        value={String((searchDraft.config as any).search_depth || "basic")}
-                        options={[
-                          { value: "basic", label: "basic" },
-                          { value: "advanced", label: "advanced" },
-                        ]}
-                        onChange={(val) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), search_depth: val } }))}
-                        size="small"
-                      />
-                    </label>
-                    <label>
-                      {t('settings.providers.search.includeAnswer')}
+          </div>
+
+          <section className="settings-section-card">
+            <div className="settings-section-card__header">
+              <div>
+                <div className="page-hero__eyebrow w-fit">{t('settings.providers.searchTab') || 'Search providers'}</div>
+                <h2 className="mt-2 text-lg font-semibold text-[var(--sim-text-strong)]">{t('settings.providers.setSearchProvider')}</h2>
+              </div>
+            </div>
+
+            <div className="settings-form-grid two">
+              <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
+                {t('settings.providers.fields.provider')}
+                <AppSelect
+                  value={searchDraft.provider}
+                  options={[
+                    { value: "ddg", label: t('settings.providers.searchEngine.ddg') },
+                    { value: "serpapi", label: t('settings.providers.searchEngine.serpapi') },
+                    { value: "serper", label: t('settings.providers.searchEngine.serper') },
+                    { value: "tavily", label: t('settings.providers.searchEngine.tavily') },
+                    { value: "mock", label: "Mock" },
+                  ]}
+                  onChange={(val) => setSearchDraft((p) => ({ ...p, provider: val }))}
+                  size="small"
+                />
+              </label>
+
+              {(searchDraft.provider === "serpapi" || searchDraft.provider === "serper" || searchDraft.provider === "tavily") && (
+                <>
+                  <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
+                    {t('settings.providers.fields.baseUrl')}
+                    <input className="input small" value={searchDraft.base_url} onChange={(e) => setSearchDraft((p) => ({ ...p, base_url: e.target.value }))} />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
+                    {t('settings.providers.fields.apiKey')}
+                    <input className="input small" value={searchDraft.api_key} onChange={(e) => setSearchDraft((p) => ({ ...p, api_key: e.target.value }))} />
+                  </label>
+                </>
+              )}
+
+              {searchDraft.provider === "ddg" && (
+                <>
+                  <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
+                    {t('settings.providers.search.region')}
+                    <input
+                      className="input small"
+                      value={String((searchDraft.config as any).region || "")}
+                      onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), region: e.target.value } }))}
+                    />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
+                    {t('settings.providers.search.safeSearch')}
+                    <input
+                      className="input small"
+                      value={String((searchDraft.config as any).safesearch || "moderate")}
+                      onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), safesearch: e.target.value } }))}
+                    />
+                  </label>
+                </>
+              )}
+
+              {searchDraft.provider === "tavily" && (
+                <>
+                  <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
+                    {t('settings.providers.search.searchDepth')}
+                    <AppSelect
+                      value={String((searchDraft.config as any).search_depth || "basic")}
+                      options={[
+                        { value: "basic", label: "basic" },
+                        { value: "advanced", label: "advanced" },
+                      ]}
+                      onChange={(val) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), search_depth: val } }))}
+                      size="small"
+                    />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
+                    {t('settings.providers.search.includeAnswer')}
+                    <div className="settings-list-item">
+                      <span className="text-sm text-[var(--sim-text-muted)]">Include direct answer extraction</span>
                       <input
                         type="checkbox"
                         checked={Boolean((searchDraft.config as any).include_answer || false)}
                         onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), include_answer: e.target.checked } }))}
                       />
-                    </label>
-                    <label>
-                      {t('settings.providers.search.topic')}
-                      <input
-                        className="input small"
-                        value={String((searchDraft.config as any).topic || "")}
-                        onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), topic: e.target.value } }))}
-                      />
-                    </label>
-                    <label>
-                      {t('settings.providers.search.days')}
-                      <input
-                        className="input small"
-                        type="number"
-                        min={1}
-                        value={Number((searchDraft.config as any).days || 7)}
-                        onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), days: Number(e.target.value || 0) } }))}
-                      />
-                    </label>
-                    <label>
-                      {t('settings.providers.search.includeDomains')}
-                      <input
-                        className="input small"
-                        value={String((searchDraft.config as any).include_domains || "")}
-                        onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), include_domains: e.target.value } }))}
-                      />
-                    </label>
-                    <label>
-                      {t('settings.providers.search.excludeDomains')}
-                      <input
-                        className="input small"
-                        value={String((searchDraft.config as any).exclude_domains || "")}
-                        onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), exclude_domains: e.target.value } }))}
-                      />
-                    </label>
-                  </>
-                )}
-                {searchDraft.provider === "mock" && (
-                  <>
-                    <div />
-                    <div />
-                  </>
-                )}
-              </div>
-              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                <button
-                  type="button"
-                  className="icon-button square"
-                  title={t('settings.providers.save')}
-                  aria-label={t('settings.providers.save')}
-                  onClick={() => upsertSearch.mutate()}
-                  disabled={upsertSearch.isPending}
-                  style={{ color: '#16a34a' }}
-                >
-                  {upsertSearch.isPending ? <span className="spinner" aria-hidden /> : <FilePlusIcon />}
-                </button>
-                {searchProvider && (
-                  <div style={{ color: "#94a3b8", lineHeight: 1 }}>
-                    {t('settings.providers.search.active')}: {searchProvider.provider}
-                  </div>
+                    </div>
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
+                    {t('settings.providers.search.topic')}
+                    <input
+                      className="input small"
+                      value={String((searchDraft.config as any).topic || "")}
+                      onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), topic: e.target.value } }))}
+                    />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
+                    {t('settings.providers.search.days')}
+                    <input
+                      className="input small"
+                      type="number"
+                      min={1}
+                      value={Number((searchDraft.config as any).days || 7)}
+                      onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), days: Number(e.target.value || 0) } }))}
+                    />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
+                    {t('settings.providers.search.includeDomains')}
+                    <input
+                      className="input small"
+                      value={String((searchDraft.config as any).include_domains || "")}
+                      onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), include_domains: e.target.value } }))}
+                    />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
+                    {t('settings.providers.search.excludeDomains')}
+                    <input
+                      className="input small"
+                      value={String((searchDraft.config as any).exclude_domains || "")}
+                      onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), exclude_domains: e.target.value } }))}
+                    />
+                  </label>
+                </>
+              )}
+            </div>
 
-                )}
+            <div className="flex flex-wrap items-center gap-3">
+              <button type="button" className="button" onClick={() => upsertSearch.mutate()} disabled={upsertSearch.isPending}>
+                {upsertSearch.isPending ? <span className="spinner" aria-hidden /> : <FilePlusIcon />}
+                {t('settings.providers.save')}
+              </button>
+              {searchProvider && (
+                <span className="settings-inline-note">
+                  {t('settings.providers.search.active')}: {searchProvider.provider}
+                </span>
+              )}
+            </div>
+          </section>
+        </div>
+      );
+    }
+
+    if (activeTab === "files") {
+      return (
+        <div className="settings-content">
+          <div className="settings-overview-grid">
+            <div className="settings-metric-card">
+              <div className="page-hero__eyebrow w-fit">Archive</div>
+              <div className="text-lg font-semibold text-[var(--sim-text-strong)]">{uploadedFiles.length} files</div>
+              <div className="text-sm text-[var(--sim-text-muted)]">{formatSize(totalUploadedSize)}</div>
+            </div>
+            <div className="settings-metric-card">
+              <div className="page-hero__eyebrow w-fit">Integrity</div>
+              <div className="text-lg font-semibold text-[var(--sim-text-strong)]">
+                {orphanResult ? orphanResult.orphaned.length : 0} orphan candidates
+              </div>
+              <div className="text-sm text-[var(--sim-text-muted)]">{t('settings.files.description')}</div>
+            </div>
+          </div>
+
+          <section className="settings-section-card">
+            <div className="settings-section-card__header">
+              <div>
+                <div className="page-hero__eyebrow w-fit">{t('settings.files.title')}</div>
+                <h2 className="mt-2 text-lg font-semibold text-[var(--sim-text-strong)]">File archive</h2>
               </div>
             </div>
-          </>)
-        }
 
-        {/* File Management Tab */}
-        {activeTab === 'files' && (
-          <div className="card" style={{ padding: '0.6rem 0.7rem', display: 'grid', gap: '0.4rem' }}>
-            <div className="panel-subtitle" style={{ margin: 0 }}>{t('settings.files.title')}</div>
-            <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>{t('settings.files.description')}</div>
+            {filesQuery.isLoading && <div className="text-sm text-[var(--sim-text-muted)]">{t('settings.files.loading')}</div>}
+            {filesQuery.error && <div className="text-sm text-[var(--sim-danger)]">{t('settings.files.error')}</div>}
 
-            {filesQuery.isLoading && <div>{t('settings.files.loading')}</div>}
-            {filesQuery.error && <div style={{ color: "#f87171" }}>{t('settings.files.error')}</div>}
-
-            {filesQuery.data && filesQuery.data.length > 0 && (
-              <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '8px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                  <thead style={{ background: 'rgba(0,0,0,0.02)' }}>
+            {uploadedFiles.length > 0 && (
+              <div className="table-shell">
+                <table>
+                  <thead>
                     <tr>
-                      <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.filename')}</th>
-                      <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.type')}</th>
-                      <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.size')}</th>
-                      <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.created')}</th>
-                      <th style={{ padding: '0.5rem', textAlign: 'right', fontWeight: 600 }}>{t('settings.files.table.actions')}</th>
+                      <th>{t('settings.files.table.filename')}</th>
+                      <th>{t('settings.files.table.type')}</th>
+                      <th>{t('settings.files.table.size')}</th>
+                      <th>{t('settings.files.table.created')}</th>
+                      <th style={{ textAlign: 'right' }}>{t('settings.files.table.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filesQuery.data.map((file) => (
-                      <tr key={file.id} style={{ borderTop: '1px solid var(--border)' }}>
-                        <td style={{ padding: '0.5rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {uploadedFiles.map((file) => (
+                      <tr key={file.id}>
+                        <td>
                           <span title={file.filename}>{file.filename}</span>
                         </td>
-                        <td style={{ padding: '0.5rem' }}>
-                          <span style={{ textTransform: 'uppercase', fontSize: '0.75rem' }}>{file.type || '-'}</span>
+                        <td>
+                          <span className="status-pill">{String(file.type || '-').toUpperCase()}</span>
                         </td>
-                        <td style={{ padding: '0.5rem' }}>{formatSize(file.size)}</td>
-                        <td style={{ padding: '0.5rem', color: 'var(--muted)' }}>{formatDate(file.created)}</td>
-                        <td style={{ padding: '0.5rem', textAlign: 'right' }}>
+                        <td>{formatSize(file.size)}</td>
+                        <td className="text-[var(--sim-text-muted)]">{formatDate(file.created)}</td>
+                        <td style={{ textAlign: 'right' }}>
                           <button
                             type="button"
                             className="icon-button square"
@@ -629,7 +795,6 @@ export function SettingsPage() {
                               }
                             }}
                             disabled={deleteFile.isPending}
-                            style={{ borderColor: 'var(--border)', color: '#ef4444' }}
                           >
                             <TrashIcon />
                           </button>
@@ -641,11 +806,24 @@ export function SettingsPage() {
               </div>
             )}
 
-            {filesQuery.data && filesQuery.data.length === 0 && (
-              <div style={{ color: "#94a3b8" }}>{t('settings.files.empty')}</div>
+            {!filesQuery.isLoading && uploadedFiles.length === 0 && (
+              <div className="studio-empty-state">
+                <div className="text-sm font-semibold text-[var(--sim-text-strong)]">{t('settings.files.empty')}</div>
+                <p className="max-w-md text-sm leading-6 text-[var(--sim-text-muted)]">
+                  Uploaded archives and imported assets will appear here once the file workflow is used.
+                </p>
+              </div>
             )}
+          </section>
 
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <section className="settings-section-card">
+            <div className="settings-section-card__header">
+              <div>
+                <div className="page-hero__eyebrow w-fit">Maintenance</div>
+                <h2 className="mt-2 text-lg font-semibold text-[var(--sim-text-strong)]">Integrity checks</h2>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 className="button"
@@ -664,44 +842,82 @@ export function SettingsPage() {
               >
                 {findingOrphans ? '...' : t('settings.files.findOrphans')}
               </button>
-
               {orphanResult && (
-                <span style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
+                <span className="settings-inline-note">
                   {orphanResult.orphaned.length > 0
                     ? t('settings.files.orphansFound', { count: orphanResult.orphaned.length })
                     : t('settings.files.noOrphans')}
                 </span>
               )}
             </div>
-          </div>
-        )}
-      </div>
+          </section>
+        </div>
+      );
+    }
 
-    );
-  }, [activeTab, user, providerDraft, providersQuery, createProvider, testProvider, clearSession, keyVisible, filesQuery, deleteFile, t, formatSize, formatDate, orphanResult, findingOrphans]);
+    return null;
+  }, [
+    activeTab,
+    user,
+    clearSession,
+    providers,
+    activeProvider,
+    providersQuery.isLoading,
+    providersQuery.error,
+    providerDraft,
+    createProvider.error,
+    createProvider.isPending,
+    testHints,
+    testingId,
+    activateProvider.isPending,
+    deleteProvider.isPending,
+    keyVisible,
+    searchProvider,
+    searchDraft,
+    upsertSearch.isPending,
+    uploadedFiles,
+    totalUploadedSize,
+    filesQuery.isLoading,
+    filesQuery.error,
+    deleteFile.isPending,
+    orphanResult,
+    findingOrphans,
+    t,
+    formatSize,
+    formatDate,
+  ]);
 
   return (
-    <div style={{ height: "100%", overflow: "auto" }}>
-      <TitleCard title={t('settings.title')} />
+    <div className="settings-shell">
+      <TitleCard
+        eyebrow="Workspace controls"
+        title={t('settings.title')}
+        subtitle="Manage identity, security, providers, search, and file storage inside one calmer settings surface."
+      />
       <div className="tab-layout">
-        <nav className="tab-nav">
-          <button type="button" className={`tab-button ${activeTab === "profile" ? "active" : ""}`} onClick={() => setActiveTab("profile")}>
-            {t('settings.tabs.profile')}
-          </button>
-          <button type="button" className={`tab-button ${activeTab === "security" ? "active" : ""}`} onClick={() => setActiveTab("security")}>
-            {t('settings.tabs.security')}
-          </button>
-          <button type="button" className={`tab-button ${activeTab === "providers_llm" ? "active" : ""}`} onClick={() => setActiveTab("providers_llm")}>
-            {t('settings.tabs.llmProviders') || t('settings.providers.llmTab')}
-          </button>
-          <button type="button" className={`tab-button ${activeTab === "providers_search" ? "active" : ""}`} onClick={() => setActiveTab("providers_search")}>
-            {t('settings.tabs.searchProviders') || t('settings.providers.searchTab')}
-          </button>
-          <button type="button" className={`tab-button ${activeTab === "files" ? "active" : ""}`} onClick={() => setActiveTab("files")}>
-            {t('settings.tabs.files')}
-          </button>
-        </nav>
-        <section>{tabContent}</section>
+        <aside className="settings-section-card settings-sidebar-card">
+          <div className="panel-subtitle" style={{ marginBottom: "0.5rem" }}>
+            Product settings
+          </div>
+          <nav className="tab-nav">
+            <button type="button" className={`tab-button ${activeTab === "profile" ? "active" : ""}`} onClick={() => changeTab("profile")}>
+              {t('settings.tabs.profile')}
+            </button>
+            <button type="button" className={`tab-button ${activeTab === "security" ? "active" : ""}`} onClick={() => changeTab("security")}>
+              {t('settings.tabs.security')}
+            </button>
+            <button type="button" className={`tab-button ${activeTab === "providers_llm" ? "active" : ""}`} onClick={() => changeTab("providers_llm")}>
+              {t('settings.tabs.llmProviders') || t('settings.providers.llmTab')}
+            </button>
+            <button type="button" className={`tab-button ${activeTab === "providers_search" ? "active" : ""}`} onClick={() => changeTab("providers_search")}>
+              {t('settings.tabs.searchProviders') || t('settings.providers.searchTab')}
+            </button>
+            <button type="button" className={`tab-button ${activeTab === "files" ? "active" : ""}`} onClick={() => changeTab("files")}>
+              {t('settings.tabs.files')}
+            </button>
+          </nav>
+        </aside>
+        <section className="settings-content">{tabContent}</section>
       </div>
     </div>
   );

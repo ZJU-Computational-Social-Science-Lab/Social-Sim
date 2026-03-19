@@ -1,18 +1,8 @@
-/**
- * Step 6: Prompt Preview
- *
- * Displays a preview of exactly what each agent type will see
- * at the start of the simulation. This matches the backend's
- * prompt_builder.py build_prompt() function template.
- *
- * Shows only the first agent type as full preview panel,
- * with remaining types shown as compact list.
- */
+import React, { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { AlertCircle, CheckCircle2, FileText, Users } from "lucide-react";
 
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { useExperimentBuilder } from '../../store/experiment-builder';
-import { AlertCircle } from 'lucide-react';
+import { useExperimentBuilder } from "../../store/experiment-builder";
 
 interface PromptPreviewPanelProps {
   agentTypeLabel: string;
@@ -25,15 +15,6 @@ interface PromptPreviewPanelProps {
   selectedActionIds: string[];
 }
 
-/**
- * Component that renders the prompt preview for a single agent type.
- * Matches the 5-section prompt structure from backend's prompt_builder.py:
- * 1. Agent Description
- * 2. Scenario
- * 3. Available Actions
- * 4. Context (first round - no previous context)
- * 5. Output Format (JSON response instruction)
- */
 const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
   agentTypeLabel,
   agentTypeProfile,
@@ -44,116 +25,102 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
   availableActions,
   selectedActionIds,
 }) => {
-  // Filter actions to only selected ones
-  const selectedActions = availableActions.filter((a) =>
-    selectedActionIds.includes(a.name)
+  const selectedActions = availableActions.filter((action) =>
+    selectedActionIds.includes(action.name),
   );
 
-  // Build actions list string
-  const actionsList = selectedActions
-    .map((a) => `- ${a.name}: ${a.description}`)
-    .join('\n  ');
-
-  // Build the actions string for the response format
-  const actionsForResponse = selectedActions.map((a) => `"${a.name}"`).join(', ');
-
-  // Format parameter key for display (snake_case to Title Case)
-  const formatParamKey = (key: string): string => {
-    return key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-  };
+  const formatParamKey = (key: string) =>
+    key.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 
   const previewProperties = Object.entries(agentTypeProperties || {}).filter(
-    ([key]) => !['avatarUrl', 'llm_config', 'provider_id'].includes(key)
+    ([key]) => !["avatarUrl", "llm_config", "provider_id"].includes(key),
   );
 
   return (
-    <div className="border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50">
-      {/* Header */}
-      <div className="bg-gray-200 px-4 py-2 border-b border-gray-300">
-        <span className="text-sm font-semibold text-gray-700">
-          Agent Type: "{agentTypeLabel}"
-        </span>
+    <div className="studio-field-group !gap-5">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <div className="text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--sim-text-soft)]">
+            Prompt preview
+          </div>
+          <div className="mt-2 text-[1.1rem] font-bold text-[var(--sim-text-strong)]">
+            {agentTypeLabel}
+          </div>
+        </div>
+        <span className="badge badge-outline">{selectedActions.length} actions</span>
       </div>
 
-      {/* Prompt Content */}
-      <div className="p-4 font-mono text-sm text-gray-800 whitespace-pre-wrap bg-white">
-        {/* Section 1: Agent Description */}
-        <div className="mb-4">
-          <span className="text-blue-600">You are</span> {agentTypeLabel}.
-          {agentTypeRolePrompt && (
-            <>
-              {' '}
-              {agentTypeRolePrompt}
-            </>
-          )}
-          {agentTypeProfile && (
-            <>
-              {' '}
-              {agentTypeProfile}
-            </>
-          )}
-        </div>
-
-        {/* Section 1b: Agent Properties */}
-        {previewProperties.length > 0 && (
-          <div className="mb-4">
-            <div className="font-semibold text-gray-900 mb-1">Agent Properties:</div>
-            <div className="pl-2">
-              {previewProperties.map(([key, value]) => (
-                <div key={key}>- {formatParamKey(key)}: {String(value)}</div>
-              ))}
-            </div>
+      <div className="overflow-hidden rounded-[22px] border border-[var(--sim-border)] bg-[rgba(255,255,255,0.46)] dark:bg-[rgba(255,255,255,0.02)]">
+        <div className="border-b border-[var(--sim-border)] px-5 py-4">
+          <div className="text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--sim-text-soft)]">
+            Launch-time document view
           </div>
-        )}
-
-        {/* Section 2: Scenario */}
-        <div className="mb-4">
-          <div className="font-semibold text-gray-900 mb-1">Scenario:</div>
-          {scenarioDescription || (
-            <span className="text-gray-400 italic">No scenario description provided</span>
-          )}
         </div>
-
-        {/* Section 2b: Game Parameters */}
-        {Object.keys(scenarioParams).length > 0 && (
-          <div className="mb-4">
-            <div className="font-semibold text-gray-900 mb-1">Game Parameters:</div>
-            <div className="pl-2">
-              {Object.entries(scenarioParams).map(([key, value]) => (
-                <div key={key}>- {formatParamKey(key)}: {String(value)}</div>
-              ))}
+        <div className="space-y-5 px-5 py-5 font-mono text-sm text-[var(--sim-text)]">
+          <section>
+            <div className="font-semibold text-[var(--sim-text-strong)]">Agent</div>
+            <div className="mt-2 leading-7">
+              You are {agentTypeLabel}. {agentTypeRolePrompt} {agentTypeProfile}
             </div>
-          </div>
-        )}
+          </section>
 
-        {/* Section 3: Available Actions */}
-        <div className="mb-4">
-          <div className="font-semibold text-gray-900 mb-1">Available actions:</div>
-          {selectedActions.length > 0 ? (
-            <div className="pl-2">{actionsList}</div>
-          ) : (
-            <span className="text-gray-400 italic">No actions selected</span>
-          )}
-        </div>
+          {previewProperties.length > 0 ? (
+            <section>
+              <div className="font-semibold text-[var(--sim-text-strong)]">Properties</div>
+              <div className="mt-2 space-y-1 text-[var(--sim-text-muted)]">
+                {previewProperties.map(([key, value]) => (
+                  <div key={key}>
+                    - {formatParamKey(key)}: {String(value)}
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
-        {/* Section 4: Context */}
-        <div className="mb-4">
-          <div className="font-semibold text-gray-900 mb-1">Context:</div>
-          <div className="pl-2">This is the first round.</div>
-        </div>
-
-        {/* Section 5: Output Format */}
-        <div className="border-t border-gray-200 pt-3 mt-3">
-          <div className="font-semibold text-gray-900 mb-1">Your Response:</div>
-          {selectedActions.length > 0 ? (
-            <div className="pl-2">
-              Respond with only JSON: {`{{"action": "<${actionsForResponse}>"}}`}
+          <section>
+            <div className="font-semibold text-[var(--sim-text-strong)]">Scenario</div>
+            <div className="mt-2 leading-7 text-[var(--sim-text-muted)]">
+              {scenarioDescription || "No scenario description provided."}
             </div>
-          ) : (
-            <div className="pl-2 text-gray-400 italic">
-              Add actions in Step 3 to see the response format
+          </section>
+
+          <section>
+            <div className="font-semibold text-[var(--sim-text-strong)]">Parameters</div>
+            <div className="mt-2 space-y-1 text-[var(--sim-text-muted)]">
+              {Object.keys(scenarioParams).length > 0 ? (
+                Object.entries(scenarioParams).map(([key, value]) => (
+                  <div key={key}>
+                    - {formatParamKey(key)}: {String(value)}
+                  </div>
+                ))
+              ) : (
+                <div>None configured.</div>
+              )}
             </div>
-          )}
+          </section>
+
+          <section>
+            <div className="font-semibold text-[var(--sim-text-strong)]">Available actions</div>
+            <div className="mt-2 space-y-1 text-[var(--sim-text-muted)]">
+              {selectedActions.length > 0 ? (
+                selectedActions.map((action) => (
+                  <div key={action.name}>
+                    - {action.name}: {action.description}
+                  </div>
+                ))
+              ) : (
+                <div>No actions selected.</div>
+              )}
+            </div>
+          </section>
+
+          <section>
+            <div className="font-semibold text-[var(--sim-text-strong)]">Expected response</div>
+            <div className="mt-2 text-[var(--sim-text-muted)]">
+              Respond with JSON only. Choose one action from{" "}
+              {selectedActions.map((action) => action.name).join(", ") || "the configured action space"}.
+            </div>
+          </section>
         </div>
       </div>
     </div>
@@ -168,95 +135,148 @@ export const Step6Structure: React.FC = () => {
     scenarioParams,
     availableActions,
     selectedActionIds,
+    selectedScenarioData,
+    socialNetwork,
   } = useExperimentBuilder();
 
-  const totalAgents = agentTypes.reduce((sum, t) => sum + t.count, 0);
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(
+    agentTypes[0]?.id || null,
+  );
 
-  // If no agents defined, show warning
+  const totalAgents = agentTypes.reduce((sum, agent) => sum + agent.count, 0);
+  const totalLinks = useMemo(() => {
+    const seen = new Set<string>();
+    Object.entries(socialNetwork || {}).forEach(([source, targets]) => {
+      targets.forEach((target) => {
+        const key = source < target ? `${source}|${target}` : `${target}|${source}`;
+        seen.add(key);
+      });
+    });
+    return seen.size;
+  }, [socialNetwork]);
+
+  const selectedAgent =
+    agentTypes.find((agent) => agent.id === selectedAgentId) || agentTypes[0] || null;
+
   if (agentTypes.length === 0) {
     return (
       <div className="flex items-center justify-center p-12">
-        <div className="text-center max-w-md">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 rounded-full mb-4">
-            <AlertCircle className="w-8 h-8 text-amber-600" />
+        <div className="text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[rgba(196,107,114,0.12)] text-[var(--sim-danger)]">
+            <AlertCircle className="h-8 w-8" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {t('experimentBuilder.step6.noAgentsDefined')}
+          <h3 className="mt-4 text-lg font-bold text-[var(--sim-text-strong)]">
+            {t("experimentBuilder.step6.noAgentsDefined")}
           </h3>
-          <p className="text-gray-600">
-            {t('experimentBuilder.step6.goBackToStep4')}
+          <p className="mt-2 text-sm text-[var(--sim-text-muted)]">
+            {t("experimentBuilder.step6.goBackToStep4")}
           </p>
         </div>
       </div>
     );
   }
 
-  const firstAgentType = agentTypes[0];
-  const remainingAgentTypes = agentTypes.slice(1);
-
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-blue-900">
-          {t('experimentBuilder.promptPreview.title')} (Agent Type: {firstAgentType.label})
-        </h3>
-        <p className="text-sm text-blue-700 mt-1">
-          {t('experimentBuilder.promptPreview.note', { n: agentTypes.length })}
-        </p>
-      </div>
+      <section className="studio-pane-grid two">
+        <div className="studio-field-group">
+          <div className="page-hero__eyebrow w-fit">
+            <FileText className="h-3.5 w-3.5" />
+            Launch summary
+          </div>
+          <div className="text-[1.3rem] font-bold text-[var(--sim-text-strong)]">
+            Final review before the experiment starts.
+          </div>
+          <div className="text-sm leading-7 text-[var(--sim-text-muted)]">
+            This screen is the last chance to confirm the world description, action grammar,
+            agent population, and prompt shape each participant receives.
+          </div>
+        </div>
 
-      {/* Full preview for first agent type */}
-      <PromptPreviewPanel
-        agentTypeLabel={firstAgentType.label}
-        agentTypeProfile={firstAgentType.userProfile || ''}
-        agentTypeRolePrompt={firstAgentType.rolePrompt || ''}
-        agentTypeProperties={firstAgentType.properties || {}}
-        scenarioDescription={scenarioDescription}
-        scenarioParams={scenarioParams}
-        availableActions={availableActions}
-        selectedActionIds={selectedActionIds}
-      />
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="studio-field-group !p-4">
+            <div className="text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--sim-text-soft)]">
+              Scenario
+            </div>
+            <div className="text-lg font-bold text-[var(--sim-text-strong)]">
+              {selectedScenarioData?.name || "Custom"}
+            </div>
+          </div>
+          <div className="studio-field-group !p-4">
+            <div className="text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--sim-text-soft)]">
+              Agents
+            </div>
+            <div className="text-lg font-bold text-[var(--sim-text-strong)]">{totalAgents}</div>
+          </div>
+          <div className="studio-field-group !p-4">
+            <div className="text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--sim-text-soft)]">
+              Network links
+            </div>
+            <div className="text-lg font-bold text-[var(--sim-text-strong)]">{totalLinks}</div>
+          </div>
+        </div>
+      </section>
 
-      {/* Compact list for remaining agent types */}
-      {remainingAgentTypes.length > 0 && (
-        <div className="border-t pt-4">
-          <h4 className="font-medium text-gray-700 mb-3">
-            {t('experimentBuilder.promptPreview.otherTypes')}
-          </h4>
-          <div className="space-y-2">
-            {remainingAgentTypes.map(type => (
-              <div key={type.id} className="bg-gray-50 rounded p-3">
-                <div className="font-medium">{type.label}</div>
-                {type.rolePrompt && (
-                  <div className="text-sm text-gray-600 mt-1">
-                    Role: {type.rolePrompt}
-                  </div>
-                )}
-                {type.userProfile && (
-                  <div className="text-sm text-gray-600 mt-1">
-                    Profile: {type.userProfile}
-                  </div>
-                )}
-                {Object.entries(type.properties || {}).filter(([key]) => !['avatarUrl', 'llm_config', 'provider_id'].includes(key)).length > 0 && (
-                  <div className="text-sm text-gray-600 mt-1">
-                    Properties:{' '}
-                    {Object.entries(type.properties || {})
-                      .filter(([key]) => !['avatarUrl', 'llm_config', 'provider_id'].includes(key))
-                      .map(([key, value]) => `${key}=${String(value)}`)
-                      .join(', ')}
-                  </div>
-                )}
-              </div>
+      <section className="studio-field-group">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-bold text-[var(--sim-text-strong)]">Agent type previews</div>
+            <div className="mt-1 text-sm text-[var(--sim-text-muted)]">
+              Switch between configured agent types to inspect what each one sees.
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {agentTypes.map((agent) => (
+              <button
+                key={agent.id}
+                type="button"
+                className={`button-ghost button-sm ${selectedAgent?.id === agent.id ? "!bg-[var(--sim-primary-soft)] !border-[var(--sim-border-strong)] !text-[var(--sim-primary)]" : ""}`.trim()}
+                onClick={() => setSelectedAgentId(agent.id)}
+              >
+                {agent.label}
+              </button>
             ))}
           </div>
         </div>
-      )}
+      </section>
 
-      {/* Summary */}
-      <div className="text-sm text-gray-600">
-        {t('experimentBuilder.step6.totalAgentsTypes', { agents: totalAgents, types: agentTypes.length })}
-      </div>
+      {selectedAgent ? (
+        <PromptPreviewPanel
+          agentTypeLabel={selectedAgent.label}
+          agentTypeProfile={selectedAgent.userProfile || ""}
+          agentTypeRolePrompt={selectedAgent.rolePrompt || ""}
+          agentTypeProperties={selectedAgent.properties || {}}
+          scenarioDescription={scenarioDescription}
+          scenarioParams={scenarioParams}
+          availableActions={availableActions}
+          selectedActionIds={selectedActionIds}
+        />
+      ) : null}
+
+      <section className="studio-field-group">
+        <div className="flex items-center gap-2 text-[var(--sim-text-strong)]">
+          <Users className="h-4 w-4" />
+          <span className="font-bold">Launch checklist</span>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="flex items-center gap-3 rounded-[18px] border border-[var(--sim-border)] px-4 py-3">
+            <CheckCircle2 className="h-4 w-4 text-[var(--sim-success)]" />
+            <span className="text-sm text-[var(--sim-text-muted)]">Scenario and description ready</span>
+          </div>
+          <div className="flex items-center gap-3 rounded-[18px] border border-[var(--sim-border)] px-4 py-3">
+            <CheckCircle2 className="h-4 w-4 text-[var(--sim-success)]" />
+            <span className="text-sm text-[var(--sim-text-muted)]">Action space configured</span>
+          </div>
+          <div className="flex items-center gap-3 rounded-[18px] border border-[var(--sim-border)] px-4 py-3">
+            <CheckCircle2 className="h-4 w-4 text-[var(--sim-success)]" />
+            <span className="text-sm text-[var(--sim-text-muted)]">Agent types configured</span>
+          </div>
+          <div className="flex items-center gap-3 rounded-[18px] border border-[var(--sim-border)] px-4 py-3">
+            <CheckCircle2 className="h-4 w-4 text-[var(--sim-success)]" />
+            <span className="text-sm text-[var(--sim-text-muted)]">Network preview reviewed</span>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

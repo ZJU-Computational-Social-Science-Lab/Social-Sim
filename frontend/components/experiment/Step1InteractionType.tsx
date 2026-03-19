@@ -1,93 +1,19 @@
-/**
- * Step 1: Scenario Picker
- *
- * Displays a grid of scenario cards fetched from the backend.
- * Users select one scenario to proceed with experiment configuration.
- */
+import React, { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ArrowRight, CheckCircle2, Network, Sparkles } from "lucide-react";
 
-import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useExperimentBuilder } from '../../store/experiment-builder';
-import { getAllScenarios, ScenarioData } from '../../services/scenarios';
-
-interface ScenarioCardProps {
-  scenario: ScenarioData;
-  selected: boolean;
-  onClick: () => void;
-  t: (key: string) => string;
-}
+import { useExperimentBuilder } from "../../store/experiment-builder";
+import { getAllScenarios, type ScenarioData } from "../../services/scenarios";
 
 const CATEGORY_ORDER = [
-  'game_theory',
-  'social_dynamics',
-  'discussion',
-  'spatial',
-  'social_deduction',
-  'sociology',
-  'custom',
+  "game_theory",
+  "social_dynamics",
+  "discussion",
+  "spatial",
+  "social_deduction",
+  "sociology",
+  "custom",
 ] as const;
-
-const CATEGORY_COLORS: Record<string, string> = {
-  game_theory: '#3b82f6',
-  social_dynamics: '#8b5cf6',
-  discussion: '#10b981',
-  spatial: '#f59e0b',
-  social_deduction: '#ef4444',
-  sociology: '#ec4899',
-  custom: '#6b7280',
-};
-
-const ScenarioCard: React.FC<ScenarioCardProps> = ({
-  scenario,
-  selected,
-  onClick,
-  t,
-}) => {
-  // Build translation key for scenario name/description
-  const scenarioNameKey = `scenario.${scenario.category}.${scenario.id}.name`;
-  const scenarioDescKey = `scenario.${scenario.category}.${scenario.id}.description`;
-
-  // Use translation with fallback to original value
-  const translatedName = t(scenarioNameKey, scenario.name);
-  const translatedDesc = t(scenarioDescKey, scenario.description);
-
-  return (
-    <button
-      onClick={onClick}
-      className={`
-        p-4 text-left border-2 rounded-lg transition-all w-full bg-white
-        ${selected
-          ? 'border-blue-500 bg-blue-50 shadow-sm ring-2 ring-blue-100'
-          : 'border-gray-200 hover:border-blue-300 hover:shadow-sm'
-        }
-      `}
-    >
-      <div className="flex items-start gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-semibold text-gray-900 truncate">
-              {translatedName}
-            </h3>
-          </div>
-          <p className="text-sm text-gray-600 line-clamp-2">
-            {translatedDesc}
-          </p>
-        </div>
-        <div className="ml-2 flex-shrink-0">
-          {selected ? (
-            <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-          ) : (
-            <div className="w-6 h-6 rounded-full border-2 border-gray-300" />
-          )}
-        </div>
-      </div>
-    </button>
-  );
-};
 
 export const Step1InteractionType: React.FC = () => {
   const { t } = useTranslation();
@@ -101,46 +27,44 @@ export const Step1InteractionType: React.FC = () => {
   const [scenarios, setScenarios] = useState<ScenarioData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    let active = true;
     const fetchScenarios = async () => {
       setLoading(true);
       setError(null);
       try {
         const data = await getAllScenarios();
-        setScenarios(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch scenarios');
+        if (active) {
+          setScenarios(data);
+        }
+      } catch (fetchError) {
+        if (active) {
+          setError(fetchError instanceof Error ? fetchError.message : "Failed to fetch scenarios");
+        }
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     };
 
     fetchScenarios();
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const toggleCategory = (category: string) => {
-    setOpenCategories(prev => {
-      const next = new Set(prev);
-      if (next.has(category)) {
-        next.delete(category);
-      } else {
-        next.add(category);
-      }
-      return next;
-    });
-  };
+  const groupedScenarios = useMemo(
+    () =>
+      CATEGORY_ORDER.map((category) => ({
+        category,
+        items: scenarios.filter((scenario) => scenario.category === category),
+      })).filter((group) => group.items.length > 0),
+    [scenarios],
+  );
 
-  // Auto-expand selected scenario's category
-  useEffect(() => {
-    if (selectedScenarioId) {
-      const scenario = scenarios.find(s => s.id === selectedScenarioId);
-      if (scenario) {
-        setOpenCategories(prev => new Set(prev).add(scenario.category));
-      }
-    }
-  }, [selectedScenarioId, scenarios]);
+  const selectedScenario = scenarios.find((scenario) => scenario.id === selectedScenarioId) || null;
 
   const handleSelectScenario = (scenario: ScenarioData) => {
     setSelectedScenarioId(scenario.id);
@@ -148,123 +72,125 @@ export const Step1InteractionType: React.FC = () => {
     markStepComplete(1);
   };
 
-  const handleRetry = () => {
-    const fetchScenarios = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await getAllScenarios();
-        setScenarios(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch scenarios');
-      } finally {
-        setLoading(false);
-      }
-    };
+  if (loading) {
+    return (
+      <div className="settings-section-card">
+        <div className="flex items-center gap-3 text-[var(--sim-text-muted)]">
+          <span className="spinner" />
+          {t("common.loading")}
+        </div>
+      </div>
+    );
+  }
 
-    fetchScenarios();
-  };
+  if (error) {
+    return (
+      <div className="settings-section-card">
+        <div className="text-sm font-semibold text-[var(--sim-danger)]">{error}</div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold text-gray-900">
-          {t('experimentBuilder.step1.chooseScenario')}
-        </h2>
-        <p className="text-sm text-gray-600 mt-1">
-          {t('experimentBuilder.step1.selectTemplate')}
-        </p>
+    <div className="space-y-6">
+      <div className="studio-pane-grid two">
+        <section className="studio-field-group">
+          <div className="page-hero__eyebrow w-fit">
+            <Sparkles className="h-3.5 w-3.5" />
+            Step 1
+          </div>
+          <h2 className="text-[1.4rem] font-bold text-[var(--sim-text-strong)]">
+            Choose the social world you want to enter.
+          </h2>
+          <p className="text-sm leading-7 text-[var(--sim-text-muted)]">
+            Each scenario sets the initial power dynamics, default parameters, and the action
+            grammar available to the agents later in the studio.
+          </p>
+        </section>
+
+        <section className="studio-field-group">
+          <div className="text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--sim-text-soft)]">
+            Current selection
+          </div>
+          <div className="text-[1.12rem] font-bold text-[var(--sim-text-strong)]">
+            {selectedScenario?.name || "No scenario selected yet"}
+          </div>
+          <div className="text-sm leading-7 text-[var(--sim-text-muted)]">
+            {selectedScenario?.description ||
+              "Pick a scenario and the rest of the studio will immediately adapt: parameters, action space, agent guidance, and network hints."}
+          </div>
+        </section>
       </div>
 
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-2" />
-            <p className="text-sm text-gray-600">{t('common.loading')}</p>
-          </div>
-        </div>
-      )}
-
-      {error && (
-        <div className="flex flex-col items-center justify-center py-12">
-          <div className="text-center mb-4">
-            <svg className="w-12 h-12 text-red-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-sm text-gray-600">{error}</p>
-          </div>
-          <button
-            onClick={handleRetry}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            {t('experimentBuilder.step1.retry')}
-          </button>
-        </div>
-      )}
-
-      {!loading && !error && scenarios.length === 0 && (
-        <div className="flex items-center justify-center py-12">
-          <p className="text-sm text-gray-600">{t('experimentBuilder.step1.noScenariosAvailable')}</p>
-        </div>
-      )}
-
-      {!loading && !error && scenarios.length > 0 && (
-        <div className="space-y-4">
-          {CATEGORY_ORDER.map(category => {
-            const categoryScenarios = scenarios.filter(s => s.category === category);
-            if (categoryScenarios.length === 0) return null;
-
-            const isOpen = openCategories.has(category);
-            const color = CATEGORY_COLORS[category] || '#6b7280';
-
-            return (
-              <div key={category} className="border rounded-lg">
-                <button
-                  onClick={() => toggleCategory(category)}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="px-2 py-1 rounded text-xs font-medium text-white"
-                      style={{ backgroundColor: color }}
-                    >
-                      {t(`scenario.category.${category}`)}
-                    </span>
-                    <span className="font-medium">
-                      {t(`scenario.category.${category}`)}
-                    </span>
-                    <span className="text-sm text-gray-600">
-                      {t('experimentBuilder.step1.scenariosCount', { count: categoryScenarios.length })}
-                    </span>
-                  </div>
-                  <svg
-                    className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {isOpen && (
-                  <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {categoryScenarios.map(scenario => (
-                      <ScenarioCard
-                        key={scenario.id}
-                        scenario={scenario}
-                        selected={selectedScenarioId === scenario.id}
-                        onClick={() => handleSelectScenario(scenario)}
-                        t={t}
-                      />
-                    ))}
-                  </div>
-                )}
+      {groupedScenarios.map((group) => (
+        <section key={group.category} className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="page-hero__eyebrow w-fit">
+                {t(`scenario.category.${group.category}`, { defaultValue: group.category })}
               </div>
-            );
-          })}
-        </div>
-      )}
+              <div className="mt-3 text-lg font-bold text-[var(--sim-text-strong)]">
+                {t(`scenario.category.${group.category}`, { defaultValue: group.category })}
+              </div>
+            </div>
+            <span className="status-pill">{group.items.length} options</span>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            {group.items.map((scenario) => {
+              const isSelected = selectedScenarioId === scenario.id;
+
+              return (
+                <button
+                  key={scenario.id}
+                  type="button"
+                  className={`scenario-card text-left ${isSelected ? "ring-2 ring-[rgba(51,104,200,0.22)]" : ""}`.trim()}
+                  onClick={() => handleSelectScenario(scenario)}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="badge">{scenario.interaction_mode || "simultaneous"}</span>
+                      <span className="badge badge-outline">
+                        {(scenario.category_actions || scenario.actions || []).length} actions
+                      </span>
+                    </div>
+                    {isSelected ? (
+                      <span className="flex h-9 w-9 items-center justify-center rounded-[14px] bg-[var(--sim-primary)] text-white">
+                        <CheckCircle2 className="h-4 w-4" />
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-5">
+                    <div className="text-[1.08rem] font-bold text-[var(--sim-text-strong)]">
+                      {scenario.name}
+                    </div>
+                    <div className="mt-3 text-sm leading-7 text-[var(--sim-text-muted)]">
+                      {scenario.description}
+                    </div>
+                  </div>
+
+                  <div className="scenario-link-preview mt-6">
+                    <span className="orbit-node breathing-node" style={{ top: "22%", left: "24%" }} />
+                    <span className="orbit-node breathing-node" style={{ top: "46%", left: "60%", animationDelay: "0.4s" }} />
+                    <span className="orbit-node breathing-node" style={{ bottom: "18%", left: "40%", animationDelay: "0.8s" }} />
+                    <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100">
+                      <path d="M25 25 C38 32, 50 38, 60 48" stroke="rgba(51,104,200,0.3)" strokeWidth="1" fill="none" />
+                      <path d="M60 48 C52 58, 46 68, 40 80" stroke="rgba(45,143,132,0.3)" strokeWidth="1" fill="none" />
+                    </svg>
+                  </div>
+
+                  <div className="mt-6 flex flex-wrap items-center gap-2 text-sm text-[var(--sim-text-muted)]">
+                    <Network className="h-4 w-4 text-[var(--sim-primary)]" />
+                    <span>{scenario.parameters.length} configurable parameters</span>
+                    {isSelected ? <ArrowRight className="ml-auto h-4 w-4 text-[var(--sim-primary)]" /> : null}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ))}
     </div>
   );
 };

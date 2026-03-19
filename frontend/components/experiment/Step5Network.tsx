@@ -144,8 +144,8 @@ const ParamSlider: React.FC<ParamSliderProps> = ({
 }) => {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center justify-between">
-      <label className="text-[11px] text-slate-600 flex-1">
+    <div className="flex items-center justify-between gap-3">
+      <label className="flex-1 text-[11px] font-medium text-[var(--sim-text-muted)]">
         {t(`components.networkEditorModal.${labelKey}`)}
       </label>
       <div className="flex items-center gap-2">
@@ -156,9 +156,9 @@ const ParamSlider: React.FC<ParamSliderProps> = ({
           step={step}
           value={value}
           onChange={(e) => onChange(isInteger ? parseInt(e.target.value) : parseFloat(e.target.value))}
-          className="w-20 h-1 accent-brand-500"
+          className="h-1 w-24 accent-[var(--sim-primary)]"
         />
-        <span className="text-[10px] text-slate-500 w-8 text-right">
+        <span className="w-10 text-right text-[10px] text-[var(--sim-text-soft)]">
           {isInteger ? value : value.toFixed(2)}
         </span>
       </div>
@@ -229,6 +229,14 @@ export const Step5Network: React.FC = () => {
     }
     return list;
   }, [agentIds, socialNetwork]);
+  const isolatedCount = useMemo(
+    () => agentIds.filter((id) => (socialNetwork[id] || []).length === 0).length,
+    [agentIds, socialNetwork],
+  );
+  const connectionDensity = useMemo(() => {
+    const possible = agentIds.length > 1 ? (agentIds.length * (agentIds.length - 1)) / 2 : 1;
+    return Math.min(1, edges.length / possible);
+  }, [agentIds.length, edges.length]);
 
   const addLink = () => {
     if (!linkFrom || !linkTo || linkFrom === linkTo) return;
@@ -548,15 +556,15 @@ export const Step5Network: React.FC = () => {
     const presetKey = selectedPreset as keyof PresetParams;
 
     return (
-      <div className="space-y-3 p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+      <div className="studio-field-group">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+          <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--sim-text-soft)]">
             <Settings2 size={12} />
             {t('components.networkEditorModal.parameterSettings')}
           </span>
           <button
             onClick={() => resetParams(presetKey)}
-            className="text-[10px] text-brand-600 hover:text-brand-700 flex items-center gap-0.5"
+            className="text-[11px] font-medium text-[var(--sim-primary)] hover:text-[var(--sim-primary-strong)]"
           >
             <RefreshCw size={10} />
             {t('components.networkEditorModal.resetDefaults')}
@@ -597,7 +605,7 @@ export const Step5Network: React.FC = () => {
         )}
 
         {/* Apply Changes Button */}
-        <div className="mt-3 pt-3 border-t border-slate-200">
+        <div className="border-t border-[var(--sim-border)] pt-3">
           <button
             onClick={() => {
               if (selectedPreset) {
@@ -605,7 +613,7 @@ export const Step5Network: React.FC = () => {
               }
             }}
             disabled={!selectedPreset}
-            className="w-full py-1.5 px-3 bg-brand-500 text-white rounded text-xs font-medium hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="button button-sm w-full"
           >
             {t('experimentBuilder.step5.applyChanges')}
           </button>
@@ -617,216 +625,316 @@ export const Step5Network: React.FC = () => {
   // Check if agents are configured
   if (agentTypes.length === 0 || agentIds.length === 0) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <div className="text-center max-w-md">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 rounded-full mb-4">
-            <Users className="w-8 h-8 text-amber-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {t('experimentBuilder.step5.noAgentsConfigured')}
-          </h3>
-          <p className="text-gray-600">
-            {t('experimentBuilder.step5.goBackToStep4')}
-          </p>
+      <div className="studio-empty-state">
+        <div className="inline-flex h-16 w-16 items-center justify-center rounded-[22px] border border-[rgba(206,152,74,0.18)] bg-[rgba(206,152,74,0.12)]">
+          <Users className="h-8 w-8 text-[var(--sim-warning)]" />
         </div>
+        <h3 className="text-lg font-semibold text-[var(--sim-text-strong)]">
+          {t('experimentBuilder.step5.noAgentsConfigured')}
+        </h3>
+        <p className="max-w-md text-sm leading-6 text-[var(--sim-text-muted)]">
+          {t('experimentBuilder.step5.goBackToStep4')}
+        </p>
       </div>
     );
   }
 
+  const selectedPresetMeta = selectedPreset ? presetIcons[selectedPreset] : null;
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-full">
-      {/* Sidebar Tools */}
-      <div className="lg:col-span-1 bg-slate-50 border-r p-4 space-y-4 overflow-y-auto max-h-full">
-        <div>
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-            {t('experimentBuilder.step5.networkPresets')}
-          </label>
-          <p className="text-[10px] text-slate-400 mt-0.5 mb-3">
-            {t('experimentBuilder.step5.chooseTopology')}
-          </p>
+    <div className="space-y-6">
+      <section className="studio-field-group">
+        <div className="page-hero__eyebrow w-fit">Relationship topology</div>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-3xl">
+            <h2 className="text-xl font-semibold text-[var(--sim-text-strong)]">
+              {t('experimentBuilder.step5.networkPresets')}
+            </h2>
+            <p className="mt-2 text-sm leading-7 text-[var(--sim-text-muted)]">
+              Configure how influence, visibility, and contagion move across the cast. Presets reshape the graph instantly, while manual links let you fine tune edge cases.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="status-pill">{agentIds.length} agents</span>
+            <span className="status-pill">{edges.length} links</span>
+            <span className="status-pill">{Math.round(connectionDensity * 100)}% density</span>
+          </div>
+        </div>
+      </section>
 
-          {/* Preset Selection Grid */}
-          <div className="space-y-1.5">
-            {Object.entries(presetIcons).map(([key, { icon: Icon, translationKey }]) => {
-              const isSelected = selectedPreset === key;
+      <div className="studio-network-layout">
+        <aside className="studio-network-tools">
+          <section className="studio-field-group">
+            <div>
+              <div className="page-hero__eyebrow w-fit">Presets</div>
+              <p className="mt-2 text-sm leading-6 text-[var(--sim-text-muted)]">
+                {t('experimentBuilder.step5.chooseTopology')}
+              </p>
+            </div>
 
-              return (
-                <button
-                  key={key}
-                  onClick={() => {
-                    setSelectedPreset(isSelected ? null : key as PresetType);
-                    if (!isSelected) {
-                      applyPreset(key as PresetType);
-                    }
-                  }}
-                  className={`w-full p-2 rounded-lg border text-left transition-all ${
-                    isSelected
-                      ? 'bg-brand-50 border-brand-300 ring-1 ring-brand-200'
-                      : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className={`p-1.5 rounded ${isSelected ? 'bg-brand-100 text-brand-600' : 'bg-slate-100 text-slate-500'}`}>
-                      <Icon size={14} />
+            <div className="space-y-2">
+              {Object.entries(presetIcons).map(([key, { icon: Icon, translationKey }]) => {
+                const isSelected = selectedPreset === key;
+
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setSelectedPreset(isSelected ? null : key as PresetType);
+                      if (!isSelected) {
+                        applyPreset(key as PresetType);
+                      }
+                    }}
+                    className={`studio-network-preset ${isSelected ? 'active' : ''}`.trim()}
+                  >
+                    <div className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[rgba(51,104,200,0.12)] text-[var(--sim-primary)]">
+                      <Icon size={16} />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <span className={`text-xs font-medium block ${isSelected ? 'text-brand-700' : 'text-slate-700'}`}>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-[var(--sim-text-strong)]">
                         {t(`experimentBuilder.step5.presets.${translationKey}.name`)}
-                      </span>
-                      <p className="text-[10px] text-slate-400 truncate">
+                      </div>
+                      <p className="mt-1 text-xs leading-5 text-[var(--sim-text-muted)]">
                         {t(`experimentBuilder.step5.presets.${translationKey}.description`)}
                       </p>
                     </div>
-                    <div className={`transition-transform ${isSelected ? 'rotate-90' : ''}`}>
-                      <ChevronRight size={14} className="text-slate-400" />
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Quick Actions */}
-          <div className="flex gap-2 mt-3">
-            <button
-              onClick={() => {
-                setSelectedPreset('full');
-                applyPreset('full');
-              }}
-              className="flex-1 py-1.5 px-2 bg-white border border-slate-200 rounded text-[10px] text-slate-600 hover:bg-slate-50 flex items-center justify-center gap-1"
-            >
-              <Share2 size={10} />
-              {t('experimentBuilder.step5.fullyConnected')}
-            </button>
-            <button
-              onClick={() => {
-                if (agentIds.length > 0) {
-                  setSelectedPreset('random');
-                  applyPreset('random');
-                }
-              }}
-              className="flex-1 py-1.5 px-2 bg-white border border-slate-200 rounded text-[10px] text-slate-500 hover:bg-slate-50 flex items-center justify-center gap-1"
-            >
-              <RefreshCw size={10} />
-              {t('experimentBuilder.step5.reset')}
-            </button>
-          </div>
-        </div>
-
-        {/* Manual Links */}
-        <div className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm space-y-2">
-          <div className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-            <Settings2 size={12} />
-            {t('experimentBuilder.step5.manualLinks', 'Manual links')}
-          </div>
-          <div className="flex items-center gap-2 text-[11px] text-slate-600">
-            <select
-              value={linkFrom}
-              onChange={(e) => setLinkFrom(e.target.value)}
-              className="flex-1 border border-slate-200 rounded px-2 py-1 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand-400"
-            >
-              {agentIds.map((id) => (
-                <option key={id} value={id}>{id}</option>
-              ))}
-            </select>
-            <span className="text-slate-400">→</span>
-            <select
-              value={linkTo}
-              onChange={(e) => setLinkTo(e.target.value)}
-              className="flex-1 border border-slate-200 rounded px-2 py-1 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand-400"
-            >
-              {agentIds.map((id) => (
-                <option key={id} value={id}>{id}</option>
-              ))}
-            </select>
-          </div>
-          <Button
-            size="sm"
-            className="w-full text-xs"
-            disabled={!linkFrom || !linkTo || linkFrom === linkTo}
-            onClick={addLink}
-          >
-            {t('experimentBuilder.step5.addLink', 'Add link')}
-          </Button>
-
-          {edges.length > 0 ? (
-            <div className="max-h-32 overflow-y-auto border-t border-slate-100 pt-2 space-y-1 text-[11px] text-slate-600">
-              {edges.map(({ key, source, target }) => (
-                <div key={key} className="flex items-center justify-between bg-slate-50 px-2 py-1 rounded">
-                  <span className="truncate">
-                    {source} ↔ {target}
-                  </span>
-                  <button
-                    className="text-red-500 text-[10px] hover:text-red-600"
-                    onClick={() => removeLink(key)}
-                  >
-                    {t('common.remove', 'Remove')}
+                    <ChevronRight
+                      size={16}
+                      className={`text-[var(--sim-text-soft)] transition-transform ${isSelected ? 'rotate-90' : ''}`}
+                    />
                   </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          ) : (
-            <div className="text-[10px] text-slate-400 border-t border-slate-100 pt-2">
-              {t('experimentBuilder.step5.noLinks', 'No links yet')}
+
+            <div className="grid gap-2 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPreset('full');
+                  applyPreset('full');
+                }}
+                className="button-ghost button-sm"
+              >
+                <Share2 size={12} />
+                {t('experimentBuilder.step5.fullyConnected')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (agentIds.length > 0) {
+                    setSelectedPreset('random');
+                    applyPreset('random');
+                  }
+                }}
+                className="button-ghost button-sm"
+              >
+                <RefreshCw size={12} />
+                {t('experimentBuilder.step5.reset')}
+              </button>
+            </div>
+          </section>
+
+          <section className="studio-field-group">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--sim-text-soft)]">
+              <Settings2 size={12} />
+              {t('experimentBuilder.step5.manualLinks', 'Manual links')}
+            </div>
+            <div className="grid gap-3">
+              <select value={linkFrom} onChange={(e) => setLinkFrom(e.target.value)} className="input">
+                {agentIds.map((id) => (
+                  <option key={id} value={id}>
+                    {id}
+                  </option>
+                ))}
+              </select>
+              <select value={linkTo} onChange={(e) => setLinkTo(e.target.value)} className="input">
+                {agentIds.map((id) => (
+                  <option key={id} value={id}>
+                    {id}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Button size="sm" className="w-full" disabled={!linkFrom || !linkTo || linkFrom === linkTo} onClick={addLink}>
+              {t('experimentBuilder.step5.addLink', 'Add link')}
+            </Button>
+
+            {edges.length > 0 ? (
+              <div className="space-y-2 border-t border-[var(--sim-border)] pt-3">
+                {edges.slice(0, 8).map(({ key, source, target }) => (
+                  <div
+                    key={key}
+                    className="flex items-center justify-between gap-3 rounded-[16px] border border-[var(--sim-border)] bg-[rgba(255,255,255,0.34)] px-3 py-2 text-xs text-[var(--sim-text-muted)] dark:bg-[rgba(255,255,255,0.02)]"
+                  >
+                    <span className="truncate">
+                      {source} ↔ {target}
+                    </span>
+                    <button
+                      type="button"
+                      className="text-[var(--sim-danger)] hover:text-[var(--sim-danger)]"
+                      onClick={() => removeLink(key)}
+                    >
+                      {t('common.remove', 'Remove')}
+                    </button>
+                  </div>
+                ))}
+                {edges.length > 8 && (
+                  <div className="text-xs text-[var(--sim-text-soft)]">
+                    {edges.length - 8} more links hidden for brevity.
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-[18px] border border-dashed border-[var(--sim-border)] px-4 py-4 text-sm text-[var(--sim-text-soft)]">
+                {t('experimentBuilder.step5.noLinks', 'No links yet')}
+              </div>
+            )}
+          </section>
+
+          {renderParamControls()}
+
+          <section className="studio-field-group">
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--sim-text-soft)]">
+              {t('experimentBuilder.step5.instructions')}
+            </div>
+            <ul className="list-decimal space-y-2 pl-5 text-sm leading-6 text-[var(--sim-text-muted)]">
+              <li>{t('experimentBuilder.step5.instructionSelect')}</li>
+              <li>{t('experimentBuilder.step5.instructionDrag')}</li>
+              <li>{t('experimentBuilder.step5.instructionZoom')}</li>
+            </ul>
+          </section>
+        </aside>
+
+        <div ref={containerRef} className="studio-network-canvas group">
+          <svg ref={svgRef} className="block h-full w-full"></svg>
+
+          {hoverInfo && (
+            <div
+              className="studio-network-floating absolute z-20 pointer-events-none max-w-xs px-3 py-2 text-[11px] text-[var(--sim-text)]"
+              style={{ left: hoverInfo.x, top: hoverInfo.y }}
+            >
+              <div className="font-semibold text-[var(--sim-text-strong)]">{hoverInfo.name}</div>
+              <div className="mt-1 whitespace-pre-wrap break-words text-[var(--sim-text-muted)]">
+                {hoverInfo.profile || t('experimentBuilder.step5.noProfile', '无简介')}
+              </div>
             </div>
           )}
-        </div>
 
-        {/* Parameter Controls */}
-        {renderParamControls()}
-
-        {/* Instructions */}
-        <div className="text-xs text-slate-400 leading-relaxed pt-3 border-t mt-auto">
-          <strong className="text-slate-500">{t('experimentBuilder.step5.instructions')}:</strong>
-          <ul className="list-decimal pl-4 space-y-0.5 mt-1 text-[10px]">
-            <li>{t('experimentBuilder.step5.instructionSelect')}</li>
-            <li>{t('experimentBuilder.step5.instructionDrag')}</li>
-            <li>{t('experimentBuilder.step5.instructionZoom')}</li>
-          </ul>
-        </div>
-      </div>
-
-      {/* Canvas */}
-      <div ref={containerRef} className="lg:col-span-3 bg-slate-50 relative overflow-hidden group">
-        <svg ref={svgRef} className="block w-full h-full"></svg>
-
-        {hoverInfo && (
-          <div
-            className="absolute z-20 pointer-events-none bg-white border border-slate-200 shadow-md rounded px-2 py-1 text-[11px] text-slate-700 max-w-xs"
-            style={{ left: hoverInfo.x, top: hoverInfo.y }}
-          >
-            <div className="font-semibold">{hoverInfo.name}</div>
-            <div className="text-slate-500 whitespace-pre-wrap break-words">{hoverInfo.profile || t('experimentBuilder.step5.noProfile', '无简介')}</div>
+          <div className="studio-network-floating absolute left-4 top-4 max-w-sm px-4 py-3">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--sim-text-soft)]">
+              Active structure
+            </div>
+            <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-[var(--sim-text-strong)]">
+              {selectedPresetMeta ? React.createElement(selectedPresetMeta.icon, { size: 14 }) : <Network size={14} />}
+              {selectedPresetMeta
+                ? t(`experimentBuilder.step5.presets.${selectedPresetMeta.translationKey}.name`)
+                : 'Custom network'}
+            </div>
+            <p className="mt-2 text-sm leading-6 text-[var(--sim-text-muted)]">
+              {selectedPresetMeta
+                ? t(`experimentBuilder.step5.presets.${selectedPresetMeta.translationKey}.description`)
+                : 'The graph currently mixes preset structure with manual edits.'}
+            </p>
           </div>
-        )}
 
-        {/* Zoom Controls */}
-        <div className="absolute top-4 right-4 flex flex-col gap-1 bg-white border rounded shadow-sm p-1">
-          <button onClick={handleZoomIn} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('experimentBuilder.network.zoomIn')}>
-            <ZoomIn size={16} />
-          </button>
-          <button onClick={handleZoomOut} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('experimentBuilder.network.zoomOut')}>
-            <ZoomOut size={16} />
-          </button>
-          <div className="h-px bg-slate-200 my-0.5"></div>
-          <button onClick={handleResetZoom} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('experimentBuilder.network.resetView')}>
-            <Maximize size={16} />
-          </button>
-        </div>
+          <div className="studio-network-floating absolute bottom-4 left-4 px-4 py-3 text-xs text-[var(--sim-text-muted)]">
+            <div className="flex flex-wrap items-center gap-4">
+              <span>
+                <strong className="text-[var(--sim-text-strong)]">{agentIds.length}</strong>{' '}
+                {t('experimentBuilder.step5.nodes', { count: agentIds.length })}
+              </span>
+              <span>
+                <strong className="text-[var(--sim-text-strong)]">{edges.length}</strong>{' '}
+                {t('experimentBuilder.step5.edges', { count: edges.length })}
+              </span>
+              <span>
+                <strong className="text-[var(--sim-text-strong)]">{isolatedCount}</strong> isolated
+              </span>
+            </div>
+          </div>
 
-        {/* Network Stats */}
-        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm border rounded-lg px-3 py-2 text-[10px] text-slate-600">
-          <div className="flex items-center gap-3">
-            <span>
-              <strong className="text-slate-700">{agentIds.length}</strong> {t('experimentBuilder.step5.nodes', { count: agentIds.length })}
-            </span>
-            <span>
-              <strong className="text-slate-700">
-                {Object.values(socialNetwork).reduce((sum, arr) => sum + arr.length, 0)}
-              </strong> {t('experimentBuilder.step5.edges', { count: Object.values(socialNetwork).reduce((sum, arr) => sum + arr.length, 0) })}
-            </span>
+          <div className="studio-network-floating absolute right-4 top-4 flex flex-col gap-1 p-1">
+            <button
+              type="button"
+              onClick={handleZoomIn}
+              className="rounded-[14px] p-2 text-[var(--sim-text-muted)] hover:bg-[var(--sim-surface-3)]"
+              title={t('experimentBuilder.network.zoomIn')}
+            >
+              <ZoomIn size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={handleZoomOut}
+              className="rounded-[14px] p-2 text-[var(--sim-text-muted)] hover:bg-[var(--sim-surface-3)]"
+              title={t('experimentBuilder.network.zoomOut')}
+            >
+              <ZoomOut size={16} />
+            </button>
+            <div className="my-0.5 h-px bg-[var(--sim-border)]"></div>
+            <button
+              type="button"
+              onClick={handleResetZoom}
+              className="rounded-[14px] p-2 text-[var(--sim-text-muted)] hover:bg-[var(--sim-surface-3)]"
+              title={t('experimentBuilder.network.resetView')}
+            >
+              <Maximize size={16} />
+            </button>
           </div>
         </div>
+
+        <aside className="studio-network-brief">
+          <section className="studio-field-group">
+            <div className="page-hero__eyebrow w-fit">Live briefing</div>
+            <div className="space-y-3">
+              <div className="rounded-[18px] border border-[var(--sim-border)] bg-[rgba(255,255,255,0.36)] px-4 py-4 dark:bg-[rgba(255,255,255,0.02)]">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--sim-text-soft)]">
+                  Density
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-[var(--sim-text-strong)]">
+                  {Math.round(connectionDensity * 100)}%
+                </div>
+                <div className="mt-2 text-sm text-[var(--sim-text-muted)]">
+                  Higher density increases information exposure and accelerates convergence.
+                </div>
+              </div>
+              <div className="rounded-[18px] border border-[var(--sim-border)] bg-[rgba(255,255,255,0.36)] px-4 py-4 dark:bg-[rgba(255,255,255,0.02)]">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--sim-text-soft)]">
+                  Isolation check
+                </div>
+                <div className="mt-2 text-lg font-semibold text-[var(--sim-text-strong)]">
+                  {isolatedCount === 0 ? 'All agents connected' : `${isolatedCount} agents isolated`}
+                </div>
+                <div className="mt-2 text-sm text-[var(--sim-text-muted)]">
+                  The preset engine already avoids empty islands, but manual edits can still reshape the final flow of influence.
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="studio-field-group">
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--sim-text-soft)]">
+              Connection sample
+            </div>
+            <div className="space-y-2">
+              {edges.slice(0, 6).map(({ key, source, target }) => (
+                <div
+                  key={key}
+                  className="rounded-[16px] border border-[var(--sim-border)] bg-[rgba(255,255,255,0.34)] px-3 py-3 text-sm text-[var(--sim-text-muted)] dark:bg-[rgba(255,255,255,0.02)]"
+                >
+                  <div className="font-medium text-[var(--sim-text-strong)]">{source}</div>
+                  <div className="mt-1 text-[var(--sim-text-soft)]">linked with {target}</div>
+                </div>
+              ))}
+              {edges.length === 0 && (
+                <div className="rounded-[16px] border border-dashed border-[var(--sim-border)] px-4 py-4 text-sm text-[var(--sim-text-soft)]">
+                  Manual and preset connections will appear here once the graph is populated.
+                </div>
+              )}
+            </div>
+          </section>
+        </aside>
       </div>
     </div>
   );

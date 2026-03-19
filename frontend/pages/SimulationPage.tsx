@@ -1,17 +1,12 @@
 // frontend/pages/SimulationPage.tsx
 // frontend/pages/SimulationPage.tsx
 
-// MODULE LOAD CHECK - Should appear when SimulationPage loads
-console.log('[SimulationPage.tsx] MODULE LOADED - Page file executed');
-
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { SimTree } from "../components/SimTree";
 import { Sidebar } from "../components/Sidebar";
 import { LogViewer } from "../components/LogViewer";
 import { ComparisonView } from "../components/ComparisonView";
-import { SimulationWizard } from "../components/SimulationWizard";
-import { ExperimentBuilderModal } from "../components/ExperimentBuilderModal";
 import SyncModal from "../components/SyncModal";
 import { HelpModal } from "../components/HelpModal";
 import { AnalyticsPanel } from "../components/AnalyticsPanel";
@@ -25,7 +20,6 @@ import { GlobalKnowledgePanel } from "../components/GlobalKnowledgePanel";
 import { GuideAssistant } from "../components/GuideAssistant";
 import { ToastContainer } from "../components/Toast";
 import { useSimulationStore } from "../store";
-import { useParams } from "react-router-dom";
 import { getSimulation as apiGetSimulation } from "../services/simulations";
 import { getTreeGraph, getSimEvents, getSimState, getRehydrate } from "../services/simulationTree";
 import { useAuthStore } from "../store/auth";
@@ -33,8 +27,6 @@ import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { useTranslation } from "react-i18next";
 import {
   Play,
-  SkipForward,
-  Plus,
   Settings,
   GitFork,
   BarChart2,
@@ -57,12 +49,9 @@ import {
 // ---------------- Header ----------------
 
 const Header: React.FC = () => {
+  const navigate = useNavigate();
   const currentSim = useSimulationStore((state) => state.currentSimulation);
-  const toggleWizard = useSimulationStore((state) => state.toggleWizard);
   const engineConfig = useSimulationStore((state) => state.engineConfig);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const hasRestored = useAuthStore((s) => s.hasRestored);
-  const loadProviders = useSimulationStore((state) => state.loadProviders);
   const setEngineMode = useSimulationStore((state) => state.setEngineMode);
   const resetSimulation = useSimulationStore((state) => state.resetSimulation);
   const deleteSimulation = useSimulationStore((state) => state.deleteSimulation);
@@ -78,50 +67,45 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="h-14 bg-white border-b flex items-center justify-between px-4 shrink-0 z-20">
+    <header className="runtime-topbar flex shrink-0 items-center justify-between px-5 py-3 z-20">
       <div className="flex items-center gap-4">
-        <Link to="/dashboard" className="flex items-center gap-2 text-brand-600 font-bold text-lg tracking-tight hover:opacity-80">
-          <div className="w-8 h-8 bg-brand-600 text-white rounded-lg flex items-center justify-center">
-            S4
+        <Link to="/dashboard" className="flex items-center gap-3 text-[var(--sim-text-strong)]">
+          <div className="product-brand__mark h-10 w-10 rounded-[16px]">
+            <Beaker size={16} />
           </div>
-          <span>
-            SocialSim
-            <span className="text-slate-400 font-light">Next</span>
-          </span>
+          <span className="font-[var(--sim-font-display)] text-lg font-bold tracking-tight">SocialSim4</span>
         </Link>
         
-        {/* 导航链接 */}
-        <nav className="flex items-center gap-1 ml-4">
-          <Link to="/dashboard" className="px-3 py-1.5 text-sm text-slate-600 hover:text-brand-600 hover:bg-slate-100 rounded">
+        <nav className="ml-3 hidden items-center gap-1 md:flex">
+          <Link to="/dashboard" className="product-nav__link">
             {t('nav.dashboard')}
           </Link>
-          <Link to="/simulations/saved" className="px-3 py-1.5 text-sm text-slate-600 hover:text-brand-600 hover:bg-slate-100 rounded">
+          <Link to="/simulations/saved" className="product-nav__link">
             {t('nav.saved')}
           </Link>
-          <Link to="/settings" className="px-3 py-1.5 text-sm text-slate-600 hover:text-brand-600 hover:bg-slate-100 rounded">
+          <Link to="/settings/providers" className="product-nav__link">
             {t('nav.settings')}
           </Link>
         </nav>
         
-        <div className="h-6 w-px bg-slate-200 mx-2"></div>
+        <div className="product-divider mx-1 hidden md:block"></div>
         <div>
-          <h1 className="text-sm font-bold text-slate-800">
+          <h1 className="text-sm font-bold text-[var(--sim-text-strong)]">
             {currentSim?.name || t('simPage.noSimulation')}
           </h1>
-          <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">
+          <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-[var(--sim-text-soft)]">
             {currentSim?.id}
           </span>
         </div>
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Integration Mode Switcher */}
         <button
           onClick={toggleEngine}
-          className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-full transition-all border ${
+          className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold transition-all ${
             engineConfig.mode === "connected"
-              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-              : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
+              ? "border-[rgba(47,141,99,0.18)] bg-[rgba(47,141,99,0.1)] text-[var(--sim-success)]"
+              : "border-[var(--sim-border)] bg-[rgba(255,255,255,0.4)] text-[var(--sim-text-muted)] hover:border-[var(--sim-border-strong)] dark:bg-[rgba(255,255,255,0.02)]"
           }`}
           title={
             engineConfig.mode === "connected"
@@ -139,17 +123,11 @@ const Header: React.FC = () => {
             : t('simPage.standaloneMode')}
         </button>
 
-        <div className="h-4 w-px bg-slate-200 mx-2"></div>
-
         <button
-          onClick={() => {
-            console.log('[New Simulation Button] CLICKED! Calling toggleWizard(true)');
-            toggleWizard(true);
-            console.log('[New Simulation Button] toggleWizard called, checking store state:', useSimulationStore.getState().isWizardOpen);
-          }}
-          className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
+          onClick={() => navigate("/simulations/new")}
+          className="button-ghost button-sm"
         >
-          <Plus size={14} /> {t('simPage.newSimulation')}
+          {t('simPage.newSimulation')}
         </button>
 
         <div className="flex items-center gap-2">
@@ -159,7 +137,7 @@ const Header: React.FC = () => {
                 resetSimulation();
               }
             }}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+            className="button-ghost button-sm"
             title={t('simPage.resetSimulation')}
             disabled={isGenerating}
           >
@@ -172,26 +150,25 @@ const Header: React.FC = () => {
                 deleteSimulation();
               }
             }}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-red-600 hover:text-red-700 hover:border-red-300 text-xs font-medium rounded shadow-sm transition-all"
+            className="button-danger button-sm"
             title={t('simPage.deleteSimulation')}
             disabled={isGenerating}
           >
             <Trash2 size={14} />
           </button>
         </div>
-        <Link to="/settings" className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md">
+        <Link to="/settings/providers" className="icon-button square">
           <Settings size={18} />
         </Link>
         
-        <div className="h-4 w-px bg-slate-200 mx-2"></div>
+        <span className="product-divider" />
         <LanguageSwitcher />
-        <div className="h-4 w-px bg-slate-200 mx-2"></div>
+        <span className="product-divider" />
         
-        {/* 用户信息 */}
-        <span className="text-sm text-slate-600">{user?.email}</span>
+        <span className="hidden text-sm text-[var(--sim-text-muted)] lg:block">{user?.email}</span>
         <button
           onClick={logout}
-          className="flex items-center gap-1 px-2 py-1.5 text-xs text-slate-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+          className="icon-button square"
           title={t('nav.signout')}
         >
           <LogOut size={14} />
@@ -260,18 +237,18 @@ const Toolbar: React.FC = () => {
   };
 
   return (
-    <div className="h-12 bg-white border-b flex items-center px-4 gap-4 shrink-0 justify-between">
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 border-r pr-4">
+    <div className="runtime-toolbar flex shrink-0 flex-wrap items-center justify-between gap-3 px-5 py-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 rounded-full border border-[var(--sim-border)] bg-[rgba(255,255,255,0.34)] px-2 py-2 dark:bg-[rgba(255,255,255,0.02)]">
           <button
             onClick={() => advanceSimulation()}
             disabled={isGenerating || isCompareMode}
-            className={`flex items-center gap-2 px-4 py-1.5 text-xs font-bold rounded shadow-sm transition-all active:scale-95 ${
+            className={`button button-sm ${
               isGenerating
-                ? "bg-slate-300 text-white cursor-wait"
+                ? "opacity-60"
                 : isCompareMode
-                ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                : "bg-brand-600 hover:bg-brand-700 text-white"
+                ? "opacity-60"
+                : ""
             }`}
           >
             {isGenerating ? (
@@ -284,7 +261,7 @@ const Toolbar: React.FC = () => {
           <button
             onClick={branchSimulation}
             disabled={isGenerating || isCompareMode}
-            className={`flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 hover:border-brand-300 text-slate-700 text-xs font-medium rounded shadow-sm hover:bg-slate-50 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed`}
+            className="button-ghost button-sm"
           >
             <GitFork size={14} />
             {t('simPage.branch')}
@@ -295,7 +272,7 @@ const Toolbar: React.FC = () => {
         <button
           onClick={() => toggleExperimentDesigner(true)}
           disabled={isCompareMode}
-          className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 text-xs font-bold rounded shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="button-ghost button-sm"
         >
           <Beaker size={14} />
           {t('simPage.designExperiment')}
@@ -304,10 +281,10 @@ const Toolbar: React.FC = () => {
         {/* Comparison Toggle */}
         <button
           onClick={handleToggleCompare}
-          className={`flex items-center gap-2 px-3 py-1.5 border rounded text-xs font-medium transition-all ${
+          className={`button-ghost button-sm ${
             isCompareMode
-              ? "bg-amber-50 text-amber-700 border-amber-300 shadow-sm ring-1 ring-amber-200"
-              : "bg-white text-slate-600 border-slate-200 hover:text-brand-600 hover:border-brand-300"
+              ? "!border-[rgba(206,152,74,0.28)] !bg-[rgba(206,152,74,0.1)] !text-[var(--sim-warning)]"
+              : ""
           }`}
         >
           <Split
@@ -319,11 +296,11 @@ const Toolbar: React.FC = () => {
       </div>
 
       {/* Right Tools */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {/* Network Editor */}
         <button
           onClick={() => toggleNetworkEditor(true)}
-          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+          className="button-ghost button-sm"
           title={t('simPage.networkTopology')}
         >
           <Network size={14} />
@@ -332,7 +309,7 @@ const Toolbar: React.FC = () => {
         {/* Global Knowledge */}
         <button
           onClick={() => setGlobalKnowledgeOpen(true)}
-          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+          className="button-ghost button-sm"
           title={t('simPage.globalKnowledge')}
         >
           <Globe size={14} />
@@ -341,7 +318,7 @@ const Toolbar: React.FC = () => {
         {/* Time Settings */}
         <button
           onClick={() => toggleTimeSettings(true)}
-          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+          className="button-ghost button-sm"
           title={t('simPage.timeSettings')}
         >
           <Clock size={14} />
@@ -350,15 +327,15 @@ const Toolbar: React.FC = () => {
             : t('simPage.time')}
         </button>
 
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 text-xs rounded shadow-sm transition-all">
-          <span className="text-slate-500">{t('simPage.provider')}</span>
+        <div className="flex items-center gap-2 rounded-full border border-[var(--sim-border)] bg-[rgba(255,255,255,0.34)] px-3 py-2 text-xs dark:bg-[rgba(255,255,255,0.02)]">
+          <span className="text-[var(--sim-text-soft)]">{t('simPage.provider')}</span>
           <select
             value={providerSelection ?? ''}
             onChange={(e) => {
               const val = e.target.value;
               setSelectedProvider(val ? Number(val) : null);
             }}
-            className="border border-slate-200 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="input small min-h-[34px] max-w-[210px]"
           >
             <option value="">
               {t('simPage.selectProvider')}
@@ -374,14 +351,14 @@ const Toolbar: React.FC = () => {
         {/* Save Template */}
         <button
           onClick={() => toggleSaveTemplate(true)}
-          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+          className="button-ghost button-sm"
           title={t('simPage.saveAsTemplate')}
         >
           <Save size={14} />
         </button>
         <button
           onClick={() => useSimulationStore.getState().openSyncModal()}
-          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+          className="button-ghost button-sm"
           title={t('simPage.syncBackend')}
         >
           {t('simPage.syncBackend')}
@@ -392,7 +369,7 @@ const Toolbar: React.FC = () => {
         {/* Automated Report */}
         <button
           onClick={() => toggleReportModal(true)}
-          className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white border border-indigo-700 hover:bg-indigo-700 text-xs font-bold rounded shadow-sm transition-all"
+          className="button button-sm"
         >
           <FileText size={14} />
           {t('simPage.report')}
@@ -400,14 +377,14 @@ const Toolbar: React.FC = () => {
 
         <button
           onClick={() => toggleExport(true)}
-          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+          className="button-ghost button-sm"
         >
           <Download size={14} />
           {t('simPage.export')}
         </button>
         <button
           onClick={() => toggleAnalytics(true)}
-          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+          className="button-ghost button-sm"
         >
           <BarChart2 size={14} />
           {t('simPage.analytics')}
@@ -415,8 +392,6 @@ const Toolbar: React.FC = () => {
       </div>
 
       {/* Modals */}
-      <ExperimentBuilderModal />
-      {/* <SimulationWizard /> */} {/* Temporarily disabled - using ExperimentBuilderModal instead */}
       <HelpModal />
       <AnalyticsPanel />
       <ExportModal />
@@ -460,6 +435,15 @@ const SimulationPage: React.FC = () => {
       }
       // If connected mode requires an authenticated user, don't attempt load when not authenticated
       if (engineConfig.mode === 'connected' && !isAuthenticated) {
+        return;
+      }
+      const localSimulation = useSimulationStore
+        .getState()
+        .simulations.find((simulation) => simulation.id === String(simIdParam));
+      if (localSimulation) {
+        useSimulationStore.setState({
+          currentSimulation: localSimulation as any,
+        } as any);
         return;
       }
       try {
@@ -870,24 +854,24 @@ const SimulationPage: React.FC = () => {
   }, [engineConfig.mode, hasRestored, isAuthenticated]);
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50">
+    <div className="runtime-shell flex h-screen flex-col">
       <Header />
       <Toolbar />
 
-      <div className="flex-1 flex overflow-hidden p-3 gap-3">
+      <div className="runtime-frame flex flex-1 overflow-hidden">
         {/* Left: SimTree */}
-        <div className="w-1/4 min-w-[300px] flex flex-col transition-all duration-300">
+        <div className="runtime-pane flex min-w-[300px] w-1/4 flex-col transition-all duration-300">
           <SimTree />
         </div>
 
         {/* Center: Main Content Switcher */}
-        <div className="flex-1 min-w-[400px] flex flex-col transition-all duration-300">
+        <div className="runtime-pane flex min-w-[400px] flex-1 flex-col transition-all duration-300">
           {isCompareMode ? <ComparisonView /> : <LogViewer />}
         </div>
 
         {/* Right: Agents / Host */}
         {!isCompareMode && (
-          <div className="w-80 shrink-0 flex flex-col">
+          <div className="runtime-pane flex w-80 shrink-0 flex-col">
             <Sidebar />
           </div>
         )}

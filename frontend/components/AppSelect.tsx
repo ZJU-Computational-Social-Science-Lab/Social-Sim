@@ -1,5 +1,5 @@
 import * as Select from "@radix-ui/react-select";
-import { ReactNode } from "react";
+import { ChevronDown, Check } from "lucide-react";
 
 type Option = { value: string; label: string };
 
@@ -16,26 +16,36 @@ export function AppSelect({
   onChange: (value: string) => void;
   size?: "normal" | "small";
 }) {
-  const label = value || placeholder || (options[0]?.label ?? "");
-  const triggerClass = `input fancy-select-trigger${size === "small" ? " small" : ""}`;
-
   return (
     <Select.Root value={value} onValueChange={onChange}>
-      <Select.Trigger className={triggerClass} aria-label={placeholder || "select"} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-        <Select.Value placeholder={label} />
-        <span style={{ color: '#94a3b8' }}>▾</span>
+      <Select.Trigger
+        className={`input fancy-select-trigger ${size === "small" ? "small" : ""}`.trim()}
+        aria-label={placeholder || "select"}
+      >
+        <Select.Value placeholder={placeholder || options[0]?.label || ""} />
+        <Select.Icon asChild>
+          <ChevronDown className="h-4 w-4 text-[var(--sim-text-soft)]" />
+        </Select.Icon>
       </Select.Trigger>
+
       <Select.Portal>
         <Select.Content
-          className={`card select-dropdown${size === 'small' ? ' small' : ''}`}
+          className={`card select-dropdown ${size === "small" ? "small" : ""}`.trim()}
           position="popper"
-          sideOffset={4}
-          style={{ width: 'var(--radix-select-trigger-width)' }}
+          sideOffset={8}
+          style={{ width: "var(--radix-select-trigger-width)", zIndex: 80 }}
         >
-          <Select.Viewport style={{ display: 'grid', gap: 3 }}>
-            {options.map((opt) => (
-              <Select.Item key={opt.value} value={opt.value} className="select-option" style={{ textAlign: 'left', border: 'none', padding: '0.2rem 0.32rem', borderRadius: 8, cursor: 'pointer' }}>
-                <Select.ItemText>{opt.label}</Select.ItemText>
+          <Select.Viewport className="grid gap-1">
+            {options.map((option) => (
+              <Select.Item
+                key={option.value}
+                value={option.value}
+                className="select-option flex items-center justify-between gap-3"
+              >
+                <Select.ItemText>{option.label}</Select.ItemText>
+                <Select.ItemIndicator>
+                  <Check className="h-4 w-4 text-[var(--sim-primary)]" />
+                </Select.ItemIndicator>
               </Select.Item>
             ))}
           </Select.Viewport>

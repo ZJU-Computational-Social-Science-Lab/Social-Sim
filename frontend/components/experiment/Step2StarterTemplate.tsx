@@ -269,124 +269,124 @@ export const Step2StarterTemplate: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900">
+      <section className="studio-field-group">
+        <div className="page-hero__eyebrow w-fit">Scenario framing</div>
+        <h2 className="text-[1.32rem] font-bold text-[var(--sim-text-strong)]">
           {t('experimentBuilder.step2.configureTitle', { name: selectedScenarioData.name })}
         </h2>
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="text-sm leading-7 text-[var(--sim-text-muted)]">
           {t('experimentBuilder.step2.configureSubtitle')}
         </p>
-      </div>
-
-      {/* Scenario Description */}
-      <div>
-        <label
-          htmlFor="scenario-description"
-          className="block text-sm font-medium text-gray-700 mb-2"
-        >
-          {t('experimentBuilder.step2.scenarioDescriptionLabel')}
-        </label>
-        <textarea
-          id="scenario-description"
-          value={scenarioDescription}
-          onChange={handleDescriptionChange}
-          rows={4}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y"
-          placeholder={t('experimentBuilder.step2.scenarioDescriptionPlaceholder')}
-        />
-      </div>
+        <div>
+          <label
+            htmlFor="scenario-description"
+            className="mb-2 block text-sm font-semibold text-[var(--sim-text-strong)]"
+          >
+            {t('experimentBuilder.step2.scenarioDescriptionLabel')}
+          </label>
+          <textarea
+            id="scenario-description"
+            value={scenarioDescription}
+            onChange={handleDescriptionChange}
+            rows={5}
+            className="input resize-y"
+            placeholder={t('experimentBuilder.step2.scenarioDescriptionPlaceholder')}
+          />
+        </div>
+      </section>
 
       {showCascadeModeCard && (
-        <div className={`rounded-lg border p-4 ${cascadeCardTone}`}>
-          <div className="flex items-center justify-between gap-3 mb-2">
+        <section className={`studio-field-group ${cascadeCardTone}`}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-gray-900">
+              <h3 className="text-sm font-bold text-[var(--sim-text-strong)]">
                 {t(`experimentBuilder.step2.cascadeCards.${cascadeMode}.title`)}
               </h3>
-              <p className="text-sm text-gray-700 mt-1">
+              <p className="mt-2 text-sm leading-7 text-[var(--sim-text-muted)]">
                 {t(`experimentBuilder.step2.cascadeCards.${cascadeMode}.summary`)}
               </p>
             </div>
-            <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-gray-700 border border-white/70">
+            <span className="badge badge-outline">
               {t(`experimentBuilder.step2.cascadeCards.${cascadeMode}.badge`)}
             </span>
           </div>
-          <ul className="mt-3 space-y-2 text-sm text-gray-700">
+          <ul className="space-y-2 text-sm text-[var(--sim-text-muted)]">
             {cascadeBulletKeys.map((key) => (
               <li key={key} className="flex items-start gap-2">
-                <span className="mt-0.5 text-gray-500">•</span>
+                <span className="mt-1">•</span>
                 <span>{t(`experimentBuilder.step2.cascadeCards.${cascadeMode}.${key}`)}</span>
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
-      {/* Dynamic Parameter Fields or Payoff Input */}
-      {/* Action Editor for configurable scenarios */}
-      {getActionEditor()}
+      {getActionEditor() ? (
+        <section className="studio-field-group">
+          <div className="page-hero__eyebrow w-fit">Additional rules</div>
+          {getActionEditor()}
+        </section>
+      ) : null}
+
       {selectedScenarioData.display_type === 'payoff_matrix' ? (
-        <PayoffInput
-          value={scenarioParams as { cooperate_reward?: number; defect_penalty?: number }}
-          actionA={scenarioParams.action_1_name || selectedScenarioData.actions?.[0]?.name}
-          actionB={scenarioParams.action_2_name || selectedScenarioData.actions?.[1]?.name}
-          onChange={handlePayoffChange}
-        />
+        <section className="studio-field-group">
+          <div className="page-hero__eyebrow w-fit">Core parameters</div>
+          <PayoffInput
+            value={scenarioParams as { cooperate_reward?: number; defect_penalty?: number }}
+            actionA={scenarioParams.action_1_name || selectedScenarioData.actions?.[0]?.name}
+            actionB={scenarioParams.action_2_name || selectedScenarioData.actions?.[1]?.name}
+            onChange={handlePayoffChange}
+          />
+        </section>
       ) : hasParameters ? (
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-gray-700">
-            {t('experimentBuilder.step2.parametersTitle')}
-          </h3>
-          {visibleParameters.map((param) => {
-            const value = getParamValue(param);
-            const description = getParamDescription(param);
+        <section className="studio-field-group">
+          <div className="page-hero__eyebrow w-fit">Core parameters</div>
+          <div className="grid gap-4">
+            {visibleParameters.map((param) => {
+              const value = getParamValue(param);
+              const description = getParamDescription(param);
 
-            return (
-              <div key={param.key} className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">
-                  {getParamLabel(param)}
-                </label>
-                {description && (
-                  <p className="text-xs text-gray-500 leading-5">
-                    {description}
-                  </p>
-                )}
-                <ParameterField
-                  param={{
-                    type: param.type === 'number' ? 'integer' : 'string',
-                    default: param.default,
-                    ui_hint: param.ui_hint || 'text',
-                    min: param.min,
-                    max: param.max,
-                    step: param.step,
-                    options: param.options,
-                    placeholder: param.placeholder,
-                  }}
-                  value={value}
-                  onChange={(val) => handleParamChange(param.key, val)}
-                />
-              </div>
-            );
-          })}
-        </div>
+              return (
+                <div key={param.key} className="studio-field-group !p-4">
+                  <label className="block text-sm font-semibold text-[var(--sim-text-strong)]">
+                    {getParamLabel(param)}
+                  </label>
+                  {description ? (
+                    <p className="text-xs leading-6 text-[var(--sim-text-muted)]">{description}</p>
+                  ) : null}
+                  <ParameterField
+                    param={{
+                      type: param.type === 'number' ? 'integer' : 'string',
+                      default: param.default,
+                      ui_hint: param.ui_hint || 'text',
+                      min: param.min,
+                      max: param.max,
+                      step: param.step,
+                      options: param.options,
+                      placeholder: param.placeholder,
+                    }}
+                    value={value}
+                    onChange={(val) => handleParamChange(param.key, val)}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </section>
       ) : (
-        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-sm text-gray-600">
+        <section className="studio-field-group">
+          <div className="text-sm text-[var(--sim-text-muted)]">
             {t('experimentBuilder.step2.noParameters')}
-          </p>
-        </div>
+          </div>
+        </section>
       )}
 
-      {/* Round Settings */}
       {hasParameters && (
-        <div className="border-t pt-4 mt-4">
-          <h3 className="font-medium mb-3">
-            {t('experimentBuilder.roundSettings.title')}
-          </h3>
-
-          <div className="space-y-3">
+        <section className="studio-field-group">
+          <div className="page-hero__eyebrow w-fit">Round mechanics</div>
+          <div className="studio-pane-grid two">
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className="mb-2 block text-sm font-semibold text-[var(--sim-text-strong)]">
                 {t('experimentBuilder.roundSettings.roundVisibility.label')}
               </label>
               <select
@@ -396,7 +396,7 @@ export const Step2StarterTemplate: React.FC = () => {
                   setLocalRoundVisibility(val);
                   setRoundVisibility(val);
                 }}
-                className="w-full px-3 py-2 border rounded-lg"
+                className="input"
               >
                 <option value="simultaneous">
                   {t('experimentBuilder.roundSettings.roundVisibility.simultaneous')}
@@ -407,9 +407,9 @@ export const Step2StarterTemplate: React.FC = () => {
               </select>
             </div>
 
-            {localRoundVisibility === 'sequential' && (
+            {localRoundVisibility === 'sequential' ? (
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="mb-2 block text-sm font-semibold text-[var(--sim-text-strong)]">
                   {t('experimentBuilder.roundSettings.turnOrder.label')}
                 </label>
                 <select
@@ -419,7 +419,7 @@ export const Step2StarterTemplate: React.FC = () => {
                     setLocalTurnOrder(val);
                     setTurnOrder(val);
                   }}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="input"
                 >
                   <option value="fixed">
                     {t('experimentBuilder.roundSettings.turnOrder.fixed')}
@@ -429,9 +429,18 @@ export const Step2StarterTemplate: React.FC = () => {
                   </option>
                 </select>
               </div>
+            ) : (
+              <div className="studio-field-group !p-4">
+                <div className="text-sm font-semibold text-[var(--sim-text-strong)]">
+                  Simultaneous turns
+                </div>
+                <div className="text-sm leading-7 text-[var(--sim-text-muted)]">
+                  All agents act within the same round window before the state advances.
+                </div>
+              </div>
             )}
           </div>
-        </div>
+        </section>
       )}
     </div>
   );

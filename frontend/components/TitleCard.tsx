@@ -5,35 +5,34 @@ export function TitleCard({
   subtitle,
   actions,
   center,
+  eyebrow,
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
   actions?: ReactNode;
   center?: ReactNode;
+  eyebrow?: ReactNode;
 }) {
   const hasCenter = Boolean(center);
+
   return (
-    <div
-      className="panel title-card"
-      style={{
-        marginBottom: "0.75rem",
-        display: "grid",
-        alignItems: "center",
-        gap: "0.5rem",
-        gridTemplateColumns: hasCenter ? "1fr minmax(0, 2fr) auto" : "1fr auto",
-      }}
-    >
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <h1 style={{ margin: 0 }}>{title}</h1>
-        {subtitle && <div className="panel-subtitle">{subtitle}</div>}
+    <section className="page-hero title-card">
+      <div
+        className="page-hero__header"
+        style={{
+          gridTemplateColumns: hasCenter ? "1fr minmax(0, 1fr) auto" : undefined,
+        }}
+      >
+        <div className="flex min-w-0 flex-col gap-3">
+          {eyebrow ? <div className="page-hero__eyebrow">{eyebrow}</div> : null}
+          <div className="page-hero__title">{title}</div>
+          {subtitle ? <div className="text-subtitle max-w-3xl">{subtitle}</div> : null}
+        </div>
+
+        {hasCenter ? <div className="w-full max-w-xl justify-self-center">{center}</div> : null}
+
+        {actions ? <div className="flex flex-wrap justify-end gap-3">{actions}</div> : null}
       </div>
-      {hasCenter && (
-        <div style={{ justifySelf: "center", width: "100%", maxWidth: 560 }}>{center}</div>
-      )}
-      {actions && (
-        <div style={{ justifySelf: "end", display: "flex", gap: "0.5rem" }}>{actions}</div>
-      )}
-    </div>
+    </section>
   );
 }
-
