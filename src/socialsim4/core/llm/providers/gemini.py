@@ -19,17 +19,16 @@ import google.genai as genai
 
 def create_gemini_client(model: str, api_key: str):
     """
-    Create a Gemini GenerativeModel instance.
+    Create a Gemini Client instance.
 
     Args:
         model: Model name (e.g., "gemini-pro")
         api_key: Google API key
 
     Returns:
-        Configured GenerativeModel instance
+        Configured genai.Client instance
     """
-    genai.configure(api_key=api_key)
-    return genai.GenerativeModel(model_name=model)
+    return genai.Client(api_key=api_key)
 
 
 def normalize_messages_for_gemini(
@@ -135,6 +134,7 @@ def gemini_chat(
 
     contents = normalize_messages_for_gemini(messages, allow_vision, safe_urls_func)
 
+    # Note: frequency_penalty and presence_penalty are supported in recent GenAI SDKs via GenerateContentConfig
     config_kwargs = {
         "temperature": temperature,
         "max_output_tokens": max_tokens,
@@ -146,7 +146,8 @@ def gemini_chat(
     if json_mode:
         config_kwargs["response_mime_type"] = "application/json"
 
-    resp = client.generate_content(
+    resp = client.models.generate_content(
+        model=model,
         contents=contents,
         config=GenerateContentConfig(**config_kwargs),
     )
@@ -162,36 +163,44 @@ def gemini_chat(
     return ""
 
 
-def gemini_completion(client, prompt: str) -> str:
+def gemini_completion(client, model: str, prompt: str) -> str:
     """
     Perform Gemini text completion.
 
     Args:
-        client: Gemini GenerativeModel instance
+        client: Gemini Client instance
+        model: Model name to use
         prompt: Text prompt to complete
 
     Returns:
         Generated text completion
     """
-    resp = client.generate_content(prompt)
+    resp = client.models.generate_content(
+        model=model,
+        contents=prompt,
+    )
     return resp.text.strip() if getattr(resp, "text", None) else ""
 
 
-def gemini_embedding(model: str, text: str) -> list:
+def gemini_embedding(client, model: str, text: str) -> list:
     """
     Generate text embedding using Gemini.
 
     Args:
+        client: Gemini Client instance
         model: Embedding model name
         text: Text to embed
 
     Returns:
         List of embedding float values
     """
-    return genai.embed_content(
+    resp = client.models.embed_content(
         model=model,
-        content=text,
-    )["embedding"]
+        contents=text,
+    )
+    if hasattr(resp, "embeddings") and resp.embeddings:
+        return resp.embeddings[0].values
+    return getattr(resp, "embedding", [])
 
 
 def clone_gemini_client(original_provider):
@@ -202,7 +211,6 @@ def clone_gemini_client(original_provider):
         original_provider: LLMConfig with Gemini settings
 
     Returns:
-        New GenerativeModel instance
+        New genai.Client instance
     """
-    genai.configure(api_key=original_provider.api_key)
-    return genai.GenerativeModel(model_name=original_provider.model)
+    return genai.Client(api_key=original_provider.api_key)

@@ -135,12 +135,15 @@ def openai_chat(
     kwargs = {
         "model": model,
         "messages": normalized_messages,
-        "frequency_penalty": frequency_penalty,
-        "presence_penalty": presence_penalty,
         "max_tokens": max_tokens,
         "temperature": temperature,
         "timeout": timeout,
     }
+
+    if frequency_penalty != 0.0:
+        kwargs["frequency_penalty"] = frequency_penalty
+    if presence_penalty != 0.0:
+        kwargs["presence_penalty"] = presence_penalty
 
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
