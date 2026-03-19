@@ -204,6 +204,7 @@ export const createAgentsSlice: StateCreator<
             event_type: 'initial_event',
             description: `[初始事件] ${title}\n${content}`,
             severity: 'mild',
+            node_id: selectedNodeId,
           });
         } catch (e) {
           console.error('Failed to broadcast initial event', e);

@@ -47,7 +47,7 @@ async def get_user_llm_clients(db, user_id: int) -> Optional[Dict[str, Any]]:
     return {"chat": client, "default": client}
 
 
-async def get_simulation_state(simulation_id: str, db, user_id: int) -> Optional[Dict[str, Any]]:
+async def get_simulation_state(simulation_id: str, db, user_id: int, node_id: int | None = None) -> Optional[Dict[str, Any]]:
     """Get current simulation state."""
     result = await db.execute(
         select(Simulation).where(
@@ -78,37 +78,59 @@ async def get_simulation_state(simulation_id: str, db, user_id: int) -> Optional
     # Get current node simulator
     tree = record.tree
 
-    # Try to get the leaf node (most recent state)
-    leaves = tree.leaves()
-    if not leaves:
-        logger.warning(f"No leaf nodes found for simulation {simulation_id}")
-        return {
-            "turns": 0,
-            "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
-            "_suggestions_viewed_intervals": set(),
-            "clients": None,
-        }
+    # If a specific node is requested, use it directly.
+    if node_id is not None:
+        current_node_id = int(node_id)
+        current_node = tree.nodes.get(current_node_id)
+        if not current_node:
+            logger.warning(f"Requested node {current_node_id} not found for simulation {simulation_id}")
+            return {
+                "turns": 0,
+                "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
+                "_suggestions_viewed_intervals": set(),
+                "clients": None,
+            }
+        simulator = current_node.get("sim")
+        if not simulator:
+            logger.warning(f"No simulator found in requested node {current_node_id}")
+            return {
+                "turns": 0,
+                "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
+                "_suggestions_viewed_intervals": set(),
+                "clients": None,
+            }
+    else:
+        # Try to get the leaf node (most recent state)
+        leaves = tree.leaves()
+        if not leaves:
+            logger.warning(f"No leaf nodes found for simulation {simulation_id}")
+            return {
+                "turns": 0,
+                "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
+                "_suggestions_viewed_intervals": set(),
+                "clients": None,
+            }
 
-    current_node_id = leaves[0]
-    current_node = tree.nodes.get(current_node_id)
-    if not current_node:
-        logger.warning(f"Current node {current_node_id} not found in tree")
-        return {
-            "turns": 0,
-            "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
-            "_suggestions_viewed_intervals": set(),
-            "clients": None,
-        }
+        current_node_id = leaves[0]
+        current_node = tree.nodes.get(current_node_id)
+        if not current_node:
+            logger.warning(f"Current node {current_node_id} not found in tree")
+            return {
+                "turns": 0,
+                "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
+                "_suggestions_viewed_intervals": set(),
+                "clients": None,
+            }
 
-    simulator = current_node.get("sim")
-    if not simulator:
-        logger.warning(f"No simulator found in node {current_node_id}")
-        return {
-            "turns": 0,
-            "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
-            "_suggestions_viewed_intervals": set(),
-            "clients": None,
-        }
+        simulator = current_node.get("sim")
+        if not simulator:
+            logger.warning(f"No simulator found in node {current_node_id}")
+            return {
+                "turns": 0,
+                "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
+                "_suggestions_viewed_intervals": set(),
+                "clients": None,
+            }
 
     # Update simulator's config to match database (sync toggle state)
     # Only update environment_config if it exists (not all simulators have it)
@@ -137,9 +159,10 @@ async def generate_environment_suggestions(
     simulation_id: str,
     db,
     user_id: int,
+    node_id: int | None = None,
 ) -> List[Dict[str, Any]]:
     """Generate environmental event suggestions for a simulation."""
-    state = await get_simulation_state(simulation_id, db, user_id)
+    state = await get_simulation_state(simulation_id, db, user_id, node_id)
     if not state:
         raise ValueError("Simulation not found")
 
@@ -184,9 +207,13 @@ async def broadcast_environment_event(
     user_id: int,
 ) -> bool:
     """Broadcast an environment event to all agents in the simulation."""
-    from socialsim4.core.event import EnvironmentEvent
-
-    state = await get_simulation_state(simulation_id, db, user_id)
+    requested_node_id = event_data.get("node_id")
+    state = await get_simulation_state(
+        simulation_id,
+        db,
+        user_id,
+        int(requested_node_id) if requested_node_id is not None else None,
+    )
     if not state:
         raise ValueError("Simulation not found")
 

@@ -116,10 +116,17 @@ def run_experiment_task(self, simulation_id: str, exp_id: str, run_id: int, turn
 
             # Branch variants if needed. Materialize variant data into plain dicts
             node_ids = []
-            for v in variants:
+            db_variants = list(exp.variants or [])
+            for index, v in enumerate(variants):
                 ops = v.get("ops") or []
                 cid = tree.branch(int(v.get("base_node", tree.root)), [dict(op) for op in ops])
+                if index < len(db_variants):
+                    db_variants[index].node_id = int(cid)
+                    session.add(db_variants[index])
                 node_ids.append(int(cid))
+
+            sim.latest_state = tree.serialize()
+            await session.commit()
 
             # create thread pool to run simulators in parallel
             def run_sim(nid: int):
@@ -190,10 +197,13 @@ def run_experiment_task(self, simulation_id: str, exp_id: str, run_id: int, turn
 
             async with get_session() as session2:
                 run = await session2.get(ExperimentRun, run_id)
+                sim2 = await session2.get(Simulation, simulation_id.upper())
                 if run:
                     run.status = "finished"
                     run.result_meta = {"finished_nodes": finished, "summaries": summaries}
-                    await session2.commit()
+                if sim2:
+                    sim2.latest_state = tree.serialize()
+                await session2.commit()
             return {"finished": finished}
 
     # run the async worker synchronously in Celery process

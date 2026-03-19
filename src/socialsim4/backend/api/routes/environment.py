@@ -27,14 +27,16 @@ async def get_suggestion_status(
     token = extract_bearer_token(request)
     async with get_session() as session:
         current_user = await resolve_current_user(session, token)
-        state = await get_simulation_state(simulation_id, session, current_user.id)
+        node_id_param = request.query_params.get("node_id")
+        node_id = int(node_id_param) if node_id_param is not None else None
+        state = await get_simulation_state(simulation_id, session, current_user.id, node_id)
 
         if not state:
-            return {"available": False, "turn": None}
+            return {"available": False, "turn": None, "enabled": False}
 
         config = state["config"]
         if not config.get("enabled"):
-            return {"available": False, "turn": None}
+            return {"available": False, "turn": None, "enabled": False}
 
         turns = state["turns"]
         interval = config.get("turn_interval", 5)
@@ -47,7 +49,7 @@ async def get_suggestion_status(
             and current_interval_milestone not in viewed_intervals
         )
 
-        return {"available": available, "turn": turns if available else None}
+        return {"available": available, "turn": turns if available else None, "enabled": True}
 
 
 @post("/simulations/{simulation_id:str}/suggestions/generate")
@@ -59,7 +61,9 @@ async def generate_suggestions(
     token = extract_bearer_token(request)
     async with get_session() as session:
         current_user = await resolve_current_user(session, token)
-        suggestions = await generate_environment_suggestions(simulation_id, session, current_user.id)
+        node_id_param = request.query_params.get("node_id")
+        node_id = int(node_id_param) if node_id_param is not None else None
+        suggestions = await generate_environment_suggestions(simulation_id, session, current_user.id, node_id)
 
         # Ensure suggestions are JSON-serializable (convert to list of dicts with str values)
         cleaned_suggestions = [

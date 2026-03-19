@@ -217,6 +217,41 @@ def _extract_json_objects(text: str, *, strict_duplicate_actions: bool = False) 
     return results
 
 
+def _coerce_dirty_action_alias(data: dict) -> dict:
+    raw_action = data.get("action")
+    alias_names = {"action", "response", "confirm"}
+
+    if type(raw_action) is dict:
+        action_name = str(raw_action.get("name") or raw_action.get("action") or "").strip().lower()
+        message = str(
+            raw_action.get("message")
+            or raw_action.get("content")
+            or data.get("message")
+            or data.get("content")
+            or data.get("response")
+            or ""
+        ).strip()
+        if action_name in alias_names and message:
+            normalized = dict(data)
+            action_payload = dict(raw_action)
+            action_payload["name"] = "send_message"
+            action_payload["message"] = message
+            action_payload.pop("action", None)
+            normalized["action"] = action_payload
+            normalized["message"] = message
+            return normalized
+        return data
+
+    action_name = str(raw_action or "").strip().lower()
+    message = str(data.get("message") or data.get("content") or data.get("response") or "").strip()
+    if action_name in alias_names and message:
+        normalized = dict(data)
+        normalized["action"] = {"name": "send_message", "message": message}
+        normalized["message"] = message
+        return normalized
+    return data
+
+
 def parse_agent_response(response_text: str, *, strict_duplicate_actions: bool = False) -> dict:
     """Extract the first valid JSON object from LLM output.
 
@@ -275,6 +310,8 @@ def parse_actions(response_text: str, *, strict_duplicate_actions: bool = False)
     data = parse_agent_response(response_text, strict_duplicate_actions=strict_duplicate_actions)
     if not data:
         raise ValueError("LLM response is missing the required JSON object with an action.")
+
+    data = _coerce_dirty_action_alias(data)
 
     if "action" not in data:
         raise ValueError("LLM response must include an 'action' field with a valid name.")

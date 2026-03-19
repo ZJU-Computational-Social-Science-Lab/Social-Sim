@@ -6,20 +6,24 @@ export interface EnvironmentSuggestion {
   severity: string;
   notice_only?: boolean;
   receivers?: string[];
+  node_id?: string | number;
 }
 
 export interface SuggestionStatus {
   available: boolean;
   turn: number | null;
+  enabled?: boolean;
 }
 
-export async function getSuggestionStatus(simulationId: string): Promise<SuggestionStatus> {
-  const response = await apiClient.get(`/simulations/${simulationId}/suggestions/status`);
+export async function getSuggestionStatus(simulationId: string, nodeId?: string | number | null): Promise<SuggestionStatus> {
+  const suffix = nodeId != null ? `?node_id=${encodeURIComponent(String(nodeId))}` : '';
+  const response = await apiClient.get(`/simulations/${simulationId}/suggestions/status${suffix}`);
   return response.data;
 }
 
-export async function generateSuggestions(simulationId: string): Promise<{ suggestions: EnvironmentSuggestion[] }> {
-  const response = await apiClient.post(`/simulations/${simulationId}/suggestions/generate`);
+export async function generateSuggestions(simulationId: string, nodeId?: string | number | null): Promise<{ suggestions: EnvironmentSuggestion[] }> {
+  const suffix = nodeId != null ? `?node_id=${encodeURIComponent(String(nodeId))}` : '';
+  const response = await apiClient.post(`/simulations/${simulationId}/suggestions/generate${suffix}`);
   return response.data;
 }
 

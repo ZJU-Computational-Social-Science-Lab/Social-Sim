@@ -149,6 +149,7 @@ export interface Simulation {
   id: string;
   name: string; // #7 自定义实验名称
   templateId: string;
+  scene_type?: string;
   status: 'active' | 'archived';
   createdAt: string;
   timeConfig: TimeConfig; // #9

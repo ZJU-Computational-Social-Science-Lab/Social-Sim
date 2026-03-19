@@ -84,6 +84,10 @@ def _parse_tier_order(raw_value) -> List[str]:
     return cleaned or list(DEFAULT_TIER_ORDER)
 
 
+def _has_meaningful_notice_content(text: str) -> bool:
+    return bool(re.search(r"[A-Za-z0-9\u4e00-\u9fff]", str(text or "")))
+
+
 class PolicyCascadeScene(Scene):
     """Strict top→mid→low cascade, single action per tier, downstream-only delivery."""
 
@@ -249,6 +253,8 @@ class PolicyCascadeScene(Scene):
             if event_type == "environment" or bool(data.get("notice_only")):
                 desc = data.get("description") or data.get("content") or data.get("message") or ""
                 cleaned_desc = self._clean_policy_text(str(desc))
+                if not _has_meaningful_notice_content(cleaned_desc):
+                    return None
                 self.state["latest_notice"] = cleaned_desc
                 self.state["notice_kind"] = self._detect_notice_kind(cleaned_desc)
                 self._apply_notice_condition_updates(sim, "environment_notice", cleaned_desc)
@@ -272,6 +278,8 @@ class PolicyCascadeScene(Scene):
             self.state["branch_interpretations"] = {}
             desc = data.get("description") or data.get("content") or data.get("message") or ""
             cleaned_desc = self._clean_policy_text(str(desc))
+            if not _has_meaningful_notice_content(cleaned_desc):
+                return None
             self.state["latest_notice"] = cleaned_desc
             self.state["policy_version"] = int(self.state.get("policy_version", 0) or 0) + 1
             self.state["latest_policy"] = cleaned_desc
@@ -308,6 +316,8 @@ class PolicyCascadeScene(Scene):
         if event_type == "environment" or bool(data.get("notice_only")):
             desc = data.get("description") or data.get("content") or data.get("message") or ""
             cleaned_desc = self._clean_policy_text(str(desc))
+            if not _has_meaningful_notice_content(cleaned_desc):
+                return None
             self.state["latest_notice"] = cleaned_desc
             self.state["notice_kind"] = self._detect_notice_kind(cleaned_desc)
             self._apply_notice_condition_updates(sim, "environment_private_notice", cleaned_desc)
@@ -323,6 +333,8 @@ class PolicyCascadeScene(Scene):
 
         desc = data.get("description") or data.get("content") or data.get("message") or ""
         cleaned_desc = self._clean_policy_text(str(desc))
+        if not _has_meaningful_notice_content(cleaned_desc):
+            return None
         private_payload = {
             "latest_notice": cleaned_desc,
             "latest_policy": cleaned_desc,
@@ -1644,6 +1656,46 @@ class PolicyCascadeScene(Scene):
         response = self._sanitize_message(str(payload.get("response") or ""))
         return response
 
+    def _special_action_allowed_targets(self, action_name: str, agent: Agent) -> List[str]:
+        if action_name == "report_upward":
+            return self._upstream_targets(agent, 1)
+        if action_name == "escalate_complaint":
+            return self._upstream_targets(agent, 2)
+        if action_name == "consult_peer":
+            return self._peer_targets(agent)
+        if action_name == "notify_subordinate":
+            return self._notify_targets(agent)
+        return []
+
+    def _mentioned_target_name(self, text: str, candidates: List[str]) -> str:
+        content = str(text or "")
+        if not content:
+            return ""
+        ordered = sorted([name for name in candidates if name], key=len, reverse=True)
+        for name in ordered:
+            if name in content:
+                return name
+        return ""
+
+    def _infer_special_action_target(self, action_name: str, payload: dict, agent: Agent, effective_task_mode: str) -> str:
+        if effective_task_mode == "follow_up_thread":
+            return ""
+        candidates = self._special_action_allowed_targets(action_name, agent)
+        if not candidates:
+            return ""
+        if len(candidates) == 1:
+            return candidates[0]
+        text = "\n".join(
+            part
+            for part in [
+                self._payload_message_text(payload),
+                self._sanitize_message(str(payload.get("thoughts") or "")),
+                self._sanitize_message(str(payload.get("response") or "")),
+            ]
+            if part
+        )
+        return self._mentioned_target_name(text, candidates)
+
     def _thread_shock_guidance(self, notice: str, issue_candidates: List[str]) -> str:
         text = str(notice or "").strip()
         if not text:
@@ -1887,6 +1939,29 @@ class PolicyCascadeScene(Scene):
         if not social_connections:
             return candidates
         return [name for name in candidates if name in social_connections]
+
+    def _next_tier_candidates(self, tier: str) -> List[str]:
+        idx = self.tier_order.index(tier) if tier in self.tier_order else 0
+        if idx + 1 >= len(self.tier_order):
+            return []
+        next_tier = self.tier_order[idx + 1]
+        return list(self._agents_by_tier.get(next_tier, []))
+
+    def _cascade_dead_end_data(self, agent: Agent) -> dict:
+        tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
+        idx = self.tier_order.index(tier) if tier in self.tier_order else 0
+        next_tier = self.tier_order[idx + 1] if idx + 1 < len(self.tier_order) else ""
+        direct_connections = self._network_connections_for(agent.name)
+        next_tier_candidates = self._next_tier_candidates(tier)
+        next_tier_connections = [name for name in direct_connections if name in next_tier_candidates]
+        return {
+            "agent": agent.name,
+            "tier": tier,
+            "next_tier": next_tier,
+            "direct_connections": direct_connections,
+            "next_tier_candidates": next_tier_candidates,
+            "next_tier_connections": next_tier_connections,
+        }
 
     def _entire_next_tier_targets(self, agent: Agent) -> List[str]:
         tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
@@ -2301,11 +2376,16 @@ class PolicyCascadeScene(Scene):
     def _write_final_debug(self, agent: Agent, mode: str, original_payload: dict, final_payload: dict) -> None:
         try:
             with open(_scene_debug_file, "a", encoding="utf-8") as f:
+                tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
                 f.write(f"\n{'=' * 80}\n")
                 f.write(f"[FINAL ACTION] {agent.name}\n")
+                f.write(f"tier={tier}\n")
                 f.write(f"mode={mode} notice_kind={self.state.get('notice_kind', '')}\n")
                 f.write(f"source_policy={self.state.get('source_policy', '')}\n")
                 f.write(f"relayed_policy={self.state.get('relayed_policy', '')}\n")
+                if mode == "cascade":
+                    f.write(f"formal_connections={self._network_connections_for(agent.name)}\n")
+                    f.write(f"downstream_targets={self._downstream_targets(agent)}\n")
                 f.write("--- ORIGINAL PAYLOAD ---\n")
                 f.write(f"{original_payload}\n")
                 f.write("--- FINAL PAYLOAD ---\n")
@@ -2477,6 +2557,7 @@ class PolicyCascadeScene(Scene):
             if issue_candidates:
                 parts.append(f"当前最可能出现的执行问题：{'、'.join(issue_candidates)}。")
             if notice:
+                parts.append("最新系统公告优先级高于既有政策传达版本。你必须先回应这条新公告/新环境变化，再决定如何引用旧政策；旧政策只作为背景，不得把它当成当前最新公告。")
                 shock_guidance = self._thread_shock_guidance(notice, issue_candidates)
                 if shock_guidance:
                     parts.append(shock_guidance)
@@ -2507,9 +2588,11 @@ class PolicyCascadeScene(Scene):
             if min_chars:
                 parts.append(f"本次回复长度要求：不少于{min_chars}字。")
         if relayed_policy and relayed_policy != notice:
-            parts.append(f"上一层传达版本摘要：{self._policy_prompt_excerpt(relayed_policy)}")
+            prefix = "上一层传达版本摘要（仅作背景，不是最新系统公告）：" if mode in {"follow_up", "follow_up_thread"} and notice else "上一层传达版本摘要："
+            parts.append(f"{prefix}{self._policy_prompt_excerpt(relayed_policy)}")
         if private_event and source_policy and source_policy != relayed_policy:
-            parts.append(f"原始政策摘要：{self._policy_prompt_excerpt(source_policy)}")
+            prefix = "原始政策摘要（仅作背景，不是最新系统公告）：" if mode in {"follow_up", "follow_up_thread"} and notice else "原始政策摘要："
+            parts.append(f"{prefix}{self._policy_prompt_excerpt(source_policy)}")
         conditions = self._persistent_conditions()
         if conditions:
             rendered = "、".join(f"{key}={value:.2f}" for key, value in conditions.items())
@@ -2651,6 +2734,10 @@ class PolicyCascadeScene(Scene):
                 return success, result, summary, meta, pass_control
 
         if action_name in special_actions and not self.should_skip_turn(agent, simulator):
+            if action_name != "announce_policy_adjustment" and not str(payload.get("target") or payload.get("to") or "").strip():
+                inferred_target = self._infer_special_action_target(action_name, payload, agent, effective_task_mode)
+                if inferred_target:
+                    payload["target"] = inferred_target
             return self.handle_policy_special_action(action_name, payload, agent, simulator)
 
         if effective_task_mode == "notice" and action_name == "send_message" and not self.should_skip_turn(agent, simulator):
@@ -3001,6 +3088,10 @@ class PolicyCascadeScene(Scene):
             if next_idx < len(self.tier_order):
                 self.state["current_tier_idx"] = next_idx
                 if (self.state.get("social_network") or {}) and not self._active_targets_for_tier(self.tier_order[next_idx]) and not self._private_recipient_names():
+                    simulator.emit_event(
+                        "cascade_network_dead_end",
+                        self._cascade_dead_end_data(agent),
+                    )
                     self.state["current_tier_idx"] = len(self.tier_order)
                     self.state["complete"] = True
                     self.state["processed_policy_version"] = int(self.state.get("policy_version", 0) or 0)

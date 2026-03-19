@@ -516,6 +516,8 @@ class SimTree:
                 et = "scene_state"
             elif m == "public_broadcast":
                 et = "public_event"
+            elif m == "environment_event":
+                et = "environment_event"
             elif m == "advance":
                 et = "advance"
         node["edge_type"] = et
@@ -569,6 +571,25 @@ class SimTree:
                     sim.scene.state[k] = v
             elif name == "public_broadcast":
                 sim.broadcast(PublicEvent(op["text"]))
+            elif name == "environment_event":
+                description = op["text"]
+                event_type = str(op.get("event_type") or "environment")
+                is_policy_scene = getattr(sim.scene, "TYPE", "") == "policy_cascade_scene"
+                notice_only = bool(op.get("notice_only")) if is_policy_scene else False
+                if is_policy_scene and "notice_only" not in op:
+                    notice_only = event_type != "broadcast"
+                payload = {"description": description, "event_type": event_type}
+                if is_policy_scene:
+                    payload["notice_only"] = notice_only
+                receivers = op.get("receivers")
+                if receivers:
+                    for name in receivers:
+                        sim.agents[name].add_env_feedback(description, images=[])
+                    sim.scene.on_private_event(sim, "environment", payload, receivers)
+                else:
+                    for agent in sim.agents.values():
+                        agent.add_env_feedback(description, images=[])
+                    sim.scene.on_event(sim, "environment", payload)
             else:
                 raise ValueError("Unknown op: " + name)
 

@@ -38,6 +38,9 @@ async def create_experiment_db(simulation_id: str, base_node: int, name: str, de
 async def run_experiment_db(simulation_id: str, exp_id: str, turns: int) -> List[int]:
     # Load experiment and variants, create a run record, branch variants then run them
     async with get_session() as session:
+        sim = await session.get(Simulation, simulation_id.upper())
+        if sim is None:
+            raise RuntimeError("Simulation not found")
         exp = await session.get(Experiment, exp_id)
         if exp is None:
             raise RuntimeError("Experiment not found")
@@ -65,6 +68,7 @@ async def run_experiment_db(simulation_id: str, exp_id: str, turns: int) -> List
             node_ids.append(int(cid))
             session.add(v)
 
+        sim.latest_state = tree.serialize()
         await session.commit()
 
         # Run variants in parallel (threaded simulation runs)
@@ -125,6 +129,7 @@ async def run_experiment_db(simulation_id: str, exp_id: str, turns: int) -> List
         # update run record
         run.status = "finished"
         run.result_meta = {"finished_nodes": finished, "summaries": summaries}
+        sim.latest_state = tree.serialize()
         await session.commit()
         return finished
 
@@ -311,6 +316,15 @@ async def _run_experiment_worker(simulation_id: str, exp_id: str, run_id: int, t
                 node_ids.append(int(v.get("node_id")))
                 # we don't add the dict back to session; persist node_id to DB below if needed
 
+            for v in exp.variants or []:
+                for dv in variants:
+                    if dv.get("id") == v.id and dv.get("node_id"):
+                        v.node_id = int(dv.get("node_id"))
+                        session.add(v)
+
+            sim_record = await session.get(Simulation, simulation_id.upper())
+            sim_record.latest_state = tree.serialize()
+
             # update run status to running
             run = await session.get(ExperimentRun, run_id)
             run.status = "running"
@@ -368,6 +382,8 @@ async def _run_experiment_worker(simulation_id: str, exp_id: str, run_id: int, t
             run = await session.get(ExperimentRun, run_id)
             run.status = "finished"
             run.result_meta = results_summary
+            sim_record = await session.get(Simulation, simulation_id.upper())
+            sim_record.latest_state = tree.serialize()
             await session.commit()
     except asyncio.CancelledError:
         # mark run as cancelled

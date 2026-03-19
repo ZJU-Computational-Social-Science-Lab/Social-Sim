@@ -25,6 +25,41 @@ def test_parse_actions_skips_conflicting_duplicate_action_and_uses_later_valid_j
     assert parsed[0]["action"]["message"] == "ok"
 
 
+def test_parse_actions_normalizes_response_alias_to_send_message():
+    response = """
+    {
+      "thoughts": "need reply",
+      "response": "已确认资源支持及执行机制。",
+      "action": "response",
+      "context_update": "done",
+      "metadata": {}
+    }
+    """
+
+    parsed = parse_actions(response)
+
+    assert parsed[0]["action"]["name"] == "send_message"
+    assert parsed[0]["action"]["message"] == "已确认资源支持及执行机制。"
+    assert parsed[0]["message"] == "已确认资源支持及执行机制。"
+
+
+def test_parse_actions_normalizes_confirm_alias_to_send_message():
+    response = """
+    {
+      "thoughts": "need confirm",
+      "response": "当前无需调整之处。",
+      "action": {"name": "confirm"},
+      "context_update": "done",
+      "metadata": {}
+    }
+    """
+
+    parsed = parse_actions(response)
+
+    assert parsed[0]["action"]["name"] == "send_message"
+    assert parsed[0]["action"]["message"] == "当前无需调整之处。"
+
+
 def test_agent_only_counts_final_parse_failure_per_turn():
     agent = Agent(
         name="Tester",

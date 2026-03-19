@@ -106,6 +106,10 @@ const parseThreadSeed = (text: string, agentNames: string[]): Record<string, any
   return seed;
 };
 
+const hasMeaningfulInterventionText = (text: string): boolean => {
+  return String(text || '').trim().length > 0;
+};
+
 export const ExperimentDesignModal: React.FC = () => {
   const { t } = useTranslation();
   const isOpen = useSimulationStore(state => state.isExperimentDesignerOpen);
@@ -117,7 +121,8 @@ export const ExperimentDesignModal: React.FC = () => {
   const engineConfig = useSimulationStore(state => state.engineConfig);
   const currentSimulation = useSimulationStore(state => state.currentSimulation);
   const addNotification = useSimulationStore(state => state.addNotification);
-  const isPolicyCascadeTemplate = currentSimulation?.scene_type === 'policy_cascade_scene';
+  const currentSceneType = currentSimulation?.scene_type || (currentSimulation as any)?.sceneType || '';
+  const isPolicyCascadeTemplate = currentSceneType === 'policy_cascade_scene';
 
   const baseNode = nodes.find(n => n.id === selectedNodeId);
 
@@ -293,22 +298,27 @@ export const ExperimentDesignModal: React.FC = () => {
         if (iv.type === 'AGENT_PROPERTY' && iv.targetId) {
           // parse description as JSON updates or key=value pairs
           const updates = parseConditionUpdates(iv.description || '');
+          if (!Object.keys(updates).length) return;
 
           const target = agents.find((a) => a.id === iv.targetId);
           const name = target ? target.name : iv.targetId;
           ops.push({ op: 'agent_props_patch', name, updates });
         } else if (iv.type === 'INSTRUCTION') {
+          if (!hasMeaningfulInterventionText(iv.description || '')) return;
           // broadcast instruction as public event
           ops.push({ op: 'public_broadcast', text: iv.description || '' });
         } else if (iv.type === 'ENVIRONMENT') {
-          ops.push({ op: 'public_broadcast', text: iv.description || '' });
+          if (!hasMeaningfulInterventionText(iv.description || '')) return;
+          ops.push({ op: 'environment_event', text: iv.description || '', event_type: 'environment' });
         } else if (iv.type === 'FOLLOW_UP_CONDITION' && isPolicyCascadeTemplate) {
           const updates = parseConditionUpdates(iv.description || '');
+          if (!Object.keys(updates).length) return;
           Object.assign(pendingFollowUpConditions, updates);
         } else if (iv.type === 'FOLLOW_UP_THREAD_SEED' && iv.targetId && isPolicyCascadeTemplate) {
           const seed = parseThreadSeed(iv.description || '', agents.map((a) => a.name));
           const target = agents.find((a) => a.id === iv.targetId);
           const recipient = seed.recipient || (target ? target.name : iv.targetId);
+          if (!recipient || (!seed.message && !seed.notice)) return;
           pendingThreadSeeds.push({
             recipient,
             sender: seed.sender,

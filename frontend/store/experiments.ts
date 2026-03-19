@@ -176,18 +176,25 @@ export const createExperimentsSlice: StateCreator<
 
         // Refresh tree graph
         const graph = await getTreeGraph(base, simId, token);
+        const newSelectedId = String(res.child);
         if (graph) {
           const nodesMapped = mapGraphToNodes(graph);
-          // Use res.child (not res.node_id) as returned by the API
-          const newSelectedId = String(res.child);
           set({ nodes: nodesMapped, selectedNodeId: newSelectedId } as any);
         }
 
-        // Fetch events and state in parallel for the NEW node
-        const [events, simState] = await Promise.all([
-          getSimEvents(base, simId, res.child, token),
-          getSimState(base, simId, res.child, token)
-        ]);
+        let events: any[] = [];
+        let simState: any = null;
+        try {
+          [events, simState] = await Promise.all([
+            getSimEvents(base, simId, res.child, token),
+            getSimState(base, simId, res.child, token)
+          ]);
+        } catch (error) {
+          console.error('[advanceSimulation] Advance succeeded but failed to hydrate child node:', error);
+          set({ isGenerating: false, selectedNodeId: newSelectedId } as any);
+          state.addNotification?.('warning', i18n.t('store.advanceHydrationFailed') || 'Simulation advanced, but loading the new node details failed');
+          return;
+        }
 
         console.log('[advanceSimulation] Received simState from backend');
         console.log('[advanceSimulation] simState.agents:', JSON.stringify(simState?.agents?.map((a: any) => ({ name: a.name, knowledgeBase: a.knowledgeBase })), null, 2));
@@ -274,7 +281,6 @@ export const createExperimentsSlice: StateCreator<
             return true;
           });
 
-          const newSelectedId = String(res.child);
           const selectedNode = (prev.nodes || []).find((n: any) => n.id === newSelectedId);
           const round = selectedNode?.depth ?? 0;
 

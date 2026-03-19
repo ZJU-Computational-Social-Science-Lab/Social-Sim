@@ -562,6 +562,7 @@ export const createSimulationSlice: StateCreator<
             id: sim.id,
             name: name || sim.name,
             templateId: template.id,
+            scene_type: sim.scene_type || (isExperimentTemplate ? 'experiment_template' : backendSceneType),
             status: 'active',
             createdAt: new Date().toISOString().split('T')[0],
             timeConfig: finalTimeConfig,

@@ -5,6 +5,7 @@ from socialsim4.core.llm_config import LLMConfig
 from socialsim4.core.ordering import SequentialOrdering
 from socialsim4.core.scenes.policy_cascade_scene import PolicyCascadeScene
 from socialsim4.core.simulator import Simulator
+from socialsim4.core.simtree import SimTree
 
 
 def _llm_config() -> LLMConfig:
@@ -382,6 +383,44 @@ def test_private_policy_broadcast_emits_one_visibility_event_per_recipient():
 
     assert [item["visible_to"] for item in visible_events] == ["Agent 1", "Agent 2"]
     assert all(item["recipients"] == ["Agent 1", "Agent 2"] for item in visible_events)
+
+
+def test_dead_end_network_emits_explicit_debug_event():
+    scene = PolicyCascadeScene("policy", "")
+    scene.state["social_network"] = {
+        "Top": ["Mid"],
+        "Mid": ["Top"],
+        "Low": [],
+    }
+    agents = [
+        _build_agent("Top", "top"),
+        _build_agent("Mid", "mid"),
+        _build_agent("Low", "low"),
+    ]
+    seen_events = []
+    clients = {"chat": agents[0].llm_client, "default": agents[0].llm_client}
+    simulator = Simulator(
+        agents,
+        scene,
+        clients,
+        event_handler=lambda event_type, data: seen_events.append((event_type, data)),
+        ordering=SequentialOrdering(),
+    )
+
+    simulator.broadcast(PublicEvent("「系统公告」 死路网络测试\n目标：检查网络断点"), receivers=["Top"])
+    scene.parse_and_handle_action({"action": "send_message", "message": "Top version"}, agents[0], simulator)
+    scene.post_turn(agents[0], simulator)
+    scene.parse_and_handle_action({"action": "send_message", "message": "Mid version"}, agents[1], simulator)
+    scene.post_turn(agents[1], simulator)
+
+    dead_end_events = [data for event_type, data in seen_events if event_type == "cascade_network_dead_end"]
+
+    assert len(dead_end_events) == 1
+    assert dead_end_events[0]["agent"] == "Mid"
+    assert dead_end_events[0]["tier"] == "mid"
+    assert dead_end_events[0]["next_tier"] == "low"
+    assert dead_end_events[0]["next_tier_candidates"] == ["Low"]
+    assert dead_end_events[0]["next_tier_connections"] == []
 
 
 def test_forced_cascade_normalizes_invalid_low_action_and_reaches_sibling_branch():
@@ -890,6 +929,69 @@ def test_consult_peer_uses_connected_same_tier_targets():
     assert private_event["thread_kind"] == "peer_consult"
 
 
+def test_follow_up_consult_peer_without_target_uses_single_available_peer():
+    scene = PolicyCascadeScene("policy", "")
+    scene.state["informal_network"] = {
+        "Top A": ["Top B"],
+        "Top B": ["Top A"],
+    }
+    agents = [
+        _build_agent("Top A", "top"),
+        _build_agent("Top B", "top"),
+        _build_agent("Mid", "mid"),
+    ]
+    simulator = _build_simulator(scene, agents)
+
+    scene.state["latest_policy"] = "既有政策"
+    scene.state["source_policy"] = "既有政策"
+    scene.state["relayed_policy"] = "既有政策"
+    scene.state["policy_version"] = 1
+    scene.state["processed_policy_version"] = 1
+    scene.reset_for_run()
+
+    success, result, _, _, _ = scene.parse_and_handle_action(
+        {"action": "consult_peer", "message": "我们先对齐执行口径。"},
+        agents[0],
+        simulator,
+    )
+
+    assert success is True
+    assert result["target"] == "Top B"
+    assert scene._private_event_for("Top B")["thread_kind"] == "peer_consult"
+
+
+def test_follow_up_notify_subordinate_without_target_uses_mentioned_name():
+    scene = PolicyCascadeScene("policy", "")
+    scene.state["social_network"] = {
+        "Top": ["Mid A", "Mid B"],
+        "Mid A": [],
+        "Mid B": [],
+    }
+    agents = [
+        _build_agent("Top", "top"),
+        _build_agent("Mid A", "mid"),
+        _build_agent("Mid B", "mid"),
+    ]
+    simulator = _build_simulator(scene, agents)
+
+    scene.state["latest_policy"] = "既有政策"
+    scene.state["source_policy"] = "既有政策"
+    scene.state["relayed_policy"] = "既有政策"
+    scene.state["policy_version"] = 1
+    scene.state["processed_policy_version"] = 1
+    scene.reset_for_run()
+
+    success, result, _, _, _ = scene.parse_and_handle_action(
+        {"action": "notify_subordinate", "message": "请 Mid B 在24小时内补充排查清单。"},
+        agents[0],
+        simulator,
+    )
+
+    assert success is True
+    assert result["target"] == "Mid B"
+    assert scene._private_event_for("Mid B")["thread_kind"] == "subordinate_notice"
+
+
 def test_agent_led_distortion_preserves_agent_authored_message():
     scene = PolicyCascadeScene(
         "policy",
@@ -1023,6 +1125,77 @@ def test_environment_event_never_restarts_policy_cascade():
     assert scene.state["task_mode"] == "follow_up"
     assert scene.state["latest_policy"] == "既有政策"
     assert scene.state["latest_notice"] == "原文：这是一条看起来像政策的环境事件"
+
+
+def test_blank_broadcast_does_not_restart_or_override_notice():
+    scene = PolicyCascadeScene("policy", "", cascade_mode="strict_cascade")
+    agents = [
+        _build_agent("Top", "top"),
+        _build_agent("Mid", "mid"),
+    ]
+    simulator = _build_simulator(scene, agents)
+
+    scene.state["latest_policy"] = "既有政策"
+    scene.state["source_policy"] = "既有政策"
+    scene.state["relayed_policy"] = "既有政策"
+    scene.state["latest_notice"] = "既有公告"
+    scene.state["task_mode"] = "follow_up"
+    scene.state["policy_version"] = 3
+    scene.state["processed_policy_version"] = 3
+
+    scene.on_event(simulator, "broadcast", {"description": "「"})
+
+    assert scene.state["task_mode"] == "follow_up"
+    assert scene.state["latest_policy"] == "既有政策"
+    assert scene.state["latest_notice"] == "既有公告"
+
+
+def test_simtree_environment_branch_preserves_follow_up_mode():
+    scene = PolicyCascadeScene("policy", "", cascade_mode="strict_cascade")
+    agents = [
+        _build_agent("Top", "top"),
+        _build_agent("Mid", "mid"),
+    ]
+    simulator = _build_simulator(scene, agents)
+
+    scene.state["latest_policy"] = "既有政策"
+    scene.state["source_policy"] = "既有政策"
+    scene.state["relayed_policy"] = "既有政策"
+    scene.state["task_mode"] = "follow_up"
+    scene.state["policy_version"] = 3
+    scene.state["processed_policy_version"] = 3
+
+    tree = SimTree.new(simulator, simulator.clients)
+    child = tree.branch(tree.root, [{"op": "environment_event", "text": "公民在接收到此政策后发生抗议游行事件。", "event_type": "environment"}])
+    branch_scene = tree.nodes[child]["sim"].scene
+
+    assert tree.nodes[child]["edge_type"] == "environment_event"
+    assert branch_scene.state["task_mode"] == "follow_up"
+    assert branch_scene.state["latest_policy"] == "既有政策"
+    assert branch_scene.state["latest_notice"] == "公民在接收到此政策后发生抗议游行事件。"
+
+
+def test_follow_up_status_prompt_prioritizes_latest_notice_over_old_policy():
+    scene = PolicyCascadeScene("policy", "", cascade_mode="strict_cascade")
+    agents = [
+        _build_agent("Top", "top"),
+        _build_agent("Mid", "mid"),
+    ]
+    simulator = _build_simulator(scene, agents)
+    scene.simulator = simulator
+
+    scene.state["latest_policy"] = "旧政策：继续按既有方案执行。"
+    scene.state["source_policy"] = "旧政策：继续按既有方案执行。"
+    scene.state["relayed_policy"] = "旧政策：继续按既有方案执行。"
+    scene.state["latest_notice"] = "新的环境事件：群众抗议升级，要求重新解释执行口径。"
+    scene.state["task_mode"] = "follow_up"
+
+    prompt = scene.get_agent_status_prompt(agents[1])
+
+    assert "最新系统公告优先级高于既有政策传达版本" in prompt
+    assert "旧政策只作为背景" in prompt
+    assert "最新系统公告：新的环境事件：群众抗议升级，要求重新解释执行口径。" in prompt
+    assert "仅作背景，不是最新系统公告" in prompt
 
 
 def test_ordinary_environment_event_raises_public_opinion_pressure():

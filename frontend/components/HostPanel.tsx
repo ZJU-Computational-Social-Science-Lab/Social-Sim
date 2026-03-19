@@ -12,6 +12,7 @@ export const HostPanel: React.FC = () => {
   const agents = useSimulationStore(state => state.agents);
   const logs = useSimulationStore(state => state.logs);
   const currentSimulation = useSimulationStore(state => state.currentSimulation);
+  const selectedNodeId = useSimulationStore(state => state.selectedNodeId);
   const engineMode = useSimulationStore(state => state.engineConfig.mode);
   const injectLog = useSimulationStore(state => state.injectLog);
   const updateAgentProperty = useSimulationStore(state => state.updateAgentProperty);
@@ -57,6 +58,7 @@ export const HostPanel: React.FC = () => {
         description,
         severity: 'mild',
         receivers: recipients,
+        node_id: selectedNodeId,
       };
       // Only include explicit notice_only for policy cascade scene to avoid
       // changing semantics in other scene types.
