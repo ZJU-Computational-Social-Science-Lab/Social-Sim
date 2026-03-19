@@ -40,22 +40,72 @@ class SystemFacilitator:
         """Set simulator reference after initialization."""
         self.simulator = simulator
 
-    def record_turn(self, agent_name: str, action_name: str, content: str = ""):
+    def record_turn(self, agent_name: str, action_name: str, content: str = "", round_num: int = None):
         """
-        Record a turn for facilitation analysis.
+        Record a turn for facilitation analysis with round boundary tracking.
 
         Args:
             agent_name: Name of the agent who acted
             action_name: Type of action taken
             content: Content of the action (message, etc.)
+            round_num: Round number this turn belongs to (defaults to turn_count)
         """
         self.turn_count += 1
         self.conversation_history.append({
             "turn": self.turn_count,
+            "round": round_num if round_num is not None else self.turn_count,
             "agent": agent_name,
             "action": action_name,
             "content": content[:500],  # Truncate for memory
         })
+
+    def get_round_history(self, round_num: int) -> List[Dict[str, Any]]:
+        """Get all turns for a specific round.
+
+        Args:
+            round_num: Round number to query
+
+        Returns:
+            List of turn dictionaries for the specified round
+        """
+        return [
+            entry for entry in self.conversation_history
+            if entry.get("round") == round_num
+        ]
+
+    def format_round_transcript(self, round_num: int) -> str:
+        """Format a round's history as a readable transcript.
+
+        Args:
+            round_num: Round number to format
+
+        Returns:
+            Formatted transcript string
+        """
+        round_turns = self.get_round_history(round_num)
+
+        if not round_turns:
+            return f"Round {round_num}: No activity recorded"
+
+        lines = [f"Round {round_num}:"]
+        for turn in round_turns:
+            agent = turn.get("agent", "Unknown")
+            action = turn.get("action", "unknown")
+            content = turn.get("content", "")
+
+            if action == "send_message" and content:
+                # Format as speech
+                lines.append(f'- {agent}: "{content[:200]}{"..." if len(content) > 200 else ""}"')
+            elif action == "vote":
+                # Format as vote
+                lines.append(f"- {agent} voted")
+            elif action == "start_voting":
+                lines.append(f"- [System] Voting has begun")
+            else:
+                # Generic format
+                lines.append(f"- {agent}: {action}")
+
+        return "\n".join(lines)
 
     def should_suggest_voting(self) -> Tuple[bool, str]:
         """
