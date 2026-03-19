@@ -147,6 +147,9 @@ class SystemFacilitator:
         """
         Check if an action is allowed in the current phase.
 
+        During VOTING phase, ONLY vote-related actions are allowed.
+        During DISCUSSION phase, most actions are allowed (except vote).
+
         Args:
             action_name: Name of the action being attempted
 
@@ -154,30 +157,39 @@ class SystemFacilitator:
             (allowed, error_message): Tuple of permission status and error if not allowed
         """
         # Actions that can be used in any phase
-        phaseless_actions = {"send_message", "yield", "voting_status", "request_brief"}
+        phaseless_actions = {"yield", "voting_status", "request_brief"}
 
         if action_name in phaseless_actions:
             return True, None
 
-        # Phase-specific validation
-        if action_name == "start_voting":
-            if self.phase != CouncilPhase.DISCUSSION:
-                return False, f"Cannot start voting: currently in {self.phase.value} phase"
-            if self.scene.state.get("voting_started", False):
-                return False, "Cannot start voting: a vote is already in progress"
+        # VOTING phase: ONLY voting actions allowed
+        if self.phase == CouncilPhase.VOTING:
+            voting_actions = {"vote"}  # Vote Yes/No/Abstain are all "vote" action with different params
+            if action_name in voting_actions:
+                if not self.scene.state.get("voting_started", False):
+                    return False, "Cannot vote: voting has not started yet"
+                return True, None
+            # All other actions blocked during voting
+            return False, f"Cannot {action_name} during voting phase - only Vote actions allowed"
+
+        # DISCUSSION phase: allow most actions except vote
+        if self.phase == CouncilPhase.DISCUSSION:
+            if action_name == "vote":
+                return False, "Cannot vote during discussion phase - wait for voting to start"
+            if action_name == "start_voting":
+                if self.scene.state.get("voting_started", False):
+                    return False, "Cannot start voting: a vote is already in progress"
+                return True, None
+            if action_name == "finish_meeting":
+                return True, None
+            # Discussion actions (send_message, etc.) allowed
             return True, None
 
-        if action_name == "vote":
-            if not self.scene.state.get("voting_started", False):
-                return False, "Cannot vote: voting has not started yet"
-            return True, None
+        # CONCLUDED phase: no actions allowed
+        if self.phase == CouncilPhase.CONCLUDED:
+            return False, "Meeting has concluded - no further actions allowed"
 
-        if action_name == "finish_meeting":
-            if self.scene.state.get("voting_started", False):
-                return False, "Cannot finish meeting: voting is still in progress"
-            return True, None
-
-        # Unknown actions are allowed by default
+        # Unknown actions: allow by default
         return True, None
 
     def _llm_evaluate_vote_readiness(self) -> Tuple[bool, str]:
