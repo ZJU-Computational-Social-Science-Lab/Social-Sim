@@ -56,11 +56,12 @@ def handle_talk(agent_name: str, params: dict, state: ExperimentState) -> dict[s
     Args:
         agent_name: Agent sending message
         params: {"target": "AgentName", "message": "text"}
-        state: Current experiment state
+        state: Current experiment state (unused, but required for handler signature)
 
     Returns:
         Result dict with success status
     """
+    _ = state  # State not needed for talk action
     target = params.get("target", "")
     message = params.get("message", "")
 
@@ -121,13 +122,14 @@ def handle_start_voting(action_data: dict, agent_name: str, state: ExperimentSta
 
     Args:
         action_data: Action parameters with 'title' field
-        agent_name: Name of agent initiating vote
+        agent_name: Name of agent initiating vote (unused, any agent can start)
         state: Current experiment state
         scene: CouncilExperimentScene instance
 
     Returns:
         Result dict with success status and summary
     """
+    _ = agent_name  # Any agent can start voting
     # State guard: voting not already started
     if state.extensions.get("voting_started", False):
         return {"success": False, "message": "Voting has already started"}
@@ -199,14 +201,15 @@ def handle_conclude(action_data: dict, agent_name: str, state: ExperimentState, 
     to determine if proposal passed.
 
     Args:
-        action_data: Action parameters (empty for conclude)
-        agent_name: Name of agent concluding
+        action_data: Action parameters (unused for conclude)
+        agent_name: Name of agent concluding (unused, any agent can conclude)
         state: Current experiment state
         scene: CouncilExperimentScene instance
 
     Returns:
         Result dict with success status, summary, and threshold check result
     """
+    _ = action_data, agent_name  # Conclude doesn't need parameters
     # State guard: voting must be complete
     if not state.extensions.get("voting_started", False):
         return {"success": False, "message": "Cannot conclude before voting"}
