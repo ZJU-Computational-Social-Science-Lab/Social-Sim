@@ -9,10 +9,12 @@ from socialsim4.core.phase_controller import SystemFacilitator, CouncilPhase
 
 
 class MockScene:
-    """Mock scene for testing."""
+    """Mock scene for testing with ExperimentState-like state."""
 
     def __init__(self):
-        self.state = {"voting_started": False}
+        # Use extensions dict to match ExperimentState structure
+        self.state = type('MockState', (), {})()
+        self.state.extensions = {"voting_started": False}
 
 
 class TestVotingPhaseFiltering:
@@ -22,7 +24,7 @@ class TestVotingPhaseFiltering:
         """Vote action should be allowed during voting phase."""
         facilitator = SystemFacilitator(MockScene())
         facilitator.phase = CouncilPhase.VOTING
-        facilitator.scene.state["voting_started"] = True
+        facilitator.scene.state.extensions["voting_started"] = True
 
         allowed, error = facilitator.is_action_allowed("vote")
 
@@ -33,7 +35,7 @@ class TestVotingPhaseFiltering:
         """Speak/send_message should be blocked during voting phase."""
         facilitator = SystemFacilitator(MockScene())
         facilitator.phase = CouncilPhase.VOTING
-        facilitator.scene.state["voting_started"] = True
+        facilitator.scene.state.extensions["voting_started"] = True
 
         allowed, error = facilitator.is_action_allowed("send_message")
 
@@ -88,9 +90,59 @@ class TestVotingPhaseFiltering:
         """Cannot start voting when a vote is already in progress."""
         facilitator = SystemFacilitator(MockScene())
         facilitator.phase = CouncilPhase.DISCUSSION
-        facilitator.scene.state["voting_started"] = True
+        facilitator.scene.state.extensions["voting_started"] = True
 
         allowed, error = facilitator.is_action_allowed("start_voting")
 
         assert allowed is False
         assert "already in progress" in error.lower()
+
+    def test_start_voting_blocked_during_deliberation(self):
+        """start_voting should be blocked when deliberation rounds remaining."""
+        facilitator = SystemFacilitator(MockScene())
+        facilitator.phase = CouncilPhase.DISCUSSION
+        facilitator.scene.state.extensions["voting_started"] = False
+
+        # Set deliberation_rounds to 2, currently in round 1
+        facilitator.set_deliberation_rounds(2)
+        facilitator.current_round_num = 1
+
+        allowed, error = facilitator.is_action_allowed("start_voting")
+
+        assert allowed is False, "start_voting should be blocked during deliberation"
+        assert "remaining" in error.lower(), f"Error should mention remaining rounds, got: {error}"
+        assert "1" in error, f"Error should show 1 round remaining, got: {error}"
+
+    def test_start_voting_allowed_after_deliberation_complete(self):
+        """start_voting should be allowed after deliberation rounds complete."""
+        facilitator = SystemFacilitator(MockScene())
+        facilitator.phase = CouncilPhase.DISCUSSION
+        facilitator.scene.state.extensions["voting_started"] = False
+
+        # Set deliberation_rounds to 2, now in round 3 (past deliberation)
+        facilitator.set_deliberation_rounds(2)
+        facilitator.current_round_num = 3
+
+        allowed, error = facilitator.is_action_allowed("start_voting")
+
+        assert allowed is True, "start_voting should be allowed after deliberation completes"
+        assert error is None
+
+    def test_start_voting_allowed_when_no_fixed_deliberation(self):
+        """start_voting should be allowed anytime when deliberation_rounds is None."""
+        facilitator = SystemFacilitator(MockScene())
+        facilitator.phase = CouncilPhase.DISCUSSION
+        facilitator.scene.state.extensions["voting_started"] = False
+
+        # Default: deliberation_rounds is None (agent-controlled)
+        assert facilitator._deliberation_rounds is None
+
+        # Round 1: should allow start_voting
+        facilitator.current_round_num = 1
+        allowed, error = facilitator.is_action_allowed("start_voting")
+        assert allowed is True, "start_voting should be allowed when no fixed deliberation"
+
+        # Round 5: should still allow start_voting
+        facilitator.current_round_num = 5
+        allowed, error = facilitator.is_action_allowed("start_voting")
+        assert allowed is True, "start_voting should always be allowed when no fixed deliberation"
