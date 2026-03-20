@@ -706,12 +706,22 @@ class ExperimentRunner:
                 neighbor_context = f"Your social network neighbors: {', '.join(neighbors)}."
 
         # GAP-CLOSURE-01: Get filtered actions from scene if available (phase-based filtering)
+        # IMPORTANT: Must happen BEFORE build_prompt, not after!
         allowed_actions = None
+        speak_instruction = None
         if self.scene and hasattr(self.scene, 'get_scene_actions'):
             allowed_actions = self.scene.get_scene_actions(agent.name)
-            logger.debug(f"Filtered actions for {agent.name}: {allowed_actions}")
+        if self.scene and hasattr(self.scene, 'get_speak_instruction'):
+            speak_instruction = self.scene.get_speak_instruction()
 
-        prompt = build_prompt(agent, self.game_config, context, include_section_markers=True, information_model=self.information_model, kb_context=kb_context, neighbor_context=neighbor_context, allowed_actions=allowed_actions)
+        prompt = build_prompt(
+            agent, self.game_config, context, include_section_markers=True,
+            information_model=self.information_model,
+            kb_context=kb_context,
+            neighbor_context=neighbor_context,
+            allowed_actions=allowed_actions,
+            speak_instruction=speak_instruction,
+        )
 
         # Build debug output buffer (will be written atomically after LLM call)
         debug_buffer = []
@@ -721,6 +731,15 @@ class ExperimentRunner:
         debug_buffer.append(f"## AGENT: {agent.name}\n")
         debug_buffer.append(f"## ROUND: {round_num}\n")
         debug_buffer.append(f"## VISIBILITY MODE: {self.round_visibility}\n")
+
+        # ACTION FILTERING DEBUG - show what actions were filtered
+        debug_buffer.append(f"\n--- ACTION FILTERING ---\n")
+        debug_buffer.append(f"  self.scene type: {type(self.scene).__name__ if self.scene else 'None'}\n")
+        debug_buffer.append(f"  has get_scene_actions: {hasattr(self.scene, 'get_scene_actions') if self.scene else 'N/A'}\n")
+        if allowed_actions:
+            debug_buffer.append(f"  filtered actions for {agent.name}: {allowed_actions}\n")
+        else:
+            debug_buffer.append(f"  filtered actions: None (no filtering available)\n")
 
         # --- NETWORK VISIBILITY DEBUG ---
         if self.information_model and self.information_model.scope_type in ("neighborhood", "neighbor"):

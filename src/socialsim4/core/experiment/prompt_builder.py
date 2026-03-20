@@ -173,6 +173,7 @@ def build_prompt(
     kb_context: str = "",
     neighbor_context: str = "",
     allowed_actions: list[str] | None = None,
+    speak_instruction: str | None = None,
 ) -> str:
     """Build the 5-section structured prompt.
 
@@ -183,6 +184,7 @@ def build_prompt(
         include_section_markers: If True, add explicit section markers for debugging
         allowed_actions: Optional filtered list of actions (GAP-CLOSURE-01).
                         If provided, overrides game_config.actions for phase-based filtering.
+        speak_instruction: Optional instruction for speak action (e.g., brevity constraint).
 
     Returns:
         Complete prompt string
@@ -224,6 +226,11 @@ def build_prompt(
         else:
             # Fallback to action name only if no descriptions available
             actions_list = "\n".join(f"- {a}" for a in actions_to_show)
+
+        # Add speak instruction if provided (for brevity constraint)
+        if speak_instruction and "speak" in actions_to_show:
+            actions_list += f"\n\n{speak_instruction}"
+
         sections.append(f"\n## Available Actions\n{actions_list}")
     else:  # integer
         sections.append(f"\n## Your Action\nChoose a value from {game_config.min} to {game_config.max}.")
@@ -293,6 +300,7 @@ def build_reprompt(
     kb_context: str = "",
     neighbor_context: str = "",
     allowed_actions: list[str] | None = None,
+    speak_instruction: str | None = None,
 ) -> str:
     """Build a re-prompt for collecting missing parameters.
 
@@ -305,6 +313,7 @@ def build_reprompt(
         mode: json or plain_text
         include_section_markers: If True, add explicit section markers for debugging
         allowed_actions: Optional filtered list of actions (GAP-CLOSURE-01)
+        speak_instruction: Optional instruction for speak action (e.g., brevity constraint)
 
     Returns:
         Re-prompt string
@@ -366,7 +375,14 @@ def build_reprompt(
         return full_prompt
 
     # For JSON mode, include the full base prompt with JSON format instructions
-    base_prompt = build_prompt(agent, game_config, context_summary, include_section_markers, information_model=information_model, kb_context=kb_context, neighbor_context=neighbor_context, allowed_actions=allowed_actions)
+    base_prompt = build_prompt(
+        agent, game_config, context_summary, include_section_markers,
+        information_model=information_model,
+        kb_context=kb_context,
+        neighbor_context=neighbor_context,
+        allowed_actions=allowed_actions,
+        speak_instruction=speak_instruction,
+    )
 
     # Add re-prompt instruction with section marker
     if include_section_markers:

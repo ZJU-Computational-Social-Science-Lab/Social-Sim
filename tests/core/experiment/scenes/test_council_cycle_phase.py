@@ -240,3 +240,53 @@ def test_transition_post_vote_to_deliberation():
     scene.check_cycle_phase_transition()
     assert scene.cycle_phase == CouncilCyclePhase.DELIBERATION
     assert scene.rounds_in_cycle_phase == 0
+
+
+# Speak instruction (brevity constraint) tests
+
+def test_get_speak_instruction_deliberation():
+    """Test that brevity instruction is returned during deliberation."""
+    config = ExperimentConfig(
+        agents=[{"name": "A", "properties": {}}],
+        actions=[{"name": "speak"}],
+        parameters={},
+        description="Test",
+        scenario_id="council",
+    )
+    scene = CouncilExperimentScene(config)
+    scene.cycle_phase = CouncilCyclePhase.DELIBERATION
+
+    instruction = scene.get_speak_instruction()
+    assert instruction == "You must respond with only 1-2 sentences."
+
+
+def test_get_speak_instruction_voting():
+    """Test that no instruction is returned during voting."""
+    config = ExperimentConfig(
+        agents=[{"name": "A", "properties": {}}],
+        actions=[{"name": "vote_yes"}],
+        parameters={},
+        description="Test",
+        scenario_id="council",
+    )
+    scene = CouncilExperimentScene(config)
+    scene.cycle_phase = CouncilCyclePhase.VOTING
+
+    instruction = scene.get_speak_instruction()
+    assert instruction is None
+
+
+def test_get_speak_instruction_post_vote():
+    """Test that brevity instruction is returned during post-vote discussion."""
+    config = ExperimentConfig(
+        agents=[{"name": "A", "properties": {}}],
+        actions=[{"name": "speak"}],
+        parameters={},
+        description="Test",
+        scenario_id="council",
+    )
+    scene = CouncilExperimentScene(config)
+    scene.cycle_phase = CouncilCyclePhase.POST_VOTE_DISCUSSION
+
+    instruction = scene.get_speak_instruction()
+    assert instruction == "You must respond with only 1-2 sentences."

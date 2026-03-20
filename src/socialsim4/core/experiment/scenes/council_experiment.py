@@ -298,6 +298,17 @@ class CouncilExperimentScene(ExperimentScene):
                 self.rounds_in_cycle_phase = 0
                 logger.info(f"Transitioning back to DELIBERATION after {deliberation_rounds} post-vote rounds")
 
+    def get_speak_instruction(self) -> str | None:
+        """Get brevity instruction for speak action during deliberation phases.
+
+        Returns:
+            Brevity instruction string if in DELIBERATION or POST_VOTE_DISCUSSION,
+            None otherwise.
+        """
+        if self.cycle_phase in (CouncilCyclePhase.DELIBERATION, CouncilCyclePhase.POST_VOTE_DISCUSSION):
+            return "You must respond with only 1-2 sentences."
+        return None
+
     def _advance_round(self) -> None:
         """Advance to next round after all agents have acted.
 
