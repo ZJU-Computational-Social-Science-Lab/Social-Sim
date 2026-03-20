@@ -52,10 +52,15 @@ class CouncilExperimentScene(ExperimentScene):
         # Phase controller for discussion/voting transitions (REFACTOR-COUNCIL-05)
         self.facilitator = SystemFacilitator(self)
 
-        # Configure deliberation rounds from config (FEAT-COUNCIL-02)
-        if hasattr(config, 'deliberation_rounds') and config.deliberation_rounds is not None:
-            self.facilitator.set_deliberation_rounds(config.deliberation_rounds)
-            logger.info(f"Configured {config.deliberation_rounds} deliberation rounds before voting")
+        # Configure deliberation rounds from config parameters (FEAT-COUNCIL-03)
+        # Parameters dict contains council-specific config like deliberation_rounds
+        deliberation_rounds = config.parameters.get("deliberation_rounds")
+        if deliberation_rounds is not None:
+            self.facilitator.set_deliberation_rounds(deliberation_rounds)
+            logger.info(f"Configured {deliberation_rounds} deliberation rounds before voting")
+
+        # Initialize facilitator round tracking (FEAT-COUNCIL-03)
+        self.facilitator.current_round_num = self.round_num
 
         # Round context manager for multi-round deliberation (REFACTOR-COUNCIL-04)
         # Use scope_type="all" so all agents see all speeches and votes
