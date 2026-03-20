@@ -473,7 +473,7 @@ export const createSimulationSlice: StateCreator<
 
           const mapSceneType: Record<string, string> = {
             village: 'village_scene',
-            council: 'council_scene',
+            council: 'council_experiment',  // REFACTOR-COUNCIL-06: Use new experiment scene
             werewolf: 'werewolf_scene',
             generic: 'generic_scene',
             experiment: 'experiment_template'
@@ -499,6 +499,11 @@ export const createSimulationSlice: StateCreator<
             } else if (template.description) {
               sceneConfig.initial_event = template.description;
             }
+          } else if (backendSceneType === 'council_experiment') {
+            // REFACTOR-COUNCIL-06: Council experiment configuration
+            sceneConfig.deliberation_rounds = (template.genericConfig as any)?.parameters?.deliberation_rounds || 3;
+            sceneConfig.voting_threshold = (template.genericConfig as any)?.parameters?.voting_threshold || 0.5;
+            sceneConfig.proposal_text = (template.genericConfig as any)?.parameters?.proposal_text || template.description || '';
           } else if (template.description) {
             sceneConfig.initial_event = template.description;
             sceneConfig.initial_events = [template.description];
