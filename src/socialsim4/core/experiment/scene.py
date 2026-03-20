@@ -614,6 +614,16 @@ class ExperimentScene:
                 }
                 lines.append(dist_map.get(initial_distribution, f"Initial distribution: {initial_distribution}."))
 
+        elif scenario_id == "council":
+            # GAP-CLOSURE-01: Include deliberation rounds info for council scenarios
+            deliberation_rounds = params.get("deliberation_rounds")
+            proposal_text = params.get("proposal_text", "")
+            if proposal_text:
+                lines.append(f"The proposal under discussion is: \"{proposal_text}\"")
+            if deliberation_rounds is not None and deliberation_rounds > 0:
+                lines.append(f"There will be {deliberation_rounds} round(s) of deliberation before voting begins.")
+                lines.append("You cannot vote until the deliberation period is complete.")
+
         return "\n".join(lines)
 
     def _build_context_summary(self) -> str:

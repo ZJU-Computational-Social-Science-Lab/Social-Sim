@@ -411,17 +411,42 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         # Unwrap generic_config if the config is nested (frontend sends nested structure)
         inner_cfg = cfg.get("generic_config") or cfg
 
-        config = ExperimentConfig(
-            agents=agent_config.get("agents", []),
-            actions=inner_cfg.get("actions", []),
-            parameters=inner_cfg.get("parameters", {}),
-            description=inner_cfg.get("description", ""),
-            scenario_id=inner_cfg.get("scenario_id", "custom"),
-            round_visibility=inner_cfg.get("round_visibility", "simultaneous"),
-            social_network=inner_cfg.get("social_network") or {},
-        )
-        logger.debug(f"[EXPERIMENT] Creating ExperimentConfig with parameters: {cfg.get('parameters', {})}")
-        scene = ExperimentScene(config)
+        scenario_id = inner_cfg.get("scenario_id", "custom")
+
+        # GAP-CLOSURE-01: Use CouncilExperimentScene for council scenarios
+        if scenario_id == "council":
+            council_game_config = create_council_config(
+                proposal_text=inner_cfg.get("parameters", {}).get("proposal_text", ""),
+                deliberation_rounds=inner_cfg.get("parameters", {}).get("deliberation_rounds", 3),
+                voting_threshold=inner_cfg.get("parameters", {}).get("voting_threshold", 0.5),
+            )
+            config = ExperimentConfig(
+                agents=agent_config.get("agents", []),
+                actions=[{"name": a} for a in council_game_config.actions],
+                parameters={
+                    "deliberation_rounds": council_game_config.deliberation_rounds,
+                    "voting_threshold": council_game_config.voting_threshold,
+                    "proposal_text": council_game_config.proposal_text,
+                },
+                description=council_game_config.description,
+                scenario_id="council",
+                round_visibility="sequential",
+                social_network=inner_cfg.get("social_network") or {},
+            )
+            logger.debug(f"[COUNCIL_EXPERIMENT] Creating CouncilExperimentScene with parameters: {config.parameters}")
+            scene = CouncilExperimentScene(config)
+        else:
+            config = ExperimentConfig(
+                agents=agent_config.get("agents", []),
+                actions=inner_cfg.get("actions", []),
+                parameters=inner_cfg.get("parameters", {}),
+                description=inner_cfg.get("description", ""),
+                scenario_id=scenario_id,
+                round_visibility=inner_cfg.get("round_visibility", "simultaneous"),
+                social_network=inner_cfg.get("social_network") or {},
+            )
+            logger.debug(f"[EXPERIMENT] Creating ExperimentConfig with parameters: {cfg.get('parameters', {})}")
+            scene = ExperimentScene(config)
 
         # Use adapter instead of full Simulator
         adapter = ExperimentRunnerAdapter(scene, clients or make_clients_from_env())

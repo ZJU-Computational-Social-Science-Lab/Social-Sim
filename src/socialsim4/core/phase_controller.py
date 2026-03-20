@@ -308,7 +308,8 @@ class SystemFacilitator:
 
         # VOTING phase: ONLY voting actions allowed
         if self.phase == CouncilPhase.VOTING:
-            voting_actions = {"vote"}  # Vote Yes/No/Abstain are all "vote" action with different params
+            # GAP-CLOSURE-01: Support both "vote" and specific vote actions (vote_yes, vote_no, abstain)
+            voting_actions = {"vote", "vote_yes", "vote_no", "abstain"}
             if action_name in voting_actions:
                 if not self.scene.state.extensions.get("voting_started", False):
                     return False, "Cannot vote: voting has not started yet"
@@ -318,7 +319,9 @@ class SystemFacilitator:
 
         # DISCUSSION phase: allow most actions except vote
         if self.phase == CouncilPhase.DISCUSSION:
-            if action_name == "vote":
+            # GAP-CLOSURE-01: Block all vote-related actions during discussion
+            voting_actions = {"vote", "vote_yes", "vote_no", "abstain"}
+            if action_name in voting_actions:
                 return False, "Cannot vote during discussion phase - wait for voting to start"
             if action_name == "start_voting":
                 if self.scene.state.extensions.get("voting_started", False):
@@ -476,6 +479,15 @@ Respond with 'YES: [brief reason]' or 'NO: [brief reason]'."""
         }
 
         status = f"Phase: {phase_desc.get(self.phase, self.phase.value)}"
+
+        # GAP-CLOSURE-01: Show deliberation rounds remaining during discussion
+        if self.phase == CouncilPhase.DISCUSSION:
+            remaining = self._deliberation_rounds_remaining
+            if remaining is not None and remaining > 0:
+                status += f"\nDeliberation rounds remaining: {remaining}"
+                status += f"\nVoting will begin automatically after {remaining} more round(s) of discussion."
+            elif remaining == 0:
+                status += "\nDeliberation complete - voting will begin this round."
 
         if self.phase == CouncilPhase.VOTING:
             title = self.scene.state.extensions.get("vote_title", "the proposal")
