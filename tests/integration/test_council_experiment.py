@@ -27,6 +27,7 @@ from socialsim4.core.experiment.actions.handlers import (
     handle_vote,
     handle_conclude,
 )
+from socialsim4.core.phase_controller import CouncilPhase
 
 
 class TestCouncilExperimentScene:
@@ -110,6 +111,63 @@ class TestCouncilExperimentScene:
         assert "Prior Round Deliberation Context" in status, "Should include context section"
         # Should mention phase (discussion or voting)
         assert "Phase" in status or "phase" in status, "Should mention current phase"
+
+    def test_automatic_voting_transition(self, council_scene, council_config):
+        """Test automatic transition to voting after deliberation rounds complete (FEAT-COUNCIL-03)."""
+        # Verify initial state
+        assert council_scene.facilitator.phase == CouncilPhase.DISCUSSION
+        assert council_scene.facilitator._deliberation_rounds == council_config.deliberation_rounds
+
+        # Simulate round 1 completing
+        council_scene.round_num = 1
+        council_scene.facilitator.current_round_num = 1
+        transitioned = council_scene.facilitator.check_and_transition_phase(1)
+        assert transitioned is False, "Should not transition after round 1"
+        assert council_scene.facilitator.phase == CouncilPhase.DISCUSSION
+
+        # Simulate round 2 completing (deliberation_rounds=2)
+        council_scene.round_num = 2
+        council_scene.facilitator.current_round_num = 2
+        transitioned = council_scene.facilitator.check_and_transition_phase(2)
+        assert transitioned is False, "Should not transition during round 2"
+        assert council_scene.facilitator.phase == CouncilPhase.DISCUSSION
+
+        # After round 2 completes, check for transition to round 3
+        council_scene.round_num = 3
+        council_scene.facilitator.current_round_num = 3
+        transitioned = council_scene.facilitator.check_and_transition_phase(3)
+        assert transitioned is True, "Should transition after round 2 completes (round 3 starts)"
+        assert council_scene.facilitator.phase == CouncilPhase.VOTING
+        assert council_scene.state.extensions.get("voting_started") is True
+
+        # Verify actions available in voting phase
+        actions = council_scene.get_scene_actions("Alice")
+        assert "vote" in actions, "Vote should be available in voting phase"
+        assert "send_message" not in actions, "Speak should NOT be available in voting phase"
+        assert "start_voting" not in actions, "start_voting should NOT be available in voting phase"
+
+    def test_deliberation_action_filtering(self, council_scene):
+        """Test that start_voting is blocked during deliberation rounds (FEAT-COUNCIL-02)."""
+        # Set deliberation_rounds=2
+        council_scene.facilitator.set_deliberation_rounds(2)
+        council_scene.facilitator.current_round_num = 1
+
+        # Check start_voting is blocked
+        allowed, error = council_scene.facilitator.is_action_allowed("start_voting")
+        assert allowed is False, "start_voting should be blocked during deliberation"
+        assert "remaining" in error.lower(), f"Error should mention remaining rounds, got: {error}"
+
+        # Check speak is allowed
+        allowed, _ = council_scene.facilitator.is_action_allowed("send_message")
+        assert allowed is True, "Speak should be allowed during deliberation"
+
+        # After deliberation completes
+        council_scene.facilitator.current_round_num = 3
+
+        # Check start_voting is now allowed
+        allowed, error = council_scene.facilitator.is_action_allowed("start_voting")
+        assert allowed is True, "start_voting should be allowed after deliberation completes"
+        assert error is None
 
 
 class TestCouncilActionHandlers:

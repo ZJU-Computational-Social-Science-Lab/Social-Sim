@@ -60,7 +60,8 @@ class CouncilExperimentScene(ExperimentScene):
             logger.info(f"Configured {deliberation_rounds} deliberation rounds before voting")
 
         # Initialize facilitator round tracking (FEAT-COUNCIL-03)
-        self.facilitator.current_round_num = self.round_num
+        # Note: self.round_num is set to 1 at end of __init__, facilitator defaults to 1
+        self.facilitator.current_round_num = 1
 
         # Round context manager for multi-round deliberation (REFACTOR-COUNCIL-04)
         # Use scope_type="all" so all agents see all speeches and votes
