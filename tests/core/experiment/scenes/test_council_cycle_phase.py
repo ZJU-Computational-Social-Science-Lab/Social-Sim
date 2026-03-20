@@ -336,3 +336,29 @@ def test_deserialize_cycle_phase_state():
 
     assert scene2.cycle_phase == CouncilCyclePhase.POST_VOTE_DISCUSSION
     assert scene2.rounds_in_cycle_phase == 1
+
+
+# Vote handler integration test
+
+def test_vote_handler_integration():
+    """Test that votes from handlers are visible to cycle phase methods.
+
+    This verifies that handlers writing to state.extensions["votes"]
+    integrates with cycle phase threshold/all_voted checks.
+    """
+    config = ExperimentConfig(
+        agents=[{"name": "A", "properties": {}}, {"name": "B", "properties": {}}],
+        actions=[{"name": "vote_yes"}, {"name": "vote_no"}],
+        parameters={"voting_threshold": 0.5},
+        description="Test",
+        scenario_id="council",
+    )
+    scene = CouncilExperimentScene(config)
+    scene.cycle_phase = CouncilCyclePhase.VOTING
+
+    # Simulate what handlers do: write directly to state.extensions["votes"]
+    scene.state.extensions["votes"] = {"A": "yes", "B": "yes"}
+
+    # Verify cycle phase methods see these votes
+    assert scene.all_agents_voted() is True
+    assert scene.check_voting_threshold() is True
