@@ -290,3 +290,49 @@ def test_get_speak_instruction_post_vote():
 
     instruction = scene.get_speak_instruction()
     assert instruction == "You must respond with only 1-2 sentences."
+
+
+# Serialization tests
+
+def test_serialize_cycle_phase_state():
+    """Test that cycle phase state is serialized correctly."""
+    config = ExperimentConfig(
+        agents=[{"name": "A", "properties": {}}],
+        actions=[],
+        parameters={},
+        description="Test",
+        scenario_id="council",
+    )
+    scene = CouncilExperimentScene(config)
+    scene.cycle_phase = CouncilCyclePhase.VOTING
+    scene.rounds_in_cycle_phase = 2
+    # Note: votes are in state.extensions, not a separate field
+
+    serialized = scene.serialize_config()
+    cycle_data = serialized.get("extensions", {}).get("cycle_phase", {})
+
+    assert cycle_data["phase"] == "voting"
+    assert cycle_data["rounds_in_phase"] == 2
+
+
+def test_deserialize_cycle_phase_state():
+    """Test that cycle phase state is deserialized correctly."""
+    config = ExperimentConfig(
+        agents=[{"name": "A", "properties": {}}],
+        actions=[],
+        parameters={},
+        description="Test",
+        scenario_id="council",
+    )
+
+    # Create and serialize
+    scene1 = CouncilExperimentScene(config)
+    scene1.cycle_phase = CouncilCyclePhase.POST_VOTE_DISCUSSION
+    scene1.rounds_in_cycle_phase = 1
+    serialized = scene1.serialize_config()
+
+    # Deserialize
+    scene2 = CouncilExperimentScene.deserialize_config(serialized)
+
+    assert scene2.cycle_phase == CouncilCyclePhase.POST_VOTE_DISCUSSION
+    assert scene2.rounds_in_cycle_phase == 1

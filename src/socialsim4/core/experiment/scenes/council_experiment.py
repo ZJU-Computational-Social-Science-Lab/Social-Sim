@@ -323,3 +323,47 @@ class CouncilExperimentScene(ExperimentScene):
 
         # Check for cycle phase transition
         self.check_cycle_phase_transition()
+
+    def serialize_config(self) -> dict:
+        """Serialize scene state including cycle phase.
+
+        Extends parent serialize_config to include cycle phase state.
+
+        Returns:
+            Dict with serialized scene state including cycle phase
+        """
+        base_config = super().serialize_config()
+
+        # Add cycle phase state to extensions
+        if "extensions" not in base_config:
+            base_config["extensions"] = {}
+
+        base_config["extensions"]["cycle_phase"] = {
+            "phase": self.cycle_phase.value,
+            "rounds_in_phase": self.rounds_in_cycle_phase,
+        }
+
+        return base_config
+
+    @classmethod
+    def deserialize_config(cls, data: dict) -> "CouncilExperimentScene":
+        """Deserialize scene state including cycle phase.
+
+        Extends parent deserialize_config to restore cycle phase state.
+
+        Args:
+            data: Serialized scene state
+
+        Returns:
+            New CouncilExperimentScene instance with restored state
+        """
+        # Call parent to get base scene (properly initialized)
+        scene = super().deserialize_config(data)
+
+        # Restore cycle phase state from extensions
+        cycle_data = data.get("extensions", {}).get("cycle_phase", {})
+        if cycle_data:
+            scene.cycle_phase = CouncilCyclePhase(cycle_data.get("phase", "deliberation"))
+            scene.rounds_in_cycle_phase = cycle_data.get("rounds_in_phase", 0)
+
+        return scene
