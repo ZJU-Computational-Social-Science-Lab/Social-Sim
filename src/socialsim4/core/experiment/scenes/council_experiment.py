@@ -187,12 +187,15 @@ class CouncilExperimentScene(ExperimentScene):
         )
 
     def get_scene_actions(self, agent_name: str) -> list[str]:
-        """Get available actions for agent based on current phase.
+        """Get available actions for agent based on current cycle phase.
 
-        Filters actions using SystemFacilitator to ensure agents only see
-        actions appropriate for the current phase:
-        - Discussion phase: speak, skip, start_voting
-        - Voting phase: vote, conclude
+        Filters actions to ensure agents only see actions appropriate
+        for the current phase:
+        - DELIBERATION/POST_VOTE_DISCUSSION: speak, skip
+        - VOTING: vote_yes, vote_no, abstain
+
+        Checks BOTH the new cycle_phase AND the legacy facilitator.phase
+        for backwards compatibility during migration.
 
         Args:
             agent_name: Name of agent requesting actions (unused, all agents see same actions)
@@ -201,17 +204,18 @@ class CouncilExperimentScene(ExperimentScene):
             List of action names allowed in current phase
         """
         _ = agent_name  # All agents see same actions based on phase
-        # Get all available actions from config
-        all_actions = [a.get("name") for a in self.config.actions]
 
-        # Filter by phase using facilitator
-        filtered_actions = []
-        for action_name in all_actions:
-            allowed, _ = self.facilitator.is_action_allowed(action_name)
-            if allowed:
-                filtered_actions.append(action_name)
+        # Check NEW cycle_phase system
+        if self.cycle_phase == CouncilCyclePhase.VOTING:
+            return ["vote_yes", "vote_no", "abstain"]
 
-        return filtered_actions
+        # Fall back to LEGACY facilitator system for backwards compatibility
+        from socialsim4.core.phase_controller import CouncilPhase
+        if self.facilitator.phase == CouncilPhase.VOTING:
+            return ["vote_yes", "vote_no", "abstain"]
+
+        # Default to deliberation actions
+        return ["speak", "skip"]
 
     def _advance_round(self) -> None:
         """Advance to next round after all agents have acted.
