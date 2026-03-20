@@ -224,6 +224,16 @@ _COUNCIL_CHAMBER: dict[str, Any] = {
             "description": "Fraction required to pass (0-1)",
         },
         {
+            "name": "deliberation_rounds",
+            "type": "integer",
+            "default": 3,
+            "min": 0,
+            "max": 10,
+            "step": 1,
+            "ui_hint": "slider",
+            "description": "Number of discussion rounds before automatic voting phase. Set to 0 for immediate voting, or leave empty for agent-controlled voting.",
+        },
+        {
             "name": "max_rounds",
             "type": "integer",
             "default": 5,
