@@ -161,10 +161,20 @@ class SystemFacilitator:
             return
 
         self.phase = CouncilPhase.VOTING
-        self.scene.state["voting_started"] = True
-        self.scene.state["vote_title"] = title
-        self.scene.state["votes"] = {}
-        self.scene.state["voting_completed_announced"] = False
+
+        # Handle both legacy dict-based state and ExperimentState object
+        # Legacy: scene.state is a dict
+        # Experiment: scene.state is ExperimentState with .extensions dict
+        state_dict = (
+            self.scene.state.extensions
+            if hasattr(self.scene.state, 'extensions')
+            else self.scene.state
+        )
+
+        state_dict["voting_started"] = True
+        state_dict["vote_title"] = title
+        state_dict["votes"] = {}
+        state_dict["voting_completed_announced"] = False
         self.last_facilitation_turn = self.turn_count
 
         # Announce transition
@@ -180,7 +190,22 @@ class SystemFacilitator:
     def conclude_meeting(self):
         """Conclude the council meeting."""
         self.phase = CouncilPhase.CONCLUDED
-        self.scene.complete = True
+
+        # Handle both legacy and experiment scene completion
+        # Legacy: scene.complete = True
+        # Experiment: scene.state.extensions["concluded"] = True
+        if hasattr(self.scene, 'complete'):
+            # Legacy scene
+            self.scene.complete = True
+        else:
+            # Experiment scene
+            state_dict = (
+                self.scene.state.extensions
+                if hasattr(self.scene.state, 'extensions')
+                else self.scene.state
+            )
+            state_dict["concluded"] = True
+
         self.last_facilitation_turn = self.turn_count
 
         if self.simulator:
