@@ -52,6 +52,11 @@ class CouncilExperimentScene(ExperimentScene):
         # Phase controller for discussion/voting transitions (REFACTOR-COUNCIL-05)
         self.facilitator = SystemFacilitator(self)
 
+        # Configure deliberation rounds from config (FEAT-COUNCIL-02)
+        if hasattr(config, 'deliberation_rounds') and config.deliberation_rounds is not None:
+            self.facilitator.set_deliberation_rounds(config.deliberation_rounds)
+            logger.info(f"Configured {config.deliberation_rounds} deliberation rounds before voting")
+
         # Round context manager for multi-round deliberation (REFACTOR-COUNCIL-04)
         # Use scope_type="all" so all agents see all speeches and votes
         # recent_window=3 keeps last 3 rounds of context for token efficiency
@@ -189,4 +194,6 @@ class CouncilExperimentScene(ExperimentScene):
         Called by experiment runner after each round completes.
         """
         self.round_num += 1
+        # Sync round number with facilitator for deliberation enforcement (FEAT-COUNCIL-02)
+        self.facilitator.current_round_num = self.round_num
         logger.debug(f"Advanced to round {self.round_num}")
