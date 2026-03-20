@@ -13,6 +13,7 @@ Key features:
 Exports: CouncilExperimentScene
 """
 import logging
+from enum import Enum
 from typing import Any
 
 from socialsim4.core.experiment.scene import ExperimentScene
@@ -22,6 +23,19 @@ from socialsim4.core.experiment.information_model import InformationModel
 from socialsim4.core.phase_controller import SystemFacilitator
 
 logger = logging.getLogger(__name__)
+
+
+class CouncilCyclePhase(Enum):
+    """Phase within the deliberation-voting cycle.
+
+    The cycle repeats: DELIBERATION → VOTING → POST_VOTE_DISCUSSION → DELIBERATION → ...
+
+    This is separate from SystemFacilitator.CouncilPhase which handles
+    the linear DISCUSSION → VOTING → CONCLUDED flow.
+    """
+    DELIBERATION = "deliberation"
+    VOTING = "voting"
+    POST_VOTE_DISCUSSION = "post_vote_discussion"
 
 
 class CouncilExperimentScene(ExperimentScene):
@@ -81,6 +95,12 @@ class CouncilExperimentScene(ExperimentScene):
 
         # Round tracking (experiment runner increments this)
         self.round_num = 1
+
+        # Cycle phase state for structured deliberation/voting flow
+        # NOTE: Votes are stored in self.state.extensions["votes"] (populated by handlers)
+        # to integrate with existing vote action handlers in handlers.py
+        self.cycle_phase: CouncilCyclePhase = CouncilCyclePhase.DELIBERATION
+        self.rounds_in_cycle_phase: int = 0
 
         logger.info(f"CouncilExperimentScene initialized with {len(self.agents)} agents")
 
