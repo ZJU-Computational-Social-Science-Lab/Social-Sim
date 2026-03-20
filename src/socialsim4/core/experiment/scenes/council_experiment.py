@@ -261,13 +261,54 @@ class CouncilExperimentScene(ExperimentScene):
         agent_names = {a.get("name") for a in self.config.agents}
         return agent_names.issubset(votes.keys())
 
+    def check_cycle_phase_transition(self) -> None:
+        """Check and execute cycle phase transition after round completes.
+
+        Transition rules:
+        - DELIBERATION → VOTING: After deliberation_rounds complete
+        - VOTING → POST_VOTE_DISCUSSION: All agents voted AND threshold met
+        - VOTING → DELIBERATION: All agents voted AND threshold NOT met
+        - POST_VOTE_DISCUSSION → DELIBERATION: After deliberation_rounds complete
+        """
+        deliberation_rounds = self.config.parameters.get("deliberation_rounds", 3)
+
+        if self.cycle_phase == CouncilCyclePhase.DELIBERATION:
+            if self.rounds_in_cycle_phase >= deliberation_rounds:
+                self.cycle_phase = CouncilCyclePhase.VOTING
+                self.rounds_in_cycle_phase = 0
+                # Clear votes for new voting round
+                self.state.extensions["votes"] = {}
+                logger.info(f"Transitioning to VOTING phase after {deliberation_rounds} deliberation rounds")
+
+        elif self.cycle_phase == CouncilCyclePhase.VOTING:
+            if self.all_agents_voted():
+                if self.check_voting_threshold():
+                    self.cycle_phase = CouncilCyclePhase.POST_VOTE_DISCUSSION
+                    logger.info("Threshold met, transitioning to POST_VOTE_DISCUSSION")
+                else:
+                    self.cycle_phase = CouncilCyclePhase.DELIBERATION
+                    logger.info("Threshold not met, transitioning back to DELIBERATION")
+                self.rounds_in_cycle_phase = 0
+                # Clear votes for next cycle
+                self.state.extensions["votes"] = {}
+
+        elif self.cycle_phase == CouncilCyclePhase.POST_VOTE_DISCUSSION:
+            if self.rounds_in_cycle_phase >= deliberation_rounds:
+                self.cycle_phase = CouncilCyclePhase.DELIBERATION
+                self.rounds_in_cycle_phase = 0
+                logger.info(f"Transitioning back to DELIBERATION after {deliberation_rounds} post-vote rounds")
+
     def _advance_round(self) -> None:
         """Advance to next round after all agents have acted.
 
-        Increments round counter for multi-round deliberation tracking.
+        Increments round counter, phase counter, and checks for phase transitions.
         Called by experiment runner after each round completes.
         """
         self.round_num += 1
+        self.rounds_in_cycle_phase += 1
         # Sync round number with facilitator for deliberation enforcement (FEAT-COUNCIL-02)
         self.facilitator.current_round_num = self.round_num
-        logger.debug(f"Advanced to round {self.round_num}")
+        logger.debug(f"Advanced to round {self.round_num}, phase round {self.rounds_in_cycle_phase}")
+
+        # Check for cycle phase transition
+        self.check_cycle_phase_transition()

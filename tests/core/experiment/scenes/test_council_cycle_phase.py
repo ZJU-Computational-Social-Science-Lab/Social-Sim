@@ -149,3 +149,94 @@ def test_all_agents_voted():
 
     scene.record_vote("B", "no")
     assert scene.all_agents_voted() is True
+
+
+# Phase transition tests
+
+def test_transition_deliberation_to_voting():
+    """Test transition from DELIBERATION to VOTING after N rounds."""
+    config = ExperimentConfig(
+        agents=[{"name": "A", "properties": {}}],
+        actions=[],
+        parameters={"deliberation_rounds": 2},
+        description="Test",
+        scenario_id="council",
+    )
+    scene = CouncilExperimentScene(config)
+    assert scene.cycle_phase == CouncilCyclePhase.DELIBERATION
+
+    # Round 1 - no transition
+    scene.rounds_in_cycle_phase = 1
+    scene.check_cycle_phase_transition()
+    assert scene.cycle_phase == CouncilCyclePhase.DELIBERATION
+
+    # Round 2 - transition to voting
+    scene.rounds_in_cycle_phase = 2
+    scene.check_cycle_phase_transition()
+    assert scene.cycle_phase == CouncilCyclePhase.VOTING
+    assert scene.rounds_in_cycle_phase == 0
+    assert scene.state.extensions.get("votes", {}) == {}
+
+
+def test_transition_voting_to_post_vote_when_threshold_met():
+    """Test transition from VOTING to POST_VOTE_DISCUSSION when threshold met."""
+    config = ExperimentConfig(
+        agents=[{"name": "A", "properties": {}}, {"name": "B", "properties": {}}],
+        actions=[],
+        parameters={"voting_threshold": 0.5},
+        description="Test",
+        scenario_id="council",
+    )
+    scene = CouncilExperimentScene(config)
+    scene.cycle_phase = CouncilCyclePhase.VOTING
+
+    # Both vote yes (100% > 50%)
+    scene.record_vote("A", "yes")
+    scene.record_vote("B", "yes")
+
+    scene.check_cycle_phase_transition()
+    assert scene.cycle_phase == CouncilCyclePhase.POST_VOTE_DISCUSSION
+
+
+def test_transition_voting_to_deliberation_when_threshold_not_met():
+    """Test transition from VOTING back to DELIBERATION when threshold not met."""
+    config = ExperimentConfig(
+        agents=[{"name": "A", "properties": {}}, {"name": "B", "properties": {}}],
+        actions=[],
+        parameters={"voting_threshold": 0.6},
+        description="Test",
+        scenario_id="council",
+    )
+    scene = CouncilExperimentScene(config)
+    scene.cycle_phase = CouncilCyclePhase.VOTING
+
+    # 1 yes, 1 no (50% < 60%)
+    scene.record_vote("A", "yes")
+    scene.record_vote("B", "no")
+
+    scene.check_cycle_phase_transition()
+    assert scene.cycle_phase == CouncilCyclePhase.DELIBERATION
+
+
+def test_transition_post_vote_to_deliberation():
+    """Test transition from POST_VOTE_DISCUSSION back to DELIBERATION."""
+    config = ExperimentConfig(
+        agents=[{"name": "A", "properties": {}}],
+        actions=[],
+        parameters={"deliberation_rounds": 2},
+        description="Test",
+        scenario_id="council",
+    )
+    scene = CouncilExperimentScene(config)
+    scene.cycle_phase = CouncilCyclePhase.POST_VOTE_DISCUSSION
+
+    # Round 1 - no transition
+    scene.rounds_in_cycle_phase = 1
+    scene.check_cycle_phase_transition()
+    assert scene.cycle_phase == CouncilCyclePhase.POST_VOTE_DISCUSSION
+
+    # Round 2 - transition to deliberation
+    scene.rounds_in_cycle_phase = 2
+    scene.check_cycle_phase_transition()
+    assert scene.cycle_phase == CouncilCyclePhase.DELIBERATION
+    assert scene.rounds_in_cycle_phase == 0
