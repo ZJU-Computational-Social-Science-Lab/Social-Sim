@@ -37,6 +37,48 @@ const splitDiffText = (text: string): string[] =>
     .map(line => line.trimEnd())
     .filter(line => line.trim().length > 0);
 
+const formatExperimentValue = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  return JSON.stringify(value);
+};
+
+const summarizeExperimentOps = (ops: any[], t: (key: string, options?: any) => string): string[] => {
+  const lines: string[] = [];
+  for (const op of ops || []) {
+    if (!op || typeof op !== 'object') continue;
+    if (op.op === 'scene_state_patch') {
+      const updates = op.updates || {};
+      for (const [key, value] of Object.entries(updates)) {
+        if (key === 'pending_follow_up_conditions' && value && typeof value === 'object') {
+          for (const [conditionKey, conditionValue] of Object.entries(value as Record<string, unknown>)) {
+            lines.push(`${conditionKey} = ${formatExperimentValue(conditionValue)}`);
+          }
+          continue;
+        }
+        lines.push(`${key} = ${formatExperimentValue(value)}`);
+      }
+      continue;
+    }
+    if (op.op === 'agent_props_patch') {
+      const updates = op.updates || {};
+      for (const [key, value] of Object.entries(updates)) {
+        lines.push(`${String(op.name || '')}.${key} = ${formatExperimentValue(value)}`);
+      }
+      continue;
+    }
+    if (op.op === 'environment_event') {
+      lines.push(`${t('store.experimentEnvironmentEvent') || '环境事件'}: ${String(op.text || '')}`);
+      continue;
+    }
+    if (op.op === 'public_broadcast') {
+      lines.push(`${t('store.experimentPublicBroadcast') || '公共广播'}: ${String(op.text || '')}`);
+      continue;
+    }
+    lines.push(JSON.stringify(op));
+  }
+  return lines;
+};
+
 const buildDiffOps = <T,>(left: T[], right: T[], isEqual: (a: T, b: T) => boolean): DiffOp<T>[] => {
   const dp: number[][] = Array.from({ length: left.length + 1 }, () => Array(right.length + 1).fill(0));
 
@@ -562,6 +604,7 @@ export const LogViewer: React.FC = () => {
   const selectedNodeId = useSimulationStore(state => state.selectedNodeId);
   const agents = useSimulationStore(state => state.agents);
   const currentSimulation = useSimulationStore(state => state.currentSimulation);
+  const selectedNode = useMemo(() => nodes.find(n => n.id === selectedNodeId) || null, [nodes, selectedNodeId]);
 
   // Extract scenario params from current simulation's scene_config
   const scenarioParams = useMemo((): Record<string, unknown> => {
@@ -591,7 +634,7 @@ export const LogViewer: React.FC = () => {
 
   // Filter Logic
   const filteredLogs = useMemo(() => {
-    return logs.filter(log => {
+    const branchLogs = logs.filter(log => {
       // 0. Ancestry Filter (Strict: only show logs from current path)
       if (log.nodeId && !ancestorIds.has(log.nodeId)) {
         return false;
@@ -620,7 +663,73 @@ export const LogViewer: React.FC = () => {
 
       return true;
     });
-  }, [logs, searchQuery, selectedTypes, selectedAgents, ancestorIds]);
+
+    const meta = (selectedNode as any)?.meta || {};
+    const variantName = typeof meta.variant_name === 'string' ? meta.variant_name : '';
+    const experimentName = typeof meta.experiment_name === 'string' ? meta.experiment_name : '';
+    const nodeLocalLogs = branchLogs.filter((log) => String(log.nodeId || '') === String(selectedNodeId || ''));
+    const hasCreationLog = branchLogs.some((log) => {
+      if (String(log.nodeId || '') !== String(selectedNodeId || '')) return false;
+      if (log.type !== 'SYSTEM') return false;
+      return String(log.content || '').includes(t('store.experimentBranchCreated', { experimentName, variantName }));
+    });
+
+    const hasNodeRuntimeLogs = nodeLocalLogs.some((log) => {
+      if (log.type !== 'SYSTEM') return true;
+      return !String(log.content || '').includes(t('store.experimentBranchCreated', { experimentName, variantName }));
+    });
+
+    if (selectedNodeId && variantName && !hasNodeRuntimeLogs) {
+      const visibleNodeLogs = nodeLocalLogs;
+      if (hasCreationLog) {
+        return visibleNodeLogs;
+      }
+
+      const interventionLines = summarizeExperimentOps(Array.isArray(meta.ops) ? meta.ops : [], t);
+      const parentNode = nodes.find((n) => n.id === selectedNode?.parentId);
+      const baseNodeLabel = String(parentNode?.display_id || meta.base_node || selectedNode?.parentId || '');
+      const syntheticLog: LogEntry = {
+        id: `exp-create-log-${String(selectedNodeId)}`,
+        nodeId: String(selectedNodeId),
+        round: 0,
+        type: 'SYSTEM',
+        content: [
+          t('store.experimentBranchCreated', { experimentName, variantName }) || `分支创建成功：${experimentName} / ${variantName}`,
+          `${t('store.experimentBaseNode') || '基于节点'}：${baseNodeLabel}`,
+          `${t('store.experimentInterventionContent') || '干预内容'}：${interventionLines.length ? '' : (t('store.noOperationChanges') || '无操作更改')}`,
+          ...interventionLines.map((line) => `- ${line}`),
+          `${t('store.experimentCurrentStatus') || '当前状态'}：${t('store.experimentStatusPending') || '未运行'}`,
+        ].filter(Boolean).join('\n'),
+        timestamp: selectedNode?.timestamp || new Date().toLocaleTimeString(),
+      };
+
+      return [syntheticLog, ...visibleNodeLogs];
+    }
+
+    if (!selectedNodeId || !variantName || hasCreationLog) {
+      return branchLogs;
+    }
+
+    const interventionLines = summarizeExperimentOps(Array.isArray(meta.ops) ? meta.ops : [], t);
+    const parentNode = nodes.find((n) => n.id === selectedNode?.parentId);
+    const baseNodeLabel = String(parentNode?.display_id || meta.base_node || selectedNode?.parentId || '');
+    const syntheticLog: LogEntry = {
+      id: `exp-create-log-${String(selectedNodeId)}`,
+      nodeId: String(selectedNodeId),
+      round: 0,
+      type: 'SYSTEM',
+      content: [
+        t('store.experimentBranchCreated', { experimentName, variantName }) || `分支创建成功：${experimentName} / ${variantName}`,
+        `${t('store.experimentBaseNode') || '基于节点'}：${baseNodeLabel}`,
+        `${t('store.experimentInterventionContent') || '干预内容'}：${interventionLines.length ? '' : (t('store.noOperationChanges') || '无操作更改')}`,
+        ...interventionLines.map((line) => `- ${line}`),
+        `${t('store.experimentCurrentStatus') || '当前状态'}：${t('store.experimentStatusPending') || '未运行'}`,
+      ].filter(Boolean).join('\n'),
+      timestamp: selectedNode?.timestamp || new Date().toLocaleTimeString(),
+    };
+
+    return [syntheticLog, ...branchLogs];
+  }, [logs, searchQuery, selectedTypes, selectedAgents, ancestorIds, nodes, selectedNode, selectedNodeId, t]);
 
   // Auto-scroll to bottom when logs change
   useEffect(() => {

@@ -584,13 +584,30 @@ Use the above context to inform your responses when relevant.
             if context_update:
                 memory_parts.append(f"[Remember] {context_update}")
 
-        assistant_memory = "\n".join(memory_parts).strip() or llm_output
-        self.short_memory.append("assistant", assistant_memory)
-        if self.log_event:
-            self.log_event(
-                "agent_ctx_delta",
-                {"agent": self.name, "role": "assistant", "content": assistant_memory},
-            )
+        assistant_memory = "\n".join(memory_parts).strip()
+        if not assistant_memory:
+            fallback_parts = []
+            for item in action_data:
+                action_payload = item.get("action") or {}
+                if type(action_payload) is not dict:
+                    continue
+                action_name = str(action_payload.get("name") or action_payload.get("action") or "").strip()
+                if not action_name or action_name == "yield":
+                    continue
+                target = str(action_payload.get("target", "") or "").strip()
+                if target:
+                    fallback_parts.append(f"[Action] {action_name} -> {target}")
+                else:
+                    fallback_parts.append(f"[Action] {action_name}")
+            assistant_memory = "\n".join(fallback_parts).strip()
+
+        if assistant_memory:
+            self.short_memory.append("assistant", assistant_memory)
+            if self.log_event:
+                self.log_event(
+                    "agent_ctx_delta",
+                    {"agent": self.name, "role": "assistant", "content": assistant_memory},
+                )
         self.last_history_length = len(self.short_memory)
 
         return action_data

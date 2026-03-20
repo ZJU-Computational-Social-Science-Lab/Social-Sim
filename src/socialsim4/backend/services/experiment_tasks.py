@@ -89,6 +89,8 @@ def run_experiment_task(self, simulation_id: str, exp_id: str, run_id: int, turn
             # create local SimTree from provided tree_state
             tree = SimTree.deserialize(tree_state, clients=clients)
 
+            node_ids = [int(v.get("node_id")) for v in variants if v.get("node_id") and int(v.get("node_id")) in tree.nodes]
+
             # Reserve a conservative per-run budget if provider configured
             per_run_budget = int((provider.config or {}).get("per_run_budget", 1024)) if 'provider' in locals() and provider is not None else 0
             if per_run_budget and node_ids:
@@ -119,10 +121,19 @@ def run_experiment_task(self, simulation_id: str, exp_id: str, run_id: int, turn
             db_variants = list(exp.variants or [])
             for index, v in enumerate(variants):
                 ops = v.get("ops") or []
-                cid = tree.branch(int(v.get("base_node", tree.root)), [dict(op) for op in ops])
+                cid = v.get("node_id")
+                if not cid or int(cid) not in tree.nodes:
+                    cid = tree.branch(int(v.get("base_node", tree.root)), [dict(op) for op in ops])
                 if index < len(db_variants):
                     db_variants[index].node_id = int(cid)
                     session.add(db_variants[index])
+                    tree.nodes[int(cid)]["meta"] = {
+                        **dict(tree.nodes[int(cid)].get("meta") or {}),
+                        "experiment_id": exp.id,
+                        "variant_id": db_variants[index].id,
+                        "variant_name": db_variants[index].name,
+                        "experiment_name": exp.name,
+                    }
                 node_ids.append(int(cid))
 
             sim.latest_state = tree.serialize()

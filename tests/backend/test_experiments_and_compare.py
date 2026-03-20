@@ -1,6 +1,8 @@
 import asyncio
 import os
 import json
+from copy import deepcopy
+from types import SimpleNamespace
 
 import pytest
 
@@ -10,6 +12,7 @@ from socialsim4.backend.services.experiment_runner import (
     run_variants_parallel,
 )
 from socialsim4.backend.services.simtree_runtime import SIM_TREE_REGISTRY
+from socialsim4.core.simtree import SimTree
 from socialsim4.core.llm import create_llm_client
 from socialsim4.core.llm_config import LLMConfig
 from socialsim4.backend.api.routes.simulations import _align_event_sequences
@@ -95,6 +98,30 @@ async def test_run_variants_parallel_and_metrics(simtree_record_fixture):
         node = tree.nodes.get(int(nid))
         assert node is not None
         assert getattr(node["sim"], "turns", 0) >= 1
+
+
+@pytest.mark.asyncio
+async def test_registry_refreshes_cached_tree_from_latest_state(simtree_record_fixture):
+    rec = simtree_record_fixture
+    cfg = LLMConfig(dialect="mock", api_key="", model="mock")
+    client = create_llm_client(cfg)
+    clients = {"chat": client, "default": client, "search": None}
+
+    latest_state = deepcopy(rec.tree.serialize())
+    sim_record = SimpleNamespace(id="testsims", latest_state=latest_state)
+
+    cached = await SIM_TREE_REGISTRY.get_or_create_from_sim(sim_record, clients)
+    assert cached is rec
+
+    external_tree = SimTree.deserialize(deepcopy(latest_state), clients)
+    child_id = external_tree.branch(int(external_tree.root), [])
+    sim_record.latest_state = external_tree.serialize()
+
+    refreshed = await SIM_TREE_REGISTRY.get_or_create_from_sim(sim_record, clients)
+
+    assert refreshed is rec
+    assert child_id in refreshed.tree.nodes
+    assert len(refreshed.tree.nodes) == len(external_tree.nodes)
 
 
 def make_event(ev_type: str, data: dict = None):

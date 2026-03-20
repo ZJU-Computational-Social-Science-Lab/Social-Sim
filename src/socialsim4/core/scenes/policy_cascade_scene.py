@@ -113,6 +113,7 @@ class PolicyCascadeScene(Scene):
         self.state["source_policy"] = ""
         self.state["relayed_policy"] = ""
         self.state["latest_notice"] = str(initial_event or "")
+        self.state["latest_environment_notice"] = ""
         self.state["task_mode"] = "notice"
         self.state["notice_kind"] = "execution"
         self.state["cascade_mode"] = cascade_mode
@@ -130,6 +131,7 @@ class PolicyCascadeScene(Scene):
         self.state["pending_follow_up_conditions"] = {}
         self.state["follow_up_thread_seeds"] = []
         self.state["follow_up_no_action_agents"] = []
+        self.state["follow_up_public_done_agents"] = []
         self.state["informal_network"] = {}
         self.state["branch_interpretations"] = {}
         self.state["force_complete_current_cascade"] = False
@@ -154,6 +156,7 @@ class PolicyCascadeScene(Scene):
         self.state["block_probability"] = block_probability
         self.state["source_policy"] = ""
         self.state["relayed_policy"] = ""
+        self.state.setdefault("latest_environment_notice", "")
         self.state["private_events"] = {}
         self.state["active_tier_targets"] = {}
         self.state.setdefault("policy_version", 0)
@@ -165,6 +168,7 @@ class PolicyCascadeScene(Scene):
         self.state.setdefault("pending_follow_up_conditions", {})
         self.state.setdefault("follow_up_thread_seeds", [])
         self.state.setdefault("follow_up_no_action_agents", [])
+        self.state.setdefault("follow_up_public_done_agents", [])
         self.state.setdefault("informal_network", {})
         self.state.setdefault("branch_interpretations", {})
         self.state.setdefault("force_complete_current_cascade", False)
@@ -232,8 +236,7 @@ class PolicyCascadeScene(Scene):
         self._rebuild_tiers()
         self._apply_pending_follow_up_conditions()
         self._materialize_seeded_threads()
-        if self._policy_follow_up_ready() and not self._follow_up_has_pending_threads() and not self._private_recipient_names():
-            self._auto_seed_follow_up_threads()
+        self._clear_follow_up_public_done_agents()
         if self._follow_up_has_pending_threads():
             self.state["task_mode"] = "follow_up"
         elif self._policy_follow_up_ready() and not self._private_recipient_names():
@@ -247,6 +250,7 @@ class PolicyCascadeScene(Scene):
     def on_event(self, sim, event_type: str, data):
         if event_type in {"environment", "broadcast"}:
             self._clear_follow_up_no_action_agents()
+            self._clear_follow_up_public_done_agents()
             if self._apply_persistent_condition_event(sim, event_type, data):
                 return None
 
@@ -256,6 +260,7 @@ class PolicyCascadeScene(Scene):
                 if not _has_meaningful_notice_content(cleaned_desc):
                     return None
                 self.state["latest_notice"] = cleaned_desc
+                self.state["latest_environment_notice"] = cleaned_desc
                 self.state["notice_kind"] = self._detect_notice_kind(cleaned_desc)
                 self._apply_notice_condition_updates(sim, "environment_notice", cleaned_desc)
                 sim.emit_event(
@@ -266,6 +271,8 @@ class PolicyCascadeScene(Scene):
                         "mode": self._cascade_mode(),
                     },
                 )
+                if self._policy_follow_up_ready():
+                    self._reopen_public_follow_up_after_environment()
                 return None
 
             self.state["current_tier_idx"] = 0
@@ -281,6 +288,7 @@ class PolicyCascadeScene(Scene):
             if not _has_meaningful_notice_content(cleaned_desc):
                 return None
             self.state["latest_notice"] = cleaned_desc
+            self.state["latest_environment_notice"] = ""
             self.state["policy_version"] = int(self.state.get("policy_version", 0) or 0) + 1
             self.state["latest_policy"] = cleaned_desc
             self.state["source_policy"] = cleaned_desc
@@ -319,6 +327,7 @@ class PolicyCascadeScene(Scene):
             if not _has_meaningful_notice_content(cleaned_desc):
                 return None
             self.state["latest_notice"] = cleaned_desc
+            self.state["latest_environment_notice"] = cleaned_desc
             self.state["notice_kind"] = self._detect_notice_kind(cleaned_desc)
             self._apply_notice_condition_updates(sim, "environment_private_notice", cleaned_desc)
             sim.emit_event(
@@ -337,6 +346,7 @@ class PolicyCascadeScene(Scene):
             return None
         private_payload = {
             "latest_notice": cleaned_desc,
+            "latest_environment_notice": cleaned_desc,
             "latest_policy": cleaned_desc,
             "source_policy": cleaned_desc,
             "relayed_policy": cleaned_desc,
@@ -910,11 +920,31 @@ class PolicyCascadeScene(Scene):
         names = self.state.get("follow_up_no_action_agents") or []
         return [name for name in names if name in self.simulator.agents]
 
+    def _follow_up_public_done_agents(self) -> List[str]:
+        names = self.state.get("follow_up_public_done_agents") or []
+        return [name for name in names if name in self.simulator.agents]
+
     def _clear_follow_up_no_action_agents(self) -> None:
         self.state["follow_up_no_action_agents"] = []
 
+    def _clear_follow_up_public_done_agents(self) -> None:
+        self.state["follow_up_public_done_agents"] = []
+
+    def _mark_follow_up_public_done(self, agent_name: str) -> None:
+        current = [name for name in self._follow_up_public_done_agents() if name != agent_name]
+        current.append(agent_name)
+        self.state["follow_up_public_done_agents"] = current
+
+    def _clear_follow_up_public_done(self, agent_name: str) -> None:
+        self.state["follow_up_public_done_agents"] = [
+            name for name in self._follow_up_public_done_agents() if name != agent_name
+        ]
+
     def _is_follow_up_no_action_message(self, message: str) -> bool:
-        return FOLLOW_UP_NO_ACTION_MESSAGE in str(message or "")
+        normalized = self._sanitize_message(str(message or ""))
+        if not normalized:
+            return False
+        return normalized == FOLLOW_UP_NO_ACTION_MESSAGE
 
     def _record_follow_up_message_state(self, agent_name: str, message: str, mode: str) -> None:
         if mode not in {"follow_up", "follow_up_thread"}:
@@ -925,17 +955,50 @@ class PolicyCascadeScene(Scene):
         self.state["follow_up_no_action_agents"] = current
 
     def _follow_up_no_action_signal(self, payload: dict) -> bool:
+        action_field = payload.get("action")
+        if type(action_field) is dict:
+            action_name = str(action_field.get("name") or action_field.get("action") or action_field.get("type") or "").strip().lower()
+        else:
+            action_name = str(action_field or payload.get("type") or "").strip().lower()
+        if action_name in {"none", "no_action"}:
+            return True
+        primary = self._sanitize_message(
+            str(
+                payload.get("message")
+                or payload.get("content")
+                or payload.get("text")
+                or payload.get("context")
+                or payload.get("reason")
+                or ""
+            )
+        )
+        if primary and not self._is_follow_up_no_action_message(primary):
+            return False
         texts = [
-            str(payload.get("message") or ""),
+            primary,
             str(payload.get("response") or ""),
             str(payload.get("thoughts") or ""),
+            str(payload.get("status") or ""),
+            str(payload.get("reason") or ""),
             str((payload.get("metadata") or {}).get("status") or ""),
             str((payload.get("metadata") or {}).get("notes") or ""),
+            str((payload.get("metadata") or {}).get("reason") or ""),
         ]
         combined = "\n".join(texts)
         if self._is_follow_up_no_action_message(combined):
             return True
         return "无动作倾向" in combined and "建议注入新的环境事件或发布新的政策" in combined
+
+    def _reopen_public_follow_up_after_environment(self) -> None:
+        self.state["task_mode"] = "follow_up"
+        self.state["private_events"] = {}
+        self.state["thread_inboxes"] = {}
+        self.state["active_tier_targets"] = {}
+        self.state["follow_up_no_action_agents"] = []
+        self.state["follow_up_public_done_agents"] = []
+        self.state["complete"] = False
+        self.state["current_tier_idx"] = 0
+        self._normalize_active_tier()
 
     def _persistent_conditions(self) -> dict:
         conditions = self.state.get("persistent_conditions") or {}
@@ -1406,10 +1469,13 @@ class PolicyCascadeScene(Scene):
         private_event = self._private_event_for(agent.name)
         private_recipients = self._private_recipient_names()
         tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
+        if mode == "follow_up" and private_recipients:
+            private_tier = self.tier_order[self._private_active_tier_idx()]
+            if agent.name not in private_recipients or tier != private_tier:
+                return f"{agent.name} 当前等待 {private_tier} 层先处理活跃私有线程。"
+            return f"{agent.name} 当前轮到优先处理私有线程。"
         if mode == "follow_up" and agent.name in self._follow_up_no_action_agents() and not private_event:
             return f"{agent.name} 已明确表示当前无进一步动作倾向，等待新的环境事件或下一轮政策广播。"
-        if mode == "follow_up" and private_recipients and not private_event:
-            return f"{agent.name} 当前没有专属私有线程，但仍需对当前后续干预局势作出公开反应。"
         if private_recipients:
             private_tier = self.tier_order[self._private_active_tier_idx()]
             if tier != private_tier:
@@ -1653,8 +1719,167 @@ class PolicyCascadeScene(Scene):
         content = self._sanitize_message(str(payload.get("content") or payload.get("text") or ""))
         if content:
             return content
+        context = self._sanitize_message(str(payload.get("context") or ""))
+        if context:
+            return context
         response = self._sanitize_message(str(payload.get("response") or ""))
         return response
+
+    def _follow_up_reference_text(self, private_event: dict) -> str:
+        return str(
+            private_event.get("latest_notice")
+            or self.state.get("latest_notice")
+            or private_event.get("relayed_policy")
+            or private_event.get("source_policy")
+            or self.state.get("relayed_policy")
+            or self.state.get("source_policy")
+            or self.state.get("latest_policy")
+            or ""
+        ).strip()
+
+    def _follow_up_replays_policy(self, message: str, private_event: dict) -> bool:
+        normalized = self._clean_policy_text(message)
+        if not normalized:
+            return False
+        reference = self._clean_policy_text(self._follow_up_reference_text(private_event))
+        if not reference:
+            return False
+        if "原文：" in normalized and len(normalized.splitlines()) >= 8:
+            return True
+        if len(reference) >= 80 and reference[:80] in normalized:
+            return True
+        invariants = self._policy_invariants()
+        if len(normalized.splitlines()) >= 8 and invariants and all(item in normalized for item in invariants):
+            return True
+        return False
+
+    def _follow_up_is_generic(self, tier: str, message: str, issues: List[str], current_thread: dict | None = None) -> bool:
+        normalized = self._sanitize_message(message)
+        if not normalized:
+            return True
+        if len(normalized) < 28:
+            return True
+        evasive_fragments = [
+            "无需继续推进",
+            "无需继续回复",
+            "无需继续推进或回复",
+            "无需进一步行动",
+            "无需进一步操作",
+            "当前未收到新请求",
+            "维持既有立场",
+            "等待上级先处理",
+            "等待 mid 层先处理",
+            "等待 top 层先处理",
+        ]
+        if any(fragment in normalized for fragment in evasive_fragments):
+            return True
+        feedback_signal = self._public_feedback_signal(self._current_follow_up_notice())
+        if feedback_signal == "positive":
+            positive_markers = ["满意", "缓和", "收缩", "转入常态", "减少", "下调", "抽查", "保留", "维持", "优化"]
+            if not any(marker in normalized for marker in positive_markers):
+                return True
+        thread_focus = self._sanitize_message(self._thread_focus_summary(current_thread or {}))
+        concrete_markers = issues + self._tier_keywords(tier) + ["24小时", "48小时", "5个工作日", "今天", "本周", "预算", "台账", "清单", "证据", "数据", "负责人"]
+        if thread_focus:
+            concrete_markers.append(thread_focus[:12])
+        latest_message = self._sanitize_message(str((current_thread or {}).get("last_message") or ""))
+        if latest_message:
+            concrete_markers.extend(
+                fragment
+                for fragment in ["两个环节", "支持量", "资源缺口", "执行成本", "冲突节点", "保留项", "暂缓项", "责任人", "时点", "量化标准"]
+                if fragment in latest_message
+            )
+        if any(marker and marker in normalized for marker in concrete_markers):
+            if "已确保" in normalized and not any(fragment in normalized for fragment in ["负责人", "时点", "支持量", "两个环节", "台账", "清单", "证据", "24小时", "48小时", "今天"]):
+                return True
+            return False
+        generic_fragments = [
+            "确保信息传递的透明性",
+            "确保信息传递的透明性和实效性",
+            "结合基层实际需求",
+            "明确调整范围和实施标准",
+            "优化执行策略",
+            "确保政策落地",
+            "降低潜在冲突",
+            "请确认具体调整方案",
+            "继续推进协调",
+            "根据系统公告内容",
+            "已确保",
+        ]
+        if any(fragment in normalized for fragment in generic_fragments):
+            return True
+        return not any(keyword in normalized for keyword in self._tier_keywords(tier))
+
+    def _current_follow_up_notice(self) -> str:
+        return str(self.state.get("latest_environment_notice") or self.state.get("latest_notice") or "").strip()
+
+    def _public_feedback_signal(self, text: str) -> str:
+        notice = str(text or "").strip()
+        if not notice:
+            return ""
+        if any(marker in notice for marker in ["抗议", "游行", "示威", "舆情", "媒体曝光", "热搜", "举报"]):
+            return "negative"
+        if any(marker in notice for marker in ["很满意", "表示满意", "普遍满意", "群众满意", "高度认可", "普遍支持", "积极评价", "一致好评", "欢迎这一政策", "拥护该政策", "反响良好"]):
+            return "positive"
+        return ""
+
+    def _build_follow_up_message(self, agent: Agent, tier: str, current_thread: dict | None = None) -> str:
+        current_thread = current_thread or {}
+        issues = self._thread_issue_candidates(agent, tier)
+        issue_text = "、".join(issues) if issues else "执行口径和资源安排"
+        policy_summary = self._policy_prompt_excerpt(self._follow_up_reference_text(self._private_event_for(agent.name)))
+        focus = self._sanitize_message(self._thread_focus_summary(current_thread))
+        role_kind = self._tier_role_kind(tier)
+        feedback_signal = self._public_feedback_signal(self._current_follow_up_notice())
+        if current_thread:
+            if role_kind == "top":
+                return self._sanitize_message(
+                    f"关于你反馈的{focus or issue_text}，我先做两项调整：第一，24小时内由牵头负责人补齐资源缺口和成本测算，明确哪些岗位必须保留、哪些环节可以延后；第二，48小时内统一解释口径，只保留{policy_summary or '当前政策硬约束'}，避免继续层层加码。你收到后请按新口径回传一版可执行清单。"
+                )
+            if role_kind == "mid":
+                return self._sanitize_message(
+                    f"针对你提到的{focus or issue_text}，我先按两步处理：今天内把资源缺口、执行成本和冲突节点汇总成一张台账，明早前给出保留项、暂缓项和责任人；同时保留{policy_summary or '当前政策硬约束'}，不再重复整段公告。你先补充最卡的两个环节和所需支持量。"
+                )
+            return self._sanitize_message(
+                f"针对当前的{focus or issue_text}，我这边先按现场可执行口径处理：先把最耗资源的两项任务单独列出，今天内补齐证据和影响范围；对无法在时限内完成的部分同步上报，不再空泛复述公告。若你同意，我就按这个清单继续反馈。"
+            )
+        if feedback_signal == "positive":
+            if role_kind == "top":
+                return self._sanitize_message(
+                    f"既然公众反馈已明显转向正面，我将把前一轮高压处置调整为稳态跟踪：保留{policy_summary or '当前政策硬约束'}，但把新增督办频次下调为每周复盘一次，同时收缩临时资源投放，只保留对关键岗位和申诉渠道的保障。"
+                )
+            if role_kind == "mid":
+                return self._sanitize_message(
+                    f"既然当前反馈趋于正面，我会把任务重排为“继续保留”“可转入常态跟踪”“可暂停追加资源”三类，今天内更新台账并同步负责人；对上只汇报保留项和收缩项，对下直接下发简化后的执行步骤。"
+                )
+            return self._sanitize_message(
+                "既然一线反馈已转向正面，我会把原先高频排查改为按清单抽查，保留申诉渠道和值班记录，对已稳定环节停止重复加码；若再出现异常，再按原上报链路补充证据和时间点。"
+            )
+        if role_kind == "top":
+            return self._sanitize_message(
+                f"针对当前暴露出的{issue_text}，我不会直接结束讨论。下一步由高层先核定资源缺口和容错边界，24小时内明确哪些要求继续硬执行、哪些环节允许分批推进；同时统一下发一版只保留{policy_summary or '核心硬约束'}的解释口径，避免继续层层放大执行成本。"
+            )
+        if role_kind == "mid":
+            return self._sanitize_message(
+                f"围绕当前的{issue_text}，我将先把任务拆成“必须立即执行”“可顺延一周”“需追加资源”三类，今天内更新台账并回传负责人和时间表；对上只保留{policy_summary or '当前政策核心要求'}，对下不再复述整段公告，而是直接给出可执行步骤。"
+            )
+        return self._sanitize_message(
+            f"结合一线目前的{issue_text}，我会先按现场流程核对最耗时的两个环节，补充证据、责任人和预计完成时点；对无法按时完成或资源明显不足的部分立即上报，不再重复政策原文，而是给出具体卡点和所需支持。"
+        )
+
+    def _normalize_follow_up_message(self, agent: Agent, tier: str, message: str, current_thread: dict | None = None) -> str:
+        normalized = self._sanitize_message(message)
+        issues = self._thread_issue_candidates(agent, tier)
+        private_event = self._private_event_for(agent.name)
+        if self._follow_up_replays_policy(normalized, private_event):
+            normalized = ""
+        if normalized and self._follow_up_is_generic(tier, normalized, issues, current_thread):
+            normalized = ""
+        if not normalized:
+            normalized = self._build_follow_up_message(agent, tier, current_thread)
+        if self._message_has_tier_drift(tier, normalized):
+            normalized = self._build_follow_up_message(agent, tier, current_thread)
+        return self._sanitize_message(normalized)
 
     def _special_action_allowed_targets(self, action_name: str, agent: Agent) -> List[str]:
         if action_name == "report_upward":
@@ -1714,6 +1939,7 @@ class PolicyCascadeScene(Scene):
         payload = {
             "task_mode": "follow_up_thread",
             "latest_notice": str(self.state.get("latest_notice") or notice or ""),
+            "latest_environment_notice": str(self.state.get("latest_environment_notice") or ""),
             "latest_policy": str(self.state.get("latest_policy") or ""),
             "source_policy": str(self.state.get("source_policy") or ""),
             "relayed_policy": str(self.state.get("relayed_policy") or self.state.get("latest_policy") or ""),
@@ -1912,6 +2138,7 @@ class PolicyCascadeScene(Scene):
             merged_message = self._upstream_merge_message(recipient, upstream_messages)
             private_events[recipient] = {
                 "latest_notice": notice,
+                "latest_environment_notice": str(self.state.get("latest_environment_notice") or ""),
                 "latest_policy": relay_policy,
                 "source_policy": source_policy,
                 "relayed_policy": relay_policy,
@@ -2485,12 +2712,11 @@ class PolicyCascadeScene(Scene):
     def get_agent_status_prompt(self, agent: Agent) -> str:
         private_event = self._active_private_event_for(agent.name)
         notice = str(private_event.get("latest_notice") or self.state.get("latest_notice", "") or "").strip()
+        environment_notice = str(private_event.get("latest_environment_notice") or self.state.get("latest_environment_notice", "") or "").strip()
         source_policy = str(private_event.get("source_policy") or self.state.get("source_policy", "") or "").strip()
         relayed_policy = str(private_event.get("relayed_policy") or self.state.get("relayed_policy", "") or private_event.get("latest_policy") or self.state.get("latest_policy", "") or "").strip()
         parts = []
-        mode = str(self.state.get("task_mode", "notice") or "notice")
-        if mode != "cascade":
-            mode = str(private_event.get("task_mode") or mode or "notice")
+        mode = self._effective_task_mode_for(agent)
         tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
         role_kind = self._tier_role_kind(tier)
         issue_candidates = self._thread_issue_candidates(agent, tier)
@@ -2554,11 +2780,26 @@ class PolicyCascadeScene(Scene):
                 parts.append("你也可以把该问题继续上报、转办、私下协调，或发布新的政策调整。")
         else:
             parts.append("当前没有新的广播政策，进入后续反馈与协商阶段。")
+            if private_event and str(private_event.get("task_mode") or "") == "follow_up_thread":
+                parts.append("如果你本回合同步收到私有来件，你必须先给出你自己的公开 follow_up 判断，然后在同一回合继续一步专门回复该私有来件；私下回复不能替代你的公开动作。")
+                pending_sender = str(private_event.get("thread_sender") or private_event.get("reply_target") or "")
+                pending_message = str(private_event.get("thread_message") or "")
+                if pending_sender:
+                    parts.append(f"本回合同步待处理的私有来件发送方：{pending_sender}。")
+                if pending_message:
+                    parts.append(f"本回合同步待处理的私有来件内容：{pending_message}")
             if issue_candidates:
                 parts.append(f"当前最可能出现的执行问题：{'、'.join(issue_candidates)}。")
+            if environment_notice:
+                parts.append(f"最新环境事件：{environment_notice}")
+                shock_guidance = self._thread_shock_guidance(environment_notice, issue_candidates)
+                if shock_guidance:
+                    parts.append(shock_guidance)
+                else:
+                    parts.append("最新环境事件已经改变当前后续干预背景。你本轮必须直接回应这条环境变化对执行方案的影响，不能只重复既有政策口径。")
             if notice:
                 parts.append("最新系统公告优先级高于既有政策传达版本。你必须先回应这条新公告/新环境变化，再决定如何引用旧政策；旧政策只作为背景，不得把它当成当前最新公告。")
-                shock_guidance = self._thread_shock_guidance(notice, issue_candidates)
+                shock_guidance = self._thread_shock_guidance(environment_notice or notice, issue_candidates)
                 if shock_guidance:
                     parts.append(shock_guidance)
                 else:
@@ -2587,6 +2828,8 @@ class PolicyCascadeScene(Scene):
             min_chars = self._extract_min_chars(notice)
             if min_chars:
                 parts.append(f"本次回复长度要求：不少于{min_chars}字。")
+        if environment_notice and environment_notice != notice:
+            parts.append(f"最新环境事件全文：{environment_notice}")
         if relayed_policy and relayed_policy != notice:
             prefix = "上一层传达版本摘要（仅作背景，不是最新系统公告）：" if mode in {"follow_up", "follow_up_thread"} and notice else "上一层传达版本摘要："
             parts.append(f"{prefix}{self._policy_prompt_excerpt(relayed_policy)}")
@@ -2617,6 +2860,13 @@ class PolicyCascadeScene(Scene):
         if state_mode == "cascade":
             return "cascade"
         private_event = self._active_private_event_for(agent.name)
+        if (
+            state_mode == "follow_up"
+            and private_event
+            and str(private_event.get("task_mode") or "") == "follow_up_thread"
+            and agent.name not in self._follow_up_public_done_agents()
+        ):
+            return "follow_up"
         return str(private_event.get("task_mode") or state_mode or "notice")
 
     def _must_complete_current_cascade(self) -> bool:
@@ -2668,6 +2918,12 @@ class PolicyCascadeScene(Scene):
             "notify_subordinate",
             "announce_policy_adjustment",
         }
+        defer_thread_reply = (
+            effective_task_mode == "follow_up"
+            and bool(private_event)
+            and str(private_event.get("task_mode") or "") == "follow_up_thread"
+            and agent.name not in self._follow_up_public_done_agents()
+        )
         known_actions = {"send_message", "yield", *special_actions}
         source_policy = str(
             private_event.get("source_policy")
@@ -2680,7 +2936,11 @@ class PolicyCascadeScene(Scene):
         ).strip()
 
         normalized_action = str(action_name or "").strip()
-        if normalized_action not in known_actions:
+        if effective_task_mode in {"follow_up", "follow_up_thread"} and self._follow_up_no_action_signal(payload):
+            action_name = "send_message"
+            payload["action"] = "send_message"
+            payload["message"] = FOLLOW_UP_NO_ACTION_MESSAGE
+        elif normalized_action not in known_actions:
             fallback_message = self._payload_message_text(payload)
             if fallback_message:
                 action_name = "send_message"
@@ -2713,9 +2973,14 @@ class PolicyCascadeScene(Scene):
             payload["action"] = "send_message"
             payload["message"] = FOLLOW_UP_NO_ACTION_MESSAGE
 
+        if effective_task_mode == "follow_up" and action_name == "yield":
+            action_name = "send_message"
+            payload["action"] = "send_message"
+            payload["message"] = self._normalize_follow_up_message(agent, tier, self._payload_message_text(payload), None)
+
         if effective_task_mode == "follow_up_thread":
             if action_name == "send_message" and not self.should_skip_turn(agent, simulator):
-                message = self._payload_message_text(payload)
+                message = self._normalize_follow_up_message(agent, tier, self._payload_message_text(payload), thread)
                 if self._follow_up_no_action_signal(payload):
                     message = FOLLOW_UP_NO_ACTION_MESSAGE
                 self._record_follow_up_message_state(agent.name, message, effective_task_mode)
@@ -2728,6 +2993,13 @@ class PolicyCascadeScene(Scene):
                 self._consume_thread_event(agent.name)
                 return True, {}, f"{agent.name} 暂未处理线程", {}, True
             if action_name in special_actions and not self.should_skip_turn(agent, simulator):
+                if action_name != "announce_policy_adjustment" and not str(payload.get("target") or payload.get("to") or "").strip():
+                    fallback_message = self._normalize_follow_up_message(agent, tier, self._payload_message_text(payload), thread)
+                    self._record_follow_up_message_state(agent.name, fallback_message, effective_task_mode)
+                    self._reply_to_thread(thread, agent, fallback_message, simulator)
+                    self._consume_thread_event(agent.name)
+                    self._write_final_debug(agent, effective_task_mode, original_payload, {"action": "send_message", "message": fallback_message})
+                    return True, {"message": fallback_message}, f"{agent.name} 私下回复了线程", {}, True
                 success, result, summary, meta, pass_control = self.handle_policy_special_action(action_name, payload, agent, simulator)
                 if success:
                     self._consume_thread_event(agent.name)
@@ -2738,7 +3010,18 @@ class PolicyCascadeScene(Scene):
                 inferred_target = self._infer_special_action_target(action_name, payload, agent, effective_task_mode)
                 if inferred_target:
                     payload["target"] = inferred_target
-            return self.handle_policy_special_action(action_name, payload, agent, simulator)
+                elif effective_task_mode in {"follow_up", "follow_up_thread"}:
+                    payload["action"] = "send_message"
+                    payload["message"] = self._normalize_follow_up_message(agent, tier, self._payload_message_text(payload), thread if effective_task_mode == "follow_up_thread" else None)
+                    action_name = "send_message"
+            if action_name == "send_message":
+                payload["message"] = self._normalize_follow_up_message(agent, tier, self._payload_message_text(payload), thread if effective_task_mode == "follow_up_thread" else None)
+            else:
+                success, result, summary, meta, pass_control = self.handle_policy_special_action(action_name, payload, agent, simulator)
+                if success and defer_thread_reply:
+                    self._mark_follow_up_public_done(agent.name)
+                    return success, result, summary, meta, False
+                return success, result, summary, meta, pass_control
 
         if effective_task_mode == "notice" and action_name == "send_message" and not self.should_skip_turn(agent, simulator):
             message = self._payload_message_text(payload)
@@ -2816,33 +3099,35 @@ class PolicyCascadeScene(Scene):
                 self.state["task_mode"] = "cascade"
                 self.state["notice_kind"] = "execution"
 
-        if private_event and effective_task_mode != "follow_up_thread":
+        if private_event and effective_task_mode == "cascade":
             private_events = self.state.get("private_events") or {}
             private_events.pop(agent.name, None)
             self.state["private_events"] = private_events
 
-            if effective_task_mode == "cascade":
-                self.state["latest_notice"] = str(private_event.get("latest_notice") or "")
-                self.state["latest_policy"] = str(payload.get("message") or private_event.get("relayed_policy") or private_event.get("latest_policy") or "")
-                self.state["source_policy"] = source_policy
-                self.state["relayed_policy"] = self._relay_policy_text(
-                    str(payload.get("message") or private_event.get("relayed_policy") or private_event.get("latest_policy") or ""),
-                    source_policy,
-                )
-                self.state["task_mode"] = "cascade"
-                self.state["notice_kind"] = "execution"
-            elif not self._private_recipient_names():
-                self.state["complete"] = bool(self.state.get("complete"))
+            self.state["latest_notice"] = str(private_event.get("latest_notice") or "")
+            self.state["latest_policy"] = str(payload.get("message") or private_event.get("relayed_policy") or private_event.get("latest_policy") or "")
+            self.state["source_policy"] = source_policy
+            self.state["relayed_policy"] = self._relay_policy_text(
+                str(payload.get("message") or private_event.get("relayed_policy") or private_event.get("latest_policy") or ""),
+                source_policy,
+            )
+            self.state["task_mode"] = "cascade"
+            self.state["notice_kind"] = "execution"
 
         if str(payload.get("action") or action_name) == "send_message":
             payload["message"] = self._payload_message_text(payload)
             if effective_task_mode in {"follow_up", "follow_up_thread"} and self._follow_up_no_action_signal(payload):
                 payload["message"] = FOLLOW_UP_NO_ACTION_MESSAGE
+            elif effective_task_mode in {"follow_up", "follow_up_thread"}:
+                payload["message"] = self._normalize_follow_up_message(agent, tier, payload["message"], thread if effective_task_mode == "follow_up_thread" else None)
             self._record_follow_up_message_state(agent.name, payload["message"], effective_task_mode)
             self._record_branch_interpretation(agent, tier, payload["message"], effective_task_mode)
             self._write_final_debug(agent, effective_task_mode, original_payload, payload)
 
         success, result, summary, meta, _ = super().parse_and_handle_action(payload, agent, simulator)
+        if success and defer_thread_reply:
+            self._mark_follow_up_public_done(agent.name)
+            return success, result, summary, meta, False
         return success, result, summary, meta, True
 
     def handle_policy_special_action(self, action_name: str, action_data: dict, agent: Agent, simulator):
@@ -3049,6 +3334,7 @@ class PolicyCascadeScene(Scene):
 
     def post_turn(self, agent: Agent, simulator) -> None:
         super().post_turn(agent, simulator)
+        self._clear_follow_up_public_done(agent.name)
 
         if str(self.state.get("task_mode") or "") == "follow_up":
             self._activate_next_thread(agent.name)

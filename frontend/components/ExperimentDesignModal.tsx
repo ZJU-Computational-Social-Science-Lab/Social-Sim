@@ -125,6 +125,7 @@ export const ExperimentDesignModal: React.FC = () => {
   const isPolicyCascadeTemplate = currentSceneType === 'policy_cascade_scene';
 
   const baseNode = nodes.find(n => n.id === selectedNodeId);
+  const expectedVariantParentId = baseNode ? (baseNode.parentId == null ? baseNode.id : baseNode.parentId) : null;
 
   const [experimentName, setExperimentName] = useState('');
   const [variants, setVariants] = useState<ExperimentVariant[]>([
@@ -159,7 +160,7 @@ export const ExperimentDesignModal: React.FC = () => {
     const token = (window as any).__engine_token__ || '';
 
     variants.forEach((variant) => {
-      const nodeByMeta = nodes.find(n => (n as any).meta && (n as any).meta.variant_id && n.parentId === baseNode.id && n.name.includes(variant.name));
+      const nodeByMeta = nodes.find(n => (n as any).meta && (n as any).meta.variant_id && n.parentId === expectedVariantParentId && n.name.includes(variant.name));
       const nodeByName = nodes.find(n => n.name === `${experimentName}: ${variant.name}`);
       const node = nodeByMeta || nodeByName;
       const nid = node ? node.id : null;
@@ -431,7 +432,7 @@ export const ExperimentDesignModal: React.FC = () => {
                         {(() => {
                           // Prefer meta-based mapping when available (experiment/variant ids),
                           // otherwise fall back to name-based matching for compatibility.
-                          const nodeByMeta = nodes.find(n => (n as any).meta && (n as any).meta.variant_id && n.parentId === baseNode.id && n.name.includes(variant.name));
+                          const nodeByMeta = nodes.find(n => (n as any).meta && (n as any).meta.variant_id && n.parentId === expectedVariantParentId && n.name.includes(variant.name));
                           const nodeByName = nodes.find(n => n.name === `${experimentName}: ${variant.name}`);
                           const node = nodeByMeta || nodeByName;
                           const st = node ? node.status : 'pending';
@@ -443,7 +444,7 @@ export const ExperimentDesignModal: React.FC = () => {
 
                         {(() => {
                           // Show a compact live log preview if we have a mapped node id
-                          const nodeByMeta = nodes.find(n => (n as any).meta && (n as any).meta.variant_id && n.parentId === baseNode.id && n.name.includes(variant.name));
+                          const nodeByMeta = nodes.find(n => (n as any).meta && (n as any).meta.variant_id && n.parentId === expectedVariantParentId && n.name.includes(variant.name));
                           const nodeByName = nodes.find(n => n.name === `${experimentName}: ${variant.name}`);
                           const node = nodeByMeta || nodeByName;
                           const nid = node ? node.id : null;

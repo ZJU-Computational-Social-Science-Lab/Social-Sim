@@ -99,7 +99,11 @@ export const mapGraphToNodes = (graph: Graph): SimNode[] => {
     const pid = parentMap.has(n.id) ? parentMap.get(n.id)! : null;
     const isLeaf = !childrenSet.has(n.id);
     const meta = (n as any).meta || null;
-    const displayName = isZh() ? `节点 ${n.id}` : `Node ${n.id}`;
+    const variantName = meta && typeof meta.variant_name === 'string' ? meta.variant_name : '';
+    const experimentName = meta && typeof meta.experiment_name === 'string' ? meta.experiment_name : '';
+    const displayName = variantName
+      ? (experimentName ? `${experimentName}: ${variantName}` : variantName)
+      : (isZh() ? `节点 ${n.id}` : `Node ${n.id}`);
     return {
       id: String(n.id),
       display_id: String(n.id),
@@ -193,6 +197,38 @@ const prettifyAssistantCtx = (content: string): string => {
     out += `【计划】\n${plan}`;
   }
   return out;
+};
+
+const extractJsonObject = (content: string): string => {
+  if (!content) return '';
+  const fenced = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  const candidate = fenced && fenced[1] ? fenced[1] : content;
+  const stripped = candidate.replace(/\/\*[\s\S]*?\*\//g, '').trim();
+  const start = stripped.indexOf('{');
+  const end = stripped.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) return '';
+  return stripped.slice(start, end + 1);
+};
+
+const parseAssistantJson = (content: string): any | null => {
+  const jsonText = extractJsonObject(content);
+  if (!jsonText) return null;
+  try {
+    return JSON.parse(jsonText);
+  } catch {
+    return null;
+  }
+};
+
+const extractAssistantDisplayText = (parsed: any): string => {
+  if (!parsed || typeof parsed !== 'object') return '';
+  const action = parsed.action && typeof parsed.action === 'object' ? parsed.action : null;
+  const response = typeof parsed.response === 'string' ? parsed.response.trim() : '';
+  const message = typeof parsed.message === 'string' ? parsed.message.trim() : '';
+  const actionMessage = action && typeof action.message === 'string' ? action.message.trim() : '';
+  const actionContent = action && typeof action.content === 'string' ? action.content.trim() : '';
+  const contextUpdate = typeof parsed.context_update === 'string' ? parsed.context_update.trim() : '';
+  return response || message || actionMessage || actionContent || contextUpdate;
 };
 
 export const translateAgentContent = (text: string): string => {
@@ -396,12 +432,7 @@ export const mapBackendEventsToLogs = (
       }
 
       if (role === 'assistant') {
-        // Parse the JSON response from legacy agent
-        let parsed = null;
-        try {
-          // Try to parse as JSON
-          parsed = JSON.parse(raw);
-        } catch {}
+        const parsed = parseAssistantJson(raw);
 
         // Check if this is a run_experiment action (verbose legacy wrapper)
         if (parsed && parsed.action && parsed.action.name === 'run_experiment') {
@@ -413,11 +444,14 @@ export const mapBackendEventsToLogs = (
         // For other actions, show a cleaner format
         if (parsed) {
           const actionName = parsed.action?.name || '';
-          const response = parsed.response || '';
+          const displayText = extractAssistantDisplayText(parsed);
 
-          // If there's a meaningful response, show it
-          if (response && response !== 'Hello! Nice to meet you.' && response !== 'Hello! Nice to meet you') {
-            return { ...base, type: 'AGENT_SAY', agentId, content: response };
+          if (actionName === 'yield') {
+            return { ...base, type: 'AGENT_METADATA', agentId, content: labels.yieldTurn };
+          }
+
+          if (displayText && displayText !== 'Hello! Nice to meet you.' && displayText !== 'Hello! Nice to meet you') {
+            return { ...base, type: 'AGENT_SAY', agentId, content: displayText };
           }
 
           // Otherwise skip the verbose metadata

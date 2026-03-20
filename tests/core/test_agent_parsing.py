@@ -60,6 +60,68 @@ def test_parse_actions_normalizes_confirm_alias_to_send_message():
     assert parsed[0]["action"]["message"] == "当前无需调整之处。"
 
 
+def test_parse_actions_flattens_nested_action_dict_and_hoists_message():
+    response = """
+    {
+      "thoughts": "need action cleanup",
+      "response": "",
+      "action": {
+        "name": "send_message",
+        "message": "主消息",
+        "action": {
+          "name": "send_message",
+          "message": "嵌套消息"
+        },
+        "context_update": "nested-update"
+      },
+      "metadata": {}
+    }
+    """
+
+    parsed = parse_actions(response)
+
+    assert parsed[0]["action"]["name"] == "send_message"
+    assert parsed[0]["action"]["message"] == "主消息"
+    assert parsed[0]["message"] == "主消息"
+    assert parsed[0]["context_update"] == "nested-update"
+
+
+def test_parse_actions_converts_string_send_message_to_dict():
+    response = """
+    {
+      "thoughts": "need explicit dict",
+      "response": "请优先补充预算细化。",
+      "action": "send_message",
+      "context_update": "done",
+      "metadata": {}
+    }
+    """
+
+    parsed = parse_actions(response)
+
+    assert parsed[0]["action"]["name"] == "send_message"
+    assert parsed[0]["action"]["message"] == "请优先补充预算细化。"
+
+
+def test_parse_actions_converts_yield_with_response_to_send_message():
+    response = """
+    {
+      "thoughts": "should not drop meaningful reply",
+      "response": "当前资源不足需重新分配预算。",
+      "action": {
+        "name": "yield"
+      },
+      "context_update": "done",
+      "metadata": {}
+    }
+    """
+
+    parsed = parse_actions(response)
+
+    assert parsed[0]["action"]["name"] == "send_message"
+    assert parsed[0]["action"]["message"] == "当前资源不足需重新分配预算。"
+
+
 def test_agent_only_counts_final_parse_failure_per_turn():
     agent = Agent(
         name="Tester",

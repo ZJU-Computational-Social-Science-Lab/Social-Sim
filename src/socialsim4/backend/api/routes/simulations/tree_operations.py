@@ -91,7 +91,11 @@ async def simulation_tree_graph(
             }
 
             nodes = [
-                {"id": int(node["id"]), "depth": int(node["depth"])}
+                {
+                    "id": int(node["id"]),
+                    "depth": int(node["depth"]),
+                    "meta": node.get("meta", {}),
+                }
                 for node in tree.nodes.values()
                 if node.get("depth") is not None
             ]
@@ -417,12 +421,12 @@ async def simulation_tree_branch(
         return {"child": int(cid)}
 
 
-@delete("/{simulation_id:str}/tree/node/{node_id:int}")
+@delete("/{simulation_id:str}/tree/node/{node_id:int}", status_code=200)
 async def simulation_tree_delete_subtree(
     request: Request,
     simulation_id: str,
     node_id: int,
-) -> None:
+) -> dict:
     """
     Delete a subtree from a node.
 
@@ -438,9 +442,12 @@ async def simulation_tree_delete_subtree(
         HTTPException: If simulation not found or trying to delete root
     """
     async with get_session() as session:
-        _, record = await get_simulation_and_tree_any(session, simulation_id)
+        sim, record = await get_simulation_and_tree_any(session, simulation_id)
         record.tree.delete_subtree(int(node_id))
+        sim.latest_state = record.tree.serialize()
+        await session.commit()
         broadcast_tree_event(record, {"type": "deleted", "data": {"node": int(node_id)}})
+        return {"ok": True}
 
 
 @get("/{simulation_id:str}/tree/sim/{node_id:int}/events")

@@ -217,6 +217,16 @@ async def broadcast_environment_event(
     if not state:
         raise ValueError("Simulation not found")
 
+    result = await db.execute(
+        select(Simulation).where(
+            Simulation.id == simulation_id.upper(),
+            Simulation.owner_id == user_id,
+        )
+    )
+    sim_record = result.scalar_one_or_none()
+    if sim_record is None:
+        raise ValueError("Simulation not found")
+
     simulator = state.get("tree").nodes[state["node_id"]].get("sim")
     if not simulator:
         raise ValueError("Simulator not found")
@@ -275,6 +285,9 @@ async def broadcast_environment_event(
                 simulator.scene.on_event(simulator, "environment", {"description": description, "event_type": mode, "notice_only": True})
             else:
                 simulator.scene.on_event(simulator, "environment", {"description": description, "event_type": mode})
+
+    sim_record.latest_state = state.get("tree").serialize()
+    await db.commit()
 
     # Mark suggestions as viewed at the tree level
     record = SIM_TREE_REGISTRY.get(simulation_id)

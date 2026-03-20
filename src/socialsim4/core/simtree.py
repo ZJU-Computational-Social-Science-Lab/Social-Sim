@@ -533,8 +533,9 @@ class SimTree:
         return self.attach(parent_id, [{"op": "advance", "turns": int(turns)}], cid)
 
     def branch(self, parent_id: int, ops: List[dict]) -> int:
-        # For branching (what-if scenarios), we create a SIBLING node, not a child
-        # So we need to find the parent of parent_id and attach there
+        # For branching (what-if scenarios), we create a SIBLING node, not a child.
+        # The new branch must therefore start from the shared parent state rather than
+        # inheriting the selected sibling's already-mutated simulator state.
         if parent_id not in self.nodes:
             raise KeyError(f"Node {parent_id} not found in tree")
         actual_parent_id = self.nodes[parent_id]["parent"]
@@ -544,7 +545,7 @@ class SimTree:
         if actual_parent_id is None:
             actual_parent_id = parent_id
 
-        cid = self.copy_sim(parent_id)
+        cid = self.copy_sim(actual_parent_id)
         sim = self.nodes[cid]["sim"]
         for op in ops:
             name = op["op"]

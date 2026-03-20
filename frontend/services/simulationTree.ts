@@ -1,6 +1,6 @@
 import { httpGet, httpPost, httpDelete } from "./client";
 
-export type GraphNode = { id: number; depth: number };
+export type GraphNode = { id: number; depth: number; meta?: Record<string, unknown> | null };
 export type GraphEdge = { from: number; to: number; type: string; ops?: unknown[] };
 
 export type Graph = {

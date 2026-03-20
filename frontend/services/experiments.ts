@@ -6,9 +6,15 @@ export interface VariantSpec {
   ops: any[];
 }
 
+export interface ExperimentNodeMapping {
+  variant_id: number;
+  node_id: number;
+  variant_name?: string;
+}
+
 export async function createExperiment(simulationId: string, name: string, baseNode: number, variants: VariantSpec[]) {
   const body = { name, base_node: baseNode, variants };
-  return apiPost<{ experiment_id: string }>(`/simulations/${simulationId}/experiments`, body);
+  return apiPost<{ experiment_id: string; node_mapping: ExperimentNodeMapping[] }>(`/simulations/${simulationId}/experiments`, body);
 }
 
 export async function runExperiment(simulationId: string, experimentId: string, turns = 1) {

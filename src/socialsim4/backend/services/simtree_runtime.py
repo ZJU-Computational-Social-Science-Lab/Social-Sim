@@ -59,6 +59,9 @@ class SimTreeRecord:
         # Track which suggestion intervals have been viewed (to avoid re-showing)
         self._suggestions_viewed_intervals: set[int] = set()
 
+    def replace_tree(self, tree: SimTree) -> None:
+        self.tree = tree
+
 
 def _quiet_logger(event_type: str, data: dict) -> None:
     return
@@ -611,10 +614,36 @@ class SimTreeRegistry:
         key = sim_record.id.upper()
         record = self._records.get(key)
         if record is not None:
+            if not record.running and getattr(sim_record, "latest_state", None) and record.tree.serialize() != sim_record.latest_state:
+                loop = asyncio.get_running_loop()
+                tree = SimTree.deserialize(sim_record.latest_state, clients or make_clients_from_env())
+                tree.attach_event_loop(loop)
+
+                def _fanout(event: dict) -> None:
+                    if int(event.get("node", -1)) not in record.running:
+                        return
+                    for q in list(record.subs):
+                        loop.call_soon_threadsafe(q.put_nowait, event)
+
+                tree.set_tree_broadcast(_fanout)
+                record.replace_tree(tree)
             return record
         async with self._lock:
             record = self._records.get(key)
             if record is not None:
+                if not record.running and getattr(sim_record, "latest_state", None) and record.tree.serialize() != sim_record.latest_state:
+                    loop = asyncio.get_running_loop()
+                    tree = SimTree.deserialize(sim_record.latest_state, clients or make_clients_from_env())
+                    tree.attach_event_loop(loop)
+
+                    def _fanout(event: dict) -> None:
+                        if int(event.get("node", -1)) not in record.running:
+                            return
+                        for q in list(record.subs):
+                            loop.call_soon_threadsafe(q.put_nowait, event)
+
+                    tree.set_tree_broadcast(_fanout)
+                    record.replace_tree(tree)
                 return record
             # 优先使用最新持久化的 latest_state 进行恢复；否则重新构建
             if getattr(sim_record, "latest_state", None):

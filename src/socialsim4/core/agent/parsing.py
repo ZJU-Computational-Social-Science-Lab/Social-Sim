@@ -221,16 +221,30 @@ def _coerce_dirty_action_alias(data: dict) -> dict:
     raw_action = data.get("action")
     alias_names = {"action", "response", "confirm"}
 
+    def _extract_message(*values) -> str:
+        for value in values:
+            text = str(value or "").strip()
+            if text:
+                return text
+        return ""
+
     if type(raw_action) is dict:
-        action_name = str(raw_action.get("name") or raw_action.get("action") or "").strip().lower()
-        message = str(
-            raw_action.get("message")
-            or raw_action.get("content")
-            or data.get("message")
-            or data.get("content")
-            or data.get("response")
+        nested_action = raw_action.get("action") if type(raw_action.get("action")) is dict else None
+        action_name = str(
+            raw_action.get("name")
+            or (nested_action or {}).get("name")
+            or raw_action.get("action")
             or ""
-        ).strip()
+        ).strip().lower()
+        message = _extract_message(
+            raw_action.get("message"),
+            raw_action.get("content"),
+            (nested_action or {}).get("message"),
+            (nested_action or {}).get("content"),
+            data.get("message"),
+            data.get("content"),
+            data.get("response"),
+        )
         if action_name in alias_names and message:
             normalized = dict(data)
             action_payload = dict(raw_action)
@@ -240,14 +254,57 @@ def _coerce_dirty_action_alias(data: dict) -> dict:
             normalized["action"] = action_payload
             normalized["message"] = message
             return normalized
+        if nested_action is not None:
+            normalized = dict(data)
+            action_payload = dict(raw_action)
+            action_payload.pop("action", None)
+            if action_name:
+                action_payload["name"] = action_name
+            if message and action_name == "send_message":
+                action_payload["message"] = message
+                normalized["message"] = message
+            if action_name == "yield" and message:
+                action_payload["name"] = "send_message"
+                action_payload["message"] = message
+                normalized["message"] = message
+            for extra_key in ("context_update", "metadata"):
+                if extra_key not in normalized and extra_key in raw_action:
+                    normalized[extra_key] = raw_action[extra_key]
+            normalized["action"] = action_payload
+            return normalized
+        if action_name == "yield" and message:
+            normalized = dict(data)
+            action_payload = dict(raw_action)
+            action_payload["name"] = "send_message"
+            action_payload["message"] = message
+            normalized["action"] = action_payload
+            normalized["message"] = message
+            return normalized
         return data
 
     action_name = str(raw_action or "").strip().lower()
-    message = str(data.get("message") or data.get("content") or data.get("response") or "").strip()
+    message = _extract_message(data.get("message"), data.get("content"), data.get("response"))
     if action_name in alias_names and message:
         normalized = dict(data)
         normalized["action"] = {"name": "send_message", "message": message}
         normalized["message"] = message
+        return normalized
+    if action_name == "send_message":
+        normalized = dict(data)
+        action_payload = {"name": "send_message"}
+        if message:
+            action_payload["message"] = message
+            normalized["message"] = message
+        normalized["action"] = action_payload
+        return normalized
+    if action_name == "yield" and message:
+        normalized = dict(data)
+        normalized["action"] = {"name": "send_message", "message": message}
+        normalized["message"] = message
+        return normalized
+    if action_name == "yield":
+        normalized = dict(data)
+        normalized["action"] = {"name": "yield"}
         return normalized
     return data
 

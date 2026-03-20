@@ -81,6 +81,109 @@ def test_follow_up_mode_starts_on_next_run_after_cascade_completion():
     assert scene.state["task_mode"] == "follow_up"
 
 
+def test_follow_up_with_pending_thread_keeps_public_action_before_private_reply():
+    scene = PolicyCascadeScene("policy", "")
+    scene.state["social_network"] = {
+        "Top": ["Mid"],
+        "Mid": ["Low"],
+        "Low": [],
+    }
+    scene.state["task_mode"] = "follow_up"
+    scene.state["latest_policy"] = "既有政策"
+    scene.state["source_policy"] = "既有政策"
+    scene.state["relayed_policy"] = "既有政策"
+    scene.state["policy_version"] = 1
+    scene.state["processed_policy_version"] = 1
+    agents = [
+        _build_agent("Top", "top"),
+        _build_agent("Mid", "mid"),
+        _build_agent("Low", "low"),
+    ]
+    simulator = _build_simulator(scene, agents)
+
+    scene.state["conversation_threads"] = {
+        "thread-1": {
+            "id": "thread-1",
+            "kind": "peer_consult",
+            "sender": "Top",
+            "root_sender": "Top",
+            "last_sender": "Top",
+            "message": "请确认资源安排。",
+            "last_message": "请确认资源安排。",
+            "history": [{"sender": "Top", "recipient": "Mid", "message": "请确认资源安排。", "turn": 1}],
+            "status": "open",
+        }
+    }
+    scene.state["private_events"] = {
+        "Mid": {
+            "task_mode": "follow_up_thread",
+            "thread_id": "thread-1",
+            "thread_kind": "peer_consult",
+            "thread_sender": "Top",
+            "reply_target": "Top",
+            "thread_message": "请确认资源安排。",
+            "latest_notice": "既有政策",
+            "latest_policy": "既有政策",
+            "source_policy": "既有政策",
+            "relayed_policy": "既有政策",
+        }
+    }
+
+    assert scene._effective_task_mode_for(agents[1]) == "follow_up"
+    prompt = scene.get_agent_status_prompt(agents[1])
+    assert "先给出你自己的公开 follow_up 判断" in prompt
+    assert "请确认资源安排。" in prompt
+
+    success, result, summary, meta, pass_control = scene.parse_and_handle_action(
+        {"action": "send_message", "message": "我先公开说明本层执行判断。"},
+        agents[1],
+        simulator,
+    )
+
+    assert success is True
+    assert pass_control is False
+    assert scene._private_event_for("Mid")["task_mode"] == "follow_up_thread"
+    assert scene._effective_task_mode_for(agents[1]) == "follow_up_thread"
+
+
+def test_follow_up_public_mode_is_not_blocked_by_other_agents_private_thread():
+    scene = PolicyCascadeScene("policy", "")
+    scene.state["social_network"] = {
+        "Top": ["Mid"],
+        "Mid": ["Low"],
+        "Low": [],
+    }
+    scene.state["task_mode"] = "follow_up"
+    scene.state["latest_policy"] = "既有政策"
+    scene.state["source_policy"] = "既有政策"
+    scene.state["relayed_policy"] = "既有政策"
+    scene.state["policy_version"] = 1
+    scene.state["processed_policy_version"] = 1
+    agents = [
+        _build_agent("Top", "top"),
+        _build_agent("Mid", "mid"),
+        _build_agent("Low", "low"),
+    ]
+    simulator = _build_simulator(scene, agents)
+
+    scene.state["private_events"] = {
+        "Mid": {
+            "task_mode": "follow_up_thread",
+            "thread_id": "thread-1",
+            "thread_kind": "peer_consult",
+            "thread_sender": "Top",
+            "reply_target": "Top",
+            "thread_message": "请确认资源安排。",
+            "latest_notice": "既有政策",
+            "latest_policy": "既有政策",
+            "source_policy": "既有政策",
+            "relayed_policy": "既有政策",
+        }
+    }
+
+    assert scene.should_skip_turn(agents[2], simulator) is False
+
+
 def test_runtime_refreshes_policy_action_space_when_follow_up_mode_starts():
     scene = PolicyCascadeScene("policy", "")
     scene.state["social_network"] = {
