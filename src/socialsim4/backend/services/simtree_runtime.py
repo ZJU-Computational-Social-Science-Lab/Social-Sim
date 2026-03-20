@@ -16,6 +16,8 @@ from socialsim4.core.environment_config import EnvironmentConfig
 from socialsim4.scenarios.basic import make_clients_from_env
 from socialsim4.core.experiment.config import ExperimentConfig
 from socialsim4.core.experiment.scene import ExperimentScene
+from socialsim4.core.experiment.game_configs import create_council_config
+from socialsim4.core.experiment.scenes.council_experiment import CouncilExperimentScene
 
 
 logger = logging.getLogger(__name__)
@@ -425,6 +427,37 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         adapter = ExperimentRunnerAdapter(scene, clients or make_clients_from_env())
 
         logger.debug(f"Created ExperimentScene with adapter: {config.scenario_id}")
+
+        return SimTree.new(adapter, adapter.clients)
+    elif scene_key == "council_experiment":
+        # REFACTOR-COUNCIL-06: Council experiment using experiment framework
+        # Create CouncilConfig with council-specific parameters
+        council_game_config = create_council_config(
+            proposal_text=cfg.get("proposal_text", ""),
+            deliberation_rounds=cfg.get("deliberation_rounds", 3),
+            voting_threshold=cfg.get("voting_threshold", 0.5),
+        )
+
+        config = ExperimentConfig(
+            agents=agent_config.get("agents", []),
+            actions=[{"name": a} for a in council_game_config.actions],
+            parameters={
+                "deliberation_rounds": council_game_config.deliberation_rounds,
+                "voting_threshold": council_game_config.voting_threshold,
+                "proposal_text": council_game_config.proposal_text,
+            },
+            description=council_game_config.description,
+            scenario_id="council",
+            round_visibility="sequential",  # Council uses sequential rounds
+            social_network=cfg.get("social_network") or {},
+        )
+        logger.debug(f"[COUNCIL_EXPERIMENT] Creating CouncilExperimentScene with parameters: {config.parameters}")
+        scene = CouncilExperimentScene(config)
+
+        # Use adapter instead of full Simulator
+        adapter = ExperimentRunnerAdapter(scene, clients or make_clients_from_env())
+
+        logger.debug(f"Created CouncilExperimentScene with adapter: council")
 
         return SimTree.new(adapter, adapter.clients)
     else:
