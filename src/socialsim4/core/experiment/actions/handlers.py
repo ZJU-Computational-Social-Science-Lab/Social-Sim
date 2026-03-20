@@ -194,6 +194,63 @@ def handle_vote(action_data: dict, agent_name: str, state: ExperimentState, scen
     return {"success": True, "summary": summary}
 
 
+def handle_vote_yes(action_data: dict, agent_name: str, state: ExperimentState, scene) -> dict[str, Any]:
+    """Handler for vote_yes action.
+
+    Records 'yes' vote to state.extensions['votes'] dict.
+    Only allowed if voting phase has started.
+
+    Args:
+        action_data: Empty dict (no parameters)
+        agent_name: Name of agent voting
+        state: Current experiment state
+        scene: CouncilExperimentScene instance
+
+    Returns:
+        Result dict with success status and summary
+    """
+    # Delegate to handle_vote with choice='yes'
+    return handle_vote({"choice": "yes"}, agent_name, state, scene)
+
+
+def handle_vote_no(action_data: dict, agent_name: str, state: ExperimentState, scene) -> dict[str, Any]:
+    """Handler for vote_no action.
+
+    Records 'no' vote to state.extensions['votes'] dict.
+    Only allowed if voting phase has started.
+
+    Args:
+        action_data: Empty dict (no parameters)
+        agent_name: Name of agent voting
+        state: Current experiment state
+        scene: CouncilExperimentScene instance
+
+    Returns:
+        Result dict with success status and summary
+    """
+    # Delegate to handle_vote with choice='no'
+    return handle_vote({"choice": "no"}, agent_name, state, scene)
+
+
+def handle_abstain(action_data: dict, agent_name: str, state: ExperimentState, scene) -> dict[str, Any]:
+    """Handler for abstain action.
+
+    Records 'abstain' vote to state.extensions['votes'] dict.
+    Only allowed if voting phase has started.
+
+    Args:
+        action_data: Empty dict (no parameters)
+        agent_name: Name of agent voting
+        state: Current experiment state
+        scene: CouncilExperimentScene instance
+
+    Returns:
+        Result dict with success status and summary
+    """
+    # Delegate to handle_vote with choice='abstain'
+    return handle_vote({"choice": "abstain"}, agent_name, state, scene)
+
+
 def handle_conclude(action_data: dict, agent_name: str, state: ExperimentState, scene) -> dict[str, Any]:
     """Handler for conclude action.
 

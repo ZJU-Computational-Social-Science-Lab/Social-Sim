@@ -142,7 +142,9 @@ class TestCouncilExperimentScene:
 
         # Verify actions available in voting phase
         actions = council_scene.get_scene_actions("Alice")
-        assert "vote" in actions, "Vote should be available in voting phase"
+        assert "vote_yes" in actions, "vote_yes should be available in voting phase"
+        assert "vote_no" in actions, "vote_no should be available in voting phase"
+        assert "abstain" in actions, "abstain should be available in voting phase"
         assert "send_message" not in actions, "Speak should NOT be available in voting phase"
         assert "start_voting" not in actions, "start_voting should NOT be available in voting phase"
 
@@ -382,12 +384,14 @@ class TestActionFilteringIntegration:
         # After transition: Should only have vote actions
         actions_voting = council_scene.get_scene_actions("Alice")
 
-        # Vote actions should be available during voting
-        assert "vote" in actions_voting, f"vote should be available during voting, got: {actions_voting}"
+        # Separate vote actions should be available during voting
+        assert "vote_yes" in actions_voting, f"vote_yes should be available during voting, got: {actions_voting}"
+        assert "vote_no" in actions_voting, f"vote_no should be available during voting, got: {actions_voting}"
+        assert "abstain" in actions_voting, f"abstain should be available during voting, got: {actions_voting}"
         # Speak should NOT be available during voting
         assert "speak" not in actions_voting, f"speak should NOT be available during voting, got: {actions_voting}"
-        # call_vote should NOT be available during voting (meeting already in voting)
-        assert "call_vote" not in actions_voting, f"call_vote should NOT be available during voting, got: {actions_voting}"
+        # start_voting should NOT be available during voting (meeting already in voting)
+        assert "start_voting" not in actions_voting, f"start_voting should NOT be available during voting, got: {actions_voting}"
 
     def test_call_vote_blocked_during_deliberation(self, council_scene):
         """Test that call_vote is blocked when deliberation_rounds is set (GAP-CLOSURE-01)."""

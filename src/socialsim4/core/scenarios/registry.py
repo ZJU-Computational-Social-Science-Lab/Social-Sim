@@ -516,10 +516,10 @@ COUNCIL_CHAMBER: Dict[str, Any] = {
         },
     ],
     "actions": [
-        {"id": "speak", "name": "Speak", "description": "Make a statement"},
-        {"id": "call_vote", "name": "Call Vote", "description": "Initiate a vote"},
-        {"id": "vote_yes", "name": "Vote Yes", "description": "Vote in favor"},
-        {"id": "vote_no", "name": "Vote No", "description": "Vote against"},
+        {"id": "speak", "name": "Speak", "description": "Make a statement during deliberation"},
+        {"id": "skip", "name": "Skip", "description": "Pass your turn"},
+        {"id": "vote_yes", "name": "Vote Yes", "description": "Vote in favor of the proposal"},
+        {"id": "vote_no", "name": "Vote No", "description": "Vote against the proposal"},
         {"id": "abstain", "name": "Abstain", "description": "Neither yes nor no"},
     ],
 }

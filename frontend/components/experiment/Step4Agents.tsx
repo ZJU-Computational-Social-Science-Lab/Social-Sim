@@ -651,7 +651,7 @@ export const Step4Agents: React.FC = () => {
           delete nextProperties.tier;
         }
         const agentType: ManualAgentType = {
-          id: `demo-agent-${agent.id}`,
+          id: agent.id,
           label: agent.name,
           count: 1,
           rolePrompt: agent.profile,

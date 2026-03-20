@@ -163,7 +163,8 @@ class CouncilConfig(GameConfig):
     name: str = "Council Meeting"
     description: str = "Multi-round deliberation with voting"
     action_type: Literal["discrete", "integer"] = "discrete"
-    actions: list[str] = field(default_factory=lambda: ["speak", "skip", "start_voting", "vote", "conclude"])
+    # Minimal action set for controlled experiments - system controls phase transitions
+    actions: list[str] = field(default_factory=lambda: ["speak", "skip", "vote_yes", "vote_no", "abstain"])
     # Council-specific fields
     deliberation_rounds: int = 3
     voting_threshold: float = 0.5
@@ -191,7 +192,7 @@ def create_council_config(
     return CouncilConfig(
         name="Council Meeting",
         description=f"Deliberation on: {proposal_text[:50]}...",
-        actions=["speak", "skip", "start_voting", "vote", "conclude"],
+        actions=["speak", "skip", "vote_yes", "vote_no", "abstain"],
         deliberation_rounds=deliberation_rounds,
         voting_threshold=voting_threshold,
         proposal_text=proposal_text,

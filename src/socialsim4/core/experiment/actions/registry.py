@@ -149,6 +149,39 @@ CONCLUDE_ACTION = ActionDefinition(
     handler=None,  # Will be bound in _bind_handlers
 )
 
+VOTE_YES_ACTION = ActionDefinition(
+    name="vote_yes",
+    description="Vote in favor of the proposal",
+    parameters=[],
+    effects=[
+        EffectSpec("votes", "state_change", None),
+    ],
+    requires=["voting_started"],
+    handler=None,  # Will be bound in _bind_handlers
+)
+
+VOTE_NO_ACTION = ActionDefinition(
+    name="vote_no",
+    description="Vote against the proposal",
+    parameters=[],
+    effects=[
+        EffectSpec("votes", "state_change", None),
+    ],
+    requires=["voting_started"],
+    handler=None,  # Will be bound in _bind_handlers
+)
+
+ABSTAIN_ACTION = ActionDefinition(
+    name="abstain",
+    description="Abstain from voting (neither yes nor no)",
+    parameters=[],
+    effects=[
+        EffectSpec("votes", "state_change", None),
+    ],
+    requires=["voting_started"],
+    handler=None,  # Will be bound in _bind_handlers
+)
+
 
 # The registry dictionary
 ACTION_REGISTRY: dict[str, ActionDefinition] = {
@@ -158,12 +191,15 @@ ACTION_REGISTRY: dict[str, ActionDefinition] = {
     "talk": TALK_ACTION,
     "estimate": ESTIMATE_ACTION,
     "vote": VOTE_ACTION,
-    # Council actions
+    # Council actions - minimal set for controlled experiments
     "speak": COUNCIL_SPEAK_ACTION,
     "skip": COUNCIL_SKIP_ACTION,
-    "start_voting": START_VOTING_ACTION,
-    "council_vote": COUNCIL_VOTE_ACTION,
-    "conclude": CONCLUDE_ACTION,
+    "start_voting": START_VOTING_ACTION,  # Keep for backward compatibility
+    "council_vote": COUNCIL_VOTE_ACTION,  # Keep for backward compatibility
+    "vote_yes": VOTE_YES_ACTION,  # NEW - explicit vote action
+    "vote_no": VOTE_NO_ACTION,    # NEW - explicit vote action
+    "abstain": ABSTAIN_ACTION,    # NEW - explicit vote action
+    "conclude": CONCLUDE_ACTION,  # Keep for backward compatibility
 }
 
 
@@ -197,6 +233,9 @@ def _bind_handlers():
         handle_council_speak,
         handle_start_voting,
         handle_vote,
+        handle_vote_yes,
+        handle_vote_no,
+        handle_abstain,
         handle_conclude,
     )
     ACTION_REGISTRY["move"].handler = handle_move
@@ -205,6 +244,9 @@ def _bind_handlers():
     ACTION_REGISTRY["speak"].handler = handle_council_speak
     ACTION_REGISTRY["start_voting"].handler = handle_start_voting
     ACTION_REGISTRY["council_vote"].handler = handle_vote
+    ACTION_REGISTRY["vote_yes"].handler = handle_vote_yes
+    ACTION_REGISTRY["vote_no"].handler = handle_vote_no
+    ACTION_REGISTRY["abstain"].handler = handle_abstain
     ACTION_REGISTRY["conclude"].handler = handle_conclude
 
 
