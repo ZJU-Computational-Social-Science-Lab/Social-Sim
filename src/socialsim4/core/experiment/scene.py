@@ -186,6 +186,7 @@ class ExperimentScene:
                 action.agent_name,
                 action.parameters,
                 self.state,
+                self,  # Pass scene for council action handlers
             )
 
         # Update history for next round's context
@@ -229,6 +230,13 @@ class ExperimentScene:
             })
 
         logger.info(f"Round {round_num} complete: {len(result.actions)} actions")
+
+        # Phase transition hook for council scenes (FEAT-COUNCIL-02)
+        # Check if scene has facilitator with check_and_transition_phase method
+        if hasattr(self, 'facilitator') and hasattr(self.facilitator, 'check_and_transition_phase'):
+            transitioned = self.facilitator.check_and_transition_phase(round_num)
+            if transitioned:
+                logger.info(f"Phase transitioned to VOTING after round {round_num}")
 
         return result
 
