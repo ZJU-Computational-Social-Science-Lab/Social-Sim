@@ -414,7 +414,8 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         scenario_id = inner_cfg.get("scenario_id", "custom")
 
         # GAP-CLOSURE-01: Use CouncilExperimentScene for council scenarios
-        if scenario_id == "council":
+        # Support both "council" and "council_chamber" scenario_ids (frontend uses council_chamber)
+        if scenario_id in ("council", "council_chamber"):
             council_game_config = create_council_config(
                 proposal_text=inner_cfg.get("parameters", {}).get("proposal_text", ""),
                 deliberation_rounds=inner_cfg.get("parameters", {}).get("deliberation_rounds", 3),
