@@ -11,8 +11,11 @@ The runner manages the main experiment loop:
 import asyncio
 import logging
 from datetime import datetime
-from typing import List, Dict, Any, Literal, Optional
+from typing import List, Dict, Any, Literal, Optional, TYPE_CHECKING
 from dataclasses import dataclass
+
+if TYPE_CHECKING:
+    from socialsim4.core.experiment.scene import ExperimentScene
 
 from socialsim4.core.experiment.agent import ExperimentAgent
 from socialsim4.core.experiment.information_model import InformationModel
@@ -65,6 +68,7 @@ class ExperimentRunner:
         kernel: ExperimentKernel | None = None,
         round_visibility: Literal["simultaneous", "sequential", "random", "paired"] = "simultaneous",
         information_model: "InformationModel | None" = None,
+        scene: Optional["ExperimentScene"] = None,
     ):
         """Initialize the experiment runner.
 
@@ -75,6 +79,7 @@ class ExperimentRunner:
             kernel: Action registry (uses default if None)
             round_visibility: How agents see each other's choices
             information_model: Optional InformationModel for structured context
+            scene: Optional scene instance for action filtering (GAP-CLOSURE-01)
         """
         self.agents = agents
         self.game_config = game_config
@@ -82,6 +87,7 @@ class ExperimentRunner:
         self.kernel = kernel or ExperimentKernel()
         self.round_visibility = round_visibility
         self.information_model = information_model
+        self.scene = scene  # Store scene reference for action filtering
         self.scene_state: Dict[str, Any] = {}  # shared mutable ref; update via set_scene_state()
         self._debug_lock = asyncio.Lock()  # Lock for atomic debug file writes
 
@@ -108,9 +114,17 @@ class ExperimentRunner:
         async with self._debug_lock:
             write_debug(''.join(buffer))
 
-    def execute_action(self, action_name, agent_name, params, state):
-        """Delegate action execution to ActionHandler."""
-        return self.action_handler.execute(action_name, agent_name, params, state)
+    def execute_action(self, action_name, agent_name, params, state, scene=None):
+        """Delegate action execution to ActionHandler.
+
+        Args:
+            action_name: Name of action to execute
+            agent_name: Name of agent performing action
+            params: Action parameters
+            state: Current experiment state
+            scene: Optional scene instance for handlers that need scene context
+        """
+        return self.action_handler.execute(action_name, agent_name, params, state, scene)
 
     def _scene_has_followup_actions(self) -> bool:
         """Whether any allowed action in this scene requires a follow-up prompt."""
@@ -690,7 +704,14 @@ class ExperimentRunner:
             neighbors = [b for a, b in edges if a == agent.name] + [a for a, b in edges if b == agent.name]
             if neighbors:
                 neighbor_context = f"Your social network neighbors: {', '.join(neighbors)}."
-        prompt = build_prompt(agent, self.game_config, context, include_section_markers=True, information_model=self.information_model, kb_context=kb_context, neighbor_context=neighbor_context)
+
+        # GAP-CLOSURE-01: Get filtered actions from scene if available (phase-based filtering)
+        allowed_actions = None
+        if self.scene and hasattr(self.scene, 'get_scene_actions'):
+            allowed_actions = self.scene.get_scene_actions(agent.name)
+            logger.debug(f"Filtered actions for {agent.name}: {allowed_actions}")
+
+        prompt = build_prompt(agent, self.game_config, context, include_section_markers=True, information_model=self.information_model, kb_context=kb_context, neighbor_context=neighbor_context, allowed_actions=allowed_actions)
 
         # Build debug output buffer (will be written atomically after LLM call)
         debug_buffer = []
@@ -735,7 +756,11 @@ class ExperimentRunner:
             debug_buffer.append(f"  {k}: {v}\n")
         debug_buffer.append(f"\n--- GAME CONFIG ---\n")
         debug_buffer.append(f"  scenario: {self.game_config.description[:100]}...\n")
-        debug_buffer.append(f"  actions: {self.game_config.actions}\n")
+        # GAP-CLOSURE-01: Show filtered actions in debug output
+        if allowed_actions:
+            debug_buffer.append(f"  actions (filtered): {allowed_actions}\n")
+        else:
+            debug_buffer.append(f"  actions: {self.game_config.actions}\n")
         debug_buffer.append(f"  action_type: {self.game_config.action_type}\n")
         debug_buffer.append(f"  output_field: {self.game_config.output_field}\n")
         if self.game_config.action_descriptions:

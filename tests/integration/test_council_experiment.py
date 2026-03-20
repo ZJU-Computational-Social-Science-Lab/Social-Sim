@@ -314,3 +314,112 @@ class TestCouncilActionHandlers:
         assert result["success"] is True
         assert result.get("passed") is False, "Proposal should fail with 1/3 yes votes (33% < 50% threshold)"
         assert "rejected" in result.get("summary", "").lower(), "Summary should mention 'rejected'"
+
+
+class TestActionFilteringIntegration:
+    """Tests for GAP-CLOSURE-01: Action filtering wired from facilitator to prompt builder."""
+
+    @pytest.fixture
+    def council_config(self):
+        """Create a test council configuration."""
+        return create_council_config(
+            proposal_text="Should we implement the new feature?",
+            deliberation_rounds=2,
+            voting_threshold=0.5,
+        )
+
+    @pytest.fixture
+    def experiment_config(self, council_config):
+        """Create experiment config for council scene."""
+        return ExperimentConfig(
+            scenario_id="council",
+            agents=[
+                {"name": "Alice", "properties": {"role": "developer"}},
+                {"name": "Bob", "properties": {"role": "designer"}},
+            ],
+            actions=[{"name": a} for a in council_config.actions],
+            parameters={
+                "deliberation_rounds": council_config.deliberation_rounds,
+                "voting_threshold": council_config.voting_threshold,
+                "proposal_text": council_config.proposal_text,
+            },
+        )
+
+    @pytest.fixture
+    def council_scene(self, experiment_config):
+        """Create a council experiment scene."""
+        scene = CouncilExperimentScene(experiment_config)
+        scene.state = ExperimentState()
+        scene.state.agents = {
+            "Alice": MagicMock(),
+            "Bob": MagicMock(),
+        }
+        return scene
+
+    def test_action_filtering_deliberation_phase(self, council_scene):
+        """Test that only speak-like actions available during deliberation (GAP-CLOSURE-01)."""
+        # Set deliberation_rounds=2
+        council_scene.facilitator.set_deliberation_rounds(2)
+        council_scene.facilitator.current_round_num = 1
+
+        # Round 1: Should only have speak-like actions (deliberation phase)
+        actions_r1 = council_scene.get_scene_actions("Alice")
+
+        # Speak should be available during deliberation
+        assert "speak" in actions_r1, f"speak should be available during deliberation, got: {actions_r1}"
+        # call_vote should NOT be available during deliberation (blocked)
+        assert "call_vote" not in actions_r1, f"call_vote should NOT be available during deliberation, got: {actions_r1}"
+        # Vote actions should NOT be available during deliberation
+        assert "vote" not in actions_r1, f"vote should NOT be available during deliberation, got: {actions_r1}"
+
+    def test_action_filtering_voting_phase(self, council_scene):
+        """Test that only vote actions available during voting phase (GAP-CLOSURE-01)."""
+        # Set deliberation_rounds=2, then transition to voting
+        council_scene.facilitator.set_deliberation_rounds(2)
+        council_scene.facilitator.current_round_num = 3
+        council_scene.facilitator.check_and_transition_phase(3)
+
+        # After transition: Should only have vote actions
+        actions_voting = council_scene.get_scene_actions("Alice")
+
+        # Vote actions should be available during voting
+        assert "vote" in actions_voting, f"vote should be available during voting, got: {actions_voting}"
+        # Speak should NOT be available during voting
+        assert "speak" not in actions_voting, f"speak should NOT be available during voting, got: {actions_voting}"
+        # call_vote should NOT be available during voting (meeting already in voting)
+        assert "call_vote" not in actions_voting, f"call_vote should NOT be available during voting, got: {actions_voting}"
+
+    def test_call_vote_blocked_during_deliberation(self, council_scene):
+        """Test that call_vote is blocked when deliberation_rounds is set (GAP-CLOSURE-01)."""
+        council_scene.facilitator.set_deliberation_rounds(2)
+        council_scene.facilitator.current_round_num = 1
+
+        # Check call_vote is blocked
+        allowed, error = council_scene.facilitator.is_action_allowed("call_vote")
+        assert allowed is False, "call_vote should be blocked during deliberation rounds"
+        assert "deliberation" in error.lower() or "round" in error.lower(), f"Error should mention deliberation/rounds, got: {error}"
+
+    def test_call_vote_blocked_start_voting_alias(self, council_scene):
+        """Test that both call_vote and start_voting are blocked consistently (GAP-CLOSURE-01)."""
+        council_scene.facilitator.set_deliberation_rounds(2)
+        council_scene.facilitator.current_round_num = 1
+
+        # Both should be blocked
+        allowed_sv, error_sv = council_scene.facilitator.is_action_allowed("start_voting")
+        allowed_cv, error_cv = council_scene.facilitator.is_action_allowed("call_vote")
+
+        assert allowed_sv is False, "start_voting should be blocked"
+        assert allowed_cv is False, "call_vote should be blocked"
+        assert "deliberation" in error_sv.lower() or "round" in error_sv.lower()
+
+    def test_action_filtering_after_deliberation_complete(self, council_scene):
+        """Test that call_vote/start_voting allowed after deliberation rounds complete (GAP-CLOSURE-01)."""
+        council_scene.facilitator.set_deliberation_rounds(2)
+        # After 2 rounds complete (round 3 starts)
+        council_scene.facilitator.current_round_num = 3
+
+        # Check start_voting is now allowed
+        allowed, error = council_scene.facilitator.is_action_allowed("start_voting")
+        assert allowed is True, f"start_voting should be allowed after deliberation completes, error: {error}"
+        assert error is None
+

@@ -331,6 +331,12 @@ class SystemFacilitator:
 
                 # Allow start_voting if deliberation complete or no fixed rounds
                 return True, None
+            # GAP-CLOSURE-01: Also block call_vote (alias for start_voting) during deliberation
+            if action_name == "call_vote":
+                remaining = self._deliberation_rounds_remaining
+                if remaining is not None and remaining > 0:
+                    return False, f"Cannot call vote yet: {remaining} round(s) of deliberation remaining"
+                return True, None
             if action_name == "finish_meeting":
                 return True, None
             # Discussion actions (send_message, etc.) allowed

@@ -121,6 +121,7 @@ class ExperimentScene:
             llm_client=llm_client,
             round_visibility=self.config.round_visibility,
             information_model=information_model,
+            scene=self,  # GAP-CLOSURE-01: pass scene for action filtering
         )
 
         # Wire social network graph to runner's scene_state

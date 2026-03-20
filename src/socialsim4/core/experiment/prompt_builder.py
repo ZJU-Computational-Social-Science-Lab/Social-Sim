@@ -172,6 +172,7 @@ def build_prompt(
     information_model=None,
     kb_context: str = "",
     neighbor_context: str = "",
+    allowed_actions: list[str] | None = None,
 ) -> str:
     """Build the 5-section structured prompt.
 
@@ -180,6 +181,8 @@ def build_prompt(
         game_config: Game/scenario configuration
         context_summary: Cumulative context summary for this agent
         include_section_markers: If True, add explicit section markers for debugging
+        allowed_actions: Optional filtered list of actions (GAP-CLOSURE-01).
+                        If provided, overrides game_config.actions for phase-based filtering.
 
     Returns:
         Complete prompt string
@@ -206,6 +209,9 @@ def build_prompt(
     sections.append(f"\n## Scenario\n{scenario_text}")
 
     # Section 3: Available Actions (using descriptions - Bug A)
+    # GAP-CLOSURE-01: Use allowed_actions if provided for phase-based filtering
+    actions_to_show = allowed_actions if allowed_actions is not None else game_config.actions
+
     if include_section_markers:
         sections.append("\n=== SECTION 3: AVAILABLE ACTIONS ===")
     if game_config.action_type == "discrete":
@@ -213,11 +219,11 @@ def build_prompt(
             # Bug A: Use action descriptions instead of "cooperate: cooperate"
             actions_list = "\n".join(
                 f"- {a}: {game_config.action_descriptions.get(a, a)}"
-                for a in game_config.actions
+                for a in actions_to_show
             )
         else:
             # Fallback to action name only if no descriptions available
-            actions_list = "\n".join(f"- {a}" for a in game_config.actions)
+            actions_list = "\n".join(f"- {a}" for a in actions_to_show)
         sections.append(f"\n## Available Actions\n{actions_list}")
     else:  # integer
         sections.append(f"\n## Your Action\nChoose a value from {game_config.min} to {game_config.max}.")
@@ -252,8 +258,8 @@ def build_prompt(
         sections.append("\n=== SECTION 5: JSON OUTPUT REQUIREMENT ===")
     field = game_config.output_field
     if game_config.action_type == "discrete":
-        # List all valid actions clearly
-        actions_formatted = ", ".join(f'"{a}"' for a in game_config.actions)
+        # GAP-CLOSURE-01: Use filtered actions in output format
+        actions_formatted = ", ".join(f'"{a}"' for a in actions_to_show)
         sections.append(f'\n## Your Response\nValid actions: {actions_formatted}')
         sections.append(f'Respond with ONLY JSON: {{"{field}": "<action>"}}')
     else:  # integer
@@ -286,6 +292,7 @@ def build_reprompt(
     information_model=None,
     kb_context: str = "",
     neighbor_context: str = "",
+    allowed_actions: list[str] | None = None,
 ) -> str:
     """Build a re-prompt for collecting missing parameters.
 
@@ -297,6 +304,7 @@ def build_reprompt(
         parameter_schema: JSON schema of required parameters
         mode: json or plain_text
         include_section_markers: If True, add explicit section markers for debugging
+        allowed_actions: Optional filtered list of actions (GAP-CLOSURE-01)
 
     Returns:
         Re-prompt string
@@ -358,7 +366,7 @@ def build_reprompt(
         return full_prompt
 
     # For JSON mode, include the full base prompt with JSON format instructions
-    base_prompt = build_prompt(agent, game_config, context_summary, include_section_markers, information_model=information_model, kb_context=kb_context, neighbor_context=neighbor_context)
+    base_prompt = build_prompt(agent, game_config, context_summary, include_section_markers, information_model=information_model, kb_context=kb_context, neighbor_context=neighbor_context, allowed_actions=allowed_actions)
 
     # Add re-prompt instruction with section marker
     if include_section_markers:
