@@ -217,6 +217,50 @@ class CouncilExperimentScene(ExperimentScene):
         # Default to deliberation actions
         return ["speak", "skip"]
 
+    def record_vote(self, agent_name: str, vote: str) -> None:
+        """Record an agent's vote (only first vote counts).
+
+        Writes to state.extensions["votes"] to integrate with existing handlers.
+
+        Args:
+            agent_name: Name of the agent voting
+            vote: Vote value - "yes", "no", or "abstain"
+        """
+        votes = self.state.extensions.get("votes", {})
+        if agent_name not in votes:
+            votes[agent_name] = vote
+            self.state.extensions["votes"] = votes
+
+    def check_voting_threshold(self) -> bool:
+        """Check if yes votes meet the threshold percentage.
+
+        Reads from state.extensions["votes"] (populated by handlers and record_vote).
+
+        Returns:
+            True if (yes_votes / total_votes) >= threshold
+        """
+        votes = self.state.extensions.get("votes", {})
+        if not votes:
+            return False
+
+        total_votes = len(votes)
+        yes_votes = sum(1 for v in votes.values() if v == "yes")
+        threshold = self.config.parameters.get("voting_threshold", 0.5)
+
+        return (yes_votes / total_votes) >= threshold
+
+    def all_agents_voted(self) -> bool:
+        """Check if all agents have cast their votes.
+
+        Reads from state.extensions["votes"] (populated by handlers and record_vote).
+
+        Returns:
+            True if every agent has a vote recorded
+        """
+        votes = self.state.extensions.get("votes", {})
+        agent_names = {a.get("name") for a in self.config.agents}
+        return agent_names.issubset(votes.keys())
+
     def _advance_round(self) -> None:
         """Advance to next round after all agents have acted.
 

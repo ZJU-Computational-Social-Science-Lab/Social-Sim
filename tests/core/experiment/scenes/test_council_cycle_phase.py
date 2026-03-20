@@ -60,3 +60,92 @@ def test_get_scene_actions_post_vote_discussion():
 
     actions = scene.get_scene_actions("Alice")
     assert set(actions) == {"speak", "skip"}
+
+
+# Vote recording and threshold tests
+
+def test_record_vote_first_vote_counts():
+    """Test that first vote is recorded to state.extensions."""
+    config = ExperimentConfig(
+        agents=[{"name": "Alice", "properties": {}}],
+        actions=[],
+        parameters={},
+        description="Test",
+        scenario_id="council",
+    )
+    scene = CouncilExperimentScene(config)
+
+    scene.record_vote("Alice", "yes")
+    assert scene.state.extensions["votes"]["Alice"] == "yes"
+
+
+def test_record_vote_duplicate_ignored():
+    """Test that duplicate votes are ignored (first vote wins)."""
+    config = ExperimentConfig(
+        agents=[{"name": "Alice", "properties": {}}],
+        actions=[],
+        parameters={},
+        description="Test",
+        scenario_id="council",
+    )
+    scene = CouncilExperimentScene(config)
+
+    scene.record_vote("Alice", "yes")
+    scene.record_vote("Alice", "no")  # Duplicate - should be ignored
+    assert scene.state.extensions["votes"]["Alice"] == "yes"
+
+
+def test_check_voting_threshold_met():
+    """Test threshold check when threshold is met."""
+    config = ExperimentConfig(
+        agents=[{"name": "A", "properties": {}}, {"name": "B", "properties": {}}],
+        actions=[],
+        parameters={"voting_threshold": 0.5},
+        description="Test",
+        scenario_id="council",
+    )
+    scene = CouncilExperimentScene(config)
+
+    scene.record_vote("A", "yes")
+    scene.record_vote("B", "no")
+
+    # 1 yes out of 2 = 50%, threshold is 50%, should pass
+    assert scene.check_voting_threshold() is True
+
+
+def test_check_voting_threshold_not_met():
+    """Test threshold check when threshold is not met."""
+    config = ExperimentConfig(
+        agents=[{"name": "A", "properties": {}}, {"name": "B", "properties": {}}],
+        actions=[],
+        parameters={"voting_threshold": 0.6},
+        description="Test",
+        scenario_id="council",
+    )
+    scene = CouncilExperimentScene(config)
+
+    scene.record_vote("A", "yes")
+    scene.record_vote("B", "no")
+
+    # 1 yes out of 2 = 50%, threshold is 60%, should fail
+    assert scene.check_voting_threshold() is False
+
+
+def test_all_agents_voted():
+    """Test checking if all agents have voted."""
+    config = ExperimentConfig(
+        agents=[{"name": "A", "properties": {}}, {"name": "B", "properties": {}}],
+        actions=[],
+        parameters={},
+        description="Test",
+        scenario_id="council",
+    )
+    scene = CouncilExperimentScene(config)
+
+    assert scene.all_agents_voted() is False
+
+    scene.record_vote("A", "yes")
+    assert scene.all_agents_voted() is False
+
+    scene.record_vote("B", "no")
+    assert scene.all_agents_voted() is True
