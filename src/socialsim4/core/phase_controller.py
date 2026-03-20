@@ -36,6 +36,10 @@ class SystemFacilitator:
         self.min_turns_before_vote = 3  # Minimum discussion turns before voting
         self.stalemate_threshold = 6    # Turns without new content to detect stalemate
 
+        # Deliberation round tracking for FEAT-COUNCIL-02
+        self._deliberation_rounds: Optional[int] = None  # None = agent-controlled (default)
+        self.current_round_num: int = 1  # Track current round for deliberation enforcement
+
     def set_simulator(self, simulator):
         """Set simulator reference after initialization."""
         self.simulator = simulator
@@ -72,6 +76,71 @@ class SystemFacilitator:
             entry for entry in self.conversation_history
             if entry.get("round") == round_num
         ]
+
+    def set_deliberation_rounds(self, rounds: Optional[int]) -> None:
+        """Set the number of deliberation rounds before automatic voting phase.
+
+        Args:
+            rounds: Number of discussion rounds before auto-transition to voting.
+                    None means agent-controlled voting (default, backward compatible).
+                    0 means immediate voting phase (no deliberation).
+                    1+ means N rounds of discussion before voting automatically begins.
+
+        Raises:
+            ValueError: If rounds is negative
+        """
+        if rounds is not None and rounds < 0:
+            raise ValueError(f"deliberation_rounds must be >= 0, got {rounds}")
+        self._deliberation_rounds = rounds
+
+    def check_and_transition_phase(self, round_num: int) -> bool:
+        """Check if deliberation phase should transition to voting after this round.
+
+        Called after each round completes. Transitions to voting phase automatically
+        when deliberation_rounds limit is reached.
+
+        Args:
+            round_num: Current round number (1-indexed)
+
+        Returns:
+            True if transition occurred, False otherwise
+        """
+        # Only check if we're in discussion phase
+        if self.phase != CouncilPhase.DISCUSSION:
+            return False
+
+        # Only auto-transition if deliberation_rounds is set
+        if self._deliberation_rounds is None:
+            return False
+
+        # Check if we've exceeded deliberation rounds
+        # Transition happens AFTER deliberation_rounds complete
+        # So if deliberation_rounds=2, we transition after round 2 completes
+        # (when round_num becomes 3, which is > 2)
+        if round_num > self._deliberation_rounds:
+            # Get proposal title from scene state
+            state_dict = (
+                self.scene.state.extensions
+                if hasattr(self.scene.state, 'extensions')
+                else self.scene.state
+            )
+            title = state_dict.get("proposal_text", "the current proposal")
+            self.transition_to_voting(title)
+            return True
+
+        return False
+
+    @property
+    def _deliberation_rounds_remaining(self) -> Optional[int]:
+        """Calculate remaining deliberation rounds before voting is allowed.
+
+        Returns:
+            Number of rounds remaining before voting can start, or None if no
+            fixed deliberation period (agent-controlled voting).
+        """
+        if self._deliberation_rounds is None:
+            return None
+        return max(0, self._deliberation_rounds - self.current_round_num)
 
     def format_round_transcript(self, round_num: int) -> str:
         """Format a round's history as a readable transcript.
@@ -254,6 +323,13 @@ class SystemFacilitator:
             if action_name == "start_voting":
                 if self.scene.state.extensions.get("voting_started", False):
                     return False, "Cannot start voting: a vote is already in progress"
+
+                # FEAT-COUNCIL-02: Block start_voting during deliberation rounds
+                remaining = self._deliberation_rounds_remaining
+                if remaining is not None and remaining > 0:
+                    return False, f"Cannot start voting yet: {remaining} round(s) of deliberation remaining"
+
+                # Allow start_voting if deliberation complete or no fixed rounds
                 return True, None
             if action_name == "finish_meeting":
                 return True, None
