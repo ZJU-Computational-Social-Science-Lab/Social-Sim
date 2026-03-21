@@ -1,12 +1,7 @@
-// frontend/pages/SimulationPage.tsx
-// frontend/pages/SimulationPage.tsx
-
 import React from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { SimTree } from "../components/SimTree";
-import { Sidebar } from "../components/Sidebar";
 import { LogViewer } from "../components/LogViewer";
 import { ComparisonView } from "../components/ComparisonView";
+import { ExperimentBuilderModal } from "../components/ExperimentBuilderModal";
 import SyncModal from "../components/SyncModal";
 import { HelpModal } from "../components/HelpModal";
 import { AnalyticsPanel } from "../components/AnalyticsPanel";
@@ -18,405 +13,81 @@ import { NetworkEditorModal } from "../components/NetworkEditorModal";
 import { ReportModal } from "../components/ReportModal";
 import { GlobalKnowledgePanel } from "../components/GlobalKnowledgePanel";
 import { GuideAssistant } from "../components/GuideAssistant";
+import { SimulationWorkspaceChrome } from "../components/SimulationWorkspaceChrome";
 import { ToastContainer } from "../components/Toast";
-import { useSimulationStore } from "../store";
+import { generateNodes, useSimulationStore } from "../store";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { getSimulation as apiGetSimulation } from "../services/simulations";
 import { getTreeGraph, getSimEvents, getSimState, getRehydrate } from "../services/simulationTree";
 import { useAuthStore } from "../store/auth";
-import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { useTranslation } from "react-i18next";
-import {
-  Play,
-  Settings,
-  GitFork,
-  BarChart2,
-  Download,
-  Loader2,
-  Split,
-  Beaker,
-  Clock,
-  Save,
-  Network,
-  FileText,
-  Plug,
-  Zap,
-  LogOut,
-  Globe,
-  RotateCcw,
-  Trash2,
-} from "lucide-react";
-
-// ---------------- Header ----------------
-
-const Header: React.FC = () => {
-  const navigate = useNavigate();
-  const currentSim = useSimulationStore((state) => state.currentSimulation);
-  const engineConfig = useSimulationStore((state) => state.engineConfig);
-  const setEngineMode = useSimulationStore((state) => state.setEngineMode);
-  const resetSimulation = useSimulationStore((state) => state.resetSimulation);
-  const deleteSimulation = useSimulationStore((state) => state.deleteSimulation);
-  const isGenerating = useSimulationStore((state) => state.isGenerating);
-  const user = useAuthStore((state) => state.user);
-  const logout = useAuthStore((state) => state.clearSession);
-  const { t } = useTranslation();
-
-  const toggleEngine = () => {
-    setEngineMode(
-      engineConfig.mode === "standalone" ? "connected" : "standalone"
-    );
-  };
-
-  return (
-    <header className="runtime-topbar flex shrink-0 items-center justify-between px-5 py-3 z-20">
-      <div className="flex items-center gap-4">
-        <Link to="/dashboard" className="flex items-center gap-3 text-[var(--sim-text-strong)]">
-          <div className="product-brand__mark h-10 w-10 rounded-[16px]">
-            <Beaker size={16} />
-          </div>
-          <span className="font-[var(--sim-font-display)] text-lg font-bold tracking-tight">SocialSim4</span>
-        </Link>
-        
-        <nav className="ml-3 hidden items-center gap-1 md:flex">
-          <Link to="/dashboard" className="product-nav__link">
-            {t('nav.dashboard')}
-          </Link>
-          <Link to="/simulations/saved" className="product-nav__link">
-            {t('nav.saved')}
-          </Link>
-          <Link to="/settings/providers" className="product-nav__link">
-            {t('nav.settings')}
-          </Link>
-        </nav>
-        
-        <div className="product-divider mx-1 hidden md:block"></div>
-        <div>
-          <h1 className="text-sm font-bold text-[var(--sim-text-strong)]">
-            {currentSim?.name || t('simPage.noSimulation')}
-          </h1>
-          <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-[var(--sim-text-soft)]">
-            {currentSim?.id}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <button
-          onClick={toggleEngine}
-          className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold transition-all ${
-            engineConfig.mode === "connected"
-              ? "border-[rgba(47,141,99,0.18)] bg-[rgba(47,141,99,0.1)] text-[var(--sim-success)]"
-              : "border-[var(--sim-border)] bg-[rgba(255,255,255,0.4)] text-[var(--sim-text-muted)] hover:border-[var(--sim-border-strong)] dark:bg-[rgba(255,255,255,0.02)]"
-          }`}
-          title={
-            engineConfig.mode === "connected"
-              ? t('simPage.connectedTo', { endpoint: engineConfig.endpoint })
-              : t('simPage.runningBrowserStandalone')
-          }
-        >
-          {engineConfig.mode === "connected" ? (
-            <Zap size={14} className="fill-emerald-500 text-emerald-500" />
-          ) : (
-            <Plug size={14} />
-          )}
-          {engineConfig.mode === "connected"
-            ? t('simPage.socialSim4Engine')
-            : t('simPage.standaloneMode')}
-        </button>
-
-        <button
-          onClick={() => navigate("/simulations/new")}
-          className="button-ghost button-sm"
-        >
-          {t('simPage.newSimulation')}
-        </button>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              if (window.confirm(t('simPage.confirmReset'))) {
-                resetSimulation();
-              }
-            }}
-            className="button-ghost button-sm"
-            title={t('simPage.resetSimulation')}
-            disabled={isGenerating}
-          >
-            <RotateCcw size={14} />
-          </button>
-
-          <button
-            onClick={() => {
-              if (window.confirm(t('simPage.confirmDelete'))) {
-                deleteSimulation();
-              }
-            }}
-            className="button-danger button-sm"
-            title={t('simPage.deleteSimulation')}
-            disabled={isGenerating}
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-        <Link to="/settings/providers" className="icon-button square">
-          <Settings size={18} />
-        </Link>
-        
-        <span className="product-divider" />
-        <LanguageSwitcher />
-        <span className="product-divider" />
-        
-        <span className="hidden text-sm text-[var(--sim-text-muted)] lg:block">{user?.email}</span>
-        <button
-          onClick={logout}
-          className="icon-button square"
-          title={t('nav.signout')}
-        >
-          <LogOut size={14} />
-        </button>
-      </div>
-    </header>
-  );
-};
-
-// ---------------- Toolbar ----------------
-
-const Toolbar: React.FC = () => {
-  const { t } = useTranslation();
-  const toggleAnalytics = useSimulationStore((state) => state.toggleAnalytics);
-  const toggleExport = useSimulationStore((state) => state.toggleExport);
-  const toggleExperimentDesigner = useSimulationStore(
-    (state) => state.toggleExperimentDesigner
-  );
-  const toggleTimeSettings = useSimulationStore(
-    (state) => state.toggleTimeSettings
-  );
-  const toggleSaveTemplate = useSimulationStore(
-    (state) => state.toggleSaveTemplate
-  );
-  const toggleNetworkEditor = useSimulationStore(
-    (state) => state.toggleNetworkEditor
-  );
-  const toggleReportModal = useSimulationStore(
-    (state) => state.toggleReportModal
-  );
-  const setGlobalKnowledgeOpen = useSimulationStore(
-    (state) => state.setGlobalKnowledgeOpen
-  );
-
-  const llmProviders = useSimulationStore((s) => s.llmProviders);
-  const selectedProviderId = useSimulationStore((s) => s.selectedProviderId);
-  const currentProviderId = useSimulationStore((s) => s.currentProviderId);
-  const setSelectedProvider = useSimulationStore((s) => s.setSelectedProvider);
-
-  const advanceSimulation = useSimulationStore(
-    (state) => state.advanceSimulation
-  );
-  const branchSimulation = useSimulationStore((state) => state.branchSimulation);
-  const isGenerating = useSimulationStore((state) => state.isGenerating);
-  const resetSimulation = useSimulationStore((state) => state.resetSimulation);
-  const deleteSimulation = useSimulationStore((state) => state.deleteSimulation);
-
-  const isCompareMode = useSimulationStore((state) => state.isCompareMode);
-  const toggleCompareMode = useSimulationStore(
-    (state) => state.toggleCompareMode
-  );
-  const setCompareTarget = useSimulationStore(
-    (state) => state.setCompareTarget
-  );
-
-  const currentSim = useSimulationStore((state) => state.currentSimulation);
-  const providerSelection = selectedProviderId ?? currentProviderId ?? null;
-
-  const handleToggleCompare = () => {
-    if (isCompareMode) {
-      toggleCompareMode(false);
-      setCompareTarget(null);
-    } else {
-      toggleCompareMode(true);
-    }
-  };
-
-  return (
-    <div className="runtime-toolbar flex shrink-0 flex-wrap items-center justify-between gap-3 px-5 py-3">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex flex-wrap items-center gap-2 rounded-full border border-[var(--sim-border)] bg-[rgba(255,255,255,0.34)] px-2 py-2 dark:bg-[rgba(255,255,255,0.02)]">
-          <button
-            onClick={() => advanceSimulation()}
-            disabled={isGenerating || isCompareMode}
-            className={`button button-sm ${
-              isGenerating
-                ? "opacity-60"
-                : isCompareMode
-                ? "opacity-60"
-                : ""
-            }`}
-          >
-            {isGenerating ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <Play size={14} fill="currentColor" />
-            )}
-            {isGenerating ? t('simPage.advancing') : t('simPage.advance')}
-          </button>
-          <button
-            onClick={branchSimulation}
-            disabled={isGenerating || isCompareMode}
-            className="button-ghost button-sm"
-          >
-            <GitFork size={14} />
-            {t('simPage.branch')}
-          </button>
-        </div>
-
-        {/* Experiment Designer */}
-        <button
-          onClick={() => toggleExperimentDesigner(true)}
-          disabled={isCompareMode}
-          className="button-ghost button-sm"
-        >
-          <Beaker size={14} />
-          {t('simPage.designExperiment')}
-        </button>
-
-        {/* Comparison Toggle */}
-        <button
-          onClick={handleToggleCompare}
-          className={`button-ghost button-sm ${
-            isCompareMode
-              ? "!border-[rgba(206,152,74,0.28)] !bg-[rgba(206,152,74,0.1)] !text-[var(--sim-warning)]"
-              : ""
-          }`}
-        >
-          <Split
-            size={14}
-            className={isCompareMode ? "text-amber-600" : ""}
-          />
-          {isCompareMode ? t('simPage.exitCompare') : t('simPage.compareMode')}
-        </button>
-      </div>
-
-      {/* Right Tools */}
-      <div className="flex flex-wrap items-center gap-2">
-        {/* Network Editor */}
-        <button
-          onClick={() => toggleNetworkEditor(true)}
-          className="button-ghost button-sm"
-          title={t('simPage.networkTopology')}
-        >
-          <Network size={14} />
-        </button>
-
-        {/* Global Knowledge */}
-        <button
-          onClick={() => setGlobalKnowledgeOpen(true)}
-          className="button-ghost button-sm"
-          title={t('simPage.globalKnowledge')}
-        >
-          <Globe size={14} />
-        </button>
-
-        {/* Time Settings */}
-        <button
-          onClick={() => toggleTimeSettings(true)}
-          className="button-ghost button-sm"
-          title={t('simPage.timeSettings')}
-        >
-          <Clock size={14} />
-          {currentSim && currentSim.timeConfig
-            ? t('simPage.timeLabel', { step: currentSim.timeConfig.step ?? '-', unit: currentSim.timeConfig.unit ?? '' })
-            : t('simPage.time')}
-        </button>
-
-        <div className="flex items-center gap-2 rounded-full border border-[var(--sim-border)] bg-[rgba(255,255,255,0.34)] px-3 py-2 text-xs dark:bg-[rgba(255,255,255,0.02)]">
-          <span className="text-[var(--sim-text-soft)]">{t('simPage.provider')}</span>
-          <select
-            value={providerSelection ?? ''}
-            onChange={(e) => {
-              const val = e.target.value;
-              setSelectedProvider(val ? Number(val) : null);
-            }}
-            className="input small min-h-[34px] max-w-[210px]"
-          >
-            <option value="">
-              {t('simPage.selectProvider')}
-            </option>
-            {llmProviders.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name || p.provider} {p.model ? `(${p.model})` : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Save Template */}
-        <button
-          onClick={() => toggleSaveTemplate(true)}
-          className="button-ghost button-sm"
-          title={t('simPage.saveAsTemplate')}
-        >
-          <Save size={14} />
-        </button>
-        <button
-          onClick={() => useSimulationStore.getState().openSyncModal()}
-          className="button-ghost button-sm"
-          title={t('simPage.syncBackend')}
-        >
-          {t('simPage.syncBackend')}
-        </button>
-
-        <div className="h-4 w-px bg-slate-300 mx-1"></div>
-
-        {/* Automated Report */}
-        <button
-          onClick={() => toggleReportModal(true)}
-          className="button button-sm"
-        >
-          <FileText size={14} />
-          {t('simPage.report')}
-        </button>
-
-        <button
-          onClick={() => toggleExport(true)}
-          className="button-ghost button-sm"
-        >
-          <Download size={14} />
-          {t('simPage.export')}
-        </button>
-        <button
-          onClick={() => toggleAnalytics(true)}
-          className="button-ghost button-sm"
-        >
-          <BarChart2 size={14} />
-          {t('simPage.analytics')}
-        </button>
-      </div>
-
-      {/* Modals */}
-      <HelpModal />
-      <AnalyticsPanel />
-      <ExportModal />
-      <ExperimentDesignModal />
-      <TimeSettingsModal />
-      <TemplateSaveModal />
-      <NetworkEditorModal />
-      <ReportModal />
-      <GlobalKnowledgePanel />
-      <GuideAssistant />
-      <SyncModal />
-      <ToastContainer />
-    </div>
-  );
-};
+import { SimulationPathPanel } from "../components/workspace/SimulationPathPanel";
+import { ObservationConsole } from "../components/workspace/ObservationConsole";
+import { SimulationControlPanel } from "../components/workspace/SimulationControlPanel";
+import { NodeWorkspacePanel } from "../components/workspace/NodeWorkspacePanel";
+import { BranchComposerDialog } from "../components/workspace/BranchComposerDialog";
+import { readBranchContext } from "../utils/branchContext";
 
 // ---------------- 页面主组件：SimulationPage ----------------
 
 const SimulationPage: React.FC = () => {
   const isCompareMode = useSimulationStore((state) => state.isCompareMode);
+  const currentSimulation = useSimulationStore((state) => state.currentSimulation);
+  const nodes = useSimulationStore((state) => state.nodes);
+  const selectedNodeId = useSimulationStore((state) => state.selectedNodeId);
+  const compareTargetNodeId = useSimulationStore((state) => state.compareTargetNodeId);
+  const selectNode = useSimulationStore((state) => state.selectNode);
+  const setCompareTarget = useSimulationStore((state) => state.setCompareTarget);
+  const toggleCompareMode = useSimulationStore((state) => state.toggleCompareMode);
+  const agents = useSimulationStore((state) => state.agents);
   const params = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const simIdParam = params['id'] || params['simulationId'] || null;
+  const isNewExperimentRoute = !simIdParam;
   const engineConfig = useSimulationStore((state) => state.engineConfig);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasRestored = useAuthStore((s) => s.hasRestored);
+  const { t } = useTranslation();
+  const [hasSubmittedSetup, setHasSubmittedSetup] = React.useState(false);
+  const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null);
+  const [isBranchDetailsOpen, setIsBranchDetailsOpen] = React.useState(false);
+  const [isBranchComposerOpen, setIsBranchComposerOpen] = React.useState(false);
+  const [isObservationOpen, setIsObservationOpen] = React.useState(false);
+
+  const selectedAgent = React.useMemo(
+    () => agents.find((agent) => agent.id === selectedAgentId) || null,
+    [agents, selectedAgentId]
+  );
+
+  const observationMode = isCompareMode
+    ? "compare"
+    : selectedAgent
+      ? "focused"
+      : "global";
+
+  React.useEffect(() => {
+    if (!isNewExperimentRoute) return;
+
+    useSimulationStore.setState({
+      currentSimulation: null,
+      nodes: generateNodes(),
+      selectedNodeId: 'root',
+      agents: [],
+      logs: [],
+      rawEvents: []
+    } as any);
+    setHasSubmittedSetup(false);
+    setSelectedAgentId(null);
+  }, [isNewExperimentRoute]);
+
+  React.useEffect(() => {
+    if (!isNewExperimentRoute) return;
+    if (!hasSubmittedSetup) return;
+    if (!currentSimulation?.id) return;
+
+    navigate(`/simulations/${currentSimulation.id}`, { replace: true });
+  }, [currentSimulation?.id, hasSubmittedSetup, isNewExperimentRoute, navigate]);
 
   React.useEffect(() => {
     (async () => {
@@ -435,15 +106,6 @@ const SimulationPage: React.FC = () => {
       }
       // If connected mode requires an authenticated user, don't attempt load when not authenticated
       if (engineConfig.mode === 'connected' && !isAuthenticated) {
-        return;
-      }
-      const localSimulation = useSimulationStore
-        .getState()
-        .simulations.find((simulation) => simulation.id === String(simIdParam));
-      if (localSimulation) {
-        useSimulationStore.setState({
-          currentSimulation: localSimulation as any,
-        } as any);
         return;
       }
       try {
@@ -853,29 +515,199 @@ const SimulationPage: React.FC = () => {
     }
   }, [engineConfig.mode, hasRestored, isAuthenticated]);
 
+  React.useEffect(() => {
+    if (!selectedAgentId) return;
+    if (agents.some((agent) => agent.id === selectedAgentId)) return;
+    setSelectedAgentId(null);
+  }, [agents, selectedAgentId]);
+
+  React.useEffect(() => {
+    if (!isCompareMode) return;
+    setSelectedAgentId(null);
+  }, [isCompareMode]);
+
+  React.useEffect(() => {
+    setIsBranchDetailsOpen(false);
+  }, [selectedNodeId]);
+
+  React.useEffect(() => {
+    if (isNewExperimentRoute) return;
+    if (!nodes.length) return;
+
+    const currentParams = new URLSearchParams(location.search);
+    const { nodeId, compareId } = readBranchContext(currentParams);
+    const hasNode = nodeId && nodes.some((node) => node.id === nodeId);
+    const hasCompare = compareId && nodes.some((node) => node.id === compareId) && compareId !== nodeId;
+
+    if (hasNode && nodeId !== selectedNodeId) {
+      selectNode(nodeId);
+    }
+
+    if (hasCompare && compareId !== compareTargetNodeId) {
+      setCompareTarget(compareId);
+    }
+
+    if (!hasCompare && compareTargetNodeId) {
+      setCompareTarget(null);
+    }
+
+    if (isCompareMode !== Boolean(hasCompare)) {
+      toggleCompareMode(Boolean(hasCompare));
+    }
+  }, [
+    isNewExperimentRoute,
+    location.search,
+    nodes,
+    selectNode,
+    setCompareTarget,
+    toggleCompareMode,
+  ]);
+
+  React.useEffect(() => {
+    if (isNewExperimentRoute) return;
+    if (!simIdParam) return;
+    if (!currentSimulation || String(currentSimulation.id) !== String(simIdParam)) return;
+    if (!selectedNodeId) return;
+
+    const currentParams = new URLSearchParams(window.location.search);
+    const { nodeId, compareId } = readBranchContext(currentParams);
+    const nextCompare = isCompareMode && compareTargetNodeId ? compareTargetNodeId : null;
+
+    if (nodeId === selectedNodeId && compareId === nextCompare) {
+      return;
+    }
+
+    const nextParams = new URLSearchParams(currentParams);
+    nextParams.set("node", selectedNodeId);
+    if (nextCompare) {
+      nextParams.set("compare", nextCompare);
+    } else {
+      nextParams.delete("compare");
+    }
+
+    const nextQuery = nextParams.toString();
+    const nextUrl = nextQuery ? `${window.location.pathname}?${nextQuery}` : window.location.pathname;
+    window.history.replaceState(window.history.state, "", nextUrl);
+  }, [
+    currentSimulation,
+    isCompareMode,
+    isNewExperimentRoute,
+    selectedNodeId,
+    simIdParam,
+    compareTargetNodeId,
+  ]);
+
+  const showSetupStudio = isNewExperimentRoute;
+  const showLoadingState = Boolean(simIdParam) && !currentSimulation;
+
+  if (showSetupStudio) {
+    return (
+      <>
+        <ExperimentBuilderModal
+          isOpen
+          presentation="page"
+          onComplete={() => setHasSubmittedSetup(true)}
+          onClose={() => navigate("/dashboard")}
+        />
+        <ToastContainer />
+      </>
+    );
+  }
+
   return (
-    <div className="runtime-shell flex h-screen flex-col">
-      <Header />
-      <Toolbar />
+    <div className="ss-workspace">
+      <SimulationWorkspaceChrome
+        observationMode={observationMode}
+        selectedAgentName={selectedAgent?.name || null}
+      />
 
-      <div className="runtime-frame flex flex-1 overflow-hidden">
-        {/* Left: SimTree */}
-        <div className="runtime-pane flex min-w-[300px] w-1/4 flex-col transition-all duration-300">
-          <SimTree />
-        </div>
+      <div className="ss-workspace__main">
+        {showLoadingState ? (
+          <div className="ss-workspace__panel ss-workspace__panel--stage flex h-full items-center justify-center px-6">
+            <div className="max-w-lg text-center">
+              <div className="ss-kicker">{t("simulationWorkspace.deskLabel")}</div>
+              <h2 className="mt-3 font-[var(--font-display)] text-3xl font-semibold tracking-[-0.05em] text-[var(--ss-workspace-heading)]">
+                {t("simulationWorkspace.loadingTitle")}
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-[var(--ss-workspace-muted)]">
+                {t("simulationWorkspace.loadingBody")}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="ss-control-room">
+            <SimulationPathPanel
+              detailsOpen={isBranchDetailsOpen}
+              onToggleDetails={() => setIsBranchDetailsOpen((open) => !open)}
+              onRequestCreateBranch={() => setIsBranchComposerOpen(true)}
+            />
 
-        {/* Center: Main Content Switcher */}
-        <div className="runtime-pane flex min-w-[400px] flex-1 flex-col transition-all duration-300">
-          {isCompareMode ? <ComparisonView /> : <LogViewer />}
-        </div>
+            <div className="ss-branch-studio">
+              <div className="ss-branch-studio__sidebar">
+                <SimulationControlPanel
+                  branchDetailsOpen={isBranchDetailsOpen}
+                  onToggleBranchDetails={() => setIsBranchDetailsOpen((open) => !open)}
+                  onRequestCreateBranch={() => setIsBranchComposerOpen(true)}
+                />
+              </div>
 
-        {/* Right: Agents / Host */}
-        {!isCompareMode && (
-          <div className="runtime-pane flex w-80 shrink-0 flex-col">
-            <Sidebar />
+              <div className="ss-branch-studio__workspace">
+                <NodeWorkspacePanel
+                  onRequestCreateBranch={() => setIsBranchComposerOpen(true)}
+                  onToggleBranchDetails={() => setIsBranchDetailsOpen((open) => !open)}
+                >
+                  {isCompareMode ? (
+                    <ComparisonView />
+                  ) : (
+                    <LogViewer
+                      selectedAgentId={selectedAgentId}
+                      onClearSelectedAgent={() => setSelectedAgentId(null)}
+                    />
+                  )}
+                </NodeWorkspacePanel>
+
+                <details
+                  className="ss-branch-studio__observation"
+                  open={isObservationOpen}
+                  onToggle={(event) =>
+                    setIsObservationOpen((event.currentTarget as HTMLDetailsElement).open)
+                  }
+                >
+                  <summary className="ss-branch-studio__observation-summary">
+                    <span>{t("controlRoom.observationSecondaryTitle")}</span>
+                    <span>{t("controlRoom.observationSecondaryCopy")}</span>
+                  </summary>
+                  <div className="ss-branch-studio__observation-body">
+                    <ObservationConsole
+                      selectedAgentId={selectedAgentId}
+                      onSelectAgent={setSelectedAgentId}
+                    />
+                  </div>
+                </details>
+              </div>
+            </div>
           </div>
         )}
       </div>
+
+      <BranchComposerDialog
+        isOpen={isBranchComposerOpen}
+        onClose={() => setIsBranchComposerOpen(false)}
+      />
+
+      <ExperimentBuilderModal />
+      <HelpModal />
+      <AnalyticsPanel />
+      <ExportModal />
+      <ExperimentDesignModal />
+      <TimeSettingsModal />
+      <TemplateSaveModal />
+      <NetworkEditorModal />
+      <ReportModal />
+      <GlobalKnowledgePanel />
+      <GuideAssistant />
+      <SyncModal />
+      <ToastContainer />
     </div>
   );
 };

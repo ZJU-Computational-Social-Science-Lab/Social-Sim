@@ -12,11 +12,17 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Search } from 'lucide-react';
 import { useExperimentBuilder, ManualAgentType, LLMProvider } from '../../store/experiment-builder';
 import { generateAgentsWithDemographics, isZh } from '../../store/helpers';
 import { Step2DemographicsEditor, Demographic, Archetype, TraitConfig } from '../wizard/Step2DemographicsEditor';
 import type { Agent } from '../../types';
 import { Button } from '../ui/button';
+import { buildAgentCollections } from '../../utils/agentCollections';
+import { FieldBlock } from './workflow/FieldBlock';
+import { ParticipantCard } from './workflow/ParticipantCard';
+import { ResearchInputPanel } from './workflow/ResearchInputPanel';
+import { SummaryInfoCard } from './workflow/SummaryInfoCard';
 
 type TierValue = string;
 
@@ -193,6 +199,8 @@ export const Step4Agents: React.FC = () => {
   const [generatedAgents, setGeneratedAgents] = useState<Agent[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
   const [tierOrderDraft, setTierOrderDraft] = useState<string[]>(['top', 'mid', 'low']);
+  const [agentDirectoryQuery, setAgentDirectoryQuery] = useState('');
+  const [selectedEditorAgentId, setSelectedEditorAgentId] = useState<string | null>(null);
 
   const scenarioId = selectedScenarioData?.id || selectedScenarioId || '';
   const scenarioName = (selectedScenarioData?.name || '').toLowerCase();
@@ -705,574 +713,684 @@ export const Step4Agents: React.FC = () => {
     });
     return owners;
   }, [agentTypes]);
+  const sharedPropertyCount = useMemo(
+    () => Object.values(sharedPropertyOwners).filter((owners) => owners.length > 1).length,
+    [sharedPropertyOwners]
+  );
+  const providerCount = useMemo(
+    () => new Set(agentTypes.map((agent) => agent.providerId).filter(Boolean)).size,
+    [agentTypes]
+  );
+  const agentCollections = useMemo(
+    () => buildAgentCollections(agentTypes, (agent) => inferOrderedTier(agent, tierOrder)),
+    [agentTypes, tierOrder]
+  );
+  const filteredAgentCollections = useMemo(() => {
+    const query = agentDirectoryQuery.trim().toLowerCase();
+    if (!query) {
+      return agentCollections;
+    }
+
+    return agentCollections.filter((collection) => {
+      const providerLabel =
+        llmProviders.find((provider) => provider.id === collection.providerId)?.name ||
+        t('experimentBuilder.step4.defaultProvider');
+      const haystack = [
+        collection.title,
+        collection.representative.rolePrompt || '',
+        collection.representative.userProfile || '',
+        collection.tier,
+        providerLabel,
+      ]
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [agentCollections, agentDirectoryQuery, llmProviders, t]);
+  const selectedEditorAgent = useMemo(
+    () => {
+      if (agentDirectoryQuery.trim() && filteredAgentCollections.length === 0) {
+        return null;
+      }
+      return (
+        agentTypes.find((agent) => agent.id === selectedEditorAgentId) ||
+        filteredAgentCollections[0]?.representative ||
+        agentCollections[0]?.representative ||
+        null
+      );
+    },
+    [agentCollections, agentDirectoryQuery, agentTypes, filteredAgentCollections, selectedEditorAgentId]
+  );
+  const selectedCollection = useMemo(
+    () =>
+      agentCollections.find((collection) =>
+        collection.members.some((member) => member.id === selectedEditorAgent?.id)
+      ) || null,
+    [agentCollections, selectedEditorAgent]
+  );
+  const selectedEditorAvatarUrl = selectedEditorAgent
+    ? ((selectedEditorAgent.properties?.avatarUrl as string) ||
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(selectedEditorAgent.label)}`)
+    : '';
+  const selectedEditorTier = selectedEditorAgent ? inferOrderedTier(selectedEditorAgent, tierOrder) : '';
+  const selectedEditableProperties = selectedEditorAgent ? propertyDrafts[selectedEditorAgent.id] || [] : [];
+
+  useEffect(() => {
+    if (!selectedEditorAgent) {
+      setSelectedEditorAgentId(null);
+      return;
+    }
+    if (selectedEditorAgent.id !== selectedEditorAgentId) {
+      setSelectedEditorAgentId(selectedEditorAgent.id);
+    }
+  }, [selectedEditorAgent, selectedEditorAgentId]);
 
   // ==================== Render ====================
 
   return (
-    <div className="space-y-6">
-      <section className="studio-field-group">
-        <div className="page-hero__eyebrow w-fit">Agent casting</div>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-3xl">
-            <h2 className="text-xl font-semibold text-[var(--sim-text-strong)]">
-              {t('experimentBuilder.step4.modeTitle')}
-            </h2>
-            <p className="mt-2 text-sm leading-7 text-[var(--sim-text-muted)]">
-              Shape who enters the experiment, how many voices appear, and how diverse their roles should be before the network starts evolving.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="status-pill">{t('experimentBuilder.step4.totalAgents', { count: totalAgents })}</span>
-            <span className="status-pill">{agentModes.find((mode) => mode.id === agentMode)?.title}</span>
-            {selectedProviderId && <span className="status-pill">LLM linked</span>}
-          </div>
-        </div>
-
-        <div className="studio-mode-grid">
+    <div className="ss-participant-workflow">
+      <ResearchInputPanel
+        eyebrow={t('experimentBuilder.step4.title', { defaultValue: 'Social Dynamics' })}
+        title={t('experimentBuilder.step4.modeTitle')}
+        description={t('experimentBuilder.step4.modeDescription', {
+          defaultValue:
+            '先确定参与者的组织方式，再逐步补充代表成员与研究属性。',
+        })}
+      >
+        <div className="ss-participant-workflow__mode-grid">
           {agentModes.map((mode) => (
             <button
               key={mode.id}
               type="button"
               onClick={() => setAgentMode(mode.id as 'manual' | 'demographic' | 'import')}
-              className={`studio-mode-card ${agentMode === mode.id ? 'active' : ''}`.trim()}
+              className={`ss-participant-workflow__mode-card${agentMode === mode.id ? ' is-active' : ''}`}
             >
-              <span className="studio-mode-card__icon">{mode.icon}</span>
-              <div>
-                <div className="text-sm font-semibold text-[var(--sim-text-strong)]">{mode.title}</div>
-                <p className="mt-2 text-sm leading-6 text-[var(--sim-text-muted)]">{mode.description}</p>
-              </div>
-              <div className="mt-auto text-xs font-medium uppercase tracking-[0.16em] text-[var(--sim-text-soft)]">
-                {agentMode === mode.id ? 'Selected mode' : 'Choose mode'}
-              </div>
+              <span className="ss-participant-workflow__mode-icon">{mode.icon}</span>
+              <h3>{mode.title}</h3>
+              <p>{mode.description}</p>
             </button>
           ))}
         </div>
-      </section>
+      </ResearchInputPanel>
 
       {showTierControls && (
-        <div className="studio-tier-grid">
-          <section className="studio-tier-card">
-            <div className="page-hero__eyebrow w-fit">Cascade tiers</div>
-            <div>
-              <h3 className="text-base font-semibold text-[var(--sim-text-strong)]">
-                {t('experimentBuilder.step4.tierConfigTitle')}
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-[var(--sim-text-muted)]">
-                {t('experimentBuilder.step4.tierConfigDesc')}
-              </p>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-[160px_minmax(0,1fr)]">
-              <label className="grid gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--sim-text-soft)]">
-                {t('experimentBuilder.step4.tierCountLabel')}
+        <div className="space-y-4">
+          <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
+            <h4 className="font-semibold text-gray-900 mb-2">{t('experimentBuilder.step4.tierConfigTitle')}</h4>
+            <p className="text-sm text-gray-700 mb-3">
+              {t('experimentBuilder.step4.tierConfigDesc')}
+            </p>
+            <div className="mb-3 grid grid-cols-1 md:grid-cols-[160px_1fr] gap-3 items-end">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.tierCountLabel')}</label>
                 <input
                   type="number"
                   min="2"
                   value={tierOrderDraft.length}
                   onChange={(e) => handleTierCountChange(e.target.value)}
-                  className="input"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
                 />
-              </label>
-              <div className="rounded-[20px] border border-[var(--sim-border)] bg-[rgba(255,255,255,0.38)] px-4 py-3 text-sm leading-6 text-[var(--sim-text-muted)] dark:bg-[rgba(255,255,255,0.02)]">
+              </div>
+              <div className="text-xs text-gray-600">
                 {t('experimentBuilder.step4.tierConfigHint')}
               </div>
             </div>
-
-            <div className="space-y-3">
+            <div className="space-y-2">
               {tierOrderDraft.map((tierName, index) => (
-                <div key={index} className="grid items-center gap-3 md:grid-cols-[108px_minmax(0,1fr)]">
-                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--sim-text-soft)]">
+                <div key={index} className="grid grid-cols-[96px_1fr] gap-3 items-center">
+                  <div className="text-sm font-medium text-gray-700">
                     {t('experimentBuilder.step4.tierLevelLabel', { index: index + 1 })}
                   </div>
                   <input
                     type="text"
                     value={tierName}
                     onChange={(e) => handleTierNameChange(index, e.target.value)}
-                    className="input"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
                     placeholder={t('experimentBuilder.step4.tierNamePlaceholder', { name: defaultTierName(index) })}
                   />
                 </div>
               ))}
             </div>
-
             {!tierOrderDraftValid && (
-              <div className="rounded-[18px] border border-[rgba(196,107,114,0.18)] bg-[rgba(196,107,114,0.08)] px-4 py-3 text-sm text-[var(--sim-danger)]">
-                {t('experimentBuilder.step4.tierDraftInvalid')}
-              </div>
+              <div className="mt-3 text-xs text-red-600">{t('experimentBuilder.step4.tierDraftInvalid')}</div>
             )}
-
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="mt-3">
               <Button size="sm" onClick={handleApplyTierOrder} disabled={!tierOrderDraftValid}>
                 {t('experimentBuilder.step4.applyTierConfig')}
               </Button>
-              <span className="text-xs text-[var(--sim-text-soft)]">
-                {t(`experimentBuilder.step4.cascadeModeLabels.${cascadeMode}`)}
-              </span>
             </div>
-          </section>
+          </div>
 
-          <section className="studio-tier-card">
-            <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="p-4 border border-indigo-200 rounded-lg bg-indigo-50">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
               <div>
-                <div className="page-hero__eyebrow w-fit">Influence structure</div>
-                <h3 className="mt-2 text-base font-semibold text-[var(--sim-text-strong)]">
-                  {t('experimentBuilder.step4.tierPreviewTitle')}
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-[var(--sim-text-muted)]">
+                <h4 className="font-semibold text-gray-900">{t('experimentBuilder.step4.tierPreviewTitle')}</h4>
+                <p className="text-sm text-gray-700 mt-1">
                   {t('experimentBuilder.step4.tierPreviewDesc', { count: tierOrder.length })}
                 </p>
               </div>
-              <span className="status-pill">{t(`experimentBuilder.step4.cascadeModeLabels.${cascadeMode}`)}</span>
+              <span className="rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs font-medium text-gray-700">
+                {t(`experimentBuilder.step4.cascadeModeLabels.${cascadeMode}`)}
+              </span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 mb-4">
               {tierOrder.map((tier, index) => (
                 <React.Fragment key={tier}>
-                  <div className="rounded-[18px] border border-[var(--sim-border)] bg-[rgba(255,255,255,0.56)] px-4 py-3 shadow-[var(--sim-shadow-xs)] dark:bg-[rgba(255,255,255,0.02)]">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--sim-text-soft)]">
+                  <div className="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm text-gray-800 shadow-sm">
+                    <div className="text-[11px] font-medium text-indigo-600 uppercase tracking-wide">
                       {t('experimentBuilder.step4.tierLevelLabel', { index: index + 1 })}
                     </div>
-                    <div className="mt-2 font-semibold text-[var(--sim-text-strong)]">{tier}</div>
+                    <div className="font-medium">{tier}</div>
                   </div>
-                  {index < tierOrder.length - 1 && <span className="text-[var(--sim-text-soft)]">→</span>}
+                  {index < tierOrder.length - 1 && (
+                    <span className="text-indigo-400 text-lg leading-none">→</span>
+                  )}
                 </React.Fragment>
               ))}
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
               {tierOrder.map((tier, index) => (
-                <div
-                  key={`${tier}-count`}
-                  className="rounded-[20px] border border-[var(--sim-border)] bg-[rgba(255,255,255,0.44)] px-4 py-4 dark:bg-[rgba(255,255,255,0.02)]"
-                >
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--sim-text-soft)]">
+                <div key={`${tier}-count`} className="rounded-lg border border-indigo-100 bg-white px-3 py-3">
+                  <div className="text-xs font-medium text-indigo-600 mb-1">
                     {t('experimentBuilder.step4.tierLevelLabel', { index: index + 1 })}
                   </div>
-                  <div className="mt-2 text-base font-semibold text-[var(--sim-text-strong)]">{tier}</div>
-                  <div className="mt-2 text-sm text-[var(--sim-text-muted)]">
+                  <div className="text-sm font-semibold text-gray-900">{tier}</div>
+                  <div className="text-xs text-gray-600 mt-1">
                     {t('experimentBuilder.step4.tierAssignedCount', { count: tierPreviewStats.counts[tier] || 0 })}
                   </div>
                 </div>
               ))}
-              <div className="rounded-[20px] border border-dashed border-[var(--sim-border-strong)] bg-[rgba(255,255,255,0.34)] px-4 py-4 dark:bg-[rgba(255,255,255,0.02)]">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--sim-text-soft)]">
+              <div className="rounded-lg border border-dashed border-indigo-200 bg-white/80 px-3 py-3">
+                <div className="text-xs font-medium text-indigo-600 mb-1">
                   {t('experimentBuilder.step4.unassignedTitle')}
                 </div>
-                <div className="mt-2 text-base font-semibold text-[var(--sim-text-strong)]">
+                <div className="text-sm font-semibold text-gray-900">
                   {t('experimentBuilder.step4.unassignedCount', { count: tierPreviewStats.unassigned })}
                 </div>
-                <div className="mt-2 text-sm text-[var(--sim-text-muted)]">
+                <div className="text-xs text-gray-600 mt-1">
                   {t('experimentBuilder.step4.unassignedHint')}
                 </div>
               </div>
             </div>
 
             {hasPendingTierDraft && (
-              <div className="rounded-[18px] border border-[rgba(206,152,74,0.22)] bg-[rgba(206,152,74,0.1)] px-4 py-3 text-sm text-[var(--sim-warning)]">
+              <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                 {t('experimentBuilder.step4.tierDraftPending')}
               </div>
             )}
-          </section>
+          </div>
         </div>
       )}
 
+      {/* Manual Agent Types */}
       {agentMode === 'manual' && (
-        <section className="studio-field-group">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="page-hero__eyebrow w-fit">Manual casting</div>
-              <h3 className="mt-2 text-base font-semibold text-[var(--sim-text-strong)]">
-                {t('experimentBuilder.step4.defineTypes')}
-              </h3>
-            </div>
-            <span className="status-pill">{t('experimentBuilder.step4.manualHint')}</span>
-          </div>
-
-          <div className="rounded-[22px] border border-[rgba(206,152,74,0.22)] bg-[rgba(206,152,74,0.08)] px-4 py-3 text-sm leading-6 text-[var(--sim-text)]">
+        <ResearchInputPanel
+          eyebrow={t('experimentBuilder.step4.defineTypes', { defaultValue: 'Participant form' })}
+          title={t('experimentBuilder.step4.defineTypes')}
+          description={t('experimentBuilder.step4.manualHint')}
+        >
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             {t('experimentBuilder.step4.manualHint')}
           </div>
 
-          <div className="studio-pane-grid two">
-            <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
-              {t('experimentBuilder.step4.typeLabel')}
-              <input
-                type="text"
-                value={newAgentType.label}
-                onChange={(e) => setNewAgentType({ ...newAgentType, label: e.target.value })}
-                placeholder={t('experimentBuilder.step4.typeLabelPlaceholder')}
-                className="input"
-              />
-            </label>
-            <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
-              {t('experimentBuilder.step4.count')}
-              <input
-                type="number"
-                min="1"
-                value={newAgentType.count}
-                onChange={(e) => setNewAgentType({ ...newAgentType, count: parseInt(e.target.value, 10) || 1 })}
-                className="input"
-              />
-            </label>
-            {showTierControls && (
-              <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
-                {t('experimentBuilder.step4.tier')}
-                <select
-                  value={String(newAgentType.properties?.tier || '')}
+          {/* Add New Agent Type */}
+          <div className="mb-4 p-3 bg-gray-50 rounded-md">
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.typeLabel')}</label>
+                <input
+                  type="text"
+                  value={newAgentType.label}
+                  onChange={(e) => setNewAgentType({ ...newAgentType, label: e.target.value })}
+                  placeholder={t('experimentBuilder.step4.typeLabelPlaceholder')}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.count')}</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={newAgentType.count}
                   onChange={(e) =>
-                    setNewAgentType({
+                    setNewAgentType({ ...newAgentType, count: parseInt(e.target.value) || 1 })
+                  }
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              {showTierControls && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.tier')}</label>
+                  <select
+                    value={String(newAgentType.properties?.tier || '')}
+                    onChange={(e) => setNewAgentType({
                       ...newAgentType,
                       properties: { ...newAgentType.properties, tier: e.target.value },
-                    })
-                  }
-                  className="input"
-                >
-                  <option value="">{t('experimentBuilder.step4.autoDetectTier')}</option>
-                  {tierOrder.map((tier) => (
-                    <option key={tier} value={tier}>
-                      {tier}
-                    </option>
-                  ))}
-                </select>
+                    })}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
+                  >
+                    <option value="">{t('experimentBuilder.step4.autoDetectTier')}</option>
+                      {tierOrder.map((tier) => (
+                        <option key={tier} value={tier}>{tier}</option>
+                      ))}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.userProfile')}</label>
+                <input
+                  type="text"
+                  value={newAgentType.userProfile}
+                  onChange={(e) => setNewAgentType({ ...newAgentType, userProfile: e.target.value })}
+                  placeholder={t('experimentBuilder.step4.userProfilePlaceholder')}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
+                />
+              </div>
+            </div>
+            <div className="mb-3">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                {t('experimentBuilder.step4.rolePrompt')}
               </label>
-            )}
-            <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
-              {t('experimentBuilder.step4.userProfile')}
-              <input
-                type="text"
-                value={newAgentType.userProfile}
-                onChange={(e) => setNewAgentType({ ...newAgentType, userProfile: e.target.value })}
-                placeholder={t('experimentBuilder.step4.userProfilePlaceholder')}
-                className="input"
+              <textarea
+                value={newAgentType.rolePrompt}
+                onChange={(e) => setNewAgentType({ ...newAgentType, rolePrompt: e.target.value })}
+                placeholder={t('experimentBuilder.step4.rolePromptPlaceholder')}
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
+                rows={2}
               />
-            </label>
-          </div>
-
-          <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
-            {t('experimentBuilder.step4.rolePrompt')}
-            <textarea
-              value={newAgentType.rolePrompt}
-              onChange={(e) => setNewAgentType({ ...newAgentType, rolePrompt: e.target.value })}
-              placeholder={t('experimentBuilder.step4.rolePromptPlaceholder')}
-              rows={4}
-              className="input min-h-[132px]"
-            />
-          </label>
-
-          <div className="flex flex-wrap items-center gap-3">
+            </div>
             <Button onClick={handleAddAgentType} size="sm" disabled={!newAgentType.label.trim()}>
               {t('experimentBuilder.step4.addAgentType')}
             </Button>
-            <span className="text-sm text-[var(--sim-text-soft)]">
-              Create one cast profile or multiply into several named agents at once.
-            </span>
           </div>
-        </section>
+        </ResearchInputPanel>
       )}
 
+      {/* Demographic Generation */}
       {agentMode === 'demographic' && (
-        <section className="studio-field-group">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="page-hero__eyebrow w-fit">Population generator</div>
-              <h3 className="mt-2 text-base font-semibold text-[var(--sim-text-strong)]">
-                {t('experimentBuilder.step4.modes.demographic.title')}
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-[var(--sim-text-muted)]">
-                Generate a cast from demographics, archetypes, and trait distributions while keeping the existing backend generation flow intact.
-              </p>
-            </div>
-            <span className="status-pill">{generatedAgents.length} generated</span>
-          </div>
-
+        <ResearchInputPanel
+          eyebrow={t('experimentBuilder.step4.demographicTitle', { defaultValue: 'Group generation' })}
+          title={t('experimentBuilder.step4.demographicTitle', { defaultValue: 'Demographic generation' })}
+          description={t('experimentBuilder.step4.demographicDescription', {
+            defaultValue: '先定义人口结构，再据此生成代表性的参与者集合。',
+          })}
+        >
+          {/* LLM Provider Selector */}
           {llmProviders.length > 0 && (
-            <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)] md:max-w-xl">
-              {t('experimentBuilder.step4.llmProvider')}
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('experimentBuilder.step4.llmProvider')}</label>
               <select
                 value={selectedProviderId || ''}
                 onChange={(e) => setSelectedProviderId(e.target.value || null)}
-                className="input"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
               >
                 <option value="">{t('experimentBuilder.step4.defaultProvider')}</option>
                 {llmProviders.map((p: LLMProvider) => (
                   <option key={p.id} value={p.id}>
-                    {p.name}
-                    {p.model ? ` (${p.model})` : ''}
-                    {p.is_active ? ' • Active' : ''}
-                    {p.is_default ? ' • Default' : ''}
+                    {p.name} {p.model ? ` (${p.model})` : ''}
+                    {p.is_active && <span className="text-green-600 ml-1">● Active</span>}
+                    {p.is_default && <span className="text-blue-500 ml-1">● Default</span>}
                   </option>
                 ))}
               </select>
-            </label>
+            </div>
           )}
 
-          <div className="rounded-[26px] border border-[var(--sim-border)] bg-[rgba(255,255,255,0.4)] p-4 dark:bg-[rgba(255,255,255,0.02)]">
-            <Step2DemographicsEditor
-              demographics={demographics}
-              archetypes={archetypes}
-              traits={traits}
-              genCount={genCount}
-              isGenerating={isGenerating}
-              onAddDemographic={handleAddDemographic}
-              onRemoveDemographic={handleRemoveDemographic}
-              onUpdateDemographicName={handleUpdateDemographicName}
-              onUpdateDemographicCategories={handleUpdateDemographicCategories}
-              onUpdateCategoryName={handleUpdateCategoryName}
-              onAddCategory={handleAddCategory}
-              onRemoveCategory={handleRemoveCategory}
-              onUpdateArchetypeProbability={handleUpdateArchetypeProbability}
-              onNormalizeProbabilities={handleNormalizeProbabilities}
-              onAddTrait={handleAddTrait}
-              onRemoveTrait={handleRemoveTrait}
-              onUpdateTrait={handleUpdateTrait}
-              onSetGenCount={setGenCount}
-              onGenerateAgents={handleGenerateAgents}
-              customAgents={generatedAgents}
-              setCustomAgents={setGeneratedAgents}
-              importError={importError}
-              useTranslation={false}
-            />
-          </div>
-        </section>
+          {/* Use the flexible demographic editor */}
+          <Step2DemographicsEditor
+            demographics={demographics}
+            archetypes={archetypes}
+            traits={traits}
+            genCount={genCount}
+            isGenerating={isGenerating}
+            onAddDemographic={handleAddDemographic}
+            onRemoveDemographic={handleRemoveDemographic}
+            onUpdateDemographicName={handleUpdateDemographicName}
+            onUpdateDemographicCategories={handleUpdateDemographicCategories}
+            onUpdateCategoryName={handleUpdateCategoryName}
+            onAddCategory={handleAddCategory}
+            onRemoveCategory={handleRemoveCategory}
+            onUpdateArchetypeProbability={handleUpdateArchetypeProbability}
+            onNormalizeProbabilities={handleNormalizeProbabilities}
+            onAddTrait={handleAddTrait}
+            onRemoveTrait={handleRemoveTrait}
+            onUpdateTrait={handleUpdateTrait}
+            onSetGenCount={setGenCount}
+            onGenerateAgents={handleGenerateAgents}
+            customAgents={generatedAgents}
+            setCustomAgents={setGeneratedAgents}
+            importError={importError}
+            useTranslation={false}
+          />
+        </ResearchInputPanel>
       )}
 
-      <section className="studio-field-group">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="page-hero__eyebrow w-fit">Configured agents</div>
-            <h3 className="mt-2 text-base font-semibold text-[var(--sim-text-strong)]">
-              {t('experimentBuilder.step4.agentListTitle')}
-            </h3>
-            <p className="mt-2 text-sm leading-6 text-[var(--sim-text-muted)]">
-              Review identities, prompts, provider selection, and custom properties before the network topology is assigned.
-            </p>
-          </div>
-          {totalAgents > 0 && (
-            <span className="status-pill">{t('experimentBuilder.step4.totalAgents', { count: totalAgents })}</span>
-          )}
+      {/* Editable Agent List */}
+      <ResearchInputPanel
+        eyebrow={t('experimentBuilder.step4.agentListTitle', { defaultValue: 'Participant registry' })}
+        title={t('experimentBuilder.step4.agentListTitle')}
+        description={t('experimentBuilder.step4.totalAgents', { count: totalAgents })}
+      >
+        <div className="ss-workflow-summary-grid">
+          <SummaryInfoCard
+            label={t('common.agents', { defaultValue: 'Agents' })}
+            value={totalAgents}
+          />
+          <SummaryInfoCard
+            label={t('experimentBuilder.step4.collectionLabel', { defaultValue: 'Collections' })}
+            value={agentCollections.length}
+          />
+          <SummaryInfoCard
+            label={t('simulationWorkspace.provider', { defaultValue: 'Providers' })}
+            value={providerCount}
+          />
+          <SummaryInfoCard
+            label={t('experimentBuilder.step4.sharedPropertyBadge', { defaultValue: 'Shared props' })}
+            value={sharedPropertyCount}
+          />
         </div>
 
         {agentTypes.length === 0 ? (
-          <div className="studio-empty-state">
-            <div className="text-sm font-semibold text-[var(--sim-text-strong)]">
-              {t('experimentBuilder.step4.noTypes')}
-            </div>
-            <p className="max-w-md text-sm leading-6 text-[var(--sim-text-muted)]">
-              Start from manual casting, generate a population, or import an archive. Every configured voice will appear here as an editable profile card.
-            </p>
-          </div>
+          <p className="text-sm text-gray-600 text-center py-4">{t('experimentBuilder.step4.noTypes')}</p>
         ) : (
-          <div className="space-y-4">
-            {agentTypes.map((type) => {
-              const avatarUrl =
-                (type.properties?.avatarUrl as string) ||
-                `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(type.label)}`;
-              const tier = inferOrderedTier(type, tierOrder);
-              const editableProperties = propertyDrafts[type.id] || [];
+          <div className="ss-participant-workflow__registry">
+            <aside className="ss-participant-workflow__directory">
+              <div className="ss-participant-workflow__search">
+                <Search size={14} className="text-gray-400" />
+                <input
+                  value={agentDirectoryQuery}
+                  onChange={(e) => setAgentDirectoryQuery(e.target.value)}
+                  placeholder={t('experimentBuilder.step4.searchAgents', { defaultValue: 'Search collections or representative profiles' })}
+                  className="w-full bg-transparent text-sm outline-none"
+                />
+              </div>
 
-              return (
-                <article key={type.id} className="studio-agent-card">
-                  <div className="studio-agent-card__header">
-                    <div className="flex min-w-0 items-start gap-4">
-                      <img src={avatarUrl} alt={type.label} className="studio-agent-card__avatar" />
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h4 className="text-base font-semibold text-[var(--sim-text-strong)]">{type.label}</h4>
-                          {tier && <span className="status-pill">{tier}</span>}
-                          {type.providerId && <span className="status-pill">LLM assigned</span>}
+              <div className="mt-3 space-y-2 max-h-[720px] overflow-y-auto pr-1">
+                {filteredAgentCollections.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-gray-300 bg-white px-4 py-6 text-center text-sm text-gray-500">
+                    {t('experimentBuilder.step4.noDirectoryResults', {
+                      defaultValue: 'No collections match the current search.',
+                    })}
+                  </div>
+                ) : filteredAgentCollections.map((collection) => {
+                  const providerLabel =
+                    llmProviders.find((provider) => provider.id === collection.providerId)?.name ||
+                    t('experimentBuilder.step4.defaultProvider');
+                  const isSelected = selectedCollection?.key === collection.key;
+                  return (
+                    <ParticipantCard
+                      key={collection.key}
+                      onClick={() => setSelectedEditorAgentId(collection.representative.id)}
+                      selected={isSelected}
+                      title={collection.title}
+                      tag={showTierControls && collection.tier ? collection.tier : providerLabel}
+                      description={
+                        collection.representative.userProfile ||
+                        collection.representative.rolePrompt ||
+                        t('experimentBuilder.step4.noProperties')
+                      }
+                      meta={[
+                        t('experimentBuilder.step4.agentsDefined', {
+                          count: collection.count,
+                          defaultValue: '{{count}} agents',
+                        }),
+                        `${collection.propertyCount} ${t('experimentBuilder.step4.properties').toLowerCase()}`,
+                      ]}
+                    />
+                  );
+                })}
+              </div>
+            </aside>
+
+            {selectedEditorAgent ? (
+              <div className="ss-participant-workflow__editor">
+                {selectedCollection ? (
+                  <div className="ss-participant-workflow__collection-summary">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="ss-workflow-kicker">
+                          {t('experimentBuilder.step4.collectionLabel', { defaultValue: 'Agent collection' })}
                         </div>
-                        <p className="mt-2 text-sm leading-6 text-[var(--sim-text-muted)]">
-                          {type.userProfile || type.rolePrompt || 'No profile summary yet.'}
+                        <div className="mt-1 text-base font-semibold text-slate-900">
+                          {selectedCollection.title}
+                        </div>
+                        <p className="mt-1 text-sm text-slate-600">
+                          {t('experimentBuilder.step4.collectionHint', {
+                            defaultValue: 'The main editor shows one representative profile for this category. Use the roster below if you need to inspect or tweak individual members.',
+                          })}
                         </p>
                       </div>
+                      <div className="ss-workflow-summary-grid">
+                        <SummaryInfoCard
+                          label={t('experimentBuilder.step4.collectionMembers', { defaultValue: 'Members' })}
+                          value={selectedCollection.count}
+                        />
+                        <SummaryInfoCard
+                          label={t('experimentBuilder.step4.sharedPropertyBadge', { defaultValue: 'Shared' })}
+                          value={selectedCollection.propertyCount}
+                        />
+                        <SummaryInfoCard
+                          label={t('experimentBuilder.step4.representativeLabel', { defaultValue: 'Representative' })}
+                          value={selectedCollection.representative.label}
+                        />
+                      </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeAgentType(type.id)}
-                      className="!border-[rgba(196,107,114,0.18)] !bg-[rgba(196,107,114,0.08)] !text-[var(--sim-danger)]"
-                    >
-                      {t('experimentBuilder.step4.remove')}
-                    </Button>
                   </div>
+                ) : null}
 
-                  <div className="studio-pane-grid two">
-                    <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
-                      {t('experimentBuilder.step4.agentName')}
+                <div className="ss-participant-workflow__editor-head">
+                  <img
+                    src={selectedEditorAvatarUrl}
+                    alt={selectedEditorAgent.label}
+                    className="w-12 h-12 rounded-full border border-gray-200 bg-gray-50"
+                  />
+                  <div className="ss-participant-workflow__fields">
+                    <FieldBlock label={t('experimentBuilder.step4.agentName')}>
                       <input
                         type="text"
-                        value={type.label}
-                        onChange={(e) => updateAgentType(type.id, { label: e.target.value })}
-                        className="input"
+                        value={selectedEditorAgent.label}
+                        onChange={(e) => updateAgentType(selectedEditorAgent.id, { label: e.target.value })}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
                       />
-                    </label>
+                    </FieldBlock>
                     {showTierControls && (
-                      <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
-                        {t('experimentBuilder.step4.tier')}
+                      <FieldBlock label={t('experimentBuilder.step4.tier')}>
                         <select
-                          value={tier}
-                          onChange={(e) => handleUpdateTier(type.id, e.target.value as TierValue)}
-                          className="input"
+                          value={selectedEditorTier}
+                          onChange={(e) => handleUpdateTier(selectedEditorAgent.id, e.target.value as TierValue)}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
                         >
                           <option value="">{t('experimentBuilder.step4.autoDetectTier')}</option>
                           {tierOrder.map((tierOption) => (
-                            <option key={tierOption} value={tierOption}>
-                              {tierOption}
-                            </option>
+                            <option key={tierOption} value={tierOption}>{tierOption}</option>
                           ))}
                         </select>
-                      </label>
+                      </FieldBlock>
                     )}
-                    <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)] md:col-span-2">
-                      {t('experimentBuilder.step4.userProfile')}
+                    <FieldBlock
+                      label={t('experimentBuilder.step4.userProfile')}
+                      className="md:col-span-2"
+                    >
                       <input
                         type="text"
-                        value={type.userProfile || ''}
-                        onChange={(e) => updateAgentType(type.id, { userProfile: e.target.value })}
-                        className="input"
+                        value={selectedEditorAgent.userProfile || ''}
+                        onChange={(e) => updateAgentType(selectedEditorAgent.id, { userProfile: e.target.value })}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
                       />
-                    </label>
-                    <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)] md:col-span-2">
-                      {t('experimentBuilder.step4.rolePrompt')}
+                    </FieldBlock>
+                    <FieldBlock
+                      label={t('experimentBuilder.step4.rolePrompt')}
+                      helper={t('experimentBuilder.step4.rolePromptHelper', {
+                        defaultValue: '用一句话说明这个群体在实验中的角色、立场或行动倾向。',
+                      })}
+                      className="md:col-span-2"
+                    >
                       <textarea
-                        value={type.rolePrompt || ''}
-                        onChange={(e) => updateAgentType(type.id, { rolePrompt: e.target.value })}
+                        value={selectedEditorAgent.rolePrompt || ''}
+                        onChange={(e) => updateAgentType(selectedEditorAgent.id, { rolePrompt: e.target.value })}
                         rows={4}
-                        className="input min-h-[132px]"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
                       />
-                    </label>
-                    <label className="grid gap-2 text-sm font-medium text-[var(--sim-text-strong)]">
-                      {t('experimentBuilder.step4.llmProvider')}
+                    </FieldBlock>
+                    <FieldBlock label={t('experimentBuilder.step4.llmProvider')}>
                       <select
-                        value={type.providerId ?? ''}
-                        onChange={(e) =>
-                          updateAgentType(type.id, { providerId: e.target.value ? Number(e.target.value) : null })
-                        }
-                        className="input"
+                        value={selectedEditorAgent.providerId ?? ''}
+                        onChange={(e) => updateAgentType(selectedEditorAgent.id, { providerId: e.target.value ? Number(e.target.value) : null })}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
                       >
                         <option value="">{t('experimentBuilder.step4.defaultProvider')}</option>
                         {llmProviders.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                            {p.model ? ` (${p.model})` : ''}
-                          </option>
+                          <option key={p.id} value={p.id}>{p.name}{p.model ? ` (${p.model})` : ''}</option>
                         ))}
                       </select>
-                    </label>
+                    </FieldBlock>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeAgentType(selectedEditorAgent.id)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    {t('experimentBuilder.step4.remove')}
+                  </Button>
+                </div>
 
-                  <div className="rounded-[22px] border border-[var(--sim-border)] bg-[rgba(255,255,255,0.36)] p-4 dark:bg-[rgba(255,255,255,0.02)]">
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-semibold text-[var(--sim-text-strong)]">
-                          {t('experimentBuilder.step4.properties')}
-                        </div>
-                        <div className="mt-1 text-sm text-[var(--sim-text-muted)]">
-                          Store reusable metadata such as stance, constituency, or internal state.
-                        </div>
+                {selectedCollection && selectedCollection.members.length > 1 ? (
+                  <div className="mb-4 rounded-md border border-gray-200 bg-white p-3">
+                    <div className="mb-3 flex items-center justify-between">
+                      <div className="text-xs font-medium text-gray-700">
+                        {t('experimentBuilder.step4.memberRoster', { defaultValue: 'Member roster' })}
                       </div>
-                      <Button size="sm" variant="outline" onClick={() => handleAddProperty(type.id)}>
-                        {t('experimentBuilder.step4.addProperty')}
-                      </Button>
+                      <span className="text-xs text-gray-500">
+                        {t('experimentBuilder.step4.memberRosterHint', {
+                          defaultValue: 'Switch members without reopening the whole category.',
+                        })}
+                      </span>
                     </div>
-
-                    <div className="space-y-3">
-                      {editableProperties.length === 0 && (
-                        <div className="rounded-[18px] border border-dashed border-[var(--sim-border)] px-4 py-4 text-sm text-[var(--sim-text-soft)]">
-                          {t('experimentBuilder.step4.noProperties')}
-                        </div>
-                      )}
-                      {editableProperties.map((item) => (
-                        <div key={item.id} className="studio-property-row">
-                          <div className="relative">
-                            <input
-                              type="text"
-                              value={item.key}
-                              onChange={(e) => handleDraftPropertyChange(type.id, item.id, 'key', e.target.value)}
-                              onBlur={() => handleCommitPropertyKey(type.id, item.id)}
-                              className="input pr-16"
-                            />
-                            {(sharedPropertyOwners[item.originalKey] || []).length > 1 && (
-                              <span
-                                title={t('experimentBuilder.step4.sharedPropertyTooltip', {
-                                  key: item.originalKey,
-                                  agents: sharedPropertyOwners[item.originalKey].join('、'),
-                                })}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-[rgba(206,152,74,0.14)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--sim-warning)]"
-                              >
-                                {t('experimentBuilder.step4.sharedPropertyBadge')}
-                              </span>
-                            )}
-                          </div>
-                          <input
-                            type="text"
-                            value={item.value}
-                            onChange={(e) => handleDraftPropertyChange(type.id, item.id, 'value', e.target.value)}
-                            onBlur={() => handleCommitPropertyValue(type.id, item.id)}
-                            className="input"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveProperty(type.id, item.originalKey)}
-                            className="!border-[rgba(196,107,114,0.18)] !bg-[rgba(196,107,114,0.08)] !text-[var(--sim-danger)]"
-                          >
-                            {t('experimentBuilder.step4.remove')}
-                          </Button>
-                        </div>
+                    <div className="ss-participant-workflow__member-grid">
+                      {selectedCollection.members.map((member) => (
+                        <ParticipantCard
+                          key={member.id}
+                          onClick={() => setSelectedEditorAgentId(member.id)}
+                          selected={member.id === selectedEditorAgent.id}
+                          title={member.label}
+                          description={
+                            member.userProfile ||
+                            member.rolePrompt ||
+                            t('experimentBuilder.step4.noProperties')
+                          }
+                        />
                       ))}
                     </div>
                   </div>
-                </article>
-              );
-            })}
+                ) : null}
+
+                <div className="rounded-md bg-gray-50 p-3">
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="text-xs font-medium text-gray-700">{t('experimentBuilder.step4.properties')}</div>
+                    <Button size="sm" variant="outline" onClick={() => handleAddProperty(selectedEditorAgent.id)}>
+                      {t('experimentBuilder.step4.addProperty')}
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {selectedEditableProperties.length === 0 && (
+                      <div className="text-xs text-gray-500">{t('experimentBuilder.step4.noProperties')}</div>
+                    )}
+                    {selectedEditableProperties.map((item) => (
+                      <div key={item.id} className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={item.key}
+                            onChange={(e) => handleDraftPropertyChange(selectedEditorAgent.id, item.id, 'key', e.target.value)}
+                            onBlur={() => handleCommitPropertyKey(selectedEditorAgent.id, item.id)}
+                            className="w-full px-2 py-1.5 pr-14 text-sm border border-gray-300 rounded bg-white"
+                          />
+                          {(sharedPropertyOwners[item.originalKey] || []).length > 1 && (
+                            <span
+                              title={t('experimentBuilder.step4.sharedPropertyTooltip', {
+                                key: item.originalKey,
+                                agents: sharedPropertyOwners[item.originalKey].join('、'),
+                              })}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 cursor-help"
+                            >
+                              {t('experimentBuilder.step4.sharedPropertyBadge')}
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={item.value}
+                          onChange={(e) => handleDraftPropertyChange(selectedEditorAgent.id, item.id, 'value', e.target.value)}
+                          onBlur={() => handleCommitPropertyValue(selectedEditorAgent.id, item.id)}
+                          className="px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveProperty(selectedEditorAgent.id, item.originalKey)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          {t('experimentBuilder.step4.remove')}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
-      </section>
+      </ResearchInputPanel>
 
+      {/* File Import */}
       {agentMode === 'import' && (
-        <section className="studio-field-group">
-          <div className="page-hero__eyebrow w-fit">Archive import</div>
-          <div className="max-w-3xl">
-            <h3 className="text-base font-semibold text-[var(--sim-text-strong)]">
-              {t('experimentBuilder.step4.importTitle')}
-            </h3>
-            <p className="mt-2 text-sm leading-6 text-[var(--sim-text-muted)]">
-              {t('experimentBuilder.step4.importDesc')}
-            </p>
-          </div>
+        <ResearchInputPanel
+          eyebrow={t('experimentBuilder.step4.importTitle')}
+          title={t('experimentBuilder.step4.importTitle')}
+          description={t('experimentBuilder.step4.importDesc')}
+        >
 
-          <div className="studio-pane-grid two">
-            <div className="rounded-[22px] border border-[var(--sim-border)] bg-[rgba(255,255,255,0.4)] p-4 dark:bg-[rgba(255,255,255,0.02)]">
-              <label className="mb-3 block text-sm font-medium text-[var(--sim-text-strong)]">
-                {t('experimentBuilder.step4.csvFormat')}
-              </label>
-              <pre className="overflow-x-auto rounded-[18px] border border-[var(--sim-border)] bg-[rgba(16,24,37,0.9)] p-4 text-xs text-slate-100">
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.csvFormat')}</label>
+              <pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto">
                 <code>name,role_prompt,user_profile,opinion</code>
               </pre>
             </div>
 
-            <div className="flex flex-col justify-between gap-4 rounded-[22px] border border-[var(--sim-border)] bg-[rgba(255,255,255,0.4)] p-4 dark:bg-[rgba(255,255,255,0.02)]">
-              <div className="text-sm leading-6 text-[var(--sim-text-muted)]">
-                {t('experimentBuilder.step4.importInfo')}
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <label className="button-ghost cursor-pointer">
-                  <input type="file" accept=".csv,.json" className="hidden" />
-                  {t('experimentBuilder.step4.uploadCSV')}
-                </label>
-                <label className="button-ghost cursor-pointer">
-                  <input type="file" accept=".csv,.json" className="hidden" />
-                  {t('experimentBuilder.step4.uploadJSON')}
-                </label>
-              </div>
+            <div className="flex gap-2">
+              <Button variant="outline" component="label">
+                <input type="file" accept=".csv,.json" className="hidden" />
+                {t('experimentBuilder.step4.uploadCSV')}
+              </Button>
+              <Button variant="outline" component="label">
+                <input type="file" accept=".csv,.json" className="hidden" />
+                {t('experimentBuilder.step4.uploadJSON')}
+              </Button>
+            </div>
+
+            <div className="bg-blue-50 p-3 rounded border border-blue-200">
+              <p className="text-sm text-blue-800">ℹ️ {t('experimentBuilder.step4.importInfo')}</p>
             </div>
           </div>
-        </section>
+        </ResearchInputPanel>
       )}
 
+      {/* Total Agents Summary (shown for all modes) */}
       {totalAgents > 0 && (
-        <div className="rounded-[22px] border border-[rgba(47,141,99,0.18)] bg-[rgba(47,141,99,0.1)] px-5 py-4 text-sm text-[var(--sim-success)]">
-          {t('experimentBuilder.step4.agentsDefined', { count: totalAgents })}
+        <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+          <div className="flex items-center gap-2">
+            <span className="text-green-800">✓</span>
+            <span className="text-sm text-green-700">
+              {t('experimentBuilder.step4.agentsDefined', { count: totalAgents })}
+            </span>
+          </div>
         </div>
       )}
     </div>

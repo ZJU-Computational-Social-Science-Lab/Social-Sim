@@ -12,6 +12,8 @@ import { useTranslation } from 'react-i18next';
 import { useExperimentBuilder } from '../../store/experiment-builder';
 import { Circle, Plus, X } from 'lucide-react';
 import { ActionDef } from '../../services/scenarios';
+import { ResearchInputPanel } from './workflow/ResearchInputPanel';
+import { SummaryInfoCard } from './workflow/SummaryInfoCard';
 
 interface ActionToggleCardProps {
   name: string;
@@ -33,36 +35,22 @@ const ActionToggleCard: React.FC<ActionToggleCardProps> = ({
   removeLabel,
 }) => {
   return (
-    <div
-      className={`
-        p-5 border rounded-[22px] transition-all
-        ${selected
-          ? 'border-[var(--sim-border-strong)] bg-[var(--sim-primary-soft)]'
-          : 'border-[var(--sim-border)] bg-[rgba(255,255,255,0.45)] hover:border-[var(--sim-border-strong)] dark:bg-[rgba(255,255,255,0.02)]'
-        }
-      `}
-    >
+    <div className={`ss-heuristic-card ${selected ? 'is-selected' : ''}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 flex-1 min-w-0">
           <Circle
-            className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
-              selected ? 'text-[var(--sim-primary)] fill-[var(--sim-primary)]' : 'text-[var(--sim-text-soft)]'
-            }`}
+            className={`w-5 h-5 flex-shrink-0 mt-0.5 ${selected ? 'text-current fill-current' : 'text-slate-300'}`}
           />
           <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-sm text-[var(--sim-text-strong)]">
-              {name}
-            </h4>
-            <p className="mt-2 text-sm text-[var(--sim-text-muted)] line-clamp-2">
-              {description}
-            </p>
+            <h4 className="ss-heuristic-card__title">{name}</h4>
+            <p className="ss-heuristic-card__copy">{description}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {isCustom && onRemove && (
             <button
               onClick={onRemove}
-              className="rounded p-1.5 text-[var(--sim-text-soft)] transition-colors hover:bg-[rgba(196,107,114,0.12)] hover:text-[var(--sim-danger)]"
+              className="ss-heuristic-card__remove"
               type="button"
               aria-label={removeLabel}
             >
@@ -71,18 +59,12 @@ const ActionToggleCard: React.FC<ActionToggleCardProps> = ({
           )}
           <button
             onClick={onToggle}
-            className={`
-              relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-              ${selected ? 'bg-[var(--sim-primary)]' : 'bg-[rgba(111,127,144,0.28)]'}
-            `}
+            className={`ss-heuristic-card__switch ${selected ? 'is-on' : ''}`}
             type="button"
             aria-pressed={selected}
           >
             <span
-              className={`
-                inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-                ${selected ? 'translate-x-6' : 'translate-x-1'}
-              `}
+              className={`ss-heuristic-card__switch-thumb ${selected ? 'is-on' : ''}`}
             />
           </button>
         </div>
@@ -239,30 +221,42 @@ export const Step3Scenario: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="studio-field-group">
-        <div className="page-hero__eyebrow w-fit">Action space</div>
-        <h2 className="text-xl font-semibold text-[var(--sim-text-strong)]">
-          {t('experimentBuilder.step3.title')}
-        </h2>
-        <p className="mt-1 text-sm leading-7 text-[var(--sim-text-muted)]">
-          {t('experimentBuilder.step3.subtitle')}
-        </p>
-        <div className="mt-3 rounded-[18px] border border-[var(--sim-border)] bg-[rgba(255,255,255,0.42)] px-4 py-3 text-sm text-[var(--sim-text-muted)] dark:bg-[rgba(255,255,255,0.02)]">
-          <div className="font-medium text-[var(--sim-text-strong)]">{t('experimentBuilder.step3.linkedTitle')}</div>
-          <div className="mt-1">{t('experimentBuilder.step3.linkedDesc')}</div>
+    <div className="ss-heuristic-workflow">
+      <ResearchInputPanel
+        eyebrow={t('common.actions')}
+        title={t('experimentBuilder.step3.title')}
+        description={t('experimentBuilder.step3.subtitle')}
+      >
+        <div className="ss-workflow-summary-grid">
+          <SummaryInfoCard
+            label={t('experimentDesk.summary.actions')}
+            value={selectedActionIds.length}
+            helper={t('experimentBuilder.step3.actionsSelected', {
+              selected: selectedActionIds.length,
+              total: allActions.length,
+            })}
+          />
+          <SummaryInfoCard
+            label={t('experimentBuilder.step3.selectionMode', { defaultValue: 'Selection mode' })}
+            value={generatorParam ? t('experimentBuilder.dynamicActionsInfo.title') : t('experimentBuilder.step3.manualSelection', { defaultValue: 'Manual selection' })}
+          />
+        </div>
+
+        <div className="mt-4 rounded-[22px] border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-900">
+          <div className="font-medium">{t('experimentBuilder.step3.linkedTitle')}</div>
+          <div className="mt-2 leading-6">{t('experimentBuilder.step3.linkedDesc')}</div>
         </div>
         {selectedScenarioData?.category_actions && (
-          <p className="mt-2 text-xs text-[var(--sim-text-muted)]">
+          <p className="mt-3 text-xs text-slate-500">
             {t('experimentBuilder.step3.categoryInfo', { category: selectedScenarioData.category })}
           </p>
         )}
-      </div>
+      </ResearchInputPanel>
 
       {/* Dynamic actions info */}
       {generatorParam && (
-        <div className="studio-field-group !p-4">
-          <p className="text-sm text-[var(--sim-text-muted)]">
+        <div className="rounded-[22px] border border-sky-200 bg-sky-50 p-4">
+          <p className="text-sm text-sky-800">
             <strong>{t('experimentBuilder.dynamicActionsInfo.title')}</strong>{' '}
             {t('experimentBuilder.dynamicActionsInfo.message', { paramLabel: generatorParam.label })}
           </p>
@@ -271,16 +265,23 @@ export const Step3Scenario: React.FC = () => {
 
       {/* Validation Error */}
       {validationErrors.actions && (
-        <div className="studio-field-group !p-4">
-          <p className="text-sm text-[var(--sim-danger)]">{validationErrors.actions}</p>
+        <div className="rounded-[22px] border border-rose-200 bg-rose-50 p-4">
+          <p className="text-sm text-rose-700">{validationErrors.actions}</p>
         </div>
       )}
 
       {/* Action Toggle Cards */}
-      <div className="grid gap-3">
+      <ResearchInputPanel
+        eyebrow={t('experimentBuilder.step3.ruleLibrary', { defaultValue: 'Heuristic set' })}
+        title={t('experimentBuilder.step3.ruleLibraryTitle', { defaultValue: '行为规则' })}
+        description={t('experimentBuilder.step3.ruleLibraryDescription', {
+          defaultValue: '保留研究者真正要比较的动作，不必一次性打开所有选项。',
+        })}
+      >
+      <div className="grid gap-4 md:grid-cols-2">
         {allActions.length === 0 ? (
-          <div className="studio-field-group text-center">
-            <p className="text-sm text-[var(--sim-text-muted)]">
+          <div className="rounded-[24px] border border-dashed border-slate-300 p-8 text-center">
+            <p className="text-sm text-slate-600">
               {t('experimentBuilder.step3.noActions')}
             </p>
           </div>
@@ -299,24 +300,31 @@ export const Step3Scenario: React.FC = () => {
           ))
         )}
       </div>
+      </ResearchInputPanel>
 
       {/* Add Custom Action Button (only for custom scenario) */}
       {isCustom && (
-        <div>
+        <ResearchInputPanel
+          eyebrow={t('experimentBuilder.step3.customActionTitle')}
+          title={t('experimentBuilder.step3.customActionTitle')}
+          description={t('experimentBuilder.step3.customActionDescription', {
+            defaultValue: '仅在自定义场景中补充新的动作规则。',
+          })}
+        >
           {!showAddAction ? (
             <button
               onClick={() => setShowAddAction(true)}
-              className="flex items-center gap-2 rounded-[18px] border border-dashed border-[var(--sim-border)] px-4 py-3 text-[var(--sim-text-muted)] transition-colors hover:border-[var(--sim-border-strong)] hover:text-[var(--sim-primary)]"
+              className="ss-heuristic-card__add"
               type="button"
             >
               <Plus size={16} />
               <span className="text-sm font-medium">{t('experimentBuilder.step3.addCustomAction')}</span>
             </button>
           ) : (
-            <div className="studio-field-group">
-              <h4 className="text-sm font-medium text-[var(--sim-text-strong)]">{t('experimentBuilder.step3.customActionTitle')}</h4>
+            <div className="space-y-3 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+              <h4 className="text-sm font-medium text-slate-900">{t('experimentBuilder.step3.customActionTitle')}</h4>
               <div>
-                <label className="mb-1 block text-xs font-medium text-[var(--sim-text-strong)]">
+                <label className="mb-1 block text-xs font-medium text-slate-700">
                   {t('experimentBuilder.step3.actionName')}
                 </label>
                 <input
@@ -324,11 +332,11 @@ export const Step3Scenario: React.FC = () => {
                   value={newActionName}
                   onChange={(e) => setNewActionName(e.target.value)}
                   placeholder={t('experimentBuilder.step3.actionNamePlaceholder')}
-                  className="input"
+                  className="w-full bg-white text-sm"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-[var(--sim-text-strong)]">
+                <label className="mb-1 block text-xs font-medium text-slate-700">
                   {t('experimentBuilder.step3.description')}
                 </label>
                 <textarea
@@ -336,14 +344,14 @@ export const Step3Scenario: React.FC = () => {
                   onChange={(e) => setNewActionDescription(e.target.value)}
                   placeholder={t('experimentBuilder.step3.descriptionPlaceholder')}
                   rows={2}
-                  className="input resize-y"
+                  className="w-full resize-y bg-white text-sm"
                 />
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={handleAddCustomAction}
                   disabled={!newActionName.trim() || !newActionDescription.trim()}
-                  className="button"
+                  className="ss-workflow-button ss-workflow-button--primary"
                   type="button"
                 >
                   {t('experimentBuilder.step3.addAction')}
@@ -354,7 +362,7 @@ export const Step3Scenario: React.FC = () => {
                     setNewActionName('');
                     setNewActionDescription('');
                   }}
-                  className="button-ghost"
+                  className="ss-workflow-button ss-workflow-button--secondary"
                   type="button"
                 >
                   {t('common.cancel')}
@@ -362,12 +370,12 @@ export const Step3Scenario: React.FC = () => {
               </div>
             </div>
           )}
-        </div>
+        </ResearchInputPanel>
       )}
 
       {/* Selected Count */}
       {allActions.length > 0 && (
-        <div className="text-sm text-[var(--sim-text-muted)]">
+        <div className="text-sm text-slate-500">
           {t('experimentBuilder.step3.actionsSelected', { selected: selectedActionIds.length, total: allActions.length })}
         </div>
       )}

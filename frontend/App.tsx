@@ -15,7 +15,6 @@ const DashboardPage = lazy(() =>
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
-import { CreateExperimentPage } from "./pages/CreateExperimentPage";
 const SavedSimulationsPage = lazy(() =>
   import("./pages/SavedSimulationsPage").then((m) => ({
     default: m.SavedSimulationsPage,
@@ -100,7 +99,9 @@ const App: React.FC = () => {
           path="/simulations/new/*"
           element={
             <RequireAuth>
-              <CreateExperimentPage />
+              <ErrorBoundary>
+                <SimulationPage />
+              </ErrorBoundary>
             </RequireAuth>
           }
         />

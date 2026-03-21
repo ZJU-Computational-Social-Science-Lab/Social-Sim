@@ -1,210 +1,185 @@
-/**
- * Step 5: Network Configuration
- *
- * Configure social network connections between agents.
- * Reuses the network visualization from NetworkEditorModal but embedded in the wizard.
- */
-
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { useExperimentBuilder } from '../../store/experiment-builder';
-import { Button } from '../ui/button';
-import * as d3 from 'd3';
-import * as d3Force from 'd3-force';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import * as d3 from "d3";
+import * as d3Force from "d3-force";
 import {
-  Network,
-  Circle,
-  RefreshCw,
-  Share2,
+  ChevronRight,
   Grid3X3,
-  Users,
-  Shuffle,
   Layers,
+  Maximize,
+  RefreshCw,
+  Settings2,
+  Share2,
+  Shuffle,
+  Users,
   ZoomIn,
   ZoomOut,
-  Maximize,
-  Settings2,
-  ChevronRight,
-} from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+} from "lucide-react";
+import { useTranslation } from "react-i18next";
 
-// =============================================================================
-// Types
-// =============================================================================
+import { useExperimentBuilder } from "../../store/experiment-builder";
+import { Button } from "../ui/button";
+import { buildNetworkOverview } from "../../utils/networkMetrics";
+import { buildAgentCollections } from "../../utils/agentCollections";
+import { ResearchInputPanel } from "./workflow/ResearchInputPanel";
+import { SummaryInfoCard } from "./workflow/SummaryInfoCard";
 
-type PresetType = 'full' | 'random' | 'ring' | 'star' | 'newman-watts' | 'core-periphery' | 'holme-kim' | 'waxman' | 'sbm';
+type PresetType =
+  | "full"
+  | "random"
+  | "ring"
+  | "star"
+  | "newman-watts"
+  | "core-periphery"
+  | "holme-kim"
+  | "waxman"
+  | "sbm";
 
 interface PresetParams {
   random: { connectionChance: number };
-  ring: {};
-  star: {};
-  'newman-watts': { neighborsEachSide: number; shortcutChance: number };
-  'core-periphery': {
+  ring: Record<string, never>;
+  star: Record<string, never>;
+  "newman-watts": { neighborsEachSide: number; shortcutChance: number };
+  "core-periphery": {
     influencerPercent: number;
     influencerConnectivity: number;
     influencerReach: number;
     regularConnectivity: number;
   };
-  'holme-kim': { newConnections: number; clusteringChance: number };
+  "holme-kim": { newConnections: number; clusteringChance: number };
   waxman: { maxDistance: number; distanceEffect: number };
   sbm: { groupSize: number; withinGroupConnectivity: number; bridgeConnections: number };
 }
 
-interface PresetMeta {
-  name: string;
-  description: string;
-  icon: React.ElementType;
-}
-
-// =============================================================================
-// Preset Definitions
-// =============================================================================
-
-// Note: Preset names/descriptions are now translated in the component
-// This object only maps preset types to their icons and translation keys
 const presetIcons: Record<PresetType, { icon: React.ElementType; translationKey: string }> = {
-  full: { icon: Share2, translationKey: 'fully_connected' },
-  random: { icon: Shuffle, translationKey: 'random' },
-  ring: { icon: RefreshCw, translationKey: 'ring' },
-  star: { icon: Users, translationKey: 'star' },
-  'newman-watts': { icon: Grid3X3, translationKey: 'small_world' },
-  'core-periphery': { icon: Layers, translationKey: 'core_periphery' },
-  'holme-kim': { icon: Share2, translationKey: 'scale_free' },
-  waxman: { icon: Grid3X3, translationKey: 'spatial' },
-  sbm: { icon: Users, translationKey: 'communities' },
+  full: { icon: Share2, translationKey: "fully_connected" },
+  random: { icon: Shuffle, translationKey: "random" },
+  ring: { icon: RefreshCw, translationKey: "ring" },
+  star: { icon: Users, translationKey: "star" },
+  "newman-watts": { icon: Grid3X3, translationKey: "small_world" },
+  "core-periphery": { icon: Layers, translationKey: "core_periphery" },
+  "holme-kim": { icon: Share2, translationKey: "scale_free" },
+  waxman: { icon: Grid3X3, translationKey: "spatial" },
+  sbm: { icon: Users, translationKey: "communities" },
 };
 
 const defaultParams: PresetParams = {
   random: { connectionChance: 0.3 },
   ring: {},
   star: {},
-  'newman-watts': { neighborsEachSide: 2, shortcutChance: 0.1 },
-  'core-periphery': {
+  "newman-watts": { neighborsEachSide: 2, shortcutChance: 0.1 },
+  "core-periphery": {
     influencerPercent: 0.2,
     influencerConnectivity: 0.8,
     influencerReach: 0.4,
     regularConnectivity: 0.1,
   },
-  'holme-kim': { newConnections: 3, clusteringChance: 0.5 },
+  "holme-kim": { newConnections: 3, clusteringChance: 0.5 },
   waxman: { maxDistance: 0.5, distanceEffect: 0.5 },
   sbm: { groupSize: 5, withinGroupConnectivity: 0.6, bridgeConnections: 1 },
 };
 
-/**
- * Ensures no agent is isolated (has zero connections).
- * For any isolated agent, creates a connection to a random other agent.
- */
 const ensureNoIsolatedNodes = (
   network: Record<string, string[]>,
   ids: string[]
 ): Record<string, string[]> => {
-  if (ids.length <= 1) return network; // Single agent can't have connections
+  if (ids.length <= 1) return network;
 
-  const result = JSON.parse(JSON.stringify(network));
+  const next = JSON.parse(JSON.stringify(network)) as Record<string, string[]>;
 
-  for (const agentId of ids) {
-    const connections = result[agentId] || [];
-    if (connections.length === 0) {
-      // Connect to a random other agent
-      const others = ids.filter(id => id !== agentId);
-      const neighbor = others[Math.floor(Math.random() * others.length)];
+  ids.forEach((agentId) => {
+    if ((next[agentId] || []).length > 0) return;
+    const neighbor = ids.find((id) => id !== agentId);
+    if (!neighbor) return;
+    next[agentId] = [neighbor];
+    next[neighbor] = [...(next[neighbor] || []), agentId];
+  });
 
-      result[agentId] = [neighbor];
-      // Ensure reciprocal connection
-      if (!result[neighbor].includes(agentId)) {
-        result[neighbor] = [...(result[neighbor] || []), agentId];
-      }
-    }
-  }
-
-  return result;
+  return next;
 };
 
-// =============================================================================
-// ParamSlider Component
-// =============================================================================
-
-interface ParamSliderProps {
-  labelKey: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  onChange: (value: number) => void;
-  isInteger?: boolean;
-}
-
-const ParamSlider: React.FC<ParamSliderProps> = ({
-  labelKey,
+const ParamSlider = ({
+  label,
   value,
   min,
   max,
   step,
+  isInteger,
   onChange,
-  isInteger = false,
-}) => {
-  const { t } = useTranslation();
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <label className="flex-1 text-[11px] font-medium text-[var(--sim-text-muted)]">
-        {t(`components.networkEditorModal.${labelKey}`)}
-      </label>
-      <div className="flex items-center gap-2">
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={value}
-          onChange={(e) => onChange(isInteger ? parseInt(e.target.value) : parseFloat(e.target.value))}
-          className="h-1 w-24 accent-[var(--sim-primary)]"
-        />
-        <span className="w-10 text-right text-[10px] text-[var(--sim-text-soft)]">
-          {isInteger ? value : value.toFixed(2)}
-        </span>
-      </div>
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  isInteger?: boolean;
+  onChange: (value: number) => void;
+}) => (
+  <div className="space-y-2">
+    <div className="flex items-center justify-between gap-4 text-xs text-slate-600">
+      <span>{label}</span>
+      <span className="font-mono text-slate-500">
+        {isInteger ? value : value.toFixed(2)}
+      </span>
     </div>
-  );
-};
-
-// =============================================================================
-// Step5Network Component
-// =============================================================================
+    <input
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      onChange={(event) =>
+        onChange(isInteger ? parseInt(event.target.value, 10) : parseFloat(event.target.value))
+      }
+      className="h-1.5 w-full accent-slate-900"
+    />
+  </div>
+);
 
 export const Step5Network: React.FC = () => {
   const { t } = useTranslation();
   const { socialNetwork, setSocialNetwork, agentTypes } = useExperimentBuilder();
-  const [linkFrom, setLinkFrom] = useState('');
-  const [linkTo, setLinkTo] = useState('');
-
-  // Local state
+  const [linkFrom, setLinkFrom] = useState("");
+  const [linkTo, setLinkTo] = useState("");
   const [selectedPreset, setSelectedPreset] = useState<PresetType | null>(null);
   const [params, setParams] = useState<PresetParams>(JSON.parse(JSON.stringify(defaultParams)));
   const [hoverInfo, setHoverInfo] = useState<{ name: string; profile?: string; x: number; y: number } | null>(null);
+  const [stageView, setStageView] = useState<"overview" | "graph">("overview");
+  const [showAdvancedMembers, setShowAdvancedMembers] = useState(false);
+  const [showAdvancedLinks, setShowAdvancedLinks] = useState(false);
 
-  // D3 refs
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const d3SvgRef = useRef<d3.Selection<SVGSVGElement, unknown, null, undefined> | null>(null);
   const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
 
-  // Get agent IDs from agent types
   const { agentIds, profileMap } = useMemo(() => {
     const ids: string[] = [];
     const profiles: Record<string, string> = {};
-    for (const type of agentTypes) {
+    agentTypes.forEach((type) => {
       const count = type.count || 1;
-      for (let i = 0; i < count; i++) {
-        const suffix = count > 1 ? ` ${i + 1}` : '';
+      for (let index = 0; index < count; index += 1) {
+        const suffix = count > 1 ? ` ${index + 1}` : "";
         const name = `${type.label}${suffix}`;
         ids.push(name);
-        const summary = type.userProfile || type.rolePrompt || '';
-        profiles[name] = summary;
+        profiles[name] = type.userProfile || type.rolePrompt || "";
       }
-    }
+    });
     return { agentIds: ids, profileMap: profiles };
   }, [agentTypes]);
+  const agentCollections = useMemo(
+    () => buildAgentCollections(agentTypes, () => ""),
+    [agentTypes]
+  );
+  const agentCollectionLookup = useMemo(() => {
+    const lookup = new globalThis.Map<string, (typeof agentCollections)[number]>();
+    agentCollections.forEach((collection) => {
+      collection.members.forEach((member) => {
+        lookup.set(member.label, collection);
+      });
+    });
+    return lookup;
+  }, [agentCollections]);
 
-  // Keep manual link selectors in sync with current agents
   useEffect(() => {
     if (agentIds.length === 0) return;
     if (!agentIds.includes(linkFrom)) {
@@ -218,322 +193,355 @@ export const Step5Network: React.FC = () => {
   const edges = useMemo(() => {
     const list: { key: string; source: string; target: string }[] = [];
     const dedup = new Set<string>();
-    for (const [source, targets] of Object.entries(socialNetwork)) {
-      for (const target of targets) {
-        if (!agentIds.includes(source) || !agentIds.includes(target)) continue;
+
+    Object.entries(socialNetwork).forEach(([source, targets]) => {
+      targets.forEach((target) => {
+        if (!agentIds.includes(source) || !agentIds.includes(target)) return;
         const key = source < target ? `${source}|${target}` : `${target}|${source}`;
-        if (dedup.has(key)) continue;
+        if (dedup.has(key)) return;
         dedup.add(key);
         list.push({ key, source, target });
-      }
-    }
+      });
+    });
+
     return list;
   }, [agentIds, socialNetwork]);
-  const isolatedCount = useMemo(
-    () => agentIds.filter((id) => (socialNetwork[id] || []).length === 0).length,
-    [agentIds, socialNetwork],
+
+  const networkOverview = useMemo(
+    () => buildNetworkOverview(agentIds, socialNetwork),
+    [agentIds, socialNetwork]
   );
-  const connectionDensity = useMemo(() => {
-    const possible = agentIds.length > 1 ? (agentIds.length * (agentIds.length - 1)) / 2 : 1;
-    return Math.min(1, edges.length / possible);
-  }, [agentIds.length, edges.length]);
+  const groupedEdges = useMemo(() => {
+    const grouped = new globalThis.Map<
+      string,
+      {
+        key: string;
+        sourceTitle: string;
+        targetTitle: string;
+        count: number;
+        sample: string[];
+      }
+    >();
+
+    edges.forEach((edge) => {
+      const sourceCollection = agentCollectionLookup.get(edge.source);
+      const targetCollection = agentCollectionLookup.get(edge.target);
+      const sourceTitle = sourceCollection?.title || edge.source;
+      const targetTitle = targetCollection?.title || edge.target;
+      const ordered =
+        sourceTitle.localeCompare(targetTitle, undefined, { sensitivity: "base" }) <= 0
+          ? [sourceTitle, targetTitle]
+          : [targetTitle, sourceTitle];
+      const key = `${ordered[0]}|${ordered[1]}`;
+      const current = grouped.get(key);
+
+      if (current) {
+        current.count += 1;
+        if (current.sample.length < 3) {
+          current.sample.push(`${edge.source} ↔ ${edge.target}`);
+        }
+        return;
+      }
+
+      grouped.set(key, {
+        key,
+        sourceTitle: ordered[0],
+        targetTitle: ordered[1],
+        count: 1,
+        sample: [`${edge.source} ↔ ${edge.target}`],
+      });
+    });
+
+    return Array.from(grouped.values()).sort(
+      (left, right) =>
+        right.count - left.count ||
+        left.sourceTitle.localeCompare(right.sourceTitle, undefined, { sensitivity: "base" })
+    );
+  }, [agentCollectionLookup, edges]);
+  const groupedIsolatedAgents = useMemo(() => {
+    const grouped = new globalThis.Map<string, { title: string; count: number; members: string[] }>();
+
+    networkOverview.isolatedAgents.forEach((agentId) => {
+      const collection = agentCollectionLookup.get(agentId);
+      const title = collection?.title || agentId;
+      const current = grouped.get(title);
+
+      if (current) {
+        current.count += 1;
+        current.members.push(agentId);
+        return;
+      }
+
+      grouped.set(title, {
+        title,
+        count: 1,
+        members: [agentId],
+      });
+    });
+
+    return Array.from(grouped.values()).sort(
+      (left, right) =>
+        right.count - left.count ||
+        left.title.localeCompare(right.title, undefined, { sensitivity: "base" })
+    );
+  }, [agentCollectionLookup, networkOverview.isolatedAgents]);
+
+  const resetParams = useCallback((presetKey: keyof PresetParams) => {
+    setParams((prev) => ({ ...prev, [presetKey]: { ...defaultParams[presetKey] } }));
+  }, []);
+
+  const updateParam = useCallback(
+    <K extends keyof PresetParams, P extends keyof PresetParams[K]>(
+      preset: K,
+      param: P,
+      value: PresetParams[K][P]
+    ) => {
+      setParams((prev) => ({
+        ...prev,
+        [preset]: { ...prev[preset], [param]: value },
+      }));
+    },
+    []
+  );
+
+  const applyPreset = useCallback(
+    (type: PresetType) => {
+      const n = agentIds.length;
+      const next: Record<string, string[]> = {};
+
+      agentIds.forEach((id) => {
+        next[id] = [];
+      });
+
+      if (type === "full") {
+        for (let i = 0; i < n; i += 1) {
+          for (let j = i + 1; j < n; j += 1) {
+            next[agentIds[i]].push(agentIds[j]);
+            next[agentIds[j]].push(agentIds[i]);
+          }
+        }
+      }
+
+      if (type === "ring") {
+        for (let i = 0; i < n; i += 1) {
+          const neighbor = (i + 1) % n;
+          next[agentIds[i]].push(agentIds[neighbor]);
+          next[agentIds[neighbor]].push(agentIds[i]);
+        }
+      }
+
+      if (type === "star" && n > 1) {
+        for (let i = 1; i < n; i += 1) {
+          next[agentIds[0]].push(agentIds[i]);
+          next[agentIds[i]].push(agentIds[0]);
+        }
+      }
+
+      if (type === "random") {
+        for (let i = 0; i < n; i += 1) {
+          for (let j = i + 1; j < n; j += 1) {
+            if (Math.random() < params.random.connectionChance) {
+              next[agentIds[i]].push(agentIds[j]);
+              next[agentIds[j]].push(agentIds[i]);
+            }
+          }
+        }
+      }
+
+      if (type === "newman-watts") {
+        const { neighborsEachSide, shortcutChance } = params["newman-watts"];
+        const range = Math.min(neighborsEachSide, Math.floor((n - 1) / 2));
+
+        for (let i = 0; i < n; i += 1) {
+          for (let offset = 1; offset <= range; offset += 1) {
+            const forward = (i + offset) % n;
+            next[agentIds[i]].push(agentIds[forward]);
+            next[agentIds[forward]].push(agentIds[i]);
+          }
+        }
+
+        for (let i = 0; i < n; i += 1) {
+          for (let j = i + range + 1; j < n; j += 1) {
+            if (Math.random() < shortcutChance && !next[agentIds[i]].includes(agentIds[j])) {
+              next[agentIds[i]].push(agentIds[j]);
+              next[agentIds[j]].push(agentIds[i]);
+            }
+          }
+        }
+      }
+
+      setSocialNetwork(ensureNoIsolatedNodes(next, agentIds));
+    },
+    [agentIds, params, setSocialNetwork]
+  );
+
+  useEffect(() => {
+    if (agentIds.length > 0 && Object.keys(socialNetwork).length === 0) {
+      setSelectedPreset("full");
+      applyPreset("full");
+    }
+  }, [agentIds.length, applyPreset, socialNetwork]);
+
+  useEffect(() => {
+    if (stageView !== "graph") return;
+    if (!svgRef.current || !containerRef.current) return;
+
+    const svg = d3.select(svgRef.current);
+    d3SvgRef.current = svg;
+
+    const zoom = d3
+      .zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.25, 4])
+      .on("zoom", (event) => {
+        svg.select("g.main").attr("transform", event.transform);
+      });
+
+    zoomBehaviorRef.current = zoom;
+
+    svg.call(zoom);
+    svg.append("g").attr("class", "main");
+
+    const width = containerRef.current.clientWidth;
+    const height = containerRef.current.clientHeight;
+    svg.call(zoom.transform, d3.zoomIdentity.translate(width / 2, height / 2));
+  }, [stageView]);
+
+  useEffect(() => {
+    if (stageView !== "graph") return;
+    if (!d3SvgRef.current || !containerRef.current || agentIds.length === 0) return;
+
+    const svg = d3SvgRef.current;
+    const main = svg.select("g.main");
+    const width = containerRef.current.clientWidth;
+    const height = containerRef.current.clientHeight;
+
+    const tooltipCoords = (event: MouseEvent | PointerEvent) => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      const x = Math.max(16, Math.min(width - 220, event.clientX - (rect?.left || 0) + 12));
+      const y = Math.max(16, Math.min(height - 180, event.clientY - (rect?.top || 0) + 12));
+      return { x, y };
+    };
+
+    main.selectAll("*").remove();
+
+    const nodes = agentIds.map((id) => ({ id, name: id, profile: profileMap[id] }));
+    const links = edges.map((edge) => ({ source: edge.source, target: edge.target }));
+
+    const simulation = d3Force
+      .forceSimulation(nodes as never[])
+      .force("link", d3Force.forceLink(links).id((item: any) => item.id).distance(125))
+      .force("charge", d3Force.forceManyBody().strength(-340))
+      .force("center", d3Force.forceCenter(0, 0))
+      .force("collide", d3Force.forceCollide(38));
+
+    const link = main
+      .append("g")
+      .attr("class", "links")
+      .selectAll("line")
+      .data(links)
+      .join("line")
+      .attr("stroke", "#94a3b8")
+      .attr("stroke-width", 1.4)
+      .attr("stroke-opacity", 0.55);
+
+    const node = main
+      .append("g")
+      .attr("class", "nodes")
+      .selectAll(".node")
+      .data(nodes)
+      .join("g")
+      .attr("class", "node cursor-pointer")
+      .call(
+        d3
+          .drag<SVGGElement, any>()
+          .on("start", (event, current) => {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            current.fx = current.x;
+            current.fy = current.y;
+          })
+          .on("drag", (event, current) => {
+            current.fx = event.x;
+            current.fy = event.y;
+          })
+          .on("end", (event, current) => {
+            if (!event.active) simulation.alphaTarget(0);
+            current.fx = null;
+            current.fy = null;
+          })
+      );
+
+    node
+      .append("circle")
+      .attr("r", 19)
+      .attr("fill", "#f8fafc")
+      .attr("stroke", "#0f172a")
+      .attr("stroke-width", 1.5)
+      .on("mouseenter", function (event, current: any) {
+        d3.select(this).attr("fill", "#e2e8f0");
+        setHoverInfo({ name: current.name, profile: current.profile, ...tooltipCoords(event) });
+      })
+      .on("mousemove", (event) => {
+        setHoverInfo((prev) => (prev ? { ...prev, ...tooltipCoords(event) } : null));
+      })
+      .on("mouseleave", function () {
+        d3.select(this).attr("fill", "#f8fafc");
+        setHoverInfo(null);
+      });
+
+    node
+      .append("text")
+      .attr("dy", 35)
+      .attr("text-anchor", "middle")
+      .text((current) => current.name)
+      .attr("class", "pointer-events-none select-none fill-slate-700 text-[10px] font-medium");
+
+    simulation.on("tick", () => {
+      link
+        .attr("x1", (item: any) => item.source.x)
+        .attr("y1", (item: any) => item.source.y)
+        .attr("x2", (item: any) => item.target.x)
+        .attr("y2", (item: any) => item.target.y);
+
+      node.attr("transform", (current: any) => `translate(${current.x},${current.y})`);
+    });
+
+    return () => simulation.stop();
+  }, [agentIds, edges, profileMap, stageView]);
 
   const addLink = () => {
     if (!linkFrom || !linkTo || linkFrom === linkTo) return;
-    const key = linkFrom < linkTo ? `${linkFrom}|${linkTo}` : `${linkTo}|${linkFrom}`;
-    const alreadyExists = edges.some((edge) => edge.key === key);
-    if (alreadyExists) return;
 
     const next: Record<string, string[]> = {};
-    for (const id of agentIds) {
+    agentIds.forEach((id) => {
       next[id] = [...(socialNetwork[id] || [])];
-    }
-
+    });
     next[linkFrom] = [...(next[linkFrom] || []), linkTo];
     next[linkTo] = [...(next[linkTo] || []), linkFrom];
     setSocialNetwork(next);
   };
 
   const removeLink = (key: string) => {
-    const [a, b] = key.split('|');
+    const [left, right] = key.split("|");
     const next: Record<string, string[]> = {};
-    for (const id of agentIds) {
-      next[id] = (socialNetwork[id] || []).filter((target) => target !== a && target !== b);
-    }
+    agentIds.forEach((id) => {
+      next[id] = (socialNetwork[id] || []).filter(
+        (target) => ![left, right].includes(target) || ![left, right].includes(id)
+      );
+    });
+    next[left] = (next[left] || []).filter((target) => target !== right);
+    next[right] = (next[right] || []).filter((target) => target !== left);
     setSocialNetwork(next);
   };
 
-  // Reset params when preset changes
-  const resetParams = useCallback((presetKey: keyof PresetParams) => {
-    setParams((prev) => ({
-      ...prev,
-      [presetKey]: { ...defaultParams[presetKey] },
-    }));
-  }, []);
-
-  // Update param
-  const updateParam = useCallback(<K extends keyof PresetParams, P extends keyof PresetParams[K]>(
-    preset: K,
-    param: P,
-    value: PresetParams[K][P]
-  ) => {
-    setParams((prev) => ({
-      ...prev,
-      [preset]: { ...prev[preset], [param]: value },
-    }));
-  }, []);
-
-  // Apply preset
-  const applyPreset = useCallback((type: PresetType) => {
-    const n = agentIds.length;
-    const newNetwork: Record<string, string[]> = {};
-
-    // Initialize empty adjacency list
-    agentIds.forEach((id) => {
-      newNetwork[id] = [];
-    });
-
-    if (type === 'full') {
-      // Fully connected
-      for (let i = 0; i < n; i++) {
-        for (let j = i + 1; j < n; j++) {
-          newNetwork[agentIds[i]].push(agentIds[j]);
-          newNetwork[agentIds[j]].push(agentIds[i]);
-        }
-      }
-    } else if (type === 'ring') {
-      // Ring network
-      for (let i = 0; i < n; i++) {
-        const next = (i + 1) % n;
-        newNetwork[agentIds[i]].push(agentIds[next]);
-        newNetwork[agentIds[next]].push(agentIds[i]);
-      }
-    } else if (type === 'star') {
-      // Star network (first agent is center)
-      if (n > 1) {
-        for (let i = 1; i < n; i++) {
-          newNetwork[agentIds[0]].push(agentIds[i]);
-          newNetwork[agentIds[i]].push(agentIds[0]);
-        }
-      }
-    } else if (type === 'random') {
-      const { connectionChance } = params.random;
-      for (let i = 0; i < n; i++) {
-        for (let j = i + 1; j < n; j++) {
-          if (Math.random() < connectionChance) {
-            newNetwork[agentIds[i]].push(agentIds[j]);
-            newNetwork[agentIds[j]].push(agentIds[i]);
-          }
-        }
-      }
-    } else if (type === 'newman-watts') {
-      const { neighborsEachSide, shortcutChance } = params['newman-watts'];
-      const k = Math.min(neighborsEachSide, Math.floor((n - 1) / 2));
-
-      // Ring lattice
-      for (let i = 0; i < n; i++) {
-        for (let offset = 1; offset <= k; offset++) {
-          const neighborIdx = (i + offset) % n;
-          const neighborIdx2 = (i - offset + n) % n;
-          newNetwork[agentIds[i]].push(agentIds[neighborIdx]);
-          newNetwork[agentIds[neighborIdx]].push(agentIds[i]);
-        }
-      }
-
-      // Shortcuts
-      for (let i = 0; i < n; i++) {
-        for (let offset = k + 1; offset <= Math.floor(n / 2); offset++) {
-          if (Math.random() < shortcutChance) {
-            const neighborIdx = (i + offset) % n;
-            if (!newNetwork[agentIds[i]].includes(agentIds[neighborIdx])) {
-              newNetwork[agentIds[i]].push(agentIds[neighborIdx]);
-              newNetwork[agentIds[neighborIdx]].push(agentIds[i]);
-            }
-          }
-        }
-      }
-    }
-
-    // Ensure no isolated nodes
-    const connectedNetwork = ensureNoIsolatedNodes(newNetwork, agentIds);
-    setSocialNetwork(connectedNetwork);
-  }, [agentIds, params, setSocialNetwork]);
-
-  // Auto-initialize network when agents exist but network is empty
-  useEffect(() => {
-    if (agentIds.length > 0 && Object.keys(socialNetwork).length === 0) {
-      applyPreset('full');
-      setSelectedPreset('full');
-    }
-  }, [agentIds.length, socialNetwork, applyPreset]);
-
-  // Initialize D3 visualization
-  useEffect(() => {
-    if (!svgRef.current || !containerRef.current) return;
-
-    const svg = d3.select(svgRef.current);
-    d3SvgRef.current = svg;
-
-    const width = containerRef.current.clientWidth;
-    const height = containerRef.current.clientHeight;
-
-    // Set up zoom behavior
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0, 8])
-      .on('zoom', (event) => {
-        svg.select('g.main').attr('transform', event.transform);
-      });
-
-    zoomBehaviorRef.current = zoom;
-
-    // Create main group
-    svg.append('g').attr('class', 'main');
-
-    // Handle zoom
-    svg.call(zoom.transform, d3.zoomIdentity.translate(width / 2, height / 2));
-
-  }, []);
-
-  // Update network visualization with D3 force simulation
-  useEffect(() => {
-    if (!d3SvgRef.current || !containerRef.current || Object.keys(socialNetwork).length === 0) return;
-
-    const svg = d3SvgRef.current;
-    const main = svg.select('g.main');
-    const width = containerRef.current.clientWidth;
-    const height = containerRef.current.clientHeight;
-
-    const tooltipCoords = (evt: MouseEvent | PointerEvent) => {
-      const rect = containerRef.current?.getBoundingClientRect();
-      const w = rect?.width || containerRef.current?.clientWidth || 0;
-      const h = rect?.height || containerRef.current?.clientHeight || 0;
-      const x = Math.max(8, Math.min(w - 220, evt.clientX - (rect?.left || 0) + 12));
-      const y = Math.max(8, Math.min(h - 160, evt.clientY - (rect?.top || 0) + 12));
-      return { x, y };
-    };
-
-    // Clear existing
-    main.selectAll('*').remove();
-
-    // Build nodes and links
-    const nodeIds = Object.keys(socialNetwork);
-    const nodes: { id: string; name: string; x?: number; y?: number; fx?: number | null; fy?: number | null; profile?: string }[] =
-      nodeIds.map((id) => ({ id, name: id, profile: profileMap[id] }));
-    const links: { source: string; target: string }[] = [];
-
-    // Create links (avoid duplicates)
-    const addedLinks = new Set<string>();
-    for (const [source, targets] of Object.entries(socialNetwork)) {
-      for (const target of targets) {
-        if (nodeIds.includes(target)) {
-          // Normalize link key to avoid duplicates
-          const key = source < target ? `${source}-${target}` : `${target}-${source}`;
-          if (!addedLinks.has(key)) {
-            links.push({ source, target });
-            addedLinks.add(key);
-          }
-        }
-      }
-    }
-
-    // Create force simulation
-    const simulation = d3Force.forceSimulation(nodes as any)
-      .force('link', d3Force.forceLink(links).id((d: any) => d.id).distance(120))
-      .force('charge', d3Force.forceManyBody().strength(-300))
-      .force('center', d3Force.forceCenter(0, 0))
-      .force('collide', d3Force.forceCollide(35));
-
-    // Draw links
-    const link = main.append('g')
-      .attr('class', 'links')
-      .selectAll('line')
-      .data(links)
-      .join('line')
-      .attr('stroke', '#94a3b8')
-      .attr('stroke-width', 1.5)
-      .attr('stroke-opacity', 0.6);
-
-    // Draw nodes as groups (circle + text label)
-    const node = main.append('g')
-      .attr('class', 'nodes')
-      .selectAll('.node')
-      .data(nodes)
-      .join('g')
-      .attr('class', 'node cursor-pointer')
-      .call(
-        d3.drag<SVGGElement, any>()
-          .on('start', (event, d) => {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
-          })
-          .on('drag', (event, d) => {
-            d.fx = event.x;
-            d.fy = event.y;
-          })
-          .on('end', (event, d) => {
-            if (!event.active) simulation.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
-          })
-      );
-
-    // Node circle
-    node.append('circle')
-      .attr('r', 16)
-      .attr('fill', '#3b82f6')
-      .attr('stroke', '#fff')
-      .attr('stroke-width', 2);
-
-    // Node text label (visible below circle)
-    node.append('text')
-      .attr('dy', 28)
-      .attr('text-anchor', 'middle')
-      .text((d) => d.name)
-      .attr('class', 'text-[10px] font-medium fill-slate-700 pointer-events-none select-none');
-
-    node.append('title').text((d) => (d.profile ? `${d.name}\n${d.profile}` : t('experimentBuilder.step5.noProfile', '无简介')));
-
-    // Hover tooltip using React state for reliability
-    node
-      .on('mouseenter', (event, d: any) => {
-        const pos = tooltipCoords(event);
-        setHoverInfo({ name: d.name, profile: d.profile, ...pos });
-      })
-      .on('mousemove', (event) => {
-        const pos = tooltipCoords(event);
-        setHoverInfo((prev) => (prev ? { ...prev, ...pos } : null));
-      })
-      .on('mouseleave', () => setHoverInfo(null));
-
-    // Update positions on tick
-    simulation.on('tick', () => {
-      link
-        .attr('x1', (d: any) => d.source.x)
-        .attr('y1', (d: any) => d.source.y)
-        .attr('x2', (d: any) => d.target.x)
-        .attr('y2', (d: any) => d.target.y);
-
-      node.attr('transform', (d: any) => `translate(${d.x},${d.y})`);
-    });
-
-    // Cleanup
-    return () => {
-      simulation.stop();
-    };
-
-  }, [socialNetwork, profileMap, t]);
-
-  // Zoom controls
   const handleZoomIn = () => {
     if (d3SvgRef.current && zoomBehaviorRef.current) {
-      d3SvgRef.current.transition().duration(300).call(zoomBehaviorRef.current.scaleBy, 1.5);
+      d3SvgRef.current.transition().duration(250).call(zoomBehaviorRef.current.scaleBy, 1.2);
     }
   };
 
   const handleZoomOut = () => {
     if (d3SvgRef.current && zoomBehaviorRef.current) {
-      d3SvgRef.current.transition().duration(300).call(zoomBehaviorRef.current.scaleBy, 0.67);
+      d3SvgRef.current.transition().duration(250).call(zoomBehaviorRef.current.scaleBy, 0.85);
     }
   };
 
@@ -541,399 +549,552 @@ export const Step5Network: React.FC = () => {
     if (d3SvgRef.current && zoomBehaviorRef.current && containerRef.current) {
       const width = containerRef.current.clientWidth;
       const height = containerRef.current.clientHeight;
-      // Center the viewport on origin where nodes are positioned
-      d3SvgRef.current.transition().duration(500).call(
-        zoomBehaviorRef.current.transform,
-        d3.zoomIdentity.translate(width / 2, height / 2)
-      );
+      d3SvgRef.current
+        .transition()
+        .duration(400)
+        .call(zoomBehaviorRef.current.transform, d3.zoomIdentity.translate(width / 2, height / 2));
     }
   };
 
-  // Render parameter controls
-  const renderParamControls = () => {
-    if (!selectedPreset || selectedPreset === 'full' || selectedPreset === 'ring' || selectedPreset === 'star') return null;
-
-    const presetKey = selectedPreset as keyof PresetParams;
-
+  if (agentIds.length === 0) {
     return (
-      <div className="studio-field-group">
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--sim-text-soft)]">
-            <Settings2 size={12} />
-            {t('components.networkEditorModal.parameterSettings')}
-          </span>
-          <button
-            onClick={() => resetParams(presetKey)}
-            className="text-[11px] font-medium text-[var(--sim-primary)] hover:text-[var(--sim-primary-strong)]"
-          >
-            <RefreshCw size={10} />
-            {t('components.networkEditorModal.resetDefaults')}
-          </button>
-        </div>
-
-        {selectedPreset === 'random' && (
-          <ParamSlider
-            labelKey="probabilityAnyTwoConnect"
-            value={params.random.connectionChance}
-            min={0}
-            max={1}
-            step={0.05}
-            onChange={(v) => updateParam('random', 'connectionChance', v)}
-          />
-        )}
-
-        {selectedPreset === 'newman-watts' && (
-          <div className="space-y-3">
-            <ParamSlider
-              labelKey="neighborsEachSide"
-              value={params['newman-watts'].neighborsEachSide}
-              min={1}
-              max={5}
-              step={1}
-              onChange={(v) => updateParam('newman-watts', 'neighborsEachSide', v)}
-              isInteger
-            />
-            <ParamSlider
-              labelKey="probabilityLongRangeShortcut"
-              value={params['newman-watts'].shortcutChance}
-              min={0}
-              max={0.5}
-              step={0.01}
-              onChange={(v) => updateParam('newman-watts', 'shortcutChance', v)}
-            />
-          </div>
-        )}
-
-        {/* Apply Changes Button */}
-        <div className="border-t border-[var(--sim-border)] pt-3">
-          <button
-            onClick={() => {
-              if (selectedPreset) {
-                applyPreset(selectedPreset);
-              }
-            }}
-            disabled={!selectedPreset}
-            className="button button-sm w-full"
-          >
-            {t('experimentBuilder.step5.applyChanges')}
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  // Check if agents are configured
-  if (agentTypes.length === 0 || agentIds.length === 0) {
-    return (
-      <div className="studio-empty-state">
-        <div className="inline-flex h-16 w-16 items-center justify-center rounded-[22px] border border-[rgba(206,152,74,0.18)] bg-[rgba(206,152,74,0.12)]">
-          <Users className="h-8 w-8 text-[var(--sim-warning)]" />
-        </div>
-        <h3 className="text-lg font-semibold text-[var(--sim-text-strong)]">
-          {t('experimentBuilder.step5.noAgentsConfigured')}
-        </h3>
-        <p className="max-w-md text-sm leading-6 text-[var(--sim-text-muted)]">
-          {t('experimentBuilder.step5.goBackToStep4')}
-        </p>
+      <div className="rounded-[28px] border border-amber-200 bg-amber-50 p-8 text-center">
+        <div className="section-title">{t("experimentBuilder.step5.noAgentsConfigured")}</div>
+        <p className="lab-meta mt-3">{t("experimentBuilder.step5.goBackToStep4")}</p>
       </div>
     );
   }
 
-  const selectedPresetMeta = selectedPreset ? presetIcons[selectedPreset] : null;
-
   return (
-    <div className="space-y-6">
-      <section className="studio-field-group">
-        <div className="page-hero__eyebrow w-fit">Relationship topology</div>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-3xl">
-            <h2 className="text-xl font-semibold text-[var(--sim-text-strong)]">
-              {t('experimentBuilder.step5.networkPresets')}
-            </h2>
-            <p className="mt-2 text-sm leading-7 text-[var(--sim-text-muted)]">
-              Configure how influence, visibility, and contagion move across the cast. Presets reshape the graph instantly, while manual links let you fine tune edge cases.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="status-pill">{agentIds.length} agents</span>
-            <span className="status-pill">{edges.length} links</span>
-            <span className="status-pill">{Math.round(connectionDensity * 100)}% density</span>
-          </div>
+    <div className="ss-network-workflow">
+      <ResearchInputPanel
+        eyebrow={t("common.agents")}
+        title={t("experimentBuilder.step5.networkPresets")}
+        description={t("components.networkEditorModal.workspaceSubtitle")}
+      >
+        <div className="ss-workflow-summary-grid">
+          <SummaryInfoCard
+            label={t("experimentBuilder.step5.summaryAgents")}
+            value={agentIds.length}
+          />
+          <SummaryInfoCard
+            label={t("experimentBuilder.step5.summaryEdges")}
+            value={networkOverview.edgeCount}
+          />
+          <SummaryInfoCard
+            label={t("components.networkEditorModal.density")}
+            value={`${(networkOverview.density * 100).toFixed(0)}%`}
+          />
+          <SummaryInfoCard
+            label={t("experimentBuilder.step5.summaryPattern")}
+            value={
+              selectedPreset
+                ? t(`experimentBuilder.step5.presets.${presetIcons[selectedPreset].translationKey}.name`)
+                : t("experimentBuilder.step5.noPattern")
+            }
+          />
         </div>
-      </section>
+      </ResearchInputPanel>
 
-      <div className="studio-network-layout">
-        <aside className="studio-network-tools">
-          <section className="studio-field-group">
+      <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)_280px]">
+        <aside className="lab-surface lab-scroll max-h-[720px] overflow-y-auto p-5">
+          <div className="space-y-4">
             <div>
-              <div className="page-hero__eyebrow w-fit">Presets</div>
-              <p className="mt-2 text-sm leading-6 text-[var(--sim-text-muted)]">
-                {t('experimentBuilder.step5.chooseTopology')}
-              </p>
+              <div className="kicker">{t("experimentBuilder.step5.networkPresets")}</div>
+              <p className="lab-meta mt-2">{t("experimentBuilder.step5.chooseTopology")}</p>
             </div>
 
             <div className="space-y-2">
               {Object.entries(presetIcons).map(([key, { icon: Icon, translationKey }]) => {
                 const isSelected = selectedPreset === key;
-
                 return (
                   <button
                     key={key}
                     type="button"
                     onClick={() => {
-                      setSelectedPreset(isSelected ? null : key as PresetType);
-                      if (!isSelected) {
-                        applyPreset(key as PresetType);
-                      }
+                      setSelectedPreset(isSelected ? null : (key as PresetType));
+                      if (!isSelected) applyPreset(key as PresetType);
                     }}
-                    className={`studio-network-preset ${isSelected ? 'active' : ''}`.trim()}
+                    className={`flex w-full items-center gap-3 rounded-[22px] border p-3 text-left transition-all ${
+                      isSelected
+                        ? "border-slate-900 bg-slate-900 text-white"
+                        : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-slate-300"
+                    }`}
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[rgba(51,104,200,0.12)] text-[var(--sim-primary)]">
-                      <Icon size={16} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-semibold text-[var(--sim-text-strong)]">
+                    <span
+                      className={`rounded-full p-2 ${
+                        isSelected ? "bg-white/12 text-white" : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      <Icon size={15} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold">
                         {t(`experimentBuilder.step5.presets.${translationKey}.name`)}
-                      </div>
-                      <p className="mt-1 text-xs leading-5 text-[var(--sim-text-muted)]">
+                      </span>
+                      <span className={`mt-1 block text-xs ${isSelected ? "text-white/72" : "text-slate-500"}`}>
                         {t(`experimentBuilder.step5.presets.${translationKey}.description`)}
-                      </p>
-                    </div>
-                    <ChevronRight
-                      size={16}
-                      className={`text-[var(--sim-text-soft)] transition-transform ${isSelected ? 'rotate-90' : ''}`}
-                    />
+                      </span>
+                    </span>
+                    <ChevronRight size={15} className={isSelected ? "text-white/80" : "text-slate-400"} />
                   </button>
                 );
               })}
             </div>
 
-            <div className="grid gap-2 md:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedPreset('full');
-                  applyPreset('full');
-                }}
-                className="button-ghost button-sm"
-              >
-                <Share2 size={12} />
-                {t('experimentBuilder.step5.fullyConnected')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (agentIds.length > 0) {
-                    setSelectedPreset('random');
-                    applyPreset('random');
-                  }
-                }}
-                className="button-ghost button-sm"
-              >
-                <RefreshCw size={12} />
-                {t('experimentBuilder.step5.reset')}
-              </button>
-            </div>
-          </section>
-
-          <section className="studio-field-group">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--sim-text-soft)]">
-              <Settings2 size={12} />
-              {t('experimentBuilder.step5.manualLinks', 'Manual links')}
-            </div>
-            <div className="grid gap-3">
-              <select value={linkFrom} onChange={(e) => setLinkFrom(e.target.value)} className="input">
-                {agentIds.map((id) => (
-                  <option key={id} value={id}>
-                    {id}
-                  </option>
-                ))}
-              </select>
-              <select value={linkTo} onChange={(e) => setLinkTo(e.target.value)} className="input">
-                {agentIds.map((id) => (
-                  <option key={id} value={id}>
-                    {id}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <Button size="sm" className="w-full" disabled={!linkFrom || !linkTo || linkFrom === linkTo} onClick={addLink}>
-              {t('experimentBuilder.step5.addLink', 'Add link')}
-            </Button>
-
-            {edges.length > 0 ? (
-              <div className="space-y-2 border-t border-[var(--sim-border)] pt-3">
-                {edges.slice(0, 8).map(({ key, source, target }) => (
-                  <div
-                    key={key}
-                    className="flex items-center justify-between gap-3 rounded-[16px] border border-[var(--sim-border)] bg-[rgba(255,255,255,0.34)] px-3 py-2 text-xs text-[var(--sim-text-muted)] dark:bg-[rgba(255,255,255,0.02)]"
+            {selectedPreset &&
+            selectedPreset !== "full" &&
+            selectedPreset !== "ring" &&
+            selectedPreset !== "star" ? (
+              <div className="rounded-[22px] border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="kicker">{t("components.networkEditorModal.selectedPreset")}</div>
+                  <button
+                    type="button"
+                    onClick={() => resetParams(selectedPreset as keyof PresetParams)}
+                    className="text-xs text-slate-500 hover:text-slate-900"
                   >
-                    <span className="truncate">
-                      {source} ↔ {target}
-                    </span>
-                    <button
-                      type="button"
-                      className="text-[var(--sim-danger)] hover:text-[var(--sim-danger)]"
-                      onClick={() => removeLink(key)}
-                    >
-                      {t('common.remove', 'Remove')}
-                    </button>
+                    {t("components.networkEditorModal.resetDefaults")}
+                  </button>
+                </div>
+                <div className="mt-4 space-y-4">
+                  {selectedPreset === "random" ? (
+                    <ParamSlider
+                      label={t("components.networkEditorModal.probabilityAnyTwoConnect")}
+                      value={params.random.connectionChance}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onChange={(value) => updateParam("random", "connectionChance", value)}
+                    />
+                  ) : null}
+
+                  {selectedPreset === "newman-watts" ? (
+                    <>
+                      <ParamSlider
+                        label={t("components.networkEditorModal.neighborsEachSide")}
+                        value={params["newman-watts"].neighborsEachSide}
+                        min={1}
+                        max={5}
+                        step={1}
+                        isInteger
+                        onChange={(value) => updateParam("newman-watts", "neighborsEachSide", value)}
+                      />
+                      <ParamSlider
+                        label={t("components.networkEditorModal.probabilityLongRangeShortcut")}
+                        value={params["newman-watts"].shortcutChance}
+                        min={0}
+                        max={0.5}
+                        step={0.01}
+                        onChange={(value) => updateParam("newman-watts", "shortcutChance", value)}
+                      />
+                    </>
+                  ) : null}
+                </div>
+                <Button
+                  size="sm"
+                  className="mt-4 w-full"
+                  onClick={() => selectedPreset && applyPreset(selectedPreset)}
+                >
+                  {t("experimentBuilder.step5.applyChanges")}
+                </Button>
+              </div>
+            ) : null}
+
+            <div className="rounded-[22px] border border-slate-200 bg-white p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                <Users size={14} />
+                {t("experimentBuilder.step5.agentCollections", { defaultValue: "Agent collections" })}
+              </div>
+              <p className="lab-meta mt-2">
+                {t("experimentBuilder.step5.agentCollectionsHint", {
+                  defaultValue: "Show one representative per repeated category first, then open the full member list only when needed.",
+                })}
+              </p>
+              <div className="mt-4 space-y-2">
+                {agentCollections.map((collection) => (
+                  <div
+                    key={collection.key}
+                    className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-slate-900">
+                          {collection.title}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {collection.representative.userProfile ||
+                            collection.representative.rolePrompt ||
+                            t("experimentBuilder.step4.noProperties")}
+                        </div>
+                      </div>
+                      <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                        {collection.count}
+                      </span>
+                    </div>
                   </div>
                 ))}
-                {edges.length > 8 && (
-                  <div className="text-xs text-[var(--sim-text-soft)]">
-                    {edges.length - 8} more links hidden for brevity.
-                  </div>
-                )}
               </div>
-            ) : (
-              <div className="rounded-[18px] border border-dashed border-[var(--sim-border)] px-4 py-4 text-sm text-[var(--sim-text-soft)]">
-                {t('experimentBuilder.step5.noLinks', 'No links yet')}
-              </div>
-            )}
-          </section>
+              <button
+                type="button"
+                onClick={() => setShowAdvancedMembers((current) => !current)}
+                className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
+              >
+                <Settings2 size={14} />
+                {showAdvancedMembers
+                  ? t("experimentBuilder.step5.hideMemberRoster", { defaultValue: "Hide member roster" })
+                  : t("experimentBuilder.step5.showMemberRoster", { defaultValue: "Show full member roster" })}
+              </button>
 
-          {renderParamControls()}
-
-          <section className="studio-field-group">
-            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--sim-text-soft)]">
-              {t('experimentBuilder.step5.instructions')}
+              {showAdvancedMembers ? (
+                <div className="mt-4 max-h-[280px] space-y-2 overflow-y-auto pr-1">
+                  {agentIds.map((id) => (
+                    <div key={id} className="rounded-[16px] border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                      {id}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
-            <ul className="list-decimal space-y-2 pl-5 text-sm leading-6 text-[var(--sim-text-muted)]">
-              <li>{t('experimentBuilder.step5.instructionSelect')}</li>
-              <li>{t('experimentBuilder.step5.instructionDrag')}</li>
-              <li>{t('experimentBuilder.step5.instructionZoom')}</li>
-            </ul>
-          </section>
+          </div>
         </aside>
 
-        <div ref={containerRef} className="studio-network-canvas group">
-          <svg ref={svgRef} className="block h-full w-full"></svg>
+        <section className="lab-surface relative min-h-[720px] overflow-hidden p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-4">
+            <div>
+              <div className="kicker">{t("experimentBuilder.step5.briefingTitle")}</div>
+              <div className="mt-3 section-title">{t("experimentBuilder.step5.briefingTitle")}</div>
+              <p className="lab-meta mt-2 max-w-2xl">
+                {t("components.networkEditorModal.manualComposer", {
+                  defaultValue: "Start from the structure summary, then open the graph only when local manual edits are necessary.",
+                })}
+              </p>
+            </div>
 
-          {hoverInfo && (
+            <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white p-1">
+              <button
+                type="button"
+                onClick={() => setStageView("overview")}
+                className={`rounded-full px-3 py-2 text-xs font-semibold transition ${
+                  stageView === "overview" ? "bg-slate-900 text-white" : "text-slate-500"
+                }`}
+              >
+                {t("components.networkEditorModal.overviewTab", { defaultValue: "Overview" })}
+              </button>
+              <button
+                type="button"
+                onClick={() => setStageView("graph")}
+                className={`rounded-full px-3 py-2 text-xs font-semibold transition ${
+                  stageView === "graph" ? "bg-slate-900 text-white" : "text-slate-500"
+                }`}
+              >
+                {t("components.networkEditorModal.graphTab", { defaultValue: "Graph canvas" })}
+              </button>
+            </div>
+          </div>
+
+          {stageView === "overview" ? (
+            <div className="grid gap-4 pt-5 lg:grid-cols-2">
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
+                <div className="kicker">{t("components.networkEditorModal.networkPresets")}</div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-[18px] border border-slate-200 bg-white p-4">
+                    <div className="text-[11px] uppercase tracking-wide text-slate-500">
+                      {t("experimentBuilder.step5.summaryAgents")}
+                    </div>
+                    <div className="mt-2 text-2xl font-semibold text-slate-900">{agentIds.length}</div>
+                  </div>
+                  <div className="rounded-[18px] border border-slate-200 bg-white p-4">
+                    <div className="text-[11px] uppercase tracking-wide text-slate-500">
+                      {t("experimentBuilder.step5.summaryEdges")}
+                    </div>
+                    <div className="mt-2 text-2xl font-semibold text-slate-900">{networkOverview.edgeCount}</div>
+                  </div>
+                  <div className="rounded-[18px] border border-slate-200 bg-white p-4">
+                    <div className="text-[11px] uppercase tracking-wide text-slate-500">
+                      {t("components.networkEditorModal.density")}
+                    </div>
+                    <div className="mt-2 text-2xl font-semibold text-slate-900">
+                      {(networkOverview.density * 100).toFixed(0)}%
+                    </div>
+                  </div>
+                  <div className="rounded-[18px] border border-slate-200 bg-white p-4">
+                    <div className="text-[11px] uppercase tracking-wide text-slate-500">
+                      {t("components.networkEditorModal.communities", { defaultValue: "Communities" })}
+                    </div>
+                    <div className="mt-2 text-2xl font-semibold text-slate-900">
+                      {networkOverview.componentCount}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
+                <div className="kicker">
+                  {t("components.networkEditorModal.topologySummary", { defaultValue: "Topology summary" })}
+                </div>
+                <div className="mt-4 space-y-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">
+                      {t("components.networkEditorModal.averageDegree", { defaultValue: "Average degree" })}
+                    </span>
+                    <strong className="text-slate-900">{networkOverview.averageDegree.toFixed(1)}</strong>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">
+                      {t("components.networkEditorModal.largestComponent", { defaultValue: "Largest component" })}
+                    </span>
+                    <strong className="text-slate-900">{networkOverview.largestComponent}</strong>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">{t("experimentBuilder.step5.summaryIsolated")}</span>
+                    <strong className="text-slate-900">{networkOverview.isolatedAgents.length}</strong>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">{t("experimentBuilder.step5.summaryPattern")}</span>
+                    <strong className="text-right text-slate-900">
+                      {selectedPreset
+                        ? t(`experimentBuilder.step5.presets.${presetIcons[selectedPreset].translationKey}.name`)
+                        : t("experimentBuilder.step5.noPattern")}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[24px] border border-slate-200 bg-white p-5">
+                <div className="kicker">
+                  {t("experimentBuilder.step5.agentCollections", { defaultValue: "Agent collections" })}
+                </div>
+                <div className="mt-4 space-y-2">
+                  {agentCollections.map((collection) => (
+                    <div
+                      key={collection.key}
+                      className="flex items-center justify-between rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
+                    >
+                      <div className="min-w-0">
+                        <div className="truncate font-medium text-slate-900">{collection.title}</div>
+                        <div className="text-xs text-slate-500">
+                          {t("experimentBuilder.step5.collectionRepresentative", {
+                            defaultValue: "Representative",
+                          })}
+                          : {collection.representative.label}
+                        </div>
+                      </div>
+                      <span className="text-slate-500">
+                        {collection.count}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-[24px] border border-slate-200 bg-white p-5">
+                <div className="kicker">
+                  {t("components.networkEditorModal.hubAgents", { defaultValue: "Key connectors" })}
+                </div>
+                <div className="mt-4 space-y-2">
+                  {networkOverview.hubAgents.map((agent) => (
+                    <div key={agent.id} className="flex items-center justify-between rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                      <span className="font-medium text-slate-900">{agent.id}</span>
+                      <span className="text-slate-500">
+                        {t("components.networkEditorModal.degree", { defaultValue: "Degree" })}: {agent.degree}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-[24px] border border-slate-200 bg-white p-5">
+                <div className="kicker">{t("components.networkEditorModal.isolatedAgents")}</div>
+                {groupedIsolatedAgents.length > 0 ? (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {groupedIsolatedAgents.map((group) => (
+                      <span key={group.title} className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
+                        {group.title} × {group.count}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="lab-meta mt-4">
+                    {t("components.networkEditorModal.noIsolatedAgents", { defaultValue: "All agents are connected to at least one peer." })}
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (
             <div
-              className="studio-network-floating absolute z-20 pointer-events-none max-w-xs px-3 py-2 text-[11px] text-[var(--sim-text)]"
-              style={{ left: hoverInfo.x, top: hoverInfo.y }}
+              ref={containerRef}
+              className="relative mt-5 h-full min-h-[640px] bg-[radial-gradient(circle_at_top,_rgba(63,98,124,0.08),_transparent_32%),linear-gradient(180deg,_rgba(255,255,255,0.45),_rgba(248,250,252,0.85))]"
             >
-              <div className="font-semibold text-[var(--sim-text-strong)]">{hoverInfo.name}</div>
-              <div className="mt-1 whitespace-pre-wrap break-words text-[var(--sim-text-muted)]">
-                {hoverInfo.profile || t('experimentBuilder.step5.noProfile', '无简介')}
+              <svg ref={svgRef} className="block h-full w-full" />
+
+              {edges.length === 0 ? (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-8">
+                  <div className="max-w-md rounded-[28px] border border-slate-200 bg-white/92 p-6 text-center shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+                    <div className="section-title">{t("experimentBuilder.step5.emptyCanvasTitle")}</div>
+                    <p className="lab-meta mt-3">{t("experimentBuilder.step5.emptyCanvasBody")}</p>
+                  </div>
+                </div>
+              ) : null}
+
+              {hoverInfo ? (
+                <div
+                  className="absolute z-20 max-w-xs rounded-[20px] border border-slate-200 bg-white/95 px-3 py-2 text-[11px] text-slate-700 shadow-lg"
+                  style={{ left: hoverInfo.x, top: hoverInfo.y }}
+                >
+                  <div className="font-semibold">{hoverInfo.name}</div>
+                  <div className="mt-1 whitespace-pre-wrap break-words text-slate-500">
+                    {hoverInfo.profile || t("components.agentPanel.noProfile")}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="absolute right-4 top-4 flex flex-col gap-1 rounded-[18px] border border-slate-200 bg-white/90 p-1">
+                <button onClick={handleZoomIn} className="rounded-[14px] p-2 text-slate-600 hover:bg-slate-100">
+                  <ZoomIn size={16} />
+                </button>
+                <button onClick={handleZoomOut} className="rounded-[14px] p-2 text-slate-600 hover:bg-slate-100">
+                  <ZoomOut size={16} />
+                </button>
+                <button onClick={handleResetZoom} className="rounded-[14px] p-2 text-slate-600 hover:bg-slate-100">
+                  <Maximize size={16} />
+                </button>
+              </div>
+
+              <div className="absolute bottom-4 left-4 flex flex-wrap items-center gap-2 rounded-full border border-slate-200 bg-white/92 px-4 py-2 text-xs text-slate-600">
+                <span>{t("experimentBuilder.step5.summaryAgents")}: {agentIds.length}</span>
+                <span>{t("experimentBuilder.step5.summaryEdges")}: {networkOverview.edgeCount}</span>
+                <span>{t("components.networkEditorModal.density")}: {(networkOverview.density * 100).toFixed(0)}%</span>
               </div>
             </div>
           )}
+        </section>
 
-          <div className="studio-network-floating absolute left-4 top-4 max-w-sm px-4 py-3">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--sim-text-soft)]">
-              Active structure
-            </div>
-            <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-[var(--sim-text-strong)]">
-              {selectedPresetMeta ? React.createElement(selectedPresetMeta.icon, { size: 14 }) : <Network size={14} />}
-              {selectedPresetMeta
-                ? t(`experimentBuilder.step5.presets.${selectedPresetMeta.translationKey}.name`)
-                : 'Custom network'}
-            </div>
-            <p className="mt-2 text-sm leading-6 text-[var(--sim-text-muted)]">
-              {selectedPresetMeta
-                ? t(`experimentBuilder.step5.presets.${selectedPresetMeta.translationKey}.description`)
-                : 'The graph currently mixes preset structure with manual edits.'}
-            </p>
-          </div>
-
-          <div className="studio-network-floating absolute bottom-4 left-4 px-4 py-3 text-xs text-[var(--sim-text-muted)]">
-            <div className="flex flex-wrap items-center gap-4">
-              <span>
-                <strong className="text-[var(--sim-text-strong)]">{agentIds.length}</strong>{' '}
-                {t('experimentBuilder.step5.nodes', { count: agentIds.length })}
-              </span>
-              <span>
-                <strong className="text-[var(--sim-text-strong)]">{edges.length}</strong>{' '}
-                {t('experimentBuilder.step5.edges', { count: edges.length })}
-              </span>
-              <span>
-                <strong className="text-[var(--sim-text-strong)]">{isolatedCount}</strong> isolated
-              </span>
-            </div>
-          </div>
-
-          <div className="studio-network-floating absolute right-4 top-4 flex flex-col gap-1 p-1">
-            <button
-              type="button"
-              onClick={handleZoomIn}
-              className="rounded-[14px] p-2 text-[var(--sim-text-muted)] hover:bg-[var(--sim-surface-3)]"
-              title={t('experimentBuilder.network.zoomIn')}
-            >
-              <ZoomIn size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={handleZoomOut}
-              className="rounded-[14px] p-2 text-[var(--sim-text-muted)] hover:bg-[var(--sim-surface-3)]"
-              title={t('experimentBuilder.network.zoomOut')}
-            >
-              <ZoomOut size={16} />
-            </button>
-            <div className="my-0.5 h-px bg-[var(--sim-border)]"></div>
-            <button
-              type="button"
-              onClick={handleResetZoom}
-              className="rounded-[14px] p-2 text-[var(--sim-text-muted)] hover:bg-[var(--sim-surface-3)]"
-              title={t('experimentBuilder.network.resetView')}
-            >
-              <Maximize size={16} />
-            </button>
-          </div>
-        </div>
-
-        <aside className="studio-network-brief">
-          <section className="studio-field-group">
-            <div className="page-hero__eyebrow w-fit">Live briefing</div>
-            <div className="space-y-3">
-              <div className="rounded-[18px] border border-[var(--sim-border)] bg-[rgba(255,255,255,0.36)] px-4 py-4 dark:bg-[rgba(255,255,255,0.02)]">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--sim-text-soft)]">
-                  Density
-                </div>
-                <div className="mt-2 text-2xl font-semibold text-[var(--sim-text-strong)]">
-                  {Math.round(connectionDensity * 100)}%
-                </div>
-                <div className="mt-2 text-sm text-[var(--sim-text-muted)]">
-                  Higher density increases information exposure and accelerates convergence.
-                </div>
+        <aside className="space-y-4">
+          <div className="lab-surface p-5">
+            <div className="kicker">{t("experimentBuilder.step5.briefingTitle")}</div>
+            <div className="mt-3 section-title">{t("experimentBuilder.step5.briefingTitle")}</div>
+            <p className="lab-meta mt-2">{t("experimentBuilder.step5.briefingDescription")}</p>
+            <div className="mt-5 space-y-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">{t("experimentBuilder.step5.summaryAgents")}</span>
+                <span className="font-semibold text-slate-900">{agentIds.length}</span>
               </div>
-              <div className="rounded-[18px] border border-[var(--sim-border)] bg-[rgba(255,255,255,0.36)] px-4 py-4 dark:bg-[rgba(255,255,255,0.02)]">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--sim-text-soft)]">
-                  Isolation check
-                </div>
-                <div className="mt-2 text-lg font-semibold text-[var(--sim-text-strong)]">
-                  {isolatedCount === 0 ? 'All agents connected' : `${isolatedCount} agents isolated`}
-                </div>
-                <div className="mt-2 text-sm text-[var(--sim-text-muted)]">
-                  The preset engine already avoids empty islands, but manual edits can still reshape the final flow of influence.
-                </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">{t("experimentBuilder.step5.summaryEdges")}</span>
+                <span className="font-semibold text-slate-900">{networkOverview.edgeCount}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">{t("experimentBuilder.step5.summaryIsolated")}</span>
+                <span className="font-semibold text-slate-900">{networkOverview.isolatedAgents.length}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">{t("experimentBuilder.step5.summaryPattern")}</span>
+                <span className="text-right font-semibold text-slate-900">
+                  {selectedPreset
+                    ? t(`experimentBuilder.step5.presets.${presetIcons[selectedPreset].translationKey}.name`)
+                    : t("experimentBuilder.step5.noPattern")}
+                </span>
               </div>
             </div>
-          </section>
+          </div>
 
-          <section className="studio-field-group">
-            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--sim-text-soft)]">
-              Connection sample
+          <div className="lab-surface p-5">
+            <div className="kicker">
+              {t("experimentBuilder.step5.groupedConnections", { defaultValue: "Grouped connections" })}
             </div>
-            <div className="space-y-2">
-              {edges.slice(0, 6).map(({ key, source, target }) => (
-                <div
-                  key={key}
-                  className="rounded-[16px] border border-[var(--sim-border)] bg-[rgba(255,255,255,0.34)] px-3 py-3 text-sm text-[var(--sim-text-muted)] dark:bg-[rgba(255,255,255,0.02)]"
-                >
-                  <div className="font-medium text-[var(--sim-text-strong)]">{source}</div>
-                  <div className="mt-1 text-[var(--sim-text-soft)]">linked with {target}</div>
-                </div>
-              ))}
-              {edges.length === 0 && (
-                <div className="rounded-[16px] border border-dashed border-[var(--sim-border)] px-4 py-4 text-sm text-[var(--sim-text-soft)]">
-                  Manual and preset connections will appear here once the graph is populated.
-                </div>
+            <div className="mt-4 space-y-2">
+              {groupedEdges.length > 0 ? (
+                groupedEdges.map((group) => (
+                  <div key={group.key} className="lab-inset p-3 text-sm text-slate-700">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="truncate font-medium text-slate-900">
+                        {group.sourceTitle} ↔ {group.targetTitle}
+                      </span>
+                      <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500">
+                        × {group.count}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      {group.sample.join(" · ")}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="lab-meta">{t("experimentBuilder.step5.noLinks")}</p>
               )}
             </div>
-          </section>
+
+            <button
+              type="button"
+              onClick={() => setShowAdvancedLinks((current) => !current)}
+              className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
+            >
+              <Settings2 size={14} />
+              {showAdvancedLinks
+                ? t("experimentBuilder.step5.hideAdvancedLinks", { defaultValue: "Hide advanced member links" })
+                : t("experimentBuilder.step5.showAdvancedLinks", { defaultValue: "Show advanced member links" })}
+            </button>
+
+            {showAdvancedLinks ? (
+              <div className="mt-4 space-y-4 rounded-[20px] border border-slate-200 bg-slate-50 p-4">
+                <div className="space-y-3">
+                  <select value={linkFrom} onChange={(event) => setLinkFrom(event.target.value)}>
+                    {agentIds.map((id) => (
+                      <option key={id} value={id}>
+                        {id}
+                      </option>
+                    ))}
+                  </select>
+                  <select value={linkTo} onChange={(event) => setLinkTo(event.target.value)}>
+                    {agentIds.map((id) => (
+                      <option key={id} value={id}>
+                        {id}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    disabled={!linkFrom || !linkTo || linkFrom === linkTo}
+                    onClick={addLink}
+                  >
+                    {t("experimentBuilder.step5.addLink")}
+                  </Button>
+                </div>
+
+                <div className="max-h-[240px] space-y-2 overflow-y-auto pr-1">
+                  {edges.map((edge) => (
+                    <div key={edge.key} className="lab-inset flex items-center justify-between gap-3 p-3 text-sm text-slate-700">
+                      <span className="truncate">
+                        {edge.source} ↔ {edge.target}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeLink(edge.key)}
+                        className="text-xs text-rose-600 hover:text-rose-800"
+                      >
+                        {t("common.cancel")}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {groupedIsolatedAgents.length > 0 ? (
+              <div className="mt-4 rounded-[20px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                <div className="font-medium">{t("components.networkEditorModal.isolatedAgents")}</div>
+                <div className="mt-2 space-y-1 text-xs leading-6">
+                  {groupedIsolatedAgents.map((group) => (
+                    <div key={group.title}>
+                      {group.title} × {group.count}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
         </aside>
       </div>
     </div>

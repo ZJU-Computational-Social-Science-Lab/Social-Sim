@@ -1,15 +1,22 @@
-import React from "react";
+/**
+ * Card UI Component
+ *
+ * Reusable card component for containing content with consistent styling.
+ */
+
+import React from 'react';
 
 export interface CardProps {
   children: React.ReactNode;
   className?: string;
 }
 
-export const Card: React.FC<CardProps> = ({
-  children,
-  className = "",
-}) => {
-  return <div className={`card ${className}`.trim()}>{children}</div>;
+export const Card: React.FC<CardProps> = ({ children, className = '' }) => {
+  return (
+    <div className={`lab-surface overflow-hidden ${className}`.trim()}>
+      {children}
+    </div>
+  );
 };
 
 export interface CardHeaderProps {
@@ -17,14 +24,9 @@ export interface CardHeaderProps {
   className?: string;
 }
 
-export const CardHeader: React.FC<CardHeaderProps> = ({
-  children,
-  className = "",
-}) => {
+export const CardHeader: React.FC<CardHeaderProps> = ({ children, className = '' }) => {
   return (
-    <div
-      className={`flex items-start justify-between gap-4 border-b border-[var(--sim-border)] pb-4 ${className}`.trim()}
-    >
+    <div className={`border-b border-slate-200/80 px-6 py-5 ${className}`.trim()}>
       {children}
     </div>
   );
@@ -35,11 +37,12 @@ export interface CardContentProps {
   className?: string;
 }
 
-export const CardContent: React.FC<CardContentProps> = ({
-  children,
-  className = "",
-}) => {
-  return <div className={`flex flex-col gap-4 ${className}`.trim()}>{children}</div>;
+export const CardContent: React.FC<CardContentProps> = ({ children, className = '' }) => {
+  return (
+    <div className={`p-6 ${className}`.trim()}>
+      {children}
+    </div>
+  );
 };
 
 export interface CardTitleProps {
@@ -47,14 +50,9 @@ export interface CardTitleProps {
   className?: string;
 }
 
-export const CardTitle: React.FC<CardTitleProps> = ({
-  children,
-  className = "",
-}) => {
+export const CardTitle: React.FC<CardTitleProps> = ({ children, className = '' }) => {
   return (
-    <h3
-      className={`font-[var(--sim-font-display)] text-[1.05rem] font-bold text-[var(--sim-text-strong)] ${className}`.trim()}
-    >
+    <h3 className={`font-[var(--font-display)] text-xl font-semibold tracking-[-0.03em] text-slate-900 ${className}`.trim()}>
       {children}
     </h3>
   );

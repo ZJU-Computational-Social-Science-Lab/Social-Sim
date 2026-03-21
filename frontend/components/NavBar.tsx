@@ -1,124 +1,187 @@
+import { useEffect, useState } from "react";
+import { Menu, MoonStar, SunMedium, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import {
-  BookOpen,
-  LayoutDashboard,
-  LogOut,
-  Moon,
-  Settings2,
-  Sparkles,
-  Sun,
-  User,
-} from "lucide-react";
-
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useAuthStore } from "../store/auth";
 import { useThemeStore } from "../store/theme";
 
-type NavItem = {
-  to: string;
-  label: string;
-  icon: React.ReactNode;
-};
+export type NavBarVariant = "default" | "product";
 
-export function NavBar() {
+export function NavBar({ variant = "default" }: { variant?: NavBarVariant }) {
   const location = useLocation();
   const { t } = useTranslation();
+  const [compactOpen, setCompactOpen] = useState(false);
 
-  const user = useAuthStore((state) => state.user);
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const clearSession = useAuthStore((state) => state.clearSession);
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const clearSession = useAuthStore((s) => s.clearSession);
 
-  const mode = useThemeStore((state) => state.mode);
-  const toggle = useThemeStore((state) => state.toggle);
+  const mode = useThemeStore((s) => s.mode);
+  const toggle = useThemeStore((s) => s.toggle);
 
-  const navItems: NavItem[] = [
-    { to: "/dashboard", label: t("nav.dashboard"), icon: <LayoutDashboard className="h-4 w-4" /> },
-    { to: "/simulations/new", label: t("nav.new"), icon: <Sparkles className="h-4 w-4" /> },
-    { to: "/simulations/saved", label: t("nav.saved"), icon: <BookOpen className="h-4 w-4" /> },
-    { to: "/settings/providers", label: t("nav.settings"), icon: <Settings2 className="h-4 w-4" /> },
-    { to: "/docs", label: t("nav.docs") || "Docs", icon: <BookOpen className="h-4 w-4" /> },
+  const isProduct = variant === "product";
+  const isAdmin = String((user as any)?.role || "") === "admin";
+  const navItems = [
+    { to: "/dashboard", label: t("nav.dashboard") },
+    { to: "/simulations/new", label: t("nav.new") },
+    { to: "/simulations/saved", label: t("nav.saved") },
+    { to: "/settings/providers", label: t("nav.settings") },
+    { to: "/docs", label: t("nav.docs") || "Docs" },
   ];
+  const allNavItems = isAdmin
+    ? [...navItems, { to: "/admin", label: t("nav.admin") || "Admin" }]
+    : navItems;
+  const themeIcon =
+    isProduct
+      ? mode === "dark"
+        ? <MoonStar size={16} strokeWidth={2.1} />
+        : <SunMedium size={16} strokeWidth={2.1} />
+      : mode === "dark"
+        ? "🌙"
+        : "☀️";
+
+  useEffect(() => {
+    setCompactOpen(false);
+  }, [location.pathname, variant]);
+
+  useEffect(() => {
+    if (!isProduct) {
+      return;
+    }
+
+    const media = window.matchMedia("(min-width: 961px)");
+    const closeCompact = () => {
+      if (media.matches) {
+        setCompactOpen(false);
+      }
+    };
+
+    closeCompact();
+    media.addEventListener("change", closeCompact);
+
+    return () => media.removeEventListener("change", closeCompact);
+  }, [isProduct]);
+
+  const renderNavLinks = (extraClass = "") =>
+    allNavItems.map((item) => (
+      <Link
+        key={item.to}
+        to={item.to}
+        className={`nav-link ${extraClass} ${
+          location.pathname.startsWith(item.to) ? "active" : ""
+        }`.trim()}
+      >
+        {item.label}
+      </Link>
+    ));
 
   return (
-    <nav className="product-nav">
-      <div className="product-nav__inner">
-        <Link to="/" className="product-brand">
-          <div className="product-brand__mark">
-            <Sparkles className="h-5 w-5" />
-          </div>
-          <div className="flex min-w-0 flex-col">
-            <span className="product-brand__title">{t("brand")}</span>
-            <span className="product-brand__meta">Calm Social Simulation</span>
-          </div>
-        </Link>
+    <nav className={`nav ${isProduct ? "nav--product" : ""} ${compactOpen ? "nav--product-open" : ""}`}>
+      <div className="nav-shell">
+        <div className="nav-left">
+          <Link to="/" className="nav-brand">
+            {t("brand")}
+          </Link>
 
-        <div className="product-nav__rail no-scrollbar">
-          {navItems.map((item) => {
-            const isActive = location.pathname.startsWith(item.to);
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`product-nav__link ${isActive ? "active" : ""}`.trim()}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+          <div className="nav-links nav-links--desktop">
+            {renderNavLinks()}
+          </div>
         </div>
 
-        <div className="product-nav__actions">
-          <button
-            type="button"
-            className="icon-button square"
-            onClick={toggle}
-            title={t("components.navBar.toggleTheme")}
-          >
-            {mode === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
+        <div className="nav-right">
+          <div className="nav-utilities">
+            <button
+              type="button"
+              className={`icon-button ${isProduct ? "icon-button--product square" : ""}`}
+              onClick={toggle}
+              title={t("components.navBar.toggleTheme")}
+            >
+              {themeIcon}
+            </button>
 
-          <LanguageSwitcher />
+            <LanguageSwitcher variant={isProduct ? "product" : "default"} />
+          </div>
 
-          <span className="product-divider" />
+          {isProduct ? <div className="nav-divider nav-divider--desktop" /> : null}
 
-          {isAuthenticated ? (
-            <>
-              <div className="hidden items-center gap-3 sm:flex">
-                <div className="product-avatar">
-                  <User className="h-4 w-4 text-[var(--sim-text-muted)]" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-[var(--sim-text-strong)]">
-                    {String((user as any)?.email ?? "").split("@")[0]}
-                  </span>
-                  <span className="text-xs text-[var(--sim-text-soft)]">
-                    {String((user as any)?.role ?? "member")}
-                  </span>
-                </div>
+          <div className={`nav-session ${isProduct ? "nav-session--desktop" : ""}`}>
+            {isAuthenticated ? (
+              <div className={`nav-user ${isProduct ? "nav-user--product" : ""}`}>
+                <span className="nav-username">
+                  {String((user as any)?.email ?? "")}
+                </span>
+                <button
+                  type="button"
+                  className={`text-button ${isProduct ? "nav-signout" : ""}`}
+                  onClick={clearSession}
+                >
+                  {t("nav.signout")}
+                </button>
               </div>
-              <button
-                type="button"
-                className="icon-button square"
-                onClick={clearSession}
-                title={t("nav.signout")}
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
-            </>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Link to="/login" className="button-ghost button-sm">
-                {t("nav.login")}
-              </Link>
-              <Link to="/register" className="button button-sm">
-                {t("nav.register")}
-              </Link>
-            </div>
-          )}
+            ) : (
+              <div className={`nav-auth ${isProduct ? "nav-auth--product" : ""}`}>
+                <Link
+                  to="/login"
+                  className={isProduct ? "nav-auth-link nav-auth-link--login" : "nav-link"}
+                >
+                  {t("nav.login")}
+                </Link>
+                <Link
+                  to="/register"
+                  className={isProduct ? "nav-auth-link nav-auth-link--register" : "nav-link"}
+                >
+                  {t("nav.register")}
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {isProduct ? (
+            <button
+              type="button"
+              className="icon-button icon-button--product square nav-menu-toggle"
+              onClick={() => setCompactOpen((open) => !open)}
+              aria-expanded={compactOpen}
+              aria-controls="product-nav-panel"
+              aria-label={compactOpen ? t("common.hide") : t("common.show")}
+              title={compactOpen ? t("common.hide") : t("common.show")}
+            >
+              {compactOpen ? <X size={17} strokeWidth={2.1} /> : <Menu size={17} strokeWidth={2.1} />}
+            </button>
+          ) : null}
         </div>
       </div>
+
+      {isProduct ? (
+        <div
+          id="product-nav-panel"
+          className={`nav-mobile ${compactOpen ? "nav-mobile--open" : ""}`}
+          aria-hidden={!compactOpen}
+        >
+          <div className="nav-mobile-shell">
+            <div className="nav-mobile-links">{renderNavLinks("nav-link--mobile")}</div>
+
+            {isAuthenticated ? (
+              <div className="nav-mobile-session nav-mobile-session--user">
+                <span className="nav-mobile-email">{String((user as any)?.email ?? "")}</span>
+                <button type="button" className="nav-mobile-signout" onClick={clearSession}>
+                  {t("nav.signout")}
+                </button>
+              </div>
+            ) : (
+              <div className="nav-mobile-session">
+                <Link to="/login" className="nav-auth-link nav-auth-link--login">
+                  {t("nav.login")}
+                </Link>
+                <Link to="/register" className="nav-auth-link nav-auth-link--register">
+                  {t("nav.register")}
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
     </nav>
   );
 }

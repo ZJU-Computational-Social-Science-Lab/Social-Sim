@@ -1,314 +1,394 @@
+import { useEffect } from "react";
+import {
+  Archive,
+  ArrowRight,
+  ArrowUpRight,
+  Eye,
+  GitBranch,
+  LayoutDashboard,
+  Layers3,
+  Settings2,
+  SlidersHorizontal,
+  SquarePlus,
+  Waypoints,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import {
-  ArrowRight,
-  BrainCircuit,
-  Network,
-  Orbit,
-  PlayCircle,
-  Radar,
-  Sparkles,
-  Users,
-} from "lucide-react";
-
-import { useAuthStore } from "../store/auth";
-
-const HOW_IT_WORKS = [
-  {
-    title: "Frame a world",
-    body: "Choose a social setting, define the stakes, and establish the conditions agents will inherit before the first turn.",
-    icon: Orbit,
-  },
-  {
-    title: "Shape agency",
-    body: "Select action spaces, tune rules, and create agent populations with enough nuance to let alliances and fractures emerge.",
-    icon: BrainCircuit,
-  },
-  {
-    title: "Replay the system",
-    body: "Inspect branching outcomes, changing ties, and the prompts that produced each move instead of staring at a black-box result.",
-    icon: Radar,
-  },
-];
-
-const GALLERY = [
-  {
-    name: "Policy cascade",
-    tone: "badge",
-    description: "Track how interpretation shifts across institutional tiers as a directive travels from top to bottom.",
-    tags: ["hierarchy", "sequential rounds", "policy meaning"],
-  },
-  {
-    name: "Public goods lab",
-    tone: "badge-green",
-    description: "See how reciprocity, free-riding, and local trust change once resources become visible and finite.",
-    tags: ["game theory", "resource sharing", "collective action"],
-  },
-  {
-    name: "Rumor network",
-    tone: "badge-purple",
-    description: "Model how signal quality degrades, clusters polarize, and narratives gain momentum through social edges.",
-    tags: ["information diffusion", "network effects", "misalignment"],
-  },
-];
-
-const VALUE_CARDS = [
-  {
-    title: "From prompt to provenance",
-    body: "Every major decision remains inspectable: scenario state, action set, agent prompt, and network configuration all stay visible.",
-  },
-  {
-    title: "Built for experimental rhythm",
-    body: "Create a study, launch it, branch it, and compare outcomes without jumping between unrelated admin pages.",
-  },
-  {
-    title: "Human-readable systems design",
-    body: "The interface stays calm and editorial, so complex simulations feel like something you can reason about, not just configure.",
-  },
-];
 
 export function LandingPage() {
   const { t } = useTranslation();
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  useEffect(() => {
+    const sections = document.querySelectorAll<HTMLElement>(".ss-reveal");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      {
+        threshold: 0.18,
+        rootMargin: "0px 0px -10% 0px",
+      }
+    );
+
+    sections.forEach((section) => observer.observe(section));
+
+    return () => observer.disconnect();
+  }, []);
+
+  const heroTags = [
+    t("landing.hero.tag1"),
+    t("landing.hero.tag2"),
+    t("landing.hero.tag3"),
+  ];
+
+  const entryCards = [
+    {
+      to: "/dashboard",
+      title: t("landing.entry.dashboardTitle"),
+      subtitle: t("landing.entry.dashboardSubtitle"),
+      icon: LayoutDashboard,
+    },
+    {
+      to: "/simulations/new",
+      title: t("landing.entry.interfaceTitle"),
+      subtitle: t("landing.entry.interfaceSubtitle"),
+      icon: Layers3,
+    },
+    {
+      to: "/simulations/saved",
+      title: t("landing.entry.savedTitle"),
+      subtitle: t("landing.entry.savedSubtitle"),
+      icon: Archive,
+    },
+    {
+      to: "/settings/providers",
+      title: t("landing.entry.settingsTitle"),
+      subtitle: t("landing.entry.settingsSubtitle"),
+      icon: Settings2,
+    },
+  ];
+
+  const sceneCards = [
+    {
+      tone: "policy",
+      title: t("landing.scenes.policyTitle"),
+      subtitle: t("landing.scenes.policySubtitle"),
+      body: t("landing.scenes.policyBody"),
+    },
+    {
+      tone: "behavior",
+      title: t("landing.scenes.behaviorTitle"),
+      subtitle: t("landing.scenes.behaviorSubtitle"),
+      body: t("landing.scenes.behaviorBody"),
+    },
+    {
+      tone: "institution",
+      title: t("landing.scenes.institutionTitle"),
+      subtitle: t("landing.scenes.institutionSubtitle"),
+      body: t("landing.scenes.institutionBody"),
+    },
+    {
+      tone: "intervention",
+      title: t("landing.scenes.interventionTitle"),
+      subtitle: t("landing.scenes.interventionSubtitle"),
+      body: t("landing.scenes.interventionBody"),
+    },
+  ];
+
+  const finalActions = [
+    {
+      to: "/simulations/new",
+      label: t("landing.finalCta.new"),
+      icon: SquarePlus,
+      primary: true,
+    },
+    {
+      to: "/dashboard",
+      label: t("landing.finalCta.dashboard"),
+      icon: LayoutDashboard,
+      primary: false,
+    },
+    {
+      to: "/simulations/saved",
+      label: t("landing.finalCta.saved"),
+      icon: Archive,
+      primary: false,
+    },
+  ];
 
   return (
-    <div className="landing-shell">
-      <section className="landing-hero">
-        <div className="landing-hero__layout">
-          <div className="flex flex-col gap-8">
-            <div className="page-hero__eyebrow fade-in-up">
-              <Sparkles className="h-3.5 w-3.5" />
-              Calm tech for social experiments
-            </div>
+    <div className="ss-landing">
+      <section className="ss-landing__hero ss-reveal">
+        <div className="ss-landing__frame ss-landing__hero-grid">
+          <div className="ss-landing__hero-copy">
+            <div className="ss-landing__eyebrow">{t("landing.hero.badge")}</div>
 
-            <div className="fade-in-up" style={{ animationDelay: "80ms" }}>
-              <h1 className="text-hero">
-                Design worlds where
-                <br />
-                relationships can change.
+            <div className="ss-landing__headline-group">
+              <h1 className="ss-landing__title">
+                <span className="ss-landing__title-line">{t("landing.hero.line1")}</span>
+                <span className="ss-landing__title-line">{t("landing.hero.line2")}</span>
+                <span className="ss-landing__title-accent">{t("landing.hero.accent")}</span>
               </h1>
-              <p className="mt-6 max-w-2xl text-subtitle">
-                SocialSim4 turns agent simulation into a composed product workflow:
-                pick a scene, shape agency, watch ties evolve, and replay the exact
-                decisions that led there.
-              </p>
+
+              <p className="ss-landing__subtitle">{t("landing.hero.sub")}</p>
             </div>
 
-            <div className="metric-row fade-in-up" style={{ animationDelay: "140ms" }}>
-              <div className="metric-pill">
-                <div className="text-[0.8rem] font-extrabold uppercase tracking-[0.12em] text-[var(--sim-text-soft)]">
-                  Experimental arcs
-                </div>
-                <div className="mt-2 text-2xl font-bold text-[var(--sim-text-strong)]">
-                  6-step studio
-                </div>
-              </div>
-              <div className="metric-pill">
-                <div className="text-[0.8rem] font-extrabold uppercase tracking-[0.12em] text-[var(--sim-text-soft)]">
-                  Relationship lens
-                </div>
-                <div className="mt-2 text-2xl font-bold text-[var(--sim-text-strong)]">
-                  Live networks
-                </div>
-              </div>
-              <div className="metric-pill">
-                <div className="text-[0.8rem] font-extrabold uppercase tracking-[0.12em] text-[var(--sim-text-soft)]">
-                  Replay value
-                </div>
-                <div className="mt-2 text-2xl font-bold text-[var(--sim-text-strong)]">
-                  Prompt provenance
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-4 fade-in-up" style={{ animationDelay: "220ms" }}>
-              <Link to={isAuthenticated ? "/simulations/new" : "/register"} className="button">
-                Start an experiment
-                <ArrowRight className="h-4 w-4" />
+            <div className="ss-landing__hero-actions">
+              <Link to="/simulations/new" className="ss-landing__button ss-landing__button--primary">
+                <span>{t("landing.hero.primaryCta")}</span>
+                <ArrowRight size={16} />
               </Link>
-              <Link to={isAuthenticated ? "/dashboard" : "/login"} className="button-ghost">
-                <PlayCircle className="h-4 w-4" />
-                Open workspace
+              <Link to="/docs" className="ss-landing__button ss-landing__button--ghost">
+                {t("landing.hero.secondaryCta")}
               </Link>
             </div>
-          </div>
 
-          <div className="landing-stage fade-in-up" style={{ animationDelay: "280ms" }}>
-            <div className="landing-stage__grid" />
-
-            <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <path d="M18 22 C34 18, 44 34, 58 30 S84 24, 86 40" stroke="rgba(74, 123, 208, 0.36)" strokeWidth="0.5" fill="none" />
-              <path d="M26 68 C38 52, 60 54, 72 70" stroke="rgba(54, 151, 136, 0.36)" strokeWidth="0.5" fill="none" />
-              <path d="M32 32 C42 44, 58 48, 64 64" stroke="rgba(127, 107, 201, 0.28)" strokeWidth="0.5" fill="none" />
-            </svg>
-
-            <div className="landing-node breathing-node" style={{ top: "18%", left: "18%", width: 22, height: 22, background: "rgba(51,104,200,0.84)" }} />
-            <div className="landing-node breathing-node" style={{ top: "29%", right: "24%", width: 18, height: 18, background: "rgba(45,143,132,0.82)", animationDelay: "0.4s" }} />
-            <div className="landing-node breathing-node" style={{ bottom: "22%", left: "30%", width: 16, height: 16, background: "rgba(127,107,201,0.82)", animationDelay: "0.8s" }} />
-            <div className="landing-node breathing-node" style={{ bottom: "18%", right: "18%", width: 24, height: 24, background: "rgba(190,136,82,0.82)", animationDelay: "1.1s" }} />
-
-            <div className="landing-stage-card hover-lift" style={{ top: "8%", right: "10%", width: "44%" }}>
-              <div className="flex items-center justify-between">
-                <span className="badge">Experiment world</span>
-                <span className="text-caption">Tick 07</span>
-              </div>
-              <div className="text-lg font-bold text-[var(--sim-text-strong)]">
-                Coalition pressure begins to split the network.
-              </div>
-              <p className="text-sm leading-6 text-[var(--sim-text-muted)]">
-                Three clusters are now reacting to the same policy in different
-                ways. One interprets, one amplifies, one resists.
-              </p>
-            </div>
-
-            <div className="landing-stage-card hover-lift" style={{ left: "10%", bottom: "10%", width: "40%" }}>
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-[16px] bg-[rgba(45,143,132,0.12)] text-[var(--sim-teal)]">
-                  <Users className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-[var(--sim-text-strong)]">
-                    Live relationship summary
-                  </div>
-                  <div className="text-caption">4 factions, 2 unstable bridges</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-[var(--sim-text-muted)]">
-                <Network className="h-4 w-4 text-[var(--sim-primary)]" />
-                Edges are no longer evenly distributed.
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="story-section">
-        <div className="story-section__header">
-          <div className="page-hero__eyebrow">How it works</div>
-          <h2 className="text-title">A product flow built around experimental rhythm.</h2>
-          <p className="text-subtitle">
-            The interface is designed to feel like entering an experimental world,
-            not filling out a default admin form.
-          </p>
-        </div>
-
-        <div className="editorial-grid">
-          {HOW_IT_WORKS.map((item, index) => {
-            const Icon = item.icon;
-            return (
-              <article
-                key={item.title}
-                className="story-card span-4 fade-in-up"
-                style={{ animationDelay: `${index * 120}ms` }}
-              >
-                <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-[var(--sim-primary-soft)] text-[var(--sim-primary)]">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <h3 className="mt-5 text-[1.18rem] font-bold text-[var(--sim-text-strong)]">
-                  {item.title}
-                </h3>
-                <p className="mt-3 text-[0.98rem] leading-7 text-[var(--sim-text-muted)]">
-                  {item.body}
-                </p>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="story-section">
-        <div className="story-section__header">
-          <div className="page-hero__eyebrow">Scenario gallery</div>
-          <h2 className="text-title">Start from a system worth observing.</h2>
-          <p className="text-subtitle">
-            Each world suggests a different social texture: coordinated cooperation,
-            fragile hierarchies, or rumor-driven fragmentation.
-          </p>
-        </div>
-
-        <div className="scenario-gallery-grid">
-          {GALLERY.map((item) => (
-            <article key={item.name} className="scenario-card">
-              <div className={`badge ${item.tone}`.trim()}>{item.name}</div>
-              <p className="mt-6 text-[1rem] leading-7 text-[var(--sim-text-muted)]">
-                {item.description}
-              </p>
-              <div className="mt-8 flex flex-wrap gap-2">
-                {item.tags.map((tag) => (
-                  <span key={tag} className="status-pill">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="story-section">
-        <div className="story-section__header">
-          <div className="page-hero__eyebrow">Replay value</div>
-          <h2 className="text-title">Why this product matters after the run finishes.</h2>
-          <p className="text-subtitle">
-            Simulations are only useful if you can understand what shifted, why it shifted,
-            and how to replay the turning point.
-          </p>
-        </div>
-
-        <div className="editorial-grid">
-          <article className="feature-card span-7">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-[rgba(45,143,132,0.12)] text-[var(--sim-teal)]">
-                <Radar className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-lg font-bold text-[var(--sim-text-strong)]">
-                  Read the turning point, not just the final score.
-                </div>
-                <div className="text-caption">
-                  Reopen prompts, inspect action sets, and trace network drift round by round.
-                </div>
-              </div>
-            </div>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              {VALUE_CARDS.slice(0, 2).map((item) => (
-                <div key={item.title} className="studio-field-group">
-                  <div className="text-[1rem] font-bold text-[var(--sim-text-strong)]">
-                    {item.title}
-                  </div>
-                  <div className="text-sm leading-7 text-[var(--sim-text-muted)]">
-                    {item.body}
-                  </div>
-                </div>
+            <div className="ss-landing__tag-row">
+              {heroTags.map((tag) => (
+                <span key={tag} className="ss-landing__tag">
+                  {tag}
+                </span>
               ))}
             </div>
-          </article>
+          </div>
 
-          <article className="feature-card span-5">
-            <div className="page-hero__eyebrow">Story-driven analysis</div>
-            <h3 className="mt-5 text-[1.24rem] font-bold text-[var(--sim-text-strong)]">
-              Designed for researchers, strategists, and builders who need causal texture.
-            </h3>
-            <p className="mt-4 text-[0.98rem] leading-7 text-[var(--sim-text-muted)]">
-              The product keeps experimental context visible so you can translate emergent
-              behavior into interpretable system decisions.
-            </p>
-            <div className="mt-8 studio-field-group">
-              <div className="text-[1rem] font-bold text-[var(--sim-text-strong)]">
-                {VALUE_CARDS[2].title}
+          <aside className="ss-landing__entry-board">
+            <div className="ss-landing__entry-board-shell">
+              <div className="ss-landing__entry-board-head">
+                <span className="ss-landing__entry-board-kicker">{t("landing.entry.primaryBadge")}</span>
+                <div className="ss-landing__entry-board-line" />
               </div>
-              <div className="text-sm leading-7 text-[var(--sim-text-muted)]">
-                {VALUE_CARDS[2].body}
+
+              <Link to="/simulations/new" className="ss-landing__launch-card">
+                <div className="ss-landing__launch-card-top">
+                  <SquarePlus className="ss-landing__matrix-icon ss-landing__matrix-icon--primary" size={24} />
+                  <span className="ss-landing__launch-route">/simulations/new</span>
+                </div>
+
+                <div className="ss-landing__matrix-copy">
+                  <h2 className="ss-landing__matrix-title">{t("landing.entry.primaryTitle")}</h2>
+                  <p className="ss-landing__matrix-subtitle">{t("landing.entry.primarySubtitle")}</p>
+                </div>
+
+                <div className="ss-landing__launch-card-bottom">
+                  <span className="ss-landing__launch-pill">{t("landing.hero.primaryCta")}</span>
+                  <ArrowRight size={16} />
+                </div>
+              </Link>
+
+              <div className="ss-landing__entry-matrix">
+                {entryCards.map((card) => {
+                  const Icon = card.icon;
+
+                  return (
+                    <Link key={card.title} to={card.to} className="ss-landing__entry-tile">
+                      <div className="ss-landing__entry-tile-top">
+                        <Icon className="ss-landing__matrix-icon" size={20} />
+                        <ArrowUpRight className="ss-landing__entry-arrow" size={15} />
+                      </div>
+
+                      <div className="ss-landing__matrix-copy">
+                        <h3 className="ss-landing__matrix-title">{card.title}</h3>
+                        <p className="ss-landing__matrix-subtitle">{card.subtitle}</p>
+                      </div>
+
+                      <span className="ss-landing__entry-path">{card.to}</span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
-            <Link
-              to={isAuthenticated ? "/simulations/new" : "/register"}
-              className="button mt-8 w-fit"
-            >
-              Create your first world
-              <ArrowRight className="h-4 w-4" />
+          </aside>
+        </div>
+      </section>
+
+      <section className="ss-landing__preview-band ss-reveal">
+        <div className="ss-landing__frame ss-landing__preview-shell">
+          <div className="ss-landing__preview-head">
+            <div className="ss-landing__preview-copy">
+              <h2 className="ss-landing__section-title">
+                {t("landing.preview.title")}
+                <span className="ss-landing__section-title-accent">{t("landing.preview.accent")}</span>
+              </h2>
+              <p className="ss-landing__section-subtitle">{t("landing.preview.sub")}</p>
+            </div>
+
+            <Link to="/simulations/new" className="ss-landing__preview-link">
+              <span>{t("landing.preview.cta")}</span>
+              <ArrowUpRight className="ss-landing__preview-link-icon" size={16} />
             </Link>
-          </article>
+          </div>
+
+          <div className="ss-landing__preview-grid">
+            <Link to="/simulations/new" className="ss-landing__preview-stage">
+              <img
+                src="/tutorial/05-simulation-view.png"
+                alt="SocialSim4 simulation interface preview"
+                className="ss-landing__preview-image"
+              />
+
+              <div className="ss-landing__preview-float">
+                <span>{t("landing.preview.overlayLabel")}</span>
+                <span>{t("landing.preview.overlayBranch")}</span>
+              </div>
+            </Link>
+
+            <aside className="ss-landing__preview-rail">
+              <div className="ss-landing__preview-panel">
+                <div className="ss-landing__preview-overlay-head">
+                  <span>{t("landing.preview.overlayLabel")}</span>
+                  <span>{t("landing.preview.overlayBranch")}</span>
+                </div>
+                <div className="ss-landing__preview-meter">
+                  <div className="ss-landing__preview-meter-fill" />
+                </div>
+                <p className="ss-landing__preview-overlay-copy">{t("landing.preview.overlayBody")}</p>
+              </div>
+
+              <div className="ss-landing__preview-signal-list">
+                {heroTags.map((tag) => (
+                  <div key={tag} className="ss-landing__preview-signal">
+                    <span className="ss-landing__preview-signal-dot" />
+                    <span>{tag}</span>
+                  </div>
+                ))}
+              </div>
+
+              <Link to="/simulations/new" className="ss-landing__preview-link ss-landing__preview-link--panel">
+                <span>{t("landing.hero.primaryCta")}</span>
+                <ArrowRight className="ss-landing__preview-link-icon" size={16} />
+              </Link>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <section className="ss-landing__capabilities ss-reveal">
+        <div className="ss-landing__frame">
+          <div className="ss-landing__capability-head">
+            <h2 className="ss-landing__section-title ss-landing__section-title--center">
+              {t("landing.capabilities.title")}
+            </h2>
+            <div className="ss-landing__divider" />
+          </div>
+
+          <div className="ss-landing__capability-grid">
+            <article className="ss-landing__capability-card ss-landing__capability-card--large">
+              <div className="ss-landing__capability-copy">
+                <Waypoints className="ss-landing__capability-icon" size={38} />
+                <div>
+                  <h3 className="ss-landing__capability-title">{t("landing.capabilities.designTitle")}</h3>
+                  <p className="ss-landing__capability-subtitle">{t("landing.capabilities.designSubtitle")}</p>
+                </div>
+                <p className="ss-landing__capability-body">{t("landing.capabilities.designBody")}</p>
+              </div>
+
+              <div className="ss-landing__capability-media">
+                <img
+                  src="/tutorial/07-experiment-design.png"
+                  alt="SocialSim4 experiment design interface"
+                  className="ss-landing__capability-image"
+                />
+              </div>
+            </article>
+
+            <article className="ss-landing__capability-card ss-landing__capability-card--small">
+              <Eye className="ss-landing__capability-icon ss-landing__capability-icon--accent" size={24} />
+              <div>
+                <h3 className="ss-landing__capability-title">{t("landing.capabilities.observeTitle")}</h3>
+                <p className="ss-landing__capability-subtitle">{t("landing.capabilities.observeSubtitle")}</p>
+              </div>
+            </article>
+
+            <article className="ss-landing__capability-card ss-landing__capability-card--small">
+              <GitBranch className="ss-landing__capability-icon" size={24} />
+              <div>
+                <h3 className="ss-landing__capability-title">{t("landing.capabilities.branchTitle")}</h3>
+                <p className="ss-landing__capability-subtitle">{t("landing.capabilities.branchSubtitle")}</p>
+              </div>
+            </article>
+
+            <Link to="/simulations/new" className="ss-landing__capability-banner">
+              <div>
+                <h3 className="ss-landing__capability-banner-title">{t("landing.capabilities.controlTitle")}</h3>
+                <p className="ss-landing__capability-banner-copy">{t("landing.capabilities.controlBody")}</p>
+              </div>
+              <SlidersHorizontal className="ss-landing__capability-banner-icon" size={42} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="ss-landing__scenes ss-reveal">
+        <div className="ss-landing__frame">
+          <div className="ss-landing__scene-head">
+            <h2 className="ss-landing__section-title">{t("landing.scenes.title")}</h2>
+            <p className="ss-landing__scene-kicker">{t("landing.scenes.kicker")}</p>
+          </div>
+
+          <div className="ss-landing__scene-grid">
+            {sceneCards.map((card) => (
+              <article
+                key={card.title}
+                className={`ss-landing__scene-card ss-landing__scene-card--${card.tone}`}
+              >
+                <div className="ss-landing__scene-content">
+                  <h3 className="ss-landing__scene-title">
+                    {card.title}
+                    <span className="ss-landing__scene-subtitle">{card.subtitle}</span>
+                  </h3>
+                  <div className="ss-landing__scene-line" />
+                  <p className="ss-landing__scene-body">{card.body}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="ss-landing__final ss-reveal">
+        <div className="ss-landing__frame">
+          <div className="ss-landing__final-panel">
+            <div className="ss-landing__final-copy">
+              <h2 className="ss-landing__section-title ss-landing__section-title--center">
+                {t("landing.finalCta.title")}
+              </h2>
+              <p className="ss-landing__section-subtitle ss-landing__section-subtitle--center">
+                {t("landing.finalCta.sub")}
+              </p>
+            </div>
+
+            <div className="ss-landing__decision-grid">
+              {finalActions.map((action, index) => {
+                const Icon = action.icon;
+
+                return (
+                  <Link
+                    key={action.label}
+                    to={action.to}
+                    className={`ss-landing__decision-card ${
+                      action.primary ? "ss-landing__final-button--primary" : ""
+                    }`}
+                  >
+                    <div className="ss-landing__decision-top">
+                      <Icon className="ss-landing__final-button-icon" size={18} />
+                      <span className="ss-landing__decision-index">{String(index + 1).padStart(2, "0")}</span>
+                    </div>
+                    <div className="ss-landing__decision-copy">
+                      <span className="ss-landing__decision-label">{action.label}</span>
+                      <span className="ss-landing__decision-path">{action.to}</span>
+                    </div>
+                    <ArrowRight className="ss-landing__decision-arrow" size={18} />
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </section>
     </div>
