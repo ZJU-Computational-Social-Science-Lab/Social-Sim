@@ -34,40 +34,17 @@ export function DocsPage() {
     return "";
   }, [currentDoc, i18n.language]);
 
-  const containerStyles: React.CSSProperties = {
-    display: "flex",
-    gap: "1.5rem",
-    height: "100%",
-  };
-
-  const sidebarWrapperStyles: React.CSSProperties = {
-    flexShrink: 0,
-  };
-
-  const contentStyles: React.CSSProperties = {
-    flex: 1,
-    overflow: "auto",
-    padding: "0.5rem",
-  };
-
   return (
-    <div
-      style={{
-        height: "100%",
-        overflow: "hidden",
-        padding: "1rem 1.5rem",
-        boxSizing: "border-box",
-      }}
-    >
+    <div className="ss-product-page ss-product-page--docs ss-docs-page">
       <TitleCard title={t("pages.docsPage.documentation")} />
 
-      <div style={containerStyles}>
-        <div style={sidebarWrapperStyles}>
-          <DocsSidebar currentDoc={currentDoc} onDocChange={setCurrentDoc} />
-        </div>
+      <div className="ss-docs-page__layout">
+        <DocsSidebar currentDoc={currentDoc} onDocChange={setCurrentDoc} />
 
-        <div style={contentStyles}>
-          <MarkdownRenderer content={markdownContent} />
+        <div className="ss-docs-page__content scroll-panel">
+          <div className="ss-docs-page__surface">
+            <MarkdownRenderer content={markdownContent} className="ss-doc-markdown" />
+          </div>
         </div>
       </div>
     </div>

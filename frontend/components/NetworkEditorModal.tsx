@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSimulationStore } from '../store';
-import { X, Network, Save, RefreshCw, Hexagon, Circle, Share2, Shuffle, ZoomIn, ZoomOut, Maximize, Move, Users, Waypoints, Target, GitBranch, MapPin, ChevronDown, ChevronRight, Play, Settings2, Loader2 } from 'lucide-react';
+import { X, Network, Save, RefreshCw, Circle, Share2, Shuffle, ZoomIn, ZoomOut, Maximize, Move, Users, Waypoints, Target, GitBranch, MapPin, ChevronRight, Play, Settings2, Loader2 } from 'lucide-react';
 import * as d3 from 'd3';
 import { SocialNetwork } from '../types';
+import { buildNetworkOverview } from '../utils/networkMetrics';
 
 // Type definitions for preset parameters
 type PresetType = 'full' | 'core-periphery' | 'holme-kim' | 'waxman' | 'random' | 'sbm' | 'newman-watts' | null;
@@ -134,6 +135,7 @@ export const NetworkEditorModal: React.FC = () => {
   const [linkFrom, setLinkFrom] = useState('');
   const [linkTo, setLinkTo] = useState('');
   const [hoverInfo, setHoverInfo] = useState<{ name: string; profile?: string; x: number; y: number } | null>(null);
+  const [editorView, setEditorView] = useState<'overview' | 'graph'>('overview');
 
   useEffect(() => {
     if (agents.length === 0) return;
@@ -523,6 +525,11 @@ export const NetworkEditorModal: React.FC = () => {
     });
     return list;
   }, [network, agents]);
+  const agentNames = React.useMemo(() => agents.map((agent) => agent.name), [agents]);
+  const networkOverview = React.useMemo(
+    () => buildNetworkOverview(agentNames, network),
+    [agentNames, network]
+  );
 
   const addLink = () => {
     if (!linkFrom || !linkTo || linkFrom === linkTo) return;
@@ -536,6 +543,7 @@ export const NetworkEditorModal: React.FC = () => {
 
   // D3 Visualization
   useEffect(() => {
+    if (editorView !== 'graph') return;
     if (!isOpen || !svgRef.current || !containerRef.current) return;
 
     const width = containerRef.current.clientWidth;
@@ -697,7 +705,7 @@ export const NetworkEditorModal: React.FC = () => {
 
     return () => { simulation.stop(); };
 
-  }, [isOpen, network, agents]);
+  }, [editorView, isOpen, network, agents]);
 
   // Zoom Handlers
   const handleZoomIn = () => {
@@ -1074,47 +1082,163 @@ export const NetworkEditorModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Canvas */}
-          <div ref={containerRef} className="flex-1 bg-slate-50 relative overflow-hidden group">
-            <svg ref={svgRef} className="block w-full h-full"></svg>
-            
-              {hoverInfo && (
-                <div
-                  className="absolute z-20 bg-white border border-slate-200 shadow-md rounded px-2 py-1 text-[11px] text-slate-700 max-w-xs"
-                  style={{ left: hoverInfo.x, top: hoverInfo.y }}
-                >
-                  <div className="font-semibold">{hoverInfo.name}</div>
-                  <div className="text-slate-500 whitespace-pre-wrap break-words">{hoverInfo.profile || t('components.networkEditorModal.noProfile', '无简介')}</div>
+          {/* Canvas / Overview */}
+          <div className="flex-1 bg-slate-50 relative overflow-hidden group">
+            <div className="flex items-center justify-between border-b border-slate-200 bg-white/80 px-4 py-3">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  {t('components.networkEditorModal.topologySummary', { defaultValue: 'Topology summary' })}
                 </div>
-              )}
-
-            {/* Zoom Controls */}
-            <div className="absolute top-4 right-4 flex flex-col gap-1 bg-white border rounded shadow-sm p-1">
-              <button onClick={handleZoomIn} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('components.networkEditorModal.zoomIn')}>
-                <ZoomIn size={16} />
-              </button>
-              <button onClick={handleZoomOut} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('components.networkEditorModal.zoomOut')}>
-                <ZoomOut size={16} />
-              </button>
-              <div className="h-px bg-slate-200 my-0.5"></div>
-              <button onClick={handleResetZoom} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('components.networkEditorModal.resetView')}>
-                <Maximize size={16} />
-              </button>
-            </div>
-
-            {/* Network Stats */}
-            <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm border rounded-lg px-3 py-2 text-[10px] text-slate-600">
-              <div className="flex items-center gap-3">
-                <span>
-                  <strong className="text-slate-700">{agents.length}</strong> {t('components.networkEditorModal.nodes')}
-                </span>
-                <span>
-                  <strong className="text-slate-700">
-                    {Object.values(network).reduce((sum, arr) => sum + arr.length, 0)}
-                  </strong> {t('components.networkEditorModal.edges')}
-                </span>
+                <div className="mt-1 text-sm text-slate-600">
+                  {t('components.networkEditorModal.manualComposer', {
+                    defaultValue: 'Use overview first, then switch to the graph only for local manual edits.',
+                  })}
+                </div>
+              </div>
+              <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1">
+                <button
+                  type="button"
+                  onClick={() => setEditorView('overview')}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                    editorView === 'overview' ? 'bg-slate-900 text-white' : 'text-slate-500'
+                  }`}
+                >
+                  {t('components.networkEditorModal.overviewTab', { defaultValue: 'Overview' })}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditorView('graph')}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                    editorView === 'graph' ? 'bg-slate-900 text-white' : 'text-slate-500'
+                  }`}
+                >
+                  {t('components.networkEditorModal.graphTab', { defaultValue: 'Graph canvas' })}
+                </button>
               </div>
             </div>
+
+            {editorView === 'overview' ? (
+              <div className="grid h-full gap-4 overflow-auto p-5 lg:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    {t('components.networkEditorModal.networkShape', { defaultValue: 'Network shape' })}
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="text-[11px] uppercase tracking-wide text-slate-500">{t('components.networkEditorModal.nodes')}</div>
+                      <div className="mt-2 text-2xl font-semibold text-slate-900">{agentNames.length}</div>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="text-[11px] uppercase tracking-wide text-slate-500">{t('components.networkEditorModal.edges')}</div>
+                      <div className="mt-2 text-2xl font-semibold text-slate-900">{networkOverview.edgeCount}</div>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="text-[11px] uppercase tracking-wide text-slate-500">{t('components.networkEditorModal.density')}</div>
+                      <div className="mt-2 text-2xl font-semibold text-slate-900">{(networkOverview.density * 100).toFixed(0)}%</div>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="text-[11px] uppercase tracking-wide text-slate-500">
+                        {t('components.networkEditorModal.communities', { defaultValue: 'Communities' })}
+                      </div>
+                      <div className="mt-2 text-2xl font-semibold text-slate-900">{networkOverview.componentCount}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    {t('components.networkEditorModal.topologySummary', { defaultValue: 'Topology summary' })}
+                  </div>
+                  <div className="mt-4 space-y-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">{t('components.networkEditorModal.averageDegree', { defaultValue: 'Average degree' })}</span>
+                      <strong className="text-slate-900">{networkOverview.averageDegree.toFixed(1)}</strong>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">{t('components.networkEditorModal.largestComponent', { defaultValue: 'Largest component' })}</span>
+                      <strong className="text-slate-900">{networkOverview.largestComponent}</strong>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">{t('components.networkEditorModal.isolatedAgents')}</span>
+                      <strong className="text-slate-900">{networkOverview.isolatedAgents.length}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    {t('components.networkEditorModal.hubAgents', { defaultValue: 'Key connectors' })}
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    {networkOverview.hubAgents.map((agent) => (
+                      <div key={agent.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                        <span className="font-medium text-slate-900">{agent.id}</span>
+                        <span className="text-slate-500">
+                          {t('components.networkEditorModal.degree', { defaultValue: 'Degree' })}: {agent.degree}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    {t('components.networkEditorModal.isolatedAgents')}
+                  </div>
+                  {networkOverview.isolatedAgents.length > 0 ? (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {networkOverview.isolatedAgents.map((agentId) => (
+                        <span key={agentId} className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
+                          {agentId}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-sm text-slate-500">
+                      {t('components.networkEditorModal.noIsolatedAgents', { defaultValue: 'All agents are connected to at least one peer.' })}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div ref={containerRef} className="relative h-full overflow-hidden">
+                <svg ref={svgRef} className="block w-full h-full"></svg>
+
+                {hoverInfo && (
+                  <div
+                    className="absolute z-20 bg-white border border-slate-200 shadow-md rounded px-2 py-1 text-[11px] text-slate-700 max-w-xs"
+                    style={{ left: hoverInfo.x, top: hoverInfo.y }}
+                  >
+                    <div className="font-semibold">{hoverInfo.name}</div>
+                    <div className="text-slate-500 whitespace-pre-wrap break-words">{hoverInfo.profile || t('components.networkEditorModal.noProfile', '无简介')}</div>
+                  </div>
+                )}
+
+                <div className="absolute top-4 right-4 flex flex-col gap-1 bg-white border rounded shadow-sm p-1">
+                  <button onClick={handleZoomIn} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('components.networkEditorModal.zoomIn')}>
+                    <ZoomIn size={16} />
+                  </button>
+                  <button onClick={handleZoomOut} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('components.networkEditorModal.zoomOut')}>
+                    <ZoomOut size={16} />
+                  </button>
+                  <div className="h-px bg-slate-200 my-0.5"></div>
+                  <button onClick={handleResetZoom} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('components.networkEditorModal.resetView')}>
+                    <Maximize size={16} />
+                  </button>
+                </div>
+
+                <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm border rounded-lg px-3 py-2 text-[10px] text-slate-600">
+                  <div className="flex items-center gap-3">
+                    <span>
+                      <strong className="text-slate-700">{agentNames.length}</strong> {t('components.networkEditorModal.nodes')}
+                    </span>
+                    <span>
+                      <strong className="text-slate-700">{networkOverview.edgeCount}</strong> {t('components.networkEditorModal.edges')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

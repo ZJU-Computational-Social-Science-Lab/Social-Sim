@@ -24,11 +24,75 @@
     "signout": "退出"
   },
   "landing": {
-    "headline": "设计、运行并探索由大语言模型驱动的社会模拟。",
-    "sub": "协调多个智能体、分叉时间线，并通过为实验团队打造的界面分享实时结果。",
-    "learn": "了解更多：{{name}}。",
-    "ctaNew": "开始你的第一次模拟",
-    "ctaResume": "继续你的工作"
+    "hero": {
+      "badge": "社会系统实验室 Social Systems Laboratory",
+      "line1": "以精密模拟架构",
+      "line2": "社会逻辑",
+      "accent": "Architecting Social Logic",
+      "sub": "为研究者、政策制定者与社会科学家打造的跨领域模拟平台。通过分支、观测与干预，洞察复杂系统的深层演化规律。",
+      "primaryCta": "进入实验室 (Enter Laboratory)",
+      "secondaryCta": "阅读方法论 (Methodology)",
+      "tag1": "高保真模拟",
+      "tag2": "并行分支追踪",
+      "tag3": "归因分析"
+    },
+    "entry": {
+      "primaryBadge": "New Matrix",
+      "primaryTitle": "开启新实验",
+      "primarySubtitle": "Create new social node parameters",
+      "dashboardTitle": "全局控制台",
+      "dashboardSubtitle": "Global Monitor",
+      "interfaceTitle": "实验主界面",
+      "interfaceSubtitle": "Main Interface",
+      "savedTitle": "已存模拟",
+      "savedSubtitle": "Saved Sim",
+      "settingsTitle": "系统设置",
+      "settingsSubtitle": "Settings"
+    },
+    "preview": {
+      "title": "实时模拟交互预览",
+      "accent": "Simulation Interaction Preview",
+      "sub": "沉浸式观测、分支与多维数据洞察。",
+      "cta": "View Live Engine",
+      "overlayLabel": "Node Activity",
+      "overlayBranch": "Branch A-12",
+      "overlayBody": "System logical stability at 89.4% after intervention 4."
+    },
+    "capabilities": {
+      "title": "核心研究能力 | Core Capabilities",
+      "designTitle": "实验设计",
+      "designSubtitle": "Experiment Design",
+      "designBody": "定义多维参数、建立因果链条，并在无风险的沙盒环境中构建庞大的社会矩阵。",
+      "observeTitle": "实时观测",
+      "observeSubtitle": "Live Observation",
+      "branchTitle": "分支与对比",
+      "branchSubtitle": "Branching & Comparison",
+      "controlTitle": "干预与控制",
+      "controlBody": "Intervention & Control: Precision causal manipulation tools."
+    },
+    "scenes": {
+      "title": "应用研究场景",
+      "kicker": "Applied Research Scenes",
+      "policyTitle": "政策模拟",
+      "policySubtitle": "Policy Simulation",
+      "policyBody": "测试宏观政策在局部群体中的涟漪效应。",
+      "behaviorTitle": "社会行为分析",
+      "behaviorSubtitle": "Social Behavior Analysis",
+      "behaviorBody": "观测个体选择如何汇聚成集体趋势。",
+      "institutionTitle": "组织环境测试",
+      "institutionSubtitle": "Institutional Testing",
+      "institutionBody": "模拟不同激励机制下的组织效能演变。",
+      "interventionTitle": "干预方案比对",
+      "interventionSubtitle": "Intervention Comparison",
+      "interventionBody": "多维度权衡不同干预手段的成本与成效。"
+    },
+    "finalCta": {
+      "title": "开启您的研究进程 | Begin Your Research",
+      "sub": "连接现有实验室数据，或从零构建您的首个模拟场景。",
+      "new": "新建实验 (New Experiment)",
+      "dashboard": "访问控制台 (Dashboard)",
+      "saved": "回顾模拟记录 (Saved Simulations)"
+    }
   },
   "dashboard": {
     "title": "仪表盘",
@@ -53,6 +117,7 @@
   },
   "saved": {
     "title": "已保存的模拟",
+    "subtitle": "在统一实验室壳层中浏览归档实验，返回进行中的工作，或复制既有配置重新展开。",
     "resume": "继续",
     "copy": "复制",
     "delete": "删除",
@@ -66,6 +131,23 @@
     "selectAll": "全选",
     "selectedCount": "已选：{{count}}",
     "type": "类型",
+    "typeLabel": "场景类型",
+    "statusLabel": "状态",
+    "searchPlaceholder": "按标题、状态、场景或 ID 搜索…",
+    "sortLabel": "排序",
+    "sortRecent": "最新优先",
+    "sortOldest": "最早优先",
+    "sortName": "名称",
+    "allStatuses": "全部状态",
+    "allTypes": "全部场景类型",
+    "resultsLabel": "归档浏览器",
+    "emptyTitle": "当前视图下没有匹配的已保存模拟",
+    "emptyHint": "调整筛选条件，或先创建新的实验来逐步积累归档。",
+    "detailTitle": "当前归档",
+    "detailHint": "在右侧查看当前快照摘要，再决定继续、复制或删除。",
+    "selectedTitle": "归档上下文",
+    "createdAt": "创建时间",
+    "simulationId": "模拟 ID",
     "confirmDelete": "删除该模拟？",
     "confirmBulkDelete": "确认删除已选中的 {{count}} 个模拟？",
     "bulkDeleteResult": "成功删除 {{success}} 个 / 失败 {{failed}} 个",
@@ -157,6 +239,9 @@
   },
   "settings": {
     "title": "设置",
+    "subtitle": "配置当前研究工作空间的身份、模型提供商、检索通道与文件治理。",
+    "workspaceTitle": "工作空间上下文",
+    "workspaceHint": "这些身份信息会复用于保存的实验、导出结果和面向操作者的界面。",
     "tabs": {
       "profile": "个人信息",
       "security": "安全",
@@ -173,10 +258,15 @@
     },
     "security": {
       "signoutAll": "退出所有会话",
-      "placeholder": "这里将展示双因素认证和密码重置流程。"
+      "placeholder": "这里将展示双因素认证和密码重置流程。",
+      "sessionsTitle": "会话控制",
+      "controlTitle": "访问姿态",
+      "controlHint": "这里仍然连接 SocialSim4 真实的认证会话与 token 刷新链路。"
     },
     "providers": {
       "title": "提供商集成",
+      "workspaceTitle": "提供商工作区",
+      "workspaceHint": "保持一个可信的默认模型在线，再按总结、长上下文或基准测试需求补充其它端点。",
       "type": {
         "openai": "OpenAI 兼容",
         "gemini": "Gemini"
@@ -242,6 +332,8 @@
     "files": {
       "title": "文件管理",
       "description": "管理仿真中使用的上传文件。",
+      "maintenanceTitle": "存储维护",
+      "maintenanceHint": "快速扫描当前上传资源，找出已经不再被有效工作区实体引用的孤立文件。",
       "loading": "正在加载文件…",
       "error": "无法加载文件。",
       "empty": "没有上传文件。",
@@ -591,30 +683,66 @@
     "mechanicAutoEnabled": "所选动作需要"
   },
   "auth": {
+    "layout": {
+      "badge": "社会系统实验室 Social Systems Laboratory",
+      "line1": "继续进入",
+      "line2": "研究工作台",
+      "accent": "Branch, observe, and intervene",
+      "copy": "回到你的研究工作台，在既有场景与实验路径上继续配置、分支、观测与干预社会模拟。",
+      "tag1": "配置场景",
+      "tag2": "分支推演",
+      "tag3": "角色观测",
+      "surfaceLabel": "研究工作流",
+      "surface1Title": "配置",
+      "surface1Body": "继续调整场景、参数与研究边界。",
+      "surface2Title": "分支",
+      "surface2Body": "从已有节点延展新的推演路径。",
+      "surface3Title": "观测与干预",
+      "surface3Body": "返回工作台查看角色状态并执行干预。",
+      "note": "登录只会恢复你的研究工作区上下文，不会覆盖已有实验结果。"
+    },
     "login": {
+      "badge": "继续进入研究工作台",
       "welcome": "欢迎回来",
+      "subtitle": "输入你的凭据后，即可继续进入社会系统实验室，在当前研究工作区中继续分支、观测与干预。",
       "email": "邮箱",
+      "emailPlaceholder": "输入机构邮箱",
       "password": "密码",
+      "passwordPlaceholder": "输入访问密码",
       "signin": "登录",
       "noAccount": "还没有账号？",
       "create": "去注册",
-      "invalid": "账号或密码错误"
+      "invalid": "账号或密码错误",
+      "forgot": "忘记访问密钥？",
+      "sso": "单点登录",
+      "help": "实验室支持",
+      "credentialCheck": "延续当前研究工作区身份",
+      "workspaceBound": "继续进入已有实验路径与观测上下文",
+      "footerLeft": "社会系统实验室",
+      "footerRight": "分支 · 观测 · 干预"
     },
     "register": {
+      "badge": "创建研究工作区",
       "title": "创建你的工作空间",
+      "subtitle": "完成工作区身份与操作者信息配置后，即可进入社会系统实验室并开始新的研究路径。",
       "organization": "组织",
       "email": "邮箱",
+      "emailPlaceholder": "输入机构邮箱",
       "username": "用户名",
       "fullName": "姓名",
       "phone": "手机号",
+      "phonePlaceholder": "输入手机号",
       "password": "密码",
+      "passwordPlaceholder": "设置访问密码",
       "submit": "创建账户",
       "success": "注册成功，请查收邮件。",
       "failed": "注册失败",
       "invalidPhone": "手机号格式不正确，请使用国际格式，如 +8613712345678（8–15 位数字）",
       "invalidPhoneTitle": "使用国际格式：+国家码+号码（8–15 位数字）",
       "have": "已经注册？",
-      "signin": "去登录"
+      "signin": "去登录",
+      "footerLeft": "社会系统实验室",
+      "footerRight": "配置 · 分支 · 观测"
     }
   },
   "sim": {

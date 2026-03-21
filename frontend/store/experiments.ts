@@ -13,6 +13,15 @@ import type { EnvironmentSuggestion } from '../services/environmentSuggestions';
 import { addTime } from './helpers';
 import i18n from '../i18n';
 
+export type BranchCreationType = 'parallel' | 'compare' | 'perturbation' | 'custom';
+
+export interface BranchCreationInput {
+  name?: string;
+  branchType?: BranchCreationType;
+  inheritCurrentState?: boolean;
+  notes?: string;
+}
+
 export interface ExperimentsSlice {
   // Comparison state
   compareTargetNodeId: string | null;
@@ -44,7 +53,7 @@ export interface ExperimentsSlice {
 
   // Simulation control
   advanceSimulation: () => Promise<void>;
-  branchSimulation: () => void;
+  branchSimulation: (config?: BranchCreationInput) => Promise<void>;
   deleteNode: () => Promise<void>;
 
   // Experiment execution
@@ -354,9 +363,33 @@ export const createExperimentsSlice: StateCreator<
     }
   },
 
-  branchSimulation: async () => {
+  branchSimulation: async (config) => {
     const state = get() as any;
     if (!state.currentSimulation || !state.selectedNodeId) return;
+
+    const branchName = config?.name?.trim() || i18n.t('store.branch') || 'Branch';
+    const branchType = config?.branchType || 'parallel';
+    const isZh = (i18n.language || 'en').toLowerCase().startsWith('zh');
+    const branchTypeLabel = (
+      branchType === 'compare'
+        ? (isZh ? '策略对照' : 'Strategy comparison')
+        : branchType === 'perturbation'
+          ? (isZh ? '参数扰动' : 'Parameter perturbation')
+          : branchType === 'custom'
+            ? (isZh ? '自定义' : 'Custom')
+            : (isZh ? '平行推演' : 'Parallel run')
+    );
+    const branchNotes = config?.notes?.trim() || '';
+    const branchText = [
+      branchName,
+      `${isZh ? '分支类型' : 'Branch type'}: ${branchTypeLabel}`,
+      config?.inheritCurrentState === false
+        ? `${isZh ? '状态继承' : 'State inheritance'}: ${isZh ? '关闭' : 'Off'}`
+        : `${isZh ? '状态继承' : 'State inheritance'}: ${isZh ? '继承当前状态' : 'Inherit current state'}`,
+      branchNotes ? `${isZh ? '备注' : 'Notes'}: ${branchNotes}` : ''
+    ]
+      .filter(Boolean)
+      .join('\n');
 
     try {
       if (state.engineConfig?.mode === 'connected') {
@@ -374,48 +407,35 @@ export const createExperimentsSlice: StateCreator<
         }
 
         // treeBranchPublic expects: (base, id, parent, text, token)
-        const result = await treeBranchPublic(base, state.currentSimulation.id, parentNumeric, i18n.t('store.branch') || 'Branch', token);
+        const result = await treeBranchPublic(base, state.currentSimulation.id, parentNumeric, branchText, token);
 
         if (result?.child !== undefined) {
           // Refresh tree
           const graph = await getTreeGraph(base, state.currentSimulation.id, token);
           if (graph) {
             const nodesMapped = mapGraphToNodes(graph);
-            set({ nodes: nodesMapped } as any);
+            set({ nodes: nodesMapped, selectedNodeId: String(result.child) } as any);
           }
-          state.addNotification?.('success', i18n.t('store.branchCreated') || 'Branch created');
+          state.addNotification?.('success', `${i18n.t('store.branchCreated') || 'Branch created'}: ${branchName}`);
         }
       } else {
-        // Standalone mode - create mock branch
-        // A branch creates a SIBLING node (same parent, same depth) for what-if scenarios
+        // Standalone mode - create a child branch from the currently selected node.
         const baseNode = state.nodes?.find((n: any) => n.id === state.selectedNodeId);
-        if (!baseNode || !baseNode.parentId) {
-          // Can't branch from root (no parent)
-          state.addNotification?.('error', i18n.t('store.cannotBranchFromRoot') || 'Cannot create branch from root node');
-          return;
-        }
+        if (!baseNode) return;
 
-        // Find the parent to create a sibling relationship
-        const parentNode = state.nodes?.find((n: any) => n.id === baseNode.parentId);
-        if (!parentNode) {
-          state.addNotification?.('error', i18n.t('store.cannotFindParentNode') || 'Cannot find parent node');
-          return;
-        }
-
-        // Count existing siblings to determine display_id
-        const existingSiblings = (state.nodes || []).filter((n: any) => n.parentId === parentNode.id);
-        const nextIndex = existingSiblings.length + 1;
+        const existingChildren = (state.nodes || []).filter((n: any) => n.parentId === baseNode.id);
+        const nextIndex = existingChildren.length + 1;
 
         const newNode = {
           id: `branch-${Date.now()}`,
-          display_id: `${parentNode.display_id}.${nextIndex}`,
-          parentId: parentNode.id,  // Same parent as baseNode (sibling relationship)
-          name: `${i18n.t('store.branch') || 'Branch'}: ${i18n.t('store.parallelRun') || 'Parallel Run'}`,
-          depth: baseNode.depth,  // Same depth as baseNode (sibling relationship)
+          display_id: `${baseNode.display_id}.${nextIndex}`,
+          parentId: baseNode.id,
+          name: branchName,
+          depth: baseNode.depth + 1,
           isLeaf: true,
           status: 'pending' as const,
           timestamp: new Date().toLocaleTimeString(),
-          worldTime: parentNode.worldTime || baseNode.worldTime
+          worldTime: baseNode.worldTime
         };
 
         // Add a log entry for the branch
@@ -425,17 +445,24 @@ export const createExperimentsSlice: StateCreator<
             nodeId: newNode.id,
             round: newNode.depth,
             type: 'SYSTEM',
-            content: `${i18n.t('store.createdBranch') || 'Created branch'}: ${newNode.display_id} (${i18n.t('store.parallelScenario') || 'parallel scenario'})`,
+            content: `${i18n.t('store.createdBranch') || 'Created branch'}: ${branchName} (${branchTypeLabel})`,
             timestamp: newNode.timestamp
           }
         ];
 
         set((s: any) => ({
-          nodes: [...(s.nodes || []), newNode],
+          nodes: [
+            ...(s.nodes || []).map((node: any) => (
+              node.id === baseNode.id
+                ? { ...node, isLeaf: false }
+                : node
+            )),
+            newNode
+          ],
           selectedNodeId: newNode.id,
           logs: [...(s.logs || []), ...newLogs]
         }));
-        state.addNotification?.('success', i18n.t('store.branchCreatedLocalMode') || 'Branch created (local mode)');
+        state.addNotification?.('success', `${i18n.t('store.branchCreatedLocalMode') || 'Branch created (local mode)'}: ${branchName}`);
       }
     } catch (e) {
       console.error('branchSimulation failed', e);

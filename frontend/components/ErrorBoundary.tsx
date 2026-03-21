@@ -1,5 +1,5 @@
 import React from "react";
-import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 type Props = {
   children: React.ReactNode;
@@ -7,45 +7,38 @@ type Props = {
 
 type State = {
   hasError: boolean;
-  error: any;
+  error: Error | null;
 };
 
-export function ErrorBoundary({ children }: Props) {
-  const { t } = useTranslation();
-  const [state, setState] = React.useState<State>({ hasError: false, error: null });
-
-  React.useEffect(() => {
-    const handleError = (error: any) => {
-      console.error("React ErrorBoundary Caught:", error);
-      setState({ hasError: true, error });
-    };
-
-    const handleErrorEvent = (event: ErrorEvent) => {
-      handleError(event.error);
-    };
-
-    window.addEventListener("error", handleErrorEvent);
-    return () => window.removeEventListener("error", handleErrorEvent);
-  }, []);
-
-  // Static method for class component compatibility
-  ErrorBoundary.getDerivedStateFromError = (error: any) => {
-    return { hasError: true, error };
+export class ErrorBoundary extends React.Component<Props, State> {
+  state: State = {
+    hasError: false,
+    error: null,
   };
 
-  if (state.hasError) {
-    return (
-      <div style={{ padding: 24, fontFamily: "monospace" }}>
-        <h1>{t('components.errorBoundary.title')}</h1>
-        <p style={{ color: "#b91c1c" }}>
-          {String(state.error)}
-        </p>
-        <p style={{ marginTop: 16 }}>
-          {t('components.errorBoundary.instructions')}
-        </p>
-      </div>
-    );
+  static getDerivedStateFromError(error: Error): State {
+    return {
+      hasError: true,
+      error,
+    };
   }
 
-  return <>{children}</>;
+  componentDidCatch(error: Error) {
+    console.error("React ErrorBoundary caught:", error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 24, fontFamily: "monospace" }}>
+          <h1>{i18n.t("components.errorBoundary.title")}</h1>
+          <p style={{ color: "#b91c1c" }}>{String(this.state.error)}</p>
+          <p style={{ marginTop: 16 }}>{i18n.t("components.errorBoundary.instructions")}</p>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
+

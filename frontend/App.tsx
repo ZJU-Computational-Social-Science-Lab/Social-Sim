@@ -1,10 +1,12 @@
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import i18n from "./i18n";
 
 import { Layout } from "./components/Layout";
+import { AuthLayout } from "./components/layout/AuthLayout";
 import { RequireAuth } from "./components/RequireAuth";
+import { useThemeStore } from "./store/theme";
 
 // 旧前端的页面
 const DashboardPage = lazy(() =>
@@ -31,9 +33,16 @@ const DocsPage = lazy(() =>
 
 // 新前端的仿真主界面（你已经把原来的 App 改名为 SimulationPage.tsx，并 default export）
 import SimulationPage from "./pages/SimulationPage";
+import TopologyExplorerPage from "./pages/TopologyExplorerPage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const App: React.FC = () => {
+  const applyTheme = useThemeStore((state) => state.apply);
+
+  useEffect(() => {
+    applyTheme();
+  }, [applyTheme]);
+
   return (
     <Suspense
       fallback={
@@ -44,7 +53,7 @@ const App: React.FC = () => {
         <Route
           path="/"
           element={
-            <Layout>
+            <Layout navVariant="product">
               <LandingPage />
             </Layout>
           }
@@ -52,17 +61,17 @@ const App: React.FC = () => {
         <Route
           path="/login"
           element={
-            <Layout>
+            <AuthLayout>
               <LoginPage />
-            </Layout>
+            </AuthLayout>
           }
         />
         <Route
           path="/register"
           element={
-            <Layout>
+            <AuthLayout>
               <RegisterPage />
-            </Layout>
+            </AuthLayout>
           }
         />
 
@@ -70,7 +79,7 @@ const App: React.FC = () => {
           path="/dashboard"
           element={
             <RequireAuth>
-              <Layout>
+              <Layout navVariant="product">
                 <DashboardPage />
               </Layout>
             </RequireAuth>
@@ -80,7 +89,7 @@ const App: React.FC = () => {
         <Route
           path="/docs/*"
           element={
-            <Layout>
+            <Layout navVariant="product">
               <DocsPage />
             </Layout>
           }
@@ -99,9 +108,19 @@ const App: React.FC = () => {
           path="/simulations/saved"
           element={
             <RequireAuth>
-              <Layout>
+              <Layout navVariant="product">
                 <SavedSimulationsPage />
               </Layout>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/simulations/:id/topology"
+          element={
+            <RequireAuth>
+              <ErrorBoundary>
+                <TopologyExplorerPage />
+              </ErrorBoundary>
             </RequireAuth>
           }
         />
@@ -120,7 +139,7 @@ const App: React.FC = () => {
           path="/settings/*"
           element={
             <RequireAuth>
-              <Layout>
+              <Layout navVariant="product">
                 <SettingsPage />
               </Layout>
             </RequireAuth>

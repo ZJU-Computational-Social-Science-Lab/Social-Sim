@@ -1,0 +1,46 @@
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    width: 100%;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    background: var(--ss-bg);
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    color: var(--ss-text);
+    background:
+      radial-gradient(circle at top, rgba(47, 128, 237, 0.06), transparent 24%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 36%),
+      var(--ss-bg);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  ::selection {
+    background: rgba(47, 128, 237, 0.2);
+    color: inherit;
+  }
+}
