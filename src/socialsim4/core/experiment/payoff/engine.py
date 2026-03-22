@@ -2,11 +2,19 @@
 PayoffEngine - generic payoff calculation for all game types.
 
 Handles matrix (pairwise/group), pool, feedback, and none payoff types.
+Validates contribution amounts against agent token balances for PGG.
 """
 
+import logging
 import random
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any, Tuple, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from socialsim4.core.experiment.state import ExperimentState
+
 from socialsim4.core.experiment.controller import ActionResult
+
+logger = logging.getLogger(__name__)
 
 
 class PayoffEngine:
@@ -26,6 +34,7 @@ class PayoffEngine:
         config: Dict[str, Any],
         grouping_mode: str,
         graph: Dict[str, Any] | None = None,
+        state: "ExperimentState | None" = None,
     ) -> Dict[str, int | float]:
         """Calculate payoffs for all agents in a round.
 
@@ -35,6 +44,7 @@ class PayoffEngine:
             config: Scenario-specific configuration
             grouping_mode: How agents are grouped
             graph: Network graph for neighbor-based calculations
+            state: Current experiment state (for contribution validation)
 
         Returns:
             Dict mapping agent_name to payoff earned this round
@@ -42,7 +52,7 @@ class PayoffEngine:
         if payoff_type == "matrix":
             return self._calculate_matrix_payoffs(actions, config, grouping_mode, graph)
         elif payoff_type == "pool":
-            return self._calculate_pool_payoffs(actions, config)
+            return self._calculate_pool_payoffs(actions, config, state)
         elif payoff_type == "feedback":
             return {}  # No numerical payoffs
         else:  # "none"
@@ -235,12 +245,17 @@ class PayoffEngine:
         self,
         actions: List[ActionResult],
         config: Dict[str, Any],
+        state: "ExperimentState | None" = None,
     ) -> Dict[str, int | float]:
         """Calculate payoffs for contribution games.
 
         Formula: payoff = (initial_tokens - contribution) + (total_contributions * multiplier / n)
 
         This equals: tokens_kept + share_of_pool
+
+        Contribution validation (BUG-PGG-01, BUG-PGG-02):
+            - Contributions are capped at agent's current token balance
+            - Payoff calculations use constrained contribution values
 
         Config:
             multiplier: float (e.g., 1.5)
@@ -253,9 +268,34 @@ class PayoffEngine:
         for action in actions:
             if not action.skipped:
                 if action.action_name == "contribute":
-                    amount = action.parameters.get("amount", 0)
+                    attempted_amount = action.parameters.get("amount", 0)
+
+                    # Validate contribution against agent's token balance
+                    if state is not None:
+                        agent = state.agents.get(action.agent_name)
+                        if agent:
+                            current_tokens = agent.resources.get("tokens", 0)
+                            # Cap contribution at current balance (minimum 0)
+                            actual_amount = max(0, min(attempted_amount, current_tokens))
+
+                            # Log when contribution is clamped
+                            if attempted_amount != actual_amount:
+                                logger.debug(
+                                    f"Contribution clamped: {action.agent_name} attempted "
+                                    f"{attempted_amount}, but only has {current_tokens} tokens. "
+                                    f"Using {actual_amount}."
+                                )
+                        else:
+                            # Agent not in state, use attempted amount (backward compat)
+                            actual_amount = attempted_amount
+                    else:
+                        # No state provided, use attempted amount (backward compat)
+                        actual_amount = attempted_amount
+
+                    amount = actual_amount
                 else:
                     amount = 0  # Non-contribute actions contribute 0
+
                 contributions[action.agent_name] = amount
                 total_contribution += amount
 
