@@ -33,6 +33,12 @@ from socialsim4.core.llm.client import LLMClient
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+# STARTUP MESSAGE - This proves the fix is loaded
+print("="*80)
+print("EXPERIMENT RUNNER LOADED - VERSION WITH CYCLE PHASE FIX")
+print("   If you see this message, the phase transition fix is loaded!")
+print("="*80)
+
 
 @dataclass
 class RoundResult:
@@ -221,6 +227,12 @@ class ExperimentRunner:
             # Emit round completion event (could hook into websocket)
             logger.info(f"Round {round_num} complete: {len(round_result.actions)} actions")
 
+            # Notify scene of round completion for phase transitions (council cycle phase)
+            if self.scene and hasattr(self.scene, '_advance_round'):
+                logger.info(f"[CYCLE PHASE FIX] Calling scene._advance_round() for {type(self.scene).__name__}")
+                self.scene._advance_round()
+                logger.info(f"[CYCLE PHASE FIX] Phase is now: {getattr(self.scene, 'cycle_phase', 'N/A')}, rounds_in_phase: {getattr(self.scene, 'rounds_in_cycle_phase', 'N/A')}")
+
         return results
 
     def _record_action_to_agent(self, result: ActionResult) -> None:
@@ -277,6 +289,11 @@ class ExperimentRunner:
         # Get grouping_mode from game_config
         grouping_mode = getattr(self.game_config, 'grouping_mode', 'pairwise')
 
+        # Get ExperimentState from scene for contribution validation (BUG-PGG-01, BUG-PGG-02)
+        current_state = None
+        if self.scene and hasattr(self.scene, 'state'):
+            current_state = self.scene.state
+
         # Calculate payoffs using PayoffEngine
         round_payoffs = self.payoff_engine.calculate_round_payoffs(
             payoff_type=payoff_type,
@@ -284,6 +301,7 @@ class ExperimentRunner:
             config=payoff_config,
             grouping_mode=grouping_mode,
             graph=graph,
+            state=current_state,
         )
 
         # Update agent scores
@@ -869,6 +887,7 @@ class ExperimentRunner:
                 information_model=self.information_model,
                 kb_context=kb_context,
                 neighbor_context=neighbor_context,
+                speak_instruction=speak_instruction,
             )
 
             # Append controller's debug log to our buffer
