@@ -9,7 +9,8 @@
     "cancel": "Cancel",
     "next": "Next",
     "back": "Back",
-    "previous": "Previous"
+    "previous": "Previous",
+    "colon": ":"
   },
   "brand": "SocialSim4",
   "nav": {
@@ -1940,7 +1941,15 @@
       "action_generic": "{{agent}} performed: {{action}}",
       "public_goods_contribution": "{{agent}} decided to {{action}} {{amount}} {{resource}}",
       "round_summary": "Round {{round}} complete",
-      "payoff_result": "{{agent}} received {{payoff}} points"
+      "payoff_result": "{{agent}} received {{payoff}} points",
+      "diff": {
+        "description": "Left side shows the upstream policy version received by this layer, right side shows the final content sent downstream; if an additional box appears below, it shows the agent's original draft.",
+        "debugExpand": "Debug info, click to expand",
+        "debugCollapse": "Debug info, click to collapse",
+        "added": "Added",
+        "removed": "Removed",
+        "modified": "Modified"
+      }
     },
     "results": {
       "round_title": "Round {{round}} Results",

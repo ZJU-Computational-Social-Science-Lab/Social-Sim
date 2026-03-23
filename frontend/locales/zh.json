@@ -9,7 +9,8 @@
     "cancel": "取消",
     "next": "下一步",
     "back": "返回",
-    "previous": "上一页"
+    "previous": "上一页",
+    "colon": "："
   },
   "brand": "SocialSim4",
   "nav": {
@@ -1924,7 +1925,15 @@
       "action_generic": "{{agent}} 执行了：{{action}}",
       "public_goods_contribution": "{{agent}} 决定{{action}} {{amount}} {{resource}}",
       "round_summary": "第 {{round}} 轮完成",
-      "payoff_result": "{{agent}} 获得了 {{payoff}} 分"
+      "payoff_result": "{{agent}} 获得了 {{payoff}} 分",
+      "diff": {
+        "description": "左侧显示该层收到的上级政策版本，右侧显示最终真正发给下一级的内容；若下方出现附加框，则表示 agent 原始草稿。",
+        "debugExpand": "调试信息，点击展开",
+        "debugCollapse": "调试信息，点击折叠",
+        "added": "新增",
+        "removed": "删除",
+        "modified": "改写"
+      }
     },
     "results": {
       "round_title": "第 {{round}} 轮结果",
