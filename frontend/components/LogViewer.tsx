@@ -182,6 +182,7 @@ const diffCellClassName = (kind: PolicyDiffRow['kind'], side: 'left' | 'right') 
 };
 
 const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
+  const { t } = useTranslation();
   const data = entry.structuredData;
   const showDraftExpanded = import.meta.env.DEV;
   const rows = useMemo(
@@ -201,7 +202,7 @@ const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
       </div>
 
       <div className="text-xs text-slate-500">
-        左侧显示该层收到的上级政策版本，右侧显示最终真正发给下一级的内容；若下方出现附加框，则表示 agent 原始草稿。
+        {t('simulation.log.diff.description')}
       </div>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -272,10 +273,10 @@ const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
           <summary className="flex cursor-pointer list-none items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">
             <span>{data.draftTitle}</span>
             <span className="text-[11px] font-medium normal-case tracking-normal text-slate-400 group-open:hidden">
-              调试信息，点击展开
+              {t('simulation.log.diff.debugExpand')}
             </span>
             <span className="hidden text-[11px] font-medium normal-case tracking-normal text-slate-400 group-open:inline">
-              调试信息，点击折叠
+              {t('simulation.log.diff.debugCollapse')}
             </span>
           </summary>
           <div className="max-h-64 overflow-auto px-3 py-3 text-sm leading-6 text-slate-700 whitespace-pre-wrap break-words">
@@ -285,18 +286,18 @@ const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
       )}
 
       <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-        <span className="rounded-full bg-emerald-100 px-2 py-1 text-emerald-700">新增</span>
-        <span className="rounded-full bg-rose-100 px-2 py-1 text-rose-700">删除</span>
-        <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-700">改写</span>
+        <span className="rounded-full bg-emerald-100 px-2 py-1 text-emerald-700">{t('simulation.log.diff.added')}</span>
+        <span className="rounded-full bg-rose-100 px-2 py-1 text-rose-700">{t('simulation.log.diff.removed')}</span>
+        <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-700">{t('simulation.log.diff.modified')}</span>
       </div>
 
       <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-        <div className="font-medium">{data.reasonLabel}：</div>
+        <div className="font-medium">{data.reasonLabel}{t('common.colon')}</div>
         <div className="mt-1 whitespace-pre-wrap break-words">{data.reason}</div>
       </div>
 
       <div className="text-xs text-slate-500 whitespace-pre-wrap break-words">
-        <span className="font-medium">{data.metricsLabel}：</span>
+        <span className="font-medium">{data.metricsLabel}{t('common.colon')}</span>
         {data.metrics}
       </div>
     </div>
