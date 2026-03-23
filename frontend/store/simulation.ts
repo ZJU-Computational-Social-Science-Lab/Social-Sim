@@ -501,9 +501,20 @@ export const createSimulationSlice: StateCreator<
             }
           } else if (backendSceneType === 'council_experiment') {
             // REFACTOR-COUNCIL-06: Council experiment configuration
-            sceneConfig.deliberation_rounds = (template.genericConfig as any)?.parameters?.deliberation_rounds || 3;
-            sceneConfig.voting_threshold = (template.genericConfig as any)?.parameters?.voting_threshold || 0.5;
-            sceneConfig.proposal_text = (template.genericConfig as any)?.parameters?.proposal_text || template.description || '';
+            // NO DEFAULTS - fail fast if parameters are missing
+            const params = (template.genericConfig as any)?.parameters;
+            if (!params?.deliberation_rounds) {
+              throw new Error('deliberation_rounds parameter is required for council experiment');
+            }
+            if (!params?.voting_threshold) {
+              throw new Error('voting_threshold parameter is required for council experiment');
+            }
+            if (!params?.proposal_text && !template.description) {
+              throw new Error('proposal_text or description is required for council experiment');
+            }
+            sceneConfig.deliberation_rounds = params.deliberation_rounds;
+            sceneConfig.voting_threshold = params.voting_threshold;
+            sceneConfig.proposal_text = params.proposal_text || template.description;
           } else if (template.description) {
             sceneConfig.initial_event = template.description;
             sceneConfig.initial_events = [template.description];
@@ -524,10 +535,8 @@ export const createSimulationSlice: StateCreator<
               parameters: action.parameters || [],
             }));
             sceneConfig.round_visibility = template.genericConfig?.round_visibility || 'simultaneous';
-            sceneConfig.max_rounds = template.genericConfig?.max_rounds || 50;
             sceneConfig.settings = {
               round_visibility: template.genericConfig?.round_visibility || 'simultaneous',
-              max_rounds: template.genericConfig?.max_rounds || 50,
             };
           } else if (templateActions.length > 0) {
             // Legacy format

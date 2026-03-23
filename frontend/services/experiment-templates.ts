@@ -63,7 +63,6 @@ export interface ActionParameter {
  */
 export interface TemplateSettings {
   round_visibility: 'simultaneous' | 'sequential';
-  max_rounds: number;
 }
 
 /**
