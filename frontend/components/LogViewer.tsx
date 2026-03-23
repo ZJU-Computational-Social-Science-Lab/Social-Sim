@@ -589,6 +589,19 @@ export const LogViewer: React.FC = () => {
     return ids;
   }, [nodes, selectedNodeId]);
 
+  // Debug: Detect duplicate event IDs in incoming logs (Task 1: BUG-UI-02 investigation)
+  useEffect(() => {
+    const ids = logs.map(l => l.id);
+    const uniqueIds = new Set(ids);
+    if (ids.length !== uniqueIds.size) {
+      console.warn('Duplicate event IDs detected:', {
+        total: ids.length,
+        unique: uniqueIds.size,
+        duplicates: ids.filter((id, idx) => ids.indexOf(id) !== idx)
+      });
+    }
+  }, [logs]);
+
   // Filter Logic
   const filteredLogs = useMemo(() => {
     return logs.filter(log => {
