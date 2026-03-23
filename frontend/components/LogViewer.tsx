@@ -602,15 +602,24 @@ export const LogViewer: React.FC = () => {
     }
   }, [logs]);
 
-  // Filter Logic
+  // Filter Logic with deduplication (BUG-UI-02 fix)
   const filteredLogs = useMemo(() => {
+    const seenIds = new Set<string>();
+
     return logs.filter(log => {
-      // 0. Ancestry Filter (Strict: only show logs from current path)
+      // 0. Deduplication guard - prevent duplicate event IDs
+      if (seenIds.has(log.id)) {
+        console.warn(`Duplicate event filtered: ${log.id}`);
+        return false;
+      }
+      seenIds.add(log.id);
+
+      // 1. Ancestry Filter (Strict: only show logs from current path)
       if (log.nodeId && !ancestorIds.has(log.nodeId)) {
         return false;
       }
 
-      // 1. Search Text
+      // 2. Search Text
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const contentMatch = log.content.toLowerCase().includes(query);
@@ -619,12 +628,12 @@ export const LogViewer: React.FC = () => {
         if (!contentMatch && !agentMatch && !typeMatch) return false;
       }
 
-      // 2. Filter by Type
+      // 3. Filter by Type
       if (selectedTypes.length > 0 && !selectedTypes.includes(log.type)) {
         return false;
       }
 
-      // 3. Filter by Agent
+      // 4. Filter by Agent
       if (selectedAgents.length > 0) {
         if (!log.agentId || !selectedAgents.includes(log.agentId)) {
           return false;
