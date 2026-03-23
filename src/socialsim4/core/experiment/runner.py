@@ -33,12 +33,6 @@ from socialsim4.core.llm.client import LLMClient
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-# STARTUP MESSAGE - This proves the fix is loaded
-print("="*80)
-print("EXPERIMENT RUNNER LOADED - VERSION WITH CYCLE PHASE FIX")
-print("   If you see this message, the phase transition fix is loaded!")
-print("="*80)
-
 
 @dataclass
 class RoundResult:

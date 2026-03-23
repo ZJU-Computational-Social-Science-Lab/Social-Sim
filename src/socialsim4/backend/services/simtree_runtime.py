@@ -26,7 +26,6 @@ _logging_handler.setLevel(logging.DEBUG)
 _logging_handler.setFormatter(logging.Formatter('[SIMTREE RUNTIME] %(message)s'))
 logger.addHandler(_logging_handler)
 
-
 def _normalize_language(value: str | None) -> str:
     lang = str(value or "").strip()
     return lang or "en"
@@ -105,6 +104,13 @@ class ExperimentRunnerAdapter:
                 # Use asyncio.run() to create a new event loop
                 asyncio.run(self.scene.run_round(self._emit_event))
 
+            # CYCLE PHASE FIX: Advance round counter and check for phase transitions
+            # This is the ACTUAL code path used by the backend!
+            if hasattr(self.scene, '_advance_round'):
+                logger.info(f"[CYCLE PHASE FIX] Calling scene._advance_round() for {type(self.scene).__name__}")
+                self.scene._advance_round()
+                logger.info(f"[CYCLE PHASE FIX] Phase is now: {getattr(self.scene, 'cycle_phase', 'N/A')}, rounds_in_phase: {getattr(self.scene, 'rounds_in_cycle_phase', 'N/A')}")
+
     def _emit_event(self, event_type: str, data: dict) -> None:
         """Collect events for SimTree and emit to log handler."""
         self.events.append({"type": event_type, "data": data})
@@ -133,7 +139,14 @@ class ExperimentRunnerAdapter:
     def deserialize(cls, data: dict, clients: dict, log_handler=None):
         """Deserialize for SimTree compatibility."""
         scene_data = data["scene"]["config"]
-        scene = ExperimentScene.deserialize_config(scene_data)
+        scenario_id = scene_data.get("config", {}).get("scenario_id", "")
+
+        # GAP-CLOSURE-01: Deserialize to correct scene type based on scenario_id
+        if scenario_id in ("council", "council_chamber"):
+            from socialsim4.core.experiment.scenes.council_experiment import CouncilExperimentScene
+            scene = CouncilExperimentScene.deserialize_config(scene_data)
+        else:
+            scene = ExperimentScene.deserialize_config(scene_data)
 
         adapter = cls(scene, clients)
         adapter.scene.current_round = data.get("turns", 0)
@@ -416,10 +429,26 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         # GAP-CLOSURE-01: Use CouncilExperimentScene for council scenarios
         # Support both "council" and "council_chamber" scenario_ids (frontend uses council_chamber)
         if scenario_id in ("council", "council_chamber"):
+            # NO DEFAULTS - fail fast if parameters are missing
+            params = inner_cfg.get("parameters", {})
+
+            # Handle parameter name mapping: max_rounds -> deliberation_rounds
+            # Frontend may send 'max_rounds' but backend expects 'deliberation_rounds'
+            if "deliberation_rounds" not in params and "max_rounds" in params:
+                params["deliberation_rounds"] = params["max_rounds"]
+                logger.info(f"[PARAMETER MAPPING] Mapped max_rounds={params['max_rounds']} to deliberation_rounds")
+
+            if "deliberation_rounds" not in params:
+                raise ValueError(f"deliberation_rounds parameter is required for council experiment. Got parameters: {params}")
+            if "voting_threshold" not in params:
+                raise ValueError(f"voting_threshold parameter is required for council experiment. Got parameters: {params}")
+            if "proposal_text" not in params:
+                raise ValueError(f"proposal_text parameter is required for council experiment. Got parameters: {params}")
+
             council_game_config = create_council_config(
-                proposal_text=inner_cfg.get("parameters", {}).get("proposal_text", ""),
-                deliberation_rounds=inner_cfg.get("parameters", {}).get("deliberation_rounds", 3),
-                voting_threshold=inner_cfg.get("parameters", {}).get("voting_threshold", 0.5),
+                proposal_text=params["proposal_text"],
+                deliberation_rounds=params["deliberation_rounds"],
+                voting_threshold=params["voting_threshold"],
             )
             config = ExperimentConfig(
                 agents=agent_config.get("agents", []),
@@ -457,11 +486,26 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         return SimTree.new(adapter, adapter.clients)
     elif scene_key == "council_experiment":
         # REFACTOR-COUNCIL-06: Council experiment using experiment framework
+        # NO DEFAULTS - fail fast if parameters are missing
+
+        # Handle parameter name mapping: max_rounds -> deliberation_rounds
+        # Frontend may send 'max_rounds' but backend expects 'deliberation_rounds'
+        if "deliberation_rounds" not in cfg and "max_rounds" in cfg:
+            cfg["deliberation_rounds"] = cfg["max_rounds"]
+            logger.info(f"[PARAMETER MAPPING] Mapped max_rounds={cfg['max_rounds']} to deliberation_rounds")
+
+        if "deliberation_rounds" not in cfg:
+            raise ValueError(f"deliberation_rounds parameter is required for council experiment. Got config keys: {list(cfg.keys())}")
+        if "voting_threshold" not in cfg:
+            raise ValueError(f"voting_threshold parameter is required for council experiment. Got config keys: {list(cfg.keys())}")
+        if "proposal_text" not in cfg:
+            raise ValueError(f"proposal_text parameter is required for council experiment. Got config keys: {list(cfg.keys())}")
+
         # Create CouncilConfig with council-specific parameters
         council_game_config = create_council_config(
-            proposal_text=cfg.get("proposal_text", ""),
-            deliberation_rounds=cfg.get("deliberation_rounds", 3),
-            voting_threshold=cfg.get("voting_threshold", 0.5),
+            proposal_text=cfg["proposal_text"],
+            deliberation_rounds=cfg["deliberation_rounds"],
+            voting_threshold=cfg["voting_threshold"],
         )
 
         config = ExperimentConfig(
