@@ -290,6 +290,14 @@
         "default_policy_summary": "逐级传达政策，并保留关键执行条款"
       }
     },
+    "werewolf": {
+      "moderator_hint": "你是主持人。玩家：{players}。角色：{roles_info}。"
+    },
+    "archetype": {
+      "prompt": "为此人口创建角色模板: {attrs}\n\n返回这个格式的JSON:\n{\"description\": \"一句人物描述\", \"roles\": [\"职业1\", \"职业2\", \"职业3\", \"职业4\", \"职业5\"]}\n\n仅输出JSON，无其他文字。",
+      "fallback_roles": ["公民", "工人", "专业人士", "学生", "其他"],
+      "fallback_description": "具有以下背景的个人: {archetype_label}"
+    },
     "scenarios": {
       "social_norm_disruption": {
         "name": "社会规范破坏",

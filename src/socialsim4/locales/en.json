@@ -290,6 +290,14 @@
         "default_policy_summary": "Transmit policy level by level, retaining key execution clauses"
       }
     },
+    "werewolf": {
+      "moderator_hint": "You are the Moderator. Players: {players}. Roles: {roles_info}."
+    },
+    "archetype": {
+      "prompt": "Create agent template for: {attrs}\n\nReturn JSON in this exact format:\n{\"description\": \"one sentence bio\", \"roles\": [\"Job Title 1\", \"Job Title 2\", \"Job Title 3\", \"Job Title 4\", \"Job Title 5\"]}\n\nJSON only, no other text.",
+      "fallback_roles": ["Citizen", "Worker", "Professional", "Student", "Other"],
+      "fallback_description": "Individual with background: {archetype_label}"
+    },
     "scenarios": {
       "social_norm_disruption": {
         "name": "Social Norm Disruption",
