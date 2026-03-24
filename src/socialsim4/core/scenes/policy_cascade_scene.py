@@ -1,10 +1,20 @@
+"""
+Policy cascade scene for simulating hierarchical policy transmission.
+
+Models the distortion of policies as they flow through organizational tiers
+(top -> mid -> low), with agents potentially modifying content based on
+their tier position, pressure, and self-interest.
+
+Contains: PolicyCascadeScene class, tier management, distortion logic
+"""
+
 from __future__ import annotations
 
 import re
 import hashlib
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List, Optional
 
 from socialsim4.core.actions.base_actions import SendMessageAction, YieldAction
 from socialsim4.core.actions.policy_feedback_actions import (
@@ -18,35 +28,146 @@ from socialsim4.core.agent import Agent
 from socialsim4.core.agent.parsing import strip_thinking_tokens
 from socialsim4.core.event import PublicEvent
 from socialsim4.core.scene import Scene
+from socialsim4.i18n import T
 
 
 DEFAULT_TIER_ORDER = ["top", "mid", "low"]
-POLICY_MARKERS = ["原文", "不可改写条款", "报告要求", "执行要求", "目标："]
-POLICY_LINE_MARKERS = {
-    "goal": ["政策目标", "目标", "总体要求", "工作要求"],
-    "scope": ["调整范围", "适用范围", "覆盖范围"],
-    "standard": ["调整标准", "下调", "比例", "薪酬标准", "固定薪酬"],
-    "support": ["配套要求", "稳岗安排", "心理支持", "申诉反馈渠道"],
-    "execution": ["执行要求", "落实", "整改", "排查", "培训", "核验", "完成"],
-    "report": ["报告要求", "报送", "汇总", "周报", "台账", "上报", "签到表", "填报"],
-    "resource": ["资源", "预算", "经费", "人员", "保障", "技术支持", "专项"],
-    "accountability": ["责任分工", "问责", "考核", "督办", "责任", "压实责任", "跟踪问效"],
-    "invariant": ["不可改写条款", "严禁", "不得", "必须", "一律"],
-}
-AGENT_SIGNAL_MARKERS = {
-    "burden": ["负担", "压力", "成本", "加班", "重复", "繁琐", "一线", "基层", "执行难"],
-    "autonomy": ["灵活", "自主", "因地制宜", "协调", "平衡", "裁量", "缓行", "试点"],
-    "control": ["问责", "纪律", "考核", "刚性", "统一部署", "压实责任", "督办", "从严"],
-    "resource": ["预算", "人手", "资源", "经费", "设备", "支持", "保障", "条件"],
-    "stability": ["稳定", "风险", "舆情", "安全", "秩序", "审慎", "稳妥"],
-}
-NOTICE_ANALYSIS_MARKERS = [
-    "解读", "评估", "合理性", "优点", "缺点", "优缺点", "利弊", "优势", "不足",
-    "问题", "建议", "看法", "分析", "研判", "评论", "谈谈", "怎么看", "是否可行",
-]
-NOTICE_EXECUTION_MARKERS = [
-    "贯彻", "落实", "执行", "推进", "部署", "传达", "整改", "排查", "督办", "落实情况",
-]
+
+
+def _get_locale_list(key: str, locale: str = "zh") -> List[str]:
+    """Get a list from locale file for the given key.
+
+    The T() function returns values from locale JSON. For list values,
+    it returns the key itself (not the list), so we access the locale
+    file directly for list markers.
+
+    Args:
+        key: Translation key (e.g., 'prompts.policy_cascade.markers.policy')
+        locale: Language code ('en' or 'zh')
+
+    Returns:
+        List of marker strings, or empty list if not found
+    """
+    # Import locally to avoid circular imports at module level
+    import json
+    from pathlib import Path
+
+    # Path: policy_cascade_scene.py is in core/scenes/, locales are in socialsim4/locales/
+    # So we need to go up 2 levels: scenes -> core -> socialsim4
+    locale_file = Path(__file__).parent.parent.parent / "locales" / f"{locale}.json"
+
+    if not locale_file.exists():
+        # Fallback to Chinese markers if locale file missing
+        if locale != "zh":
+            return _get_locale_list(key, "zh")
+        return []
+
+    try:
+        with open(locale_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Navigate nested keys
+        keys = key.split(".")
+        value = data
+        for k in keys:
+            if isinstance(value, dict):
+                value = value.get(k)
+                if value is None:
+                    break
+            else:
+                value = None
+                break
+
+        if isinstance(value, list):
+            return value
+        # Fallback to Chinese if not found in current locale
+        if locale != "zh":
+            return _get_locale_list(key, "zh")
+        return []
+    except (json.JSONDecodeError, IOError):
+        if locale != "zh":
+            return _get_locale_list(key, "zh")
+        return []
+
+
+# Module-level marker caches (populated lazily)
+_MARKER_CACHE: Dict[str, Dict[str, List[str]]] = {}
+
+
+def _get_policy_markers(locale: str = "zh") -> List[str]:
+    """Get policy markers from locale file."""
+    cache_key = f"policy_markers:{locale}"
+    if cache_key in _MARKER_CACHE:
+        return _MARKER_CACHE[cache_key]
+    markers = _get_locale_list("prompts.policy_cascade.markers.policy", locale)
+    _MARKER_CACHE[cache_key] = markers
+    return markers
+
+
+def _get_line_type_markers(line_type: str, locale: str = "zh") -> List[str]:
+    """Get line type markers from locale file."""
+    cache_key = f"line_type:{line_type}:{locale}"
+    if cache_key in _MARKER_CACHE:
+        return _MARKER_CACHE[cache_key]
+    markers = _get_locale_list(f"prompts.policy_cascade.markers.line_types.{line_type}", locale)
+    _MARKER_CACHE[cache_key] = markers
+    return markers
+
+
+def _get_agent_signal_markers(signal_type: str, locale: str = "zh") -> List[str]:
+    """Get agent signal markers from locale file."""
+    cache_key = f"agent_signal:{signal_type}:{locale}"
+    if cache_key in _MARKER_CACHE:
+        return _MARKER_CACHE[cache_key]
+    markers = _get_locale_list(f"prompts.policy_cascade.markers.agent_signals.{signal_type}", locale)
+    _MARKER_CACHE[cache_key] = markers
+    return markers
+
+
+def _get_notice_analysis_markers(locale: str = "zh") -> List[str]:
+    """Get notice analysis markers from locale file."""
+    cache_key = f"notice_analysis:{locale}"
+    if cache_key in _MARKER_CACHE:
+        return _MARKER_CACHE[cache_key]
+    markers = _get_locale_list("prompts.policy_cascade.markers.notice_analysis", locale)
+    _MARKER_CACHE[cache_key] = markers
+    return markers
+
+
+def _get_notice_execution_markers(locale: str = "zh") -> List[str]:
+    """Get notice execution markers from locale file."""
+    cache_key = f"notice_execution:{locale}"
+    if cache_key in _MARKER_CACHE:
+        return _MARKER_CACHE[cache_key]
+    markers = _get_locale_list("prompts.policy_cascade.markers.notice_execution", locale)
+    _MARKER_CACHE[cache_key] = markers
+    return markers
+
+
+def _get_all_line_type_markers(locale: str = "zh") -> Dict[str, List[str]]:
+    """Get all line type markers as a dictionary."""
+    return {
+        "goal": _get_line_type_markers("goal", locale),
+        "scope": _get_line_type_markers("scope", locale),
+        "standard": _get_line_type_markers("standard", locale),
+        "support": _get_line_type_markers("support", locale),
+        "execution": _get_line_type_markers("execution", locale),
+        "report": _get_line_type_markers("report", locale),
+        "resource": _get_line_type_markers("resource", locale),
+        "accountability": _get_line_type_markers("accountability", locale),
+        "invariant": _get_line_type_markers("invariant", locale),
+    }
+
+
+def _get_all_agent_signal_markers(locale: str = "zh") -> Dict[str, List[str]]:
+    """Get all agent signal markers as a dictionary."""
+    return {
+        "burden": _get_agent_signal_markers("burden", locale),
+        "autonomy": _get_agent_signal_markers("autonomy", locale),
+        "control": _get_agent_signal_markers("control", locale),
+        "resource": _get_agent_signal_markers("resource", locale),
+        "stability": _get_agent_signal_markers("stability", locale),
+    }
 _scene_debug_dir = Path("test_results")
 _scene_debug_dir.mkdir(exist_ok=True)
 _scene_debug_file = _scene_debug_dir / f"policy_cascade_final_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
@@ -160,6 +281,20 @@ class PolicyCascadeScene(Scene):
         self.state.setdefault("informal_network", {})
         self.state.setdefault("branch_interpretations", {})
         self._agents_by_tier = {tier: [] for tier in self.tier_order}
+
+    # ----- Locale -----
+
+    def _get_locale(self) -> str:
+        """Get the preferred locale for this scene.
+
+        Checks agents for language preference, defaults to Chinese for
+        backward compatibility with existing policy text processing.
+        """
+        if hasattr(self, "simulator") and self.simulator:
+            for agent in self.simulator.agents.values():
+                if hasattr(agent, "language") and agent.language:
+                    return "zh" if agent.language.startswith("zh") else "en"
+        return "zh"
 
     # ----- Lifecycle -----
 
@@ -438,21 +573,27 @@ class PolicyCascadeScene(Scene):
         return "\n".join(parts)
 
     def _agent_signal_profile(self, agent: Agent) -> Dict[str, float]:
+        """Calculate agent signal scores using locale-aware markers."""
         text = self._agent_signal_text(agent)
+        locale = self._get_locale()
+        markers = _get_all_agent_signal_markers(locale)
         return {
             key: self._keyword_score(text, keywords)
-            for key, keywords in AGENT_SIGNAL_MARKERS.items()
+            for key, keywords in markers.items()
         }
 
     def _policy_signal_profile(self) -> Dict[str, float]:
+        """Calculate policy signal scores using locale-aware markers."""
         text = "\n".join([
             str(self.state.get("source_policy", "") or ""),
             str(self.state.get("relayed_policy", "") or ""),
             str(self.state.get("latest_notice", "") or ""),
         ])
+        locale = self._get_locale()
+        markers = _get_all_line_type_markers(locale)
         profile = {
             key: self._keyword_score(text, keywords)
-            for key, keywords in POLICY_LINE_MARKERS.items()
+            for key, keywords in markers.items()
         }
         profile["burden"] = self._clamp01(
             profile["execution"] * 0.35
@@ -499,27 +640,25 @@ class PolicyCascadeScene(Scene):
         )
 
     def _distortion_reason(self, agent: Agent, tier: str) -> str:
+        """Generate distortion reason using locale-aware strings."""
+        locale = self._get_locale()
         agent_profile = self._agent_signal_profile(agent)
         policy_profile = self._policy_signal_profile()
         scored = [
-            ("基层执行负担高", policy_profile["burden"] * (0.35 + agent_profile["burden"] * 0.35)),
-            ("资源保障与任务要求不匹配", policy_profile["resource_gap"] * (0.2 + agent_profile["resource"] * 0.3)),
-            ("考核问责压力触发本层自保", policy_profile["accountability"] * (0.15 + agent_profile["autonomy"] * 0.2)),
-            ("报送链条过重导致转述弱化", policy_profile["report"] * (0.1 + agent_profile["burden"] * 0.15)),
+            (T("prompts.policy_cascade.distortion.reasons.grassroots_burden", locale=locale), policy_profile["burden"] * (0.35 + agent_profile["burden"] * 0.35)),
+            (T("prompts.policy_cascade.distortion.reasons.resource_gap", locale=locale), policy_profile["resource_gap"] * (0.2 + agent_profile["resource"] * 0.3)),
+            (T("prompts.policy_cascade.distortion.reasons.accountability_pressure", locale=locale), policy_profile["accountability"] * (0.15 + agent_profile["autonomy"] * 0.2)),
+            (T("prompts.policy_cascade.distortion.reasons.reporting_chain", locale=locale), policy_profile["report"] * (0.1 + agent_profile["burden"] * 0.15)),
         ]
         top_reasons = [label for label, score in sorted(scored, key=lambda item: item[1], reverse=True)[:2] if score > 0.08]
         if not top_reasons:
-            top_reasons = ["本层判断需要重新筛选政策重点"]
+            top_reasons = [T("prompts.policy_cascade.distortion.default_reason", locale=locale)]
 
         role_kind = self._tier_role_kind(tier)
-        if role_kind == "top":
-            role_note = "高层优先保留统筹、问责和重点指标。"
-        elif role_kind == "mid":
-            role_note = "中层优先保留可操作任务，压缩跨部门协调成本。"
-        else:
-            role_note = "基层优先保留最低可执行动作，降低一线负担。"
+        role_note = T(f"prompts.policy_cascade.distortion.role_notes.{role_kind}", locale=locale)
 
-        return "；".join(top_reasons + [role_note])
+        separator = "；" if locale == "zh" else "; "
+        return separator.join(top_reasons + [role_note])
 
     def _emit_distortion_event(self, simulator, agent: Agent, tier: str, input_policy: str, agent_draft: str, final_action: str, final_message: str) -> None:
         pressure = self._conflict_pressure(agent, tier)
@@ -554,9 +693,19 @@ class PolicyCascadeScene(Scene):
         return "", line.strip()
 
     def _line_kind(self, line: str) -> str:
+        """Classify line type using locale-aware markers."""
+        locale = self._get_locale()
+        markers = _get_all_line_type_markers(locale)
+        policy_markers = _get_policy_markers(locale)
+
         normalized = re.sub(r'^\s*(?:\d+[\.、]\s*)?', '', str(line or '').strip())
-        if normalized == "原文：":
+
+        # Check for meta marker (original text indicator)
+        meta_markers = [m for m in policy_markers if ":" in m or "原文" in m or "Original" in m]
+        if any(m in normalized for m in meta_markers) or normalized == "原文：" or normalized == "Original Text:":
             return "meta"
+
+        # Title detection uses Chinese patterns for now (policy documents are Chinese)
         if ("通知" in normalized or "公告" in normalized) and (
             normalized.startswith("关于")
             or "关于" in normalized
@@ -566,11 +715,11 @@ class PolicyCascadeScene(Scene):
             return "title"
         header, _ = self._split_policy_line(normalized)
         if header:
-            for kind, markers in POLICY_LINE_MARKERS.items():
-                if any(marker in header for marker in markers):
+            for kind, kind_markers in markers.items():
+                if any(marker in header for marker in kind_markers):
                     return kind
-        for kind, markers in POLICY_LINE_MARKERS.items():
-            if any(marker in normalized for marker in markers):
+        for kind, kind_markers in markers.items():
+            if any(marker in normalized for marker in kind_markers):
                 return kind
         return "general"
 
@@ -601,7 +750,19 @@ class PolicyCascadeScene(Scene):
         return str(text or "").strip().rstrip("。；;，,:：")
 
     def _soften_body(self, body: str, strength: float) -> str:
+        """Soften policy text based on distortion strength.
+
+        Note: Replacement rules only apply for Chinese text, as these are
+        Chinese-specific policy softening patterns. English policy text
+        uses different patterns and is returned unchanged.
+        """
         softened = str(body or "").strip()
+
+        # Only apply Chinese text replacements for Chinese locale
+        locale = self._get_locale()
+        if locale != "zh":
+            return softened
+
         replacements = [
             ("必须", "优先"),
             ("立即", "尽快"),
@@ -1355,10 +1516,19 @@ class PolicyCascadeScene(Scene):
         return int(value)
 
     def _detect_notice_kind(self, text: str) -> str:
-        if any(marker in text for marker in NOTICE_ANALYSIS_MARKERS):
-            return "analysis"
-        if any(marker in text for marker in NOTICE_EXECUTION_MARKERS):
+        """Detect if notice is analysis or execution type based on locale-aware markers."""
+        if not text:
             return "execution"
+
+        locale = self._get_locale()
+        analysis_markers = _get_notice_analysis_markers(locale)
+        execution_markers = _get_notice_execution_markers(locale)
+
+        analysis_score = sum(1 for m in analysis_markers if m in text)
+        execution_score = sum(1 for m in execution_markers if m in text)
+
+        if analysis_score > execution_score:
+            return "analysis"
         return "execution"
 
     def _gov_meeting_terms(self, tier: str) -> List[str]:
