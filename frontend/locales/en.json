@@ -10,7 +10,8 @@
     "next": "Next",
     "back": "Back",
     "previous": "Previous",
-    "colon": ":"
+    "colon": ":",
+    "remove": "Remove"
   },
   "log": {
     "reasoningStep": "Starting step {{step}} reasoning",
