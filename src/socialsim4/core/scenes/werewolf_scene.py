@@ -7,6 +7,7 @@ from socialsim4.core.agent import Agent
 from socialsim4.core.event import Event, PublicEvent
 from socialsim4.core.scene import Scene
 from socialsim4.core.simulator import Simulator
+from socialsim4.i18n import T
 
 
 class WerewolfScene(Scene):
@@ -192,18 +193,14 @@ class WerewolfScene(Scene):
                 break
 
         roles = self.state.get("roles", {})
+        # Build roles info string based on language
         if _is_english_language(preferred_lang):
             roles_info_str = ", ".join(f"{name} is {role}" for name, role in roles.items())
-            hint = (
-                f"You are the Moderator. Players: {', '.join(simulator.agents.keys())}. "
-                f"Roles: {roles_info_str}."
-            )
         else:
             roles_info_str = "，".join(f"{name} 是 {role}" for name, role in roles.items())
-            hint = (
-                f"你是主持人。玩家：{ '，'.join(simulator.agents.keys()) }。"
-                f"角色：{roles_info_str}。"
-            )
+
+        players_str = ", ".join(simulator.agents.keys()) if _is_english_language(preferred_lang) else "，".join(simulator.agents.keys())
+        hint = T('prompts.werewolf.moderator_hint', locale=preferred_lang or 'en', players=players_str, roles_info=roles_info_str)
 
         for name in self.moderator_names:
             ev = PublicEvent(hint, prefix="System")
