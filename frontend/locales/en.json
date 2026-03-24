@@ -531,6 +531,7 @@
       "citizen": "Citizen",
       "customTemplate": "Custom Template",
       "provider": "Provider",
+      "tierLabel": "Political Tier",
       "traits": {
         "trust": "Trust",
         "empathy": "Empathy",

@@ -531,6 +531,7 @@
       "citizen": "公民",
       "customTemplate": "自定义模板",
       "provider": "提供商",
+      "tierLabel": "政治职位层级",
       "traits": {
         "trust": "信任度",
         "empathy": "同理心",

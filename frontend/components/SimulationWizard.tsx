@@ -173,7 +173,7 @@ export const SimulationWizard: React.FC = () => {
     if (isOpen) {
       loadProviders();
       if (selectedTemplateId === 'policy_diffusion') {
-        setDemographics([{ id: generateId(), name: '政治职位层级', categories: ['top', 'mid', 'low'] }]);
+        setDemographics([{ id: generateId(), name: t('wizard.defaults.tierLabel'), categories: ['top', 'mid', 'low'] }]);
       } else if (demographics.length === 0) {
         setDemographics([
           { id: generateId(), name: t('wizard.tabs.age'), categories: [
@@ -199,7 +199,7 @@ export const SimulationWizard: React.FC = () => {
   useEffect(() => {
     if (selectedTemplateId === 'policy_diffusion') {
       const existingId = demographics[0]?.id || generateId();
-      setDemographics([{ id: existingId, name: '政治职位层级', categories: ['top', 'mid', 'low'] }]);
+      setDemographics([{ id: existingId, name: t('wizard.defaults.tierLabel'), categories: ['top', 'mid', 'low'] }]);
     } else if (demographics.length >= 2) {
       setDemographics([
         { id: demographics[0].id, name: t('wizard.tabs.age'), categories: [
@@ -241,9 +241,9 @@ export const SimulationWizard: React.FC = () => {
 
   useEffect(() => {
     if (selectedTemplateId === 'policy_diffusion') {
-      setDemographics([{ id: generateId(), name: '政治职位层级', categories: ['top', 'mid', 'low'] }]);
+      setDemographics([{ id: generateId(), name: t('wizard.defaults.tierLabel'), categories: ['top', 'mid', 'low'] }]);
     }
-  }, [selectedTemplateId]);
+  }, [selectedTemplateId, t]);
 
   // Update archetypes when demographics change (AgentTorch)
   useEffect(() => {

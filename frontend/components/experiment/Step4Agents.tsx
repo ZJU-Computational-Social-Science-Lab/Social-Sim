@@ -26,11 +26,19 @@ type TierValue = string;
 
 const generateId = () => `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+// Tier property key constant - use this instead of hardcoded strings
+const TIER_PROPERTY_KEY = 'tier_level';
+
 const normalizeTierValue = (value: string): TierValue => {
   const normalized = value.toLowerCase().replace(/[\s_-]/g, '');
-  if (normalized.includes('top') || normalized.includes('high') || value.includes('高层')) return 'top';
-  if (normalized.includes('mid') || normalized.includes('middle') || value.includes('中层')) return 'mid';
-  if (normalized.includes('low') || normalized.includes('base') || value.includes('基层')) return 'low';
+  // Check for English tier keywords
+  if (normalized.includes('top') || normalized.includes('high')) return 'top';
+  if (normalized.includes('mid') || normalized.includes('middle')) return 'mid';
+  if (normalized.includes('low') || normalized.includes('base')) return 'low';
+  // Check for Chinese tier keywords (for backwards compatibility with existing data)
+  if (value.includes('高层') || value.includes('高级')) return 'top';
+  if (value.includes('中层') || value.includes('中级')) return 'mid';
+  if (value.includes('基层') || value.includes('低级')) return 'low';
   return '';
 };
 
@@ -70,7 +78,8 @@ const inferOrderedTier = (agent: Partial<ManualAgentType>, tierOrder: string[]):
     if (matched) return matched;
   }
 
-  const profileTier = String(agent.properties?.['政治职位层级'] || '').trim();
+  // Check for tier using language-agnostic property key
+  const profileTier = String(agent.properties?.[TIER_PROPERTY_KEY] || agent.properties?.tier || '').trim();
   if (profileTier) {
     const matched = tierOrder.find((tier) => tier.toLowerCase() === profileTier.toLowerCase());
     if (matched) return matched;
@@ -99,11 +108,13 @@ const resizeTierOrder = (current: string[], count: number): string[] => {
 };
 
 const isPolicyCascadeScenario = (scenarioId: string, scenarioName: string): boolean => {
+  const normalizedName = scenarioName.toLowerCase();
   return (
     scenarioId === 'policy_diffusion' ||
     scenarioId === 'policyDiffusion' ||
-    scenarioName.includes('policy') ||
-    scenarioName.includes('政策')
+    normalizedName.includes('policy') ||
+    normalizedName.includes('cascade') ||
+    normalizedName.includes('diffusion')
   );
 };
 
@@ -221,10 +232,11 @@ export const Step4Agents: React.FC = () => {
   // Initialize demographics on first render
   useEffect(() => {
     if (showTierControls) {
-      const alreadyTier = demographics.length === 1 && demographics[0]?.name === '政治职位层级';
+      const tierLabel = t('wizard.defaults.tierLabel');
+      const alreadyTier = demographics.length === 1 && demographics[0]?.name === tierLabel;
       const sameCategories = alreadyTier && demographics[0]?.categories.join('|') === tierOrder.join('|');
       if (!sameCategories) {
-        setDemographics([{ id: generateId(), name: '政治职位层级', categories: tierOrder }]);
+        setDemographics([{ id: generateId(), name: tierLabel, categories: tierOrder }]);
       }
       if (genCount < tierOrder.length) {
         setGenCount(tierOrder.length);
@@ -232,7 +244,7 @@ export const Step4Agents: React.FC = () => {
       return;
     }
 
-    const hasPolicyOnlyDemographics = demographics.length === 1 && demographics[0]?.name === '政治职位层级';
+    const hasPolicyOnlyDemographics = demographics.length === 1 && demographics[0]?.name === t('wizard.defaults.tierLabel');
     if (demographics.length === 0 || hasPolicyOnlyDemographics) {
       setDemographics([
         {
@@ -633,7 +645,7 @@ export const Step4Agents: React.FC = () => {
         const inferredTier = inferOrderedTier({
           properties: {
             tier: agent.properties?.tier,
-            政治职位层级: agent.properties?.['政治职位层级'],
+            [TIER_PROPERTY_KEY]: agent.properties?.[TIER_PROPERTY_KEY],
           },
           rolePrompt: agent.profile,
           userProfile: agent.profile,
@@ -646,7 +658,7 @@ export const Step4Agents: React.FC = () => {
           demographic_attributes: JSON.stringify(agent.properties || {}),
         };
         if (showTierControls) {
-          nextProperties.tier = inferredTier || String(agent.properties?.tier || agent.properties?.['政治职位层级'] || '');
+          nextProperties.tier = inferredTier || String(agent.properties?.tier || agent.properties?.[TIER_PROPERTY_KEY] || '');
         } else {
           delete nextProperties.tier;
         }
