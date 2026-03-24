@@ -183,6 +183,23 @@ ABSTAIN_ACTION = ActionDefinition(
 )
 
 
+# === PGG Punishment Action ===
+
+PUNISH_ACTION = ActionDefinition(
+    name="punish",
+    description="Spend punishment tokens to reduce another agent's payoff",
+    parameters=[
+        ParameterSpec("target", "agent", [], required=True),
+        ParameterSpec("amount", "number", [], required=True),
+    ],
+    effects=[
+        EffectSpec("agent.resources.punishment_budget", "subtract", "amount"),
+    ],
+    requires=["resources"],
+    handler=None,  # Will be bound in _bind_handlers
+)
+
+
 # The registry dictionary
 ACTION_REGISTRY: dict[str, ActionDefinition] = {
     "choose": CHOOSE_ACTION,
@@ -200,6 +217,8 @@ ACTION_REGISTRY: dict[str, ActionDefinition] = {
     "vote_no": VOTE_NO_ACTION,    # NEW - explicit vote action
     "abstain": ABSTAIN_ACTION,    # NEW - explicit vote action
     "conclude": CONCLUDE_ACTION,  # Keep for backward compatibility
+    # PGG punishment action
+    "punish": PUNISH_ACTION,
 }
 
 
@@ -237,6 +256,7 @@ def _bind_handlers():
         handle_vote_no,
         handle_abstain,
         handle_conclude,
+        handle_punish,
     )
     ACTION_REGISTRY["move"].handler = handle_move
     ACTION_REGISTRY["talk"].handler = handle_talk
@@ -248,6 +268,8 @@ def _bind_handlers():
     ACTION_REGISTRY["vote_no"].handler = handle_vote_no
     ACTION_REGISTRY["abstain"].handler = handle_abstain
     ACTION_REGISTRY["conclude"].handler = handle_conclude
+    # PGG punishment action handler
+    ACTION_REGISTRY["punish"].handler = handle_punish
 
 
 # Bind handlers on first import

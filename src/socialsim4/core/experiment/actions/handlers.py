@@ -6,10 +6,14 @@ actual code to compute state changes. This module provides
 those handlers.
 
 Contains: handle_move, handle_talk, handle_council_speak,
-          handle_start_voting, handle_vote, handle_conclude
+          handle_start_voting, handle_vote, handle_conclude,
+          handle_punish
 """
+import logging
 from typing import Any
 from socialsim4.core.experiment.state import ExperimentState
+
+logger = logging.getLogger(__name__)
 
 
 def handle_move(agent_name: str, params: dict, state: ExperimentState) -> dict[str, Any]:
@@ -292,3 +296,70 @@ def handle_conclude(action_data: dict, agent_name: str, state: ExperimentState, 
     summary = f"Meeting concluded. Proposal {result} ({yes_votes}/{total_votes} yes votes)"
 
     return {"success": True, "summary": summary, "passed": passed}
+
+
+# === PGG Punishment Action Handler ===
+
+def handle_punish(action_data: dict, agent_name: str, state: ExperimentState, scene) -> dict[str, Any]:
+    """Handle punish action with validation.
+
+    Validates:
+    - Agent cannot punish themselves
+    - Target must exist in state.agents
+    - Amount is clamped to available punishment budget
+
+    Stores allocation in state.extensions["punishments"] for
+    end-of-round payoff calculation.
+
+    Args:
+        action_data: {"target": agent_name, "amount": int}
+        agent_name: Name of punishing agent
+        state: Current experiment state
+        scene: Scene reference (unused)
+
+    Returns:
+        {"success": bool, "amount": int, "target": str} or
+        {"success": False, "error": str}
+    """
+    _ = scene  # Scene not needed for punish action
+    target = action_data.get("target")
+    amount = action_data.get("amount", 0)
+
+    # Validation 1: No self-punishment
+    if target == agent_name:
+        return {"success": False, "error": "Cannot punish yourself"}
+
+    # Validation 2: Target exists
+    if target not in state.agents:
+        return {"success": False, "error": f"Unknown target: {target}"}
+
+    # Validation 3: Clamp to budget
+    agent = state.agents.get(agent_name)
+    if not agent:
+        return {"success": False, "error": "Agent not found in state"}
+
+    current_budget = agent.resources.get("punishment_budget", 0)
+    actual_amount = max(0, min(amount, current_budget))
+
+    if actual_amount < amount:
+        logger.debug(f"Punishment clamped: {agent_name} attempted {amount}, has {current_budget}")
+
+    # Store punishment allocation for end-of-round processing
+    if "punishments" not in state.extensions:
+        state.extensions["punishments"] = {}
+    if agent_name not in state.extensions["punishments"]:
+        state.extensions["punishments"][agent_name] = []
+
+    state.extensions["punishments"][agent_name].append({
+        "target": target,
+        "amount": actual_amount,
+    })
+
+    # Deduct from budget
+    agent.resources["punishment_budget"] = current_budget - actual_amount
+
+    return {
+        "success": True,
+        "amount": actual_amount,
+        "target": target,
+    }

@@ -245,18 +245,30 @@ class ExperimentScene:
         """Initialize ExperimentState from config.
 
         Creates AgentState for each agent and applies state_schema extensions.
+        Also initializes punishment budget if configured.
+
         Called during initialize() after agents are created.
         """
+        # Get punishment budget from config (default 0 = disabled)
+        params = self.config.parameters or {}
+        punishment_budget = params.get("punishment_budget_per_round", 0)
+
         # Create AgentState for each agent
         for agent_config in self.config.agents:
             name = agent_config.get("name", "")
             if not name:
                 continue
 
+            resources = deepcopy(agent_config.get("resources", {}))
+
+            # Add punishment budget if configured
+            if punishment_budget > 0:
+                resources["punishment_budget"] = punishment_budget
+
             agent_state = AgentState(
                 score=0,
                 position=agent_config.get("position"),
-                resources=deepcopy(agent_config.get("resources", {})),
+                resources=resources,
                 properties=deepcopy(agent_config.get("properties", {})),
             )
             self.state.agents[name] = agent_state
@@ -266,7 +278,14 @@ class ExperimentScene:
             if "extensions" in self.config.state_schema:
                 self.state.extensions.update(deepcopy(self.config.state_schema["extensions"]))
 
-        logger.debug(f"Initialized state for {len(self.state.agents)} agents")
+        # Initialize punishments tracking in extensions
+        if "punishments" not in self.state.extensions:
+            self.state.extensions["punishments"] = {}
+
+        logger.debug(
+            f"Initialized state for {len(self.state.agents)} agents "
+            f"(punishment_budget={punishment_budget})"
+        )
 
     def _create_game_config(self) -> GameConfig:
         """Create GameConfig from config data."""

@@ -265,25 +265,18 @@ class PayoffEngine:
         total_contribution = 0
         contributions = {}
 
-        # DEBUG: Log inputs to payoff calculation
-        print(f"[PAYOFF DEBUG] payoff_type=pool, config={config}, state={state is not None}")
-        print(f"[PAYOFF DEBUG] actions count: {len(actions)}")
+        logger.debug(f"Calculating pool payoffs: multiplier={config.get('multiplier')}, state={'provided' if state else 'none'}")
 
         for action in actions:
             if not action.skipped:
                 if action.action_name == "contribute":
                     attempted_amount = action.parameters.get("amount", 0)
-                    print(f"[PAYOFF DEBUG] Agent {action.agent_name}: action_name={action.action_name}, attempted_amount={attempted_amount}")
 
                     # Validate contribution against agent's token balance
                     if state is not None:
                         agent = state.agents.get(action.agent_name)
-                        print(f"[PAYOFF DEBUG]   state.agents keys: {list(state.agents.keys())}")
-                        print(f"[PAYOFF DEBUG]   agent found: {agent is not None}")
                         if agent:
-                            print(f"[PAYOFF DEBUG]   agent.resources: {agent.resources}")
                             current_tokens = agent.resources.get("tokens", 0)
-                            print(f"[PAYOFF DEBUG]   current_tokens: {current_tokens}")
                             # Cap contribution at current balance (minimum 0)
                             actual_amount = max(0, min(attempted_amount, current_tokens))
 
@@ -317,13 +310,66 @@ class PayoffEngine:
 
         pool_return = (total_contribution * multiplier) / num_agents
 
-        print(f"[PAYOFF DEBUG] total_contribution={total_contribution}, multiplier={multiplier}, initial_tokens={initial_tokens}")
-        print(f"[PAYOFF DEBUG] pool_return={pool_return}, num_agents={num_agents}")
-        print(f"[PAYOFF DEBUG] contributions={contributions}")
+        logger.debug(f"Pool: total_contribution={total_contribution}, pool_return={pool_return:.2f}")
 
         for agent_name, contribution in contributions.items():
             tokens_kept = initial_tokens - contribution
             payoffs[agent_name] = round(tokens_kept + pool_return, 2)
-            print(f"[PAYOFF DEBUG] {agent_name}: tokens_kept={tokens_kept}, payoff={payoffs[agent_name]}")
+            logger.debug(f"{agent_name}: tokens_kept={tokens_kept}, payoff={payoffs[agent_name]}")
+
+        # Apply punishment effects if enabled
+        punishment_config = config.get("punishment", {})
+        if punishment_config.get("enabled", False) and state is not None:
+            payoffs = self._apply_punishment_effects(payoffs, state, punishment_config)
+            logger.info(
+                f"Applied punishment effects (cost_ratio={punishment_config.get('cost_ratio', 3)})"
+            )
+
+        return payoffs
+
+    def _apply_punishment_effects(
+        self,
+        payoffs: Dict[str, int | float],
+        state: "ExperimentState",
+        config: Dict[str, Any],
+    ) -> Dict[str, int | float]:
+        """Apply punishment deductions to calculated payoffs.
+
+        Punishment effects are applied at end of round after all
+        punishment decisions are collected. This prevents strategic
+        ordering effects where later agents see earlier punishments.
+
+        Args:
+            payoffs: Base payoffs from pool calculation
+            state: Experiment state with punishment allocations
+            config: Punishment config with cost_ratio
+
+        Returns:
+            Updated payoffs with punishment deductions applied
+
+        Config:
+            cost_ratio: Multiplier for punishment effect (e.g., 3 means
+                        1 token spent = 3 payoff deducted from target)
+        """
+        cost_ratio = config.get("cost_ratio", 3)
+
+        # Get punishment allocations from state
+        punishments = state.extensions.get("punishments", {})
+
+        # Apply each punishment
+        for punisher, allocations in punishments.items():
+            for allocation in allocations:
+                target = allocation.get("target")
+                amount = allocation.get("amount", 0)
+
+                if target in payoffs:
+                    deduction = amount * cost_ratio
+                    # Floor at 0 - payoffs cannot go negative
+                    payoffs[target] = max(0, payoffs[target] - deduction)
+                    logger.debug(
+                        f"Punishment: {punisher} -> {target}, "
+                        f"amount={amount}, deduction={deduction}, "
+                        f"new_payoff={payoffs[target]}"
+                    )
 
         return payoffs
