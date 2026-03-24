@@ -39,12 +39,12 @@ export const HostPanel: React.FC = () => {
   const formatBroadcastLog = (description: string) => {
     const recipients = broadcastRecipients.filter(Boolean);
     const scopeLabel = recipients.length > 0
-      ? t('components.hostPanel.privateBroadcastLog', '定向私有广播')
-      : t('components.hostPanel.globalBroadcastLog', '全局广播');
+      ? t('components.hostPanel.privateBroadcastLog')
+      : t('components.hostPanel.globalBroadcastLog');
     const recipientLabel = recipients.length > 0
       ? recipients.join(', ')
-      : t('components.hostPanel.allAgentsLog', '全体智能体');
-    return `${scopeLabel}\n${t('components.hostPanel.recipientsLog', '接收者')}: ${recipientLabel}\n${description}`;
+      : t('components.hostPanel.allAgentsLog');
+    return `${scopeLabel}\n${t('components.hostPanel.recipientsLog')}: ${recipientLabel}\n${description}`;
   };
 
   // Shared function for pushing environment events
@@ -206,7 +206,7 @@ export const HostPanel: React.FC = () => {
             <Megaphone size={14} /> {t('components.hostPanel.systemBroadcast')}
           </label>
           <div className="text-[11px] text-slate-500 mb-1">
-            {t('components.hostPanel.recipientHint', '选择接收者（为空则全员）：')}
+            {t('components.hostPanel.recipientHint')}
           </div>
           <div className="flex flex-wrap gap-1 mb-2">
             {agents.map((a) => {
@@ -256,7 +256,7 @@ export const HostPanel: React.FC = () => {
           </label>
           {currentSimulation?.scene_type === 'policy_cascade_scene' && (
             <div className="text-[11px] text-slate-400 italic">
-              {t('components.hostPanel.injectNoticeOnly', '注：注入环境事件为 notice-only（不触发系统广播），用于干预后续事件。')}
+              {t('components.hostPanel.injectNoticeOnly')}
             </div>
           )}
           <div className="flex flex-col gap-2">
