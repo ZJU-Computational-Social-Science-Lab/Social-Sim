@@ -105,7 +105,7 @@ export const DemographicsBuilder: React.FC<DemographicsBuilderProps> = ({
         <div className="flex gap-2">
           <input
             type="text"
-            placeholder={t('wizard.demographics.namePlaceholder', { defaultValue: 'Name (e.g., 职业)' })}
+            placeholder={t('wizard.demographics.namePlaceholder')}
             value={newDemographicName}
             onChange={(e) => setNewDemographicName(e.target.value)}
             className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm"
