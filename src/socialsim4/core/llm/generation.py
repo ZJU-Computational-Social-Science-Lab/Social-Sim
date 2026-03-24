@@ -22,6 +22,8 @@ import random
 import re
 from typing import List, Dict, Any, Optional
 
+from socialsim4.i18n import T
+
 
 def generate_archetypes_from_demographics(demographics: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
@@ -118,20 +120,18 @@ def generate_archetype_template(
     attrs_str = ", ".join(f"{k}: {v}" for k, v in archetype["attributes"].items())
     archetype_label = archetype.get("label", attrs_str)
 
-    if language == "zh":
-        prompt = f"""为此人口创建角色模板: {attrs_str}
+    # Use T() for locale-aware prompts
+    prompt = T('prompts.archetype.prompt', locale=language, attrs=attrs_str)
 
-返回这个格式的JSON:
-{{"description": "一句人物描述", "roles": ["职业1", "职业2", "职业3", "职业4", "职业5"]}}
-
-仅输出JSON，无其他文字。"""
+    # Fallback roles and descriptions for timeout/empty response
+    # fallback_roles is stored as a list in locale files
+    fallback_roles_raw = T('prompts.archetype.fallback_roles', locale=language)
+    # Handle both list and string formats
+    if isinstance(fallback_roles_raw, list):
+        fallback_roles = fallback_roles_raw
     else:
-        prompt = f"""Create agent template for: {attrs_str}
-
-Return JSON in this exact format:
-{{"description": "one sentence bio", "roles": ["Job Title 1", "Job Title 2", "Job Title 3", "Job Title 4", "Job Title 5"]}}
-
-JSON only, no other text."""
+        fallback_roles = json.loads(fallback_roles_raw) if isinstance(fallback_roles_raw, str) else ["Citizen", "Worker", "Professional", "Student", "Other"]
+    fallback_description = T('prompts.archetype.fallback_description', locale=language, archetype_label=archetype_label)
 
     messages = [
         {"role": "system", "content": "Return only valid JSON."},
@@ -171,8 +171,8 @@ JSON only, no other text."""
         warnings.warn(f"LLM timeout for archetype '{attrs_str}' after {timeout} seconds. Using fallback roles/description.")
 
         return {
-            "description": fallback_description_zh if language == "zh" else fallback_description_en,
-            "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
+            "description": fallback_description,
+            "roles": fallback_roles
         }
 
     # Thread completed - check for result or exception
@@ -182,8 +182,8 @@ JSON only, no other text."""
         warnings.warn(f"LLM error for archetype '{attrs_str}': {e}. Using fallback roles/description.")
 
         return {
-            "description": fallback_description_zh if language == "zh" else fallback_description_en,
-            "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
+            "description": fallback_description,
+            "roles": fallback_roles
         }
 
     if result_queue.empty():
@@ -192,8 +192,8 @@ JSON only, no other text."""
         warnings.warn(f"LLM returned no result for archetype '{attrs_str}'. Using fallback roles/description.")
 
         return {
-            "description": fallback_description_zh if language == "zh" else fallback_description_en,
-            "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
+            "description": fallback_description,
+            "roles": fallback_roles
         }
 
     response = result_queue.get()
@@ -208,8 +208,8 @@ JSON only, no other text."""
         warnings.warn(f"LLM returned empty response for archetype '{attrs_str}'. Using fallback.")
 
         return {
-            "description": fallback_description_zh if language == "zh" else fallback_description_en,
-            "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
+            "description": fallback_description,
+            "roles": fallback_roles
         }
 
     # Strip markdown code blocks if present
@@ -225,8 +225,8 @@ JSON only, no other text."""
         warnings.warn(f"No JSON found in LLM response for archetype '{attrs_str}'. Using fallback.")
 
         return {
-            "description": fallback_description_zh if language == "zh" else fallback_description_en,
-            "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
+            "description": fallback_description,
+            "roles": fallback_roles
         }
 
     try:
@@ -236,20 +236,20 @@ JSON only, no other text."""
         warnings.warn(f"Invalid JSON in LLM response for archetype '{attrs_str}'. Using fallback.")
 
         return {
-            "description": fallback_description_zh if language == "zh" else fallback_description_en,
-            "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
+            "description": fallback_description,
+            "roles": fallback_roles
         }
 
     # Validate required fields
     if "description" not in parsed or not isinstance(parsed["description"], str):
         import warnings
         warnings.warn(f"Missing 'description' for archetype '{attrs_str}'. Using fallback.")
-        parsed["description"] = fallback_description_zh if language == "zh" else fallback_description_en
+        parsed["description"] = fallback_description
 
     if "roles" not in parsed or not isinstance(parsed["roles"], list) or len(parsed["roles"]) == 0:
         import warnings
         warnings.warn(f"Missing or invalid 'roles' for archetype '{attrs_str}'. Using fallback.")
-        parsed["roles"] = fallback_roles_zh if language == "zh" else fallback_roles_en
+        parsed["roles"] = fallback_roles
     else:
         # Validate roles are strings
         valid_roles = []
@@ -261,7 +261,7 @@ JSON only, no other text."""
                 warnings.warn(f"Role {i} is not a valid string for archetype '{attrs_str}'. Skipping.")
 
         if not valid_roles:
-            parsed["roles"] = fallback_roles_zh if language == "zh" else fallback_roles_en
+            parsed["roles"] = fallback_roles
         else:
             parsed["roles"] = valid_roles
 
