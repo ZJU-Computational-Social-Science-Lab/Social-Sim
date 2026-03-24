@@ -5,7 +5,7 @@ import re
 from socialsim4.core.agent import Agent
 from socialsim4.core.agent.parsing import strip_thinking_tokens
 
-from .constants import NOTICE_ANALYSIS_MARKERS, NOTICE_EXECUTION_MARKERS, POLICY_MARKERS, _scene_debug_file
+from .constants import NOTICE_ANALYSIS_MARKERS, NOTICE_EXECUTION_MARKERS, POLICY_MARKERS, get_scene_debug_file
 
 
 class PolicyCascadeMessageMixin:
@@ -395,7 +395,7 @@ class PolicyCascadeMessageMixin:
 
     def _write_final_debug(self, agent: Agent, mode: str, original_payload: dict, final_payload: dict) -> None:
         try:
-            with open(_scene_debug_file, "a", encoding="utf-8") as f:
+            with open(get_scene_debug_file(), "a", encoding="utf-8") as f:
                 tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
                 f.write(f"\n{'=' * 80}\n")
                 f.write(f"[FINAL ACTION] {agent.name}\n")

@@ -40,7 +40,8 @@ const parseConditionUpdates = (text: string): Record<string, any> => {
 
 const inferThreadKind = (text: string): string => {
   const normalized = String(text || '');
-  if (/越级|投诉|告状/.test(normalized)) return 'escalation';
+  if (/越级|跳级|投诉|告状/.test(normalized)) return 'skip_level_complaint';
+  if (/升级反馈|升级上报|升级反映|继续升级/.test(normalized)) return 'escalation';
   if (/反馈|汇报|上报/.test(normalized)) return 'upward_feedback';
   if (/通知|转办/.test(normalized)) return 'subordinate_notice';
   if (/协商|讨论|商量|私聊|发消息|发送消息/.test(normalized)) return 'peer_consult';

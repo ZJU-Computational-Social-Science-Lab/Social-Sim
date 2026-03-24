@@ -584,8 +584,10 @@ class SimTree:
                     payload["notice_only"] = notice_only
                 receivers = op.get("receivers")
                 if receivers:
-                    for name in receivers:
-                        sim.agents[name].add_env_feedback(description, images=[])
+                    for receiver_name in receivers:
+                        if receiver_name not in sim.agents:
+                            raise ValueError(f"Unknown environment_event receiver: {receiver_name}")
+                        sim.agents[receiver_name].add_env_feedback(description, images=[])
                     sim.scene.on_private_event(sim, "environment", payload, receivers)
                 else:
                     for agent in sim.agents.values():

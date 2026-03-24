@@ -57,7 +57,7 @@ export async function treeAdvanceChain(base: string, id: string, parent: number,
 }
 
 export async function treeBranchPublic(base: string, id: string, parent: number, text: string, token?: string): Promise<{ child: number }> {
-  return await httpPost<{ child: number }>(base, `/simulations/${id}/tree/branch`, { parent, ops: [] }, token);
+  return await httpPost<{ child: number }>(base, `/simulations/${id}/tree/branch`, { parent, ops: [{ op: "public_broadcast", text }] }, token);
 }
 
 export async function treeDeleteSubtree(base: string, id: string, node: number, token?: string): Promise<{ ok: boolean }> {

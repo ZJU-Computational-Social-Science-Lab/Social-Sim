@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from socialsim4.core.agent import Agent
 
-from .constants import FOLLOW_UP_NO_ACTION_MESSAGE
-
-
 class PolicyCascadePromptMixin:
     def get_behavior_guidelines(self):
         state_mode = str(self.state.get("task_mode") or "notice")
@@ -30,7 +27,7 @@ class PolicyCascadePromptMixin:
             return self._tr(
                 "prompts.policy_cascade.guidelines.follow_up_thread",
                 adjustment_rule=adjustment_rule,
-                no_action=FOLLOW_UP_NO_ACTION_MESSAGE,
+                no_action=self._follow_up_no_action_message(),
             )
         if effective_mode == "follow_up":
             adjustment_rule = self._tr(
@@ -41,7 +38,7 @@ class PolicyCascadePromptMixin:
             return self._tr(
                 "prompts.policy_cascade.guidelines.follow_up",
                 adjustment_rule=adjustment_rule,
-                no_action=FOLLOW_UP_NO_ACTION_MESSAGE,
+                no_action=self._follow_up_no_action_message(),
             )
         if self._cascade_mode() == "distortion_cascade":
             return self._tr(
@@ -142,7 +139,7 @@ class PolicyCascadePromptMixin:
                 parts.append(self._tr("prompts.policy_cascade.status.thread_continue", agent))
                 parts.append(self._tr("prompts.policy_cascade.status.thread_reply_requirements", agent))
             parts.append(self._tr("prompts.policy_cascade.status.thread_ban_generic", agent))
-            parts.append(self._tr("prompts.policy_cascade.status.thread_no_action", agent, no_action=FOLLOW_UP_NO_ACTION_MESSAGE))
+            parts.append(self._tr("prompts.policy_cascade.status.thread_no_action", agent, no_action=self._follow_up_no_action_message(agent)))
             parts.append(self._thread_target_guidance(agent))
             shock_guidance = self._thread_shock_guidance(notice, issue_candidates)
             if shock_guidance:
@@ -192,7 +189,7 @@ class PolicyCascadePromptMixin:
             no_action_agents = self._follow_up_no_action_agents()
             if no_action_agents:
                 parts.append(self._tr("prompts.policy_cascade.status.no_action_agents", agent, agents="、".join(no_action_agents)))
-            parts.append(self._tr("prompts.policy_cascade.status.follow_up_continue", agent, no_action=FOLLOW_UP_NO_ACTION_MESSAGE))
+            parts.append(self._tr("prompts.policy_cascade.status.follow_up_continue", agent, no_action=self._follow_up_no_action_message(agent)))
         parts.append(self._tr("prompts.policy_cascade.status.no_repeat", agent))
         if notice:
             parts.append(self._tr("prompts.policy_cascade.status.latest_notice", agent, notice=notice))

@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import List
 
-from .constants import FOLLOW_UP_NO_ACTION_MESSAGE
+from .constants import get_follow_up_no_action_message
 
 
 class PolicyCascadeStateMixin:
@@ -84,7 +84,11 @@ class PolicyCascadeStateMixin:
         normalized = self._sanitize_message(str(message or ""))
         if not normalized:
             return False
-        return normalized == FOLLOW_UP_NO_ACTION_MESSAGE
+        return normalized in {
+            self._follow_up_no_action_message(),
+            get_follow_up_no_action_message("zh"),
+            get_follow_up_no_action_message("en"),
+        }
 
     def _record_follow_up_message_state(self, agent_name: str, message: str, mode: str) -> None:
         if mode not in {"follow_up", "follow_up_thread"}:
@@ -127,7 +131,10 @@ class PolicyCascadeStateMixin:
         combined = "\n".join(texts)
         if self._is_follow_up_no_action_message(combined):
             return True
-        return "无动作倾向" in combined and "建议注入新的环境事件或发布新的政策" in combined
+        return (
+            any(marker in combined for marker in ["无动作倾向", "no remaining action tendency", "no further action tendency"])
+            and any(marker in combined for marker in ["建议注入新的环境事件或发布新的政策", "inject a new environment event or release a new policy"])
+        )
 
     def _reopen_public_follow_up_after_environment(self) -> None:
         self.state["task_mode"] = "follow_up"

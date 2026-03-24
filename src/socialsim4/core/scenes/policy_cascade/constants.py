@@ -35,10 +35,20 @@ NOTICE_ANALYSIS_MARKERS = [
 NOTICE_EXECUTION_MARKERS = [
     "贯彻", "落实", "执行", "推进", "部署", "传达", "整改", "排查", "督办", "落实情况",
 ]
-FOLLOW_UP_NO_ACTION_MESSAGE = T("prompts.policy_cascade.shared.follow_up_no_action", locale="zh")
-_scene_debug_dir = Path("test_results")
-_scene_debug_dir.mkdir(exist_ok=True)
-_scene_debug_file = _scene_debug_dir / f"policy_cascade_final_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+_scene_debug_file: Path | None = None
+
+
+def get_follow_up_no_action_message(locale: str | None = None) -> str:
+    return T("prompts.policy_cascade.shared.follow_up_no_action", locale=locale or "zh")
+
+
+def get_scene_debug_file() -> Path:
+    global _scene_debug_file
+    if _scene_debug_file is None:
+        scene_debug_dir = Path("test_results")
+        scene_debug_dir.mkdir(exist_ok=True)
+        _scene_debug_file = scene_debug_dir / f"policy_cascade_final_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    return _scene_debug_file
 
 
 def _normalize_tier_token(value: str) -> str:

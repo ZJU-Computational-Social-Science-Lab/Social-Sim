@@ -18,6 +18,16 @@ from ...services.environment_suggestion_service import (
 logger = logging.getLogger(__name__)
 
 
+def _parse_node_id_param(request: Request) -> int | None:
+    node_id_param = request.query_params.get("node_id")
+    if node_id_param is None:
+        return None
+    try:
+        return int(node_id_param)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Invalid 'node_id' query parameter: expected an integer.")
+
+
 @get("/simulations/{simulation_id:str}/suggestions/status")
 async def get_suggestion_status(
     simulation_id: str,
@@ -27,8 +37,7 @@ async def get_suggestion_status(
     token = extract_bearer_token(request)
     async with get_session() as session:
         current_user = await resolve_current_user(session, token)
-        node_id_param = request.query_params.get("node_id")
-        node_id = int(node_id_param) if node_id_param is not None else None
+        node_id = _parse_node_id_param(request)
         state = await get_simulation_state(simulation_id, session, current_user.id, node_id)
 
         if not state:
@@ -61,8 +70,7 @@ async def generate_suggestions(
     token = extract_bearer_token(request)
     async with get_session() as session:
         current_user = await resolve_current_user(session, token)
-        node_id_param = request.query_params.get("node_id")
-        node_id = int(node_id_param) if node_id_param is not None else None
+        node_id = _parse_node_id_param(request)
         suggestions = await generate_environment_suggestions(simulation_id, session, current_user.id, node_id)
 
         # Ensure suggestions are JSON-serializable (convert to list of dicts with str values)

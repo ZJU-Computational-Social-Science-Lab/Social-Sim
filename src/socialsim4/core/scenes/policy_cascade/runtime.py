@@ -14,7 +14,7 @@ from socialsim4.core.actions.policy_feedback_actions import (
 from socialsim4.core.agent import Agent
 from socialsim4.core.event import PublicEvent
 
-from .constants import FOLLOW_UP_NO_ACTION_MESSAGE, _parse_tier_order
+from .constants import _parse_tier_order
 
 
 class PolicyCascadeRuntimeMixin:
@@ -86,7 +86,7 @@ class PolicyCascadeRuntimeMixin:
         if no_action_signal:
             action_name = "send_message"
             payload["action"] = "send_message"
-            payload["message"] = FOLLOW_UP_NO_ACTION_MESSAGE
+            payload["message"] = self._follow_up_no_action_message(agent)
         elif normalized_action not in known_actions:
             fallback_message = self._payload_message_text(payload)
             if fallback_message:
@@ -99,7 +99,7 @@ class PolicyCascadeRuntimeMixin:
             and no_action_signal
             and not self.should_skip_turn(agent, simulator)
         ):
-            payload = {"action": "send_message", "message": FOLLOW_UP_NO_ACTION_MESSAGE}
+            payload = {"action": "send_message", "message": self._follow_up_no_action_message(agent)}
             self._record_follow_up_message_state(agent.name, payload["message"], effective_task_mode)
             self._record_branch_interpretation(agent, tier, payload["message"], effective_task_mode)
             self._write_final_debug(agent, effective_task_mode, original_payload, payload)
@@ -133,7 +133,7 @@ class PolicyCascadeRuntimeMixin:
         if effective_task_mode in {"follow_up", "follow_up_thread"} and action_name == "yield" and no_action_signal:
             action_name = "send_message"
             payload["action"] = "send_message"
-            payload["message"] = FOLLOW_UP_NO_ACTION_MESSAGE
+            payload["message"] = self._follow_up_no_action_message(agent)
 
         if effective_task_mode == "follow_up" and action_name == "yield":
             action_name = "send_message"
@@ -150,7 +150,7 @@ class PolicyCascadeRuntimeMixin:
                 ):
                     message = self._normalize_follow_up_message(agent, tier, raw_message, thread)
                 if no_action_signal:
-                    message = FOLLOW_UP_NO_ACTION_MESSAGE
+                    message = self._follow_up_no_action_message(agent)
                 self._record_follow_up_message_state(agent.name, message, effective_task_mode)
                 self._reply_to_thread(thread, agent, message, simulator)
                 self._consume_thread_event(agent.name)
@@ -282,7 +282,7 @@ class PolicyCascadeRuntimeMixin:
         if str(payload.get("action") or action_name) == "send_message":
             payload["message"] = self._payload_message_text(payload)
             if effective_task_mode in {"follow_up", "follow_up_thread"} and no_action_signal:
-                payload["message"] = FOLLOW_UP_NO_ACTION_MESSAGE
+                payload["message"] = self._follow_up_no_action_message(agent)
             elif effective_task_mode in {"follow_up", "follow_up_thread"}:
                 payload["message"] = self._normalize_follow_up_message(agent, tier, payload["message"], thread if effective_task_mode == "follow_up_thread" else None)
             self._record_follow_up_message_state(agent.name, payload["message"], effective_task_mode)

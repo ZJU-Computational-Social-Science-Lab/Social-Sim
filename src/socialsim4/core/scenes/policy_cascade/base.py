@@ -6,7 +6,7 @@ from typing import Dict, List
 from socialsim4.core.agent import Agent
 from socialsim4.i18n import T
 
-from .constants import DEFAULT_TIER_ORDER, _has_meaningful_notice_content, _normalize_tier_token, _parse_tier_order
+from .constants import DEFAULT_TIER_ORDER, get_follow_up_no_action_message, _has_meaningful_notice_content, _normalize_tier_token, _parse_tier_order
 
 
 class PolicyCascadeBaseMixin:
@@ -67,6 +67,9 @@ class PolicyCascadeBaseMixin:
 
     def _tr(self, key: str, actor: Agent | None = None, **kwargs) -> str:
         return T(key, locale=self._scene_locale(actor), **kwargs)
+
+    def _follow_up_no_action_message(self, actor: Agent | None = None) -> str:
+        return get_follow_up_no_action_message(self._scene_locale(actor))
 
     def configure_from_config(self, config: dict) -> None:
         params = config.get("parameters") or {}
