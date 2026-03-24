@@ -999,7 +999,7 @@ export const NetworkEditorModal: React.FC = () => {
               <div className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm space-y-2 mt-3">
                 <div className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                   <Settings2 size={12} />
-                  {t('components.networkEditorModal.manualLinks', '手动连接')}
+                  {t('components.networkEditorModal.manualLinks')}
                 </div>
                 <div className="flex items-center gap-2 text-[11px] text-slate-600">
                   <select
@@ -1007,7 +1007,7 @@ export const NetworkEditorModal: React.FC = () => {
                     onChange={(e) => setLinkFrom(e.target.value)}
                     className="flex-1 border border-slate-200 rounded px-2 py-1 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand-400"
                   >
-                    <option value="">{t('components.networkEditorModal.selectSource', '选择源')}</option>
+                    <option value="">{t('components.networkEditorModal.selectSource')}</option>
                     {agents.map((a) => (
                       <option key={a.id} value={a.name}>{a.name}</option>
                     ))}
@@ -1018,7 +1018,7 @@ export const NetworkEditorModal: React.FC = () => {
                     onChange={(e) => setLinkTo(e.target.value)}
                     className="flex-1 border border-slate-200 rounded px-2 py-1 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand-400"
                   >
-                    <option value="">{t('components.networkEditorModal.selectTarget', '选择目标')}</option>
+                    <option value="">{t('components.networkEditorModal.selectTarget')}</option>
                     {agents.map((a) => (
                       <option key={a.id} value={a.name}>{a.name}</option>
                     ))}
@@ -1029,7 +1029,7 @@ export const NetworkEditorModal: React.FC = () => {
                   disabled={!linkFrom || !linkTo || linkFrom === linkTo}
                   className="w-full py-1.5 text-xs bg-brand-500 text-white rounded hover:bg-brand-600 disabled:opacity-50"
                 >
-                  {t('components.networkEditorModal.addLink', '添加连接')}
+                  {t('components.networkEditorModal.addLink')}
                 </button>
 
                 {edges.length > 0 ? (
@@ -1041,14 +1041,14 @@ export const NetworkEditorModal: React.FC = () => {
                           className="text-red-500 text-[10px] hover:text-red-600"
                           onClick={() => removeLink(key)}
                         >
-                          {t('common.remove', '删除')}
+                          {t('common.remove')}
                         </button>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="text-[10px] text-slate-400 border-t border-slate-100 pt-2">
-                    {t('components.networkEditorModal.noLinks', '暂无连接')}
+                    {t('components.networkEditorModal.noLinks')}
                   </div>
                 )}
               </div>
@@ -1084,7 +1084,7 @@ export const NetworkEditorModal: React.FC = () => {
                   style={{ left: hoverInfo.x, top: hoverInfo.y }}
                 >
                   <div className="font-semibold">{hoverInfo.name}</div>
-                  <div className="text-slate-500 whitespace-pre-wrap break-words">{hoverInfo.profile || t('components.networkEditorModal.noProfile', '无简介')}</div>
+                  <div className="text-slate-500 whitespace-pre-wrap break-words">{hoverInfo.profile || t('components.networkEditorModal.noProfile')}</div>
                 </div>
               )}
 
