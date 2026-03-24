@@ -227,7 +227,7 @@ export const SimulationWizard: React.FC = () => {
       village: t('wizard.templateDefaults.village'),
       council: t('wizard.templateDefaults.council'),
       werewolf: t('wizard.templateDefaults.werewolf'),
-      policy_diffusion: t('wizard.templateDefaults.policyDiffusion', { defaultValue: '三层级政策扩散场景' })
+      policy_diffusion: t('wizard.templateDefaults.policyDiffusion')
     };
     setGenDesc(defaults[selectedTemplateId] || defaults['village']);
     const counts: Record<string, number> = {
