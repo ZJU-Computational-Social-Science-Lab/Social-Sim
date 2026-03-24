@@ -138,20 +138,22 @@ export const Step2StarterTemplate: React.FC = () => {
   const [localRoundVisibility, setLocalRoundVisibility] = useState<'simultaneous' | 'sequential'>('simultaneous');
   const [localTurnOrder, setLocalTurnOrder] = useState<'fixed' | 'random'>('fixed');
 
-  // Helper to get translated scenario name/description based on scenario ID
+  // Helper to get translated scenario name/description based on scenario ID and category
   const getScenarioName = () => {
     if (!selectedScenarioData) return '';
     const scenarioId = selectedScenarioData.id;
-    // Try to get translated name from locale files
-    const translatedName = t(`scenarios.game_theory.${scenarioId}.name`, { defaultValue: selectedScenarioData.name });
+    const category = selectedScenarioData.category || 'game_theory';
+    // Try to get translated name from locale files using the actual category
+    const translatedName = t(`scenario.${category}.${scenarioId}.name`, { defaultValue: selectedScenarioData.name });
     return translatedName;
   };
 
   const getScenarioDescription = () => {
     if (!selectedScenarioData) return '';
     const scenarioId = selectedScenarioData.id;
-    // Try to get translated description from locale files
-    return t(`scenarios.game_theory.${scenarioId}.description`, { defaultValue: selectedScenarioData.description });
+    const category = selectedScenarioData.category || 'game_theory';
+    // Try to get translated description from locale files using the actual category
+    return t(`scenario.${category}.${scenarioId}.description`, { defaultValue: selectedScenarioData.description });
   };
 
   // Update local state when store changes
@@ -220,6 +222,12 @@ export const Step2StarterTemplate: React.FC = () => {
     const scenarioId = selectedScenarioData.id;
 
     if (scenarioId === 'battle_of_the_sexes' || scenarioId === 'stag_hunt') {
+      // Translate default action names and descriptions
+      const action1Name = selectedScenarioData.actions?.[0]?.name || 'Action 1';
+      const action1Desc = selectedScenarioData.actions?.[0]?.description || '';
+      const action2Name = selectedScenarioData.actions?.[1]?.name || 'Action 2';
+      const action2Desc = selectedScenarioData.actions?.[1]?.description || '';
+
       return (
         <ActionEditor
           actions={[
@@ -227,15 +235,15 @@ export const Step2StarterTemplate: React.FC = () => {
               id: 'action_1',
               nameParam: 'action_1_name',
               descParam: 'action_1_description',
-              defaultName: selectedScenarioData.actions?.[0]?.name || 'Action 1',
-              defaultDesc: selectedScenarioData.actions?.[0]?.description || '',
+              defaultName: t(`experimentBuilder.step2.actionNames.${action1Name}`, { defaultValue: action1Name }),
+              defaultDesc: t(`experimentBuilder.step2.actionDescriptions.${action1Name}`, { defaultValue: action1Desc }),
             },
             {
               id: 'action_2',
               nameParam: 'action_2_name',
               descParam: 'action_2_description',
-              defaultName: selectedScenarioData.actions?.[1]?.name || 'Action 2',
-              defaultDesc: selectedScenarioData.actions?.[1]?.description || '',
+              defaultName: t(`experimentBuilder.step2.actionNames.${action2Name}`, { defaultValue: action2Name }),
+              defaultDesc: t(`experimentBuilder.step2.actionDescriptions.${action2Name}`, { defaultValue: action2Desc }),
             },
           ]}
           values={scenarioParams as Record<string, string>}
@@ -245,15 +253,20 @@ export const Step2StarterTemplate: React.FC = () => {
     }
 
     if (scenarioId === 'public_goods') {
+      // Translate default values for public goods scenario
+      const defaultResourceName = t('experimentBuilder.resourceConfig.resourceOptions.tokens', { defaultValue: 'Tokens' });
+      const defaultActionName = t('experimentBuilder.step2.actionNames.Contribute', { defaultValue: 'Contribute' });
+      const defaultActionDesc = t('experimentBuilder.step2.actionDescriptions.Contribute', { defaultValue: 'Contribute {resource} to the shared pool' });
+
       return (
         <ResourceConfig
           values={{
-            resource_name: (scenarioParams.resource_name as string) || 'Tokens',
+            resource_name: (scenarioParams.resource_name as string) || defaultResourceName,
             resource_name_custom: (scenarioParams.resource_name_custom as string) || '',
             initial_amount: (scenarioParams.initial_amount as number) || 20,
             multiplier: (scenarioParams.multiplier as number) || 1.5,
-            action_name: (scenarioParams.action_name as string) || 'Contribute',
-            action_description: (scenarioParams.action_description as string) || 'Contribute {resource} to the shared pool',
+            action_name: (scenarioParams.action_name as string) || defaultActionName,
+            action_description: (scenarioParams.action_description as string) || defaultActionDesc,
           }}
           onChange={handleParamChange}
         />

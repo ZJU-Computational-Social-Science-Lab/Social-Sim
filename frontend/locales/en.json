@@ -1793,27 +1793,6 @@
       "action_probability": "Action Transmission Rate",
       "recovery_turns": "Turns Until Recovery"
     },
-      "topic": "Discussion Topic",
-      "proposal_text": "Proposal Text",
-      "voting_threshold": "Voting Threshold",
-      "max_rounds": "Max Debate Rounds",
-      "grid_size": "Grid Size",
-      "resource_count": "Resource Count",
-      "num_werewolves": "Number of Werewolves",
-      "num_villagers": "Number of Villagers",
-      "resource_name": "Resource Name",
-      "resource_name_custom": "Custom Resource Name",
-      "initial_amount": "Initial Amount",
-      "multiplier": "Pool Multiplier",
-      "action_name": "Action Name",
-      "action_description": "Action Description",
-      "choices": "Available Choices",
-      "goal": "Coordination Goal",
-      "initial_infected": "Initial Infected Agents",
-      "proximity_probability": "Proximity Transmission Rate",
-      "action_probability": "Action Transmission Rate",
-      "recovery_turns": "Turns Until Recovery"
-    },
     "paramDescriptions": {
       "cooperate_reward": "Payoff when both players choose the first action",
       "sucker_penalty": "Your payoff when you choose the first action but they choose the second",
@@ -1953,6 +1932,18 @@
         "Ballet": "Ballet",
         "Contribute": "Contribute",
         "Keep": "Keep"
+      },
+      "actionDescriptions": {
+        "Cooperate": "Cooperate with the other player",
+        "Defect": "Act in your own self-interest",
+        "Stag": "Hunt the stag (requires all to cooperate)",
+        "Hare": "Hunt the hare (safe but lower reward)",
+        "Heads": "Choose heads",
+        "Tails": "Choose tails",
+        "Soccer": "Go to the football game",
+        "Ballet": "Go to the opera",
+        "Contribute": "Contribute to the shared pool",
+        "Keep": "Keep resources for yourself"
       }
     },
     "step3": {
@@ -2085,23 +2076,6 @@
         "review": "Review"
       }
     },
-    "experimentBuilder": {
-      "step3": {
-        "title": "Select Actions",
-        "subtitle": "Choose what actions agents can take. At least one action must be selected.",
-        "categoryInfo": "Showing all available actions for the {{category}} category. This scenario starts with a pre-selected set of actions.",
-        "noActions": "No actions available. Please select a scenario first or add custom actions.",
-        "addCustomAction": "Add custom action",
-        "customActionTitle": "Add Custom Action",
-        "actionName": "Action name",
-        "actionNamePlaceholder": "e.g., Negotiate",
-        "description": "Description",
-        "descriptionPlaceholder": "Describe what this action does...",
-        "addAction": "Add Action",
-        "actionsSelected": "{{selected}} of {{total}} actions selected",
-        "removeAction": "Remove action"
-      }
-    },
     "actionEditor": {
       "title": "Actions",
       "actionNumber": "Action {{number}}",
@@ -2120,6 +2094,8 @@
       "actionLabelsTitle": "Action Labels",
       "actionNameLabel": "Action Name",
       "actionDescriptionLabel": "Action Description",
+      "actionDescriptionPlaceholder": "Use {resource} for the resource name",
+      "actionDescriptionHint": "Use {resource} as a placeholder for the resource name",
       "resourceOptions": {
         "tokens": "Tokens",
         "money": "Money",

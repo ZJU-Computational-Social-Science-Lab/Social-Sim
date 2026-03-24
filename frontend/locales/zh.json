@@ -1778,13 +1778,51 @@
       "recovery_turns": "恢复回合数"
     },
     "paramDescriptions": {
+      "cooperate_reward": "双方都选择第一个动作时的收益",
+      "sucker_penalty": "你选择第一个动作但对方选择第二个时的收益",
+      "temptation_reward": "你选择第二个动作但对方选择第一个时的收益",
+      "defect_penalty": "双方都选择第二个动作时的收益",
+      "action_1_name": "第一个动作的名称",
+      "action_2_name": "第二个动作的名称",
+      "action_1_description": "第一个动作的描述",
+      "action_2_description": "第二个动作的描述",
+      "preferred_mispreferred": "双方都得到首选选择时的收益",
+      "mispreferred_payoff": "独自处于非首选位置时的收益",
+      "stag_reward": "当所有玩家都选择猎鹿时的奖励",
+      "hare_reward": "猎兔的奖励（始终可获得）",
+      "norm_strength": "被破坏的社会规范的强度",
+      "agent_status_distribution": "群体中代理人地位的分布",
       "cascade_mode": "选择是严格逐层传达，还是允许在传递中出现改写、冲突和截留。",
       "distortion_strength": "只在失真模式下生效。数值越高，下层越可能明显改写原政策。",
       "conflict_sensitivity": "只在失真模式下生效。数值越高，角色利益冲突越容易转化为抵触或偏离。",
       "block_probability": "只在失真模式下生效。表示代理直接不往下传、选择截留政策的基础概率。",
       "num_agents_per_tier": "控制每一个层级自动生成多少个智能体。",
       "policy_text": "仅用于设定第一轮的开场背景或情境，不会自动作为后续逐级传递时必须保留的原始政策。",
-      "deliberation_rounds": "自动投票开始前的讨论轮数。0 = 立即投票，1-10 = 固定轮数，留空 = 代理人控制投票"
+      "deliberation_rounds": "自动投票开始前的讨论轮数。0 = 立即投票，1-10 = 固定轮数，留空 = 代理人控制投票",
+      "connection_homogeneity": "代理人连接相似观点的可能性",
+      "opinion_distribution": "群体中初始观点的分布",
+      "resource_amount": "可用资源的总量",
+      "initial_distribution": "资源在代理人之间的初始分配方式",
+      "topic": "自由讨论的主题",
+      "proposal_text": "需要辩论和表决的提案内容",
+      "voting_threshold": "提案通过所需的投票百分比",
+      "max_rounds": "投票前最大辩论轮数",
+      "grid_size": "网格的大小（N x N）",
+      "resource_count": "网格上放置的资源数量",
+      "num_werewolves": "游戏中的狼人角色数量",
+      "num_villagers": "游戏中的村民角色数量",
+      "resource_name": "游戏中的资源类型",
+      "resource_name_custom": "资源的自定义名称",
+      "initial_amount": "每个代理获得的初始数量",
+      "multiplier": "应用于贡献池的倍数",
+      "action_name": "贡献动作的名称",
+      "action_description": "贡献动作的描述",
+      "choices": "代理可选选项的逗号分隔列表",
+      "goal": "代理是否应该尝试与邻居匹配或不同",
+      "initial_infected": "初始感染的代理数量",
+      "proximity_probability": "代理相邻时的传播概率",
+      "action_probability": "感染代理与易感代理交谈时的传播概率",
+      "recovery_turns": "感染代理恢复所需的回合数"
     },
     "payoffMatrix": {
       "howToRead": {
@@ -1878,6 +1916,18 @@
         "Ballet": "芭蕾",
         "Contribute": "贡献",
         "Keep": "保留"
+      },
+      "actionDescriptions": {
+        "Cooperate": "与对方合作",
+        "Defect": "为自身利益行事",
+        "Stag": "猎捕大鹿（需要所有人合作）",
+        "Hare": "猎捕野兔（安全但奖励较低）",
+        "Heads": "选择正面",
+        "Tails": "选择反面",
+        "Soccer": "去足球比赛",
+        "Ballet": "去歌剧",
+        "Contribute": "贡献到共享池",
+        "Keep": "保留资源给自己"
       }
     },
     "step3": {
@@ -2010,23 +2060,6 @@
         "review": "预览"
       }
     },
-    "experimentBuilder": {
-      "step3": {
-        "title": "选择动作",
-        "subtitle": "选择代理可以采取的动作。至少需要选择一个动作。",
-        "categoryInfo": "显示{{category}}类别的所有可用动作。此场景以一组预选动作开始。",
-        "noActions": "没有可用动作。请先选择一个场景或添加自定义动作。",
-        "addCustomAction": "添加自定义动作",
-        "customActionTitle": "添加自定义动作",
-        "actionName": "动作名称",
-        "actionNamePlaceholder": "例如，协商",
-        "description": "描述",
-        "descriptionPlaceholder": "描述这个动作的作用...",
-        "addAction": "添加动作",
-        "actionsSelected": "已选择 {{selected}} / {{total}} 个动作",
-        "removeAction": "删除动作"
-      }
-    },
     "actionEditor": {
       "title": "行动",
       "actionNumber": "行动 {{number}}",
@@ -2045,6 +2078,8 @@
       "actionLabelsTitle": "行动标签",
       "actionNameLabel": "行动名称",
       "actionDescriptionLabel": "行动描述",
+      "actionDescriptionPlaceholder": "使用 {resource} 表示资源名称",
+      "actionDescriptionHint": "使用 {resource} 作为资源名称的占位符",
       "resourceOptions": {
         "tokens": "代币",
         "money": "金钱",
