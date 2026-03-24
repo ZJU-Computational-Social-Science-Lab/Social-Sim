@@ -43,6 +43,14 @@ function PayoffInput({ value, actionA = 'Action 1', actionB = 'Action 2', onChan
   const { t } = useTranslation();
   const defaults = { cooperate_reward: 3, sucker_penalty: 0, temptation_reward: 5, defect_penalty: 1 };
 
+  // Helper to translate action names
+  const translateAction = (action: string) => {
+    return t(`experimentBuilder.step2.actionNames.${action}`, { defaultValue: action });
+  };
+
+  const translatedActionA = translateAction(actionA);
+  const translatedActionB = translateAction(actionB);
+
   const update = (key: keyof typeof defaults, raw: string) => {
     onChange({
       cooperate_reward: value.cooperate_reward ?? defaults.cooperate_reward,
@@ -63,7 +71,7 @@ function PayoffInput({ value, actionA = 'Action 1', actionB = 'Action 2', onChan
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t('experimentBuilder.step2.payoffInput.youThey', { actionA, actionB: actionA })}
+            {t('experimentBuilder.step2.payoffInput.youThey', { actionA: translatedActionA, actionB: translatedActionA })}
           </label>
           <input
             type="number"
@@ -75,7 +83,7 @@ function PayoffInput({ value, actionA = 'Action 1', actionB = 'Action 2', onChan
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t('experimentBuilder.step2.payoffInput.youThey', { actionA, actionB })}
+            {t('experimentBuilder.step2.payoffInput.youThey', { actionA: translatedActionA, actionB: translatedActionB })}
           </label>
           <input
             type="number"
@@ -87,7 +95,7 @@ function PayoffInput({ value, actionA = 'Action 1', actionB = 'Action 2', onChan
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t('experimentBuilder.step2.payoffInput.youThey', { actionA: actionB, actionB: actionA })}
+            {t('experimentBuilder.step2.payoffInput.youThey', { actionA: translatedActionB, actionB: translatedActionA })}
           </label>
           <input
             type="number"
@@ -99,7 +107,7 @@ function PayoffInput({ value, actionA = 'Action 1', actionB = 'Action 2', onChan
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t('experimentBuilder.step2.payoffInput.youThey', { actionA: actionB, actionB: actionB })}
+            {t('experimentBuilder.step2.payoffInput.youThey', { actionA: translatedActionB, actionB: translatedActionB })}
           </label>
           <input
             type="number"
@@ -130,16 +138,32 @@ export const Step2StarterTemplate: React.FC = () => {
   const [localRoundVisibility, setLocalRoundVisibility] = useState<'simultaneous' | 'sequential'>('simultaneous');
   const [localTurnOrder, setLocalTurnOrder] = useState<'fixed' | 'random'>('fixed');
 
+  // Helper to get translated scenario name/description based on scenario ID
+  const getScenarioName = () => {
+    if (!selectedScenarioData) return '';
+    const scenarioId = selectedScenarioData.id;
+    // Try to get translated name from locale files
+    const translatedName = t(`scenarios.game_theory.${scenarioId}.name`, { defaultValue: selectedScenarioData.name });
+    return translatedName;
+  };
+
+  const getScenarioDescription = () => {
+    if (!selectedScenarioData) return '';
+    const scenarioId = selectedScenarioData.id;
+    // Try to get translated description from locale files
+    return t(`scenarios.game_theory.${scenarioId}.description`, { defaultValue: selectedScenarioData.description });
+  };
+
   // Update local state when store changes
   useEffect(() => {
     if (roundVisibility) setLocalRoundVisibility(roundVisibility);
     if (turnOrder) setLocalTurnOrder(turnOrder);
   }, [roundVisibility, turnOrder]);
 
-  // Initialize scenario description from selected scenario
+  // Initialize scenario description from selected scenario (use translated version)
   useEffect(() => {
     if (selectedScenarioData && !scenarioDescription) {
-      setScenarioDescription(selectedScenarioData.description);
+      setScenarioDescription(getScenarioDescription());
     }
   }, [selectedScenarioData, scenarioDescription, setScenarioDescription]);
 
@@ -271,7 +295,7 @@ export const Step2StarterTemplate: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-gray-900">
-          {t('experimentBuilder.step2.configureTitle', { name: selectedScenarioData.name })}
+          {t('experimentBuilder.step2.configureTitle', { name: getScenarioName() })}
         </h2>
         <p className="text-sm text-gray-600 mt-1">
           {t('experimentBuilder.step2.configureSubtitle')}

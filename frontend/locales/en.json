@@ -1844,6 +1844,18 @@
         "yourPayoffs": "Your Payoffs:",
         "instruction": "Fill in what YOU receive based on YOUR choice and THEIR choice.",
         "youThey": "You: {{actionA}} / They: {{actionB}}"
+      },
+      "actionNames": {
+        "Cooperate": "Cooperate",
+        "Defect": "Defect",
+        "Stag": "Stag",
+        "Hare": "Hare",
+        "Heads": "Heads",
+        "Tails": "Tails",
+        "Soccer": "Soccer",
+        "Ballet": "Ballet",
+        "Contribute": "Contribute",
+        "Keep": "Keep"
       }
     },
     "step3": {

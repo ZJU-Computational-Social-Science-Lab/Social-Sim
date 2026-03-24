@@ -1828,6 +1828,18 @@
         "yourPayoffs": "你的收益：",
         "instruction": "填写根据你的选择和对方的选择你将获得什么。",
         "youThey": "你：{{actionA}} / 对方：{{actionB}}"
+      },
+      "actionNames": {
+        "Cooperate": "合作",
+        "Defect": "背叛",
+        "Stag": "猎鹿",
+        "Hare": "猎兔",
+        "Heads": "正面",
+        "Tails": "反面",
+        "Soccer": "足球",
+        "Ballet": "芭蕾",
+        "Contribute": "贡献",
+        "Keep": "保留"
       }
     },
     "step3": {
