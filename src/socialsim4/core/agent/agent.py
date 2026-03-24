@@ -208,7 +208,7 @@ Recent Context Summary:
                     if summary:
                         return summary
                 cleaned = str(text or "").strip()
-                return cleaned[:48] if cleaned else "逐级传达政策，并保留关键执行条款"
+                return cleaned[:48] if cleaned else T('prompts.agent.examples.default_policy_summary', locale=self.language)
 
             private_event = scene._private_event_for(self.name) if hasattr(scene, "_private_event_for") else {}
             has_private_source = bool(private_event)
@@ -221,47 +221,47 @@ Recent Context Summary:
             tier = str(getattr(scene, "_tier_map", {}).get(self.name, self.properties.get("tier", "")) or "").strip()
             role_kind = scene._tier_role_kind(tier) if hasattr(scene, "_tier_role_kind") else "mid"
             if task_mode == "cascade":
-                example_policy = policy_text or source_policy_text or "最新政策原文"
+                example_policy = policy_text or source_policy_text or T('prompts.agent.examples.default_policy_summary', locale=self.language)
                 example_policy_summary = _compact_policy_example(source_policy_text or example_policy)
                 if cascade_mode == "distortion_cascade":
                     if role_kind == "top":
                         if has_private_source:
-                            example_message = f"对于这条仅向我私下传达的政策，我决定先强调“{example_policy_summary}”，暂不展开全部资源承诺。"
+                            example_message = T('prompts.agent.examples.cascade.top_private_source', locale=self.language, policy_summary=example_policy_summary)
                         else:
-                            example_message = f"关于上级刚才的传达，我决定继续强调“{example_policy_summary}”，暂不展开全部资源承诺。"
-                        context_update = "已按本层利益重述政策重点，并保留部分信息"
+                            example_message = T('prompts.agent.examples.cascade.top_no_private', locale=self.language, policy_summary=example_policy_summary)
+                        context_update = T('prompts.agent.examples.cascade.context_top_distortion', locale=self.language)
                     elif role_kind == "mid":
                         if has_private_source:
-                            example_message = f"我会只向下传达可立即执行的部分，先保留“{example_policy_summary}”，其余内容暂缓。"
+                            example_message = T('prompts.agent.examples.cascade.mid_private_source', locale=self.language, policy_summary=example_policy_summary)
                         else:
-                            example_message = f"考虑到本部门考核压力，我只向下传达可立即执行的部分，先保留“{example_policy_summary}”。"
-                        context_update = "已结合中层压力选择性下传政策"
+                            example_message = T('prompts.agent.examples.cascade.mid_no_private', locale=self.language, policy_summary=example_policy_summary)
+                        context_update = T('prompts.agent.examples.cascade.context_mid_distortion', locale=self.language)
                     else:
                         if has_private_source:
-                            example_message = f"该政策与一线负担存在冲突，我会先按基层可执行口径保留“{example_policy_summary}”，并上报执行困难。"
+                            example_message = T('prompts.agent.examples.cascade.low_private_source', locale=self.language, policy_summary=example_policy_summary)
                         else:
-                            example_message = f"该政策与一线负担存在冲突，我会先保留“{example_policy_summary}”中的最低执行要求。"
-                        context_update = "已因基层执行冲突而弱化落实"
-                    distortion_note = (
-                        f"当前失真参数：失真强度={float(scene.state.get('distortion_strength', 0.6) or 0.6):.2f}，"
-                        f"利益冲突敏感度={float(scene.state.get('conflict_sensitivity', 0.5) or 0.5):.2f}，"
-                        f"截留概率={float(scene.state.get('block_probability', 0.25) or 0.25):.2f}。"
-                    )
+                            example_message = T('prompts.agent.examples.cascade.low_no_private', locale=self.language, policy_summary=example_policy_summary)
+                        context_update = T('prompts.agent.examples.cascade.context_low_distortion', locale=self.language)
+                    distortion_note = T('prompts.agent.examples.cascade.distortion_note',
+                        locale=self.language,
+                        strength=float(scene.state.get('distortion_strength', 0.6) or 0.6),
+                        sensitivity=float(scene.state.get('conflict_sensitivity', 0.5) or 0.5),
+                        probability=float(scene.state.get('block_probability', 0.25) or 0.25))
                 elif role_kind == "top":
-                    example_message = f"我会按原文继续传达“{example_policy_summary}”。态度：完全支持并按原文执行。补充：由我批准专项预算并建立月度问责机制。"
-                    context_update = "已按原文转发，并补充高层统筹与资源安排"
+                    example_message = T('prompts.agent.examples.cascade.top_faithful', locale=self.language, policy_summary=example_policy_summary)
+                    context_update = T('prompts.agent.examples.cascade.context_top_faithful', locale=self.language)
                 elif role_kind == "mid":
-                    example_message = f"我会按原文继续传达“{example_policy_summary}”。态度：完全支持并按原文执行。补充：我将在48小时内拆解任务到各部门并建立周报台账。"
-                    context_update = "已按原文转发，并补充中层协调与任务拆解"
+                    example_message = T('prompts.agent.examples.cascade.mid_faithful', locale=self.language, policy_summary=example_policy_summary)
+                    context_update = T('prompts.agent.examples.cascade.context_mid_faithful', locale=self.language)
                 else:
-                    example_message = f"我会按原文继续传达“{example_policy_summary}”。态度：完全支持并按原文执行。补充：我将按排查清单逐项核验，并在发现异常后24小时内上报。"
-                    context_update = "已按原文转发，并补充基层执行与异常上报"
+                    example_message = T('prompts.agent.examples.cascade.low_faithful', locale=self.language, policy_summary=example_policy_summary)
+                    context_update = T('prompts.agent.examples.cascade.context_low_faithful', locale=self.language)
                 message_json = json.dumps(example_message, ensure_ascii=False)
-                silent_context = "等待下一级反馈" if cascade_mode != "distortion_cascade" else "因本层利益冲突暂缓下传"
+                silent_context = T('prompts.agent.examples.cascade.silent_context', locale=self.language) if cascade_mode != "distortion_cascade" else T('prompts.agent.examples.cascade.silent_context_distortion', locale=self.language)
                 example_block = f"""Example JSON response:
     ```json
     {{
-        "thoughts": "转发最新政策，保持原文并附执行计划。",
+        "thoughts": "Forwarding latest policy, keeping original text with execution plan.",
         "response": "",
         "action": {{
         "name": "send_message",
@@ -275,7 +275,7 @@ Recent Context Summary:
     If you only want to speak without taking an action:
     ```json
     {{
-        "thoughts": "无需转发时保持静默等待。",
+        "thoughts": "Remaining silent when no forwarding needed.",
         "response": "",
         "action": {{
             "name": "yield"
@@ -287,30 +287,32 @@ Recent Context Summary:
                 if cascade_mode == "distortion_cascade":
                     example_block = distortion_note + "\n\n" + example_block
             else:
+                default_notice_text = T('prompts.agent.examples.default_policy_summary', locale=self.language)
                 if notice_kind == "analysis":
                     if role_kind == "top":
-                        notice_message = f"作为高层，我对“{notice_text or '最新任务'}”的看法是：优点在于有利于统一部署、压实责任和跟踪问效；缺点在于如果资源和配套制度不足，容易形成层层加码；建议同步明确牵头单位、预算安排和督促检查节奏。"
-                        context_update = "已从高层视角完成政策解读与优缺点分析"
+                        notice_message = T('prompts.agent.examples.notice.analysis_top', locale=self.language, notice_text=notice_text or default_notice_text)
+                        context_update = T('prompts.agent.examples.notice.context_analysis_top', locale=self.language)
                     elif role_kind == "mid":
-                        notice_message = f"作为中层，我对“{notice_text or '最新任务'}”的看法是：优点在于便于分解任务、建立台账和协同推进；缺点在于若验收标准不清，容易造成重复报送和责任交叉；建议尽快细化举措、明确时间表和周报机制。"
-                        context_update = "已从中层视角完成政策解读与优缺点分析"
+                        notice_message = T('prompts.agent.examples.notice.analysis_mid', locale=self.language, notice_text=notice_text or default_notice_text)
+                        context_update = T('prompts.agent.examples.notice.context_analysis_mid', locale=self.language)
                     else:
-                        notice_message = f"作为基层执行者，我对“{notice_text or '最新任务'}”的看法是：优点在于有助于逐项排查、现场核验和及时上报；缺点在于若模板过多、口径频繁变化，会增加执行负担；建议简化报送字段并明确整改、复查和销号标准。"
-                        context_update = "已从基层视角完成政策解读与优缺点分析"
+                        notice_message = T('prompts.agent.examples.notice.analysis_low', locale=self.language, notice_text=notice_text or default_notice_text)
+                        context_update = T('prompts.agent.examples.notice.context_analysis_low', locale=self.language)
                 elif role_kind == "top":
-                    notice_message = f"关于系统公告“{notice_text or '最新任务'}”，作为高层，我将明确总体目标、资源投放、压实责任和考核机制，并指定牵头负责人。"
-                    context_update = "已从高层视角回应系统公告"
+                    notice_message = T('prompts.agent.examples.notice.response_top', locale=self.language, notice_text=notice_text or default_notice_text)
+                    context_update = T('prompts.agent.examples.notice.context_response_top', locale=self.language)
                 elif role_kind == "mid":
-                    notice_message = f"关于系统公告“{notice_text or '最新任务'}”，作为中层，我将分解任务、协调相关单位、建立工作台账，并给出周度推进时间表。"
-                    context_update = "已从中层视角回应系统公告"
+                    notice_message = T('prompts.agent.examples.notice.response_mid', locale=self.language, notice_text=notice_text or default_notice_text)
+                    context_update = T('prompts.agent.examples.notice.context_response_mid', locale=self.language)
                 else:
-                    notice_message = f"关于系统公告“{notice_text or '最新任务'}”，作为基层执行者，我将按清单落实排查步骤、现场核验问题、推进整改复查并及时上报反馈。"
-                    context_update = "已从基层视角回应系统公告"
+                    notice_message = T('prompts.agent.examples.notice.response_low', locale=self.language, notice_text=notice_text or default_notice_text)
+                    context_update = T('prompts.agent.examples.notice.context_response_low', locale=self.language)
                 message_json = json.dumps(notice_message, ensure_ascii=False)
+                silent_context_notice = T('prompts.agent.examples.notice.silent_context', locale=self.language)
                 example_block = f"""Example JSON response:
     ```json
     {{
-        "thoughts": "需要直接回应最新系统公告，并给出符合本职位职责的解读。",
+        "thoughts": "Need to respond directly to the latest system notice with an interpretation appropriate to my position.",
         "response": "",
         "action": {{
         "name": "send_message",
@@ -324,12 +326,12 @@ Recent Context Summary:
     If you only want to speak without taking an action:
     ```json
     {{
-        "thoughts": "当前没有新增任务时可以结束回合。",
+        "thoughts": "Ending turn when there are no new tasks.",
         "response": "",
         "action": {{
             "name": "yield"
         }},
-        "context_update": "等待下一条系统公告",
+        "context_update": "{silent_context_notice}",
         "metadata": {{}}
     }}
     ```"""
