@@ -138,12 +138,6 @@ def generate_archetype_template(
         {"role": "user", "content": prompt}
     ]
 
-    # Fallback roles and descriptions for timeout/empty response
-    fallback_roles_en = ["Citizen", "Worker", "Professional", "Student", "Other"]
-    fallback_roles_zh = ["公民", "工人", "专业人士", "学生", "其他"]
-    fallback_description_en = f"Individual with background: {archetype_label}"
-    fallback_description_zh = f"具有以下背景的个人: {archetype_label}"
-
     # Cross-platform timeout using threading
     import threading
     import queue

@@ -223,6 +223,7 @@ Recent Context Summary:
             if task_mode == "cascade":
                 example_policy = policy_text or source_policy_text or T('prompts.agent.examples.default_policy_summary', locale=self.language)
                 example_policy_summary = _compact_policy_example(source_policy_text or example_policy)
+                distortion_note = ""  # Initialize before conditional
                 if cascade_mode == "distortion_cascade":
                     if role_kind == "top":
                         if has_private_source:
