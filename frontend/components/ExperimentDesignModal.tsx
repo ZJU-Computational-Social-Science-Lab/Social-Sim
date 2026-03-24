@@ -495,9 +495,9 @@ export const ExperimentDesignModal: React.FC = () => {
                                   iv.type === 'AGENT_PROPERTY'
                                     ? t('components.experimentDesignModal.propertyPlaceholder')
                                     : iv.type === 'FOLLOW_UP_CONDITION'
-                                      ? t('components.experimentDesignModal.followUpConditionPlaceholder', { defaultValue: '例如: resource_shortage=0.8, public_opinion_pressure=0.6 或 {"resource_shortage": 0.8}' })
+                                      ? t('components.experimentDesignModal.followUpConditionPlaceholder')
                                       : iv.type === 'FOLLOW_UP_THREAD_SEED'
-                                        ? t('components.experimentDesignModal.followUpThreadSeedPlaceholder', { defaultValue: '例如: 智能体3想要给智能体4发消息，消息内容为执行困难，需要回应。也支持 JSON。' })
+                                        ? t('components.experimentDesignModal.followUpThreadSeedPlaceholder')
                                       : t('components.experimentDesignModal.descriptionPlaceholder')
                                 }
                                 className="w-full text-xs bg-white border rounded p-2 focus:ring-1 focus:ring-indigo-500 outline-none resize-none h-16"
