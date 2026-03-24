@@ -24,8 +24,8 @@ class MockLogEntry:
         event_id: str,
         event_type: str,
         content: str,
-        agent_id: str = None,
-        node_id: str = None
+        agent_id: str | None = None,
+        node_id: str | None = None
     ):
         self.id = event_id
         self.type = event_type

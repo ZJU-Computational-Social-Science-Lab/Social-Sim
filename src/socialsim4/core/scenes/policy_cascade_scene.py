@@ -91,7 +91,7 @@ def _get_locale_list(key: str, locale: str = "zh") -> List[str]:
 
 
 # Module-level marker caches (populated lazily)
-_MARKER_CACHE: Dict[str, Dict[str, List[str]]] = {}
+_MARKER_CACHE: Dict[str, List[str]] = {}
 
 
 def _get_policy_markers(locale: str = "zh") -> List[str]:
@@ -1492,7 +1492,8 @@ class PolicyCascadeScene(Scene):
         return [name for name in candidates if name in social_connections]
 
     def _is_policy_announcement(self, text: str) -> bool:
-        return any(marker in text for marker in POLICY_MARKERS)
+        locale = self._get_locale()
+        return any(marker in text for marker in _get_policy_markers(locale))
 
     def _should_enter_cascade(self, text: str, event_type: str) -> bool:
         cleaned = str(text or "").strip()
@@ -2228,7 +2229,8 @@ class PolicyCascadeScene(Scene):
             if effective_task_mode == "cascade":
                 self.state["latest_notice"] = str(private_event.get("latest_notice") or "")
                 self.state["latest_policy"] = str(payload.get("message") or private_event.get("relayed_policy") or private_event.get("latest_policy") or "")
-                self.state["source_policy"] = source_policy
+                # Get source_policy from private_event or state, with fallback to latest_policy
+                self.state["source_policy"] = str(private_event.get("source_policy") or self.state.get("source_policy", "") or self.state["latest_policy"])
                 self.state["relayed_policy"] = str(payload.get("message") or private_event.get("relayed_policy") or private_event.get("latest_policy") or "")
                 self.state["task_mode"] = "cascade"
                 self.state["notice_kind"] = "execution"

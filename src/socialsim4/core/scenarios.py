@@ -233,12 +233,6 @@ _COUNCIL_CHAMBER: dict[str, Any] = {
             "ui_hint": "slider",
             "description": "Number of discussion rounds before automatic voting phase. Set to 0 for immediate voting, or leave empty for agent-controlled voting.",
         },
-        {
-            "name": "max_rounds",
-            "type": "integer",
-            "default": 5,
-            "description": "Maximum debate rounds before vote",
-        },
     ],
     "actions": [
         {"id": "speak", "name": "Speak", "description": "Make a statement"},
@@ -535,6 +529,28 @@ _SCENARIO_MAP: dict[str, dict[str, Any]] = {s["id"]: s for s in _SCENARIOS}
 # Public API
 # =============================================================================
 
+def _transform_parameters(params: list[dict]) -> list[dict]:
+    """Transform parameter format from backend 'name' to frontend 'key'.
+
+    Frontend expects parameters with 'key' field, but backend definitions
+    use 'name' field. This transforms the format for API responses.
+
+    Args:
+        params: List of parameter dictionaries with 'name' field
+
+    Returns:
+        List of parameter dictionaries with 'key' field
+    """
+    transformed = []
+    for param in params:
+        transformed_param = param.copy()
+        # Rename 'name' to 'key' for frontend compatibility
+        if 'name' in transformed_param:
+            transformed_param['key'] = transformed_param.pop('name')
+        transformed.append(transformed_param)
+    return transformed
+
+
 def get_all_scenarios() -> list[dict[str, Any]]:
     """Return all available scenarios.
 
@@ -544,10 +560,15 @@ def get_all_scenarios() -> list[dict[str, Any]]:
         - name: Human-readable name
         - category: Scenario category (game_theory, discussion, grid, etc.)
         - description: Detailed description
-        - parameters: List of configurable parameters
+        - parameters: List of configurable parameters (with 'key' field)
         - actions: List of available actions
     """
-    return _SCENARIOS.copy()
+    scenarios = _SCENARIOS.copy()
+    # Transform parameters to use 'key' instead of 'name'
+    for scenario in scenarios:
+        if 'parameters' in scenario:
+            scenario['parameters'] = _transform_parameters(scenario['parameters'])
+    return scenarios
 
 
 def get_scenario(scenario_id: str) -> dict[str, Any] | None:
@@ -557,9 +578,17 @@ def get_scenario(scenario_id: str) -> dict[str, Any] | None:
         scenario_id: The unique identifier of the scenario
 
     Returns:
-        The scenario dictionary if found, None otherwise
+        The scenario dictionary if found, None otherwise (with parameters using 'key' field)
     """
-    return _SCENARIO_MAP.get(scenario_id)
+    scenario = _SCENARIO_MAP.get(scenario_id)
+    if scenario is None:
+        return None
+
+    # Transform parameters to use 'key' instead of 'name'
+    scenario_copy = scenario.copy()
+    if 'parameters' in scenario_copy:
+        scenario_copy['parameters'] = _transform_parameters(scenario_copy['parameters'])
+    return scenario_copy
 
 
 def get_scenario_actions(scenario_id: str) -> list[dict[str, Any]]:

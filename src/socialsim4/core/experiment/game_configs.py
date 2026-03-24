@@ -147,6 +147,10 @@ SPATIAL_COOPERATION = GameConfig(
 )
 
 
+# Sentinel value for required fields
+_MISSING = object()
+
+
 @dataclass
 class CouncilConfig(GameConfig):
     """Configuration for Council experiment scene.
@@ -165,16 +169,25 @@ class CouncilConfig(GameConfig):
     action_type: Literal["discrete", "integer"] = "discrete"
     # Minimal action set for controlled experiments - system controls phase transitions
     actions: list[str] = field(default_factory=lambda: ["speak", "skip", "vote_yes", "vote_no", "abstain"])
-    # Council-specific fields
-    deliberation_rounds: int = 3
-    voting_threshold: float = 0.5
-    proposal_text: str = ""
+    # Council-specific fields - use sentinel to enforce required validation
+    deliberation_rounds: int = field(default=_MISSING)  # type: ignore
+    voting_threshold: float = field(default=_MISSING)  # type: ignore
+    proposal_text: str = field(default=_MISSING)  # type: ignore
+
+    def __post_init__(self):
+        """Validate that required fields were provided."""
+        if self.deliberation_rounds is _MISSING:
+            raise ValueError("deliberation_rounds is required for CouncilConfig")
+        if self.voting_threshold is _MISSING:
+            raise ValueError("voting_threshold is required for CouncilConfig")
+        if self.proposal_text is _MISSING:
+            raise ValueError("proposal_text is required for CouncilConfig")
 
 
 def create_council_config(
     proposal_text: str,
-    deliberation_rounds: int = 3,
-    voting_threshold: float = 0.5
+    deliberation_rounds: int,  # NO DEFAULT
+    voting_threshold: float  # NO DEFAULT
 ) -> CouncilConfig:
     """Create a CouncilConfig with specified parameters.
 

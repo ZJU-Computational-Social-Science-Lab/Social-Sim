@@ -69,6 +69,8 @@ class CouncilExperimentScene(ExperimentScene):
         # Configure deliberation rounds from config parameters (FEAT-COUNCIL-03)
         # Parameters dict contains council-specific config like deliberation_rounds
         deliberation_rounds = config.parameters.get("deliberation_rounds")
+        logger.info(f"[INIT] config.parameters = {config.parameters}")
+        logger.info(f"[INIT] deliberation_rounds from config = {deliberation_rounds}")
         if deliberation_rounds is not None:
             self.facilitator.set_deliberation_rounds(deliberation_rounds)
             logger.info(f"Configured {deliberation_rounds} deliberation rounds before voting")
@@ -270,7 +272,13 @@ class CouncilExperimentScene(ExperimentScene):
         - VOTING → DELIBERATION: All agents voted AND threshold NOT met
         - POST_VOTE_DISCUSSION → DELIBERATION: After deliberation_rounds complete
         """
-        deliberation_rounds = self.config.parameters.get("deliberation_rounds", 3)
+        # NO DEFAULT - fail fast if parameter is missing
+        if "deliberation_rounds" not in self.config.parameters:
+            raise ValueError(f"deliberation_rounds parameter is required. Got parameters: {self.config.parameters}")
+
+        deliberation_rounds = self.config.parameters["deliberation_rounds"]
+        logger.info(f"[TRANSITION CHECK] self.config.parameters = {self.config.parameters}")
+        logger.info(f"[TRANSITION CHECK] deliberation_rounds = {deliberation_rounds}, rounds_in_cycle_phase = {self.rounds_in_cycle_phase}")
 
         if self.cycle_phase == CouncilCyclePhase.DELIBERATION:
             if self.rounds_in_cycle_phase >= deliberation_rounds:
@@ -315,11 +323,19 @@ class CouncilExperimentScene(ExperimentScene):
         Increments round counter, phase counter, and checks for phase transitions.
         Called by experiment runner after each round completes.
         """
+        old_round = self.round_num
+        old_phase_rounds = self.rounds_in_cycle_phase
+        old_phase = self.cycle_phase
+
         self.round_num += 1
         self.rounds_in_cycle_phase += 1
+
+        logger.info(f"[PHASE DEBUG] _advance_round: {old_round} → {self.round_num}, "
+                   f"phase_rounds: {old_phase_rounds} → {self.rounds_in_cycle_phase}, "
+                   f"phase: {old_phase.value}")
+
         # Sync round number with facilitator for deliberation enforcement (FEAT-COUNCIL-02)
         self.facilitator.current_round_num = self.round_num
-        logger.debug(f"Advanced to round {self.round_num}, phase round {self.rounds_in_cycle_phase}")
 
         # Check for cycle phase transition
         self.check_cycle_phase_transition()
@@ -341,7 +357,12 @@ class CouncilExperimentScene(ExperimentScene):
         base_config["extensions"]["cycle_phase"] = {
             "phase": self.cycle_phase.value,
             "rounds_in_phase": self.rounds_in_cycle_phase,
+            "round_num": self.round_num,  # FIX: Serialize round_num
         }
+
+        logger.info(f"[SERIALIZE] Saving cycle_phase={self.cycle_phase.value}, "
+                   f"rounds_in_cycle_phase={self.rounds_in_cycle_phase}, round_num={self.round_num}")
+        logger.info(f"[SERIALIZE] config.parameters being saved: {base_config.get('config', {}).get('parameters', {})}")
 
         return base_config
 
@@ -357,13 +378,25 @@ class CouncilExperimentScene(ExperimentScene):
         Returns:
             New CouncilExperimentScene instance with restored state
         """
+        # Log incoming data
+        logger.info(f"[DESERIALIZE] Incoming config.parameters: {data.get('config', {}).get('parameters', {})}")
+
         # Call parent to get base scene (properly initialized)
         scene = super().deserialize_config(data)
+
+        # Log what the scene has after parent deserialization
+        logger.info(f"[DESERIALIZE] After parent deserialize, scene.config.parameters: {scene.config.parameters}")
 
         # Restore cycle phase state from extensions
         cycle_data = data.get("extensions", {}).get("cycle_phase", {})
         if cycle_data:
             scene.cycle_phase = CouncilCyclePhase(cycle_data.get("phase", "deliberation"))
             scene.rounds_in_cycle_phase = cycle_data.get("rounds_in_phase", 0)
+            # FIX: Restore round_num
+            scene.round_num = cycle_data.get("round_num", 1)
+            logger.info(f"[DESERIALIZE] Loaded cycle_phase={scene.cycle_phase.value}, "
+                       f"rounds_in_cycle_phase={scene.rounds_in_cycle_phase}, round_num={scene.round_num}")
+        else:
+            logger.warning(f"[DESERIALIZE] No cycle_phase data found in extensions, using defaults")
 
         return scene

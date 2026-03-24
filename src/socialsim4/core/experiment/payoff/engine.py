@@ -265,16 +265,25 @@ class PayoffEngine:
         total_contribution = 0
         contributions = {}
 
+        # DEBUG: Log inputs to payoff calculation
+        print(f"[PAYOFF DEBUG] payoff_type=pool, config={config}, state={state is not None}")
+        print(f"[PAYOFF DEBUG] actions count: {len(actions)}")
+
         for action in actions:
             if not action.skipped:
                 if action.action_name == "contribute":
                     attempted_amount = action.parameters.get("amount", 0)
+                    print(f"[PAYOFF DEBUG] Agent {action.agent_name}: action_name={action.action_name}, attempted_amount={attempted_amount}")
 
                     # Validate contribution against agent's token balance
                     if state is not None:
                         agent = state.agents.get(action.agent_name)
+                        print(f"[PAYOFF DEBUG]   state.agents keys: {list(state.agents.keys())}")
+                        print(f"[PAYOFF DEBUG]   agent found: {agent is not None}")
                         if agent:
+                            print(f"[PAYOFF DEBUG]   agent.resources: {agent.resources}")
                             current_tokens = agent.resources.get("tokens", 0)
+                            print(f"[PAYOFF DEBUG]   current_tokens: {current_tokens}")
                             # Cap contribution at current balance (minimum 0)
                             actual_amount = max(0, min(attempted_amount, current_tokens))
 
@@ -308,8 +317,13 @@ class PayoffEngine:
 
         pool_return = (total_contribution * multiplier) / num_agents
 
+        print(f"[PAYOFF DEBUG] total_contribution={total_contribution}, multiplier={multiplier}, initial_tokens={initial_tokens}")
+        print(f"[PAYOFF DEBUG] pool_return={pool_return}, num_agents={num_agents}")
+        print(f"[PAYOFF DEBUG] contributions={contributions}")
+
         for agent_name, contribution in contributions.items():
             tokens_kept = initial_tokens - contribution
             payoffs[agent_name] = round(tokens_kept + pool_return, 2)
+            print(f"[PAYOFF DEBUG] {agent_name}: tokens_kept={tokens_kept}, payoff={payoffs[agent_name]}")
 
         return payoffs

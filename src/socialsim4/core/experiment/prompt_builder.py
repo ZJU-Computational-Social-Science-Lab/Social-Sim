@@ -359,6 +359,11 @@ def build_reprompt(
             sections.append("\n=== FOLLOW-UP PROMPT (Action Requires Parameters) ===")
 
         sections.append(f"\nYou chose to {chosen_action}. Please provide your response.")
+
+        # Add brevity instruction for speak action if provided
+        if speak_instruction and chosen_action == "speak":
+            sections.append(f"\n{speak_instruction}")
+
         sections.append("Your response:")
 
         full_prompt = "\n".join(sections)
