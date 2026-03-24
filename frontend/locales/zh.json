@@ -13,6 +13,10 @@
     "colon": "：",
     "remove": "删除"
   },
+  "language": {
+    "english": "EN",
+    "chinese": "中文"
+  },
   "log": {
     "reasoningStep": "开始第 {{step}} 步推理",
     "reasoningStart": "开始推理",

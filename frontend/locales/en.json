@@ -13,6 +13,10 @@
     "colon": ":",
     "remove": "Remove"
   },
+  "language": {
+    "english": "EN",
+    "chinese": "中文"
+  },
   "log": {
     "reasoningStep": "Starting step {{step}} reasoning",
     "reasoningStart": "Starting reasoning",
