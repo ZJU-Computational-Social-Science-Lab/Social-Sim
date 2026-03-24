@@ -378,7 +378,8 @@
     "templateDefaults": {
       "village": "Create a diverse village community including farmers, merchants, and intellectuals.",
       "council": "Create a 5-member council with different policy stances and influence.",
-      "werewolf": "Create 9 werewolf game players: judge/seer, witch, hunter, 2 wolves, 3 civilians with personalities."
+      "werewolf": "Create 9 werewolf game players: judge/seer, witch, hunter, 2 wolves, 3 civilians with personalities.",
+      "policyDiffusion": "Three-level policy diffusion scenario"
     },
     "defaultPrompts": {
       "village": "Create a diverse village community including farmers, merchants, and intellectuals.",
@@ -484,6 +485,18 @@
       "people": "people",
       "timeFlow": "Time Flow",
       "perTurn": "per turn"
+    },
+    "demographics": {
+      "totalAgents": "Total Agents",
+      "title": "Demographics",
+      "namePlaceholder": "Name (e.g., Occupation)",
+      "categoriesPlaceholder": "Categories (comma-separated)",
+      "traitsTitle": "Traits (Normal Distribution)",
+      "traitNamePlaceholder": "Trait name",
+      "meanPlaceholder": "Mean",
+      "stdPlaceholder": "Std",
+      "generating": "Generating...",
+      "generateButton": "Generate Agents"
     },
     "footer": {
       "previous": "Previous",
@@ -1113,7 +1126,11 @@
       "startBatch": "Start Batch Run ({{count}} branches)",
       "liveLogPreview": "Live log preview (last {{count}} entries)",
       "noLogsYet": "No logs yet",
-      "imageUploaded": "Image uploaded and inserted"
+      "imageUploaded": "Image uploaded and inserted",
+      "followUpConditionPlaceholder": "e.g., resource_shortage=0.8, public_opinion_pressure=0.6 or {\"resource_shortage\": 0.8}",
+      "followUpThreadSeedPlaceholder": "e.g., Agent 3 wants to send a message to Agent 4 about execution difficulties, needs response. JSON also supported.",
+      "followUpConditionType": "Follow-up condition",
+      "followUpThreadSeedType": "Follow-up thread seed"
     },
     "hostPanel": {
       "godModeTitle": "God Mode",
@@ -1297,7 +1314,13 @@
       "zoomOut": "Zoom out",
       "resetView": "Reset view",
       "nodes": "nodes",
-      "edges": "edges"
+      "edges": "edges",
+      "manualLinks": "Manual Links",
+      "selectSource": "Select source",
+      "selectTarget": "Select target",
+      "addLink": "Add Link",
+      "noLinks": "No links yet",
+      "noProfile": "No profile"
     },
     "reportModal": {
       "title": "Simulation Experiment Analysis Report",
@@ -1926,7 +1949,11 @@
       "instructions": "Instructions",
       "instructionSelect": "Select a preset to generate a network",
       "instructionDrag": "Drag nodes to rearrange",
-      "instructionZoom": "Scroll to zoom, drag to pan"
+      "instructionZoom": "Scroll to zoom, drag to pan",
+      "manualLinks": "Manual links",
+      "addLink": "Add link",
+      "noLinks": "No links yet",
+      "noProfile": "No profile"
     },
     "step6": {
       "noAgentsDefined": "No Agents Defined",

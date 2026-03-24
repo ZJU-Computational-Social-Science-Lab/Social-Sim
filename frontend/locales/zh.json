@@ -378,7 +378,8 @@
     "templateDefaults": {
       "village": "创建一个多元化的乡村社区，包含务农者、商人和知识分子。",
       "council": "创建一个由5名成员组成的议会，每位成员具有不同政策立场与影响力。",
-      "werewolf": "创建一个狼人杀9人局的玩家群体画像：法官/上帝、预言家、女巫、猎人、2名狼人、3名平民，并描述性格与策略偏好。"
+      "werewolf": "创建一个狼人杀9人局的玩家群体画像：法官/上帝、预言家、女巫、猎人、2名狼人、3名平民，并描述性格与策略偏好。",
+      "policyDiffusion": "三层级政策扩散场景"
     },
     "defaultPrompts": {
       "village": "创建一个多元化的乡村社区，包含务农者、商人和知识分子。",
@@ -484,6 +485,18 @@
       "people": "人",
       "timeFlow": "时间流速",
       "perTurn": "1 回合 ="
+    },
+    "demographics": {
+      "totalAgents": "智能体总数",
+      "title": "人口统计",
+      "namePlaceholder": "名称（例如：职业）",
+      "categoriesPlaceholder": "类别（用逗号分隔）",
+      "traitsTitle": "特征（正态分布）",
+      "traitNamePlaceholder": "特征名称",
+      "meanPlaceholder": "均值",
+      "stdPlaceholder": "标准差",
+      "generating": "生成中...",
+      "generateButton": "生成智能体"
     },
     "footer": {
       "previous": "上一步",
@@ -1113,7 +1126,11 @@
       "startBatch": "启动批量运行 ({{count}} 个分支)",
       "liveLogPreview": "实时日志预览（最近 {{count}} 条）",
       "noLogsYet": "暂无日志",
-      "imageUploaded": "图片已上传并插入"
+      "imageUploaded": "图片已上传并插入",
+      "followUpConditionPlaceholder": "例如: resource_shortage=0.8, public_opinion_pressure=0.6 或 {\"resource_shortage\": 0.8}",
+      "followUpThreadSeedPlaceholder": "例如: 智能体3想要给智能体4发消息，消息内容为执行困难，需要回应。也支持 JSON。",
+      "followUpConditionType": "后续条件",
+      "followUpThreadSeedType": "后续线程种子"
     },
     "hostPanel": {
       "godModeTitle": "主持模式",
@@ -1297,7 +1314,13 @@
       "zoomOut": "缩小",
       "resetView": "重置视角",
       "nodes": "节点",
-      "edges": "边"
+      "edges": "边",
+      "manualLinks": "手动连接",
+      "selectSource": "选择源",
+      "selectTarget": "选择目标",
+      "addLink": "添加连接",
+      "noLinks": "暂无连接",
+      "noProfile": "无简介"
     },
     "reportModal": {
       "title": "仿真实验分析报告",
@@ -1910,7 +1933,11 @@
       "instructions": "说明",
       "instructionSelect": "选择预设以生成网络",
       "instructionDrag": "拖动节点重新排列",
-      "instructionZoom": "滚动缩放，拖动平移"
+      "instructionZoom": "滚动缩放，拖动平移",
+      "manualLinks": "手动连接",
+      "addLink": "添加连接",
+      "noLinks": "暂无连接",
+      "noProfile": "无简介"
     },
     "step6": {
       "noAgentsDefined": "未定义代理",
