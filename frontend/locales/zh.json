@@ -1141,7 +1141,13 @@
       "enterNewValue": "输入新值",
       "updateProperty": "更新属性",
       "broadcastSent": "广播已发送给智能体",
-      "broadcastFailed": "广播发送失败"
+      "broadcastFailed": "广播发送失败",
+      "privateBroadcastLog": "定向私有广播",
+      "globalBroadcastLog": "全局广播",
+      "recipientsLog": "接收者",
+      "allAgentsLog": "全体智能体",
+      "recipientHint": "选择接收者（为空则全员）：",
+      "injectNoticeOnly": "注：注入环境事件为 notice-only（不触发系统广播），用于干预后续事件。"
     },
     "initialEventsModal": {
       "title": "初始事件编辑器",

@@ -1141,7 +1141,13 @@
       "enterNewValue": "Enter new value",
       "updateProperty": "Update Property",
       "broadcastSent": "Broadcast sent to agents",
-      "broadcastFailed": "Failed to send broadcast"
+      "broadcastFailed": "Failed to send broadcast",
+      "privateBroadcastLog": "Targeted private broadcast",
+      "globalBroadcastLog": "Global broadcast",
+      "recipientsLog": "Recipients",
+      "allAgentsLog": "All agents",
+      "recipientHint": "Select recipients (leave empty for all):",
+      "injectNoticeOnly": "Note: Injected environment events are notice-only (no system broadcast), used to intervene in subsequent events."
     },
     "initialEventsModal": {
       "title": "Initial Event Editor",
