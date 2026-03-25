@@ -1829,7 +1829,7 @@
       "recovery_turns": "感染代理恢复所需的回合数",
       "punishment_budget_per_round": "每个代理人每轮获得的惩罚代币数量。设为0则禁用惩罚。",
       "punishment_cost_ratio": "每花费1个惩罚代币扣除目标多少收益。数值越高，惩罚效果越强。",
-      "punishment_anonymous": "启用后，被惩罚者看不到惩罚者（仅显示"匿名"）。"
+      "punishment_anonymous": "启用后，被惩罚者看不到惩罚者（仅显示「匿名」）。"
     },
     "payoffMatrix": {
       "howToRead": {
