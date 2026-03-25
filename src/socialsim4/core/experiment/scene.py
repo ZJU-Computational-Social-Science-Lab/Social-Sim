@@ -45,6 +45,8 @@ class ExperimentScene:
         self._history: list[dict[str, Any]] = []
         self._pending_host_messages: list[str] = []
         self.state: ExperimentState = ExperimentState()
+        # PGG phase tracking: "allocate" or "deduct"
+        self._pgg_phase: str = "allocate"
 
         logger.debug(f"ExperimentScene initialized: scenario_id='{config.scenario_id}' (type: {type(config.scenario_id).__name__})")
 
@@ -245,13 +247,16 @@ class ExperimentScene:
         """Initialize ExperimentState from config.
 
         Creates AgentState for each agent and applies state_schema extensions.
-        Also initializes punishment budget if configured.
+        Also initializes deduction budget if configured.
 
         Called during initialize() after agents are created.
         """
-        # Get punishment budget from config (default 0 = disabled)
         params = self.config.parameters or {}
-        punishment_budget = int(params.get("punishment_budget_per_round", 0) or 0)
+
+        # Get configurable resource name (default "tokens")
+        resource_name = params.get("resource_name", "tokens")
+        tokens_per_round = int(params.get("tokens_per_round", 20) or 20)
+        deduction_budget = int(params.get("deduction_budget_per_phase", 0) or 0)
 
         # Create AgentState for each agent
         for agent_config in self.config.agents:
@@ -261,9 +266,13 @@ class ExperimentScene:
 
             resources = deepcopy(agent_config.get("resources", {}))
 
-            # Add punishment budget if configured
-            if punishment_budget > 0:
-                resources["punishment_budget"] = punishment_budget
+            # Set initial resources using dynamic resource_name key
+            if resource_name not in resources:
+                resources[resource_name] = tokens_per_round
+
+            # Add deduction budget if configured
+            if deduction_budget > 0:
+                resources["deduction_budget"] = deduction_budget
 
             agent_state = AgentState(
                 score=0,
@@ -278,13 +287,13 @@ class ExperimentScene:
             if "extensions" in self.config.state_schema:
                 self.state.extensions.update(deepcopy(self.config.state_schema["extensions"]))
 
-        # Initialize punishments tracking in extensions
-        if "punishments" not in self.state.extensions:
-            self.state.extensions["punishments"] = {}
+        # Initialize reductions tracking in extensions (renamed from punishments)
+        if "reductions" not in self.state.extensions:
+            self.state.extensions["reductions"] = {}
 
         logger.debug(
             f"Initialized state for {len(self.state.agents)} agents "
-            f"(punishment_budget={punishment_budget})"
+            f"(resource_name={resource_name}, deduction_budget={deduction_budget})"
         )
 
     def _create_game_config(self) -> GameConfig:
@@ -455,8 +464,8 @@ class ExperimentScene:
             if _scenario_for_payoff and _scenario_for_payoff.get("payoff_type") == "pool":
                 defaults = {p["id"]: p.get("default") for p in _scenario_for_payoff.get("parameters", [])}
                 payoff_config = {
-                    "multiplier": params.get("multiplier", defaults.get("multiplier", 1.5)),
-                    "initial_tokens": params.get("initial_amount", defaults.get("initial_amount", 20)),
+                    "multiplier": params.get("multiplier", defaults.get("multiplier", 1.6)),
+                    "initial_tokens": params.get("tokens_per_round", defaults.get("tokens_per_round", 20)),
                 }
             if _scenario_for_payoff and _scenario_for_payoff.get("payoff_type") == "feedback":
                 defaults = {p["id"]: p.get("default") for p in _scenario_for_payoff.get("parameters", [])}
@@ -468,28 +477,26 @@ class ExperimentScene:
 
         followup_modes = self._get_action_followup_modes(action_names)
 
-        # FEAT-PGG: Handle punish action based on punishment_budget_per_round
-        # When budget > 0: ADD punish action (if not already present)
-        # When budget <= 0: REMOVE punish action (if present)
-        # This ensures agents only see punishment when the feature is enabled
-        punishment_budget = int(params.get("punishment_budget_per_round", 0) or 0)
-        if punishment_budget > 0:
-            # Add punish action when punishment is enabled
-            if "punish" not in action_names:
-                action_names = action_names + ["punish"]
-                action_descriptions["punish"] = "Punish another agent for their behavior"
-                # Add followup mode for punish action
-                if "punish" not in followup_modes:
-                    followup_modes["punish"] = "json"
-            logger.debug(f"[GAME_CONFIG] Added 'punish' action (punishment_budget={punishment_budget})")
+        # FEAT-PGG: Handle reduce action based on deduction_budget_per_phase
+        # When budget > 0: ensure reduce action is available
+        # When budget <= 0: remove reduce action
+        deduction_budget = int(params.get("deduction_budget_per_phase", 0) or 0)
+        if deduction_budget > 0:
+            # Add reduce action when deduction is enabled
+            if "reduce" not in action_names:
+                action_names = action_names + ["reduce"]
+                action_descriptions["reduce"] = "Reduce another agent's resources"
+                if "reduce" not in followup_modes:
+                    followup_modes["reduce"] = "json"
+            logger.debug(f"[GAME_CONFIG] Added 'reduce' action (deduction_budget={deduction_budget})")
         else:
-            # Remove punish action when punishment is disabled
-            if "punish" in action_names:
-                action_names = [a for a in action_names if a != "punish"]
-                action_descriptions.pop("punish", None)
-                action_schemas.pop("punish", None)
-                followup_modes.pop("punish", None)
-                logger.debug(f"[GAME_CONFIG] Filtered 'punish' action (punishment_budget={punishment_budget})")
+            # Remove reduce action when deduction is disabled
+            if "reduce" in action_names:
+                action_names = [a for a in action_names if a != "reduce"]
+                action_descriptions.pop("reduce", None)
+                action_schemas.pop("reduce", None)
+                followup_modes.pop("reduce", None)
+                logger.debug(f"[GAME_CONFIG] Filtered 'reduce' action (deduction_budget={deduction_budget})")
 
         logger.info(f"[GAME_CONFIG] scenario_id='{self.config.scenario_id}', action_names={action_names}, followup_modes={followup_modes}")
 
@@ -695,6 +702,72 @@ class ExperimentScene:
     def is_complete(self) -> bool:
         """Check if experiment has natural end (most don't)."""
         return False  # Run forever via SimTree control
+
+    def get_pgg_phase(self) -> str:
+        """Get current PGG phase.
+
+        Returns:
+            "allocate" or "deduct"
+        """
+        return self._pgg_phase
+
+    def advance_pgg_phase(self) -> None:
+        """Advance to next PGG phase.
+
+        Cycles: allocate -> deduct -> allocate (next round) -> ...
+
+        Note: Does NOT reset deduction budget here. Budget reset happens
+        via _reset_deduction_budgets() when entering deduct phase to avoid
+        spurious resets from initialization or state replay.
+        """
+        if self._pgg_phase == "allocate":
+            self._pgg_phase = "deduct"
+        else:
+            self._pgg_phase = "allocate"
+            # Round advances in run_round(), not here
+
+    def _reset_deduction_budgets(self) -> None:
+        """Reset deduction budgets at start of deduct phase.
+
+        Reads deduction_budget_per_phase from current config, so mid-run
+        config changes will affect subsequent phases. Setting budget to 0
+        clears any leftover budget from when it was enabled.
+
+        Called by runner when entering deduct phase, NOT in advance_pgg_phase
+        to avoid spurious resets during initialization or state replay.
+        """
+        params = self.config.parameters or {}
+        budget = int(params.get("deduction_budget_per_phase", 0) or 0)
+
+        for agent_state in self.state.agents.values():
+            agent_state.resources["deduction_budget"] = budget
+
+        logger.debug(f"Reset deduction budgets to {budget} for {len(self.state.agents)} agents")
+
+    def get_scene_actions(self, agent_name: str) -> list[str] | None:
+        """Filter available actions by current PGG phase.
+
+        For PUBLIC_GOODS scenario, returns phase-appropriate actions.
+        For other scenarios, returns None (caller should use all configured actions).
+
+        Args:
+            agent_name: Name of agent (for future per-agent filtering)
+
+        Returns:
+            List of action names available in current phase, or None if
+            no filtering should be applied (use all configured actions).
+        """
+        if self.config.scenario_id != "public_goods":
+            return None  # None = no filtering, use all configured actions
+
+        if self._pgg_phase == "allocate":
+            return ["allocate", "keep"]
+        else:  # deduct phase
+            # Only show reduce/skip if deduction is enabled
+            params = self.config.parameters or {}
+            if params.get("deduction_budget_per_phase", 0) > 0:
+                return ["reduce", "skip"]
+            return []  # Empty = no actions available (deductions disabled)
 
     def inject_host_message(self, message: str) -> None:
         """Queue a host message to be injected into all agents' context on the next round."""
