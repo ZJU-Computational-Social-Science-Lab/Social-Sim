@@ -317,12 +317,29 @@ class PayoffEngine:
             payoffs[agent_name] = round(tokens_kept + pool_return, 2)
             logger.debug(f"{agent_name}: tokens_kept={tokens_kept}, payoff={payoffs[agent_name]}")
 
-        # Apply punishment effects if enabled
-        punishment_config = config.get("punishment", {})
-        if punishment_config.get("enabled", False) and state is not None:
-            payoffs = self._apply_punishment_effects(payoffs, state, punishment_config)
+        # Apply deduction effects if enabled
+        # Support both new deduction_* and legacy punishment_* config keys
+        deduction_config = config.get("deduction", {})
+        if not deduction_config:
+            deduction_config = config.get("punishment", {})
+
+        # Check if enabled: explicit flag, OR any reductions/punishments recorded this round.
+        # Note: do NOT read deduction_budget_per_phase from state.extensions["parameters"] —
+        # parameters live in scene.config.parameters, not in state extensions.
+        # Instead, check whether agents actually submitted any deductions this round,
+        # which is the reliable signal that the mechanism is active.
+        is_enabled = deduction_config.get("enabled", False)
+        if not is_enabled and state is not None:
+            has_reductions = bool(
+                state.extensions.get("reductions") or
+                state.extensions.get("punishments")
+            )
+            is_enabled = has_reductions
+
+        if is_enabled and state is not None:
+            payoffs = self._apply_punishment_effects(payoffs, state, deduction_config)
             logger.info(
-                f"Applied punishment effects (cost_ratio={punishment_config.get('cost_ratio', 3)})"
+                f"Applied deduction effects (cost_ratio={deduction_config.get('cost_ratio', 3)})"
             )
 
         return payoffs
@@ -333,31 +350,34 @@ class PayoffEngine:
         state: "ExperimentState",
         config: Dict[str, Any],
     ) -> Dict[str, int | float]:
-        """Apply punishment deductions to calculated payoffs.
+        """Apply deduction effects to calculated payoffs.
 
-        Punishment effects are applied at end of round after all
-        punishment decisions are collected. This prevents strategic
-        ordering effects where later agents see earlier punishments.
+        Deduction effects are applied at end of round after all
+        deduction decisions are collected. This prevents strategic
+        ordering effects where later agents see earlier deductions.
 
         Args:
             payoffs: Base payoffs from pool calculation
-            state: Experiment state with punishment allocations
-            config: Punishment config with cost_ratio
+            state: Experiment state with deduction allocations
+            config: Deduction config with cost_ratio
 
         Returns:
-            Updated payoffs with punishment deductions applied
+            Updated payoffs with deduction deductions applied
 
         Config:
-            cost_ratio: Multiplier for punishment effect (e.g., 3 means
-                        1 token spent = 3 payoff deducted from target)
+            cost_ratio: Multiplier for deduction effect (e.g., 3 means
+                        1 budget point spent = 3 payoff deducted from target)
         """
         cost_ratio = config.get("cost_ratio", 3)
 
-        # Get punishment allocations from state
-        punishments = state.extensions.get("punishments", {})
+        # Get deduction allocations from state
+        # Support both new "reductions" key and legacy "punishments" key
+        reductions = state.extensions.get("reductions", {})
+        if not reductions:
+            reductions = state.extensions.get("punishments", {})
 
-        # Apply each punishment
-        for punisher, allocations in punishments.items():
+        # Apply each deduction
+        for reducer, allocations in reductions.items():
             for allocation in allocations:
                 target = allocation.get("target")
                 amount = allocation.get("amount", 0)
@@ -367,7 +387,7 @@ class PayoffEngine:
                     # Floor at 0 - payoffs cannot go negative
                     payoffs[target] = max(0, payoffs[target] - deduction)
                     logger.debug(
-                        f"Punishment: {punisher} -> {target}, "
+                        f"Deduction: {reducer} -> {target}, "
                         f"amount={amount}, deduction={deduction}, "
                         f"new_payoff={payoffs[target]}"
                     )
