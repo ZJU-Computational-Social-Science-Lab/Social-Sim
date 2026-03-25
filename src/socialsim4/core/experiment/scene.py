@@ -251,7 +251,7 @@ class ExperimentScene:
         """
         # Get punishment budget from config (default 0 = disabled)
         params = self.config.parameters or {}
-        punishment_budget = params.get("punishment_budget_per_round", 0)
+        punishment_budget = int(params.get("punishment_budget_per_round", 0) or 0)
 
         # Create AgentState for each agent
         for agent_config in self.config.agents:
@@ -471,7 +471,7 @@ class ExperimentScene:
         # FEAT-PGG: Filter punish action when punishment is disabled
         # When punishment_budget_per_round is 0 or not set, remove punish from actions
         # This ensures agents don't see punishment text when feature is disabled
-        punishment_budget = params.get("punishment_budget_per_round", 0)
+        punishment_budget = int(params.get("punishment_budget_per_round", 0) or 0)
         if punishment_budget <= 0 and "punish" in action_names:
             action_names = [a for a in action_names if a != "punish"]
             action_descriptions.pop("punish", None)

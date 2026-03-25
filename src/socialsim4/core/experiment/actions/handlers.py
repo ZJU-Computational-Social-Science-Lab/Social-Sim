@@ -364,9 +364,9 @@ def handle_punish(action_data: dict, agent_name: str, state: ExperimentState, sc
     cost_ratio = 3.0
     if scene is not None:
         if hasattr(scene, 'config') and hasattr(scene.config, 'parameters'):
-            cost_ratio = scene.config.parameters.get('punishment_cost_ratio', 3.0)
+            cost_ratio = float(scene.config.parameters.get('punishment_cost_ratio', 3.0) or 3.0)
         elif hasattr(scene, 'game_config') and hasattr(scene.game_config, 'parameters'):
-            cost_ratio = scene.game_config.parameters.get('punishment_cost_ratio', 3.0)
+            cost_ratio = float(scene.game_config.parameters.get('punishment_cost_ratio', 3.0) or 3.0)
 
     deduction = actual_amount * cost_ratio
 
