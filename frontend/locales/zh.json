@@ -62,7 +62,8 @@
     "block": "阻断概率",
     "pressure": "冲突压力",
     "tendency": "截留倾向",
-    "performedAction": "执行了动作"
+    "performedAction": "执行了动作",
+    "punishmentAction": "{{punisher}} 惩罚了 {{target}} {{amount}} 代币（扣除：{{deduction}}）"
   },
   "brand": "SocialSim4",
   "nav": {

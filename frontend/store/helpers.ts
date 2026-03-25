@@ -660,6 +660,33 @@ export const mapBackendEventsToLogs = (
       return { ...base, type: 'AGENT_ACTION', agentId, content: label };
     }
 
+    // Handle punishment action events (FEAT-PGG-09, FEAT-PGG-10, FEAT-PGG-11)
+    if (evType === 'punishment_action') {
+      const punisher: string = data.punisher || '';
+      const target: string = data.target || '';
+      const amount: number = data.amount || 0;
+      const deduction: number = data.deduction || 0;
+      const roundNum: number = data.round || roundVal;
+
+      const punisherId = punisher ? nameToId.get(punisher) : undefined;
+
+      // Use i18n for runtime language switching
+      const content = i18n.t('log.punishmentAction', {
+        punisher,
+        target,
+        amount,
+        deduction
+      });
+
+      return {
+        ...base,
+        type: 'AGENT_ACTION',
+        agentId: punisherId,
+        content,
+        round: roundNum,
+      };
+    }
+
     const text = data.text || data.message || evType || labels.systemEvent;
     return { ...base, type: 'SYSTEM', content: text };
   }).filter((entry): entry is LogEntry => entry !== null);

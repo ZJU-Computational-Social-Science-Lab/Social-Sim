@@ -62,7 +62,8 @@
     "block": "block",
     "pressure": "pressure",
     "tendency": "tendency",
-    "performedAction": "Performed action"
+    "performedAction": "Performed action",
+    "punishmentAction": "{{punisher}} punished {{target}} for {{amount}} tokens (deduction: {{deduction}})"
   },
   "brand": "SocialSim4",
   "nav": {
