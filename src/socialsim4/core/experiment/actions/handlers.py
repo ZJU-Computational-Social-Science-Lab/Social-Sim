@@ -298,37 +298,57 @@ def handle_conclude(action_data: dict, agent_name: str, state: ExperimentState, 
     return {"success": True, "summary": summary, "passed": passed}
 
 
-# === PGG Punishment Action Handler ===
+# === PGG Reduction Action Handler ===
 
-def handle_punish(action_data: dict, agent_name: str, state: ExperimentState, scene) -> dict[str, Any]:
-    """Handle punish action with validation.
+def handle_reduce(action_data: dict, agent_name: str, state: ExperimentState, scene) -> dict[str, Any]:
+    """Handle reduce action with validation and budget enforcement.
+
+    Cost semantics (per Fehr & Gächter 2002):
+    - actual_amount: deduction budget points spent by reducer
+    - cost_ratio: how much target loses per budget point spent (e.g., 3.0)
+    - deduction: actual loss to target = actual_amount * cost_ratio
+
+    Example: cost_ratio=3.0 means reducer spends 1 budget point → target loses 3 resources
 
     Validates:
-    - Agent cannot punish themselves
+    - Deductions must be enabled (budget > 0 in config)
+    - Agent cannot reduce themselves
     - Target must exist in state.agents
-    - Amount is clamped to available punishment budget
+    - Amount is clamped to available deduction budget
 
-    Stores allocation in state.extensions["punishments"] for
-    end-of-round payoff calculation.
+    Stores reduction in state.extensions["reductions"] for end-of-round
+    payoff calculation. Payoff engine applies deductions at round end
+    to prevent ordering effects.
 
-    Emits punishment_action event for experiment logging.
+    Emits reduction_action event for experiment logging.
 
     Args:
         action_data: {"target": agent_name, "amount": int}
-        agent_name: Name of punishing agent
+        agent_name: Name of reducing agent
         state: Current experiment state
-        scene: Scene reference for event emission
+        scene: Scene reference for event emission and config access
 
     Returns:
         {"success": bool, "amount": int, "target": str, "deduction": float} or
         {"success": False, "error": str}
     """
+    # Guard: Early return if deductions are disabled
+    params = {}
+    if scene is not None:
+        if hasattr(scene, 'config') and hasattr(scene.config, 'parameters'):
+            params = scene.config.parameters or {}
+        elif hasattr(scene, 'game_config') and hasattr(scene.game_config, 'parameters'):
+            params = scene.game_config.parameters or {}
+
+    if int(params.get("deduction_budget_per_phase", 0) or 0) <= 0:
+        return {"success": False, "error": "Deductions are disabled (budget=0)"}
+
     target = action_data.get("target")
     amount = action_data.get("amount", 0)
 
-    # Validation 1: No self-punishment
+    # Validation 1: No self-reduction
     if target == agent_name:
-        return {"success": False, "error": "Cannot punish yourself"}
+        return {"success": False, "error": "Cannot reduce your own resources"}
 
     # Validation 2: Target exists
     if target not in state.agents:
@@ -339,41 +359,40 @@ def handle_punish(action_data: dict, agent_name: str, state: ExperimentState, sc
     if not agent:
         return {"success": False, "error": "Agent not found in state"}
 
-    current_budget = agent.resources.get("punishment_budget", 0)
+    current_budget = agent.resources.get("deduction_budget", 0)
     actual_amount = max(0, min(amount, current_budget))
 
     if actual_amount < amount:
-        logger.debug(f"Punishment clamped: {agent_name} attempted {amount}, has {current_budget}")
+        logger.debug(f"Reduction clamped: {agent_name} attempted {amount}, has {current_budget}")
 
-    # Store punishment allocation for end-of-round processing
-    if "punishments" not in state.extensions:
-        state.extensions["punishments"] = {}
-    if agent_name not in state.extensions["punishments"]:
-        state.extensions["punishments"][agent_name] = []
+    if actual_amount == 0:
+        return {"success": False, "error": "No deduction budget remaining"}
 
-    state.extensions["punishments"][agent_name].append({
+    # Store reduction allocation for end-of-round processing
+    # Payoff engine reads this at round end and applies deductions
+    if "reductions" not in state.extensions:
+        state.extensions["reductions"] = {}
+    if agent_name not in state.extensions["reductions"]:
+        state.extensions["reductions"][agent_name] = []
+
+    state.extensions["reductions"][agent_name].append({
         "target": target,
         "amount": actual_amount,
     })
 
-    # Deduct from budget
-    agent.resources["punishment_budget"] = current_budget - actual_amount
+    # Deduct from budget (1 budget point per reduction attempt)
+    agent.resources["deduction_budget"] = current_budget - actual_amount
 
-    # FEAT-PGG-09, FEAT-PGG-10, FEAT-PGG-11: Emit punishment_action event
-    # Get cost_ratio from config (default 3.0 per Gachter et al. 2006)
-    cost_ratio = 3.0
-    if scene is not None:
-        if hasattr(scene, 'config') and hasattr(scene.config, 'parameters'):
-            cost_ratio = float(scene.config.parameters.get('punishment_cost_ratio', 3.0) or 3.0)
-        elif hasattr(scene, 'game_config') and hasattr(scene.game_config, 'parameters'):
-            cost_ratio = float(scene.game_config.parameters.get('punishment_cost_ratio', 3.0) or 3.0)
-
+    # Calculate target's loss using cost_ratio
+    # cost_ratio = how much target loses per budget point spent
+    # Default 3.0 per Fehr & Gächter 2002 canonical design
+    cost_ratio = float(params.get('deduction_cost_ratio', 3.0) or 3.0)
     deduction = actual_amount * cost_ratio
 
     # Emit event for experiment logging
     if scene is not None and hasattr(scene, '_emit_event'):
-        scene._emit_event("punishment_action", {
-            "punisher": agent_name,
+        scene._emit_event("reduction_action", {
+            "reducer": agent_name,
             "target": target,
             "amount": actual_amount,
             "deduction": deduction,
@@ -387,3 +406,9 @@ def handle_punish(action_data: dict, agent_name: str, state: ExperimentState, sc
         "target": target,
         "deduction": deduction,
     }
+
+
+# Backward compatibility alias for serialized experiments and old action names
+# Note: Runtime calls work via this alias, but serialized experiment data
+# referencing "punish" action names may need migration depending on use case
+handle_punish = handle_reduce
