@@ -4,6 +4,7 @@ Unit tests for scenario registry.
 Tests scenario metadata and parameter definitions.
 """
 
+import pytest
 from socialsim4.core.scenarios.registry import BATTLE_OF_THE_SEXES, STAG_HUNT, PUBLIC_GOODS
 
 
@@ -75,3 +76,24 @@ class TestPublicGoodsParameters:
         param_keys = [p["key"] for p in PUBLIC_GOODS["parameters"]]
         assert "initial_amount" in param_keys
         assert "initial_tokens" not in param_keys
+
+    # Wave 0: Punishment parameter tests (FEAT-PGG-05 through FEAT-PGG-08)
+    def test_pgg_punishment_params(self):
+        """Should have punishment parameters with correct defaults."""
+        # TODO: Verify PUBLIC_GOODS scenario has punishment parameters
+        pytest.skip("Wave 0 scaffold - implement in Wave 1")
+
+    def test_pgg_cost_ratio_default(self):
+        """Should have cost_ratio default to 3.0."""
+        # TODO: Verify punishment_cost_ratio defaults to 3.0
+        pytest.skip("Wave 0 scaffold - implement in Wave 1")
+
+    def test_pgg_budget_param(self):
+        """Should have punishment_budget_per_round default to 0."""
+        # TODO: Verify punishment_budget_per_round defaults to 0
+        pytest.skip("Wave 0 scaffold - implement in Wave 1")
+
+    def test_pgg_anonymous_param(self):
+        """Should have punishment_anonymous default to False."""
+        # TODO: Verify punishment_anonymous defaults to False
+        pytest.skip("Wave 0 scaffold - implement in Wave 1")
