@@ -35,7 +35,11 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
     const mode = get().mode;
     const root = document.documentElement;
     root.classList.remove("theme-light", "theme-dark", "dark");
-    root.classList.add(mode === "dark" ? "dark" : "theme-light");
+    if (mode === "dark") {
+      root.classList.add("dark", "theme-dark");
+    } else {
+      root.classList.add("theme-light");
+    }
     root.style.colorScheme = mode;
   },
 }));

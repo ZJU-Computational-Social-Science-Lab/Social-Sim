@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bot,
@@ -105,7 +106,10 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 export function SettingsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isZh = i18n.language.startsWith("zh");
+  const location = useLocation();
+  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const clearSession = useAuthStore((state) => state.clearSession);
   const queryClient = useQueryClient();
@@ -278,34 +282,55 @@ export function SettingsPage() {
     {
       id: "profile" as const,
       title: t("settings.tabs.profile"),
-      hint: "Identity and workspace ownership",
+      hint: isZh ? "身份与工作空间归属" : "Identity and workspace ownership",
       icon: <UserCircle2 size={15} />,
     },
     {
       id: "security" as const,
       title: t("settings.tabs.security"),
-      hint: "Session access and sign-out controls",
+      hint: isZh ? "会话访问与退出控制" : "Session access and sign-out controls",
       icon: <Shield size={15} />,
     },
     {
       id: "providers_llm" as const,
       title: t("settings.tabs.llmProviders") || t("settings.providers.llmTab"),
-      hint: "Language model connections",
+      hint: isZh ? "语言模型连接" : "Language model connections",
       icon: <Bot size={15} />,
     },
     {
       id: "providers_search" as const,
       title: t("settings.tabs.searchProviders") || t("settings.providers.searchTab"),
-      hint: "Search and retrieval providers",
+      hint: isZh ? "搜索与检索提供商" : "Search and retrieval providers",
       icon: <Search size={15} />,
     },
     {
       id: "files" as const,
       title: t("settings.tabs.files"),
-      hint: "Uploads and storage hygiene",
+      hint: isZh ? "文件上传与存储整理" : "Uploads and storage hygiene",
       icon: <FileStack size={15} />,
     },
   ];
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const nextTab = params.get("tab");
+    if (
+      nextTab === "profile" ||
+      nextTab === "security" ||
+      nextTab === "providers_llm" ||
+      nextTab === "providers_search" ||
+      nextTab === "files"
+    ) {
+      setActiveTab(nextTab);
+    }
+  }, [location.search]);
+
+  const selectTab = (tab: Tab) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(location.search);
+    params.set("tab", tab);
+    navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
+  };
 
   const handleCreateProvider = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -332,8 +357,9 @@ export function SettingsPage() {
         <section className="card">
           <div className="panel-title">{t("settings.tabs.profile")}</div>
           <div className="panel-subtitle">
-            Keep your researcher identity consistent across simulations, exports, and shared
-            workspace surfaces.
+            {isZh
+              ? "保持研究者身份信息在实验、导出结果与共享工作空间中的一致性。"
+              : "Keep your researcher identity consistent across simulations, exports, and shared workspace surfaces."}
           </div>
           <div className="ss-settings-info-grid">
             <InfoRow label={t("settings.profile.email")} value={String(user?.email ?? "—")} />
@@ -349,11 +375,15 @@ export function SettingsPage() {
           <div className="ss-settings-stack">
             <div className="ss-pill ss-pill--quiet">
               <Shield size={14} />
-              <span>Authenticated workspace access</span>
+              <span>{isZh ? "已验证的工作空间访问" : "Authenticated workspace access"}</span>
             </div>
             <div className="ss-pill ss-pill--quiet">
               <Database size={14} />
-              <span>Profile values are reused across saved simulations</span>
+              <span>
+                {isZh
+                  ? "身份信息会复用于已保存实验"
+                  : "Profile values are reused across saved simulations"}
+              </span>
             </div>
           </div>
         </section>
@@ -376,8 +406,9 @@ export function SettingsPage() {
         <div className="panel-title">{t("settings.security.controlTitle")}</div>
         <div className="panel-subtitle">{t("settings.security.controlHint")}</div>
         <div className="ss-settings-note">
-          Authentication flows remain connected to the real SocialSim4 backend and token refresh
-          chain.
+          {isZh
+            ? "认证流程仍然连接到 SocialSim4 真实后端与 token 刷新链路。"
+            : "Authentication flows remain connected to the real SocialSim4 backend and token refresh chain."}
         </div>
       </section>
     </div>
@@ -471,7 +502,9 @@ export function SettingsPage() {
               <div className="ss-empty-state ss-inset">
                 <div className="panel-title">{t("settings.providers.none")}</div>
                 <div className="panel-subtitle">
-                  Add your first model endpoint to make this workspace operational.
+                  {isZh
+                    ? "先添加一个可用模型端点，让当前研究工作空间进入可运行状态。"
+                    : "Add your first model endpoint to make this workspace operational."}
                 </div>
               </div>
             ) : null}
@@ -586,12 +619,12 @@ export function SettingsPage() {
           <div className="panel-subtitle">{t("settings.providers.workspaceHint")}</div>
           <div className="ss-settings-stack">
             <SettingsMetric
-              label="Configured providers"
+              label={isZh ? "已配置提供商" : "Configured providers"}
               value={String(providers.length)}
               icon={<Bot size={16} />}
             />
             <SettingsMetric
-              label="Active endpoint"
+              label={isZh ? "当前活动端点" : "Active endpoint"}
               value={activeProvider?.name || "—"}
               icon={<WandSparkles size={16} />}
             />
@@ -606,7 +639,9 @@ export function SettingsPage() {
       <section className="card">
         <div className="panel-title">{t("settings.providers.searchTitle")}</div>
         <div className="panel-subtitle">
-          Keep retrieval services aligned with the same research workspace and access model.
+          {isZh
+            ? "让检索服务与同一个研究工作空间和访问模型保持一致。"
+            : "Keep retrieval services aligned with the same research workspace and access model."}
         </div>
         <div className="ss-settings-info-grid">
           <InfoRow label={t("settings.providers.fields.provider")} value={searchProvider?.provider || "—"} />
@@ -762,9 +797,13 @@ export function SettingsPage() {
   const renderFiles = () => (
     <div className="ss-settings-section">
       <div className="ss-settings-grid">
-        <SettingsMetric label="Files" value={String(uploads.length)} icon={<FileStack size={16} />} />
         <SettingsMetric
-          label="Orphan scan"
+          label={isZh ? "文件数量" : "Files"}
+          value={String(uploads.length)}
+          icon={<FileStack size={16} />}
+        />
+        <SettingsMetric
+          label={isZh ? "孤立文件扫描" : "Orphan scan"}
           value={orphanResult ? String(orphanResult.orphaned.length) : "—"}
           icon={<Database size={16} />}
         />
@@ -823,7 +862,9 @@ export function SettingsPage() {
           <div className="ss-empty-state ss-inset">
             <div className="panel-title">{t("settings.files.empty")}</div>
             <div className="panel-subtitle">
-              Uploaded research files will appear here once they are attached to simulations.
+              {isZh
+                ? "上传的研究文件会在关联到实验后显示在这里。"
+                : "Uploaded research files will appear here once they are attached to simulations."}
             </div>
           </div>
         ) : null}
@@ -900,7 +941,7 @@ export function SettingsPage() {
               key={item.id}
               type="button"
               className={`tab-button ss-settings-page__tab ${activeTab === item.id ? "active" : ""}`}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => selectTab(item.id)}
             >
               <span className="ss-settings-page__tab-icon">{item.icon}</span>
               <span className="ss-settings-page__tab-copy">

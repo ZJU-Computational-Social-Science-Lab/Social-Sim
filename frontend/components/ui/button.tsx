@@ -24,13 +24,13 @@ export const Button: React.FC<ButtonProps> = ({
 
   const variantClasses = {
     default:
-      'bg-slate-900 text-white shadow-[0_16px_40px_rgba(15,23,42,0.16)] hover:-translate-y-0.5 hover:bg-slate-800 focus:ring-slate-400',
+      'bg-[var(--ss-brand-primary)] text-[var(--ss-brand-on)] shadow-[0_16px_40px_rgba(212,162,78,0.16)] hover:-translate-y-0.5 hover:brightness-110 focus:ring-[var(--ss-brand-primary)]',
     outline:
-      'border border-slate-300 bg-white/70 text-slate-700 hover:-translate-y-0.5 hover:bg-white hover:border-slate-400 focus:ring-slate-300',
+      'border border-[var(--ss-border)] bg-[var(--ss-surface)] text-[var(--ss-text)] hover:-translate-y-0.5 hover:border-[var(--ss-border-strong)] focus:ring-[var(--ss-border-strong)]',
     ghost:
-      'bg-transparent text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 focus:ring-slate-300',
+      'bg-transparent text-[var(--ss-text-muted)] hover:bg-[var(--ss-surface-muted)] hover:text-[var(--ss-text)] focus:ring-[var(--ss-border)]',
     destructive:
-      'bg-rose-700 text-white shadow-[0_14px_32px_rgba(159,18,57,0.18)] hover:-translate-y-0.5 hover:bg-rose-800 focus:ring-rose-300',
+      'bg-[var(--ss-danger)] text-white shadow-[0_14px_32px_rgba(196,96,90,0.18)] hover:-translate-y-0.5 hover:brightness-110 focus:ring-[var(--ss-danger)]',
   };
 
   const sizeClasses = {

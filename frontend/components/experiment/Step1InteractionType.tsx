@@ -34,6 +34,10 @@ const formatParamRange = (param: ScenarioParam) => {
 const getScenarioActionCount = (scenario: ScenarioData) =>
   (scenario.category_actions || scenario.actions || []).length;
 
+const emitStepOneInteraction = () => {
+  window.dispatchEvent(new CustomEvent("ss-step1-interaction"));
+};
+
 export const Step1InteractionType: React.FC = () => {
   const { t, i18n } = useTranslation();
   const isZh = i18n.language.startsWith("zh");
@@ -115,6 +119,7 @@ export const Step1InteractionType: React.FC = () => {
   const selectedCustomScenario = activeScenario?.category === "custom";
 
   const handleSelectScenario = (scenario: ScenarioData) => {
+    emitStepOneInteraction();
     setSelectedScenarioId(scenario.id);
     setSelectedScenarioData(scenario);
     markStepComplete(1);
@@ -122,6 +127,7 @@ export const Step1InteractionType: React.FC = () => {
   };
 
   const jumpToTemplateSection = (category: string) => {
+    emitStepOneInteraction();
     setActiveCategory(category);
     if (category === "custom") {
       setShowAllTemplates(true);
@@ -164,12 +170,12 @@ export const Step1InteractionType: React.FC = () => {
       <section className="ss-research-question__guide">
         <div className="ss-research-question__guide-copy">
           <div className="ss-workflow-kicker">
-            {isZh ? "新建实验 / Step 1" : "New experiment / Step 1"}
+            {isZh ? "新建实验 / 第 1 步" : "New experiment / Step 1"}
           </div>
           <h1 className="ss-research-question__guide-title">
             {isZh
-              ? "从一个社会情境开始构建你的仿真实验"
-              : "Start the simulation from a social situation"}
+              ? "先选择一个社会情境作为实验起点"
+              : "Start from one social situation"}
           </h1>
         </div>
 
@@ -203,12 +209,12 @@ export const Step1InteractionType: React.FC = () => {
       </section>
 
       <ResearchInputPanel
-        eyebrow={isZh ? "场景目录 / Scenario library" : "Scenario library"}
+        eyebrow={isZh ? "场景目录" : "Scenario library"}
         title={isZh ? "选择一个起始情境" : "Choose a starting scenario"}
         description={
           isZh
-            ? "从一个已有社会情境出发，快速构建仿真实验。"
-            : "Start from an existing social situation and build the simulation quickly."
+            ? "先确定一个研究起点；推荐场景优先展示，完整场景库可稍后展开。"
+            : "Pick one research starting point first. The recommended scenarios are shown first and the full library can stay secondary."
         }
         footer={
           <div className="ss-research-question__recommended-foot">
@@ -221,21 +227,27 @@ export const Step1InteractionType: React.FC = () => {
               {hasMoreScenarios ? (
                 <SecondaryGhostButton
                   type="button"
-                  onClick={() => setShowAllTemplates((value) => !value)}
+                  onClick={() => {
+                    emitStepOneInteraction();
+                    setShowAllTemplates((value) => !value);
+                  }}
                 >
                   {showAllTemplates
                     ? isZh
-                      ? "收起更多场景"
+                      ? "收起完整场景库"
                       : "Show fewer templates"
                     : isZh
-                      ? "查看更多"
-                      : "View more"}
+                      ? "打开完整场景库"
+                      : "Open full library"}
                 </SecondaryGhostButton>
               ) : null}
               {activeScenario ? (
                 <SecondaryGhostButton
                   type="button"
-                  onClick={() => setShowScenarioDetails((value) => !value)}
+                  onClick={() => {
+                    emitStepOneInteraction();
+                    setShowScenarioDetails((value) => !value);
+                  }}
                 >
                   {showScenarioDetails
                     ? isZh
@@ -250,11 +262,17 @@ export const Step1InteractionType: React.FC = () => {
           </div>
         }
       >
-        <div className="ss-research-question__recommended" id="ss-step1-template-library">
+        <div
+          className="ss-research-question__recommended ss-guide-focus-target"
+          id="ss-step1-template-library"
+        >
           <div className="ss-research-question__category-tabs">
             <button
               type="button"
-              onClick={() => setActiveCategory("all")}
+              onClick={() => {
+                emitStepOneInteraction();
+                setActiveCategory("all");
+              }}
               className={`ss-research-question__category-tab${activeCategory === "all" ? " is-active" : ""}`}
             >
               {t("scenarioLibrary.allCategories")}
@@ -263,7 +281,10 @@ export const Step1InteractionType: React.FC = () => {
               <button
                 key={category}
                 type="button"
-                onClick={() => setActiveCategory(category)}
+                onClick={() => {
+                  emitStepOneInteraction();
+                  setActiveCategory(category);
+                }}
                 className={`ss-research-question__category-tab${activeCategory === category ? " is-active" : ""}`}
               >
                 {t(`scenario.category.${category}`)}
@@ -277,7 +298,10 @@ export const Step1InteractionType: React.FC = () => {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
+                onChange={(event) => {
+                  emitStepOneInteraction();
+                  setSearchQuery(event.target.value);
+                }}
                 placeholder={
                   isZh
                     ? "搜索模板（可选）"

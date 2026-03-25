@@ -47,10 +47,9 @@ export default defineConfig(({ mode }) => {
   const host = env.LISTEN_ADDRESS || "0.0.0.0";
   const port = Number(env.LISTEN_PORT || 5173);
   const backendPort = Number(env.BACKEND_PORT || 8000);
-  // On Windows + WSL setups, 127.0.0.1:8000 may be intercepted by a relay/static server.
-  // Default to the machine hostname so Vite proxies hit the actual backend listener.
-  const backendHost =
-    env.BACKEND_HOST || (process.platform === "win32" ? os.hostname() : "127.0.0.1");
+  // Prefer the explicit backend host when provided.
+  // Otherwise default to loopback because the local API server is started on 127.0.0.1:8000.
+  const backendHost = env.BACKEND_HOST || "127.0.0.1";
   const backendTarget = `http://${backendHost}:${backendPort}`;
 
   return {

@@ -147,42 +147,42 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
   const getText = (key: string, fallback: string) => (useTranslation && t ? t(key) : fallback);
 
   return (
-    <div className="flex-1 flex flex-col gap-4 overflow-y-auto">
+    <div className="ss-demographic-editor flex-1 flex flex-col gap-5 overflow-y-auto">
       {/* Demographics Configuration */}
-      <div className="border border-slate-200 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-bold text-slate-800">
+      <div className="ss-demographic-editor__section border border-slate-200 rounded-xl p-5">
+        <div className="ss-demographic-editor__section-head mb-4 flex items-center justify-between gap-3">
+          <h4 className="text-base font-semibold text-slate-800">
             {getText('wizard.step2.demographics', 'Demographics')}
           </h4>
           <button
             onClick={onAddDemographic}
-            className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded flex items-center gap-1"
+            className="ss-demographic-editor__action flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm"
           >
             <Plus size={14} /> {getText('wizard.step2.addDimension', 'Add Dimension')}
           </button>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {demographics.map((demo) => (
-            <div key={demo.id} className="border border-slate-200 rounded p-3 bg-slate-50">
-              <div className="flex items-center gap-2 mb-2">
+            <div key={demo.id} className="ss-demographic-editor__subsection rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="mb-3 flex items-center gap-2">
                 <input
                   type="text"
                   value={demo.name}
                   onChange={(e) => onUpdateDemographicName(demo.id, e.target.value)}
                   placeholder={getText('wizard.step2.dimensionNamePlaceholder', 'Dimension name (e.g., Age)')}
-                  className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm"
+                  className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 />
                 {demographics.length > 1 && (
                   <button
                     onClick={() => onRemoveDemographic(demo.id)}
-                    className="p-1 text-red-500 hover:bg-red-50 rounded"
+                    className="ss-demographic-editor__remove rounded-lg p-2"
                   >
                     <Minus size={16} />
                   </button>
                 )}
               </div>
-              <div className="space-y-1">
-                <div className="text-xs text-slate-500">
+              <div className="space-y-2">
+                <div className="text-sm text-slate-500">
                   {getText('wizard.step2.categoriesLabel', 'Categories (comma separated):')}
                 </div>
                 {demo.categories.map((cat, catIdx) => (
@@ -191,12 +191,12 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
                       type="text"
                       value={cat}
                       onChange={(e) => onUpdateCategoryName(demo.id, catIdx, e.target.value)}
-                      className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm"
+                      className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
                     />
                     {demo.categories.length > 1 && (
                       <button
                         onClick={() => onRemoveCategory(demo.id, catIdx)}
-                        className="p-1 text-red-400 hover:text-red-600"
+                        className="ss-demographic-editor__remove rounded-lg p-2"
                       >
                         <Minus size={14} />
                       </button>
@@ -205,7 +205,7 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
                 ))}
                 <button
                   onClick={() => onAddCategory(demo.id)}
-                  className="text-xs px-2 py-1 bg-slate-200 hover:bg-slate-300 rounded flex items-center gap-1"
+                  className="ss-demographic-editor__action flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm"
                 >
                   <Plus size={12} /> {getText('wizard.step2.addCategory', 'Add Category')}
                 </button>
@@ -217,18 +217,18 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
 
       {/* Generated Archetypes Preview */}
       {archetypes.length > 0 && (
-        <div className="border border-slate-200 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-3">
+        <div className="ss-demographic-editor__section border border-slate-200 rounded-xl p-5">
+          <div className="ss-demographic-editor__section-head mb-4 flex items-center justify-between gap-3">
             <div>
-              <h4 className="text-sm font-bold text-slate-800">
+              <h4 className="text-base font-semibold text-slate-800">
                 {getText('wizard.step2.archetypes', 'Archetypes: {{count}}').replace('{{count}}', String(archetypes.length))}
               </h4>
-              <span className="text-xs text-slate-500">
+              <span className="text-sm text-slate-500">
                 {getText('wizard.step2.archetypesHint', 'Archetypes × Demographic Dimensions = Agent Combinations')}
               </span>
             </div>
             <div className="text-right">
-              <div className="text-xs text-slate-500">
+              <div className="text-sm text-slate-500">
                 {getText('wizard.step2.totalProbability', 'Total Probability')}: {' '}
                 <span className={Math.abs(archetypes.reduce((sum, a) => sum + a.probability, 0) - 1.0) < 0.01 ? 'text-green-600 font-bold' : 'text-amber-600 font-bold'}>
                   {archetypes.reduce((sum, a) => sum + a.probability, 0).toFixed(2)}
@@ -236,16 +236,16 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
               </div>
               <button
                 onClick={onNormalizeProbabilities}
-                className="text-[10px] px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded mt-1"
+                className="ss-demographic-editor__action mt-2 rounded-lg px-3 py-2 text-sm"
               >
                 {getText('wizard.step2.normalizeAll', 'Normalize All')}
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+          <div className="grid max-h-60 grid-cols-1 gap-3 overflow-y-auto md:grid-cols-2 lg:grid-cols-3">
             {archetypes.map((arch) => (
-              <div key={arch.id} className="p-2 bg-slate-50 rounded border border-slate-200 text-xs">
-                <div className="font-medium text-slate-700 truncate mb-1" title={arch.label}>
+              <div key={arch.id} className="ss-demographic-editor__subsection rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
+                <div className="mb-2 truncate font-medium text-slate-700" title={arch.label}>
                   {arch.label}
                 </div>
                 <div className="flex items-center gap-2">
@@ -257,46 +257,46 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
                     step="0.01"
                     value={arch.probability.toFixed(2)}
                     onChange={(e) => onUpdateArchetypeProbability(arch.id, parseFloat(e.target.value) || 0)}
-                    className="flex-1 px-1 py-0.5 border border-slate-300 rounded text-xs text-right"
+                    className="flex-1 rounded-lg border border-slate-300 px-2 py-1.5 text-sm text-right"
                   />
                   <span className="text-slate-500">({(arch.probability * 100).toFixed(0)}%)</span>
                 </div>
               </div>
             ))}
           </div>
-          <p className="text-xs text-slate-500 mt-2">
+          <p className="mt-3 text-sm text-slate-500">
             {getText('wizard.step2.modifyProbabilityHint', 'After modifying any probability, others will auto-adjust proportionally to maintain sum = 1.0')}
           </p>
         </div>
       )}
 
       {/* Traits Configuration */}
-      <div className="border border-slate-200 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-bold text-slate-800">
+      <div className="ss-demographic-editor__section border border-slate-200 rounded-xl p-5">
+        <div className="ss-demographic-editor__section-head mb-4 flex items-center justify-between gap-3">
+          <h4 className="text-base font-semibold text-slate-800">
             {getText('wizard.step2.traits', 'Traits')}
           </h4>
           <button
             onClick={onAddTrait}
-            className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded flex items-center gap-1"
+            className="ss-demographic-editor__action flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm"
           >
             <Plus size={14} /> {getText('wizard.step2.addTrait', 'Add Trait')}
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {traits.map((trait) => (
-            <div key={trait.id} className="border border-slate-200 rounded p-2 bg-slate-50">
-              <div className="flex items-center gap-2 mb-2">
+            <div key={trait.id} className="ss-demographic-editor__subsection rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="mb-3 flex items-center gap-2">
                 <input
                   type="text"
                   value={trait.name}
                   onChange={(e) => onUpdateTrait(trait.id, 'name', e.target.value)}
-                  className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm font-medium"
+                  className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium"
                 />
                 {traits.length > 1 && (
                   <button
                     onClick={() => onRemoveTrait(trait.id)}
-                    className="p-1 text-red-500 hover:bg-red-50 rounded"
+                    className="ss-demographic-editor__remove rounded-lg p-2"
                   >
                     <Minus size={16} />
                   </button>
@@ -304,40 +304,40 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] text-slate-500">{getText('wizard.step2.mean', 'Mean')}</label>
+                  <label className="mb-1 block text-xs text-slate-500">{getText('wizard.step2.mean', 'Mean')}</label>
                   <input
                     type="number"
                     min="0"
                     max="100"
                     value={trait.mean}
                     onChange={(e) => onUpdateTrait(trait.id, 'mean', parseInt(e.target.value) || 0)}
-                    className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-500">{getText('wizard.step2.std', 'Std')}</label>
+                  <label className="mb-1 block text-xs text-slate-500">{getText('wizard.step2.std', 'Std')}</label>
                   <input
                     type="number"
                     min="0"
                     max="50"
                     value={trait.std}
                     onChange={(e) => onUpdateTrait(trait.id, 'std', parseInt(e.target.value) || 0)}
-                    className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                   />
                 </div>
               </div>
             </div>
           ))}
         </div>
-        <p className="text-xs text-slate-500 mt-2">
+        <p className="mt-3 text-sm text-slate-500">
           {getText('wizard.step2.traitsHint', 'Traits will use Gaussian distribution (mean ± std), limited to 0-100 range.')}
         </p>
       </div>
 
       {/* Generation Settings */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50 border border-blue-200 p-4 rounded-lg">
+      <div className="ss-demographic-editor__generation grid grid-cols-1 gap-4 rounded-xl border border-blue-200 bg-blue-50 p-5 md:grid-cols-2">
         <div>
-          <label className="block text-xs font-bold text-blue-800 mb-2">
+          <label className="mb-2 block text-sm font-semibold text-blue-800">
             {getText('wizard.step2.generateCount', 'Generate Count')}
           </label>
           <input
@@ -345,14 +345,14 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
             min="1"
             value={genCount}
             onChange={(e) => onSetGenCount(Math.max(1, parseInt(e.target.value) || 1))}
-            className="w-full px-3 py-2 border border-blue-200 rounded text-sm focus:ring-blue-500"
+            className="w-full rounded-lg border border-blue-200 px-3 py-2 text-sm focus:ring-blue-500"
           />
         </div>
         <div className="flex items-end">
           <button
             onClick={onGenerateAgents}
             disabled={isGenerating}
-            className="px-6 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
           >
             {isGenerating ? (
               <Loader2 size={16} className="animate-spin" />
@@ -365,7 +365,7 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
       </div>
 
       {importError && (
-        <div className="p-3 bg-red-50 text-red-700 text-xs rounded border border-red-200">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           {importError}
         </div>
       )}
@@ -378,7 +378,7 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
           t={t}
         />
       ) : (
-        <div className="text-xs text-slate-500 text-center py-2">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm text-slate-500">
           {getText('wizard.step2.noAgentsGenerated', 'No agents generated yet.')}
         </div>
       )}

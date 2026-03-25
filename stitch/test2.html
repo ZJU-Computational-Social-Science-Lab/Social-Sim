@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+
+<html lang="zh"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;0,700;1,400&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "secondary-fixed-dim": "#e0b9f0",
+                        "on-error-container": "#93000a",
+                        "on-background": "#1c1c19",
+                        "secondary-container": "#eec6ff",
+                        "on-secondary-fixed-variant": "#593b69",
+                        "background": "#fdf9f4",
+                        "tertiary-fixed": "#7df7e3",
+                        "inverse-on-surface": "#f4f0eb",
+                        "primary-fixed-dim": "#ffb59e",
+                        "primary-fixed": "#ffdbd0",
+                        "on-error": "#ffffff",
+                        "surface-bright": "#fdf9f4",
+                        "primary-container": "#d97757",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#005047",
+                        "surface-variant": "#e6e2dd",
+                        "on-tertiary-container": "#00312b",
+                        "on-surface-variant": "#55433d",
+                        "error-container": "#ffdad6",
+                        "surface-container-lowest": "#ffffff",
+                        "outline": "#88726c",
+                        "surface-container": "#f1ede8",
+                        "surface-container-highest": "#e6e2dd",
+                        "primary": "#99462a",
+                        "on-primary-fixed": "#390b00",
+                        "tertiary-fixed-dim": "#5edac7",
+                        "on-surface": "#1c1c19",
+                        "on-secondary-container": "#6f4f7f",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed": "#2b0e3b",
+                        "tertiary": "#006b5f",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#ebe8e3",
+                        "on-primary-fixed-variant": "#7a2f15",
+                        "on-tertiary-fixed": "#00201c",
+                        "inverse-primary": "#ffb59e",
+                        "secondary-fixed": "#f5d9ff",
+                        "surface-dim": "#ddd9d5",
+                        "secondary": "#725282",
+                        "on-primary-container": "#541400",
+                        "inverse-surface": "#31302d",
+                        "surface-tint": "#99462a",
+                        "outline-variant": "#dbc1b9",
+                        "surface": "#fdf9f4",
+                        "tertiary-container": "#09a493",
+                        "surface-container-low": "#f7f3ee"
+                    },
+                    fontFamily: {
+                        "headline": ["Newsreader", "serif"],
+                        "body": ["Manrope", "sans-serif"],
+                        "label": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(253, 249, 244, 0.8);
+            backdrop-filter: blur(20px);
+        }
+        .editorial-shadow {
+            box-shadow: 0 12px 40px rgba(28, 28, 25, 0.06);
+        }
+    </style>
+</head>
+<body class="bg-surface-container-low text-on-surface font-body min-h-screen overflow-x-hidden">
+<!-- Top Navigation Bar -->
+<nav class="fixed top-0 left-0 right-0 z-40 bg-surface border-b-0">
+<div class="flex justify-between items-center w-full px-8 py-6 max-w-screen-2xl mx-auto">
+<div class="font-headline font-bold text-on-surface tracking-tighter text-2xl">SocialSim4</div>
+<div class="hidden md:flex gap-10 items-center">
+<a class="font-body text-on-surface opacity-70 hover:text-secondary transition-colors duration-300" href="#">Archives</a>
+<a class="font-body text-on-surface opacity-70 hover:text-secondary transition-colors duration-300" href="#">Methodology</a>
+<a class="font-body text-on-surface opacity-70 hover:text-secondary transition-colors duration-300" href="#">Library</a>
+<div class="text-primary border-b-2 border-primary-container pb-1 font-body">Current Research</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary cursor-pointer">account_circle</span>
+</div>
+</div>
+<div class="bg-surface-container h-[4px] w-full mt-auto"></div>
+</nav>
+<!-- Side Navigation Shell (Research Flow) -->
+<aside class="h-screen w-72 flex flex-col fixed left-0 top-0 pt-24 bg-surface-container-low z-30">
+<div class="flex flex-col gap-6 p-8">
+<div class="mb-4">
+<h2 class="font-label font-medium uppercase tracking-[0.1em] text-[0.75rem] opacity-50">Research Flow</h2>
+<p class="font-body text-xs text-primary font-bold">Workflow Wizard v4.0</p>
+</div>
+<nav class="flex flex-col gap-4">
+<!-- Step 01: Contextualization (ACTIVE) -->
+<div class="flex items-center text-primary font-bold border-l-4 border-primary-container pl-4 transition-transform translate-x-1">
+<span class="material-symbols-outlined mr-3 text-lg">filter_1</span>
+<span class="font-label uppercase tracking-[0.1em] text-[0.75rem]">Contextualization</span>
+</div>
+<!-- Step 02-06: Inactive -->
+<div class="flex items-center text-on-surface opacity-50 pl-5 hover:bg-surface-container transition-all cursor-not-allowed">
+<span class="material-symbols-outlined mr-3 text-lg">filter_2</span>
+<span class="font-label uppercase tracking-[0.1em] text-[0.75rem]">Variable Map</span>
+</div>
+<div class="flex items-center text-on-surface opacity-50 pl-5 hover:bg-surface-container transition-all cursor-not-allowed">
+<span class="material-symbols-outlined mr-3 text-lg">filter_3</span>
+<span class="font-label uppercase tracking-[0.1em] text-[0.75rem]">Heuristic Set</span>
+</div>
+<div class="flex items-center text-on-surface opacity-50 pl-5 hover:bg-surface-container transition-all cursor-not-allowed">
+<span class="material-symbols-outlined mr-3 text-lg">filter_4</span>
+<span class="font-label uppercase tracking-[0.1em] text-[0.75rem]">Social Dynamics</span>
+</div>
+<div class="flex items-center text-on-surface opacity-50 pl-5 hover:bg-surface-container transition-all cursor-not-allowed">
+<span class="material-symbols-outlined mr-3 text-lg">filter_5</span>
+<span class="font-label uppercase tracking-[0.1em] text-[0.75rem]">Sim Outcome</span>
+</div>
+<div class="flex items-center text-on-surface opacity-50 pl-5 hover:bg-surface-container transition-all cursor-not-allowed">
+<span class="material-symbols-outlined mr-3 text-lg">filter_6</span>
+<span class="font-label uppercase tracking-[0.1em] text-[0.75rem]">Archive Final</span>
+</div>
+</nav>
+<button class="mt-8 bg-primary text-on-primary rounded-md py-3 font-label uppercase tracking-widest text-xs hover:bg-gradient-to-br from-[#D97757] to-[#6E4E7E] transition-all editorial-shadow">
+                New Entry
+            </button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-72 pt-32 pb-40 px-12 max-w-7xl mx-auto">
+<div class="grid grid-cols-12 gap-12">
+<!-- Left Side: Editorial Content -->
+<div class="col-span-12 lg:col-span-8">
+<header class="mb-12">
+<h1 class="font-headline text-5xl font-bold text-on-surface tracking-tight leading-tight mb-4 italic">定义您的仿真研究内核</h1>
+<p class="font-body text-lg text-on-surface-variant max-w-xl opacity-80 leading-relaxed">
+                        每一个深刻的社会学仿真都始于一个精准的问题。在此定义您的研究范围，让模型理解社会互动的基本逻辑。
+                    </p>
+</header>
+<!-- Natural Language Input Area -->
+<div class="relative mb-16">
+<div class="bg-surface rounded-lg p-10 editorial-shadow border-b-4 border-primary-container/20 group focus-within:border-primary transition-all duration-500">
+<textarea class="w-full bg-transparent border-none focus:ring-0 font-headline text-2xl text-on-surface placeholder:text-on-surface-variant/30 resize-none leading-relaxed" placeholder="在这里叙述您的仿真背景..." rows="6"></textarea>
+<div class="flex justify-between items-center mt-6 border-t border-outline-variant/20 pt-6">
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-primary/60 cursor-pointer hover:text-primary">attachment</span>
+<span class="material-symbols-outlined text-primary/60 cursor-pointer hover:text-primary">mic</span>
+<span class="material-symbols-outlined text-primary/60 cursor-pointer hover:text-primary">auto_awesome</span>
+</div>
+<div class="text-xs font-label uppercase tracking-widest text-on-surface-variant opacity-40">Markdown Supported</div>
+</div>
+</div>
+</div>
+<!-- Template Selection (The "Archive Scroll" logic) -->
+<div>
+<h3 class="font-label uppercase tracking-[0.2em] text-[0.7rem] text-primary mb-8 ml-2 font-bold">Recommended Frameworks / 推荐模版</h3>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Template Card 1 -->
+<div class="bg-surface-container-lowest p-6 rounded-lg editorial-shadow transform hover:-translate-y-2 transition-all duration-300 border border-outline-variant/10 cursor-pointer">
+<span class="material-symbols-outlined text-primary mb-4" style="font-variation-settings: 'FILL' 1;">balance</span>
+<h4 class="font-body font-bold text-on-surface mb-2">囚徒困境</h4>
+<p class="text-xs text-on-surface-variant opacity-70 leading-relaxed">探究个体利益与集体最优之间的结构性冲突。</p>
+</div>
+<!-- Template Card 2 -->
+<div class="bg-surface-container-lowest p-6 rounded-lg editorial-shadow transform rotate-1 hover:rotate-0 transition-all duration-300 border border-outline-variant/10 cursor-pointer">
+<span class="material-symbols-outlined text-primary mb-4">group_work</span>
+<h4 class="font-body font-bold text-on-surface mb-2">公共品博弈</h4>
+<p class="text-xs text-on-surface-variant opacity-70 leading-relaxed">模拟资源共享环境下的“搭便车”行为演化。</p>
+</div>
+<!-- Template Card 3 -->
+<div class="bg-surface p-6 rounded-lg editorial-shadow transform -rotate-1 hover:rotate-0 transition-all duration-300 border border-primary/10 cursor-pointer">
+<span class="material-symbols-outlined text-primary mb-4">record_voice_over</span>
+<h4 class="font-body font-bold text-on-surface mb-2">舆论传播</h4>
+<p class="text-xs text-on-surface-variant opacity-70 leading-relaxed">分析信息在复杂社交网络中的级联与极化效应。</p>
+</div>
+<!-- Template Card 4 -->
+<div class="bg-surface-container-lowest p-6 rounded-lg editorial-shadow transform rotate-1 hover:rotate-0 transition-all duration-300 border border-outline-variant/10 cursor-pointer">
+<span class="material-symbols-outlined text-primary mb-4">hub</span>
+<h4 class="font-body font-bold text-on-surface mb-2">合作网络</h4>
+<p class="text-xs text-on-surface-variant opacity-70 leading-relaxed">构建多智能体间的长期信任与协同进化框架。</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Side: Research Notebook Panel -->
+<div class="col-span-12 lg:col-span-4">
+<div class="sticky top-32 glass-panel rounded-lg p-8 editorial-shadow border border-outline-variant/20">
+<div class="flex items-center gap-3 mb-8">
+<span class="material-symbols-outlined text-secondary">menu_book</span>
+<h3 class="font-headline text-2xl font-bold tracking-tight">Research Notebook</h3>
+</div>
+<!-- Draft Status Section -->
+<div class="mb-10 p-6 bg-surface-container-highest/30 rounded-lg">
+<div class="flex justify-between items-center mb-4">
+<span class="font-label uppercase tracking-widest text-[0.65rem] opacity-60">Draft Status</span>
+<span class="flex h-2 w-2 rounded-full bg-tertiary"></span>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-end">
+<span class="text-sm font-body font-medium">Context Clarity</span>
+<span class="text-xs font-label text-primary">68%</span>
+</div>
+<div class="w-full bg-outline-variant/20 h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[68%] transition-all duration-1000"></div>
+</div>
+<p class="text-[0.7rem] leading-relaxed text-on-surface-variant opacity-80 italic">
+                                "当前描述基本涵盖了博弈背景，建议进一步细化智能体的初始决策权重。"
+                            </p>
+</div>
+</div>
+<!-- Validation Metrics -->
+<div class="space-y-6">
+<h4 class="font-label uppercase tracking-widest text-[0.65rem] opacity-60 mb-4 border-b border-outline-variant/20 pb-2">Validation Metrics</h4>
+<div class="flex items-start gap-4">
+<div class="bg-primary/10 p-2 rounded-full">
+<span class="material-symbols-outlined text-primary text-lg">psychology</span>
+</div>
+<div>
+<h5 class="text-xs font-bold uppercase tracking-wider mb-1">Agent Cognitive Load</h5>
+<p class="text-[0.7rem] text-on-surface-variant">Moderate (Level 3)</p>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<div class="bg-secondary/10 p-2 rounded-full">
+<span class="material-symbols-outlined text-secondary text-lg">insights</span>
+</div>
+<div>
+<h5 class="text-xs font-bold uppercase tracking-wider mb-1">Social Complexity</h5>
+<p class="text-[0.7rem] text-on-surface-variant">High - Interdependent variables detected.</p>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<div class="bg-tertiary/10 p-2 rounded-full">
+<span class="material-symbols-outlined text-tertiary text-lg">verified</span>
+</div>
+<div>
+<h5 class="text-xs font-bold uppercase tracking-wider mb-1">Logic Consistency</h5>
+<p class="text-[0.7rem] text-on-surface-variant">Passed initial verification.</p>
+</div>
+</div>
+</div>
+<div class="mt-12 pt-8 border-t border-outline-variant/20 text-center">
+<img class="w-full h-32 object-cover rounded-md grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all duration-500 mb-4" data-alt="Vintage scientific notebook on a desk" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBUIDtRcxCoGxnMFknVXQGq53OMEPoKkUbTq_v6dBd9sj3Hemn5n3LftdUssvHX-rHdjdbpkHHFYW5VdNc-J3mbIPC66liTo--vQAVaccjXlbg-ZjCUgtuMA-uZcq6ro2EFnJH9Ar0aeOdVEeT4I5Na7ZWfeMsw6fAeCiTrCtJY8IQYaMHQCVH1pxw0aIL2vF1Iz_2o2sjXLBgtW5wEzODDcDl_wGBX026JltxecYlA99yAJslk62qnP128cb9yqtZnCn6jjvL5RYOX"/>
+<p class="text-[0.6rem] font-label uppercase tracking-widest text-on-surface-variant opacity-40">System Log: ID-99462A_ACTIVE</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Shell (Linear Journey) -->
+<div class="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center justify-center gap-4 z-50 bg-surface/80 backdrop-blur-xl rounded-full px-8 py-4 editorial-shadow border border-outline-variant/10">
+<button class="text-on-surface px-6 py-2 opacity-60 font-body font-semibold text-sm hover:scale-105 transition-transform duration-200 flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">arrow_back</span>
+            Previous
+        </button>
+<button class="text-on-surface px-6 py-2 opacity-60 font-body font-semibold text-sm hover:scale-105 transition-transform duration-200 flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">save</span>
+            Save Draft
+        </button>
+<button class="bg-gradient-to-br from-[#D97757] to-[#6E4E7E] text-white rounded-full px-8 py-3 font-body font-semibold text-sm hover:scale-105 transition-transform duration-200 flex items-center gap-2 editorial-shadow">
+            Complete Entry
+            <span class="material-symbols-outlined text-lg">rocket_launch</span>
+</button>
+</div>
+</body></html>

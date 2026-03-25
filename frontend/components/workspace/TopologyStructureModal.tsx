@@ -1,0 +1,175 @@
+import React from "react";
+import { Eye, GitBranchPlus, Network, Play, Settings2, Sparkles, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+import { SimTree } from "../SimTree";
+import { useSimulationStore } from "../../store";
+import { buildWorkspacePath, getWorkspaceNodeLabel } from "./workspaceLabels";
+
+interface TopologyStructureModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onOpenNodeDetails: () => void;
+}
+
+export const TopologyStructureModal: React.FC<TopologyStructureModalProps> = ({
+  isOpen,
+  onClose,
+  onOpenNodeDetails,
+}) => {
+  const { t, i18n } = useTranslation();
+  const isZh = i18n.language.startsWith("zh");
+  const currentSimulation = useSimulationStore((state) => state.currentSimulation);
+  const nodes = useSimulationStore((state) => state.nodes);
+  const selectedNodeId = useSimulationStore((state) => state.selectedNodeId);
+  const compareTargetNodeId = useSimulationStore((state) => state.compareTargetNodeId);
+  const isCompareMode = useSimulationStore((state) => state.isCompareMode);
+  const isGenerating = useSimulationStore((state) => state.isGenerating);
+  const advanceSimulation = useSimulationStore((state) => state.advanceSimulation);
+  const branchSimulation = useSimulationStore((state) => state.branchSimulation);
+  const toggleCompareMode = useSimulationStore((state) => state.toggleCompareMode);
+  const setCompareTarget = useSimulationStore((state) => state.setCompareTarget);
+  const toggleExperimentDesigner = useSimulationStore((state) => state.toggleExperimentDesigner);
+  const toggleNetworkEditor = useSimulationStore((state) => state.toggleNetworkEditor);
+
+  const selectedNode = React.useMemo(
+    () => nodes.find((node) => node.id === selectedNodeId) || nodes[0] || null,
+    [nodes, selectedNodeId],
+  );
+
+  const nodeLookup = React.useMemo(
+    () => new Map(nodes.map((node) => [node.id, node])),
+    [nodes],
+  );
+
+  const currentPath = React.useMemo(
+    () => buildWorkspacePath(selectedNode, nodeLookup),
+    [nodeLookup, selectedNode],
+  );
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="ss-topology-modal" role="dialog" aria-modal="true" aria-labelledby="ss-topology-modal-title">
+      <div className="ss-topology-modal__backdrop" onClick={onClose} />
+
+      <section className="ss-topology-modal__panel">
+        <header className="ss-topology-modal__header">
+          <div>
+            <div className="ss-kicker">{isZh ? "完整拓扑结构" : "Full topology"}</div>
+            <h2 id="ss-topology-modal-title">
+              {currentSimulation?.name || (isZh ? "实验拓扑结构" : "Simulation topology")}
+            </h2>
+            <p>
+              {isZh
+                ? "在完整拓扑视图中查看全部节点与分支，并直接打开实验配置与网络配置。"
+                : "Review the full node topology here and jump directly into experiment or network configuration."}
+            </p>
+          </div>
+
+          <button type="button" className="ss-icon-button" onClick={onClose} aria-label={isZh ? "关闭拓扑结构" : "Close topology"}>
+            <X size={16} />
+          </button>
+        </header>
+
+        <div className="ss-topology-modal__body">
+          <div className="ss-topology-modal__tree-shell">
+            <SimTree alwaysSelectOnClick />
+          </div>
+
+          <aside className="ss-topology-modal__side">
+            <div className="ss-topology-modal__summary">
+              <span>{isZh ? "当前路径" : "Current path"}</span>
+              <strong>
+                {currentPath.length
+                  ? currentPath.map((node) => getWorkspaceNodeLabel(node, t)).join(" / ")
+                  : "—"}
+              </strong>
+            </div>
+
+            <div className="ss-topology-modal__summary-grid">
+              <div className="ss-topology-modal__summary-card">
+                <span>{isZh ? "当前节点" : "Current node"}</span>
+                <strong>{getWorkspaceNodeLabel(selectedNode, t)}</strong>
+              </div>
+              <div className="ss-topology-modal__summary-card">
+                <span>{isZh ? "分支数量" : "Branches"}</span>
+                <strong>{Math.max(nodes.length - 1, 0)}</strong>
+              </div>
+              <div className="ss-topology-modal__summary-card">
+                <span>{isZh ? "节点数量" : "Nodes"}</span>
+                <strong>{nodes.length}</strong>
+              </div>
+              <div className="ss-topology-modal__summary-card">
+                <span>{isZh ? "对比状态" : "Compare"}</span>
+                <strong>{isCompareMode && compareTargetNodeId ? (isZh ? "已开启" : "Active") : (isZh ? "未开启" : "Off")}</strong>
+              </div>
+            </div>
+
+            <div className="ss-topology-modal__action-group">
+              <button
+                type="button"
+                className="ss-topology-modal__primary"
+                onClick={() => void advanceSimulation()}
+                disabled={!selectedNodeId || isGenerating}
+              >
+                <Play size={16} />
+                <span>
+                  {isGenerating
+                    ? (isZh ? "正在推进当前节点…" : "Advancing current node...")
+                    : (isZh ? "继续推演当前节点" : "Continue from current node")}
+                </span>
+              </button>
+              <button type="button" className="ss-summary-rail__action" onClick={onOpenNodeDetails}>
+                <Eye size={15} />
+                <span>{isZh ? "查看当前节点详情" : "Open current node details"}</span>
+              </button>
+              <button
+                type="button"
+                className="ss-summary-rail__action"
+                onClick={() => toggleExperimentDesigner(true)}
+              >
+                <Sparkles size={15} />
+                <span>{isZh ? "实验配置" : "Experiment config"}</span>
+              </button>
+              <button
+                type="button"
+                className="ss-summary-rail__action"
+                onClick={() => toggleNetworkEditor(true)}
+              >
+                <Network size={15} />
+                <span>{isZh ? "关系网络配置" : "Network config"}</span>
+              </button>
+              <button
+                type="button"
+                className="ss-summary-rail__action"
+                onClick={() => void branchSimulation()}
+                disabled={!selectedNodeId || isGenerating || isCompareMode}
+              >
+                <GitBranchPlus size={15} />
+                <span>{isZh ? "从当前节点创建分支" : "Branch from current node"}</span>
+              </button>
+              <button
+                type="button"
+                className="ss-summary-rail__action"
+                onClick={() => {
+                  if (isCompareMode) {
+                    toggleCompareMode(false);
+                    setCompareTarget(null);
+                    return;
+                  }
+                  toggleCompareMode(true);
+                }}
+              >
+                <Settings2 size={15} />
+                <span>{isCompareMode ? (isZh ? "退出对比模式" : "Exit compare") : (isZh ? "进入对比模式" : "Enter compare")}</span>
+              </button>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+export default TopologyStructureModal;

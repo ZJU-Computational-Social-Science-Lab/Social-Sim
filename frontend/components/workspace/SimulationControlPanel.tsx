@@ -18,6 +18,7 @@ import {
   Trash2,
   Zap,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import { useSimulationStore } from "../../store";
 
@@ -66,14 +67,18 @@ interface SimulationControlPanelProps {
   onRequestCreateBranch: () => void;
   onToggleBranchDetails: () => void;
   branchDetailsOpen: boolean;
+  workspaceMode: "observation" | "control";
 }
 
 export const SimulationControlPanel: React.FC<SimulationControlPanelProps> = ({
   onRequestCreateBranch,
   onToggleBranchDetails,
   branchDetailsOpen,
+  workspaceMode,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isZh = i18n.language.startsWith("zh");
+  const navigate = useNavigate();
   const currentSimulation = useSimulationStore((state) => state.currentSimulation);
   const selectedNodeId = useSimulationStore((state) => state.selectedNodeId);
   const selectedNode = useSimulationStore((state) =>
@@ -106,6 +111,7 @@ export const SimulationControlPanel: React.FC<SimulationControlPanelProps> = ({
   const providerSelection = selectedProviderId ?? currentProviderId ?? null;
   const selectedProvider =
     llmProviders.find((provider) => provider.id === providerSelection) || null;
+  const isObservationMode = workspaceMode === "observation";
 
   const handleToggleCompare = () => {
     if (isCompareMode) {
@@ -117,6 +123,10 @@ export const SimulationControlPanel: React.FC<SimulationControlPanelProps> = ({
   };
 
   const toggleEngine = () => {
+    if (engineConfig.mode === "standalone" && !providerSelection) {
+      navigate("/settings?tab=providers_llm");
+      return;
+    }
     setEngineMode(engineConfig.mode === "standalone" ? "connected" : "standalone");
   };
 
@@ -131,21 +141,28 @@ export const SimulationControlPanel: React.FC<SimulationControlPanelProps> = ({
       <div className="ss-config-panel__body">
         <section className="ss-config-panel__group">
           <div className="ss-config-panel__group-head">
-            <div className="ss-config-panel__group-title">{t("controlRoom.primaryActionsTitle")}</div>
-            <p>{t("controlRoom.primaryActionsCopy")}</p>
+            <div className="ss-config-panel__group-title">
+              {isObservationMode ? (t("controlRoom.primaryActionsTitle")) : t("controlRoom.primaryActionsTitle")}
+            </div>
+            <p>
+              {isObservationMode
+                ? (t("controlRoom.primaryActionsCopy"))
+                : t("controlRoom.primaryActionsCopy")}
+            </p>
           </div>
 
           <div className="ss-config-panel__stack">
             <ControlAction
-              icon={engineConfig.mode === "connected" ? <Zap size={15} /> : <Plug size={15} />}
+              icon={isGenerating ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}
               label={
-                engineConfig.mode === "connected"
-                  ? t("simPage.socialSim4Engine")
-                  : t("simPage.standaloneMode")
+                isGenerating
+                  ? t("simulationWorkspace.running")
+                  : t("controlRoom.continueSimulation")
               }
-              caption={t("controlRoom.engineModeCopy")}
-              onClick={toggleEngine}
-              active={engineConfig.mode === "connected"}
+              caption={t("controlRoom.advanceCopy")}
+              onClick={() => void advanceSimulation()}
+              disabled={!selectedNodeId || isGenerating || isCompareMode}
+              primary
             />
             <ControlAction
               icon={isGenerating ? <Loader2 size={15} className="animate-spin" /> : <GitFork size={15} />}
@@ -153,7 +170,6 @@ export const SimulationControlPanel: React.FC<SimulationControlPanelProps> = ({
               caption={t("controlRoom.createBranchSidebarCopy")}
               onClick={onRequestCreateBranch}
               disabled={!selectedNodeId || isGenerating || isCompareMode}
-              primary
             />
             <ControlAction
               icon={<Split size={15} />}
@@ -165,14 +181,43 @@ export const SimulationControlPanel: React.FC<SimulationControlPanelProps> = ({
             />
             <ControlAction
               icon={<Beaker size={15} />}
-              label={t("simulationWorkspace.experiment")}
+              label={isObservationMode ? (t("controlRoom.viewDetails")) : t("simulationWorkspace.experiment")}
               caption={t("controlRoom.experimentDesignCopy")}
               onClick={() => toggleExperimentDesigner(true)}
               disabled={!hasSimulation}
             />
+            {isObservationMode ? (
+              <ControlAction
+                icon={<Download size={15} />}
+                label={t("simulationWorkspace.export")}
+                caption={t("controlRoom.exportCopy")}
+                onClick={() => toggleExport(true)}
+                disabled={!hasSimulation}
+              />
+            ) : null}
+            {!isObservationMode ? (
+              <ControlAction
+                icon={engineConfig.mode === "connected" ? <Zap size={15} /> : <Plug size={15} />}
+                label={
+                  engineConfig.mode === "connected"
+                    ? t("simPage.socialSim4Engine")
+                    : t("simPage.standaloneMode")
+                }
+                caption={
+                  engineConfig.mode === "standalone" && !providerSelection
+                    ? isZh
+                      ? "先选择模型提供商，再切换到智能引擎"
+                      : "Choose a model provider before switching to the intelligent engine."
+                    : t("controlRoom.engineModeCopy")
+                }
+                onClick={toggleEngine}
+                active={engineConfig.mode === "connected"}
+              />
+            ) : null}
           </div>
         </section>
 
+        {!isObservationMode ? (
         <section className="ss-config-panel__group">
           <div className="ss-config-panel__group-head">
             <div className="ss-config-panel__group-title">{t("controlRoom.configurationTitle")}</div>
@@ -197,6 +242,22 @@ export const SimulationControlPanel: React.FC<SimulationControlPanelProps> = ({
               ))}
             </select>
           </label>
+
+          {llmProviders.length === 0 ? (
+            <div className="ss-config-panel__meta">
+              <span>{t("controlRoom.activeProvider")}</span>
+              <strong>
+                {isZh ? "还没有可用的 LLM 提供商" : "No LLM provider is available yet"}
+              </strong>
+              <button
+                type="button"
+                className="ss-button-secondary mt-3"
+                onClick={() => navigate("/settings?tab=providers_llm")}
+              >
+                {isZh ? "前往设置配置提供商" : "Open settings to configure providers"}
+              </button>
+            </div>
+          ) : null}
 
           <div className="ss-config-panel__stack">
             <ControlAction
@@ -239,7 +300,9 @@ export const SimulationControlPanel: React.FC<SimulationControlPanelProps> = ({
             </strong>
           </div>
         </section>
+        ) : null}
 
+        {!isObservationMode ? (
         <section className="ss-config-panel__group">
           <div className="ss-config-panel__group-head">
             <div className="ss-config-panel__group-title">{t("controlRoom.outputTitle")}</div>
@@ -270,7 +333,9 @@ export const SimulationControlPanel: React.FC<SimulationControlPanelProps> = ({
             />
           </div>
         </section>
+        ) : null}
 
+        {!isObservationMode ? (
         <section className="ss-config-panel__group">
           <div className="ss-config-panel__group-head">
             <div className="ss-config-panel__group-title">{t("controlRoom.branchToolsTitle")}</div>
@@ -304,10 +369,73 @@ export const SimulationControlPanel: React.FC<SimulationControlPanelProps> = ({
             />
           </div>
         </section>
+        ) : null}
 
         <details className="ss-config-panel__advanced">
-          <summary>{t("simulationWorkspace.developerTools")}</summary>
+          <summary>{isObservationMode ? (t("simulationWorkspace.developerTools")) : t("simulationWorkspace.developerTools")}</summary>
           <div className="ss-config-panel__advanced-body">
+            {isObservationMode ? (
+              <>
+                <label className="ss-config-panel__provider">
+                  <span>{t("simulationWorkspace.provider")}</span>
+                  <select
+                    value={providerSelection ?? ""}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setSelectedProvider(value ? Number(value) : null);
+                    }}
+                  >
+                    <option value="">{t("simulationWorkspace.noProvider")}</option>
+                    {llmProviders.map((provider) => (
+                      <option key={provider.id} value={provider.id}>
+                        {provider.name || provider.provider}
+                        {provider.model ? ` · ${provider.model}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <ControlAction
+                  icon={<GitFork size={15} />}
+                  label={
+                    branchDetailsOpen
+                      ? t("controlRoom.hideBranchDetails")
+                      : t("controlRoom.showBranchDetails")
+                  }
+                  caption={t("controlRoom.branchRelationsCopy")}
+                  onClick={onToggleBranchDetails}
+                  disabled={!selectedNode}
+                  active={branchDetailsOpen}
+                />
+                <ControlAction
+                  icon={<Network size={15} />}
+                  label={t("simulationWorkspace.network")}
+                  caption={t("controlRoom.networkCopy")}
+                  onClick={() => toggleNetworkEditor(true)}
+                  disabled={!hasSimulation}
+                />
+                <ControlAction
+                  icon={<Clock3 size={15} />}
+                  label={t("simulationWorkspace.time")}
+                  caption={t("controlRoom.timeCopy")}
+                  onClick={() => toggleTimeSettings(true)}
+                  disabled={!hasSimulation}
+                />
+                <ControlAction
+                  icon={<BarChart2 size={15} />}
+                  label={t("simulationWorkspace.analytics")}
+                  caption={t("controlRoom.analyticsCopy")}
+                  onClick={() => toggleAnalytics(true)}
+                  disabled={!hasSimulation}
+                />
+                <ControlAction
+                  icon={<FileText size={15} />}
+                  label={t("simulationWorkspace.report")}
+                  caption={t("controlRoom.reportCopy")}
+                  onClick={() => toggleReportModal(true)}
+                  disabled={!hasSimulation}
+                />
+              </>
+            ) : null}
             <ControlAction
               icon={<Zap size={15} />}
               label={t("simulationWorkspace.sync")}

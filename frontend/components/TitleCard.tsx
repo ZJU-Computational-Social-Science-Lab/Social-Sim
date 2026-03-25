@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 export function TitleCard({
   title,
@@ -11,7 +12,9 @@ export function TitleCard({
   actions?: ReactNode;
   center?: ReactNode;
 }) {
+  const { i18n } = useTranslation();
   const hasCenter = Boolean(center);
+  const isZh = i18n.language.startsWith("zh");
   return (
     <div
       className="panel title-card"
@@ -24,15 +27,16 @@ export function TitleCard({
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <div className="kicker">Research Workbench</div>
+        <div className="kicker">{isZh ? "研究工作台" : "Research Workbench"}</div>
         <h1
           style={{
             margin: 0,
             fontFamily: "var(--font-display)",
-            fontSize: "clamp(1.7rem, 2vw, 2.5rem)",
-            lineHeight: 1,
+            fontSize: "clamp(2rem, 2.4vw, 3rem)",
+            lineHeight: 1.04,
             letterSpacing: "-0.04em",
             color: "var(--heading)",
+            fontWeight: 650,
           }}
         >
           {title}

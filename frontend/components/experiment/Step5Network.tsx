@@ -2,14 +2,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import * as d3 from "d3";
 import * as d3Force from "d3-force";
 import {
-  ChevronRight,
   Grid3X3,
   Layers,
   Maximize,
   RefreshCw,
-  Settings2,
+  Search,
   Share2,
   Shuffle,
+  SlidersHorizontal,
   Users,
   ZoomIn,
   ZoomOut,
@@ -17,13 +17,13 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { useExperimentBuilder } from "../../store/experiment-builder";
-import { Button } from "../ui/button";
-import { buildNetworkOverview } from "../../utils/networkMetrics";
 import { buildAgentCollections } from "../../utils/agentCollections";
+import { buildNetworkOverview } from "../../utils/networkMetrics";
+import { Button } from "../ui/button";
 import { ResearchInputPanel } from "./workflow/ResearchInputPanel";
 import { SummaryInfoCard } from "./workflow/SummaryInfoCard";
 
-type PresetType =
+type NetworkPresetType =
   | "full"
   | "random"
   | "ring"
@@ -33,6 +33,9 @@ type PresetType =
   | "holme-kim"
   | "waxman"
   | "sbm";
+
+type PresetType = NetworkPresetType | "custom";
+type StepFiveDetailSurface = "overview" | "memberConnections" | null;
 
 interface PresetParams {
   random: { connectionChance: number };
@@ -50,17 +53,36 @@ interface PresetParams {
   sbm: { groupSize: number; withinGroupConnectivity: number; bridgeConnections: number };
 }
 
-const presetIcons: Record<PresetType, { icon: React.ElementType; translationKey: string }> = {
-  full: { icon: Share2, translationKey: "fully_connected" },
-  random: { icon: Shuffle, translationKey: "random" },
-  ring: { icon: RefreshCw, translationKey: "ring" },
-  star: { icon: Users, translationKey: "star" },
-  "newman-watts": { icon: Grid3X3, translationKey: "small_world" },
-  "core-periphery": { icon: Layers, translationKey: "core_periphery" },
-  "holme-kim": { icon: Share2, translationKey: "scale_free" },
-  waxman: { icon: Grid3X3, translationKey: "spatial" },
-  sbm: { icon: Users, translationKey: "communities" },
+const presetIcons: Record<
+  PresetType,
+  { icon: React.ElementType; translationKey: string; defaultLabel: string }
+> = {
+  full: { icon: Share2, translationKey: "fully_connected", defaultLabel: "Fully connected" },
+  random: { icon: Shuffle, translationKey: "random", defaultLabel: "Random" },
+  ring: { icon: RefreshCw, translationKey: "ring", defaultLabel: "Ring" },
+  star: { icon: Users, translationKey: "star", defaultLabel: "Star" },
+  "newman-watts": { icon: Grid3X3, translationKey: "small_world", defaultLabel: "Small world" },
+  "core-periphery": {
+    icon: Layers,
+    translationKey: "core_periphery",
+    defaultLabel: "Core-periphery",
+  },
+  "holme-kim": { icon: Share2, translationKey: "scale_free", defaultLabel: "Scale free" },
+  waxman: { icon: Grid3X3, translationKey: "spatial", defaultLabel: "Spatial" },
+  sbm: { icon: Users, translationKey: "communities", defaultLabel: "Communities" },
+  custom: { icon: SlidersHorizontal, translationKey: "custom_structure", defaultLabel: "Custom" },
 };
+
+const visiblePresets: PresetType[] = [
+  "full",
+  "random",
+  "ring",
+  "star",
+  "newman-watts",
+  "core-periphery",
+  "sbm",
+  "custom",
+];
 
 const defaultParams: PresetParams = {
   random: { connectionChance: 0.3 },
@@ -83,9 +105,7 @@ const ensureNoIsolatedNodes = (
   ids: string[]
 ): Record<string, string[]> => {
   if (ids.length <= 1) return network;
-
   const next = JSON.parse(JSON.stringify(network)) as Record<string, string[]>;
-
   ids.forEach((agentId) => {
     if ((next[agentId] || []).length > 0) return;
     const neighbor = ids.find((id) => id !== agentId);
@@ -93,8 +113,22 @@ const ensureNoIsolatedNodes = (
     next[agentId] = [neighbor];
     next[neighbor] = [...(next[neighbor] || []), agentId];
   });
-
   return next;
+};
+
+const emitStepFiveGuide = (detail: Record<string, unknown>) => {
+  window.dispatchEvent(new CustomEvent("ss-step5-guide-state", { detail }));
+};
+
+const focusStepFiveElement = (elementId: string) => {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+  element.classList.remove("is-guided");
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+  window.requestAnimationFrame(() => {
+    element.classList.add("is-guided");
+    window.setTimeout(() => element.classList.remove("is-guided"), 1800);
+  });
 };
 
 const ParamSlider = ({
@@ -114,12 +148,10 @@ const ParamSlider = ({
   isInteger?: boolean;
   onChange: (value: number) => void;
 }) => (
-  <div className="space-y-2">
-    <div className="flex items-center justify-between gap-4 text-xs text-slate-600">
+  <div className="ss-structure-workflow__slider">
+    <div className="ss-structure-workflow__slider-head">
       <span>{label}</span>
-      <span className="font-mono text-slate-500">
-        {isInteger ? value : value.toFixed(2)}
-      </span>
+      <strong>{isInteger ? value : value.toFixed(2)}</strong>
     </div>
     <input
       type="range"
@@ -130,22 +162,23 @@ const ParamSlider = ({
       onChange={(event) =>
         onChange(isInteger ? parseInt(event.target.value, 10) : parseFloat(event.target.value))
       }
-      className="h-1.5 w-full accent-slate-900"
+      className="ss-structure-workflow__slider-input"
     />
   </div>
 );
 
 export const Step5Network: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isZh = i18n.language.startsWith("zh");
   const { socialNetwork, setSocialNetwork, agentTypes } = useExperimentBuilder();
   const [linkFrom, setLinkFrom] = useState("");
   const [linkTo, setLinkTo] = useState("");
   const [selectedPreset, setSelectedPreset] = useState<PresetType | null>(null);
   const [params, setParams] = useState<PresetParams>(JSON.parse(JSON.stringify(defaultParams)));
+  const [searchQuery, setSearchQuery] = useState("");
   const [hoverInfo, setHoverInfo] = useState<{ name: string; profile?: string; x: number; y: number } | null>(null);
-  const [stageView, setStageView] = useState<"overview" | "graph">("overview");
-  const [showAdvancedMembers, setShowAdvancedMembers] = useState(false);
-  const [showAdvancedLinks, setShowAdvancedLinks] = useState(false);
+  const [detailSurface, setDetailSurface] = useState<StepFiveDetailSurface>(null);
+  const [showGraphDrawer, setShowGraphDrawer] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -166,34 +199,25 @@ export const Step5Network: React.FC = () => {
     });
     return { agentIds: ids, profileMap: profiles };
   }, [agentTypes]);
-  const agentCollections = useMemo(
-    () => buildAgentCollections(agentTypes, () => ""),
-    [agentTypes]
-  );
+
+  const agentCollections = useMemo(() => buildAgentCollections(agentTypes, () => ""), [agentTypes]);
   const agentCollectionLookup = useMemo(() => {
     const lookup = new globalThis.Map<string, (typeof agentCollections)[number]>();
     agentCollections.forEach((collection) => {
-      collection.members.forEach((member) => {
-        lookup.set(member.label, collection);
-      });
+      collection.members.forEach((member) => lookup.set(member.label, collection));
     });
     return lookup;
   }, [agentCollections]);
 
   useEffect(() => {
     if (agentIds.length === 0) return;
-    if (!agentIds.includes(linkFrom)) {
-      setLinkFrom(agentIds[0]);
-    }
-    if (!agentIds.includes(linkTo)) {
-      setLinkTo(agentIds[Math.min(1, agentIds.length - 1)]);
-    }
+    if (!agentIds.includes(linkFrom)) setLinkFrom(agentIds[0]);
+    if (!agentIds.includes(linkTo)) setLinkTo(agentIds[Math.min(1, agentIds.length - 1)]);
   }, [agentIds, linkFrom, linkTo]);
 
   const edges = useMemo(() => {
     const list: { key: string; source: string; target: string }[] = [];
     const dedup = new Set<string>();
-
     Object.entries(socialNetwork).forEach(([source, targets]) => {
       targets.forEach((target) => {
         if (!agentIds.includes(source) || !agentIds.includes(target)) return;
@@ -203,7 +227,6 @@ export const Step5Network: React.FC = () => {
         list.push({ key, source, target });
       });
     });
-
     return list;
   }, [agentIds, socialNetwork]);
 
@@ -211,18 +234,12 @@ export const Step5Network: React.FC = () => {
     () => buildNetworkOverview(agentIds, socialNetwork),
     [agentIds, socialNetwork]
   );
+
   const groupedEdges = useMemo(() => {
     const grouped = new globalThis.Map<
       string,
-      {
-        key: string;
-        sourceTitle: string;
-        targetTitle: string;
-        count: number;
-        sample: string[];
-      }
+      { key: string; sourceTitle: string; targetTitle: string; count: number; sample: string[] }
     >();
-
     edges.forEach((edge) => {
       const sourceCollection = agentCollectionLookup.get(edge.source);
       const targetCollection = agentCollectionLookup.get(edge.target);
@@ -234,15 +251,11 @@ export const Step5Network: React.FC = () => {
           : [targetTitle, sourceTitle];
       const key = `${ordered[0]}|${ordered[1]}`;
       const current = grouped.get(key);
-
       if (current) {
         current.count += 1;
-        if (current.sample.length < 3) {
-          current.sample.push(`${edge.source} ↔ ${edge.target}`);
-        }
+        if (current.sample.length < 3) current.sample.push(`${edge.source} ↔ ${edge.target}`);
         return;
       }
-
       grouped.set(key, {
         key,
         sourceTitle: ordered[0],
@@ -251,40 +264,166 @@ export const Step5Network: React.FC = () => {
         sample: [`${edge.source} ↔ ${edge.target}`],
       });
     });
-
     return Array.from(grouped.values()).sort(
       (left, right) =>
         right.count - left.count ||
         left.sourceTitle.localeCompare(right.sourceTitle, undefined, { sensitivity: "base" })
     );
   }, [agentCollectionLookup, edges]);
-  const groupedIsolatedAgents = useMemo(() => {
-    const grouped = new globalThis.Map<string, { title: string; count: number; members: string[] }>();
 
+  const groupedIsolatedAgents = useMemo(() => {
+    const grouped = new globalThis.Map<string, { title: string; count: number }>();
     networkOverview.isolatedAgents.forEach((agentId) => {
       const collection = agentCollectionLookup.get(agentId);
       const title = collection?.title || agentId;
       const current = grouped.get(title);
-
       if (current) {
         current.count += 1;
-        current.members.push(agentId);
         return;
       }
-
-      grouped.set(title, {
-        title,
-        count: 1,
-        members: [agentId],
-      });
+      grouped.set(title, { title, count: 1 });
     });
-
     return Array.from(grouped.values()).sort(
       (left, right) =>
         right.count - left.count ||
         left.title.localeCompare(right.title, undefined, { sensitivity: "base" })
     );
   }, [agentCollectionLookup, networkOverview.isolatedAgents]);
+
+  const presetMeta = useMemo<Record<PresetType, { tags: string[]; summary: string }>>(
+    () => ({
+      full: {
+        tags: isZh ? ["高密度", "充分接触"] : ["Dense", "High contact"],
+        summary: isZh ? "每个参与者都与其他人相连。" : "Each participant connects to every other participant.",
+      },
+      random: {
+        tags: isZh ? ["随机连接", "探索型"] : ["Random links", "Exploratory"],
+        summary: isZh ? "连接以随机概率生成，适合先观察整体扩散。" : "Links are generated probabilistically, useful for broad diffusion patterns.",
+      },
+      ring: {
+        tags: isZh ? ["局部接触", "邻里结构"] : ["Local contact", "Neighborhood"],
+        summary: isZh ? "每个参与者只与邻近个体相连。" : "Each participant is connected to its local neighbors.",
+      },
+      star: {
+        tags: isZh ? ["中心节点", "单枢纽"] : ["Hub-led", "Central node"],
+        summary: isZh ? "互动集中在一个中心节点周围。" : "Interactions are organized around one central hub.",
+      },
+      "newman-watts": {
+        tags: isZh ? ["小世界", "局部 + 捷径"] : ["Small world", "Local + shortcuts"],
+        summary: isZh ? "局部连接为主，同时保留少量跨区捷径。" : "Mostly local links, with a small number of long-range shortcuts.",
+      },
+      "core-periphery": {
+        tags: isZh ? ["核心-边缘", "不对称接触"] : ["Core-periphery", "Asymmetric"],
+        summary: isZh ? "少量核心成员高频互联，外围成员连接较少。" : "A small core stays highly connected while the periphery remains sparse.",
+      },
+      "holme-kim": {
+        tags: isZh ? ["尺度自由", "高聚类"] : ["Scale free", "Clustered"],
+        summary: isZh ? "连接倾向向已有高连接节点聚集。" : "Connections tend to accumulate around already well-connected nodes.",
+      },
+      waxman: {
+        tags: isZh ? ["空间距离", "邻近优先"] : ["Spatial", "Distance-based"],
+        summary: isZh ? "距离越近，建立连接的概率越高。" : "Closer nodes are more likely to connect.",
+      },
+      sbm: {
+        tags: isZh ? ["社区结构", "分组接触"] : ["Communities", "Clustered groups"],
+        summary: isZh ? "参与者先在群组内连接，再通过少量桥接互动。" : "Participants connect within groups first, with a few bridge ties between them.",
+      },
+      custom: {
+        tags: isZh ? ["自定义", "按需细调"] : ["Custom", "Manual tuning"],
+        summary: isZh
+          ? "从空白结构开始，自行调整局部连接与成员关系。"
+          : "Start from a blank structure and tune the ties manually.",
+      },
+    }),
+    [isZh]
+  );
+
+  const filteredPresets = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return visiblePresets.filter((preset) => {
+      if (!query) return true;
+      const name = t(`experimentBuilder.step5.presets.${presetIcons[preset].translationKey}.name`, {
+        defaultValue: preset,
+      }).toLowerCase();
+      const description = t(
+        `experimentBuilder.step5.presets.${presetIcons[preset].translationKey}.description`,
+        { defaultValue: presetMeta[preset].summary }
+      ).toLowerCase();
+      const tags = presetMeta[preset].tags.join(" ").toLowerCase();
+      return `${name} ${description} ${tags}`.includes(query);
+    });
+  }, [presetMeta, searchQuery, t]);
+
+  const currentPatternLabel = selectedPreset
+    ? t(`experimentBuilder.step5.presets.${presetIcons[selectedPreset].translationKey}.name`, {
+        defaultValue: isZh ? "自定义结构" : presetIcons[selectedPreset].defaultLabel,
+      })
+    : edges.length > 0
+      ? isZh
+        ? "已配置结构"
+        : "Configured structure"
+      : t("experimentBuilder.step5.noPattern");
+
+  const selectedPresetSummary = selectedPreset ? presetMeta[selectedPreset].summary : null;
+  const selectedPresetTags = selectedPreset ? presetMeta[selectedPreset].tags : [];
+  const hasPresetControls =
+    selectedPreset === "random" ||
+    selectedPreset === "newman-watts" ||
+    selectedPreset === "core-periphery" ||
+    selectedPreset === "sbm";
+
+  const hasSelectedStructure = selectedPreset !== null || edges.length > 0;
+  const miniPreview = useMemo(() => {
+    const previewWidth = 232;
+    const previewHeight = 158;
+    const visibleIds = agentIds.slice(0, Math.min(agentIds.length, 10));
+    const radius = Math.min(54, 18 + visibleIds.length * 3.5);
+    const nodes = visibleIds.map((id, index) => {
+      const angle = (index / Math.max(visibleIds.length, 1)) * Math.PI * 2 - Math.PI / 2;
+      return {
+        id,
+        x: previewWidth / 2 + Math.cos(angle) * radius,
+        y: previewHeight / 2 + Math.sin(angle) * radius,
+      };
+    });
+    const visibleEdges = edges
+      .filter((edge) => visibleIds.includes(edge.source) && visibleIds.includes(edge.target))
+      .slice(0, 24)
+      .map((edge) => ({
+        ...edge,
+        sourceNode: nodes.find((node) => node.id === edge.source)!,
+        targetNode: nodes.find((node) => node.id === edge.target)!,
+      }));
+
+    return {
+      width: previewWidth,
+      height: previewHeight,
+      nodes,
+      edges: visibleEdges,
+      remaining: Math.max(0, agentIds.length - visibleIds.length),
+    };
+  }, [agentIds, edges]);
+
+  const closeDetailSurface = useCallback(() => {
+    setDetailSurface(null);
+  }, []);
+
+  const openDetailSurface = useCallback((target: Exclude<StepFiveDetailSurface, null>) => {
+    setShowGraphDrawer(false);
+    setDetailSurface(target);
+    emitStepFiveGuide({ type: "advanced-opened", target });
+  }, []);
+
+  const openGraphDrawer = useCallback(() => {
+    setDetailSurface(null);
+    setShowGraphDrawer(true);
+    emitStepFiveGuide({ type: "advanced-opened", target: "graph" });
+  }, []);
+
+  const closeGraphDrawer = useCallback(() => {
+    setShowGraphDrawer(false);
+    setHoverInfo(null);
+  }, []);
 
   const resetParams = useCallback((presetKey: keyof PresetParams) => {
     setParams((prev) => ({ ...prev, [presetKey]: { ...defaultParams[presetKey] } }));
@@ -296,23 +435,26 @@ export const Step5Network: React.FC = () => {
       param: P,
       value: PresetParams[K][P]
     ) => {
-      setParams((prev) => ({
-        ...prev,
-        [preset]: { ...prev[preset], [param]: value },
-      }));
+      setParams((prev) => ({ ...prev, [preset]: { ...prev[preset], [param]: value } }));
+      emitStepFiveGuide({ type: "interaction" });
     },
     []
   );
 
   const applyPreset = useCallback(
     (type: PresetType) => {
-      const n = agentIds.length;
       const next: Record<string, string[]> = {};
-
+      const n = agentIds.length;
       agentIds.forEach((id) => {
         next[id] = [];
       });
-
+      if (type === "custom") {
+        setSelectedPreset(type);
+        setSocialNetwork(next);
+        emitStepFiveGuide({ type: "template-selected", preset: type });
+        openDetailSurface("memberConnections");
+        return;
+      }
       if (type === "full") {
         for (let i = 0; i < n; i += 1) {
           for (let j = i + 1; j < n; j += 1) {
@@ -321,7 +463,6 @@ export const Step5Network: React.FC = () => {
           }
         }
       }
-
       if (type === "ring") {
         for (let i = 0; i < n; i += 1) {
           const neighbor = (i + 1) % n;
@@ -329,14 +470,12 @@ export const Step5Network: React.FC = () => {
           next[agentIds[neighbor]].push(agentIds[i]);
         }
       }
-
       if (type === "star" && n > 1) {
         for (let i = 1; i < n; i += 1) {
           next[agentIds[0]].push(agentIds[i]);
           next[agentIds[i]].push(agentIds[0]);
         }
       }
-
       if (type === "random") {
         for (let i = 0; i < n; i += 1) {
           for (let j = i + 1; j < n; j += 1) {
@@ -347,11 +486,9 @@ export const Step5Network: React.FC = () => {
           }
         }
       }
-
       if (type === "newman-watts") {
         const { neighborsEachSide, shortcutChance } = params["newman-watts"];
         const range = Math.min(neighborsEachSide, Math.floor((n - 1) / 2));
-
         for (let i = 0; i < n; i += 1) {
           for (let offset = 1; offset <= range; offset += 1) {
             const forward = (i + offset) % n;
@@ -359,7 +496,6 @@ export const Step5Network: React.FC = () => {
             next[agentIds[forward]].push(agentIds[i]);
           }
         }
-
         for (let i = 0; i < n; i += 1) {
           for (let j = i + range + 1; j < n; j += 1) {
             if (Math.random() < shortcutChance && !next[agentIds[i]].includes(agentIds[j])) {
@@ -369,80 +505,204 @@ export const Step5Network: React.FC = () => {
           }
         }
       }
-
+      if (type === "core-periphery") {
+        const { influencerPercent, influencerConnectivity, influencerReach, regularConnectivity } =
+          params["core-periphery"];
+        const coreCount = Math.max(1, Math.round(n * influencerPercent));
+        const coreIds = agentIds.slice(0, coreCount);
+        const peripheralIds = agentIds.slice(coreCount);
+        coreIds.forEach((source, index) => {
+          for (let targetIndex = index + 1; targetIndex < coreIds.length; targetIndex += 1) {
+            const target = coreIds[targetIndex];
+            if (Math.random() <= influencerConnectivity) {
+              next[source].push(target);
+              next[target].push(source);
+            }
+          }
+        });
+        peripheralIds.forEach((source, index) => {
+          for (let targetIndex = index + 1; targetIndex < peripheralIds.length; targetIndex += 1) {
+            const target = peripheralIds[targetIndex];
+            if (Math.random() <= regularConnectivity) {
+              next[source].push(target);
+              next[target].push(source);
+            }
+          }
+          coreIds.forEach((coreId) => {
+            if (Math.random() <= influencerReach) {
+              next[source].push(coreId);
+              next[coreId].push(source);
+            }
+          });
+        });
+      }
+      if (type === "sbm") {
+        const { groupSize, withinGroupConnectivity, bridgeConnections } = params.sbm;
+        const groups: string[][] = [];
+        for (let index = 0; index < agentIds.length; index += groupSize) {
+          groups.push(agentIds.slice(index, index + groupSize));
+        }
+        groups.forEach((group) => {
+          for (let i = 0; i < group.length; i += 1) {
+            for (let j = i + 1; j < group.length; j += 1) {
+              if (Math.random() <= withinGroupConnectivity) {
+                next[group[i]].push(group[j]);
+                next[group[j]].push(group[i]);
+              }
+            }
+          }
+        });
+        for (let groupIndex = 0; groupIndex < groups.length - 1; groupIndex += 1) {
+          const currentGroup = groups[groupIndex];
+          const nextGroup = groups[groupIndex + 1];
+          for (let linkIndex = 0; linkIndex < bridgeConnections; linkIndex += 1) {
+            const source = currentGroup[linkIndex % currentGroup.length];
+            const target = nextGroup[linkIndex % nextGroup.length];
+            if (!next[source].includes(target)) {
+              next[source].push(target);
+              next[target].push(source);
+            }
+          }
+        }
+      }
+      setSelectedPreset(type);
       setSocialNetwork(ensureNoIsolatedNodes(next, agentIds));
+      emitStepFiveGuide({ type: "template-selected", preset: type });
     },
     [agentIds, params, setSocialNetwork]
   );
 
-  useEffect(() => {
-    if (agentIds.length > 0 && Object.keys(socialNetwork).length === 0) {
-      setSelectedPreset("full");
-      applyPreset("full");
-    }
-  }, [agentIds.length, applyPreset, socialNetwork]);
+  const fitGraphToViewport = useCallback(
+    (duration = 0) => {
+      if (!d3SvgRef.current || !zoomBehaviorRef.current || !containerRef.current) {
+        return;
+      }
+      const svg = d3SvgRef.current;
+      const mainNode = svg.select("g.main").node() as SVGGElement | null;
+      if (!mainNode) {
+        return;
+      }
+
+      const width = containerRef.current.clientWidth;
+      const height = containerRef.current.clientHeight;
+      const bbox = mainNode.getBBox();
+
+      if (bbox.width === 0 || bbox.height === 0) {
+        const centered = d3.zoomIdentity.translate(width / 2, height / 2).scale(1);
+        if (duration > 0) {
+          svg.transition().duration(duration).call(zoomBehaviorRef.current.transform, centered);
+          return;
+        }
+        svg.call(zoomBehaviorRef.current.transform, centered);
+        return;
+      }
+
+      const padding = Math.max(32, Math.min(72, Math.min(width, height) * 0.12));
+      const scale = Math.max(
+        0.45,
+        Math.min(
+          1.35,
+          Math.min((width - padding * 2) / bbox.width, (height - padding * 2) / bbox.height)
+        )
+      );
+      const transform = d3.zoomIdentity
+        .translate(
+          width / 2 - scale * (bbox.x + bbox.width / 2),
+          height / 2 - scale * (bbox.y + bbox.height / 2)
+        )
+        .scale(scale);
+
+      if (duration > 0) {
+        svg.transition().duration(duration).call(zoomBehaviorRef.current.transform, transform);
+        return;
+      }
+      svg.call(zoomBehaviorRef.current.transform, transform);
+    },
+    []
+  );
 
   useEffect(() => {
-    if (stageView !== "graph") return;
-    if (!svgRef.current || !containerRef.current) return;
+    if (!showGraphDrawer) {
+      return;
+    }
+    if (!svgRef.current || !containerRef.current) {
+      return;
+    }
 
     const svg = d3.select(svgRef.current);
     d3SvgRef.current = svg;
+    svg.selectAll("*").remove();
+    svg.append("g").attr("class", "main");
 
     const zoom = d3
       .zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.25, 4])
+      .scaleExtent([0.35, 4])
       .on("zoom", (event) => {
         svg.select("g.main").attr("transform", event.transform);
       });
 
     zoomBehaviorRef.current = zoom;
-
     svg.call(zoom);
-    svg.append("g").attr("class", "main");
-
-    const width = containerRef.current.clientWidth;
-    const height = containerRef.current.clientHeight;
-    svg.call(zoom.transform, d3.zoomIdentity.translate(width / 2, height / 2));
-  }, [stageView]);
+  }, [showGraphDrawer]);
 
   useEffect(() => {
-    if (stageView !== "graph") return;
-    if (!d3SvgRef.current || !containerRef.current || agentIds.length === 0) return;
+    if (!showGraphDrawer || !d3SvgRef.current || !containerRef.current || agentIds.length === 0) {
+      return;
+    }
 
     const svg = d3SvgRef.current;
     const main = svg.select("g.main");
     const width = containerRef.current.clientWidth;
     const height = containerRef.current.clientHeight;
-
     const tooltipCoords = (event: MouseEvent | PointerEvent) => {
       const rect = containerRef.current?.getBoundingClientRect();
-      const x = Math.max(16, Math.min(width - 220, event.clientX - (rect?.left || 0) + 12));
-      const y = Math.max(16, Math.min(height - 180, event.clientY - (rect?.top || 0) + 12));
+      const x = Math.max(16, Math.min(width - 240, event.clientX - (rect?.left || 0) + 16));
+      const y = Math.max(16, Math.min(height - 180, event.clientY - (rect?.top || 0) + 16));
       return { x, y };
     };
 
     main.selectAll("*").remove();
 
-    const nodes = agentIds.map((id) => ({ id, name: id, profile: profileMap[id] }));
+    const nodes = agentIds.map((id, index) => {
+      const angle = (index / Math.max(agentIds.length, 1)) * Math.PI * 2;
+      const radius = Math.max(72, Math.min(220, 28 * agentIds.length));
+      return {
+        id,
+        name: id,
+        profile: profileMap[id],
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * radius,
+      };
+    });
+
     const links = edges.map((edge) => ({ source: edge.source, target: edge.target }));
 
-    const simulation = d3Force
-      .forceSimulation(nodes as never[])
-      .force("link", d3Force.forceLink(links).id((item: any) => item.id).distance(125))
-      .force("charge", d3Force.forceManyBody().strength(-340))
-      .force("center", d3Force.forceCenter(0, 0))
-      .force("collide", d3Force.forceCollide(38));
+    if (links.length > 0) {
+      const simulation = d3Force
+        .forceSimulation(nodes as never[])
+        .force("link", d3Force.forceLink(links).id((item: any) => item.id).distance(122))
+        .force("charge", d3Force.forceManyBody().strength(-300))
+        .force("center", d3Force.forceCenter(0, 0))
+        .force("collide", d3Force.forceCollide(36))
+        .stop();
 
-    const link = main
+      for (let step = 0; step < 220; step += 1) {
+        simulation.tick();
+      }
+    }
+
+    main
       .append("g")
       .attr("class", "links")
       .selectAll("line")
       .data(links)
       .join("line")
-      .attr("stroke", "#94a3b8")
-      .attr("stroke-width", 1.4)
-      .attr("stroke-opacity", 0.55);
+      .attr("stroke", "rgba(143, 193, 177, 0.46)")
+      .attr("stroke-width", 1.35)
+      .attr("x1", (item: any) => item.source.x)
+      .attr("y1", (item: any) => item.source.y)
+      .attr("x2", (item: any) => item.target.x)
+      .attr("y2", (item: any) => item.target.y);
 
     const node = main
       .append("g")
@@ -451,66 +711,81 @@ export const Step5Network: React.FC = () => {
       .data(nodes)
       .join("g")
       .attr("class", "node cursor-pointer")
-      .call(
-        d3
-          .drag<SVGGElement, any>()
-          .on("start", (event, current) => {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            current.fx = current.x;
-            current.fy = current.y;
-          })
-          .on("drag", (event, current) => {
-            current.fx = event.x;
-            current.fy = event.y;
-          })
-          .on("end", (event, current) => {
-            if (!event.active) simulation.alphaTarget(0);
-            current.fx = null;
-            current.fy = null;
-          })
-      );
+      .attr("transform", (current: any) => `translate(${current.x},${current.y})`);
 
     node
       .append("circle")
-      .attr("r", 19)
-      .attr("fill", "#f8fafc")
-      .attr("stroke", "#0f172a")
-      .attr("stroke-width", 1.5)
+      .attr("r", 18)
+      .attr("fill", "rgba(17, 55, 47, 0.96)")
+      .attr("stroke", "#5df2bf")
+      .attr("stroke-width", 1.25)
       .on("mouseenter", function (event, current: any) {
-        d3.select(this).attr("fill", "#e2e8f0");
+        d3.select(this).attr("fill", "rgba(24, 74, 62, 0.98)");
         setHoverInfo({ name: current.name, profile: current.profile, ...tooltipCoords(event) });
       })
       .on("mousemove", (event) => {
         setHoverInfo((prev) => (prev ? { ...prev, ...tooltipCoords(event) } : null));
       })
       .on("mouseleave", function () {
-        d3.select(this).attr("fill", "#f8fafc");
+        d3.select(this).attr("fill", "rgba(17, 55, 47, 0.96)");
         setHoverInfo(null);
       });
 
     node
       .append("text")
-      .attr("dy", 35)
+      .attr("dy", 33)
       .attr("text-anchor", "middle")
       .text((current) => current.name)
-      .attr("class", "pointer-events-none select-none fill-slate-700 text-[10px] font-medium");
+      .attr("fill", "#b8d1c7")
+      .style("font-size", "10px")
+      .style("font-weight", "600")
+      .style("pointer-events", "none");
 
-    simulation.on("tick", () => {
-      link
-        .attr("x1", (item: any) => item.source.x)
-        .attr("y1", (item: any) => item.source.y)
-        .attr("x2", (item: any) => item.target.x)
-        .attr("y2", (item: any) => item.target.y);
+    fitGraphToViewport();
+  }, [agentIds, edges, fitGraphToViewport, profileMap, showGraphDrawer]);
 
-      node.attr("transform", (current: any) => `translate(${current.x},${current.y})`);
+  useEffect(() => {
+    if (!showGraphDrawer || !containerRef.current) {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      fitGraphToViewport();
     });
 
-    return () => simulation.stop();
-  }, [agentIds, edges, profileMap, stageView]);
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [fitGraphToViewport, showGraphDrawer]);
+
+  useEffect(() => {
+    const handleGuideFocus = (rawEvent: Event) => {
+      const event = rawEvent as CustomEvent<{ target?: string }>;
+      const target = event.detail?.target;
+      if (target === "templates") focusStepFiveElement("ss-step5-template-library");
+      if (target === "summary") focusStepFiveElement("ss-step5-selection-summary");
+      if (target === "details") {
+        openDetailSurface("overview");
+        window.setTimeout(() => focusStepFiveElement("ss-step5-detailed-summary"), 120);
+      }
+      if (target === "graph") {
+        openGraphDrawer();
+        window.setTimeout(() => focusStepFiveElement("ss-step5-graph-canvas"), 120);
+      }
+      if (target === "links") {
+        openDetailSurface("memberConnections");
+        window.setTimeout(() => focusStepFiveElement("ss-step5-advanced-links"), 120);
+      }
+      if (target === "roster") {
+        openDetailSurface("memberConnections");
+        window.setTimeout(() => focusStepFiveElement("ss-step5-member-roster"), 120);
+      }
+    };
+    window.addEventListener("ss-step5-guide", handleGuideFocus as EventListener);
+    return () => window.removeEventListener("ss-step5-guide", handleGuideFocus as EventListener);
+  }, [openDetailSurface, openGraphDrawer]);
 
   const addLink = () => {
     if (!linkFrom || !linkTo || linkFrom === linkTo) return;
-
     const next: Record<string, string[]> = {};
     agentIds.forEach((id) => {
       next[id] = [...(socialNetwork[id] || [])];
@@ -518,6 +793,7 @@ export const Step5Network: React.FC = () => {
     next[linkFrom] = [...(next[linkFrom] || []), linkTo];
     next[linkTo] = [...(next[linkTo] || []), linkFrom];
     setSocialNetwork(next);
+    openDetailSurface("memberConnections");
   };
 
   const removeLink = (key: string) => {
@@ -531,6 +807,7 @@ export const Step5Network: React.FC = () => {
     next[left] = (next[left] || []).filter((target) => target !== right);
     next[right] = (next[right] || []).filter((target) => target !== left);
     setSocialNetwork(next);
+    openDetailSurface("memberConnections");
   };
 
   const handleZoomIn = () => {
@@ -546,556 +823,446 @@ export const Step5Network: React.FC = () => {
   };
 
   const handleResetZoom = () => {
-    if (d3SvgRef.current && zoomBehaviorRef.current && containerRef.current) {
-      const width = containerRef.current.clientWidth;
-      const height = containerRef.current.clientHeight;
-      d3SvgRef.current
-        .transition()
-        .duration(400)
-        .call(zoomBehaviorRef.current.transform, d3.zoomIdentity.translate(width / 2, height / 2));
-    }
+    fitGraphToViewport(320);
   };
 
   if (agentIds.length === 0) {
     return (
-      <div className="rounded-[28px] border border-amber-200 bg-amber-50 p-8 text-center">
-        <div className="section-title">{t("experimentBuilder.step5.noAgentsConfigured")}</div>
+      <div className="ss-setup-scenarios__state">
+        <div className="section-title">{isZh ? "请先完成参与者设置" : t("experimentBuilder.step5.noAgentsConfigured")}</div>
         <p className="lab-meta mt-3">{t("experimentBuilder.step5.goBackToStep4")}</p>
       </div>
     );
   }
 
   return (
-    <div className="ss-network-workflow">
+    <div className="ss-network-workflow ss-structure-workflow">
       <ResearchInputPanel
         eyebrow={t("common.agents")}
-        title={t("experimentBuilder.step5.networkPresets")}
-        description={t("components.networkEditorModal.workspaceSubtitle")}
+        title={t("experimentBuilder.step5.templateFirstTitle", {
+          defaultValue: isZh ? "选择一种关系结构" : "Choose a relationship structure",
+        })}
+        description={t("experimentBuilder.step5.templateFirstDescription", {
+          defaultValue: isZh
+            ? "先从一个常见结构开始，后面再决定是否展开更细连接设置。"
+            : "Start with a familiar structure first, then decide whether you need more detailed connection settings.",
+        })}
       >
-        <div className="ss-workflow-summary-grid">
-          <SummaryInfoCard
-            label={t("experimentBuilder.step5.summaryAgents")}
-            value={agentIds.length}
-          />
-          <SummaryInfoCard
-            label={t("experimentBuilder.step5.summaryEdges")}
-            value={networkOverview.edgeCount}
-          />
-          <SummaryInfoCard
-            label={t("components.networkEditorModal.density")}
-            value={`${(networkOverview.density * 100).toFixed(0)}%`}
-          />
-          <SummaryInfoCard
-            label={t("experimentBuilder.step5.summaryPattern")}
-            value={
-              selectedPreset
-                ? t(`experimentBuilder.step5.presets.${presetIcons[selectedPreset].translationKey}.name`)
-                : t("experimentBuilder.step5.noPattern")
-            }
-          />
+        <div className="ss-structure-workflow__intro-grid">
+          <div className="ss-structure-workflow__intro-copy">
+            <div className="ss-workflow-kicker">{isZh ? "当前任务" : "Current task"}</div>
+            <p className="lab-meta">
+              {isZh
+                ? "默认先选一个结构模板，再按需打开 graph、成员与高级连接。"
+                : "Choose a template first, then open the graph, roster, and advanced links only when you need them."}
+            </p>
+          </div>
+          <div className="ss-workflow-summary-grid">
+            <SummaryInfoCard label={t("experimentBuilder.step5.summaryAgents")} value={agentIds.length} />
+            <SummaryInfoCard label={t("experimentBuilder.step5.summaryPattern")} value={currentPatternLabel} />
+          </div>
         </div>
       </ResearchInputPanel>
 
-      <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)_280px]">
-        <aside className="lab-surface lab-scroll max-h-[720px] overflow-y-auto p-5">
-          <div className="space-y-4">
+      <div className="ss-structure-workflow__layout">
+        <section className="ss-workflow-panel ss-guide-focus-target" id="ss-step5-template-library">
+          <div className="ss-workflow-panel__head">
             <div>
-              <div className="kicker">{t("experimentBuilder.step5.networkPresets")}</div>
-              <p className="lab-meta mt-2">{t("experimentBuilder.step5.chooseTopology")}</p>
+              <div className="ss-workflow-kicker">{t("experimentBuilder.step5.networkPresets")}</div>
+              <h2 className="ss-workflow-panel__title">
+                {isZh ? "选择一个起始情境结构" : "Choose a starting structure"}
+              </h2>
+              <p className="ss-workflow-panel__copy">
+                {isZh
+                  ? "从一个已有连接方式出发，快速决定参与者如何彼此接触。"
+                  : "Start from a familiar topology and decide how participants can reach one another."}
+              </p>
             </div>
+          </div>
 
-            <div className="space-y-2">
-              {Object.entries(presetIcons).map(([key, { icon: Icon, translationKey }]) => {
-                const isSelected = selectedPreset === key;
+          <div className="ss-structure-workflow__search">
+            <Search size={16} />
+            <input
+              value={searchQuery}
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+                emitStepFiveGuide({ type: "interaction" });
+              }}
+              placeholder={isZh ? "搜索关系结构模板" : "Search structure templates"}
+            />
+          </div>
+
+          <div className="ss-structure-workflow__template-scroll">
+            <div className="ss-structure-workflow__template-grid">
+              {filteredPresets.map((preset) => {
+                const isSelected = selectedPreset === preset;
+                const { icon: Icon, translationKey, defaultLabel } = presetIcons[preset];
+
                 return (
                   <button
-                    key={key}
+                    key={preset}
                     type="button"
-                    onClick={() => {
-                      setSelectedPreset(isSelected ? null : (key as PresetType));
-                      if (!isSelected) applyPreset(key as PresetType);
-                    }}
-                    className={`flex w-full items-center gap-3 rounded-[22px] border p-3 text-left transition-all ${
-                      isSelected
-                        ? "border-slate-900 bg-slate-900 text-white"
-                        : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-slate-300"
-                    }`}
+                    onClick={() => applyPreset(preset)}
+                    className={`ss-structure-workflow__template-card${isSelected ? " is-selected" : ""}`}
                   >
-                    <span
-                      className={`rounded-full p-2 ${
-                        isSelected ? "bg-white/12 text-white" : "bg-slate-100 text-slate-600"
-                      }`}
-                    >
-                      <Icon size={15} />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold">
-                        {t(`experimentBuilder.step5.presets.${translationKey}.name`)}
+                    <div className="ss-structure-workflow__template-head">
+                      <span className="ss-structure-workflow__template-icon">
+                        <Icon size={16} />
                       </span>
-                      <span className={`mt-1 block text-xs ${isSelected ? "text-white/72" : "text-slate-500"}`}>
-                        {t(`experimentBuilder.step5.presets.${translationKey}.description`)}
-                      </span>
-                    </span>
-                    <ChevronRight size={15} className={isSelected ? "text-white/80" : "text-slate-400"} />
+                      {isSelected ? (
+                        <span className="ss-structure-workflow__template-state">{isZh ? "已选" : "Selected"}</span>
+                      ) : null}
+                    </div>
+                    <div className="ss-structure-workflow__template-title">
+                      {t(`experimentBuilder.step5.presets.${translationKey}.name`, {
+                        defaultValue: isZh && preset === "custom" ? "自定义结构" : defaultLabel,
+                      })}
+                    </div>
+                    <p className="ss-structure-workflow__template-copy">{presetMeta[preset].summary}</p>
+                    <div className="ss-structure-workflow__template-tags">
+                      {presetMeta[preset].tags.map((tag) => (
+                        <span key={tag}>{tag}</span>
+                      ))}
+                    </div>
                   </button>
                 );
               })}
             </div>
-
-            {selectedPreset &&
-            selectedPreset !== "full" &&
-            selectedPreset !== "ring" &&
-            selectedPreset !== "star" ? (
-              <div className="rounded-[22px] border border-slate-200 bg-slate-50 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="kicker">{t("components.networkEditorModal.selectedPreset")}</div>
-                  <button
-                    type="button"
-                    onClick={() => resetParams(selectedPreset as keyof PresetParams)}
-                    className="text-xs text-slate-500 hover:text-slate-900"
-                  >
-                    {t("components.networkEditorModal.resetDefaults")}
-                  </button>
-                </div>
-                <div className="mt-4 space-y-4">
-                  {selectedPreset === "random" ? (
-                    <ParamSlider
-                      label={t("components.networkEditorModal.probabilityAnyTwoConnect")}
-                      value={params.random.connectionChance}
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      onChange={(value) => updateParam("random", "connectionChance", value)}
-                    />
-                  ) : null}
-
-                  {selectedPreset === "newman-watts" ? (
-                    <>
-                      <ParamSlider
-                        label={t("components.networkEditorModal.neighborsEachSide")}
-                        value={params["newman-watts"].neighborsEachSide}
-                        min={1}
-                        max={5}
-                        step={1}
-                        isInteger
-                        onChange={(value) => updateParam("newman-watts", "neighborsEachSide", value)}
-                      />
-                      <ParamSlider
-                        label={t("components.networkEditorModal.probabilityLongRangeShortcut")}
-                        value={params["newman-watts"].shortcutChance}
-                        min={0}
-                        max={0.5}
-                        step={0.01}
-                        onChange={(value) => updateParam("newman-watts", "shortcutChance", value)}
-                      />
-                    </>
-                  ) : null}
-                </div>
-                <Button
-                  size="sm"
-                  className="mt-4 w-full"
-                  onClick={() => selectedPreset && applyPreset(selectedPreset)}
-                >
-                  {t("experimentBuilder.step5.applyChanges")}
-                </Button>
-              </div>
-            ) : null}
-
-            <div className="rounded-[22px] border border-slate-200 bg-white p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                <Users size={14} />
-                {t("experimentBuilder.step5.agentCollections", { defaultValue: "Agent collections" })}
-              </div>
-              <p className="lab-meta mt-2">
-                {t("experimentBuilder.step5.agentCollectionsHint", {
-                  defaultValue: "Show one representative per repeated category first, then open the full member list only when needed.",
-                })}
-              </p>
-              <div className="mt-4 space-y-2">
-                {agentCollections.map((collection) => (
-                  <div
-                    key={collection.key}
-                    className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-slate-900">
-                          {collection.title}
-                        </div>
-                        <div className="mt-1 text-xs text-slate-500">
-                          {collection.representative.userProfile ||
-                            collection.representative.rolePrompt ||
-                            t("experimentBuilder.step4.noProperties")}
-                        </div>
-                      </div>
-                      <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                        {collection.count}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAdvancedMembers((current) => !current)}
-                className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
-              >
-                <Settings2 size={14} />
-                {showAdvancedMembers
-                  ? t("experimentBuilder.step5.hideMemberRoster", { defaultValue: "Hide member roster" })
-                  : t("experimentBuilder.step5.showMemberRoster", { defaultValue: "Show full member roster" })}
-              </button>
-
-              {showAdvancedMembers ? (
-                <div className="mt-4 max-h-[280px] space-y-2 overflow-y-auto pr-1">
-                  {agentIds.map((id) => (
-                    <div key={id} className="rounded-[16px] border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
-                      {id}
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </div>
           </div>
-        </aside>
+        </section>
 
-        <section className="lab-surface relative min-h-[720px] overflow-hidden p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-4">
-            <div>
-              <div className="kicker">{t("experimentBuilder.step5.briefingTitle")}</div>
-              <div className="mt-3 section-title">{t("experimentBuilder.step5.briefingTitle")}</div>
-              <p className="lab-meta mt-2 max-w-2xl">
-                {t("components.networkEditorModal.manualComposer", {
-                  defaultValue: "Start from the structure summary, then open the graph only when local manual edits are necessary.",
-                })}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white p-1">
-              <button
-                type="button"
-                onClick={() => setStageView("overview")}
-                className={`rounded-full px-3 py-2 text-xs font-semibold transition ${
-                  stageView === "overview" ? "bg-slate-900 text-white" : "text-slate-500"
-                }`}
-              >
-                {t("components.networkEditorModal.overviewTab", { defaultValue: "Overview" })}
-              </button>
-              <button
-                type="button"
-                onClick={() => setStageView("graph")}
-                className={`rounded-full px-3 py-2 text-xs font-semibold transition ${
-                  stageView === "graph" ? "bg-slate-900 text-white" : "text-slate-500"
-                }`}
-              >
-                {t("components.networkEditorModal.graphTab", { defaultValue: "Graph canvas" })}
-              </button>
-            </div>
-          </div>
-
-          {stageView === "overview" ? (
-            <div className="grid gap-4 pt-5 lg:grid-cols-2">
-              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
-                <div className="kicker">{t("components.networkEditorModal.networkPresets")}</div>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-[18px] border border-slate-200 bg-white p-4">
-                    <div className="text-[11px] uppercase tracking-wide text-slate-500">
-                      {t("experimentBuilder.step5.summaryAgents")}
-                    </div>
-                    <div className="mt-2 text-2xl font-semibold text-slate-900">{agentIds.length}</div>
-                  </div>
-                  <div className="rounded-[18px] border border-slate-200 bg-white p-4">
-                    <div className="text-[11px] uppercase tracking-wide text-slate-500">
-                      {t("experimentBuilder.step5.summaryEdges")}
-                    </div>
-                    <div className="mt-2 text-2xl font-semibold text-slate-900">{networkOverview.edgeCount}</div>
-                  </div>
-                  <div className="rounded-[18px] border border-slate-200 bg-white p-4">
-                    <div className="text-[11px] uppercase tracking-wide text-slate-500">
-                      {t("components.networkEditorModal.density")}
-                    </div>
-                    <div className="mt-2 text-2xl font-semibold text-slate-900">
-                      {(networkOverview.density * 100).toFixed(0)}%
-                    </div>
-                  </div>
-                  <div className="rounded-[18px] border border-slate-200 bg-white p-4">
-                    <div className="text-[11px] uppercase tracking-wide text-slate-500">
-                      {t("components.networkEditorModal.communities", { defaultValue: "Communities" })}
-                    </div>
-                    <div className="mt-2 text-2xl font-semibold text-slate-900">
-                      {networkOverview.componentCount}
-                    </div>
-                  </div>
+        <section
+          className="ss-workflow-panel ss-guide-focus-target ss-structure-workflow__summary-panel"
+          id="ss-step5-selection-summary"
+        >
+          {hasSelectedStructure ? (
+            <>
+              <div className="ss-workflow-panel__head">
+                <div>
+                  <div className="ss-workflow-kicker">{t("experimentBuilder.step5.summaryPattern")}</div>
+                  <h2 className="ss-workflow-panel__title">{currentPatternLabel}</h2>
+                  <p className="ss-workflow-panel__copy">
+                    {selectedPresetSummary ||
+                      (isZh
+                        ? "当前结构已经配置完成，可以先查看摘要，再决定是否展开更细设置。"
+                        : "The structure is configured. Review the summary first and open the details only when you need them.")}
+                  </p>
                 </div>
-              </div>
-
-              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
-                <div className="kicker">
-                  {t("components.networkEditorModal.topologySummary", { defaultValue: "Topology summary" })}
-                </div>
-                <div className="mt-4 space-y-3 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">
-                      {t("components.networkEditorModal.averageDegree", { defaultValue: "Average degree" })}
-                    </span>
-                    <strong className="text-slate-900">{networkOverview.averageDegree.toFixed(1)}</strong>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">
-                      {t("components.networkEditorModal.largestComponent", { defaultValue: "Largest component" })}
-                    </span>
-                    <strong className="text-slate-900">{networkOverview.largestComponent}</strong>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">{t("experimentBuilder.step5.summaryIsolated")}</span>
-                    <strong className="text-slate-900">{networkOverview.isolatedAgents.length}</strong>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">{t("experimentBuilder.step5.summaryPattern")}</span>
-                    <strong className="text-right text-slate-900">
-                      {selectedPreset
-                        ? t(`experimentBuilder.step5.presets.${presetIcons[selectedPreset].translationKey}.name`)
-                        : t("experimentBuilder.step5.noPattern")}
-                    </strong>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-[24px] border border-slate-200 bg-white p-5">
-                <div className="kicker">
-                  {t("experimentBuilder.step5.agentCollections", { defaultValue: "Agent collections" })}
-                </div>
-                <div className="mt-4 space-y-2">
-                  {agentCollections.map((collection) => (
-                    <div
-                      key={collection.key}
-                      className="flex items-center justify-between rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
-                    >
-                      <div className="min-w-0">
-                        <div className="truncate font-medium text-slate-900">{collection.title}</div>
-                        <div className="text-xs text-slate-500">
-                          {t("experimentBuilder.step5.collectionRepresentative", {
-                            defaultValue: "Representative",
-                          })}
-                          : {collection.representative.label}
-                        </div>
-                      </div>
-                      <span className="text-slate-500">
-                        {collection.count}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-[24px] border border-slate-200 bg-white p-5">
-                <div className="kicker">
-                  {t("components.networkEditorModal.hubAgents", { defaultValue: "Key connectors" })}
-                </div>
-                <div className="mt-4 space-y-2">
-                  {networkOverview.hubAgents.map((agent) => (
-                    <div key={agent.id} className="flex items-center justify-between rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                      <span className="font-medium text-slate-900">{agent.id}</span>
-                      <span className="text-slate-500">
-                        {t("components.networkEditorModal.degree", { defaultValue: "Degree" })}: {agent.degree}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-[24px] border border-slate-200 bg-white p-5">
-                <div className="kicker">{t("components.networkEditorModal.isolatedAgents")}</div>
-                {groupedIsolatedAgents.length > 0 ? (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {groupedIsolatedAgents.map((group) => (
-                      <span key={group.title} className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
-                        {group.title} × {group.count}
-                      </span>
+                {selectedPresetTags.length > 0 ? (
+                  <div className="ss-structure-workflow__summary-tags">
+                    {selectedPresetTags.map((tag) => (
+                      <span key={tag}>{tag}</span>
                     ))}
                   </div>
-                ) : (
-                  <p className="lab-meta mt-4">
-                    {t("components.networkEditorModal.noIsolatedAgents", { defaultValue: "All agents are connected to at least one peer." })}
-                  </p>
-                )}
+                ) : null}
               </div>
-            </div>
-          ) : (
-            <div
-              ref={containerRef}
-              className="relative mt-5 h-full min-h-[640px] bg-[radial-gradient(circle_at_top,_rgba(63,98,124,0.08),_transparent_32%),linear-gradient(180deg,_rgba(255,255,255,0.45),_rgba(248,250,252,0.85))]"
-            >
-              <svg ref={svgRef} className="block h-full w-full" />
 
-              {edges.length === 0 ? (
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-8">
-                  <div className="max-w-md rounded-[28px] border border-slate-200 bg-white/92 p-6 text-center shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
-                    <div className="section-title">{t("experimentBuilder.step5.emptyCanvasTitle")}</div>
-                    <p className="lab-meta mt-3">{t("experimentBuilder.step5.emptyCanvasBody")}</p>
-                  </div>
+              <div className="ss-workflow-summary-grid">
+                <SummaryInfoCard label={isZh ? "当前模型" : "Current model"} value={currentPatternLabel} />
+                <SummaryInfoCard label={isZh ? "角色数" : "Participants"} value={agentIds.length} />
+                <SummaryInfoCard label={isZh ? "连线数" : "Links"} value={networkOverview.edgeCount} />
+                <SummaryInfoCard label={t("components.networkEditorModal.density")} value={`${(networkOverview.density * 100).toFixed(0)}%`} />
+              </div>
+
+              <div className="ss-structure-workflow__preview-card">
+                <div className="ss-structure-workflow__preview-copy">
+                  <strong>{isZh ? "网络概览缩略图" : "Network overview preview"}</strong>
+                  <span>
+                    {isZh
+                      ? "首屏先看结构差异；完整图谱放到二级抽屉中查看。"
+                      : "Use the summary first; the full graph lives in a secondary drawer."}
+                  </span>
                 </div>
-              ) : null}
+                <div className="ss-structure-workflow__preview-graphic" aria-hidden="true">
+                  <svg viewBox={`0 0 ${miniPreview.width} ${miniPreview.height}`}>
+                    {miniPreview.edges.map((edge) => (
+                      <line
+                        key={edge.key}
+                        x1={edge.sourceNode.x}
+                        y1={edge.sourceNode.y}
+                        x2={edge.targetNode.x}
+                        y2={edge.targetNode.y}
+                      />
+                    ))}
+                    {miniPreview.nodes.map((node) => (
+                      <circle key={node.id} cx={node.x} cy={node.y} r={7} />
+                    ))}
+                  </svg>
+                  {miniPreview.remaining > 0 ? (
+                    <span className="ss-structure-workflow__preview-badge">+{miniPreview.remaining}</span>
+                  ) : null}
+                </div>
+              </div>
 
-              {hoverInfo ? (
-                <div
-                  className="absolute z-20 max-w-xs rounded-[20px] border border-slate-200 bg-white/95 px-3 py-2 text-[11px] text-slate-700 shadow-lg"
-                  style={{ left: hoverInfo.x, top: hoverInfo.y }}
+              <div className="ss-structure-workflow__advanced-actions">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => openDetailSurface("overview")}
                 >
-                  <div className="font-semibold">{hoverInfo.name}</div>
-                  <div className="mt-1 whitespace-pre-wrap break-words text-slate-500">
-                    {hoverInfo.profile || t("components.agentPanel.noProfile")}
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="absolute right-4 top-4 flex flex-col gap-1 rounded-[18px] border border-slate-200 bg-white/90 p-1">
-                <button onClick={handleZoomIn} className="rounded-[14px] p-2 text-slate-600 hover:bg-slate-100">
-                  <ZoomIn size={16} />
-                </button>
-                <button onClick={handleZoomOut} className="rounded-[14px] p-2 text-slate-600 hover:bg-slate-100">
-                  <ZoomOut size={16} />
-                </button>
-                <button onClick={handleResetZoom} className="rounded-[14px] p-2 text-slate-600 hover:bg-slate-100">
-                  <Maximize size={16} />
-                </button>
+                  {isZh ? "查看网络概览" : "View overview"}
+                </Button>
+                <Button type="button" variant="secondary" size="sm" onClick={openGraphDrawer}>
+                  {isZh ? "打开完整图谱" : "Open full graph"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => openDetailSurface("memberConnections")}
+                >
+                  {isZh ? "查看成员连接详情" : "View member connections"}
+                </Button>
               </div>
-
-              <div className="absolute bottom-4 left-4 flex flex-wrap items-center gap-2 rounded-full border border-slate-200 bg-white/92 px-4 py-2 text-xs text-slate-600">
-                <span>{t("experimentBuilder.step5.summaryAgents")}: {agentIds.length}</span>
-                <span>{t("experimentBuilder.step5.summaryEdges")}: {networkOverview.edgeCount}</span>
-                <span>{t("components.networkEditorModal.density")}: {(networkOverview.density * 100).toFixed(0)}%</span>
+            </>
+          ) : (
+            <div className="ss-structure-workflow__summary-empty">
+              <div className="ss-workflow-kicker">{isZh ? "当前选择摘要" : "Current selection"}</div>
+              <h2 className="ss-workflow-panel__title">
+                {isZh ? "先选一个结构模板" : "Pick a structure template first"}
+              </h2>
+              <p className="ss-workflow-panel__copy">
+                {isZh
+                  ? "模板区只保留常见结构。先做结构决策，再按需查看概览和完整图谱。"
+                  : "Pick a familiar topology first, then open the overview and full graph only when needed."}
+              </p>
+              <div className="ss-workflow-summary-grid">
+                <SummaryInfoCard label={isZh ? "角色数" : "Participants"} value={agentIds.length} />
+                <SummaryInfoCard label={isZh ? "连线数" : "Links"} value={networkOverview.edgeCount} />
+                <SummaryInfoCard
+                  label={t("components.networkEditorModal.density")}
+                  value={`${(networkOverview.density * 100).toFixed(0)}%`}
+                />
               </div>
             </div>
           )}
         </section>
 
-        <aside className="space-y-4">
-          <div className="lab-surface p-5">
-            <div className="kicker">{t("experimentBuilder.step5.briefingTitle")}</div>
-            <div className="mt-3 section-title">{t("experimentBuilder.step5.briefingTitle")}</div>
-            <p className="lab-meta mt-2">{t("experimentBuilder.step5.briefingDescription")}</p>
-            <div className="mt-5 space-y-3 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">{t("experimentBuilder.step5.summaryAgents")}</span>
-                <span className="font-semibold text-slate-900">{agentIds.length}</span>
+        {detailSurface ? (
+          <div className="ss-structure-workflow__drawer-backdrop" onClick={closeDetailSurface}>
+            <aside
+              className="ss-structure-workflow__drawer ss-structure-workflow__drawer--detail"
+              onClick={(event) => event.stopPropagation()}
+              aria-modal="true"
+              role="dialog"
+              aria-labelledby={detailSurface === "overview" ? "ss-step5-detailed-summary" : "ss-step5-advanced-links"}
+            >
+              <div className="ss-workflow-panel__head">
+                <div>
+                  <div className="ss-workflow-kicker">
+                    {detailSurface === "overview"
+                      ? isZh
+                        ? "网络概览"
+                        : "Network overview"
+                      : isZh
+                        ? "成员连接详情"
+                        : "Member connections"}
+                  </div>
+                  <h2
+                    className="ss-workflow-panel__title"
+                    id={detailSurface === "overview" ? "ss-step5-detailed-summary" : "ss-step5-advanced-links"}
+                  >
+                    {detailSurface === "overview"
+                      ? isZh
+                        ? "先确认整体结构，再决定是否细调"
+                        : "Confirm the structure before fine-tuning"
+                      : isZh
+                        ? "查看成员、连接与局部微调"
+                        : "Inspect members, links, and local tuning"}
+                  </h2>
+                  <p className="ss-workflow-panel__copy">
+                    {detailSurface === "overview"
+                      ? isZh
+                        ? "结构指标、预设参数与连接摘要集中放在这里，主页面只保留模板决策。"
+                        : "Structure metrics, preset controls, and grouped links live here so the main page can stay focused."
+                      : isZh
+                        ? "成员清单、边明细与局部微调集中放在这里，关闭后即可返回结构摘要。"
+                        : "Members, edge details, and local tuning live here, then you can return to the structure summary."}
+                  </p>
+                </div>
+                <Button type="button" variant="secondary" size="sm" onClick={closeDetailSurface}>
+                  {isZh ? "返回结构摘要" : "Back to summary"}
+                </Button>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">{t("experimentBuilder.step5.summaryEdges")}</span>
-                <span className="font-semibold text-slate-900">{networkOverview.edgeCount}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">{t("experimentBuilder.step5.summaryIsolated")}</span>
-                <span className="font-semibold text-slate-900">{networkOverview.isolatedAgents.length}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">{t("experimentBuilder.step5.summaryPattern")}</span>
-                <span className="text-right font-semibold text-slate-900">
-                  {selectedPreset
-                    ? t(`experimentBuilder.step5.presets.${presetIcons[selectedPreset].translationKey}.name`)
-                    : t("experimentBuilder.step5.noPattern")}
-                </span>
-              </div>
-            </div>
-          </div>
 
-          <div className="lab-surface p-5">
-            <div className="kicker">
-              {t("experimentBuilder.step5.groupedConnections", { defaultValue: "Grouped connections" })}
-            </div>
-            <div className="mt-4 space-y-2">
-              {groupedEdges.length > 0 ? (
-                groupedEdges.map((group) => (
-                  <div key={group.key} className="lab-inset p-3 text-sm text-slate-700">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="truncate font-medium text-slate-900">
-                        {group.sourceTitle} ↔ {group.targetTitle}
-                      </span>
-                      <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500">
-                        × {group.count}
-                      </span>
+              <div className="ss-structure-workflow__drawer-body">
+                {detailSurface === "overview" ? (
+                  <div className="ss-structure-workflow__drawer-stack">
+                    <div className="ss-structure-workflow__metric-grid">
+                      <SummaryInfoCard label={isZh ? "平均度" : "Average degree"} value={networkOverview.averageDegree.toFixed(1)} />
+                      <SummaryInfoCard label={isZh ? "最大连通分量" : "Largest component"} value={networkOverview.largestComponent} />
+                      <SummaryInfoCard label={isZh ? "群组数" : "Communities"} value={networkOverview.componentCount} />
+                      <SummaryInfoCard label={t("experimentBuilder.step5.summaryIsolated")} value={networkOverview.isolatedAgents.length} />
                     </div>
-                    <div className="mt-1 text-xs text-slate-500">
-                      {group.sample.join(" · ")}
+
+                    {hasPresetControls && selectedPreset ? (
+                      <div className="ss-structure-workflow__advanced-panel">
+                        <div className="ss-workflow-kicker">{t("components.networkEditorModal.selectedPreset")}</div>
+                        <div className="ss-structure-workflow__slider-list">
+                          {selectedPreset === "random" ? <ParamSlider label={t("components.networkEditorModal.probabilityAnyTwoConnect")} value={params.random.connectionChance} min={0} max={1} step={0.05} onChange={(value) => updateParam("random", "connectionChance", value)} /> : null}
+                          {selectedPreset === "newman-watts" ? (
+                            <>
+                              <ParamSlider label={t("components.networkEditorModal.neighborsEachSide")} value={params["newman-watts"].neighborsEachSide} min={1} max={5} step={1} isInteger onChange={(value) => updateParam("newman-watts", "neighborsEachSide", value)} />
+                              <ParamSlider label={t("components.networkEditorModal.probabilityLongRangeShortcut")} value={params["newman-watts"].shortcutChance} min={0} max={0.5} step={0.01} onChange={(value) => updateParam("newman-watts", "shortcutChance", value)} />
+                            </>
+                          ) : null}
+                          {selectedPreset === "core-periphery" ? (
+                            <>
+                              <ParamSlider label={isZh ? "核心成员比例" : "Core share"} value={params["core-periphery"].influencerPercent} min={0.1} max={0.5} step={0.05} onChange={(value) => updateParam("core-periphery", "influencerPercent", value)} />
+                              <ParamSlider label={isZh ? "核心成员互联强度" : "Core connectivity"} value={params["core-periphery"].influencerConnectivity} min={0.2} max={1} step={0.05} onChange={(value) => updateParam("core-periphery", "influencerConnectivity", value)} />
+                              <ParamSlider label={isZh ? "核心触达边缘概率" : "Core reach"} value={params["core-periphery"].influencerReach} min={0.1} max={1} step={0.05} onChange={(value) => updateParam("core-periphery", "influencerReach", value)} />
+                              <ParamSlider label={isZh ? "边缘成员互联强度" : "Peripheral connectivity"} value={params["core-periphery"].regularConnectivity} min={0} max={0.6} step={0.05} onChange={(value) => updateParam("core-periphery", "regularConnectivity", value)} />
+                            </>
+                          ) : null}
+                          {selectedPreset === "sbm" ? (
+                            <>
+                              <ParamSlider label={isZh ? "群组大小" : "Group size"} value={params.sbm.groupSize} min={2} max={8} step={1} isInteger onChange={(value) => updateParam("sbm", "groupSize", value)} />
+                              <ParamSlider label={isZh ? "组内连接概率" : "Within-group density"} value={params.sbm.withinGroupConnectivity} min={0.2} max={1} step={0.05} onChange={(value) => updateParam("sbm", "withinGroupConnectivity", value)} />
+                              <ParamSlider label={isZh ? "桥接连接数" : "Bridge links"} value={params.sbm.bridgeConnections} min={1} max={4} step={1} isInteger onChange={(value) => updateParam("sbm", "bridgeConnections", value)} />
+                            </>
+                          ) : null}
+                        </div>
+                        <div className="ss-structure-workflow__advanced-footer">
+                          <Button type="button" variant="secondary" size="sm" onClick={() => resetParams(selectedPreset as keyof PresetParams)}>
+                            {t("components.networkEditorModal.resetDefaults")}
+                          </Button>
+                          <Button type="button" size="sm" onClick={() => applyPreset(selectedPreset)}>
+                            {t("experimentBuilder.step5.applyChanges")}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="ss-structure-workflow__advanced-panel">
+                      <div className="ss-workflow-kicker">{isZh ? "连接摘要" : "Grouped connections"}</div>
+                      {groupedEdges.length > 0 ? (
+                        <div className="ss-structure-workflow__connection-list">
+                          {groupedEdges.map((group) => (
+                            <div key={group.key} className="ss-structure-workflow__connection-item">
+                              <div>
+                                <strong>{group.sourceTitle} ↔ {group.targetTitle}</strong>
+                                <small>{group.sample.join(" · ")}</small>
+                              </div>
+                              <span>× {group.count}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="lab-meta">{isZh ? "当前还没有生成连接。" : "No links have been generated yet."}</p>
+                      )}
                     </div>
                   </div>
-                ))
-              ) : (
-                <p className="lab-meta">{t("experimentBuilder.step5.noLinks")}</p>
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowAdvancedLinks((current) => !current)}
-              className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
-            >
-              <Settings2 size={14} />
-              {showAdvancedLinks
-                ? t("experimentBuilder.step5.hideAdvancedLinks", { defaultValue: "Hide advanced member links" })
-                : t("experimentBuilder.step5.showAdvancedLinks", { defaultValue: "Show advanced member links" })}
-            </button>
-
-            {showAdvancedLinks ? (
-              <div className="mt-4 space-y-4 rounded-[20px] border border-slate-200 bg-slate-50 p-4">
-                <div className="space-y-3">
-                  <select value={linkFrom} onChange={(event) => setLinkFrom(event.target.value)}>
-                    {agentIds.map((id) => (
-                      <option key={id} value={id}>
-                        {id}
-                      </option>
-                    ))}
-                  </select>
-                  <select value={linkTo} onChange={(event) => setLinkTo(event.target.value)}>
-                    {agentIds.map((id) => (
-                      <option key={id} value={id}>
-                        {id}
-                      </option>
-                    ))}
-                  </select>
-                  <Button
-                    size="sm"
-                    className="w-full"
-                    disabled={!linkFrom || !linkTo || linkFrom === linkTo}
-                    onClick={addLink}
-                  >
-                    {t("experimentBuilder.step5.addLink")}
-                  </Button>
-                </div>
-
-                <div className="max-h-[240px] space-y-2 overflow-y-auto pr-1">
-                  {edges.map((edge) => (
-                    <div key={edge.key} className="lab-inset flex items-center justify-between gap-3 p-3 text-sm text-slate-700">
-                      <span className="truncate">
-                        {edge.source} ↔ {edge.target}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => removeLink(edge.key)}
-                        className="text-xs text-rose-600 hover:text-rose-800"
-                      >
-                        {t("common.cancel")}
-                      </button>
+                ) : (
+                  <div className="ss-structure-workflow__drawer-stack">
+                    <div className="ss-structure-workflow__advanced-link-grid">
+                      <div className="ss-structure-workflow__advanced-panel">
+                        <div className="ss-workflow-kicker">{isZh ? "局部连接微调" : "Local link tuning"}</div>
+                        <div className="ss-structure-workflow__field-grid">
+                          <label><span>{isZh ? "连接起点" : "From"}</span><select value={linkFrom} onChange={(event) => setLinkFrom(event.target.value)}>{agentIds.map((id) => <option key={id} value={id}>{id}</option>)}</select></label>
+                          <label><span>{isZh ? "连接终点" : "To"}</span><select value={linkTo} onChange={(event) => setLinkTo(event.target.value)}>{agentIds.map((id) => <option key={id} value={id}>{id}</option>)}</select></label>
+                        </div>
+                        <Button size="sm" className="mt-4" disabled={!linkFrom || !linkTo || linkFrom === linkTo} onClick={addLink}>
+                          {t("experimentBuilder.step5.addLink")}
+                        </Button>
+                      </div>
+                      <div className="ss-structure-workflow__advanced-panel">
+                        <div className="ss-workflow-kicker">{t("experimentBuilder.step5.summaryEdges")}</div>
+                        <div className="ss-structure-workflow__edge-list">
+                          {edges.map((edge) => (
+                            <div key={edge.key} className="ss-structure-workflow__edge-item">
+                              <span>{edge.source} ↔ {edge.target}</span>
+                              <button type="button" onClick={() => removeLink(edge.key)}>
+                                {isZh ? "移除" : "Remove"}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {groupedIsolatedAgents.length > 0 ? (
-              <div className="mt-4 rounded-[20px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                <div className="font-medium">{t("components.networkEditorModal.isolatedAgents")}</div>
-                <div className="mt-2 space-y-1 text-xs leading-6">
-                  {groupedIsolatedAgents.map((group) => (
-                    <div key={group.title}>
-                      {group.title} × {group.count}
+                    <div className="ss-structure-workflow__collection-grid">
+                      {agentCollections.map((collection) => (
+                        <div key={collection.key} className="ss-structure-workflow__collection-card">
+                          <div>
+                            <strong>{collection.title}</strong>
+                            <small>{collection.representative.userProfile || collection.representative.rolePrompt || t("experimentBuilder.step4.noProperties")}</small>
+                          </div>
+                          <span>{collection.count}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                    <div className="ss-workflow-kicker" id="ss-step5-member-roster">
+                      {isZh ? "完整成员清单" : "Full member roster"}
+                    </div>
+                    <div className="ss-structure-workflow__roster-grid">
+                      {agentIds.map((id) => <div key={id} className="ss-structure-workflow__roster-card">{id}</div>)}
+                    </div>
+                    {groupedIsolatedAgents.length > 0 ? (
+                      <div className="ss-structure-workflow__isolated">
+                        <strong>{t("components.networkEditorModal.isolatedAgents")}</strong>
+                        <div className="ss-structure-workflow__isolated-list">
+                          {groupedIsolatedAgents.map((group) => <span key={group.title}>{group.title} × {group.count}</span>)}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
               </div>
-            ) : null}
+            </aside>
           </div>
-        </aside>
+        ) : null}
+
+        {showGraphDrawer ? (
+          <div className="ss-structure-workflow__drawer-backdrop" onClick={closeGraphDrawer}>
+            <aside
+              className="ss-structure-workflow__drawer"
+              onClick={(event) => event.stopPropagation()}
+              aria-modal="true"
+              role="dialog"
+              aria-labelledby="ss-step5-graph-canvas"
+            >
+              <div className="ss-workflow-panel__head">
+                <div>
+                  <div className="ss-workflow-kicker">{isZh ? "完整图谱" : "Full graph"}</div>
+                  <h2 className="ss-workflow-panel__title" id="ss-step5-graph-canvas">
+                    {isZh ? "完整查看当前网络结构" : "Inspect the full network structure"}
+                  </h2>
+                  <p className="ss-workflow-panel__copy">
+                    {isZh
+                      ? "首次打开会自动完整适配视口；之后可继续缩放查看局部关系。"
+                      : "The graph fits the full viewport on open and remains zoomable afterwards."}
+                  </p>
+                </div>
+                <Button type="button" variant="secondary" size="sm" onClick={closeGraphDrawer}>
+                  {isZh ? "关闭图谱" : "Close graph"}
+                </Button>
+              </div>
+
+              <div className="ss-structure-workflow__drawer-toolbar">
+                <div className="ss-structure-workflow__graph-meta">
+                  <span>{t("experimentBuilder.step5.summaryAgents")}: {agentIds.length}</span>
+                  <span>{t("experimentBuilder.step5.summaryEdges")}: {networkOverview.edgeCount}</span>
+                  <span>{t("components.networkEditorModal.density")}: {(networkOverview.density * 100).toFixed(0)}%</span>
+                </div>
+                <div className="ss-structure-workflow__graph-tools">
+                  <button type="button" onClick={handleZoomIn}><ZoomIn size={16} /></button>
+                  <button type="button" onClick={handleZoomOut}><ZoomOut size={16} /></button>
+                  <button type="button" onClick={handleResetZoom}><Maximize size={16} /></button>
+                </div>
+              </div>
+
+              <div ref={containerRef} className="ss-structure-workflow__graph-stage">
+                <svg ref={svgRef} className="block h-full w-full" />
+                {hoverInfo ? (
+                  <div className="ss-structure-workflow__graph-tooltip" style={{ left: hoverInfo.x, top: hoverInfo.y }}>
+                    <div className="font-semibold">{hoverInfo.name}</div>
+                    <div className="mt-1 whitespace-pre-wrap break-words">{hoverInfo.profile || t("components.agentPanel.noProfile")}</div>
+                  </div>
+                ) : null}
+              </div>
+            </aside>
+          </div>
+        ) : null}
       </div>
     </div>
   );

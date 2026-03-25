@@ -28,70 +28,70 @@
       "badge": "社会系统实验室 Social Systems Laboratory",
       "line1": "以精密模拟架构",
       "line2": "社会逻辑",
-      "accent": "Architecting Social Logic",
+      "accent": "构建社会逻辑",
       "sub": "为研究者、政策制定者与社会科学家打造的跨领域模拟平台。通过分支、观测与干预，洞察复杂系统的深层演化规律。",
-      "primaryCta": "进入实验室 (Enter Laboratory)",
-      "secondaryCta": "阅读方法论 (Methodology)",
+      "primaryCta": "进入实验室",
+      "secondaryCta": "阅读方法论",
       "tag1": "高保真模拟",
       "tag2": "并行分支追踪",
       "tag3": "归因分析"
     },
     "entry": {
-      "primaryBadge": "New Matrix",
+      "primaryBadge": "新实验矩阵",
       "primaryTitle": "开启新实验",
-      "primarySubtitle": "Create new social node parameters",
+      "primarySubtitle": "从一个新的社会情境参数集开始构建实验。",
       "dashboardTitle": "全局控制台",
-      "dashboardSubtitle": "Global Monitor",
+      "dashboardSubtitle": "研究总览",
       "interfaceTitle": "实验主界面",
-      "interfaceSubtitle": "Main Interface",
+      "interfaceSubtitle": "仿真控制台",
       "savedTitle": "已存模拟",
-      "savedSubtitle": "Saved Sim",
+      "savedSubtitle": "实验归档",
       "settingsTitle": "系统设置",
-      "settingsSubtitle": "Settings"
+      "settingsSubtitle": "工作空间配置"
     },
     "preview": {
       "title": "实时模拟交互预览",
-      "accent": "Simulation Interaction Preview",
+      "accent": "仿真交互预览",
       "sub": "沉浸式观测、分支与多维数据洞察。",
-      "cta": "View Live Engine",
-      "overlayLabel": "Node Activity",
-      "overlayBranch": "Branch A-12",
-      "overlayBody": "System logical stability at 89.4% after intervention 4."
+      "cta": "查看实时引擎",
+      "overlayLabel": "节点活动",
+      "overlayBranch": "分支 A-12",
+      "overlayBody": "第 4 次干预后，系统逻辑稳定度维持在 89.4%。"
     },
     "capabilities": {
-      "title": "核心研究能力 | Core Capabilities",
+      "title": "核心研究能力",
       "designTitle": "实验设计",
-      "designSubtitle": "Experiment Design",
+      "designSubtitle": "实验架构设计",
       "designBody": "定义多维参数、建立因果链条，并在无风险的沙盒环境中构建庞大的社会矩阵。",
       "observeTitle": "实时观测",
-      "observeSubtitle": "Live Observation",
+      "observeSubtitle": "实验过程观测",
       "branchTitle": "分支与对比",
-      "branchSubtitle": "Branching & Comparison",
+      "branchSubtitle": "分支比较",
       "controlTitle": "干预与控制",
-      "controlBody": "Intervention & Control: Precision causal manipulation tools."
+      "controlBody": "通过精确的干预与控制工具，测试不同策略对系统演化的影响。"
     },
     "scenes": {
       "title": "应用研究场景",
-      "kicker": "Applied Research Scenes",
+      "kicker": "应用研究场景",
       "policyTitle": "政策模拟",
-      "policySubtitle": "Policy Simulation",
+      "policySubtitle": "政策情境推演",
       "policyBody": "测试宏观政策在局部群体中的涟漪效应。",
       "behaviorTitle": "社会行为分析",
-      "behaviorSubtitle": "Social Behavior Analysis",
+      "behaviorSubtitle": "社会行为研究",
       "behaviorBody": "观测个体选择如何汇聚成集体趋势。",
       "institutionTitle": "组织环境测试",
-      "institutionSubtitle": "Institutional Testing",
+      "institutionSubtitle": "组织机制测试",
       "institutionBody": "模拟不同激励机制下的组织效能演变。",
       "interventionTitle": "干预方案比对",
-      "interventionSubtitle": "Intervention Comparison",
+      "interventionSubtitle": "干预方案比较",
       "interventionBody": "多维度权衡不同干预手段的成本与成效。"
     },
     "finalCta": {
-      "title": "开启您的研究进程 | Begin Your Research",
+      "title": "开启研究进程",
       "sub": "连接现有实验室数据，或从零构建您的首个模拟场景。",
-      "new": "新建实验 (New Experiment)",
-      "dashboard": "访问控制台 (Dashboard)",
-      "saved": "回顾模拟记录 (Saved Simulations)"
+      "new": "新建实验",
+      "dashboard": "访问控制台",
+      "saved": "回顾实验归档"
     }
   },
   "dashboard": {
@@ -146,8 +146,17 @@
     "detailTitle": "当前归档",
     "detailHint": "在右侧查看当前快照摘要，再决定继续、复制或删除。",
     "selectedTitle": "归档上下文",
+    "detailBody": "「{{name}}」会以完整实验快照的形式保留在归档中。你可以继续沿当前路径推进，也可以复制一份作为新的工作副本。",
     "createdAt": "创建时间",
     "simulationId": "模拟 ID",
+    "statusValues": {
+      "active": "进行中",
+      "archived": "已归档",
+      "completed": "已完成",
+      "failed": "失败",
+      "draft": "草稿",
+      "unknown": "待检查"
+    },
     "confirmDelete": "删除该模拟？",
     "confirmBulkDelete": "确认删除已选中的 {{count}} 个模拟？",
     "bulkDeleteResult": "成功删除 {{success}} 个 / 失败 {{failed}} 个",
@@ -246,7 +255,7 @@
       "profile": "个人信息",
       "security": "安全",
       "providers": "提供商",
-      "llmProviders": "LLM提供商",
+      "llmProviders": "模型提供商",
       "searchProviders": "搜索提供商",
       "files": "文件管理"
     },
@@ -290,7 +299,7 @@
         "label": "名称",
         "provider": "提供商",
         "model": "模型",
-        "baseUrl": "Base URL",
+        "baseUrl": "基础地址",
         "apiKey": "API 密钥"
       },
       "save": "保存提供商",
@@ -1888,7 +1897,9 @@
       "descriptionPlaceholder": "描述这个动作的作用...",
       "addAction": "添加动作",
       "actionsSelected": "已选择 {{selected}} / {{total}} 个动作",
-      "removeAction": "删除动作"
+      "removeAction": "删除动作",
+      "selectionMode": "选择方式",
+      "manualSelection": "手动选择"
     },
     "step4": {
       "modeTitle": "您想如何创建代理？",

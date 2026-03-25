@@ -198,6 +198,9 @@ export function SavedSimulationsPage() {
       minute: "2-digit",
     });
 
+  const formatStatus = (status: string) =>
+    t(`saved.statusValues.${status}`, { defaultValue: status });
+
   return (
     <div className="ss-product-page ss-product-page--archive scroll-panel">
       <TitleCard title={t("saved.title")} subtitle={t("saved.subtitle")} />
@@ -221,7 +224,7 @@ export function SavedSimulationsPage() {
               .filter((item) => item !== "all")
               .map((status) => (
                 <option key={status} value={status}>
-                  {status}
+                  {formatStatus(status)}
                 </option>
               ))}
           </select>
@@ -331,7 +334,7 @@ export function SavedSimulationsPage() {
                       <div>
                         <div className="ss-archive-card__title">{simulation.name}</div>
                         <div className="ss-archive-card__meta-line">
-                          <span className="ss-status-chip">{simulation.status}</span>
+                          <span className="ss-status-chip">{formatStatus(simulation.status)}</span>
                           <span>{simulation.scene_type}</span>
                         </div>
                       </div>
@@ -409,7 +412,7 @@ export function SavedSimulationsPage() {
               <div className="ss-archive-detail__meta-grid">
                 <div className="ss-inset ss-archive-detail__metric">
                   <span>{t("saved.statusLabel")}</span>
-                  <strong>{selectedSimulation.status}</strong>
+                  <strong>{formatStatus(selectedSimulation.status)}</strong>
                 </div>
                 <div className="ss-inset ss-archive-detail__metric">
                   <span>{t("saved.typeLabel")}</span>
@@ -428,8 +431,7 @@ export function SavedSimulationsPage() {
               <div className="card">
                 <div className="panel-title">{t("saved.selectedTitle")}</div>
                 <div className="panel-subtitle">
-                  {selectedSimulation.name} is preserved as a full experiment snapshot. Resume it
-                  to continue the active line, or duplicate it to fork a fresh working copy.
+                  {t("saved.detailBody", { name: selectedSimulation.name })}
                 </div>
               </div>
 

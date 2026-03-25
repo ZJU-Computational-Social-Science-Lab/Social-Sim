@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SocialSim4 - 参与者定义</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;0,700;1,400&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "inverse-primary": "#ffb59e",
+              "inverse-surface": "#31302d",
+              "on-primary-container": "#541400",
+              "secondary-fixed": "#f5d9ff",
+              "surface-variant": "#e6e2dd",
+              "outline-variant": "#dbc1b9",
+              "secondary-fixed-dim": "#e0b9f0",
+              "surface-container-low": "#f7f3ee",
+              "on-surface-variant": "#55433d",
+              "surface-container-highest": "#e6e2dd",
+              "on-secondary-fixed-variant": "#593b69",
+              "on-secondary": "#ffffff",
+              "surface": "#fdf9f4",
+              "on-tertiary": "#ffffff",
+              "secondary-container": "#eec6ff",
+              "error-container": "#ffdad6",
+              "primary-fixed-dim": "#ffb59e",
+              "tertiary-container": "#09a493",
+              "tertiary-fixed": "#7df7e3",
+              "outline": "#88726c",
+              "on-error": "#ffffff",
+              "surface-dim": "#ddd9d5",
+              "on-tertiary-fixed-variant": "#005047",
+              "error": "#ba1a1a",
+              "on-secondary-container": "#6f4f7f",
+              "on-tertiary-fixed": "#00201c",
+              "tertiary": "#006b5f",
+              "surface-container": "#f1ede8",
+              "on-error-container": "#93000a",
+              "primary-container": "#d97757",
+              "on-secondary-fixed": "#2b0e3b",
+              "background": "#fdf9f4",
+              "surface-container-high": "#ebe8e3",
+              "on-background": "#1c1c19",
+              "tertiary-fixed-dim": "#5edac7",
+              "surface-tint": "#99462a",
+              "on-tertiary-container": "#00312b",
+              "on-primary-fixed": "#390b00",
+              "primary": "#99462a",
+              "inverse-on-surface": "#f4f0eb",
+              "on-surface": "#1c1c19",
+              "on-primary-fixed-variant": "#7a2f15",
+              "on-primary": "#ffffff",
+              "secondary": "#725282",
+              "surface-bright": "#fdf9f4",
+              "surface-container-lowest": "#ffffff",
+              "primary-fixed": "#ffdbd0"
+            },
+            fontFamily: {
+              "headline": ["Newsreader", "serif"],
+              "body": ["Manrope", "sans-serif"],
+              "label": ["Manrope", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .editorial-gutter {
+            margin-left: 8.333333%;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-secondary-container">
+<!-- TopNavBar (Shared Component) -->
+<header class="bg-[#fdf9f4] dark:bg-[#1c1c19] flex justify-between items-center w-full px-8 py-4 max-w-full docked full-width top-0 z-50">
+<div class="flex items-center gap-8">
+<span class="text-2xl font-bold bg-gradient-to-br from-[#D97757] to-[#6E4E7E] bg-clip-text text-transparent">SocialSim4</span>
+<nav class="hidden md:flex gap-6">
+<a class="text-[#725282] dark:text-[#a38cb0] font-medium hover:text-[#99462a] transition-colors duration-300" href="#">Archives</a>
+<a class="text-[#725282] dark:text-[#a38cb0] font-medium hover:text-[#99462a] transition-colors duration-300" href="#">Methodology</a>
+<a class="text-[#99462a] dark:text-[#D97757] border-b-2 border-[#99462a] pb-1 font-medium" href="#">Library</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-[#99462a] p-2 hover:bg-surface-container transition-colors rounded-full" data-icon="settings">settings</button>
+<button class="material-symbols-outlined text-[#99462a] p-2 hover:bg-surface-container transition-colors rounded-full" data-icon="account_circle">account_circle</button>
+</div>
+</header>
+<div class="flex min-h-screen pt-16">
+<!-- SideNavBar (Shared Component) -->
+<aside class="bg-[#f7f3ee] dark:bg-[#1c1c19] h-screen w-72 fixed left-0 top-0 pt-20 flex flex-col py-10 pl-6 gap-6 z-40">
+<div class="mb-8">
+<p class="font-['Newsreader'] italic text-xl text-[#1c1c19] dark:text-[#fdf9f4] mb-1">Project Alpha</p>
+<p class="font-['Manrope'] font-medium uppercase tracking-[0.1em] text-[0.75rem] text-[#725282] opacity-70">Phase: Synthesis</p>
+</div>
+<nav class="flex flex-col gap-2">
+<div class="flex items-center gap-3 px-4 py-3 text-[#725282] opacity-70 font-['Manrope'] font-medium uppercase tracking-[0.1em] text-[0.75rem] hover:bg-[#ebe8e3] transition-all rounded-l-3xl">
+<span class="material-symbols-outlined" data-icon="radio_button_checked">radio_button_checked</span>
+<span>01 Introduction</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 text-[#725282] opacity-70 font-['Manrope'] font-medium uppercase tracking-[0.1em] text-[0.75rem] hover:bg-[#ebe8e3] transition-all rounded-l-3xl">
+<span class="material-symbols-outlined" data-icon="psychology">psychology</span>
+<span>02 Hypothesis</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 text-[#725282] opacity-70 font-['Manrope'] font-medium uppercase tracking-[0.1em] text-[0.75rem] hover:bg-[#ebe8e3] transition-all rounded-l-3xl">
+<span class="material-symbols-outlined" data-icon="database">database</span>
+<span>03 Data Collection</span>
+</div>
+<div class="bg-[#ffffff] dark:bg-[#2d2d2a] text-[#99462a] font-bold rounded-l-3xl shadow-sm flex items-center gap-3 px-4 py-3 font-['Manrope'] uppercase tracking-[0.1em] text-[0.75rem]">
+<span class="material-symbols-outlined" data-icon="analytics" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span>04 Analysis</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 text-[#725282] opacity-70 font-['Manrope'] font-medium uppercase tracking-[0.1em] text-[0.75rem] hover:bg-[#ebe8e3] transition-all rounded-l-3xl">
+<span class="material-symbols-outlined" data-icon="assignment_turned_in">assignment_turned_in</span>
+<span>05 Conclusion</span>
+</div>
+</nav>
+<button class="mt-auto mr-6 bg-primary text-on-primary py-4 rounded-md font-['Manrope'] font-semibold uppercase tracking-widest text-xs hover:bg-gradient-to-br hover:from-[#D97757] hover:to-[#6E4E7E] transition-all">
+                Export Thesis
+            </button>
+</aside>
+<!-- Main Workspace -->
+<main class="ml-72 flex-1 p-12 mb-32 grid grid-cols-12 gap-8">
+<!-- Left & Center: Creation Area -->
+<div class="col-span-12 lg:col-span-8 editorial-gutter">
+<header class="mb-16">
+<h1 class="font-headline text-[3.5rem] leading-tight tracking-tight text-on-surface mb-4">
+                        定义实验中的个体或群体
+                    </h1>
+<p class="text-body text-on-surface-variant max-w-2xl leading-relaxed">
+                        在此阶段，您需要构建模拟环境中的基本主体。这些参与者将携带特定的社会属性与行为逻辑，作为实验数据的核心来源。
+                    </p>
+</header>
+<!-- Creation Form: Workspace Feel (Minimal & Layered) -->
+<section class="mb-20 space-y-12">
+<div class="relative group">
+<label class="font-label text-xs uppercase tracking-[0.2em] text-secondary mb-3 block">Subject Designation / 参与者名称</label>
+<input class="w-full bg-surface-container-high border-0 border-b-2 border-outline-variant/20 focus:border-primary focus:ring-0 transition-all text-xl py-4 placeholder:text-outline-variant" placeholder="例如：资深学者群体" type="text"/>
+</div>
+<div class="grid grid-cols-2 gap-12">
+<div>
+<label class="font-label text-xs uppercase tracking-[0.2em] text-secondary mb-3 block">Population Count / 数量</label>
+<input class="w-full bg-surface-container-high border-0 border-b-2 border-outline-variant/20 focus:border-primary focus:ring-0 transition-all py-4" placeholder="50" type="number"/>
+</div>
+<div>
+<label class="font-label text-xs uppercase tracking-[0.2em] text-secondary mb-3 block">Affiliation / 归属类别</label>
+<select class="w-full bg-surface-container-high border-0 border-b-2 border-outline-variant/20 focus:border-primary focus:ring-0 transition-all py-4">
+<option>学术机构 (Academic)</option>
+<option>企业部门 (Corporate)</option>
+<option>独立研究者 (Independent)</option>
+</select>
+</div>
+</div>
+<div>
+<label class="font-label text-xs uppercase tracking-[0.2em] text-secondary mb-3 block">Behavioral Logic / 行为逻辑定义</label>
+<textarea class="w-full bg-surface-container-high border-0 border-b-2 border-outline-variant/20 focus:border-primary focus:ring-0 transition-all py-4 resize-none" placeholder="描述该群体的决策权重与交互偏好..." rows="4"></textarea>
+</div>
+<div class="flex justify-end">
+<button class="flex items-center gap-2 bg-surface-container-lowest text-primary px-8 py-3 rounded-full border border-outline-variant/20 hover:bg-primary hover:text-white transition-all duration-300">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+<span class="font-label font-bold uppercase tracking-wider text-sm">Add to Simulation</span>
+</button>
+</div>
+</section>
+<!-- Created Participants List: Elegant Cards -->
+<section>
+<h3 class="font-headline text-2xl text-on-surface mb-8">已编入的参与者</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest p-8 rounded-lg shadow-sm border border-outline-variant/10 group hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between mb-6">
+<div class="w-14 h-14 bg-secondary-container rounded-xl flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-3xl" data-icon="school">school</span>
+</div>
+<span class="bg-secondary/10 text-secondary text-[10px] uppercase font-bold tracking-widest px-3 py-1 rounded-full">Primary</span>
+</div>
+<h4 class="font-headline text-xl mb-2">资深教职人员</h4>
+<p class="text-on-surface-variant text-sm line-clamp-2 mb-4 leading-relaxed italic">
+                                具有高批判性思维权重，偏好引用传统文献进行交流。
+                            </p>
+<div class="flex items-center gap-4 text-xs font-label text-outline uppercase tracking-wider">
+<span>N = 120</span>
+<span class="w-1 h-1 bg-outline-variant rounded-full"></span>
+<span>Risk: Low</span>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest p-8 rounded-lg shadow-sm border border-outline-variant/10 group hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between mb-6">
+<div class="w-14 h-14 bg-primary-fixed rounded-xl flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl" data-icon="group">group</span>
+</div>
+<span class="bg-primary/10 text-primary text-[10px] uppercase font-bold tracking-widest px-3 py-1 rounded-full">Observational</span>
+</div>
+<h4 class="font-headline text-xl mb-2">研究生群体</h4>
+<p class="text-on-surface-variant text-sm line-clamp-2 mb-4 leading-relaxed italic">
+                                活跃度较高，受社交压力影响显著，倾向于快速反馈。
+                            </p>
+<div class="flex items-center gap-4 text-xs font-label text-outline uppercase tracking-wider">
+<span>N = 450</span>
+<span class="w-1 h-1 bg-outline-variant rounded-full"></span>
+<span>Risk: Med</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Panel: Notebook Summary -->
+<div class="hidden lg:block lg:col-span-4 pl-8">
+<div class="sticky top-32 bg-surface-container p-10 rounded-xl space-y-12">
+<!-- Total Participants Data Point -->
+<div class="text-center py-8 border-b border-outline-variant/30">
+<p class="font-label text-[10px] uppercase tracking-[0.3em] text-secondary mb-4">Current Simulation Density</p>
+<div class="inline-flex items-baseline gap-2">
+<span class="font-headline text-7xl font-bold text-primary">570</span>
+<span class="font-headline text-2xl text-on-surface-variant italic">Individuals</span>
+</div>
+</div>
+<div class="space-y-8">
+<div>
+<h5 class="font-label text-xs uppercase tracking-widest text-on-surface mb-6 flex items-center gap-2">
+<span class="w-4 h-px bg-primary"></span>
+                                Distribution Analysis
+                            </h5>
+<div class="space-y-6">
+<div class="space-y-2">
+<div class="flex justify-between text-xs font-label uppercase">
+<span>Academic</span>
+<span>72%</span>
+</div>
+<div class="h-1 bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-secondary w-[72%]"></div>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-xs font-label uppercase">
+<span>Independent</span>
+<span>28%</span>
+</div>
+<div class="h-1 bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-secondary w-[28%]"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="pt-8">
+<div class="bg-surface-container-highest p-6 rounded-lg rotate-1 shadow-sm">
+<span class="material-symbols-outlined text-secondary text-sm mb-2" data-icon="edit_note">edit_note</span>
+<p class="text-xs font-body leading-relaxed text-on-secondary-fixed-variant italic">
+                                    "Note: Ensure the power dynamics between Professors and Graduate students are calibrated in Step 5: Analysis."
+                                </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- BottomNavBar (Shared Component) -->
+<footer class="fixed bottom-0 left-0 w-full z-50 flex justify-center items-center gap-12 px-10 py-6 bg-[#fdf9f4]/80 dark:bg-[#1c1c19]/80 backdrop-blur-xl border-t border-[#dbc1b9]/20 shadow-[0_-12px_40px_rgba(28,28,25,0.06)] rounded-t-[3rem]">
+<button class="text-[#725282] dark:text-[#a38cb0] flex items-center gap-2 px-6 font-['Manrope'] font-semibold tracking-wide hover:opacity-90 transition-opacity active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+            Previous
+        </button>
+<button class="bg-gradient-to-br from-[#D97757] to-[#6E4E7E] text-white rounded-full px-12 py-3 shadow-lg scale-105 font-['Manrope'] font-semibold tracking-wide flex items-center gap-2 hover:opacity-90 transition-opacity active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+            Complete Entry
+        </button>
+<button class="text-[#725282] dark:text-[#a38cb0] flex items-center gap-2 px-6 font-['Manrope'] font-semibold tracking-wide hover:opacity-90 transition-opacity active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="save">save</span>
+            Save Draft
+        </button>
+</footer>
+</body></html>

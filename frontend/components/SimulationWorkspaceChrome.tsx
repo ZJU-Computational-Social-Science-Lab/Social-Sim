@@ -16,13 +16,18 @@ import { useThemeStore } from "../store/theme";
 interface SimulationWorkspaceChromeProps {
   observationMode: "global" | "focused" | "compare";
   selectedAgentName?: string | null;
+  workspaceMode: "observation" | "control";
+  onChangeWorkspaceMode: (mode: "observation" | "control") => void;
 }
 
 export const SimulationWorkspaceChrome: React.FC<SimulationWorkspaceChromeProps> = ({
   observationMode,
   selectedAgentName = null,
+  workspaceMode,
+  onChangeWorkspaceMode,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isZh = i18n.language.startsWith("zh");
   const currentSim = useSimulationStore((state) => state.currentSimulation);
   const nodes = useSimulationStore((state) => state.nodes);
   const selectedNodeId = useSimulationStore((state) => state.selectedNodeId);
@@ -43,6 +48,11 @@ export const SimulationWorkspaceChrome: React.FC<SimulationWorkspaceChromeProps>
     sceneConfig.initial_event ||
     (currentSim as any)?.description ||
     t("simulationWorkspace.subtitleFallback");
+  const workspaceTitle = React.useMemo(() => {
+    const rawTitle = currentSim?.name || t("simulationWorkspace.titleFallback");
+    const [primaryTitle] = rawTitle.split(/\s[-–—]\s/);
+    return primaryTitle?.trim() || rawTitle;
+  }, [currentSim?.name, t]);
 
   const observationModeLabel =
     observationMode === "compare"
@@ -63,8 +73,8 @@ export const SimulationWorkspaceChrome: React.FC<SimulationWorkspaceChromeProps>
               <div className="text-sm font-semibold tracking-tight text-[var(--ss-workspace-heading)]">
                 SocialSim4
               </div>
-              <div className="text-[11px] uppercase tracking-[0.16em] text-[var(--ss-workspace-muted)]">
-                Simulation Control Room
+              <div className="text-[11px] tracking-[0.08em] text-[var(--ss-workspace-muted)]">
+                {isZh ? "仿真控制台" : "Simulation Control Room"}
               </div>
             </div>
           </div>
@@ -111,7 +121,7 @@ export const SimulationWorkspaceChrome: React.FC<SimulationWorkspaceChromeProps>
             <div className="ss-kicker">{t("simulationWorkspace.deskLabel")}</div>
             <div>
               <h1 className="ss-workspace__hero-title">
-                {currentSim?.name || t("simulationWorkspace.titleFallback")}
+                {workspaceTitle}
               </h1>
               <p className="ss-workspace__hero-copy">{subtitle}</p>
             </div>
@@ -132,6 +142,23 @@ export const SimulationWorkspaceChrome: React.FC<SimulationWorkspaceChromeProps>
                 <span className="ss-pill ss-pill--quiet">{selectedAgentName}</span>
               ) : null}
             </div>
+          </div>
+
+          <div className="ss-workspace__mode-switch">
+            <button
+              type="button"
+              className={`ss-workspace__mode-chip${workspaceMode === "observation" ? " is-active" : ""}`}
+              onClick={() => onChangeWorkspaceMode("observation")}
+            >
+              {isZh ? "观察模式" : "Observation mode"}
+            </button>
+            <button
+              type="button"
+              className={`ss-workspace__mode-chip${workspaceMode === "control" ? " is-active" : ""}`}
+              onClick={() => onChangeWorkspaceMode("control")}
+            >
+              {isZh ? "高级控制" : "Control mode"}
+            </button>
           </div>
         </div>
       </div>

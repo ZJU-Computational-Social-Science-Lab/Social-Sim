@@ -12,6 +12,7 @@ import { ExperimentBuilder } from './experiment/ExperimentBuilder';
 import { X } from 'lucide-react';
 import { useSimulationStore } from '../store';
 import { NavBar } from './NavBar';
+import { useThemeStore } from '../store/theme';
 
 interface ExperimentBuilderModalProps {
   isOpen?: boolean;
@@ -33,6 +34,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
   const toggleWizard = useSimulationStore((state) => state.toggleWizard);
   const addSimulation = useSimulationStore((state) => state.addSimulation);
   const addNotification = useSimulationStore((state) => state.addNotification);
+  const themeMode = useThemeStore((state) => state.mode);
 
   // Use prop if explicitly provided, otherwise use store state
   const useExplicitState = isOpen !== undefined;
@@ -211,7 +213,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
 
   if (presentation === 'page') {
     return (
-      <div className="ss-setup-page">
+      <div className={`ss-setup-page ${themeMode === 'dark' ? 'is-dark' : 'is-light'}`}>
         <NavBar variant="product" />
         <div className="ss-setup-page__viewport">
           <ExperimentBuilder

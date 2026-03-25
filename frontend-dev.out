@@ -1,0 +1,24 @@
+
+> socialsim4-next@0.0.0 dev
+> vite --host 127.0.0.1 --port 5173
+
+
+  [32m[1mVITE[22m v6.4.1[39m  [2mready in [0m[1m573[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5173[22m/[39m
+[2m02:15:13[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/styles.css[22m
+[2m02:16:24[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/styles.css[22m
+[2m02:17:27[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/styles.css[22m
+[2m02:18:35[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/styles.css[22m
+[2m02:20:05[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/components/layout/AuthLayout.tsx, /styles.css[22m
+[2m02:20:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/components/experiment/Step1InteractionType.tsx, /styles.css[22m
+[2m02:21:14[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mlocales/design.ts[22m
+[2m02:22:24[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/styles.css[22m
+[2m02:23:06[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/styles.css[22m
+[2m02:48:01[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/App.tsx, /styles.css, /components/layout/AuthLayout.tsx, /pages/TopologyExplorerPage.tsx, /components/NavBar.tsx, /components/SimulationWorkspaceChrome.tsx[22m
+[2m02:49:23[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/styles.css[22m
+[2m02:50:48[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/styles.css[22m
+[2m02:52:30[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/styles.css[22m
+[2m02:54:05[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/styles.css[22m
+[2m02:55:29[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/styles.css[22m
+[2m02:56:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/styles.css[22m

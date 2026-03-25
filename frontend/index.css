@@ -7,34 +7,34 @@
     --sim-font-sans: "Manrope", "SF Pro Display", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     --sim-font-display: "Sora", "Avenir Next", "SF Pro Display", "Segoe UI", sans-serif;
 
-    --sim-bg: #f4f2ee;
-    --sim-bg-elevated: #fbfaf7;
-    --sim-surface-1: rgba(255, 255, 255, 0.82);
-    --sim-surface-2: rgba(246, 246, 248, 0.92);
-    --sim-surface-3: rgba(239, 243, 248, 0.96);
+    --sim-bg: #FFFDF8;
+    --sim-bg-elevated: #FFFEF9;
+    --sim-surface-1: rgba(255, 253, 250, 0.82);
+    --sim-surface-2: rgba(250, 248, 242, 0.92);
+    --sim-surface-3: rgba(245, 241, 234, 0.96);
     --sim-surface-strong: #ffffff;
-    --sim-panel-tint: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(247, 249, 253, 0.94) 100%);
-    --sim-text: #203145;
-    --sim-text-strong: #132033;
-    --sim-text-muted: #617286;
-    --sim-text-soft: #7b8da1;
-    --muted: #617286;
-    --sim-border: rgba(29, 49, 74, 0.1);
-    --sim-border-strong: rgba(44, 82, 130, 0.16);
-    --sim-primary: #3368c8;
-    --sim-primary-strong: #2957ab;
-    --sim-primary-soft: rgba(51, 104, 200, 0.14);
-    --sim-teal: #2d8f84;
-    --sim-violet: #7f6bc9;
-    --sim-rose: #c46b72;
-    --sim-amber: #be8852;
-    --sim-success: #2f8d63;
-    --sim-warning: #ae7a2e;
-    --sim-danger: #b25258;
-    --sim-shadow-xs: 0 6px 18px rgba(21, 33, 54, 0.04);
-    --sim-shadow-sm: 0 18px 48px rgba(28, 44, 69, 0.08);
-    --sim-shadow-md: 0 26px 72px rgba(19, 31, 51, 0.12);
-    --sim-shadow-lg: 0 42px 90px rgba(18, 31, 48, 0.16);
+    --sim-panel-tint: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 253, 248, 0.94) 100%);
+    --sim-text: #3E3A37;
+    --sim-text-strong: #1E1A17;
+    --sim-text-muted: #726D68;
+    --sim-text-soft: #9B98A1;
+    --muted: #726D68;
+    --sim-border: rgba(60, 50, 40, 0.08);
+    --sim-border-strong: rgba(60, 50, 40, 0.14);
+    --sim-primary: #d4a24e;
+    --sim-primary-strong: #c4922e;
+    --sim-primary-soft: rgba(255, 200, 112, 0.14);
+    --sim-teal: #87BDFF;
+    --sim-violet: #B49CDA;
+    --sim-rose: #c4605a;
+    --sim-amber: #d4a24e;
+    --sim-success: #5a9a6b;
+    --sim-warning: #c49535;
+    --sim-danger: #c4605a;
+    --sim-shadow-xs: 0 6px 18px rgba(40, 32, 20, 0.03);
+    --sim-shadow-sm: 0 18px 48px rgba(40, 32, 20, 0.06);
+    --sim-shadow-md: 0 26px 72px rgba(40, 32, 20, 0.08);
+    --sim-shadow-lg: 0 42px 90px rgba(40, 32, 20, 0.10);
     --sim-radius-sm: 14px;
     --sim-radius-md: 20px;
     --sim-radius-lg: 24px;
@@ -91,8 +91,8 @@
     margin: 0;
     font-family: var(--sim-font-sans);
     background:
-      radial-gradient(circle at top left, rgba(99, 146, 233, 0.14), transparent 28%),
-      radial-gradient(circle at top right, rgba(89, 185, 170, 0.12), transparent 24%),
+      radial-gradient(circle at top left, rgba(255, 200, 112, 0.12), transparent 28%),
+      radial-gradient(circle at top right, rgba(135, 189, 255, 0.10), transparent 24%),
       linear-gradient(180deg, var(--sim-bg-elevated) 0%, var(--sim-bg) 100%);
     color: var(--sim-text);
     min-height: 100vh;
@@ -105,8 +105,8 @@
     position: fixed;
     inset: 0;
     background-image:
-      linear-gradient(rgba(102, 126, 155, 0.045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(102, 126, 155, 0.045) 1px, transparent 1px);
+      linear-gradient(rgba(60, 50, 40, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(60, 50, 40, 0.025) 1px, transparent 1px);
     background-size: 36px 36px;
     mask-image: radial-gradient(circle at center, black 38%, transparent 95%);
     pointer-events: none;
@@ -141,7 +141,7 @@
   }
 
   ::selection {
-    background: rgba(51, 104, 200, 0.18);
+    background: rgba(255, 200, 112, 0.22);
   }
 }
 
@@ -254,7 +254,7 @@
   border: 0;
   border-radius: 16px;
   background: linear-gradient(135deg, var(--sim-primary) 0%, var(--sim-primary-strong) 100%);
-  color: white;
+  color: var(--sim-text-strong);
   font-weight: 700;
   cursor: pointer;
   transition:
@@ -262,13 +262,13 @@
     box-shadow 160ms ease,
     opacity 160ms ease,
     background-color 160ms ease;
-  box-shadow: 0 18px 40px rgba(42, 83, 157, 0.22);
+  box-shadow: 0 18px 40px rgba(212, 162, 78, 0.18);
 }
 
 .button:hover,
 .btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 22px 44px rgba(42, 83, 157, 0.26);
+  box-shadow: 0 22px 44px rgba(212, 162, 78, 0.22);
 }
 
 .button:disabled,
@@ -383,8 +383,8 @@ textarea.small {
 input:focus,
 textarea:focus,
 select:focus {
-  border-color: rgba(51, 104, 200, 0.42);
-  box-shadow: 0 0 0 4px rgba(51, 104, 200, 0.1);
+  border-color: rgba(135, 189, 255, 0.48);
+  box-shadow: 0 0 0 4px rgba(135, 189, 255, 0.12);
 }
 
 .panel-title {
@@ -407,7 +407,7 @@ select:focus {
   padding: 6px 12px;
   border-radius: 999px;
   background: var(--sim-primary-soft);
-  border: 1px solid rgba(51, 104, 200, 0.16);
+  border: 1px solid rgba(212, 162, 78, 0.16);
   color: var(--sim-primary);
   font-size: 0.78rem;
   font-weight: 700;
@@ -557,7 +557,7 @@ select:focus {
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(51, 104, 200, 0.18);
+  border: 2px solid rgba(212, 162, 78, 0.18);
   border-top-color: var(--sim-primary);
   border-radius: 999px;
   animation: spin 0.8s linear infinite;

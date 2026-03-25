@@ -6,12 +6,22 @@ import { LanguageSwitcher } from "../LanguageSwitcher";
 import { useThemeStore } from "../../store/theme";
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const mode = useThemeStore((state) => state.mode);
   const toggle = useThemeStore((state) => state.toggle);
+  const isZh = i18n.language.startsWith("zh");
+  const themeClass = mode === "dark" ? "is-dark" : "is-light";
+  const themeToggleLabel =
+    mode === "dark"
+      ? isZh
+        ? "切换到日间模式"
+        : "Switch to light mode"
+      : isZh
+        ? "切换到夜间模式"
+        : "Switch to dark mode";
 
   return (
-    <div className="ss-auth">
+    <div className={`ss-auth ${themeClass}`.trim()}>
       <div className="ss-auth-shell">
         <header className="ss-auth__topbar">
           <Link to="/" className="ss-auth__topbar-brand">
@@ -26,8 +36,8 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
               type="button"
               className="ss-auth__utility-button"
               onClick={toggle}
-              aria-label={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              aria-label={themeToggleLabel}
+              title={themeToggleLabel}
             >
               {mode === "dark" ? <SunMedium size={16} /> : <MoonStar size={16} />}
             </button>

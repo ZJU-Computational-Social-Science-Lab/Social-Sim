@@ -143,6 +143,17 @@ const generateArchetypes = (demographics: Demographic[]): Archetype[] => {
   }));
 };
 
+const focusStepFourElement = (elementId: string) => {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+  element.classList.remove('is-guided');
+  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  window.requestAnimationFrame(() => {
+    element.classList.add('is-guided');
+    window.setTimeout(() => element.classList.remove('is-guided'), 1800);
+  });
+};
+
 // =============================================================================
 // Component
 // =============================================================================
@@ -785,6 +796,57 @@ export const Step4Agents: React.FC = () => {
     }
   }, [selectedEditorAgent, selectedEditorAgentId]);
 
+  useEffect(() => {
+    const handleGuideFocus = (rawEvent: Event) => {
+      const event = rawEvent as CustomEvent<{ target?: string }>;
+      const target = event.detail?.target;
+
+      if (target === 'mode') {
+        focusStepFourElement('ss-step4-mode-grid');
+        return;
+      }
+
+      if (target === 'provider') {
+        if (agentMode !== 'demographic') {
+          setAgentMode('demographic');
+          window.setTimeout(() => focusStepFourElement('ss-step4-provider-selector'), 180);
+          return;
+        }
+        focusStepFourElement('ss-step4-provider-selector');
+        return;
+      }
+
+      if (target === 'registry') {
+        focusStepFourElement('ss-step4-participant-registry');
+        return;
+      }
+
+      if (target === 'editor') {
+        focusStepFourElement('ss-step4-participant-editor');
+        return;
+      }
+
+      if (target === 'name') {
+        if (agentTypes.length === 0 || agentMode !== 'manual') {
+          setAgentMode('manual');
+          window.setTimeout(() => focusStepFourElement('ss-step4-new-type-name'), 180);
+          return;
+        }
+
+        const selectedNameInput = document.getElementById('ss-step4-editor-name');
+        if (selectedNameInput) {
+          focusStepFourElement('ss-step4-editor-name');
+          return;
+        }
+
+        focusStepFourElement('ss-step4-new-type-name');
+      }
+    };
+
+    window.addEventListener('ss-step4-guide', handleGuideFocus as EventListener);
+    return () => window.removeEventListener('ss-step4-guide', handleGuideFocus as EventListener);
+  }, [agentMode, agentTypes.length, setAgentMode]);
+
   // ==================== Render ====================
 
   return (
@@ -797,7 +859,7 @@ export const Step4Agents: React.FC = () => {
             '先确定参与者的组织方式，再逐步补充代表成员与研究属性。',
         })}
       >
-        <div className="ss-participant-workflow__mode-grid">
+        <div id="ss-step4-mode-grid" className="ss-participant-workflow__mode-grid">
           {agentModes.map((mode) => (
             <button
               key={mode.id}
@@ -916,7 +978,7 @@ export const Step4Agents: React.FC = () => {
             </div>
 
             {hasPendingTierDraft && (
-              <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <div className="ss-participant-workflow__manual-note mt-3 text-xs">
                 {t('experimentBuilder.step4.tierDraftPending')}
               </div>
             )}
@@ -931,16 +993,17 @@ export const Step4Agents: React.FC = () => {
           title={t('experimentBuilder.step4.defineTypes')}
           description={t('experimentBuilder.step4.manualHint')}
         >
-          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            {t('experimentBuilder.step4.manualHint')}
+        <div className="ss-participant-workflow__manual-note mb-4 px-4 py-3 text-sm">
+            {isZh() ? '先创建一个基础 participant type 即可，后续仍可继续补充。' : t('experimentBuilder.step4.manualHint')}
           </div>
 
           {/* Add New Agent Type */}
-          <div className="mb-4 p-3 bg-gray-50 rounded-md">
+          <div id="ss-step4-new-type" className="mb-4 p-3 bg-gray-50 rounded-md">
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.typeLabel')}</label>
                 <input
+                  id="ss-step4-new-type-name"
                   type="text"
                   value={newAgentType.label}
                   onChange={(e) => setNewAgentType({ ...newAgentType, label: e.target.value })}
@@ -1021,11 +1084,11 @@ export const Step4Agents: React.FC = () => {
         >
           {/* LLM Provider Selector */}
           {llmProviders.length > 0 && (
-            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+            <div id="ss-step4-provider-selector" className="ss-participant-workflow__provider">
               <label className="block text-sm font-medium text-gray-700 mb-2">{t('experimentBuilder.step4.llmProvider')}</label>
               <select
                 value={selectedProviderId || ''}
-                onChange={(e) => setSelectedProviderId(e.target.value || null)}
+                onChange={(e) => setSelectedProviderId(e.target.value ? Number(e.target.value) : null)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
               >
                 <option value="">{t('experimentBuilder.step4.defaultProvider')}</option>
@@ -1041,31 +1104,33 @@ export const Step4Agents: React.FC = () => {
           )}
 
           {/* Use the flexible demographic editor */}
-          <Step2DemographicsEditor
-            demographics={demographics}
-            archetypes={archetypes}
-            traits={traits}
-            genCount={genCount}
-            isGenerating={isGenerating}
-            onAddDemographic={handleAddDemographic}
-            onRemoveDemographic={handleRemoveDemographic}
-            onUpdateDemographicName={handleUpdateDemographicName}
-            onUpdateDemographicCategories={handleUpdateDemographicCategories}
-            onUpdateCategoryName={handleUpdateCategoryName}
-            onAddCategory={handleAddCategory}
-            onRemoveCategory={handleRemoveCategory}
-            onUpdateArchetypeProbability={handleUpdateArchetypeProbability}
-            onNormalizeProbabilities={handleNormalizeProbabilities}
-            onAddTrait={handleAddTrait}
-            onRemoveTrait={handleRemoveTrait}
-            onUpdateTrait={handleUpdateTrait}
-            onSetGenCount={setGenCount}
-            onGenerateAgents={handleGenerateAgents}
-            customAgents={generatedAgents}
-            setCustomAgents={setGeneratedAgents}
-            importError={importError}
-            useTranslation={false}
-          />
+          <div className="ss-participant-workflow__demographic-shell">
+            <Step2DemographicsEditor
+              demographics={demographics}
+              archetypes={archetypes}
+              traits={traits}
+              genCount={genCount}
+              isGenerating={isGenerating}
+              onAddDemographic={handleAddDemographic}
+              onRemoveDemographic={handleRemoveDemographic}
+              onUpdateDemographicName={handleUpdateDemographicName}
+              onUpdateDemographicCategories={handleUpdateDemographicCategories}
+              onUpdateCategoryName={handleUpdateCategoryName}
+              onAddCategory={handleAddCategory}
+              onRemoveCategory={handleRemoveCategory}
+              onUpdateArchetypeProbability={handleUpdateArchetypeProbability}
+              onNormalizeProbabilities={handleNormalizeProbabilities}
+              onAddTrait={handleAddTrait}
+              onRemoveTrait={handleRemoveTrait}
+              onUpdateTrait={handleUpdateTrait}
+              onSetGenCount={setGenCount}
+              onGenerateAgents={handleGenerateAgents}
+              customAgents={generatedAgents}
+              setCustomAgents={setGeneratedAgents}
+              importError={importError}
+              useTranslation={false}
+            />
+          </div>
         </ResearchInputPanel>
       )}
 
@@ -1097,7 +1162,7 @@ export const Step4Agents: React.FC = () => {
         {agentTypes.length === 0 ? (
           <p className="text-sm text-gray-600 text-center py-4">{t('experimentBuilder.step4.noTypes')}</p>
         ) : (
-          <div className="ss-participant-workflow__registry">
+          <div id="ss-step4-participant-registry" className="ss-participant-workflow__registry">
             <aside className="ss-participant-workflow__directory">
               <div className="ss-participant-workflow__search">
                 <Search size={14} className="text-gray-400" />
@@ -1147,7 +1212,7 @@ export const Step4Agents: React.FC = () => {
             </aside>
 
             {selectedEditorAgent ? (
-              <div className="ss-participant-workflow__editor">
+              <div id="ss-step4-participant-editor" className="ss-participant-workflow__editor">
                 {selectedCollection ? (
                   <div className="ss-participant-workflow__collection-summary">
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1191,6 +1256,7 @@ export const Step4Agents: React.FC = () => {
                   <div className="ss-participant-workflow__fields">
                     <FieldBlock label={t('experimentBuilder.step4.agentName')}>
                       <input
+                        id="ss-step4-editor-name"
                         type="text"
                         value={selectedEditorAgent.label}
                         onChange={(e) => updateAgentType(selectedEditorAgent.id, { label: e.target.value })}
@@ -1317,7 +1383,7 @@ export const Step4Agents: React.FC = () => {
                                 key: item.originalKey,
                                 agents: sharedPropertyOwners[item.originalKey].join('、'),
                               })}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 cursor-help"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 rounded bg-[rgba(47,230,166,0.14)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--ss-brand-primary)] cursor-help"
                             >
                               {t('experimentBuilder.step4.sharedPropertyBadge')}
                             </span>

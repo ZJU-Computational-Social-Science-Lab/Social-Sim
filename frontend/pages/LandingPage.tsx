@@ -14,9 +14,12 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useThemeStore } from "../store/theme";
 
 export function LandingPage() {
   const { t } = useTranslation();
+  const mode = useThemeStore((state) => state.mode);
+  const themeClass = mode === "dark" ? "is-dark" : "is-light";
 
   useEffect(() => {
     const sections = document.querySelectorAll<HTMLElement>(".ss-reveal");
@@ -122,7 +125,7 @@ export function LandingPage() {
   ];
 
   return (
-    <div className="ss-landing">
+    <div className={`ss-landing ${themeClass}`.trim()}>
       <section className="ss-landing__hero ss-reveal">
         <div className="ss-landing__frame ss-landing__hero-grid">
           <div className="ss-landing__hero-copy">

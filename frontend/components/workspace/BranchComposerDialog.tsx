@@ -18,7 +18,7 @@ const GENERIC_NODE_PATTERN = /^(Node \d+|节点 \d+)$/;
 
 const getNodeLabel = (node: SimNode | null, t: (key: string, options?: any) => string) => {
   if (!node) return "—";
-  if (node.depth === 0) return "Start";
+  if (node.depth === 0) return "起始";
   if (node.name && !GENERIC_NODE_PATTERN.test(node.name)) return node.name;
   return t("controlRoom.roundNodeLabel", { round: node.depth });
 };

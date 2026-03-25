@@ -7,7 +7,7 @@
  * At least one action must be selected.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useExperimentBuilder } from '../../store/experiment-builder';
 import { Circle, Plus, X } from 'lucide-react';
@@ -18,6 +18,8 @@ import { SummaryInfoCard } from './workflow/SummaryInfoCard';
 interface ActionToggleCardProps {
   name: string;
   description: string;
+  tag: string;
+  statusLabel: string;
   selected: boolean;
   onToggle: () => void;
   isCustom?: boolean;
@@ -28,6 +30,8 @@ interface ActionToggleCardProps {
 const ActionToggleCard: React.FC<ActionToggleCardProps> = ({
   name,
   description,
+  tag,
+  statusLabel,
   selected,
   onToggle,
   isCustom = false,
@@ -44,6 +48,12 @@ const ActionToggleCard: React.FC<ActionToggleCardProps> = ({
           <div className="flex-1 min-w-0">
             <h4 className="ss-heuristic-card__title">{name}</h4>
             <p className="ss-heuristic-card__copy">{description}</p>
+            <div className="ss-heuristic-card__meta">
+              <span className="ss-heuristic-card__tag">{tag}</span>
+              <span className={`ss-heuristic-card__status${selected ? ' is-selected' : ''}`}>
+                {statusLabel}
+              </span>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -78,8 +88,106 @@ interface CustomAction {
   description: string;
 }
 
+const classifyActionTag = (name: string, description: string, isZh: boolean) => {
+  const source = `${name} ${description}`.toLowerCase();
+
+  if (/cooperate|协作|合作|share|contribute|help|support/.test(source)) {
+    return isZh ? '合作型' : 'Cooperative';
+  }
+  if (/defect|背叛|betray|cheat|take|attack|compete|抢/.test(source)) {
+    return isZh ? '竞争型' : 'Competitive';
+  }
+  if (/observe|observer|监测|观察|inspect/.test(source)) {
+    return isZh ? '观察型' : 'Observational';
+  }
+  if (/protect|care|careful|safe|guard|守|稳/.test(source)) {
+    return isZh ? '稳健型' : 'Protective';
+  }
+
+  return isZh ? '策略型' : 'Strategic';
+};
+
+const summarizeBehaviorSpace = (
+  selectedActions: Array<{ name: string; description: string }>,
+  totalActions: number,
+  minimumActionCount: number,
+  isZh: boolean
+) => {
+  if (selectedActions.length < minimumActionCount) {
+    return {
+      title: isZh ? '当前动作不足' : 'Action space still too narrow',
+      description: isZh
+        ? `建议至少保留 ${minimumActionCount} 个动作，才能继续当前场景。`
+        : `Keep at least ${minimumActionCount} action${minimumActionCount > 1 ? "s" : ""} so the simulation can continue.`,
+      helper: isZh
+        ? minimumActionCount === 1
+          ? '先保留这个核心动作，再进入下一步。'
+          : '当前还不足以形成清晰的策略对照。'
+        : minimumActionCount === 1
+          ? 'Keep the core action first and continue.'
+          : 'There is not enough contrast yet to support a useful strategy comparison.',
+    };
+  }
+
+  if (minimumActionCount === 1) {
+    return {
+      title: isZh ? `已选择 ${selectedActions.length} 个动作` : `${selectedActions.length} actions selected`,
+      description: isZh
+        ? '当前场景允许以单动作运行，先保留核心动作即可继续。'
+        : 'This scene can run with a single core action.',
+      helper: isZh
+        ? totalActions > selectedActions.length
+          ? '如需扩展比较，再按需补充更多动作。'
+          : '当前单动作场景已经可以进入下一步。'
+        : totalActions > selectedActions.length
+          ? 'Add more actions later only if you need more contrast.'
+          : 'The current single-action scene is ready for the next step.',
+    };
+  }
+
+  if (selectedActions.length > 4) {
+    return {
+      title: isZh ? `已选择 ${selectedActions.length} 个动作` : `${selectedActions.length} actions selected`,
+      description: isZh
+        ? '当前动作较多，建议先保留最核心的 2 到 4 个动作。'
+        : 'You currently have many actions enabled. Start with the most important 2 to 4 actions first.',
+      helper: isZh
+        ? '动作太多会削弱比较焦点。'
+        : 'Too many actions can dilute the main comparison.',
+    };
+  }
+
+  const source = selectedActions.map((action) => `${action.name} ${action.description}`).join(' ').toLowerCase();
+  if (/cooperate|协作|合作/.test(source) && /defect|背叛|betray|竞争/.test(source)) {
+    return {
+      title: isZh ? `已选择 ${selectedActions.length} 个动作` : `${selectedActions.length} actions selected`,
+      description: isZh
+        ? '当前形成：合作 vs 背叛 的经典对抗结构。'
+        : 'This currently forms a classic cooperation-vs-defection contrast.',
+      helper: isZh
+        ? '满足当前场景的基础策略比较需求。'
+        : 'This is enough to support a baseline strategy comparison.',
+    };
+  }
+
+  return {
+    title: isZh ? `已选择 ${selectedActions.length} 个动作` : `${selectedActions.length} actions selected`,
+    description: isZh
+      ? '当前行为空间已经具备比较基础，可以继续绑定参与者策略。'
+      : 'The action space already supports a useful comparison and can move on to participant strategy mapping.',
+    helper: isZh
+      ? totalActions > selectedActions.length
+        ? '如需扩展，可以稍后再启用更多动作。'
+        : '当前动作组合已经足够进入下一步。'
+      : totalActions > selectedActions.length
+        ? 'You can enable more actions later if needed.'
+        : 'The current action set is already enough to continue.',
+  };
+};
+
 export const Step3Scenario: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isZh = i18n.language.startsWith('zh');
   const {
     selectedScenarioData,
     scenarioParams,
@@ -93,6 +201,7 @@ export const Step3Scenario: React.FC = () => {
 
   const [customActions, setCustomActions] = useState<CustomAction[]>([]);
   const [showAddAction, setShowAddAction] = useState(false);
+  const [showAllActions, setShowAllActions] = useState(false);
   const [newActionName, setNewActionName] = useState('');
   const [newActionDescription, setNewActionDescription] = useState('');
 
@@ -180,6 +289,74 @@ export const Step3Scenario: React.FC = () => {
     ...action,
     isCustom: !presetActionNames.has(action.name),
   }));
+  const minimumActionCount = allActions.length <= 1 ? 1 : 2;
+
+  const selectedActions = useMemo(
+    () => allActions.filter((action) => selectedActionIds.includes(action.name)),
+    [allActions, selectedActionIds]
+  );
+  const behaviorSpaceSummary = useMemo(
+    () => summarizeBehaviorSpace(selectedActions, allActions.length, minimumActionCount, isZh),
+    [allActions.length, isZh, minimumActionCount, selectedActions]
+  );
+  const recommendedActions = useMemo(() => {
+    const selectedFirst = allActions.filter((action) => selectedActionIds.includes(action.name));
+    const remaining = allActions.filter((action) => !selectedActionIds.includes(action.name));
+    return [...selectedFirst, ...remaining].slice(0, Math.min(4, allActions.length));
+  }, [allActions, selectedActionIds]);
+  const recommendedActionNames = useMemo(
+    () => new Set(recommendedActions.map((action) => action.name)),
+    [recommendedActions]
+  );
+  const commonActions = useMemo(
+    () => allActions.filter((action) => !recommendedActionNames.has(action.name)).slice(0, 4),
+    [allActions, recommendedActionNames]
+  );
+  const commonActionNames = useMemo(
+    () => new Set(commonActions.map((action) => action.name)),
+    [commonActions]
+  );
+  const expandedActions = useMemo(
+    () =>
+      allActions.filter(
+        (action) =>
+          !recommendedActionNames.has(action.name) && !commonActionNames.has(action.name)
+      ),
+    [allActions, commonActionNames, recommendedActionNames]
+  );
+
+  const renderActionGrid = (actions: typeof allActions) => {
+    if (actions.length === 0) {
+      return null;
+    }
+
+    return (
+      <div className="grid gap-4 md:grid-cols-2">
+        {actions.map((action) => (
+          <ActionToggleCard
+            key={action.name}
+            name={action.name}
+            description={action.description}
+            tag={classifyActionTag(action.name, action.description, isZh)}
+            statusLabel={
+              selectedActionIds.includes(action.name)
+                ? isZh
+                  ? '已启用'
+                  : 'Enabled'
+                : isZh
+                  ? '未启用'
+                  : 'Disabled'
+            }
+            selected={selectedActionIds.includes(action.name)}
+            onToggle={() => handleToggleAction(action.name)}
+            isCustom={action.isCustom}
+            onRemove={action.isCustom ? () => handleRemoveCustomAction(action.name) : undefined}
+            removeLabel={t('experimentBuilder.step3.removeAction')}
+          />
+        ))}
+      </div>
+    );
+  };
 
   const handleToggleAction = (actionName: string) => {
     // Prevent deselecting if it's the last action
@@ -225,7 +402,11 @@ export const Step3Scenario: React.FC = () => {
       <ResearchInputPanel
         eyebrow={t('common.actions')}
         title={t('experimentBuilder.step3.title')}
-        description={t('experimentBuilder.step3.subtitle')}
+        description={
+          isZh
+            ? '先确定参与者在这个场景里到底可以做什么，再决定保留哪些动作进入实验。'
+            : 'Define what participants can actually do in this scenario before deciding which actions belong in the experiment.'
+        }
       >
         <div className="ss-workflow-summary-grid">
           <SummaryInfoCard
@@ -237,14 +418,13 @@ export const Step3Scenario: React.FC = () => {
             })}
           />
           <SummaryInfoCard
-            label={t('experimentBuilder.step3.selectionMode', { defaultValue: 'Selection mode' })}
-            value={generatorParam ? t('experimentBuilder.dynamicActionsInfo.title') : t('experimentBuilder.step3.manualSelection', { defaultValue: 'Manual selection' })}
+            label={t('experimentBuilder.step3.selectionMode', { defaultValue: isZh ? '选择方式' : 'Selection mode' })}
+            value={
+              generatorParam
+                ? t('experimentBuilder.dynamicActionsInfo.title')
+                : t('experimentBuilder.step3.manualSelection', { defaultValue: isZh ? '手动选择' : 'Manual selection' })
+            }
           />
-        </div>
-
-        <div className="mt-4 rounded-[22px] border border-sky-200 bg-sky-50 px-4 py-4 text-sm text-sky-900">
-          <div className="font-medium">{t('experimentBuilder.step3.linkedTitle')}</div>
-          <div className="mt-2 leading-6">{t('experimentBuilder.step3.linkedDesc')}</div>
         </div>
         {selectedScenarioData?.category_actions && (
           <p className="mt-3 text-xs text-slate-500">
@@ -275,31 +455,95 @@ export const Step3Scenario: React.FC = () => {
         eyebrow={t('experimentBuilder.step3.ruleLibrary', { defaultValue: 'Heuristic set' })}
         title={t('experimentBuilder.step3.ruleLibraryTitle', { defaultValue: '行为规则' })}
         description={t('experimentBuilder.step3.ruleLibraryDescription', {
-          defaultValue: '保留研究者真正要比较的动作，不必一次性打开所有选项。',
+          defaultValue: '先保留一组最基础、最可比较的动作，高级动作可以稍后再展开。',
         })}
       >
-      <div className="grid gap-4 md:grid-cols-2">
-        {allActions.length === 0 ? (
-          <div className="rounded-[24px] border border-dashed border-slate-300 p-8 text-center">
+      <div id="ss-step3-action-library" className="ss-guide-focus-target">
+          {allActions.length === 0 ? (
+            <div className="rounded-[24px] border border-dashed border-slate-300 p-8 text-center">
             <p className="text-sm text-slate-600">
               {t('experimentBuilder.step3.noActions')}
             </p>
           </div>
         ) : (
-          allActions.map((action) => (
-            <ActionToggleCard
-              key={action.name}
-              name={action.name}
-              description={action.description}
-              selected={selectedActionIds.includes(action.name)}
-              onToggle={() => handleToggleAction(action.name)}
-              isCustom={action.isCustom}
-              onRemove={action.isCustom ? () => handleRemoveCustomAction(action.name) : undefined}
-              removeLabel={t('experimentBuilder.step3.removeAction')}
-            />
-          ))
+          <div className="space-y-4">
+            <section className="ss-heuristic-section">
+              <div className="ss-heuristic-section__head">
+                <strong>{isZh ? '推荐基础动作' : 'Recommended essentials'}</strong>
+                <span>{isZh ? '先保留核心对比动作' : 'Start with the core comparison set'}</span>
+              </div>
+              {renderActionGrid(recommendedActions)}
+            </section>
+
+            {commonActions.length > 0 ? (
+              <section className="ss-heuristic-section">
+                <div className="ss-heuristic-section__head">
+                  <strong>{isZh ? '常用动作' : 'Common actions'}</strong>
+                  <span>{isZh ? '需要时再补充' : 'Add these only when needed'}</span>
+                </div>
+                {renderActionGrid(commonActions)}
+              </section>
+            ) : null}
+
+            {expandedActions.length > 0 ? (
+              <section className="ss-heuristic-section">
+                <div className="ss-heuristic-section__head">
+                  <strong>{isZh ? '全部动作' : 'All actions'}</strong>
+                  <span>{isZh ? '高级项默认折叠' : 'Advanced options stay collapsed by default'}</span>
+                </div>
+                {!showAllActions ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllActions(true)}
+                    className="ss-heuristic-card__add"
+                  >
+                    <Plus size={16} />
+                    <span className="text-sm font-medium">
+                      {isZh ? `展开全部动作（${expandedActions.length}）` : `Show all actions (${expandedActions.length})`}
+                    </span>
+                  </button>
+                ) : (
+                  <div className="space-y-4">
+                    {renderActionGrid(expandedActions)}
+                    <button
+                      type="button"
+                      onClick={() => setShowAllActions(false)}
+                      className="ss-workflow-button ss-workflow-button--ghost w-fit"
+                    >
+                      {isZh ? '收起全部动作' : 'Hide all actions'}
+                    </button>
+                  </div>
+                )}
+              </section>
+            ) : null}
+          </div>
         )}
       </div>
+      </ResearchInputPanel>
+
+      <ResearchInputPanel
+        eyebrow={isZh ? '当前已选动作' : 'Selected actions'}
+        title={isZh ? '当前已选动作与行为空间' : 'Selected actions and behavior space'}
+        description={
+          isZh
+            ? '已选动作会直接决定后续模拟中的策略比较。先形成一组基础对比，再决定是否扩展。'
+            : 'The selected actions define the later strategic comparison. Build the core contrast first, then expand only if needed.'
+        }
+      >
+        <div id="ss-step3-behavior-space" className="ss-behavior-space ss-guide-focus-target">
+          <div className="ss-behavior-space__summary">
+            <strong>{behaviorSpaceSummary.title}</strong>
+            <p>{behaviorSpaceSummary.description}</p>
+          </div>
+          <div className="ss-behavior-space__chips">
+            {selectedActions.map((action) => (
+              <span key={action.name} className="ss-behavior-space__chip">
+                {action.name}
+              </span>
+            ))}
+          </div>
+          <div className="ss-behavior-space__note">{behaviorSpaceSummary.helper}</div>
+        </div>
       </ResearchInputPanel>
 
       {/* Add Custom Action Button (only for custom scenario) */}
@@ -373,12 +617,6 @@ export const Step3Scenario: React.FC = () => {
         </ResearchInputPanel>
       )}
 
-      {/* Selected Count */}
-      {allActions.length > 0 && (
-        <div className="text-sm text-slate-500">
-          {t('experimentBuilder.step3.actionsSelected', { selected: selectedActionIds.length, total: allActions.length })}
-        </div>
-      )}
     </div>
   );
 };

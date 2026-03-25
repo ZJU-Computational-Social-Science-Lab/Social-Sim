@@ -1,6 +1,5 @@
 import React from "react";
-import { LogViewer } from "../components/LogViewer";
-import { ComparisonView } from "../components/ComparisonView";
+import { ChevronLeft } from "lucide-react";
 import { ExperimentBuilderModal } from "../components/ExperimentBuilderModal";
 import SyncModal from "../components/SyncModal";
 import { HelpModal } from "../components/HelpModal";
@@ -13,7 +12,6 @@ import { NetworkEditorModal } from "../components/NetworkEditorModal";
 import { ReportModal } from "../components/ReportModal";
 import { GlobalKnowledgePanel } from "../components/GlobalKnowledgePanel";
 import { GuideAssistant } from "../components/GuideAssistant";
-import { SimulationWorkspaceChrome } from "../components/SimulationWorkspaceChrome";
 import { ToastContainer } from "../components/Toast";
 import { generateNodes, useSimulationStore } from "../store";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -21,12 +19,15 @@ import { getSimulation as apiGetSimulation } from "../services/simulations";
 import { getTreeGraph, getSimEvents, getSimState, getRehydrate } from "../services/simulationTree";
 import { useAuthStore } from "../store/auth";
 import { useTranslation } from "react-i18next";
-import { SimulationPathPanel } from "../components/workspace/SimulationPathPanel";
-import { ObservationConsole } from "../components/workspace/ObservationConsole";
-import { SimulationControlPanel } from "../components/workspace/SimulationControlPanel";
-import { NodeWorkspacePanel } from "../components/workspace/NodeWorkspacePanel";
 import { BranchComposerDialog } from "../components/workspace/BranchComposerDialog";
 import { readBranchContext } from "../utils/branchContext";
+import { TopControlBar } from "../components/workspace/TopControlBar";
+import { LeftExperimentRail, type RailSection } from "../components/workspace/LeftExperimentRail";
+import { AgentObservationPanel } from "../components/workspace/AgentObservationPanel";
+import { FlowCanvas } from "../components/workspace/FlowCanvas";
+import { NodeDetailPanel, type NodeDetailTab } from "../components/workspace/NodeDetailPanel";
+import { SimulationSummaryRail } from "../components/workspace/SimulationSummaryRail";
+import { TopologyStructureModal } from "../components/workspace/TopologyStructureModal";
 
 // ---------------- 页面主组件：SimulationPage ----------------
 
@@ -36,10 +37,13 @@ const SimulationPage: React.FC = () => {
   const nodes = useSimulationStore((state) => state.nodes);
   const selectedNodeId = useSimulationStore((state) => state.selectedNodeId);
   const compareTargetNodeId = useSimulationStore((state) => state.compareTargetNodeId);
+  const isGenerating = useSimulationStore((state) => state.isGenerating);
   const selectNode = useSimulationStore((state) => state.selectNode);
   const setCompareTarget = useSimulationStore((state) => state.setCompareTarget);
   const toggleCompareMode = useSimulationStore((state) => state.toggleCompareMode);
   const agents = useSimulationStore((state) => state.agents);
+  const advanceSimulation = useSimulationStore((state) => state.advanceSimulation);
+  const toggleReportModal = useSimulationStore((state) => state.toggleReportModal);
   const params = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -51,20 +55,19 @@ const SimulationPage: React.FC = () => {
   const { t } = useTranslation();
   const [hasSubmittedSetup, setHasSubmittedSetup] = React.useState(false);
   const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null);
-  const [isBranchDetailsOpen, setIsBranchDetailsOpen] = React.useState(false);
+  const [isAgentPanelVisible, setIsAgentPanelVisible] = React.useState(true);
+  const [isSummaryRailVisible, setIsSummaryRailVisible] = React.useState(true);
   const [isBranchComposerOpen, setIsBranchComposerOpen] = React.useState(false);
-  const [isObservationOpen, setIsObservationOpen] = React.useState(false);
+  const [isTopologyModalOpen, setIsTopologyModalOpen] = React.useState(false);
+  const [activeRailSection, setActiveRailSection] = React.useState<RailSection>("overview");
+  const [detailTab, setDetailTab] = React.useState<NodeDetailTab>("events");
+  const flowSectionRef = React.useRef<HTMLDivElement | null>(null);
+  const detailSectionRef = React.useRef<HTMLDivElement | null>(null);
 
-  const selectedAgent = React.useMemo(
-    () => agents.find((agent) => agent.id === selectedAgentId) || null,
-    [agents, selectedAgentId]
+  const selectedNode = React.useMemo(
+    () => nodes.find((node) => node.id === selectedNodeId) || nodes[0] || null,
+    [nodes, selectedNodeId],
   );
-
-  const observationMode = isCompareMode
-    ? "compare"
-    : selectedAgent
-      ? "focused"
-      : "global";
 
   React.useEffect(() => {
     if (!isNewExperimentRoute) return;
@@ -92,13 +95,6 @@ const SimulationPage: React.FC = () => {
   React.useEffect(() => {
     (async () => {
       if (!simIdParam) return;
-
-      // Connected mode: load from backend and exit early
-      if (engineConfig.mode === 'connected') {
-        if (!hasRestored || !isAuthenticated) return;
-        await useSimulationStore.getState().loadSimulationById(String(simIdParam));
-        return;
-      }
       // read engineConfig from hook above so effect re-runs when mode changes
       // If we're in connected mode, wait until auth restoration has completed
       if (engineConfig.mode === 'connected' && !hasRestored) {
@@ -508,12 +504,12 @@ const SimulationPage: React.FC = () => {
     })();
   }, [simIdParam, engineConfig.mode, hasRestored, isAuthenticated]);
 
-  // Load providers when in connected mode and authenticated
+  // Load providers for any authenticated workspace session so users can
+  // choose a provider before enabling the connected / LLM-backed engine.
   React.useEffect(() => {
-    if (engineConfig.mode === 'connected' && hasRestored && isAuthenticated) {
-      useSimulationStore.getState().loadProviders();
-    }
-  }, [engineConfig.mode, hasRestored, isAuthenticated]);
+    if (!hasRestored || !isAuthenticated) return;
+    void useSimulationStore.getState().loadProviders();
+  }, [hasRestored, isAuthenticated]);
 
   React.useEffect(() => {
     if (!selectedAgentId) return;
@@ -522,13 +518,25 @@ const SimulationPage: React.FC = () => {
   }, [agents, selectedAgentId]);
 
   React.useEffect(() => {
+    if (!simIdParam) return;
+    if (!hasRestored || !isAuthenticated) return;
+    if (engineConfig.mode === "connected") return;
+    useSimulationStore.getState().setEngineMode("connected");
+  }, [simIdParam, hasRestored, isAuthenticated, engineConfig.mode]);
+
+  React.useEffect(() => {
     if (!isCompareMode) return;
     setSelectedAgentId(null);
   }, [isCompareMode]);
 
   React.useEffect(() => {
-    setIsBranchDetailsOpen(false);
-  }, [selectedNodeId]);
+    if (!selectedAgentId) return;
+    setActiveRailSection("agents");
+  }, [selectedAgentId]);
+
+  const scrollToSection = React.useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   React.useEffect(() => {
     if (isNewExperimentRoute) return;
@@ -616,9 +624,34 @@ const SimulationPage: React.FC = () => {
 
   return (
     <div className="ss-workspace">
-      <SimulationWorkspaceChrome
-        observationMode={observationMode}
-        selectedAgentName={selectedAgent?.name || null}
+      <TopControlBar
+        isGenerating={isGenerating}
+        isCompareMode={isCompareMode}
+        canReturnToParent={Boolean(selectedNode?.parentId)}
+        onContinue={() => void advanceSimulation()}
+        onCreateBranch={() => setIsBranchComposerOpen(true)}
+        onViewDetails={() => {
+          setDetailTab("events");
+          setActiveRailSection("overview");
+          scrollToSection(detailSectionRef);
+        }}
+        onToggleCompare={() => {
+          if (isCompareMode) {
+            setCompareTarget(null);
+            toggleCompareMode(false);
+            return;
+          }
+          toggleCompareMode(true);
+        }}
+        onOpenNode={() => {
+          setActiveRailSection("branches");
+          scrollToSection(flowSectionRef);
+        }}
+        onReturnToParent={() => {
+          if (selectedNode?.parentId) {
+            selectNode(selectedNode.parentId);
+          }
+        }}
       />
 
       <div className="ss-workspace__main">
@@ -635,64 +668,147 @@ const SimulationPage: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="ss-control-room">
-            <SimulationPathPanel
-              detailsOpen={isBranchDetailsOpen}
-              onToggleDetails={() => setIsBranchDetailsOpen((open) => !open)}
-              onRequestCreateBranch={() => setIsBranchComposerOpen(true)}
-            />
+          <div
+            className={`ss-cockpit-grid${isAgentPanelVisible ? "" : " is-agent-panel-hidden"}${isSummaryRailVisible ? "" : " is-summary-rail-hidden"}`}
+          >
+            <div className="ss-cockpit-grid__left">
+              <div className={`ss-cockpit-grid__left-shell${isAgentPanelVisible ? "" : " is-agent-panel-hidden"}`}>
+                <LeftExperimentRail
+                  activeSection={activeRailSection}
+                  onOpenOverview={() => {
+                    setActiveRailSection("overview");
+                    scrollToSection(flowSectionRef);
+                  }}
+                  onOpenFlow={() => {
+                    setActiveRailSection("flow");
+                    scrollToSection(flowSectionRef);
+                  }}
+                  onOpenBranches={() => {
+                    setActiveRailSection("branches");
+                    setDetailTab("branches");
+                    scrollToSection(flowSectionRef);
+                  }}
+                  onOpenAgents={() => {
+                    setIsAgentPanelVisible(true);
+                    setActiveRailSection("agents");
+                    if (!selectedAgentId && agents[0]) {
+                      setSelectedAgentId(agents[0].id);
+                    }
+                  }}
+                  onOpenLogs={() => {
+                    setActiveRailSection("logs");
+                    setDetailTab("logs");
+                    scrollToSection(detailSectionRef);
+                  }}
+                  onOpenReports={() => {
+                    setActiveRailSection("reports");
+                    toggleReportModal(true);
+                  }}
+                  onOpenSettings={() => {
+                    setActiveRailSection("settings");
+                    navigate("/settings");
+                  }}
+                />
 
-            <div className="ss-branch-studio">
-              <div className="ss-branch-studio__sidebar">
-                <SimulationControlPanel
-                  branchDetailsOpen={isBranchDetailsOpen}
-                  onToggleBranchDetails={() => setIsBranchDetailsOpen((open) => !open)}
-                  onRequestCreateBranch={() => setIsBranchComposerOpen(true)}
+                {isAgentPanelVisible ? (
+                  <div className="ss-cockpit-grid__agent-panel">
+                    <AgentObservationPanel
+                      selectedAgentId={selectedAgentId}
+                      onSelectAgent={(agentId) => {
+                        setSelectedAgentId(agentId);
+                        if (agentId) {
+                          setActiveRailSection("agents");
+                        }
+                      }}
+                      onHide={() => {
+                        setIsAgentPanelVisible(false);
+                        if (activeRailSection === "agents") {
+                          setActiveRailSection("overview");
+                        }
+                      }}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="ss-cockpit-grid__main">
+              <div ref={flowSectionRef} className="ss-cockpit-grid__section">
+                <FlowCanvas
+                  onOpenDetails={() => {
+                    setDetailTab("branches");
+                    setActiveRailSection("branches");
+                    scrollToSection(detailSectionRef);
+                  }}
+                  onOpenTopology={() => setIsTopologyModalOpen(true)}
                 />
               </div>
 
-              <div className="ss-branch-studio__workspace">
-                <NodeWorkspacePanel
-                  onRequestCreateBranch={() => setIsBranchComposerOpen(true)}
-                  onToggleBranchDetails={() => setIsBranchDetailsOpen((open) => !open)}
-                >
-                  {isCompareMode ? (
-                    <ComparisonView />
-                  ) : (
-                    <LogViewer
-                      selectedAgentId={selectedAgentId}
-                      onClearSelectedAgent={() => setSelectedAgentId(null)}
-                    />
-                  )}
-                </NodeWorkspacePanel>
-
-                <details
-                  className="ss-branch-studio__observation"
-                  open={isObservationOpen}
-                  onToggle={(event) =>
-                    setIsObservationOpen((event.currentTarget as HTMLDetailsElement).open)
-                  }
-                >
-                  <summary className="ss-branch-studio__observation-summary">
-                    <span>{t("controlRoom.observationSecondaryTitle")}</span>
-                    <span>{t("controlRoom.observationSecondaryCopy")}</span>
-                  </summary>
-                  <div className="ss-branch-studio__observation-body">
-                    <ObservationConsole
-                      selectedAgentId={selectedAgentId}
-                      onSelectAgent={setSelectedAgentId}
-                    />
-                  </div>
-                </details>
+              <div ref={detailSectionRef} className="ss-cockpit-grid__section">
+                <NodeDetailPanel
+                  activeTab={detailTab}
+                  onChangeTab={(tab) => {
+                    setDetailTab(tab);
+                    if (tab === "logs") {
+                      setActiveRailSection("logs");
+                      return;
+                    }
+                    if (tab === "branches") {
+                      setActiveRailSection("branches");
+                      return;
+                    }
+                    setActiveRailSection("overview");
+                  }}
+                  selectedAgentId={selectedAgentId}
+                  onClearSelectedAgent={() => setSelectedAgentId(null)}
+                />
               </div>
+            </div>
+
+            <div className={`ss-cockpit-grid__right${isSummaryRailVisible ? "" : " is-hidden"}`}>
+              {isSummaryRailVisible ? (
+                <SimulationSummaryRail
+                  onOpenLogs={() => {
+                    setDetailTab("logs");
+                    setActiveRailSection("logs");
+                    scrollToSection(detailSectionRef);
+                  }}
+                  onHide={() => setIsSummaryRailVisible(false)}
+                />
+              ) : null}
             </div>
           </div>
         )}
+
+        {!showLoadingState && !isSummaryRailVisible ? (
+          <button
+            type="button"
+            className="ss-summary-rail__reveal"
+            onClick={() => setIsSummaryRailVisible(true)}
+            title="展开右侧摘要"
+            aria-label="展开右侧摘要"
+          >
+            <ChevronLeft size={16} />
+          </button>
+        ) : null}
       </div>
 
       <BranchComposerDialog
         isOpen={isBranchComposerOpen}
         onClose={() => setIsBranchComposerOpen(false)}
+      />
+
+      <TopologyStructureModal
+        isOpen={isTopologyModalOpen}
+        onClose={() => setIsTopologyModalOpen(false)}
+        onOpenNodeDetails={() => {
+          setIsTopologyModalOpen(false);
+          setDetailTab("branches");
+          setActiveRailSection("branches");
+          window.setTimeout(() => {
+            scrollToSection(detailSectionRef);
+          }, 40);
+        }}
       />
 
       <ExperimentBuilderModal />

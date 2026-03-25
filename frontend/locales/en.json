@@ -146,8 +146,17 @@
     "detailTitle": "Selected archive",
     "detailHint": "Inspect the current snapshot, then resume or duplicate it from this detail rail.",
     "selectedTitle": "Archive context",
+    "detailBody": "\"{{name}}\" is preserved as a full experiment snapshot. Resume it to continue the active line, or duplicate it to fork a fresh working copy.",
     "createdAt": "Created",
     "simulationId": "Simulation ID",
+    "statusValues": {
+      "active": "Active",
+      "archived": "Archived",
+      "completed": "Completed",
+      "failed": "Failed",
+      "draft": "Draft",
+      "unknown": "Review"
+    },
     "confirmDelete": "Delete this simulation?",
     "confirmBulkDelete": "Delete {{count}} selected simulations?",
     "bulkDeleteResult": "Deleted {{success}} simulations / Failed {{failed}} simulations",

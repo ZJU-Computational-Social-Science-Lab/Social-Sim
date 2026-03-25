@@ -9,7 +9,7 @@ const GENERIC_NODE_PATTERN = /^(Node \d+|节点 \d+)$/;
 
 const getNodeLabel = (node: SimNode | null, t: (key: string, options?: any) => string) => {
   if (!node) return "—";
-  if (node.depth === 0) return "Start";
+  if (node.depth === 0) return "起始";
   if (node.name && !GENERIC_NODE_PATTERN.test(node.name)) return node.name;
   return t("controlRoom.roundNodeLabel", { round: node.depth });
 };
@@ -17,12 +17,14 @@ const getNodeLabel = (node: SimNode | null, t: (key: string, options?: any) => s
 interface NodeWorkspacePanelProps {
   onRequestCreateBranch: () => void;
   onToggleBranchDetails: () => void;
+  workspaceMode: "observation" | "control";
   children: React.ReactNode;
 }
 
 export const NodeWorkspacePanel: React.FC<NodeWorkspacePanelProps> = ({
   onRequestCreateBranch,
   onToggleBranchDetails,
+  workspaceMode,
   children,
 }) => {
   const { t } = useTranslation();
@@ -30,6 +32,9 @@ export const NodeWorkspacePanel: React.FC<NodeWorkspacePanelProps> = ({
   const selectedNodeId = useSimulationStore((state) => state.selectedNodeId);
   const currentSimulation = useSimulationStore((state) => state.currentSimulation);
   const engineConfig = useSimulationStore((state) => state.engineConfig);
+  const llmProviders = useSimulationStore((state) => state.llmProviders);
+  const selectedProviderId = useSimulationStore((state) => state.selectedProviderId);
+  const currentProviderId = useSimulationStore((state) => state.currentProviderId);
   const isCompareMode = useSimulationStore((state) => state.isCompareMode);
   const isGenerating = useSimulationStore((state) => state.isGenerating);
   const advanceSimulation = useSimulationStore((state) => state.advanceSimulation);
@@ -76,15 +81,27 @@ export const NodeWorkspacePanel: React.FC<NodeWorkspacePanelProps> = ({
     sceneConfig.initial_event ||
     (currentSimulation as any)?.description ||
     t("simulationWorkspace.subtitleFallback");
+  const isObservationMode = workspaceMode === "observation";
+  const providerSelection = selectedProviderId ?? currentProviderId ?? null;
+  const selectedProvider =
+    llmProviders.find((provider) => provider.id === providerSelection) || null;
 
   return (
     <section className="ss-node-workspace">
-      <div className="ss-node-workspace__intro ss-workspace__panel">
+      <div
+        className={`ss-node-workspace__intro ss-workspace__panel${
+          isObservationMode ? " is-observation" : ""
+        }`}
+      >
         <div className="ss-node-workspace__intro-head">
           <div>
             <div className="ss-kicker">{t("controlRoom.workspaceKicker")}</div>
             <h2 className="ss-node-workspace__title">{selectedLabel}</h2>
-            <p className="ss-node-workspace__copy">{t("controlRoom.workspaceSubtitle")}</p>
+            <p className="ss-node-workspace__copy">
+              {isObservationMode
+                ? t("controlRoom.selectedNodeHint", { name: selectedLabel })
+                : t("controlRoom.workspaceSubtitle")}
+            </p>
           </div>
           <div className="ss-node-workspace__badges">
             <span className="ss-pill ss-pill--active">{t("controlRoom.statusCurrent")}</span>
@@ -108,21 +125,32 @@ export const NodeWorkspacePanel: React.FC<NodeWorkspacePanelProps> = ({
           </div>
           <div className="ss-node-workspace__summary-card">
             <span>{t("simulationWorkspace.provider")}</span>
-            <strong>{engineConfig.mode === "connected" ? t("simPage.socialSim4Engine") : t("simPage.standaloneMode")}</strong>
+            <strong>
+              {selectedProvider
+                ? `${selectedProvider.name || selectedProvider.provider}${selectedProvider.model ? ` · ${selectedProvider.model}` : ""}`
+                : t("simulationWorkspace.noProvider")}
+            </strong>
+            <p>{engineConfig.mode === "connected" ? t("simPage.socialSim4Engine") : t("simPage.standaloneMode")}</p>
           </div>
         </div>
 
-        <div className="ss-node-workspace__summary-grid">
+        <div
+          className={`ss-node-workspace__summary-grid${
+            isObservationMode ? " is-observation" : ""
+          }`}
+        >
           <div className="ss-node-workspace__summary-card">
             <span>{t("controlRoom.currentNodeConfiguration")}</span>
             <strong>{currentSimulation?.name || t("simulationWorkspace.titleFallback")}</strong>
             <p>{scenarioSummary}</p>
           </div>
-          <div className="ss-node-workspace__summary-card">
-            <span>{t("controlRoom.parentBranch")}</span>
-            <strong>{parentNode ? getNodeLabel(parentNode, t) : t("common.none")}</strong>
-            <p>{parentNode ? parentNode.display_id : t("controlRoom.noParentBranch")}</p>
-          </div>
+          {!isObservationMode ? (
+            <div className="ss-node-workspace__summary-card">
+              <span>{t("controlRoom.parentBranch")}</span>
+              <strong>{parentNode ? getNodeLabel(parentNode, t) : t("common.none")}</strong>
+              <p>{parentNode ? parentNode.display_id : t("controlRoom.noParentBranch")}</p>
+            </div>
+          ) : null}
           <div className="ss-node-workspace__summary-card">
             <span>{t("controlRoom.branchRelations")}</span>
             <strong>
@@ -152,18 +180,22 @@ export const NodeWorkspacePanel: React.FC<NodeWorkspacePanelProps> = ({
           <button onClick={onToggleBranchDetails} className="ss-button-secondary">
             {t("controlRoom.viewDetails")}
           </button>
-          <button
-            onClick={() => parentNode && selectNode(parentNode.id)}
-            disabled={!parentNode}
-            className="ss-button-secondary"
-          >
-            <ArrowUpLeft size={15} />
-            {t("controlRoom.returnToParentBranch")}
-          </button>
+          {!isObservationMode ? (
+            <button
+              onClick={() => parentNode && selectNode(parentNode.id)}
+              disabled={!parentNode}
+              className="ss-button-secondary"
+            >
+              <ArrowUpLeft size={15} />
+              {t("controlRoom.returnToParentBranch")}
+            </button>
+          ) : null}
         </div>
 
         <div className="ss-node-workspace__footnote">
-          {t("controlRoom.selectedNodeHint", { name: selectedLabel })}
+          {isObservationMode
+            ? t("controlRoom.branchSafeHint")
+            : t("controlRoom.selectedNodeHint", { name: selectedLabel })}
         </div>
       </div>
 
