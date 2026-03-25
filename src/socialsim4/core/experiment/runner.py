@@ -672,6 +672,16 @@ class ExperimentRunner:
             # Fallback to shared context if no round_history provided
             self.context_manager.set_initial_context(context_summary)
 
+        # PGG Phase: Reset deduction budget when entering deduct phase
+        # This must happen BEFORE agents are prompted so they see fresh budget
+        if (self.scene and
+            hasattr(self.scene, 'config') and
+            getattr(self.scene.config, 'scenario_id', None) == "public_goods" and
+            hasattr(self.scene, 'get_pgg_phase') and
+            self.scene.get_pgg_phase() == "deduct"):
+            self.scene._reset_deduction_budgets()
+            logger.debug(f"[PGG] Reset deduction budgets for deduct phase (round {round_num})")
+
         # Run the round with appropriate visibility mode
         if self.round_visibility == "simultaneous":
             round_result = await self._run_simultaneous_round(round_num)
@@ -681,6 +691,12 @@ class ExperimentRunner:
             round_result = await self._run_paired_round(round_num)
         else:  # sequential
             round_result = await self._run_sequential_round(round_num)
+
+        # PGG Phase: Advance phase after round completes
+        # This toggles between allocate <-> deduct for next round
+        if self.scene and hasattr(self.scene, 'advance_pgg_phase'):
+            self.scene.advance_pgg_phase()
+            logger.debug(f"[PGG] Advanced phase (round {round_num} complete)")
 
         logger.info(f"Round {round_num} complete: {len(round_result.actions)} actions")
 
