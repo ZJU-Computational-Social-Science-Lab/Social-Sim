@@ -61,3 +61,19 @@ class TestActionHandler:
         assert result["success"] is True
         assert self.state.agents["Alice"].resources["tokens"] == 15
         assert self.state.extensions["pools"]["main"] == 5
+
+    # Wave 0: Punishment event emission tests (FEAT-PGG-09 through FEAT-PGG-11)
+    def test_punish_emits_event(self):
+        """Punish action should emit punishment_action event."""
+        # TODO: Verify handle_punish emits punishment_action event
+        pytest.skip("Wave 0 scaffold - implement in Wave 1")
+
+    def test_punish_event_includes_amount(self):
+        """Punishment event should include amount spent."""
+        # TODO: Verify event includes amount spent by punisher
+        pytest.skip("Wave 0 scaffold - implement in Wave 1")
+
+    def test_punish_event_includes_deduction(self):
+        """Punishment event should include deduction (amount × cost_ratio)."""
+        # TODO: Verify event includes deduction applied to target
+        pytest.skip("Wave 0 scaffold - implement in Wave 1")
