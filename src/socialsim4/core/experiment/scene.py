@@ -467,6 +467,18 @@ class ExperimentScene:
             pass
 
         followup_modes = self._get_action_followup_modes(action_names)
+
+        # FEAT-PGG: Filter punish action when punishment is disabled
+        # When punishment_budget_per_round is 0 or not set, remove punish from actions
+        # This ensures agents don't see punishment text when feature is disabled
+        punishment_budget = params.get("punishment_budget_per_round", 0)
+        if punishment_budget <= 0 and "punish" in action_names:
+            action_names = [a for a in action_names if a != "punish"]
+            action_descriptions.pop("punish", None)
+            action_schemas.pop("punish", None)
+            followup_modes.pop("punish", None)
+            logger.debug(f"[GAME_CONFIG] Filtered 'punish' action (punishment_budget={punishment_budget})")
+
         logger.info(f"[GAME_CONFIG] scenario_id='{self.config.scenario_id}', action_names={action_names}, followup_modes={followup_modes}")
 
         return GameConfig(
