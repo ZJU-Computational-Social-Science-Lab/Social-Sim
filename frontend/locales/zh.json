@@ -2078,38 +2078,16 @@
     "resourceConfig": {
       "title": "资源设置",
       "resourceNameLabel": "资源名称",
-      "customResourceLabel": "自定义资源名称",
-      "customResourcePlaceholder": "输入自定义资源名称",
-      "initialAmountLabel": "初始数量",
-      "multiplierLabel": "资金池倍数",
-      "actionLabelsTitle": "行动标签",
-      "actionNameLabel": "行动名称",
-      "actionDescriptionLabel": "行动描述",
-      "actionDescriptionPlaceholder": "使用 {resource} 表示资源名称",
-      "actionDescriptionHint": "使用 {resource} 作为资源名称的占位符",
-      "resourceOptions": {
-        "tokens": "代币",
-        "money": "金钱",
-        "effortPoints": "努力点数",
-        "timeHours": "时间（小时）",
-        "resources": "资源",
-        "custom": "自定义..."
-      }
+      "amountPerRoundLabel": "每轮数量",
+      "multiplierLabel": "资金池倍数"
     },
-    "punishment": {
-      "title": "惩罚设置",
-      "description": "配置公共物品博弈的惩罚机制",
-      "budgetLabel": "每轮惩罚预算",
-      "budgetHint": "设为0则禁用惩罚。启用时，代理人获得代币以惩罚他人。",
-      "costRatioLabel": "成本比率（1代币 : N收益扣除）",
-      "costRatioHint": "数值越高，惩罚效果越强。Gachter等人（2006）使用3.0。",
-      "anonymousLabel": "匿名惩罚模式",
-      "anonymousHint": "启用后，被惩罚者看不到惩罚者",
-      "disabled": "惩罚已禁用（预算 = 0）",
-      "section": {
-        "collapsed": "显示惩罚设置",
-        "expanded": "隐藏惩罚设置"
-      }
+    "deductionSettings": {
+      "title": "扣除设置",
+      "budgetLabel": "每阶段扣除预算",
+      "budgetHint": "设为0则禁用。启用时，代理人可减少他人资源。",
+      "costRatioLabel": "成本比率 (1 : N)",
+      "costRatioHint": "数值越高效果越强。Fehr & Gächter (2002) 使用 3.0。",
+      "anonymousLabel": "匿名扣除"
     }
   },
   "simulation": {

@@ -2094,38 +2094,16 @@
     "resourceConfig": {
       "title": "Resource Settings",
       "resourceNameLabel": "Resource Name",
-      "customResourceLabel": "Custom Resource Name",
-      "customResourcePlaceholder": "Enter custom resource name",
-      "initialAmountLabel": "Initial Amount",
-      "multiplierLabel": "Pool Multiplier",
-      "actionLabelsTitle": "Action Labels",
-      "actionNameLabel": "Action Name",
-      "actionDescriptionLabel": "Action Description",
-      "actionDescriptionPlaceholder": "Use {resource} for the resource name",
-      "actionDescriptionHint": "Use {resource} as a placeholder for the resource name",
-      "resourceOptions": {
-        "tokens": "Tokens",
-        "money": "Money",
-        "effortPoints": "Effort Points",
-        "timeHours": "Time (hours)",
-        "resources": "Resources",
-        "custom": "Custom..."
-      }
+      "amountPerRoundLabel": "Amount per Round",
+      "multiplierLabel": "Pool Multiplier"
     },
-    "punishment": {
-      "title": "Punishment Settings",
-      "description": "Configure punishment mechanism for the public goods game",
-      "budgetLabel": "Punishment Budget per Round",
-      "budgetHint": "Set to 0 to disable punishment. When enabled, agents receive tokens to punish others.",
-      "costRatioLabel": "Cost Ratio (1 token : N payoff deduction)",
-      "costRatioHint": "Higher values mean stronger punishment effect. Gachter et al. (2006) used 3.0.",
-      "anonymousLabel": "Anonymous Punishment Mode",
-      "anonymousHint": "When enabled, targets don't see who punished them",
-      "disabled": "Punishment is disabled (budget = 0)",
-      "section": {
-        "collapsed": "Show Punishment Settings",
-        "expanded": "Hide Punishment Settings"
-      }
+    "deductionSettings": {
+      "title": "Deduction Settings",
+      "budgetLabel": "Deduction Budget per Phase",
+      "budgetHint": "Set to 0 to disable. When enabled, agents can reduce others' resources.",
+      "costRatioLabel": "Cost Ratio (1 : N)",
+      "costRatioHint": "Higher values = stronger effect. Fehr & Gächter (2002) used 3.0.",
+      "anonymousLabel": "Anonymous Deductions"
     }
   },
   "simulation": {
