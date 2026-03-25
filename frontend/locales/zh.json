@@ -1775,7 +1775,10 @@
       "initial_infected": "初始感染代理数",
       "proximity_probability": "邻近传播率",
       "action_probability": "动作传播率",
-      "recovery_turns": "恢复回合数"
+      "recovery_turns": "恢复回合数",
+      "punishment_budget_per_round": "每轮惩罚预算",
+      "punishment_cost_ratio": "成本比率（1代币 : N收益扣除）",
+      "punishment_anonymous": "匿名惩罚模式"
     },
     "paramDescriptions": {
       "cooperate_reward": "双方都选择第一个动作时的收益",
@@ -1822,7 +1825,10 @@
       "initial_infected": "初始感染的代理数量",
       "proximity_probability": "代理相邻时的传播概率",
       "action_probability": "感染代理与易感代理交谈时的传播概率",
-      "recovery_turns": "感染代理恢复所需的回合数"
+      "recovery_turns": "感染代理恢复所需的回合数",
+      "punishment_budget_per_round": "每个代理人每轮获得的惩罚代币数量。设为0则禁用惩罚。",
+      "punishment_cost_ratio": "每花费1个惩罚代币扣除目标多少收益。数值越高，惩罚效果越强。",
+      "punishment_anonymous": "启用后，被惩罚者看不到惩罚者（仅显示"匿名"）。"
     },
     "payoffMatrix": {
       "howToRead": {
@@ -2087,6 +2093,21 @@
         "timeHours": "时间（小时）",
         "resources": "资源",
         "custom": "自定义..."
+      }
+    },
+    "punishment": {
+      "title": "惩罚设置",
+      "description": "配置公共物品博弈的惩罚机制",
+      "budgetLabel": "每轮惩罚预算",
+      "budgetHint": "设为0则禁用惩罚。启用时，代理人获得代币以惩罚他人。",
+      "costRatioLabel": "成本比率（1代币 : N收益扣除）",
+      "costRatioHint": "数值越高，惩罚效果越强。Gachter等人（2006）使用3.0。",
+      "anonymousLabel": "匿名惩罚模式",
+      "anonymousHint": "启用后，被惩罚者看不到惩罚者",
+      "disabled": "惩罚已禁用（预算 = 0）",
+      "section": {
+        "collapsed": "显示惩罚设置",
+        "expanded": "隐藏惩罚设置"
       }
     }
   },
