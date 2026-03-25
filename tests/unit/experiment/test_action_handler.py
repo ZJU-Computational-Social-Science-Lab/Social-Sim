@@ -1,7 +1,24 @@
-"""Tests for ActionHandler."""
+"""
+Tests for ActionHandler.
+
+Covers action execution, declarative effects, and handler dispatch
+for experiment actions including punishment event emission.
+"""
 import pytest
 from socialsim4.core.experiment.action_handler import ActionHandler
 from socialsim4.core.experiment.state import ExperimentState, AgentState
+
+
+class MockScene:
+    """Mock scene for testing event emission."""
+
+    def __init__(self):
+        self.emitted_events = []
+        self.config = type('obj', (object,), {'parameters': {'punishment_cost_ratio': 3.0}})()
+
+    def _emit_event(self, event_type: str, data: dict):
+        """Store emitted events for verification."""
+        self.emitted_events.append({'type': event_type, 'data': data})
 
 
 class TestActionHandler:
@@ -62,18 +79,62 @@ class TestActionHandler:
         assert self.state.agents["Alice"].resources["tokens"] == 15
         assert self.state.extensions["pools"]["main"] == 5
 
-    # Wave 0: Punishment event emission tests (FEAT-PGG-09 through FEAT-PGG-11)
+    # Wave 1: Punishment event emission tests (FEAT-PGG-09 through FEAT-PGG-11)
     def test_punish_emits_event(self):
         """Punish action should emit punishment_action event."""
-        # TODO: Verify handle_punish emits punishment_action event
-        pytest.skip("Wave 0 scaffold - implement in Wave 1")
+        handler = ActionHandler()
+        state = ExperimentState()
+        state.agents["Alice"] = AgentState(
+            resources={"punishment_budget": 10},
+        )
+        state.agents["Bob"] = AgentState(
+            resources={},
+        )
+
+        mock_scene = MockScene()
+
+        result = handler.execute("punish", "Alice", {"target": "Bob", "amount": 5}, state, mock_scene)
+
+        assert result["success"] is True
+        assert len(mock_scene.emitted_events) == 1
+        assert mock_scene.emitted_events[0]["type"] == "punishment_action"
+        assert mock_scene.emitted_events[0]["data"]["punisher"] == "Alice"
+        assert mock_scene.emitted_events[0]["data"]["target"] == "Bob"
 
     def test_punish_event_includes_amount(self):
         """Punishment event should include amount spent."""
-        # TODO: Verify event includes amount spent by punisher
-        pytest.skip("Wave 0 scaffold - implement in Wave 1")
+        handler = ActionHandler()
+        state = ExperimentState()
+        state.agents["Alice"] = AgentState(
+            resources={"punishment_budget": 10},
+        )
+        state.agents["Bob"] = AgentState(
+            resources={},
+        )
+
+        mock_scene = MockScene()
+
+        result = handler.execute("punish", "Alice", {"target": "Bob", "amount": 5}, state, mock_scene)
+
+        assert result["success"] is True
+        assert mock_scene.emitted_events[0]["data"]["amount"] == 5
 
     def test_punish_event_includes_deduction(self):
         """Punishment event should include deduction (amount × cost_ratio)."""
-        # TODO: Verify event includes deduction applied to target
-        pytest.skip("Wave 0 scaffold - implement in Wave 1")
+        handler = ActionHandler()
+        state = ExperimentState()
+        state.agents["Alice"] = AgentState(
+            resources={"punishment_budget": 10},
+        )
+        state.agents["Bob"] = AgentState(
+            resources={},
+        )
+
+        mock_scene = MockScene()
+
+        result = handler.execute("punish", "Alice", {"target": "Bob", "amount": 5}, state, mock_scene)
+
+        assert result["success"] is True
+        # deduction = amount × cost_ratio = 5 × 3.0 = 15.0
+        assert mock_scene.emitted_events[0]["data"]["deduction"] == 15.0
+        assert mock_scene.emitted_events[0]["data"]["cost_ratio"] == 3.0

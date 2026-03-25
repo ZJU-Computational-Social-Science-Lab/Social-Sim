@@ -311,17 +311,18 @@ def handle_punish(action_data: dict, agent_name: str, state: ExperimentState, sc
     Stores allocation in state.extensions["punishments"] for
     end-of-round payoff calculation.
 
+    Emits punishment_action event for experiment logging.
+
     Args:
         action_data: {"target": agent_name, "amount": int}
         agent_name: Name of punishing agent
         state: Current experiment state
-        scene: Scene reference (unused)
+        scene: Scene reference for event emission
 
     Returns:
-        {"success": bool, "amount": int, "target": str} or
+        {"success": bool, "amount": int, "target": str, "deduction": float} or
         {"success": False, "error": str}
     """
-    _ = scene  # Scene not needed for punish action
     target = action_data.get("target")
     amount = action_data.get("amount", 0)
 
@@ -358,8 +359,31 @@ def handle_punish(action_data: dict, agent_name: str, state: ExperimentState, sc
     # Deduct from budget
     agent.resources["punishment_budget"] = current_budget - actual_amount
 
+    # FEAT-PGG-09, FEAT-PGG-10, FEAT-PGG-11: Emit punishment_action event
+    # Get cost_ratio from config (default 3.0 per Gachter et al. 2006)
+    cost_ratio = 3.0
+    if scene is not None:
+        if hasattr(scene, 'config') and hasattr(scene.config, 'parameters'):
+            cost_ratio = scene.config.parameters.get('punishment_cost_ratio', 3.0)
+        elif hasattr(scene, 'game_config') and hasattr(scene.game_config, 'parameters'):
+            cost_ratio = scene.game_config.parameters.get('punishment_cost_ratio', 3.0)
+
+    deduction = actual_amount * cost_ratio
+
+    # Emit event for experiment logging
+    if scene is not None and hasattr(scene, '_emit_event'):
+        scene._emit_event("punishment_action", {
+            "punisher": agent_name,
+            "target": target,
+            "amount": actual_amount,
+            "deduction": deduction,
+            "cost_ratio": cost_ratio,
+            "round": getattr(scene, 'current_round', 1),
+        })
+
     return {
         "success": True,
         "amount": actual_amount,
         "target": target,
+        "deduction": deduction,
     }
