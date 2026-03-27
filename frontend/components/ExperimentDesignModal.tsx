@@ -613,13 +613,11 @@ export const ExperimentDesignModal: React.FC = () => {
                                   <option value="INSTRUCTION">{t('components.experimentDesignModal.instructionType')}</option>
                                   <option value="AGENT_PROPERTY">{t('components.experimentDesignModal.propertyType')}</option>
                                   <option value="ENVIRONMENT">{t('components.experimentDesignModal.environmentType')}</option>
-                                  <option value="FOLLOW_UP_CONDITION">{t('components.experimentDesignModal.followUpConditionType', { defaultValue: 'Follow-up condition' })}</option>
-                                  <option value="FOLLOW_UP_THREAD_SEED">{t('components.experimentDesignModal.followUpThreadSeedType', { defaultValue: 'Follow-up thread seed' })}</option>
                                   <option value="SCENARIO_PARAMS">{t('components.experimentDesignModal.scenarioParamsType', { defaultValue: 'Scenario Parameters' })}</option>
                                   <option value="NETWORK_TOPOLOGY">{t('components.experimentDesignModal.networkTopologyType', { defaultValue: 'Network Topology' })}</option>
                                 </select>
 
-                                {(iv.type === 'AGENT_PROPERTY' || iv.type === 'FOLLOW_UP_THREAD_SEED') && (
+                                {iv.type === 'AGENT_PROPERTY' && (
                                   <select
                                     value={iv.targetId || ''}
                                     onChange={(e) => updateIntervention(variant.id, iv.id, 'targetId', e.target.value)}
@@ -1165,11 +1163,7 @@ export const ExperimentDesignModal: React.FC = () => {
                                 placeholder={
                                   iv.type === 'AGENT_PROPERTY'
                                     ? t('components.experimentDesignModal.propertyPlaceholder')
-                                    : iv.type === 'FOLLOW_UP_CONDITION'
-                                      ? t('components.experimentDesignModal.followUpConditionPlaceholder')
-                                      : iv.type === 'FOLLOW_UP_THREAD_SEED'
-                                        ? t('components.experimentDesignModal.followUpThreadSeedPlaceholder')
-                                      : t('components.experimentDesignModal.descriptionPlaceholder')
+                                    : t('components.experimentDesignModal.descriptionPlaceholder')
                                 }
                                 className="w-full text-xs bg-white border rounded p-2 focus:ring-1 focus:ring-indigo-500 outline-none resize-none h-16"
                               />
