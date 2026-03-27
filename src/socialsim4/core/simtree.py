@@ -514,6 +514,14 @@ class SimTree:
                 et = "agent_props"
             elif m == "scene_state_patch":
                 et = "scene_state"
+            elif m == "config_params_patch":
+                et = "config_params"
+            elif m == "config_description_patch":
+                et = "config_desc"
+            elif m == "config_settings_patch":
+                et = "config_settings"
+            elif m == "network_replace":
+                et = "network"
             elif m == "public_broadcast":
                 et = "public_event"
             elif m == "environment_event":
@@ -570,6 +578,39 @@ class SimTree:
                 updates = op["updates"]
                 for k, v in updates.items():
                     sim.scene.state[k] = v
+            elif name == "config_params_patch":
+                # Merge patch: only update specified keys; preserve all others.
+                updates = op["updates"]
+                if hasattr(sim.scene, 'config') and hasattr(sim.scene.config, 'parameters'):
+                    merged = dict(sim.scene.config.parameters)  # copy base
+                    merged.update(updates)                        # apply patch
+                    sim.scene.config.parameters = merged
+            elif name == "config_description_patch":
+                # Update scenario description
+                if hasattr(sim.scene, 'config'):
+                    sim.scene.config.description = op["description"]
+            elif name == "config_settings_patch":
+                # Update scenario settings (e.g., round_visibility)
+                settings = op["settings"]
+                if hasattr(sim.scene, 'config'):
+                    for k, v in settings.items():
+                        if hasattr(sim.scene.config, k):
+                            setattr(sim.scene.config, k, v)
+            elif name == "network_replace":
+                # Replace the network with a pre-computed concrete edge list.
+                # The frontend generates and freezes the edge list at submit time.
+                # The backend stores it as-is; it does NOT regenerate from preset name.
+                #
+                # NOTE: Only valid at branch creation (before any turns run).
+                # Applying mid-simulation leaves agents with stale neighbor state.
+                network_data = op["network"]
+
+                if hasattr(sim.scene, 'config'):
+                    sim.scene.config.social_network = network_data
+
+                # Update runner's scene_state if runner exists (for ExperimentScene)
+                if hasattr(sim.scene, 'runner') and sim.scene.runner is not None:
+                    sim.scene.runner.set_scene_state({"graph": network_data})
             elif name == "public_broadcast":
                 sim.broadcast(PublicEvent(op["text"]))
             elif name == "environment_event":

@@ -354,8 +354,8 @@ export const Step5Network: React.FC = () => {
   // Auto-initialize network when agents exist but network is empty
   useEffect(() => {
     if (agentIds.length > 0 && Object.keys(socialNetwork).length === 0) {
-      applyPreset('random');
-      setSelectedPreset('random');
+      applyPreset('full');
+      setSelectedPreset('full');
     }
   }, [agentIds.length, socialNetwork, applyPreset]);
 
@@ -484,7 +484,7 @@ export const Step5Network: React.FC = () => {
       .text((d) => d.name)
       .attr('class', 'text-[10px] font-medium fill-slate-700 pointer-events-none select-none');
 
-    node.append('title').text((d) => (d.profile ? `${d.name}\n${d.profile}` : t('experimentBuilder.step5.noProfile', '无简介')));
+    node.append('title').text((d) => (d.profile ? `${d.name}\n${d.profile}` : t('experimentBuilder.step5.noProfile')));
 
     // Hover tooltip using React state for reliability
     node
@@ -796,7 +796,7 @@ export const Step5Network: React.FC = () => {
             style={{ left: hoverInfo.x, top: hoverInfo.y }}
           >
             <div className="font-semibold">{hoverInfo.name}</div>
-            <div className="text-slate-500 whitespace-pre-wrap break-words">{hoverInfo.profile || t('experimentBuilder.step5.noProfile', '无简介')}</div>
+            <div className="text-slate-500 whitespace-pre-wrap break-words">{hoverInfo.profile || t('experimentBuilder.step5.noProfile')}</div>
           </div>
         )}
 

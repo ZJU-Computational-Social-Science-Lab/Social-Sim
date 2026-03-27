@@ -43,6 +43,7 @@ from .actions.werewolf_actions import (
 )
 from .ordering import ORDERING_MAP as _ORDERING_MAP
 from .scenes.council_scene import CouncilScene
+from socialsim4.core.experiment.scenes.council_experiment import CouncilExperimentScene
 from .scenes.landlord_scene import LandlordPokerScene
 from .scenes.simple_chat_scene import SimpleChatScene
 from .scenes.policy_cascade_scene import PolicyCascadeScene
@@ -105,6 +106,7 @@ SCENE_MAP = {
     "simple_chat_scene": SimpleChatScene,
     "emotional_conflict_scene": SimpleChatScene,
     "council_scene": CouncilScene,
+    "council_experiment": CouncilExperimentScene,  # REFACTOR-COUNCIL-06: New experiment-based council scene
     "village_scene": VillageScene,
     "werewolf_scene": WerewolfScene,
     "landlord_scene": LandlordPokerScene,
@@ -149,6 +151,10 @@ SCENE_ACTIONS: dict[str, dict[str, list[str]]] = {
     "council_scene": {
         "basic": ["send_message", "voting_status", "yield"],
         "allowed": ["start_voting", "finish_meeting", "request_brief", "vote", "web_search", "view_page", "query_knowledge", "list_knowledge"],
+    },
+    "council_experiment": {  # REFACTOR-COUNCIL-06: Council experiment uses experiment scene actions
+        "basic": [],
+        "allowed": [],
     },
     "village_scene": {
         "basic": ["talk_to", "move_to_location", "look_around", "gather_resource", "rest", "yield"],
@@ -231,6 +237,7 @@ INFORMATION_MODEL_MAP: dict = {
     "simple_chat_scene": InformationModel(scope_type="all", recent_window=5),
     "emotional_conflict_scene": InformationModel(scope_type="all", recent_window=5),
     "council_scene": InformationModel(scope_type="all", recent_window=5),
+    "council_experiment": InformationModel(scope_type="all", recent_window=3, include_scores=False),  # REFACTOR-COUNCIL-06
     "village_scene": InformationModel(
         scope_type="neighborhood",
         # NOTE: proximity_scope requires state["_agent_positions"] to be populated
@@ -303,13 +310,38 @@ def get_information_model(scene_type: str) -> InformationModel:
     backend uses 'prisoners_dilemma').
     """
     normalized = scene_type.replace("-", "_")
-    return INFORMATION_MODEL_MAP.get(normalized, INFORMATION_MODEL_MAP["_default"])
+    if normalized in INFORMATION_MODEL_MAP:
+        return INFORMATION_MODEL_MAP[normalized]
+
+    from socialsim4.core.scenarios.registry import get_scenario
+
+    scenario = get_scenario(normalized)
+    if scenario is None:
+        return INFORMATION_MODEL_MAP["_default"]
+
+    grouping_mode = scenario.get("grouping_mode", "all")
+    payoff_type = scenario.get("payoff_type", "none")
+
+    if grouping_mode == "neighbor":
+        scope_type = "neighborhood"
+    elif grouping_mode == "pairwise":
+        scope_type = "pair"
+    else:
+        scope_type = "all"
+
+    return InformationModel(
+        scope_type=scope_type,
+        pairing_fn=pair_agents_randomly if scope_type == "pair" else None,
+        recent_window=3,
+        include_scores=payoff_type not in ("none", "feedback", ""),
+    )
 
 # Scene descriptions for selection UI and docs
 SCENE_DESCRIPTIONS: dict[str, str] = {
     "simple_chat_scene": "Open chat room with optional web tools. Agents converse naturally; use search/page tools when needed.",
     "emotional_conflict_scene": "Guided emotional dialogue among participants in a chat room; designed to surface and reconcile feelings.",
     "council_scene": "Legislative council debate and voting around a draft text; supports voting and status actions.",
+    "council_experiment": "Council experiment using experiment framework with multi-round deliberation context and phase-based action filtering.",
     "village_scene": "Grid-based village simulation with movement, looking around, gathering, and resting.",
     "werewolf_scene": "Social deduction game with night/day phases and role-specific actions (moderated flow).",
     "landlord_scene": "Dou Dizhu (Landlord) card game flow with bidding, playing, and scoring stages.",

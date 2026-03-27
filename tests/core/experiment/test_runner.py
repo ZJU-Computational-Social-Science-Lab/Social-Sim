@@ -16,6 +16,7 @@ from unittest.mock import Mock, AsyncMock, patch
 from socialsim4.core.experiment.runner import ExperimentRunner, RoundResult
 from socialsim4.core.experiment.agent import ExperimentAgent
 from socialsim4.core.experiment.game_configs import PRISONERS_DILEMMA, MINIMUM_EFFORT
+from socialsim4.core.experiment.information_model import InformationModel
 from socialsim4.core.experiment.kernel import ExperimentKernel
 from socialsim4.core.llm_config import LLMConfig
 from socialsim4.core.experiment.controller import ActionResult
@@ -261,6 +262,121 @@ def test_round_result_dataclass():
     assert len(result.actions) == 1
     assert result.actions[0].action_name == "cooperate"
     assert result.completed is True
+
+
+def test_prompt_agent_handles_isolated_node_in_neighborhood_debug():
+    agents = [
+        ExperimentAgent(name="A", properties={}, llm_config=LLMConfig(dialect="mock")),
+        ExperimentAgent(name="B", properties={}, llm_config=LLMConfig(dialect="mock")),
+        ExperimentAgent(name="C", properties={}, llm_config=LLMConfig(dialect="mock")),
+    ]
+    llm_client = Mock(return_value='{"action": "move"}')
+    llm_client.chat = Mock(return_value='{"action": "move"}')
+    runner = ExperimentRunner(
+        agents=agents,
+        game_config=MINIMUM_EFFORT.__class__(
+            name="Contagion",
+            description="Contagion test",
+            action_type="discrete",
+            actions=["move", "speak"],
+            action_descriptions={"move": "Move", "speak": "Speak"},
+            payoff_type="none",
+        ),
+        llm_client=llm_client,
+        information_model=InformationModel(scope_type="neighborhood", include_scores=False),
+    )
+    runner.set_scene_state({"graph": {"edges": [("A", "B")]}})
+
+    result = asyncio.run(runner._prompt_agent(agents[2], round_num=1))
+
+    assert result.success is True
+    assert result.action_name == "move"
+
+
+def test_replay_history_to_events_rebuilds_without_duplicates(agents, mock_llm_client):
+    """Replaying persisted history multiple times should not duplicate events."""
+    runner = ExperimentRunner(
+        agents=agents,
+        game_config=PRISONERS_DILEMMA,
+        llm_client=mock_llm_client,
+        information_model=InformationModel(scope_type="all", recent_window=3),
+    )
+    round_history = [
+        {
+            "round": 1,
+            "actions": [
+                {
+                    "agent": "Alice",
+                    "action": "cooperate",
+                    "parameters": {},
+                    "summary": "Alice chose cooperate",
+                },
+                {
+                    "agent": "Bob",
+                    "action": "defect",
+                    "parameters": {},
+                    "summary": "Bob chose defect",
+                },
+            ],
+            "payoffs": {"Alice": 0, "Bob": 5},
+        }
+    ]
+
+    runner._replay_history_to_events(round_history)
+    assert len(runner.context_manager.get_round_events(1)) == 2
+    assert agents[0].score == 0
+    assert agents[1].score == 5
+
+
+def test_simultaneous_round_with_followups_prompts_agents_serially_without_context_leak():
+    agents = [
+        ExperimentAgent(name="Alice", properties={}, llm_config=LLMConfig(dialect="mock")),
+        ExperimentAgent(name="Bob", properties={}, llm_config=LLMConfig(dialect="mock")),
+    ]
+    runner = ExperimentRunner(
+        agents=agents,
+        game_config=MINIMUM_EFFORT.__class__(
+            name="Council",
+            description="Discuss and vote.",
+            action_type="discrete",
+            actions=["speak", "abstain"],
+            action_descriptions={"speak": "Speak", "abstain": "Abstain"},
+            payoff_type="none",
+        ),
+        llm_client=Mock(),
+        round_visibility="simultaneous",
+        information_model=InformationModel(scope_type="all", include_scores=False),
+    )
+
+    active_calls = 0
+    max_active_calls = 0
+    prompt_order = []
+
+    async def fake_prompt(agent, round_num):
+        nonlocal active_calls, max_active_calls
+        assert runner.context_manager.get_round_events(round_num) == []
+        active_calls += 1
+        max_active_calls = max(max_active_calls, active_calls)
+        prompt_order.append(agent.name)
+        await asyncio.sleep(0)
+        active_calls -= 1
+        return ActionResult(
+            success=True,
+            action_name="abstain",
+            parameters={},
+            summary=f"{agent.name} chose abstain",
+            agent_name=agent.name,
+            round_num=round_num,
+        )
+
+    runner._prompt_agent = fake_prompt
+
+    result = asyncio.run(runner._run_simultaneous_round(1))
+
+    assert max_active_calls == 1
+    assert prompt_order == ["Alice", "Bob"]
+    assert len(result.actions) == 2
+    assert len(runner.context_manager.get_round_events(1)) == 2
 
 
 @pytest.mark.asyncio

@@ -174,6 +174,45 @@
     }
   },
   "prompts": {
+    "policy_cascade": {
+      "markers": {
+        "policy": ["原文", "不可改写条款", "报告要求", "执行要求", "目标："],
+        "line_types": {
+          "goal": ["政策目标", "目标", "总体要求", "工作要求"],
+          "scope": ["调整范围", "适用范围", "覆盖范围"],
+          "standard": ["调整标准", "下调", "比例", "薪酬标准", "固定薪酬"],
+          "support": ["配套要求", "稳岗安排", "心理支持", "申诉反馈渠道"],
+          "execution": ["执行要求", "落实", "整改", "排查", "培训", "核验", "完成"],
+          "report": ["报告要求", "报送", "汇总", "周报", "台账", "上报", "签到表", "填报"],
+          "resource": ["资源", "预算", "经费", "人员", "保障", "技术支持", "专项"],
+          "accountability": ["责任分工", "问责", "考核", "督办", "责任", "压实责任", "跟踪问效"],
+          "invariant": ["不可改写条款", "严禁", "不得", "必须", "一律"]
+        },
+        "agent_signals": {
+          "burden": ["负担", "压力", "成本", "加班", "重复", "繁琐", "一线", "基层", "执行难"],
+          "autonomy": ["灵活", "自主", "因地制宜", "协调", "平衡", "裁量", "缓行", "试点"],
+          "control": ["问责", "纪律", "考核", "刚性", "统一部署", "压实责任", "督办", "从严"],
+          "resource": ["预算", "人手", "资源", "经费", "设备", "支持", "保障", "条件"],
+          "stability": ["稳定", "风险", "舆情", "安全", "秩序", "审慎", "稳妥"]
+        },
+        "notice_analysis": ["解读", "评估", "合理性", "优点", "缺点", "优缺点", "利弊", "优势", "不足", "问题", "建议", "看法", "分析", "研判", "评论", "谈谈", "怎么看", "是否可行"],
+        "notice_execution": ["贯彻", "落实", "执行", "推进", "部署", "传达", "整改", "排查", "督办", "落实情况"]
+      },
+      "distortion": {
+        "reasons": {
+          "grassroots_burden": "基层执行负担高",
+          "resource_gap": "资源保障与任务要求不匹配",
+          "accountability_pressure": "考核问责压力触发本层自保",
+          "reporting_chain": "报送链条过重导致转述弱化"
+        },
+        "role_notes": {
+          "top": "高层优先保留统筹、问责和重点指标。",
+          "mid": "中层优先保留可操作任务，压缩跨部门协调成本。",
+          "low": "基层优先保留最低可执行动作，降低一线负担。"
+        },
+        "default_reason": "本层判断需要重新筛选政策重点"
+      }
+    },
     "game_theory": {
       "battle_of_the_sexes": {
         "intro": "你正在玩性别博弈。",
@@ -213,7 +252,53 @@
       "output_action_name": "来自上面动作空间的动作名称",
       "output_action_params": "动作参数的附加键值对（如果需要）",
       "output_context_update": "为将来记住的简要笔记（目标、观察、计划）",
-      "output_metadata": "包含任何附加元数据的可选对象"
+      "output_metadata": "包含任何附加元数据的可选对象",
+      "examples": {
+        "cascade": {
+          "distortion_note": "当前失真参数：失真强度={strength:.2f}，利益冲突敏感度={sensitivity:.2f}，截留概率={probability:.2f}。",
+          "top_private_source": "对于这条仅向我私下传达的政策，我决定先强调\"{policy_summary}\"，暂不展开全部资源承诺。",
+          "top_no_private": "关于上级刚才的传达，我决定继续强调\"{policy_summary}\"，暂不展开全部资源承诺。",
+          "top_faithful": "我会按原文继续传达\"{policy_summary}\"。态度：完全支持并按原文执行。补充：由我批准专项预算并建立月度问责机制。",
+          "mid_private_source": "我会只向下传达可立即执行的部分，先保留\"{policy_summary}\"，其余内容暂缓。",
+          "mid_no_private": "考虑到本部门考核压力，我只向下传达可立即执行的部分，先保留\"{policy_summary}\"。",
+          "mid_faithful": "我会按原文继续传达\"{policy_summary}\"。态度：完全支持并按原文执行。补充：我将在48小时内拆解任务到各部门并建立周报台账。",
+          "low_private_source": "该政策与一线负担存在冲突，我会先按基层可执行口径保留\"{policy_summary}\"，并上报执行困难。",
+          "low_no_private": "该政策与一线负担存在冲突，我会先保留\"{policy_summary}\"中的最低执行要求。",
+          "low_faithful": "我会按原文继续传达\"{policy_summary}\"。态度：完全支持并按原文执行。补充：我将按排查清单逐项核验，并在发现异常后24小时内上报。",
+          "context_top_distortion": "已按本层利益重述政策重点，并保留部分信息",
+          "context_mid_distortion": "已结合中层压力选择性下传政策",
+          "context_low_distortion": "已因基层执行冲突而弱化落实",
+          "context_top_faithful": "已按原文转发，并补充高层统筹与资源安排",
+          "context_mid_faithful": "已按原文转发，并补充中层协调与任务拆解",
+          "context_low_faithful": "已按原文转发，并补充基层执行与异常上报",
+          "silent_context": "等待下一级反馈",
+          "silent_context_distortion": "因本层利益冲突暂缓下传"
+        },
+        "notice": {
+          "analysis_top": "作为高层，我对\"{notice_text}\"的看法是：优点在于有利于统一部署、压实责任和跟踪问效；缺点在于如果资源和配套制度不足，容易形成层层加码；建议同步明确牵头单位、预算安排和督促检查节奏。",
+          "analysis_mid": "作为中层，我对\"{notice_text}\"的看法是：优点在于便于分解任务、建立台账和协同推进；缺点在于若验收标准不清，容易造成重复报送和责任交叉；建议尽快细化举措、明确时间表和周报机制。",
+          "analysis_low": "作为基层执行者，我对\"{notice_text}\"的看法是：优点在于有助于逐项排查、现场核验和及时上报；缺点在于若模板过多、口径频繁变化，会增加执行负担；建议简化报送字段并明确整改、复查和销号标准。",
+          "response_top": "关于系统公告\"{notice_text}\"，作为高层，我将明确总体目标、资源投放、压实责任和考核机制，并指定牵头负责人。",
+          "response_mid": "关于系统公告\"{notice_text}\"，作为中层，我将分解任务、协调相关单位、建立工作台账，并给出周度推进时间表。",
+          "response_low": "关于系统公告\"{notice_text}\"，作为基层执行者，我将按清单落实排查步骤、现场核验问题、推进整改复查并及时上报反馈。",
+          "context_analysis_top": "已从高层视角完成政策解读与优缺点分析",
+          "context_analysis_mid": "已从中层视角完成政策解读与优缺点分析",
+          "context_analysis_low": "已从基层视角完成政策解读与优缺点分析",
+          "context_response_top": "已从高层视角回应系统公告",
+          "context_response_mid": "已从中层视角回应系统公告",
+          "context_response_low": "已从基层视角回应系统公告",
+          "silent_context": "等待下一条系统公告"
+        },
+        "default_policy_summary": "逐级传达政策，并保留关键执行条款"
+      }
+    },
+    "werewolf": {
+      "moderator_hint": "你是主持人。玩家：{players}。角色：{roles_info}。"
+    },
+    "archetype": {
+      "prompt": "为具有以下属性的代理人创建一句第一人称简介:\n{attrs}\n\n句子必须:\n- 以\"我是\"开头\n- 反映这个人如何根据其属性思考和做决定\n- 不要只是重述人口统计数据\n\n返回JSON:\n{{\"description\": \"我是...\", \"roles\": [\"职业1\", \"职业2\", \"职业3\", \"职业4\", \"职业5\"]}}\n\n仅输出JSON，无其他文字。",
+      "fallback_roles": ["公民", "工人", "专业人士", "学生", "其他"],
+      "fallback_description": "具有以下背景的个人: {archetype_label}"
     },
     "policy_cascade": {
       "shared": {

@@ -4,10 +4,10 @@ import { setLanguage } from '../i18n';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
 export function LanguageSwitcher() {
-  const { i18n: i18 } = useTranslation();
+  const { i18n: i18, t } = useTranslation();
   const current = i18.language.startsWith('zh') ? 'zh' : 'en';
   const [open, setOpen] = useState(false);
-  const label = current === 'zh' ? '中文' : 'EN';
+  const label = current === 'zh' ? t('language.chinese') : t('language.english');
 
   return (
     <div className="lang-switch">
@@ -30,10 +30,10 @@ export function LanguageSwitcher() {
             style={{ minWidth: 'var(--radix-popper-anchor-width)' }}
           >
             <DropdownMenu.Item className={`menu-item ${current === 'en' ? 'active' : ''}`} onSelect={() => setLanguage('en')}>
-              EN
+              {t('language.english')}
             </DropdownMenu.Item>
             <DropdownMenu.Item className={`menu-item ${current === 'zh' ? 'active' : ''}`} onSelect={() => setLanguage('zh')}>
-              中文
+              {t('language.chinese')}
             </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu.Portal>

@@ -5,8 +5,10 @@ from socialsim4.core.event import MessageEvent, SpeakEvent, TalkToEvent
 class SpeakAction(Action):
     NAME = "speak"
     DESC = "Say something."
+    REPROMPT_PARAM = "message"
     INSTRUCTION = """- speak: Broadcast a message
-  <Action name="speak"><message>Your message</message></Action>
+  <Action name="speak" />
+  (You will be prompted to write your message after selecting this action.)
 """
 
     def handle(self, action_data, agent, simulator, scene):
@@ -25,8 +27,10 @@ class SpeakAction(Action):
 class SendMessageAction(Action):
     NAME = "send_message"
     DESC = "Post a message to all participants."
+    REPROMPT_PARAM = "message"
     INSTRUCTION = """- send_message: Send to everyone
-  <Action name="send_message"><message>Your message</message></Action>
+  <Action name="send_message" />
+  (You will be prompted to write your message after selecting this action.)
 """
 
     def handle(self, action_data, agent, simulator, scene):

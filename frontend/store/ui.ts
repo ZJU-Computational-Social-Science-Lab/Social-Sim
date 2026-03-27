@@ -25,10 +25,15 @@ export interface UISlice {
   isReportModalOpen: boolean;
   globalKnowledgeOpen: boolean;
   isInitialEventsOpen: boolean;
+  isSyncModalOpen: boolean;
 
   // Loading states
   isGenerating: boolean;
   isGeneratingReport: boolean;
+  isSyncing: boolean;
+
+  // Sync logs
+  syncLogs: string[];
 
   // Notifications
   notifications: Notification[];
@@ -50,6 +55,9 @@ export interface UISlice {
   toggleReportModal: (isOpen: boolean) => void;
   setGlobalKnowledgeOpen: (isOpen: boolean) => void;
   toggleInitialEvents: (isOpen: boolean) => void;
+  openSyncModal: () => void;
+  closeSyncModal: () => void;
+  syncCurrentSimulation: () => Promise<void>;
 
   // Notification actions
   addNotification: (type: 'success' | 'error' | 'info', message: string) => void;
@@ -78,8 +86,11 @@ export const createUISlice: StateCreator<
   isReportModalOpen: false,
   globalKnowledgeOpen: false,
   isInitialEventsOpen: false,
+  isSyncModalOpen: false,
   isGenerating: false,
   isGeneratingReport: false,
+  isSyncing: false,
+  syncLogs: [],
   notifications: [],
   isGuideOpen: false,
   guideMessages: [],
@@ -118,6 +129,62 @@ export const createUISlice: StateCreator<
 
   // Guide actions
   toggleGuide: (isOpen) => set({ isGuideOpen: isOpen }),
+
+  openSyncModal: () => set({ isSyncModalOpen: true, syncLogs: [] }),
+
+  closeSyncModal: () => set({ isSyncModalOpen: false, isSyncing: false }),
+
+  syncCurrentSimulation: async () => {
+    set({ isSyncing: true, syncLogs: ['Starting sync...'] });
+
+    try {
+      // Get current simulation state from store
+      const state = get() as any;
+      const currentSim = state.currentSimulation;
+      const agents = state.agents || [];
+      const nodes = state.nodes || [];
+
+      if (!currentSim) {
+        set((prev: any) => ({ syncLogs: [...prev.syncLogs, 'Error: No simulation loaded'], isSyncing: false }));
+        return;
+      }
+
+      // Add sync log entries
+      set((prev: any) => ({ syncLogs: [...prev.syncLogs, `Syncing simulation: ${currentSim.name || currentSim.id}`] }));
+      set((prev: any) => ({ syncLogs: [...prev.syncLogs, `Agents: ${agents.length}`] }));
+      set((prev: any) => ({ syncLogs: [...prev.syncLogs, `Nodes: ${nodes.length}`] }));
+
+      // Import API service
+      const { apiClient } = await import('../services/client');
+
+      // Sync simulation state to backend
+      const syncPayload = {
+        simulation_id: currentSim.id,
+        agents: agents.map((a: any) => ({
+          name: a.name,
+          role: a.role,
+          properties: a.properties || {},
+          memory: a.memory || []
+        })),
+        nodes: nodes.map((n: any) => ({
+          id: n.id,
+          parentId: n.parentId,
+          depth: n.depth,
+          meta: n.meta || {}
+        }))
+      };
+
+      set((prev: any) => ({ syncLogs: [...prev.syncLogs, 'Sending data to backend...'] }));
+
+      await apiClient.post(`simulations/${currentSim.id}/sync`, syncPayload);
+
+      set((prev: any) => ({ syncLogs: [...prev.syncLogs, 'Sync completed successfully!'], isSyncing: false }));
+    } catch (error: any) {
+      console.error('Sync failed:', error);
+      const errorMsg = error?.response?.data?.detail || error?.message || 'Unknown error';
+      set((prev: any) => ({ syncLogs: [...prev.syncLogs, `Sync failed: ${errorMsg}`], isSyncing: false }));
+    }
+  },
 
   sendGuideMessage: async (content) => {
     set({ isGuideLoading: true });

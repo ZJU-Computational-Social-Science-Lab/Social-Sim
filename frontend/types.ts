@@ -165,11 +165,57 @@ export enum ViewMode {
 }
 
 // #18 Parallel Experiment Types
+export type InterventionType =
+  | 'INSTRUCTION'
+  | 'ENVIRONMENT'
+  | 'AGENT_PROPERTY'
+  | 'FOLLOW_UP_CONDITION'
+  | 'FOLLOW_UP_THREAD_SEED'
+  | 'SCENARIO_PARAMS'
+  | 'NETWORK_TOPOLOGY';
+
+// Network topology types (inline to avoid circular deps)
+export type NetworkPreset =
+  | 'full' | 'random' | 'ring' | 'star'
+  | 'newman-watts' | 'core-periphery' | 'holme-kim' | 'waxman' | 'sbm'
+  | 'custom';
+
+export interface NetworkResult {
+  edges: [string, string][];
+  preset: NetworkPreset;
+  seed: number;
+}
+
+export interface NetworkParams {
+  random: { connectionChance: number };
+  'newman-watts': { neighborsEachSide: number; shortcutChance: number };
+  'core-periphery': {
+    influencerPercent: number;
+    influencerConnectivity: number;
+    influencerReach: number;
+    regularConnectivity: number;
+  };
+  'holme-kim': { newConnections: number; clusteringChance: number };
+  waxman: { maxDistance: number; distanceEffect: number };
+  sbm: { groupSize: number; withinGroupConnectivity: number; bridgeConnections: number };
+}
+
 export interface Intervention {
   id: string;
-  type: 'ENVIRONMENT' | 'AGENT_PROPERTY' | 'INSTRUCTION' | 'FOLLOW_UP_CONDITION' | 'FOLLOW_UP_THREAD_SEED';
+  type: InterventionType;
   targetId?: string; // agentId if applicable
   description: string;
+  // SCENARIO_PARAMS fields
+  rawParamsText?: string; // raw key=value text
+  parsedParams?: Record<string, string | number | boolean>; // parsed for type coercion
+  unknownKeys?: string[]; // unknown keys warnings
+  scenarioDescription?: string; // scenario description override
+  roundVisibility?: 'simultaneous' | 'sequential'; // round visibility override
+  // NETWORK_TOPOLOGY fields
+  networkPreset?: NetworkPreset;
+  networkParams?: Partial<NetworkParams>;
+  customEdges?: [string, string][];
+  resolvedNetwork?: NetworkResult; // frozen at submit time
 }
 
 export interface ExperimentVariant {

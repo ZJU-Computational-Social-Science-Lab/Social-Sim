@@ -29,7 +29,7 @@ Base URL：通常为 https://api.openai.com/v1。
 ## 4. 保存并点击"测试连接"验证配置是否成功。
 Gemini (Google AI) 的配置流程类似，请从 Google AI Studiohttps://aistudio.google.com/api-keys 获取 API Key 并在提供商处选择 Gemini。其模型例如 gemini-1.5-flash-latest，通常无需填写 Base URL。
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-1.png)
+![教程截图 - LLM提供商配置](/tutorial/01-overview.png)
 
 **选项二：使用API中转站 (推荐中国大陆用户)**
 ## 1. 在您选择的API中转站（如 OpenRouter, DMXAPI 等）获取 API Key 和 Base URL。
@@ -46,7 +46,7 @@ Base URL：粘贴中转站提供的 Base URL，例如 https://openrouter.ai/api/
 模型：从API中转站的模型列表中，完整复制您想使用的模型名称并粘贴于此。
 ## 4. 保存并点击"测试连接"。
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-2.png)
+![教程截图 - API中转站配置](/tutorial/02-dashboard.png)
 
 ### 2.4 配置搜索提供商
 为了让智能体能够访问外部信息，您也可以配置一个搜索服务提供商。进入"设置"->"搜索提供商"页面。
@@ -77,7 +77,7 @@ Base URL：通常为 https://google.serper.dev/search。
 ### 4.1 第一步：实验基础信息设置
 ## 1.  点击“新建模拟”操作，跳转至新建仿真页面后，配置基础信息（可选，不设置则用默认值）；
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-3.png)
+![教程截图 - 新建仿真设置](/tutorial/03-new-simulation.png)
 
 ## 2.  填写实验名称（建议贴合主题，如"政策传播中的意义磨损仿真实验"）；
 ## 3.  选择仿真时长（如120分钟、72小时），点击"下一步"完成配置。
@@ -87,7 +87,7 @@ Base URL：通常为 https://google.serper.dev/search。
 ## 1.  进入智能体配置页面，点击"使用模板角色"，跳转至模板角色库；
 ## 2.  勾选贴合政策传播的角色（政策发布者、基层传播者、普通民众等），调整数量比例后，保存配置。
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-4.png)
+![教程截图 - 模板角色选择](/tutorial/04-agent-generation.png)
 
 **方式2：AI批量生成智能体（推荐，支持大规模配置）**
 ## 1.  点击"AI批量生成"，进入批量配置界面；
@@ -95,7 +95,7 @@ Base URL：通常为 https://google.serper.dev/search。
 ## 3.  配置核心初始值（政策认知度、传播意愿等，0-100取值），贴合意义磨损核心变量；
 ## 4.  输入智能体总数，点击"开始生成"，预览调整后保存配置。
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-5.png)
+![教程截图 - AI批量生成](/tutorial/05-simulation-view.png)
 
 **方式3：导入智能体（适合有预设数据场景）**
 按要求填写智能体信息，确保格式一致，上传后完成导入。
@@ -104,10 +104,10 @@ Base URL：通常为 https://google.serper.dev/search。
 ## 2.  点击左侧"推进节点"按钮，启动仿真；
 ## 3.  仿真过程中，通过右侧数据面板观察核心变量变化，利用"筛选"功能，查阅各类日志及智能体元数据；
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-6.png)
+![教程截图 - 仿真界面](/tutorial/06-host-panel.png)
 
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-7.png)
+![教程截图 - 智能体交互](/tutorial/07-experiment-design.png)
 
 ## 5.  仿真推进至预设时长或预期效果后，可继续推进节点或创建分支进行对比实验。
 ## 5. 实验收尾与数据管理
@@ -130,7 +130,7 @@ Base URL：通常为 https://google.serper.dev/search。
 ## 2.  填写实验名称，设置1-多个干预项（全局指令、智能体属性干预、环境事件干预）；
 ## 3.  设置多组实验组，需新增分支作为控制组（不添加任何干预项或设置安慰剂）；
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-8.png)
+![教程截图 - 对照实验设计](/tutorial/08-analytics.png)
 
 ## 4.  点击"启动批量运行"，系统生成独立运行节点，并行推进至完成；
 ## 5.  开启"对比模式"，系统自动生成对比报告，分析各组节点差异，导出用于复盘。
@@ -142,13 +142,13 @@ Base URL：通常为 https://google.serper.dev/search。
 #### 6.2.1 具体操作步骤
 ## 1.  进入仿真界面，点击顶部"社交网络拓扑"，开启网络编辑功能；
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-9.png)
+![教程截图 - 网络拓扑编辑器](/tutorial/09-network-topology.png)
 
 ## 2.  选择系统预设网络构型（随机、小世界、无标度、核心-边缘等），或切换至自定义构型；
 ## 3.  精细化设置核心参数（节点度、边的属性、网络密度），自定义构型可手动绘制节点与边；
 ## 4.  点击"生成网络"确认效果，"保存拓扑设置"后应用至智能体群体；
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-10.png)
+![教程截图 - 网络配置](/tutorial/10-export-reports.png)
 
 ## 5.  启动仿真，观察不同网络结构下的传播效率、意义磨损速率，分析调控机制。
 #### 6.2.2 拓展玩法与注意事项

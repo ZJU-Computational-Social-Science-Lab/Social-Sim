@@ -101,26 +101,27 @@ export const SimulationWizard: React.FC = () => {
 
     // Only for policy_diffusion template, enforce recommended political tier demographics
     if (selectedTemplateId === 'policy_diffusion') {
-      setDemographics([{ name: '政治职位层级', categories: ['top', 'mid', 'low'] }]);
+      setDemographics([{ name: t('wizard.defaults.tierLabel'), categories: ['top', 'mid', 'low'] }]);
     }
   }, [selectedTemplateId, t]);
 
   // Re-apply recommended demographics when wizard opens on policy_diffusion to override stale state
   useEffect(() => {
     if (isOpen && selectedTemplateId === 'policy_diffusion') {
-      setDemographics([{ name: '政治职位层级', categories: ['top', 'mid', 'low'] }]);
+      setDemographics([{ name: t('wizard.defaults.tierLabel'), categories: ['top', 'mid', 'low'] }]);
     }
-  }, [isOpen, selectedTemplateId]);
+  }, [isOpen, selectedTemplateId, t]);
 
   // Guard against lingering Age/Location defaults when policy_diffusion is selected
   useEffect(() => {
     if (selectedTemplateId === 'policy_diffusion') {
-      const onlyTier = demographics.length === 1 && demographics[0]?.name === '政治职位层级';
+      const tierLabel = t('wizard.defaults.tierLabel');
+      const onlyTier = demographics.length === 1 && demographics[0]?.name === tierLabel;
       if (!onlyTier) {
-        setDemographics([{ name: '政治职位层级', categories: ['top', 'mid', 'low'] }]);
+        setDemographics([{ name: tierLabel, categories: ['top', 'mid', 'low'] }]);
       }
     }
-  }, [selectedTemplateId, demographics]);
+  }, [selectedTemplateId, demographics, t]);
 
   const selectedTemplate =
     savedTemplates.find((t) => t.id === selectedTemplateId) ||

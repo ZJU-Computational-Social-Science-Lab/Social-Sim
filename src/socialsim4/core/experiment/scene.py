@@ -6,6 +6,7 @@ runs rounds, and emits events without any legacy Agent/Simulator bridge.
 """
 
 import logging
+from copy import deepcopy
 from typing import Any, Callable
 
 from socialsim4.core.experiment.config import ExperimentConfig
@@ -44,6 +45,8 @@ class ExperimentScene:
         self._history: list[dict[str, Any]] = []
         self._pending_host_messages: list[str] = []
         self.state: ExperimentState = ExperimentState()
+        # PGG phase tracking: "allocate" or "deduct"
+        self._pgg_phase: str = "allocate"
 
         logger.debug(f"ExperimentScene initialized: scenario_id='{config.scenario_id}' (type: {type(config.scenario_id).__name__})")
 
@@ -74,8 +77,9 @@ class ExperimentScene:
 
         logger.debug(f"Created {len(self.agents)} ExperimentAgents")
 
-        # Initialize experiment state
-        self._initialize_state()
+        # Initialize experiment state only for fresh scenes.
+        if not self.state.agents and not self.state.extensions and not self.state.history and self.state.round == 0:
+            self._initialize_state()
 
         # Get InformationModel from registry (deferred import to avoid circular dependency)
         from socialsim4.core.registry import get_information_model, pair_agents_randomly
@@ -119,6 +123,7 @@ class ExperimentScene:
             llm_client=llm_client,
             round_visibility=self.config.round_visibility,
             information_model=information_model,
+            scene=self,  # GAP-CLOSURE-01: pass scene for action filtering
         )
 
         # Wire social network graph to runner's scene_state
@@ -170,7 +175,26 @@ class ExperimentScene:
             round_history=self._history
         )
 
+        round_events = {
+            event.agent_name: event
+            for event in self.runner.context_manager.get_round_events(round_num)
+        }
+
+        # Apply action effects to durable experiment state.
+        for action in result.actions:
+            if action.skipped:
+                continue
+            self.runner.execute_action(
+                action.action_name,
+                action.agent_name,
+                action.parameters,
+                self.state,
+                self,  # Pass scene for council action handlers
+            )
+
         # Update history for next round's context
+        completed_actions = [action for action in result.actions if not action.skipped]
+
         history_entry: dict = {
             "round": round_num,
             "actions": [
@@ -178,20 +202,31 @@ class ExperimentScene:
                     "agent": a.agent_name,
                     "action": a.action_name,
                     "parameters": a.parameters,
-                    "summary": a.summary
+                    "summary": a.summary,
+                    "feedback": round_events.get(a.agent_name).feedback if round_events.get(a.agent_name) else None,
                 }
-                for a in result.actions
+                for a in completed_actions
             ]
         }
         if result.payoffs:
             history_entry["payoffs"] = result.payoffs
         self._history.append(history_entry)
+        self.state.round = round_num
+        self.state.history.append(history_entry)
+        for agent in self.agents:
+            if agent.name not in self.state.agents:
+                self.state.agents[agent.name] = AgentState()
+            self.state.agents[agent.name].score = agent.score
 
         # Emit events for frontend
         for action in result.actions:
+            payoff = result.payoffs.get(action.agent_name) if result.payoffs else None
             event_emitter("experiment_action", {
                 "agent": action.agent_name,
                 "action": action.action_name,
+                "parameters": action.parameters,
+                "summary": action.summary,
+                "payoff": payoff,
                 "round": round_num,
                 "success": action.success,
                 "skipped": action.skipped,
@@ -199,52 +234,164 @@ class ExperimentScene:
 
         logger.info(f"Round {round_num} complete: {len(result.actions)} actions")
 
+        # Phase transition hook for council scenes (FEAT-COUNCIL-02)
+        # Check if scene has facilitator with check_and_transition_phase method
+        if hasattr(self, 'facilitator') and hasattr(self.facilitator, 'check_and_transition_phase'):
+            transitioned = self.facilitator.check_and_transition_phase(round_num)
+            if transitioned:
+                logger.info(f"Phase transitioned to VOTING after round {round_num}")
+
         return result
 
     def _initialize_state(self) -> None:
         """Initialize ExperimentState from config.
 
         Creates AgentState for each agent and applies state_schema extensions.
+        Also initializes deduction budget if configured.
+
         Called during initialize() after agents are created.
         """
+        params = self.config.parameters or {}
+
+        # Get configurable resource name (default "tokens")
+        resource_name = params.get("resource_name", "tokens")
+        tokens_per_round = int(params.get("tokens_per_round", 20) or 20)
+        deduction_budget = int(params.get("deduction_budget_per_phase", 0) or 0)
+
         # Create AgentState for each agent
         for agent_config in self.config.agents:
             name = agent_config.get("name", "")
             if not name:
                 continue
 
+            resources = deepcopy(agent_config.get("resources", {}))
+
+            # Set initial resources using dynamic resource_name key
+            if resource_name not in resources:
+                resources[resource_name] = tokens_per_round
+
+            # Add deduction budget if configured
+            if deduction_budget > 0:
+                resources["deduction_budget"] = deduction_budget
+
             agent_state = AgentState(
                 score=0,
                 position=agent_config.get("position"),
-                resources=agent_config.get("resources", {}),
-                properties=agent_config.get("properties", {}),
+                resources=resources,
+                properties=deepcopy(agent_config.get("properties", {})),
             )
             self.state.agents[name] = agent_state
 
         # Apply state_schema extensions
         if self.config.state_schema:
             if "extensions" in self.config.state_schema:
-                self.state.extensions.update(self.config.state_schema["extensions"])
+                self.state.extensions.update(deepcopy(self.config.state_schema["extensions"]))
 
-        logger.debug(f"Initialized state for {len(self.state.agents)} agents")
+        # Initialize reductions tracking in extensions (renamed from punishments)
+        if "reductions" not in self.state.extensions:
+            self.state.extensions["reductions"] = {}
+
+        logger.debug(
+            f"Initialized state for {len(self.state.agents)} agents "
+            f"(resource_name={resource_name}, deduction_budget={deduction_budget})"
+        )
 
     def _create_game_config(self) -> GameConfig:
         """Create GameConfig from config data."""
-        # Extract action descriptions
-        action_descriptions = {}
-        for a in self.config.actions:
-            name = a.get("name")
-            desc = a.get("description")
-            if name and desc:
-                action_descriptions[name] = desc
-
-        # Get action names
-        action_names = list(action_descriptions.keys())
-        if not action_names:
-            action_names = [a.get("name", "unknown") for a in self.config.actions if a.get("name")]
-
-        # Get payoff parameters
         params = self.config.parameters or {}
+        scenario = None
+        try:
+            from socialsim4.core.scenarios.registry import get_scenario as _get_scenario
+            scenario = _get_scenario(self.config.scenario_id)
+        except Exception:
+            scenario = None
+
+        scenario_actions = scenario.get("actions", []) if scenario else []
+        if not scenario_actions and scenario and scenario.get("category_actions"):
+            category_actions = scenario.get("category_actions", [])
+            default_action_ids = scenario.get("default_action_ids", [])
+            if default_action_ids:
+                scenario_actions = [
+                    action for action in category_actions
+                    if action.get("id") in default_action_ids
+                ]
+            else:
+                scenario_actions = category_actions
+        action_lookup = {}
+        for action in scenario_actions:
+            action_id = action.get("id")
+            action_name = action.get("name")
+            if action_id:
+                action_lookup[str(action_id).lower()] = action
+            if action_name:
+                action_lookup[str(action_name).lower()] = action
+
+        # Normalize selected actions back to canonical scenario action ids so runtime
+        # semantics use stable machine names instead of frontend display labels.
+        normalized_actions = []
+        for action in self.config.actions:
+            raw_name = str(action.get("name") or "").strip()
+            if not raw_name:
+                continue
+            matched = action_lookup.get(raw_name.lower())
+            if matched:
+                normalized_actions.append(
+                    {
+                        "name": matched.get("id", raw_name),
+                        "description": action.get("description") or matched.get("description") or raw_name,
+                        # Use registry parameters if frontend doesn't provide them
+                        "parameters": action.get("parameters") or matched.get("parameters", []),
+                    }
+                )
+            else:
+                normalized_actions.append(
+                    {
+                        "name": raw_name,
+                        "description": action.get("description") or raw_name,
+                        "parameters": action.get("parameters", []),
+                    }
+                )
+
+        if not normalized_actions and scenario_actions:
+            normalized_actions = [
+                {
+                    "name": action.get("id"),
+                    "description": action.get("description") or action.get("name") or action.get("id"),
+                    "parameters": action.get("parameters", []),
+                }
+                for action in scenario_actions
+                if action.get("id")
+            ]
+
+        action_descriptions = {
+            action["name"]: action["description"]
+            for action in normalized_actions
+            if action.get("name") and action.get("description")
+        }
+        action_names = [action["name"] for action in normalized_actions if action.get("name")]
+        action_schemas = {}
+        type_map = {
+            "string": "string",
+            "text": "string",
+            "integer": "integer",
+            "float": "number",
+            "number": "number",
+            "boolean": "boolean",
+        }
+        for action in normalized_actions:
+            parameter_specs = action.get("parameters", [])
+            if not parameter_specs:
+                continue
+            action_schemas[action["name"]] = {
+                "schema": {
+                    param["name"]: {
+                        "type": type_map.get(param.get("type", "string"), "string"),
+                        "description": param.get("description", param["name"]),
+                    }
+                    for param in parameter_specs
+                },
+                "mode": "json",
+            }
 
         # Handle configurable choices for coordination games (e.g., coordination_game)
         if self.config.scenario_id in ("coordination_game", "graph_coloring"):
@@ -263,10 +410,13 @@ class ExperimentScene:
             }
 
         # Build description: use description_template if present on the scenario
+        # For PUBLIC_GOODS, we handle description in _build_payoff_summary instead
         description = self.config.description
+        if self.config.scenario_id == "public_goods":
+            # For PUBLIC_GOODS, description is handled entirely by _build_payoff_summary
+            description = ""
         try:
-            from socialsim4.core.scenarios.registry import get_scenario as _get_scenario
-            _scenario = _get_scenario(self.config.scenario_id)
+            _scenario = scenario
             if _scenario and "description_template" in _scenario and params.get("action_1") and params.get("action_2"):
                 description = _scenario["description_template"].format(
                     action_1=params["action_1"],
@@ -288,10 +438,7 @@ class ExperimentScene:
         payoff_config = {}
         scenario_id = self.config.scenario_id
         try:
-            _scenario_for_payoff = _scenario if '_scenario' in dir() else None
-            if _scenario_for_payoff is None:
-                from socialsim4.core.scenarios.registry import get_scenario as _get_scenario2
-                _scenario_for_payoff = _get_scenario2(scenario_id)
+            _scenario_for_payoff = scenario
             if _scenario_for_payoff and "matrix_meta" in _scenario_for_payoff:
                 cells = _scenario_for_payoff["matrix_meta"].get("cells", {})
                 # Remap matrix keys if action names were customized
@@ -319,8 +466,44 @@ class ExperimentScene:
                         "threshold_failure": 0,
                         "safe_reward": params.get("hare_reward", _defaults["hare_reward"]),
                     }
+            if _scenario_for_payoff and _scenario_for_payoff.get("payoff_type") == "pool":
+                defaults = {p["id"]: p.get("default") for p in _scenario_for_payoff.get("parameters", [])}
+                payoff_config = {
+                    "multiplier": params.get("multiplier", defaults.get("multiplier", 1.6)),
+                    "initial_tokens": params.get("tokens_per_round", defaults.get("tokens_per_round", 20)),
+                }
+            if _scenario_for_payoff and _scenario_for_payoff.get("payoff_type") == "feedback":
+                defaults = {p["id"]: p.get("default") for p in _scenario_for_payoff.get("parameters", [])}
+                payoff_config = {
+                    "goal": params.get("goal", defaults.get("goal", "match")),
+                }
         except Exception:
             pass
+
+        followup_modes = self._get_action_followup_modes(action_names)
+
+        # FEAT-PGG: Handle reduce action based on deduction_budget_per_phase
+        # When budget > 0: ensure reduce action is available
+        # When budget <= 0: remove reduce action
+        deduction_budget = int(params.get("deduction_budget_per_phase", 0) or 0)
+        if deduction_budget > 0:
+            # Add reduce action when deduction is enabled
+            if "reduce" not in action_names:
+                action_names = action_names + ["reduce"]
+                action_descriptions["reduce"] = "Reduce another agent's resources"
+                if "reduce" not in followup_modes:
+                    followup_modes["reduce"] = "json"
+            logger.debug(f"[GAME_CONFIG] Added 'reduce' action (deduction_budget={deduction_budget})")
+        else:
+            # Remove reduce action when deduction is disabled
+            if "reduce" in action_names:
+                action_names = [a for a in action_names if a != "reduce"]
+                action_descriptions.pop("reduce", None)
+                action_schemas.pop("reduce", None)
+                followup_modes.pop("reduce", None)
+                logger.debug(f"[GAME_CONFIG] Filtered 'reduce' action (deduction_budget={deduction_budget})")
+
+        logger.info(f"[GAME_CONFIG] scenario_id='{self.config.scenario_id}', action_names={action_names}, followup_modes={followup_modes}")
 
         return GameConfig(
             name=self.config.scenario_id,
@@ -330,19 +513,67 @@ class ExperimentScene:
             action_descriptions=action_descriptions or None,
             payoff_summary="\n\n".join(supplementary_parts),
             output_field="action",
-            payoff_type=params.get("payoff_type", "matrix"),
-            grouping_mode=params.get("grouping_mode", "pairwise"),
+            payoff_type=params.get("payoff_type", (scenario or {}).get("payoff_type", "matrix")),
+            grouping_mode=params.get("grouping_mode", (scenario or {}).get("grouping_mode", "pairwise")),
             cooperate_reward=params.get("cooperate_reward"),
             sucker_penalty=params.get("sucker_penalty"),
             temptation_reward=params.get("temptation_reward"),
             defect_penalty=params.get("defect_penalty"),
             payoff_config=payoff_config,
+            action_schemas=action_schemas,
+            # Actions that require follow-up reprompt for free-text input
+            action_followup_modes=followup_modes,
         )
+
+    def _get_action_followup_modes(self, action_names: list[str]) -> dict[str, str]:
+        """Determine which actions require follow-up prompts.
+
+        Discussion scenarios (council_chamber, open_discussion, werewolf, contagion)
+        need plain_text follow-up for Speak actions.
+
+        Fallback: Auto-detect speak-like actions for any scenario, including "custom".
+
+        Args:
+            action_names: List of action names in this scenario
+
+        Returns:
+            Dict mapping action names to follow-up modes ("plain_text" or "json")
+        """
+        followup_modes = {}
+
+        # Scenarios where "Speak" action needs free-text message input
+        discussion_scenarios = {
+            "council_chamber",
+            "open_discussion",
+            "werewolf",
+            "contagion",
+        }
+
+        logger.debug(f"[FOLLOWUP] scenario_id={self.config.scenario_id}, action_names={action_names}")
+        logger.debug(f"[FOLLOWUP] is_discussion={self.config.scenario_id in discussion_scenarios}")
+
+        if self.config.scenario_id in discussion_scenarios:
+            # Map any speak-like action to plain_text mode
+            for action_name in action_names:
+                if action_name.lower() in ("speak", "say", "talk"):
+                    followup_modes[action_name] = "plain_text"
+                    logger.debug(f"[FOLLOWUP] Added followup mode for '{action_name}': plain_text")
+
+        # Fallback: Auto-detect speak-like actions for any scenario
+        # This handles "custom" scenarios that have speak actions
+        for action_name in action_names:
+            if action_name.lower() in ("speak", "say", "talk") and action_name not in followup_modes:
+                followup_modes[action_name] = "plain_text"
+                logger.info(f"[FOLLOWUP] Auto-detected speak action '{action_name}' (scenario_id={self.config.scenario_id})")
+
+        logger.debug(f"[FOLLOWUP] Final followup_modes={followup_modes}")
+        return followup_modes
 
     def _build_payoff_summary(self) -> str:
         """Build payoff_summary from scenario parameters - GENERIC version.
 
         Handles all game types:
+        - PUBLIC_GOODS: Intertwined format with "person" language
         - Prisoner's Dilemma: Uses formatted payoff table
         - Other games: Generic parameter display
         """
@@ -352,6 +583,43 @@ class ExperimentScene:
         if not params:
             logger.debug("[PAYOFF] No parameters, returning empty")
             return ""
+
+        # PUBLIC_GOODS: Use intertwined format with "person" language
+        if self.config.scenario_id == "public_goods":
+            tokens_per_round = params.get("tokens_per_round", 10)
+            resource_name = params.get("resource_name", "tokens")
+            multiplier = params.get("multiplier", 1.3)
+            num_members = len(self.agents) if self.agents else 4
+            deduction_budget = params.get("deduction_budget_per_phase", 0)
+            deduction_cost_ratio = params.get("deduction_cost_ratio", 3)
+            deduction_anonymous = params.get("deduction_anonymous", False)
+
+            # Build intertwined scenario description
+            lines = [
+                f"In this experiment, you receive {tokens_per_round} {resource_name} each round.",
+                "Each person has resources and decides how much to contribute to a shared pool.",
+                "The pool is multiplied and distributed equally among all members, regardless of contribution.",
+                "",
+                f"The total group contribution is multiplied by {multiplier} and distributed equally among all {num_members} members.",
+                f"You keep any {resource_name} you do not allocate.",
+            ]
+
+            # Add deduction mechanics if enabled
+            if deduction_budget and deduction_budget > 0:
+                lines.append("")
+                anonymity_text = (
+                    "Your reductions are anonymous - targets will not know who reduced their resources."
+                    if deduction_anonymous
+                    else "Your reductions are visible - targets will see who reduced their resources."
+                )
+                lines.append(
+                    f"After the contribution phase, you have the opportunity to reduce other members' {resource_name}. "
+                    f"You have a deduction budget of {deduction_budget} points. "
+                    f"For each 1 point from your budget, the target loses {deduction_cost_ratio} {resource_name}. "
+                    f"{anonymity_text}"
+                )
+
+            return "\n".join(lines)
 
         # Check if this is a Prisoner's Dilemma style game (has all 4 PD params)
         pd_params = ["cooperate_reward", "sucker_penalty", "temptation_reward", "defect_penalty"]
@@ -439,6 +707,16 @@ class ExperimentScene:
                 }
                 lines.append(dist_map.get(initial_distribution, f"Initial distribution: {initial_distribution}."))
 
+        elif scenario_id == "council":
+            # GAP-CLOSURE-01: Include deliberation rounds info for council scenarios
+            deliberation_rounds = params.get("deliberation_rounds")
+            proposal_text = params.get("proposal_text", "")
+            if proposal_text:
+                lines.append(f"The proposal under discussion is: \"{proposal_text}\"")
+            if deliberation_rounds is not None and deliberation_rounds > 0:
+                lines.append(f"There will be {deliberation_rounds} round(s) of deliberation before voting begins.")
+                lines.append("You cannot vote until the deliberation period is complete.")
+
         return "\n".join(lines)
 
     def _build_context_summary(self) -> str:
@@ -468,6 +746,78 @@ class ExperimentScene:
         """Check if experiment has natural end (most don't)."""
         return False  # Run forever via SimTree control
 
+    def get_pgg_phase(self) -> str:
+        """Get current PGG phase.
+
+        Returns:
+            "allocate" or "deduct"
+        """
+        return self._pgg_phase
+
+    def advance_pgg_phase(self) -> None:
+        """Advance to next PGG phase.
+
+        Cycles: allocate -> deduct -> allocate (next round) -> ...
+
+        Note: Does NOT reset deduction budget here. Budget reset happens
+        via _reset_deduction_budgets() when entering deduct phase to avoid
+        spurious resets from initialization or state replay.
+        """
+        if self._pgg_phase == "allocate":
+            self._pgg_phase = "deduct"
+        else:
+            self._pgg_phase = "allocate"
+            # Round advances in run_round(), not here
+
+    def _reset_deduction_budgets(self) -> None:
+        """Reset deduction budgets at start of deduct phase.
+
+        Reads deduction_budget_per_phase from current config, so mid-run
+        config changes will affect subsequent phases. Setting budget to 0
+        clears any leftover budget from when it was enabled.
+
+        Called by runner when entering deduct phase, NOT in advance_pgg_phase
+        to avoid spurious resets during initialization or state replay.
+        """
+        params = self.config.parameters or {}
+        budget = int(params.get("deduction_budget_per_phase", 0) or 0)
+
+        for agent_state in self.state.agents.values():
+            agent_state.resources["deduction_budget"] = budget
+
+        logger.debug(f"Reset deduction budgets to {budget} for {len(self.state.agents)} agents")
+
+    def get_scene_actions(self, agent_name: str) -> list[str] | None:
+        """Filter available actions by current PGG phase.
+
+        For PUBLIC_GOODS scenario, returns phase-appropriate actions.
+        For other scenarios, returns None (caller should use all configured actions).
+
+        Args:
+            agent_name: Name of agent (for future per-agent filtering)
+
+        Returns:
+            List of action names available in current phase, or None if
+            no filtering should be applied (use all configured actions).
+        """
+        if self.config.scenario_id != "public_goods":
+            return None  # None = no filtering, use all configured actions
+
+        current_phase = self._pgg_phase
+        params = self.config.parameters or {}
+        deduction_budget = params.get("deduction_budget_per_phase", 0)
+
+        logger.info(f"[PGG] get_scene_actions called: phase={current_phase}, deduction_budget={deduction_budget}")
+
+        if current_phase == "allocate":
+            return ["allocate", "keep"]
+        else:  # deduct phase
+            # Only show reduce/skip if deduction is enabled
+            if deduction_budget and deduction_budget > 0:
+                return ["reduce", "skip"]
+            logger.info(f"[PGG] Deduct phase but deduction_budget={deduction_budget} <= 0, returning empty actions")
+            return []  # Empty = no actions available (deductions disabled)
+
     def inject_host_message(self, message: str) -> None:
         """Queue a host message to be injected into all agents' context on the next round."""
         self._pending_host_messages.append(message)
@@ -479,12 +829,17 @@ class ExperimentScene:
                 "agents": self.config.agents,
                 "actions": self.config.actions,
                 "parameters": self.config.parameters,
+                "state_schema": self.config.state_schema,
                 "description": self.config.description,
                 "scenario_id": self.config.scenario_id,
                 "round_visibility": self.config.round_visibility,
+                "social_network": self.config.social_network,
             },
             "current_round": self.current_round,
             "history": self._history,
+            "state": self.state.to_dict(),
+            "pending_host_messages": self._pending_host_messages,
+            "pgg_phase": self._pgg_phase,
         }
 
     @classmethod
@@ -494,4 +849,9 @@ class ExperimentScene:
         scene = cls(config)
         scene.current_round = data.get("current_round", 0)
         scene._history = data.get("history", [])
+        if data.get("state") is not None:
+            scene.state = ExperimentState.from_dict(data["state"])
+        scene._pending_host_messages = data.get("pending_host_messages", [])
+        # Restore PGG phase state (defaults to "allocate" for backwards compatibility)
+        scene._pgg_phase = data.get("pgg_phase", "allocate")
         return scene

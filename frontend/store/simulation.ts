@@ -473,7 +473,7 @@ export const createSimulationSlice: StateCreator<
 
           const mapSceneType: Record<string, string> = {
             village: 'village_scene',
-            council: 'council_scene',
+            council: 'council_experiment',  // REFACTOR-COUNCIL-06: Use new experiment scene
             werewolf: 'werewolf_scene',
             generic: 'generic_scene',
             experiment: 'experiment_template'
@@ -499,6 +499,22 @@ export const createSimulationSlice: StateCreator<
             } else if (template.description) {
               sceneConfig.initial_event = template.description;
             }
+          } else if (backendSceneType === 'council_experiment') {
+            // REFACTOR-COUNCIL-06: Council experiment configuration
+            // NO DEFAULTS - fail fast if parameters are missing
+            const params = (template.genericConfig as any)?.parameters;
+            if (!params?.deliberation_rounds) {
+              throw new Error('deliberation_rounds parameter is required for council experiment');
+            }
+            if (!params?.voting_threshold) {
+              throw new Error('voting_threshold parameter is required for council experiment');
+            }
+            if (!params?.proposal_text && !template.description) {
+              throw new Error('proposal_text or description is required for council experiment');
+            }
+            sceneConfig.deliberation_rounds = params.deliberation_rounds;
+            sceneConfig.voting_threshold = params.voting_threshold;
+            sceneConfig.proposal_text = params.proposal_text || template.description;
           } else if (template.description) {
             sceneConfig.initial_event = template.description;
             sceneConfig.initial_events = [template.description];
@@ -511,14 +527,16 @@ export const createSimulationSlice: StateCreator<
           if (isExperimentTemplate && templateActions.length > 0) {
             // Use the new experiment template format
             sceneConfig.description = template.genericConfig?.description || name || 'Experiment';
+            sceneConfig.scenario_id = template.genericConfig?.scenario_id || 'custom';
             sceneConfig.actions = templateActions.map((action: any) => ({
               action_type: action.action_type || action,
               name: action.name || action,
               description: action.description || `${action} action`,
+              parameters: action.parameters || [],
             }));
+            sceneConfig.round_visibility = template.genericConfig?.round_visibility || 'simultaneous';
             sceneConfig.settings = {
               round_visibility: template.genericConfig?.round_visibility || 'simultaneous',
-              max_rounds: template.genericConfig?.max_rounds || 50,
             };
           } else if (templateActions.length > 0) {
             // Legacy format
@@ -566,7 +584,9 @@ export const createSimulationSlice: StateCreator<
             status: 'active',
             createdAt: new Date().toISOString().split('T')[0],
             timeConfig: finalTimeConfig,
-            socialNetwork: template.defaultNetwork || {}
+            socialNetwork: template.defaultNetwork || {},
+            // Include scene_config so Experiment Design Modal can access parameters
+            scene_config: sceneConfig
           };
 
           set({

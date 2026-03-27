@@ -36,26 +36,145 @@ class SystemFacilitator:
         self.min_turns_before_vote = 3  # Minimum discussion turns before voting
         self.stalemate_threshold = 6    # Turns without new content to detect stalemate
 
+        # Deliberation round tracking for FEAT-COUNCIL-02
+        self._deliberation_rounds: Optional[int] = None  # None = agent-controlled (default)
+        self.current_round_num: int = 1  # Track current round for deliberation enforcement
+
     def set_simulator(self, simulator):
         """Set simulator reference after initialization."""
         self.simulator = simulator
 
-    def record_turn(self, agent_name: str, action_name: str, content: str = ""):
+    def record_turn(self, agent_name: str, action_name: str, content: str = "", round_num: int = None):
         """
-        Record a turn for facilitation analysis.
+        Record a turn for facilitation analysis with round boundary tracking.
 
         Args:
             agent_name: Name of the agent who acted
             action_name: Type of action taken
             content: Content of the action (message, etc.)
+            round_num: Round number this turn belongs to (defaults to turn_count)
         """
         self.turn_count += 1
         self.conversation_history.append({
             "turn": self.turn_count,
+            "round": round_num if round_num is not None else self.turn_count,
             "agent": agent_name,
             "action": action_name,
             "content": content[:500],  # Truncate for memory
         })
+
+    def get_round_history(self, round_num: int) -> List[Dict[str, Any]]:
+        """Get all turns for a specific round.
+
+        Args:
+            round_num: Round number to query
+
+        Returns:
+            List of turn dictionaries for the specified round
+        """
+        return [
+            entry for entry in self.conversation_history
+            if entry.get("round") == round_num
+        ]
+
+    def set_deliberation_rounds(self, rounds: Optional[int]) -> None:
+        """Set the number of deliberation rounds before automatic voting phase.
+
+        Args:
+            rounds: Number of discussion rounds before auto-transition to voting.
+                    None means agent-controlled voting (default, backward compatible).
+                    0 means immediate voting phase (no deliberation).
+                    1+ means N rounds of discussion before voting automatically begins.
+
+        Raises:
+            ValueError: If rounds is negative
+        """
+        if rounds is not None and rounds < 0:
+            raise ValueError(f"deliberation_rounds must be >= 0, got {rounds}")
+        self._deliberation_rounds = rounds
+
+    def check_and_transition_phase(self, round_num: int) -> bool:
+        """Check if deliberation phase should transition to voting after this round.
+
+        Called after each round completes. Transitions to voting phase automatically
+        when deliberation_rounds limit is reached.
+
+        Args:
+            round_num: Current round number (1-indexed)
+
+        Returns:
+            True if transition occurred, False otherwise
+        """
+        # Only check if we're in discussion phase
+        if self.phase != CouncilPhase.DISCUSSION:
+            return False
+
+        # Only auto-transition if deliberation_rounds is set
+        if self._deliberation_rounds is None:
+            return False
+
+        # Check if we've exceeded deliberation rounds
+        # Transition happens AFTER deliberation_rounds complete
+        # So if deliberation_rounds=2, we transition after round 2 completes
+        # (when round_num becomes 3, which is > 2)
+        if round_num > self._deliberation_rounds:
+            # Get proposal title from scene state
+            state_dict = (
+                self.scene.state.extensions
+                if hasattr(self.scene.state, 'extensions')
+                else self.scene.state
+            )
+            title = state_dict.get("proposal_text", "the current proposal")
+            self.transition_to_voting(title)
+            return True
+
+        return False
+
+    @property
+    def _deliberation_rounds_remaining(self) -> Optional[int]:
+        """Calculate remaining deliberation rounds before voting is allowed.
+
+        Returns:
+            Number of rounds remaining before voting can start, or None if no
+            fixed deliberation period (agent-controlled voting).
+        """
+        if self._deliberation_rounds is None:
+            return None
+        return max(0, self._deliberation_rounds - self.current_round_num)
+
+    def format_round_transcript(self, round_num: int) -> str:
+        """Format a round's history as a readable transcript.
+
+        Args:
+            round_num: Round number to format
+
+        Returns:
+            Formatted transcript string
+        """
+        round_turns = self.get_round_history(round_num)
+
+        if not round_turns:
+            return f"Round {round_num}: No activity recorded"
+
+        lines = [f"Round {round_num}:"]
+        for turn in round_turns:
+            agent = turn.get("agent", "Unknown")
+            action = turn.get("action", "unknown")
+            content = turn.get("content", "")
+
+            if action == "send_message" and content:
+                # Format as speech
+                lines.append(f'- {agent}: "{content[:200]}{"..." if len(content) > 200 else ""}"')
+            elif action == "vote":
+                # Format as vote
+                lines.append(f"- {agent} voted")
+            elif action == "start_voting":
+                lines.append(f"- [System] Voting has begun")
+            else:
+                # Generic format
+                lines.append(f"- {agent}: {action}")
+
+        return "\n".join(lines)
 
     def should_suggest_voting(self) -> Tuple[bool, str]:
         """
@@ -71,7 +190,7 @@ class SystemFacilitator:
             return False, f"Need at least {self.min_turns_before_vote} discussion turns"
 
         # Check if voting is already in progress via scene state
-        if self.scene.state.get("voting_started", False):
+        if self.scene.state.extensions.get("voting_started", False):
             return False, "Voting already started"
 
         # Use LLM to evaluate if discussion has reached natural conclusion
@@ -88,8 +207,8 @@ class SystemFacilitator:
             return True, "Meeting already concluded"
 
         # Check if voting completed and results announced
-        past_votes = self.scene.state.get("past_votes", [])
-        if past_votes and not self.scene.state.get("voting_started", False):
+        past_votes = self.scene.state.extensions.get("past_votes", [])
+        if past_votes and not self.scene.state.extensions.get("voting_started", False):
             # Has completed votes, could be ready to conclude
             if self.turn_count > 10:
                 return True, "Voting completed and discussion exhausted"
@@ -111,10 +230,20 @@ class SystemFacilitator:
             return
 
         self.phase = CouncilPhase.VOTING
-        self.scene.state["voting_started"] = True
-        self.scene.state["vote_title"] = title
-        self.scene.state["votes"] = {}
-        self.scene.state["voting_completed_announced"] = False
+
+        # Handle both legacy dict-based state and ExperimentState object
+        # Legacy: scene.state is a dict
+        # Experiment: scene.state is ExperimentState with .extensions dict
+        state_dict = (
+            self.scene.state.extensions
+            if hasattr(self.scene.state, 'extensions')
+            else self.scene.state
+        )
+
+        state_dict["voting_started"] = True
+        state_dict["vote_title"] = title
+        state_dict["votes"] = {}
+        state_dict["voting_completed_announced"] = False
         self.last_facilitation_turn = self.turn_count
 
         # Announce transition
@@ -130,7 +259,22 @@ class SystemFacilitator:
     def conclude_meeting(self):
         """Conclude the council meeting."""
         self.phase = CouncilPhase.CONCLUDED
-        self.scene.complete = True
+
+        # Handle both legacy and experiment scene completion
+        # Legacy: scene.complete = True
+        # Experiment: scene.state.extensions["concluded"] = True
+        if hasattr(self.scene, 'complete'):
+            # Legacy scene
+            self.scene.complete = True
+        else:
+            # Experiment scene
+            state_dict = (
+                self.scene.state.extensions
+                if hasattr(self.scene.state, 'extensions')
+                else self.scene.state
+            )
+            state_dict["concluded"] = True
+
         self.last_facilitation_turn = self.turn_count
 
         if self.simulator:
@@ -147,6 +291,9 @@ class SystemFacilitator:
         """
         Check if an action is allowed in the current phase.
 
+        During VOTING phase, ONLY vote-related actions are allowed.
+        During DISCUSSION phase, most actions are allowed (except vote).
+
         Args:
             action_name: Name of the action being attempted
 
@@ -154,30 +301,55 @@ class SystemFacilitator:
             (allowed, error_message): Tuple of permission status and error if not allowed
         """
         # Actions that can be used in any phase
-        phaseless_actions = {"send_message", "yield", "voting_status", "request_brief"}
+        phaseless_actions = {"yield", "voting_status", "request_brief"}
 
         if action_name in phaseless_actions:
             return True, None
 
-        # Phase-specific validation
-        if action_name == "start_voting":
-            if self.phase != CouncilPhase.DISCUSSION:
-                return False, f"Cannot start voting: currently in {self.phase.value} phase"
-            if self.scene.state.get("voting_started", False):
-                return False, "Cannot start voting: a vote is already in progress"
+        # VOTING phase: ONLY voting actions allowed
+        if self.phase == CouncilPhase.VOTING:
+            # GAP-CLOSURE-01: Support both "vote" and specific vote actions (vote_yes, vote_no, abstain)
+            voting_actions = {"vote", "vote_yes", "vote_no", "abstain"}
+            if action_name in voting_actions:
+                if not self.scene.state.extensions.get("voting_started", False):
+                    return False, "Cannot vote: voting has not started yet"
+                return True, None
+            # All other actions blocked during voting
+            return False, f"Cannot {action_name} during voting phase - only Vote actions allowed"
+
+        # DISCUSSION phase: allow most actions except vote
+        if self.phase == CouncilPhase.DISCUSSION:
+            # GAP-CLOSURE-01: Block all vote-related actions during discussion
+            voting_actions = {"vote", "vote_yes", "vote_no", "abstain"}
+            if action_name in voting_actions:
+                return False, "Cannot vote during discussion phase - wait for voting to start"
+            if action_name == "start_voting":
+                if self.scene.state.extensions.get("voting_started", False):
+                    return False, "Cannot start voting: a vote is already in progress"
+
+                # FEAT-COUNCIL-02: Block start_voting during deliberation rounds
+                remaining = self._deliberation_rounds_remaining
+                if remaining is not None and remaining > 0:
+                    return False, f"Cannot start voting yet: {remaining} round(s) of deliberation remaining"
+
+                # Allow start_voting if deliberation complete or no fixed rounds
+                return True, None
+            # GAP-CLOSURE-01: Also block call_vote (alias for start_voting) during deliberation
+            if action_name == "call_vote":
+                remaining = self._deliberation_rounds_remaining
+                if remaining is not None and remaining > 0:
+                    return False, f"Cannot call vote yet: {remaining} round(s) of deliberation remaining"
+                return True, None
+            if action_name == "finish_meeting":
+                return True, None
+            # Discussion actions (send_message, etc.) allowed
             return True, None
 
-        if action_name == "vote":
-            if not self.scene.state.get("voting_started", False):
-                return False, "Cannot vote: voting has not started yet"
-            return True, None
+        # CONCLUDED phase: no actions allowed
+        if self.phase == CouncilPhase.CONCLUDED:
+            return False, "Meeting has concluded - no further actions allowed"
 
-        if action_name == "finish_meeting":
-            if self.scene.state.get("voting_started", False):
-                return False, "Cannot finish meeting: voting is still in progress"
-            return True, None
-
-        # Unknown actions are allowed by default
+        # Unknown actions: allow by default
         return True, None
 
     def _llm_evaluate_vote_readiness(self) -> Tuple[bool, str]:
@@ -199,7 +371,7 @@ class SystemFacilitator:
         ])
 
         # Get the scene's topic for context
-        vote_title = self.scene.state.get("vote_title", "the proposal")
+        vote_title = self.scene.state.extensions.get("vote_title", "the proposal")
 
         # Build evaluation prompt
         system_prompt = (
@@ -308,9 +480,18 @@ Respond with 'YES: [brief reason]' or 'NO: [brief reason]'."""
 
         status = f"Phase: {phase_desc.get(self.phase, self.phase.value)}"
 
+        # GAP-CLOSURE-01: Show deliberation rounds remaining during discussion
+        if self.phase == CouncilPhase.DISCUSSION:
+            remaining = self._deliberation_rounds_remaining
+            if remaining is not None and remaining > 0:
+                status += f"\nDeliberation rounds remaining: {remaining}"
+                status += f"\nVoting will begin automatically after {remaining} more round(s) of discussion."
+            elif remaining == 0:
+                status += "\nDeliberation complete - voting will begin this round."
+
         if self.phase == CouncilPhase.VOTING:
-            title = self.scene.state.get("vote_title", "the proposal")
-            votes = self.scene.state.get("votes", {})
+            title = self.scene.state.extensions.get("vote_title", "the proposal")
+            votes = self.scene.state.extensions.get("votes", {})
             status += f"\nVoting on: {title}\nVotes cast: {len(votes)}"
 
         return status

@@ -16,7 +16,7 @@ SUPPORTED_LANGUAGES = ['en', 'zh']
 DEFAULT_LANGUAGE = 'en'
 
 # Cache for loaded translations
-_translation_cache: Dict[str, Dict[str, str]] = {}
+_translation_cache: Dict[str, Dict[str, Any]] = {}
 
 
 def _get_locale_file(locale: str) -> Path:
@@ -25,7 +25,7 @@ def _get_locale_file(locale: str) -> Path:
     return module_dir / 'locales' / f'{locale}.json'
 
 
-def _load_translations(locale: str) -> Dict[str, str]:
+def _load_translations(locale: str) -> Dict[str, Any]:
     """
     Load translations from JSON file for the specified locale.
 
@@ -54,7 +54,7 @@ def _load_translations(locale: str) -> Dict[str, str]:
     return _translation_cache[locale]
 
 
-def _get_nested_key(data: Dict[str, Any], key: str) -> Optional[str]:
+def _get_nested_key(data: Dict[str, Any], key: str) -> Any:
     """
     Get a value from nested dictionary using dot notation key.
 
@@ -63,7 +63,8 @@ def _get_nested_key(data: Dict[str, Any], key: str) -> Optional[str]:
         key: Dot notation key (e.g., 'error.simulation.not_found')
 
     Returns:
-        Value at the key path or None if not found
+        Value at the key path or None if not found.
+        Can return str, list, dict, or other JSON-compatible types.
     """
     keys = key.split('.')
     value = data
@@ -76,7 +77,7 @@ def _get_nested_key(data: Dict[str, Any], key: str) -> Optional[str]:
         else:
             return None
 
-    return value if isinstance(value, str) else None
+    return value
 
 
 def get_locale(locale: Optional[str] = None) -> str:
@@ -94,7 +95,7 @@ def get_locale(locale: Optional[str] = None) -> str:
     return DEFAULT_LANGUAGE
 
 
-def T(key: str, locale: Optional[str] = None, **kwargs: Any) -> str:
+def T(key: str, locale: Optional[str] = None, **kwargs: Any) -> Any:
     """
     Translate a key using the specified or default locale.
 
@@ -102,14 +103,16 @@ def T(key: str, locale: Optional[str] = None, **kwargs: Any) -> str:
         T('error.simulation.not_found')
         T('agent.joined', locale='zh', name=agent_name)
         T('welcome.user', name=user_name, count=user_count)
+        roles = T('prompts.archetype.fallback_roles')  # Returns list
 
     Args:
         key: Translation key (dot.notation for nested keys)
         locale: Language code (uses DEFAULT_LANGUAGE if not specified)
-        **kwargs: Variables for string interpolation
+        **kwargs: Variables for string interpolation (only for string values)
 
     Returns:
-        Translated string with variables interpolated
+        Translated value (str, list, dict, or other JSON-compatible type)
+        String values have variables interpolated.
     """
     # Determine which locale to use
     target_locale = get_locale(locale)
@@ -118,22 +121,23 @@ def T(key: str, locale: Optional[str] = None, **kwargs: Any) -> str:
     translations = _load_translations(target_locale)
 
     # Try to get the translation value
-    message = _get_nested_key(translations, key)
+    value = _get_nested_key(translations, key)
 
     # Fallback to key if translation not found
-    if message is None:
-        message = key
+    if value is None:
+        value = key
 
-    # Interpolate variables if provided
-    if kwargs:
+    # For string values, interpolate variables if provided
+    if isinstance(value, str) and kwargs:
         try:
-            message = message.format(**kwargs)
-        except (KeyError, ValueError):
+            value = value.format(**kwargs)
+        except (KeyError, ValueError, AttributeError):
             # If formatting fails, return the key with variables appended
             vars_str = ', '.join(f'{k}={v}' for k, v in kwargs.items())
             return f"{key} ({vars_str})"
 
-    return message
+    # For non-string values (lists, dicts, etc.), return directly
+    return value
 
 
 def set_request_locale(locale: str) -> None:

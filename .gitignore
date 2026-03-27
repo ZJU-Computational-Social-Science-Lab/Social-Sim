@@ -159,6 +159,7 @@ DESIGN.md
 REFACTORING_PLAN.md
 *.plan.md
 planning/
+.planning/
 
 # Git worktrees for parallel development
 .worktrees/

@@ -99,11 +99,7 @@ export const mapGraphToNodes = (graph: Graph): SimNode[] => {
     const pid = parentMap.has(n.id) ? parentMap.get(n.id)! : null;
     const isLeaf = !childrenSet.has(n.id);
     const meta = (n as any).meta || null;
-    const variantName = meta && typeof meta.variant_name === 'string' ? meta.variant_name : '';
-    const experimentName = meta && typeof meta.experiment_name === 'string' ? meta.experiment_name : '';
-    const displayName = variantName
-      ? (experimentName ? `${experimentName}: ${variantName}` : variantName)
-      : (isZh() ? `节点 ${n.id}` : `Node ${n.id}`);
+    const displayName = isZh() ? `节点 ${n.id}` : `Node ${n.id}`;
     return {
       id: String(n.id),
       display_id: String(n.id),
@@ -197,38 +193,6 @@ const prettifyAssistantCtx = (content: string): string => {
     out += `【计划】\n${plan}`;
   }
   return out;
-};
-
-const extractJsonObject = (content: string): string => {
-  if (!content) return '';
-  const fenced = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  const candidate = fenced && fenced[1] ? fenced[1] : content;
-  const stripped = candidate.replace(/\/\*[\s\S]*?\*\//g, '').trim();
-  const start = stripped.indexOf('{');
-  const end = stripped.lastIndexOf('}');
-  if (start === -1 || end === -1 || end <= start) return '';
-  return stripped.slice(start, end + 1);
-};
-
-const parseAssistantJson = (content: string): any | null => {
-  const jsonText = extractJsonObject(content);
-  if (!jsonText) return null;
-  try {
-    return JSON.parse(jsonText);
-  } catch {
-    return null;
-  }
-};
-
-const extractAssistantDisplayText = (parsed: any): string => {
-  if (!parsed || typeof parsed !== 'object') return '';
-  const action = parsed.action && typeof parsed.action === 'object' ? parsed.action : null;
-  const response = typeof parsed.response === 'string' ? parsed.response.trim() : '';
-  const message = typeof parsed.message === 'string' ? parsed.message.trim() : '';
-  const actionMessage = action && typeof action.message === 'string' ? action.message.trim() : '';
-  const actionContent = action && typeof action.content === 'string' ? action.content.trim() : '';
-  const contextUpdate = typeof parsed.context_update === 'string' ? parsed.context_update.trim() : '';
-  return response || message || actionMessage || actionContent || contextUpdate;
 };
 
 export const translateAgentContent = (text: string): string => {
@@ -356,62 +320,42 @@ export const mapBackendEventsToLogs = (
 
     const evType = ev.type || ev.event_type;
     const data = payload;
-    const labels = {
-      reasoningStep: (step: number) => pickText(`Starting step ${step} reasoning`, `开始第 ${step} 步推理`),
-      reasoningStart: pickText('Starting reasoning', '开始推理'),
-      reasoningDone: pickText('Reasoning complete', '完成推理'),
-      actionPrefix: pickText('Action', '动作'),
-      yieldTurn: pickText('Yielded the floor', '结束本轮发言'),
-      planUpdate: pickText('Plan updated', '更新计划'),
-      agentError: pickText('Agent error', '智能体发生错误'),
-      llmCallError: pickText('LLM call failed', 'LLM 调用失败'),
-      llmParseError: pickText('LLM output parse failed', 'LLM 输出解析失败'),
-      agentOffline: pickText('Agent went offline', '智能体已掉线'),
-      distortionBlocked: pickText('Policy transmission blocked', '政策传递被截留'),
-      distortionAdjusted: pickText('Policy transmission distorted', '政策传递发生失真'),
-      distortionUnchanged: pickText('Policy transmission stayed effectively unchanged', '政策传递基本保持原样'),
-      distortedReason: pickText('Distortion reason', '已发生失真，原因'),
-      pressureReason: pickText('Distortion pressure', '存在失真压力，但本次保持原样，原因'),
-      distortionInput: pickText('Announcement classified as distortion cascade input', '本条公告被识别为：distortion cascade input'),
-      nonDistortionInput: pickText('Announcement did not enter distortion cascade', '本条公告未进入 distortion cascade'),
-      privateCascadeInput: pickText('This is a private cascade input, visible only to', '这是一条私有级联输入，仅'),
-      waitingForTopTier: pickText('waiting for top-tier relay', '可见，等待其作为 top tier 下传'),
-      privateBroadcast: pickText('Targeted private broadcast', '定向私有广播'),
-      globalBroadcast: pickText('Global broadcast', '全局广播'),
-      recipientsLabel: pickText('Recipients', '接收者'),
-      allAgents: pickText('All agents', '全体智能体'),
-      originalMessage: pickText('Received upstream policy version', '收到的上级政策版本'),
-      draftMessage: pickText('Agent draft before scene rewrite', 'Agent 原始下传草稿'),
-      finalMessage: pickText('Actual downstream message', '实际对下发送内容'),
-      reasonLabel: pickText('Reason', '原因'),
-      metricsLabel: pickText('Metrics', '参数/评分'),
-      actionStart: pickText('Started action', '开始执行动作'),
-      actionEnd: pickText('performed action', '执行了动作'),
-      privateThreadOpened: pickText('opened a private thread', '发起了私下线程'),
-      privateThreadReplied: pickText('replied privately', '进行了私下回复'),
-      privateThreadIgnored: pickText('temporarily ignored a private thread', '暂未处理私下线程'),
-      privateThreadTo: pickText('to', '向'),
-      privateThreadKindUpward: pickText('upward feedback', '向上反馈'),
-      privateThreadKindEscalation: pickText('escalation', '升级投诉'),
-      privateThreadKindSkipLevel: pickText('skip-level complaint', '越级投诉'),
-      privateThreadKindPeer: pickText('peer consultation', '同层协商'),
-      privateThreadKindSubordinate: pickText('subordinate notification', '下级通知'),
-      policyAdjustmentIssued: pickText('issued a policy adjustment', '发布了政策调整'),
-      idleTurn: pickText('had no new request and kept current stance', '当前未收到新请求，维持既有立场'),
-      systemEvent: pickText('System event', '系统事件'),
-      agentResponse: pickText('Agent response', 'Agent responded'),
-      choseAction: (agent: string, action: string) => pickText(`${agent} chose ${action}`, `${agent} 选择了 ${action}`)
-    };
 
-    const threadKindLabel = (kind: string): string => {
-      switch (kind) {
-        case 'upward_feedback': return labels.privateThreadKindUpward;
-        case 'escalation': return labels.privateThreadKindEscalation;
-        case 'skip_level_complaint': return labels.privateThreadKindSkipLevel;
-        case 'peer_consult': return labels.privateThreadKindPeer;
-        case 'subordinate_notice': return labels.privateThreadKindSubordinate;
-        default: return kind || labels.systemEvent;
-      }
+    // Get labels using i18n.t() for runtime language switching
+    const labels = {
+      reasoningStep: (step: number) => i18n.t('log.reasoningStep', { step }),
+      reasoningStart: i18n.t('log.reasoningStart'),
+      reasoningDone: i18n.t('log.reasoningDone'),
+      actionPrefix: i18n.t('log.actionPrefix'),
+      yieldTurn: i18n.t('log.yieldTurn'),
+      planUpdate: i18n.t('log.planUpdate'),
+      agentError: i18n.t('log.agentError'),
+      llmCallError: i18n.t('log.llmCallError'),
+      llmParseError: i18n.t('log.llmParseError'),
+      agentOffline: i18n.t('log.agentOffline'),
+      distortionBlocked: i18n.t('log.distortionBlocked'),
+      distortionAdjusted: i18n.t('log.distortionAdjusted'),
+      distortionUnchanged: i18n.t('log.distortionUnchanged'),
+      distortedReason: i18n.t('log.distortedReason'),
+      pressureReason: i18n.t('log.pressureReason'),
+      distortionInput: i18n.t('log.distortionInput'),
+      nonDistortionInput: i18n.t('log.nonDistortionInput'),
+      privateCascadeInput: i18n.t('log.privateCascadeInput'),
+      waitingForTopTier: i18n.t('log.waitingForTopTier'),
+      privateBroadcast: i18n.t('log.privateBroadcast'),
+      globalBroadcast: i18n.t('log.globalBroadcast'),
+      recipientsLabel: i18n.t('log.recipientsLabel'),
+      allAgents: i18n.t('log.allAgents'),
+      originalMessage: i18n.t('log.originalMessage'),
+      draftMessage: i18n.t('log.draftMessage'),
+      finalMessage: i18n.t('log.finalMessage'),
+      reasonLabel: i18n.t('log.reasonLabel'),
+      metricsLabel: i18n.t('log.metricsLabel'),
+      actionStart: i18n.t('log.actionStart'),
+      actionEnd: i18n.t('log.actionEnd'),
+      systemEvent: i18n.t('log.systemEvent'),
+      agentResponse: i18n.t('log.agentResponse'),
+      choseAction: (agent: string, action: string) => i18n.t('log.choseAction', { agent, action })
     };
 
     // Agent context delta
@@ -432,7 +376,12 @@ export const mapBackendEventsToLogs = (
       }
 
       if (role === 'assistant') {
-        const parsed = parseAssistantJson(raw);
+        // Parse the JSON response from legacy agent
+        let parsed = null;
+        try {
+          // Try to parse as JSON
+          parsed = JSON.parse(raw);
+        } catch {}
 
         // Check if this is a run_experiment action (verbose legacy wrapper)
         if (parsed && parsed.action && parsed.action.name === 'run_experiment') {
@@ -444,14 +393,11 @@ export const mapBackendEventsToLogs = (
         // For other actions, show a cleaner format
         if (parsed) {
           const actionName = parsed.action?.name || '';
-          const displayText = extractAssistantDisplayText(parsed);
+          const response = parsed.response || '';
 
-          if (actionName === 'yield') {
-            return { ...base, type: 'AGENT_METADATA', agentId, content: labels.yieldTurn };
-          }
-
-          if (displayText && displayText !== 'Hello! Nice to meet you.' && displayText !== 'Hello! Nice to meet you') {
-            return { ...base, type: 'AGENT_SAY', agentId, content: displayText };
+          // If there's a meaningful response, show it
+          if (response && response !== 'Hello! Nice to meet you.' && response !== 'Hello! Nice to meet you') {
+            return { ...base, type: 'AGENT_SAY', agentId, content: response };
           }
 
           // Otherwise skip the verbose metadata
@@ -509,31 +455,12 @@ export const mapBackendEventsToLogs = (
       return { ...base, type: 'AGENT_METADATA', agentId, content: labels.planUpdate };
     }
 
-    if (evType === 'error') {
-      const agentName: string = data.agent || '';
-      const agentLabel = agentName || pickText('System', '系统');
-      const errorType = String(data.error_type || '').trim();
-      const errText = String(data.error || data.message || '').trim();
-      const stepText = data.step !== undefined && data.step !== null
-        ? pickText(`, step ${data.step}`, `，步骤 ${data.step}`)
-        : '';
-      const turnText = data.turn !== undefined && data.turn !== null
-        ? pickText(`, turn ${data.turn}`, `，回合 ${data.turn}`)
-        : '';
-      const prefix = isZh()
-        ? `${agentLabel} 发生运行错误`
-        : `${agentLabel} runtime error`;
-      const detail = [errorType, errText].filter(Boolean).join(': ');
-      const content = `${prefix}${stepText}${turnText}${detail ? pickText(`: ${detail}`, `：${detail}`) : ''}`;
-      return { ...base, type: 'SYSTEM', content };
-    }
-
     // Agent error
     if (evType === 'agent_error') {
       const agentName: string = data.agent || '';
       const kind: string = data.kind || '';
       const errText: string = String(data.error || data.message || '').slice(0, 400);
-      const agentLabel = agentName || pickText('Unknown', '未知');
+      const agentLabel = agentName || i18n.t('log.unknown');
       const kindLabel = kind === 'llm_call'
         ? labels.llmCallError
         : kind === 'parse'
@@ -542,7 +469,7 @@ export const mapBackendEventsToLogs = (
             ? labels.agentOffline
             : labels.agentError;
       const baseLabel = isZh() ? `智能体「${agentLabel}」${kindLabel}` : `Agent "${agentLabel}" ${kindLabel}`;
-      const label = baseLabel + (errText ? pickText(`: ${errText}`, `：${errText}`) : '');
+      const label = baseLabel + (errText ? (isZh() ? `：${errText}` : `: ${errText}`) : '');
       return { ...base, type: 'SYSTEM', content: label };
     }
 
@@ -551,15 +478,15 @@ export const mapBackendEventsToLogs = (
       const tier: string = data.tier || '';
       const blocked = Boolean(data.blocked);
       const changed = data.changed !== false;
-      const originalMessage = String(data.original_message || '').trim() || pickText('(empty)', '（空）');
+      const originalMessage = String(data.original_message || '').trim() || i18n.t('log.empty');
       const draftMessage = String(data.agent_draft_message || '').trim();
-      const finalMessage = String(data.final_message || '').trim() || pickText('(blocked / no downstream message)', '（已截留 / 无下传内容）');
-      const reason = String(data.reason || '').trim() || pickText('No reason provided', '未提供原因');
-      const metrics = `${pickText('strength', '失真强度')}=${data.distortion_strength ?? '-'}, `
-        + `${pickText('conflict', '冲突敏感度')}=${data.conflict_sensitivity ?? '-'}, `
-        + `${pickText('block', '阻断概率')}=${data.block_probability ?? '-'}, `
-        + `${pickText('pressure', '冲突压力')}=${data.pressure ?? '-'}, `
-        + `${pickText('tendency', '截留倾向')}=${data.block_tendency ?? '-'}`;
+      const finalMessage = String(data.final_message || '').trim() || i18n.t('log.blockedNoDownstream');
+      const reason = String(data.reason || '').trim() || i18n.t('log.noReasonProvided');
+      const metrics = `${i18n.t('log.strength')}=${data.distortion_strength ?? '-'}, `
+        + `${i18n.t('log.conflict')}=${data.conflict_sensitivity ?? '-'}, `
+        + `${i18n.t('log.block')}=${data.block_probability ?? '-'}, `
+        + `${i18n.t('log.pressure')}=${data.pressure ?? '-'}, `
+        + `${i18n.t('log.tendency')}=${data.block_tendency ?? '-'}`;
       const title = blocked ? labels.distortionBlocked : changed ? labels.distortionAdjusted : labels.distortionUnchanged;
       const reasonLine = blocked || changed
         ? `${labels.distortedReason}: ${reason}`
@@ -617,57 +544,6 @@ export const mapBackendEventsToLogs = (
         type: 'ENVIRONMENT',
         content: content ? `${label}\n${content}` : label,
       };
-    }
-
-    if (evType === 'policy_thread_opened') {
-      const senderName = String(data.sender || '').trim();
-      const recipient = String(data.recipient || '').trim();
-      const message = String(data.message || '').trim();
-      const kind = threadKindLabel(String(data.kind || ''));
-      const agentId = senderName ? nameToId.get(senderName) : undefined;
-      const header = senderName
-        ? `${senderName} ${labels.privateThreadOpened} ${labels.privateThreadTo} ${recipient}（${kind}）`
-        : `${labels.privateThreadOpened} ${labels.privateThreadTo} ${recipient}（${kind}）`;
-      return { ...base, type: 'AGENT_SAY', agentId, content: message ? `${header}：${message}` : header };
-    }
-
-    if (evType === 'policy_thread_reply') {
-      const senderName = String(data.sender || '').trim();
-      const recipient = String(data.recipient || '').trim();
-      const message = String(data.message || '').trim();
-      const kind = threadKindLabel(String(data.kind || ''));
-      const agentId = senderName ? nameToId.get(senderName) : undefined;
-      const header = senderName
-        ? `${senderName} ${labels.privateThreadReplied} ${labels.privateThreadTo} ${recipient}（${kind}）`
-        : `${labels.privateThreadReplied} ${labels.privateThreadTo} ${recipient}（${kind}）`;
-      return { ...base, type: 'AGENT_SAY', agentId, content: message ? `${header}：${message}` : header };
-    }
-
-    if (evType === 'policy_thread_ignored') {
-      const actorName = String(data.agent || '').trim();
-      const notice = String(data.notice || '').trim();
-      const kind = threadKindLabel(String(data.kind || ''));
-      const agentId = actorName ? nameToId.get(actorName) : undefined;
-      const header = actorName
-        ? `${actorName} ${labels.privateThreadIgnored}（${kind}）`
-        : `${labels.privateThreadIgnored}（${kind}）`;
-      return { ...base, type: 'AGENT_ACTION', agentId, content: notice ? `${header}\n${notice}` : header };
-    }
-
-    if (evType === 'policy_adjustment_issued') {
-      const actorName = String(data.sender || '').trim();
-      const message = String(data.message || '').trim();
-      const agentId = actorName ? nameToId.get(actorName) : undefined;
-      const header = actorName ? `${actorName} ${labels.policyAdjustmentIssued}` : labels.policyAdjustmentIssued;
-      return { ...base, type: 'AGENT_ACTION', agentId, content: message ? `${header}\n${message}` : header };
-    }
-
-    if (evType === 'agent_idle') {
-      const actorName = String(data.agent || '').trim();
-      const reason = String(data.reason || '').trim();
-      const agentId = actorName ? nameToId.get(actorName) : undefined;
-      const content = actorName ? `${actorName} ${labels.idleTurn}${reason ? `\n${reason}` : ''}` : (reason || labels.idleTurn);
-      return { ...base, type: 'AGENT_ACTION', agentId, content };
     }
 
     // Public broadcast / environment event
@@ -731,7 +607,7 @@ export const mapBackendEventsToLogs = (
       if (isSpeech) return null as any;
 
       const readableAction = translateActionName(actionName);
-      const label = actorName ? `${actorName} ${labels.actionEnd} ${readableAction}` : `${pickText('Performed action', '执行了动作')} ${readableAction}`;
+      const label = actorName ? `${actorName} ${labels.actionEnd} ${readableAction}` : `${i18n.t('log.performedAction')} ${readableAction}`;
       return { ...base, type: 'AGENT_ACTION', agentId, content: label };
     }
 
@@ -741,6 +617,7 @@ export const mapBackendEventsToLogs = (
       const actionName: string = data.action || '';
       const parameters = data.parameters || {};
       const summary: string = data.summary || '';
+      const payoff = data.payoff;
       const round: number = data.round || 0;
       const skipped: boolean = data.skipped || false;
       const agentId = agentName ? nameToId.get(agentName) : undefined;
@@ -750,22 +627,18 @@ export const mapBackendEventsToLogs = (
 
       // Use summary if available (it contains action result info)
       if (summary) {
-        // summary already contains "Agent chose action" format from backend
-        return { ...base, type: 'AGENT_ACTION', agentId, content: summary };
+        const content = payoff !== null && payoff !== undefined
+          ? `${summary} -> payoff=${payoff}`
+          : summary;
+        return { ...base, type: 'AGENT_ACTION', agentId, content };
       }
 
       // Otherwise build our own label
       let label: string;
       if (skipped) {
-        label = pickText(
-          `Round ${round}: ${agentName} - skipped turn`,
-          `第${round}轮: ${agentName} - 跳过回合`
-        );
+        label = i18n.t('log.skippedTurn', { round, agent: agentName });
       } else {
-        label = pickText(
-          `Round ${round}: ${agentName} chose ${readableAction}`,
-          `第${round}轮: ${agentName} 选择了 ${readableAction}`
-        );
+        label = i18n.t('log.roundAction', { round, agent: agentName, action: readableAction });
       }
 
       // Add parameters if any meaningful ones exist
@@ -780,7 +653,38 @@ export const mapBackendEventsToLogs = (
         }
       }
 
+      if (payoff !== null && payoff !== undefined) {
+        label += ` -> payoff=${payoff}`;
+      }
+
       return { ...base, type: 'AGENT_ACTION', agentId, content: label };
+    }
+
+    // Handle punishment action events (FEAT-PGG-09, FEAT-PGG-10, FEAT-PGG-11)
+    if (evType === 'punishment_action') {
+      const punisher: string = data.punisher || '';
+      const target: string = data.target || '';
+      const amount: number = data.amount || 0;
+      const deduction: number = data.deduction || 0;
+      const roundNum: number = data.round || roundVal;
+
+      const punisherId = punisher ? nameToId.get(punisher) : undefined;
+
+      // Use i18n for runtime language switching
+      const content = i18n.t('log.punishmentAction', {
+        punisher,
+        target,
+        amount,
+        deduction
+      });
+
+      return {
+        ...base,
+        type: 'AGENT_ACTION',
+        agentId: punisherId,
+        content,
+        round: roundNum,
+      };
     }
 
     const text = data.text || data.message || evType || labels.systemEvent;

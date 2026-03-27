@@ -174,6 +174,45 @@
     }
   },
   "prompts": {
+    "policy_cascade": {
+      "markers": {
+        "policy": ["Original Text", "Invariant Clauses", "Reporting Requirements", "Execution Requirements", "Goal:"],
+        "line_types": {
+          "goal": ["Policy Goal", "Goal", "Overall Requirements", "Work Requirements"],
+          "scope": ["Scope of Adjustment", "Applicable Scope", "Coverage Scope"],
+          "standard": ["Adjustment Standard", "Downward Adjustment", "Ratio", "Salary Standard", "Fixed Salary"],
+          "support": ["Supporting Requirements", "Stability Arrangements", "Psychological Support", "Appeal Channels"],
+          "execution": ["Execution Requirements", "Implementation", "Rectification", "Inspection", "Training", "Verification", "Completion"],
+          "report": ["Reporting Requirements", "Submission", "Summary", "Weekly Report", "Ledger", "Report Up", "Sign-in Sheet", "Fill in"],
+          "resource": ["Resources", "Budget", "Funding", "Personnel", "Guarantees", "Technical Support", "Special"],
+          "accountability": ["Responsibility Division", "Accountability", "Assessment", "Supervision", "Responsibility", "Pressure Responsibility", "Follow-up Effectiveness"],
+          "invariant": ["Invariant Clauses", "Strictly Prohibited", "Must Not", "Must", "Without Exception"]
+        },
+        "agent_signals": {
+          "burden": ["Burden", "Pressure", "Cost", "Overtime", "Repetitive", "Cumbersome", "Frontline", "Grassroots", "Implementation Difficulty"],
+          "autonomy": ["Flexible", "Autonomous", "Adapt to Local Conditions", "Coordinate", "Balance", "Discretion", "Postpone", "Pilot"],
+          "control": ["Accountability", "Discipline", "Assessment", "Rigid", "Unified Deployment", "Pressure Responsibility", "Supervision", "Strict"],
+          "resource": ["Budget", "Staffing", "Resources", "Funding", "Equipment", "Support", "Guarantees", "Conditions"],
+          "stability": ["Stability", "Risk", "Public Opinion", "Safety", "Order", "Prudent", "Steady"]
+        },
+        "notice_analysis": ["Interpret", "Evaluate", "Rationality", "Advantages", "Disadvantages", "Pros and Cons", "Trade-offs", "Strengths", "Weaknesses", "Issues", "Suggestions", "Views", "Analysis", "Judgment", "Commentary", "Discuss", "How to View", "Feasibility"],
+        "notice_execution": ["Implement", "Carry Out", "Execute", "Advance", "Deploy", "Transmit", "Rectify", "Inspect", "Supervise", "Implementation Status"]
+      },
+      "distortion": {
+        "reasons": {
+          "grassroots_burden": "High frontline execution burden",
+          "resource_gap": "Resource allocation does not match task requirements",
+          "accountability_pressure": "Assessment and accountability pressure triggers self-protection at this level",
+          "reporting_chain": "Heavy reporting chain leads to weakened transmission"
+        },
+        "role_notes": {
+          "top": "Top level prioritizes coordination, accountability, and key indicators.",
+          "mid": "Middle level prioritizes actionable tasks, reducing cross-department coordination costs.",
+          "low": "Grassroots level prioritizes minimum executable actions, reducing frontline burden."
+        },
+        "default_reason": "This level judges that policy priorities need to be re-screened"
+      }
+    },
     "game_theory": {
       "battle_of_the_sexes": {
         "intro": "You are playing Battle of the Sexes.",
@@ -213,7 +252,53 @@
       "output_action_name": "action name from the Action Space above",
       "output_action_params": "Additional key-value pairs for action parameters (if required)",
       "output_context_update": "Brief notes to remember for future (goals, observations, plans)",
-      "output_metadata": "Optional object with any additional metadata"
+      "output_metadata": "Optional object with any additional metadata",
+      "examples": {
+        "cascade": {
+          "distortion_note": "Current distortion parameters: distortion_strength={strength:.2f}, conflict_sensitivity={sensitivity:.2f}, block_probability={probability:.2f}.",
+          "top_private_source": "For this policy communicated only to me privately, I decide to first emphasize \"{policy_summary}\", without expanding all resource commitments for now.",
+          "top_no_private": "Regarding what was just communicated from above, I decide to continue emphasizing \"{policy_summary}\", without expanding all resource commitments for now.",
+          "top_faithful": "I will continue to communicate \"{policy_summary}\" as written. Attitude: Full support and execute as written. Addition: I will approve special budget and establish monthly accountability mechanism.",
+          "mid_private_source": "I will only communicate the immediately executable parts downward, keeping \"{policy_summary}\" for now, with the rest to follow.",
+          "mid_no_private": "Considering our department's assessment pressure, I will only communicate the immediately executable parts downward, keeping \"{policy_summary}\" for now.",
+          "mid_faithful": "I will continue to communicate \"{policy_summary}\" as written. Attitude: Full support and execute as written. Addition: I will break down tasks to each department within 48 hours and establish weekly reporting ledger.",
+          "low_private_source": "This policy conflicts with frontline burden. I will first retain \"{policy_summary}\" in grassroots-executable terms and report execution difficulties.",
+          "low_no_private": "This policy conflicts with frontline burden. I will first retain the minimum execution requirements from \"{policy_summary}\".",
+          "low_faithful": "I will continue to communicate \"{policy_summary}\" as written. Attitude: Full support and execute as written. Addition: I will verify against the checklist item by item and report within 24 hours if anomalies are found.",
+          "context_top_distortion": "Restated policy priorities at this level's interest, retaining some information",
+          "context_mid_distortion": "Selectively transmitted policy considering middle-level pressure",
+          "context_low_distortion": "Weakened implementation due to grassroots execution conflict",
+          "context_top_faithful": "Forwarded as written, added high-level coordination and resource arrangements",
+          "context_mid_faithful": "Forwarded as written, added middle-level coordination and task breakdown",
+          "context_low_faithful": "Forwarded as written, added grassroots execution and anomaly reporting",
+          "silent_context": "Waiting for next level feedback",
+          "silent_context_distortion": "Temporarily holding transmission due to level interest conflict"
+        },
+        "notice": {
+          "analysis_top": "As top management, my view on \"{notice_text}\" is: The advantage is that it facilitates unified deployment, accountability consolidation, and follow-up effectiveness; the disadvantage is that if resources and supporting systems are insufficient, it can lead to layer-by-layer intensification; I recommend simultaneously clarifying the lead unit, budget arrangements, and supervision rhythm.",
+          "analysis_mid": "As middle management, my view on \"{notice_text}\" is: The advantage is that it facilitates task breakdown, ledger establishment, and coordinated advances; the disadvantage is that if acceptance criteria are unclear, it can cause duplicate reporting and overlapping responsibilities; I recommend promptly refining measures, clarifying timelines, and weekly reporting mechanisms.",
+          "analysis_low": "As a frontline executor, my view on \"{notice_text}\" is: The advantage is that it helps with item-by-item inspection, on-site verification, and timely reporting; the disadvantage is that if there are too many templates and frequent changes in standards, it increases execution burden; I recommend simplifying reporting fields and clarifying rectification, review, and closure standards.",
+          "response_top": "Regarding the system notice \"{notice_text}\", as top management, I will clarify overall objectives, resource allocation, accountability consolidation, and assessment mechanisms, and designate the lead responsible person.",
+          "response_mid": "Regarding the system notice \"{notice_text}\", as middle management, I will break down tasks, coordinate relevant units, establish work ledgers, and provide weekly progress timelines.",
+          "response_low": "Regarding the system notice \"{notice_text}\", as a frontline executor, I will follow the checklist for inspection steps, on-site verification of issues, advance rectification review, and report feedback in a timely manner.",
+          "context_analysis_top": "Completed policy interpretation and pros/cons analysis from top management perspective",
+          "context_analysis_mid": "Completed policy interpretation and pros/cons analysis from middle management perspective",
+          "context_analysis_low": "Completed policy interpretation and pros/cons analysis from frontline perspective",
+          "context_response_top": "Responded to system notice from top management perspective",
+          "context_response_mid": "Responded to system notice from middle management perspective",
+          "context_response_low": "Responded to system notice from frontline perspective",
+          "silent_context": "Waiting for next system notice"
+        },
+        "default_policy_summary": "Transmit policy level by level, retaining key execution clauses"
+      }
+    },
+    "werewolf": {
+      "moderator_hint": "You are the Moderator. Players: {players}. Roles: {roles_info}."
+    },
+    "archetype": {
+      "prompt": "Create a one sentence first-person bio for an agent with these attributes:\n{attrs}\n\nThe sentence must:\n- Start with \"I am\"\n- Reflect how this person thinks and makes decisions based on their attributes\n- Not just restate the demographics\n\nReturn JSON:\n{{\"description\": \"I am...\", \"roles\": [\"Job Title 1\", \"Job Title 2\", \"Job Title 3\", \"Job Title 4\", \"Job Title 5\"]}}\n\nJSON only, no other text.",
+      "fallback_roles": ["Citizen", "Worker", "Professional", "Student", "Other"],
+      "fallback_description": "Individual with background: {archetype_label}"
     },
     "policy_cascade": {
       "shared": {

@@ -4,6 +4,7 @@ import * as d3 from 'd3';
 import { SimNode } from '../types';
 import { useSimulationStore } from '../store';
 import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 import { HelpCircle, Move, ZoomIn, ZoomOut, Maximize, MousePointer2, Trash2 } from 'lucide-react';
 import { EnvironmentSuggestionDialogWrapper, EnvironmentToggleButton } from './EnvironmentSuggestion';
 
@@ -28,7 +29,25 @@ export const SimTree: React.FC = () => {
 
     const width = containerRef.current.clientWidth;
     const height = containerRef.current.clientHeight;
-    
+
+    // Guard against zero dimensions (Docker container may not be laid out yet)
+    if (width === 0 || height === 0) {
+      console.warn('SimTree: Container has zero dimensions, retrying...', {
+        width, height, nodes: nodes.length
+      });
+      // Retry after a short delay to allow layout to complete
+      const retryTimer = setTimeout(() => {
+        if (containerRef.current) {
+          const newWidth = containerRef.current.clientWidth;
+          const newHeight = containerRef.current.clientHeight;
+          if (newWidth > 0 && newHeight > 0) {
+            console.log('SimTree: Retry successful', { width: newWidth, height: newHeight });
+          }
+        }
+      }, 100);
+      return () => clearTimeout(retryTimer);
+    }
+
     // Clear previous
     d3.select(containerRef.current).selectAll('*').remove();
 
@@ -157,7 +176,7 @@ const root = d3.stratify<SimNode>()
     const initialTransform = d3.zoomIdentity.translate(80, height / 2).scale(1);
     svg.call(zoom.transform, initialTransform);
 
-  }, [nodes, selectedNodeId, compareTargetNodeId, selectNode, setCompareTarget, isCompareMode]);
+  }, [nodes, selectedNodeId, compareTargetNodeId, selectNode, setCompareTarget, isCompareMode, i18n.language]);
 
   const handleZoomIn = () => {
     if (svgRef.current && zoomRef.current) {

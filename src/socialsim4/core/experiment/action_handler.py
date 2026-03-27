@@ -21,6 +21,7 @@ class ActionHandler:
         agent_name: str,
         params: dict[str, Any],
         state: ExperimentState,
+        scene: Any = None,
     ) -> dict[str, Any]:
         """Execute an action.
 
@@ -29,6 +30,7 @@ class ActionHandler:
             agent_name: Agent performing action
             params: Action parameters
             state: Current experiment state (modified in place)
+            scene: Optional scene instance for handlers that need scene context
 
         Returns:
             Result dict with success status and any error/details
@@ -45,7 +47,18 @@ class ActionHandler:
 
         # Use handler if present, otherwise apply declarative effects
         if action.handler:
-            return action.handler(agent_name, params, state)
+            # Try calling with scene parameter first (council handlers need scene)
+            # Handler signatures: (action_data, agent_name, state, scene) or (agent_name, params, state)
+            import inspect
+            sig = inspect.signature(action.handler)
+            param_count = len(sig.parameters)
+
+            if param_count >= 4 and scene is not None:
+                # Council-style handler: (action_data, agent_name, state, scene)
+                return action.handler(params, agent_name, state, scene)
+            else:
+                # Standard handler: (agent_name, params, state)
+                return action.handler(agent_name, params, state)
         else:
             return self._apply_effects(action.effects, agent_name, params, state)
 

@@ -160,7 +160,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
       scenarioData?.id === 'policy_diffusion' ||
       scenarioData?.id === 'policyDiffusion' ||
       (scenarioData?.name || '').toLowerCase().includes('policy') ||
-      (scenarioData?.name || '').includes('政策');
+      (scenarioData?.name || '').toLowerCase().includes('cascade');
 
     // Determine if this uses the new Three-Layer Architecture
     // (strategic_decisions or any scenario with structured actions)
@@ -168,7 +168,8 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
                              scenarioData?.category === 'discussion' ||
                              scenarioData?.category === 'grid' ||
                              scenarioData?.category === 'social_dynamics' ||
-                             scenarioData?.category === 'social_deduction';
+                             scenarioData?.category === 'social_deduction' ||
+                             scenarioData?.category === 'spatial';
 
     addSimulation(
       name,

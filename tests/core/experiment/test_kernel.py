@@ -42,6 +42,16 @@ def test_vote_action_is_json_mode():
     assert VoteAction.parameter_mode() == "json"
 
 
+def test_contribute_action_schema_is_exposed_for_followup():
+    """Parameterized registry actions should be available to follow-up gating."""
+    schemas = ExperimentKernel.get_action_schemas()
+
+    assert "contribute" in schemas
+    assert schemas["contribute"]["mode"] == "json"
+    assert schemas["contribute"]["schema"]["amount"]["type"] == "integer"
+    assert schemas["contribute"]["schema"]["pool"]["enum"] == ["main"]
+
+
 def test_action_execution():
     """Actions return one-line summaries."""
     choice = ChoiceAction("cooperate", "Cooperate with partner")
