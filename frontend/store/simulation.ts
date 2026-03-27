@@ -583,7 +583,9 @@ export const createSimulationSlice: StateCreator<
             status: 'active',
             createdAt: new Date().toISOString().split('T')[0],
             timeConfig: finalTimeConfig,
-            socialNetwork: template.defaultNetwork || {}
+            socialNetwork: template.defaultNetwork || {},
+            // Include scene_config so Experiment Design Modal can access parameters
+            scene_config: sceneConfig
           };
 
           set({
