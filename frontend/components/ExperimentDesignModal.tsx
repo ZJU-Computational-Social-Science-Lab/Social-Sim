@@ -610,11 +610,11 @@ export const ExperimentDesignModal: React.FC = () => {
                                   onChange={(e) => updateIntervention(variant.id, iv.id, 'type', e.target.value)}
                                   className="text-[10px] font-bold uppercase bg-white border rounded px-1 py-0.5 text-slate-600 outline-none"
                                 >
+                                  <option value="SCENARIO_PARAMS">{t('components.experimentDesignModal.scenarioParamsType', { defaultValue: 'Scenario Parameters' })}</option>
+                                  <option value="NETWORK_TOPOLOGY">{t('components.experimentDesignModal.networkTopologyType', { defaultValue: 'Network Topology' })}</option>
                                   <option value="INSTRUCTION">{t('components.experimentDesignModal.instructionType')}</option>
                                   <option value="AGENT_PROPERTY">{t('components.experimentDesignModal.propertyType')}</option>
                                   <option value="ENVIRONMENT">{t('components.experimentDesignModal.environmentType')}</option>
-                                  <option value="SCENARIO_PARAMS">{t('components.experimentDesignModal.scenarioParamsType', { defaultValue: 'Scenario Parameters' })}</option>
-                                  <option value="NETWORK_TOPOLOGY">{t('components.experimentDesignModal.networkTopologyType', { defaultValue: 'Network Topology' })}</option>
                                 </select>
 
                                 {iv.type === 'AGENT_PROPERTY' && (
