@@ -568,8 +568,8 @@ export const createExperimentsSlice: StateCreator<
                 ? (spec?.ops || []).map((op: any, opIndex: number) => `  [${opIndex + 1}] ${JSON.stringify(op)}`)
                 : ['  []'];
               const contentLines = [
-                i18n.t('store.experimentBranchCreated', { experimentName, variantName }) || `分支创建成功：${experimentName} / ${variantName}`,
-                `${i18n.t('store.experimentInterventionContent') || '干预内容'}：`,
+                i18n.t('store.experimentBranchCreated', { experimentName, variantName }),
+                `${i18n.t('store.experimentInterventionContent')}：`,
                 ...rawOpsLines,
               ];
               return {

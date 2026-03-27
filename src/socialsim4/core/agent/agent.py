@@ -373,15 +373,11 @@ Recent Context Summary:
     """
         return prompt
 
+    def _tr(self, key: str, **kwargs) -> str:
+        return T(key, locale=self.language, **kwargs)
+
     def _json_retry_feedback(self, error) -> str:
-        return (
-            "Your previous reply could not be parsed. "
-            f"Error: {error}. "
-            "Return ONLY one valid JSON object with exactly these top-level keys: "
-            '"thoughts", "response", "action", "context_update", "metadata". '
-            "Do not use Markdown code fences. Do not use [Action] shorthand. "
-            "The action field must contain a valid action name from the Action Space."
-        )
+        return self._tr("prompts.agent.json_retry_feedback", error=str(error))
 
     # -------------------------------------------------------------------------
     # LLM Interaction
@@ -615,8 +611,11 @@ Use the above context to inform your responses when relevant.
             reprompt_storage_handled = True
 
             reprompt_instruction = (
-                f"You selected the '{action_name}' action. "
-                f"Now write your {reprompt_param} (plain text only, no JSON):"
+                self._tr(
+                    "prompts.agent.reprompt_instruction",
+                    action_name=action_name,
+                    reprompt_param=reprompt_param,
+                )
             )
             self.short_memory.append("user", reprompt_instruction)
             if self.log_event:
@@ -625,7 +624,7 @@ Use the above context to inform your responses when relevant.
                     {"agent": self.name, "role": "user", "content": reprompt_instruction},
                 )
 
-            reprompt_ctx = self.short_memory.searilize(dialect="default")
+            reprompt_ctx = self.short_memory.serialize(dialect="default")
             reprompt_ctx.insert(0, {"role": "system", "content": system_prompt})
 
             reprompt_output = self.call_llm(clients, reprompt_ctx).strip()

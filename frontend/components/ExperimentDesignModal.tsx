@@ -311,7 +311,11 @@ export const ExperimentDesignModal: React.FC = () => {
           ops.push({ op: 'public_broadcast', text: iv.description || '' });
         } else if (iv.type === 'ENVIRONMENT') {
           if (!hasMeaningfulInterventionText(iv.description || '')) return;
-          ops.push({ op: 'environment_event', text: iv.description || '', event_type: 'environment' });
+          if (isPolicyCascadeTemplate) {
+            ops.push({ op: 'environment_event', text: iv.description || '', event_type: 'environment' });
+          } else {
+            ops.push({ op: 'public_broadcast', text: iv.description || '' });
+          }
         } else if (iv.type === 'FOLLOW_UP_CONDITION' && isPolicyCascadeTemplate) {
           const updates = parseConditionUpdates(iv.description || '');
           if (!Object.keys(updates).length) return;

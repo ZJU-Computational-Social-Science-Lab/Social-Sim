@@ -31,16 +31,13 @@ const isPolicyCascadeScenarioData = (scenario: {
 } | null | undefined): boolean => {
   if (!scenario) return false;
   const scenarioId = String(scenario.id || '').toLowerCase();
-  const scenarioName = String(scenario.name || '').toLowerCase();
-  const parameterKeys = (scenario.parameters || []).map((param) => String(param.key || '').toLowerCase());
 
   return (
     scenario.sceneType === 'policy_cascade_scene' ||
     scenarioId === 'policy_diffusion' ||
+    scenarioId === 'policydiffusion' ||
     scenarioId === 'policy_erosion' ||
-    scenarioName.includes('policy') ||
-    scenarioName.includes('政策') ||
-    parameterKeys.includes('cascade_mode')
+    scenarioId === 'policyerosion'
   );
 };
 

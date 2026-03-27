@@ -199,6 +199,8 @@
       "knowledge_base_intro": "You have a personal knowledge base with {count} item(s) containing information you can reference:",
       "knowledge_base_more": "... and {count} more items",
       "query_instruction": "Use the query_knowledge action to search for specific information when needed. The knowledge base contains facts and information that you should use to inform your responses when relevant.",
+      "json_retry_feedback": "Your previous reply could not be parsed. Error: {error}. Return ONLY one valid JSON object with exactly these top-level keys: \"thoughts\", \"response\", \"action\", \"context_update\", \"metadata\". Do not use Markdown code fences. Do not use [Action] shorthand. The action field must contain a valid action name from the Action Space.",
+      "reprompt_instruction": "You selected the '{action_name}' action. Now write your {reprompt_param} (plain text only, no JSON):",
       "context_summary_header": "Recent Context Summary:",
       "language_instruction": "Language: {language}. Respond in {language} for content; use English for action names.",
       "action_space_header": "Action Space:",

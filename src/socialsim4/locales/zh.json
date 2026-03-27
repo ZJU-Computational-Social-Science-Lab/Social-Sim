@@ -199,6 +199,8 @@
       "knowledge_base_intro": "你有一个包含 {count} 个项目的个人知识库，其中包含你可以参考的信息：",
       "knowledge_base_more": "... 还有 {count} 个项目",
       "query_instruction": "使用query_knowledge动作在需要时搜索特定信息。知识库包含你应该在相关时用于指导回应的事实和信息。",
+      "json_retry_feedback": "你上一条回复无法被解析。错误：{error}。请只返回一个有效的 JSON 对象，并且顶层键必须严格为：\"thoughts\"、\"response\"、\"action\"、\"context_update\"、\"metadata\"。不要使用 Markdown 代码块，不要使用 [Action] 简写。action 字段必须填写动作空间中的有效动作名。",
+      "reprompt_instruction": "你选择了“{action_name}”动作。现在请直接写出你的 {reprompt_param}（纯文本，不要 JSON）：",
       "context_summary_header": "近期上下文摘要：",
       "language_instruction": "语言：{language}。内容请用{language}回复；动作名称请使用英文。",
       "action_space_header": "动作空间：",
