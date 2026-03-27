@@ -14,7 +14,7 @@ class MockScene:
 
     def __init__(self):
         self.emitted_events = []
-        self.config = type('obj', (object,), {'parameters': {'punishment_cost_ratio': 3.0}})()
+        self.config = type('obj', (object,), {'parameters': {'deduction_cost_ratio': 3.0}})()
 
     def _emit_event(self, event_type: str, data: dict):
         """Store emitted events for verification."""
@@ -85,7 +85,7 @@ class TestActionHandler:
         handler = ActionHandler()
         state = ExperimentState()
         state.agents["Alice"] = AgentState(
-            resources={"punishment_budget": 10},
+            resources={"deduction_budget": 10},
         )
         state.agents["Bob"] = AgentState(
             resources={},
@@ -106,7 +106,7 @@ class TestActionHandler:
         handler = ActionHandler()
         state = ExperimentState()
         state.agents["Alice"] = AgentState(
-            resources={"punishment_budget": 10},
+            resources={"deduction_budget": 10},
         )
         state.agents["Bob"] = AgentState(
             resources={},
@@ -124,7 +124,7 @@ class TestActionHandler:
         handler = ActionHandler()
         state = ExperimentState()
         state.agents["Alice"] = AgentState(
-            resources={"punishment_budget": 10},
+            resources={"deduction_budget": 10},
         )
         state.agents["Bob"] = AgentState(
             resources={},

@@ -97,13 +97,13 @@ def build_agent_description(
         agent_name: Agent name used as identity fallback for manual agents
 
     Returns:
-        Formatted agent description string
+        Formatted agent description string with "=== EMBODY THIS PERSON ===" header
 
     Example:
         >>> build_agent_description({}, agent_name="Psychology Student")
-        "You are Psychology Student."
+        "=== EMBODY THIS PERSON ===\\nYou are Psychology Student."
         >>> build_agent_description({"age_group": "young adult", "social_capital": 82})
-        "You are a young adult person. Your social_capital score is 82/100 (high)."
+        "=== EMBODY THIS PERSON ===\\nYou are a young adult person. Your social_capital score is 82/100 (high)."
     """
     # If role_prompt exists, use it as the entire description
     if role_prompt:
@@ -198,8 +198,8 @@ def build_prompt(
         role_prompt=getattr(agent, 'role_prompt', None),
         agent_name=agent.name
     )
-    if include_section_markers:
-        sections.append("=== SECTION 1: AGENT DESCRIPTION ===")
+    # Add header for Section 1 - "EMBODY THIS PERSON"
+    sections.append("=== EMBODY THIS PERSON ===")
     sections.append(agent_desc)
 
     # Section 2: Scenario (including payoff_summary if present - Bug B)

@@ -294,7 +294,7 @@
       "moderator_hint": "你是主持人。玩家：{players}。角色：{roles_info}。"
     },
     "archetype": {
-      "prompt": "为此人口创建角色模板: {attrs}\n\n返回这个格式的JSON:\n{\"description\": \"一句人物描述\", \"roles\": [\"职业1\", \"职业2\", \"职业3\", \"职业4\", \"职业5\"]}\n\n仅输出JSON，无其他文字。",
+      "prompt": "为具有以下属性的代理人创建一句第一人称简介:\n{attrs}\n\n句子必须:\n- 以\"我是\"开头\n- 反映这个人如何根据其属性思考和做决定\n- 不要只是重述人口统计数据\n\n返回JSON:\n{{\"description\": \"我是...\", \"roles\": [\"职业1\", \"职业2\", \"职业3\", \"职业4\", \"职业5\"]}}\n\n仅输出JSON，无其他文字。",
       "fallback_roles": ["公民", "工人", "专业人士", "学生", "其他"],
       "fallback_description": "具有以下背景的个人: {archetype_label}"
     },

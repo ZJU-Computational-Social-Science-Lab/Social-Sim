@@ -8,7 +8,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Settings, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useExperimentBuilder } from '../../store/experiment-builder';
 import ParameterField from './ParameterField';
 import { ActionEditor } from './ActionEditor';
@@ -138,7 +138,6 @@ export const Step2StarterTemplate: React.FC = () => {
 
   const [localRoundVisibility, setLocalRoundVisibility] = useState<'simultaneous' | 'sequential'>('simultaneous');
   const [localTurnOrder, setLocalTurnOrder] = useState<'fixed' | 'random'>('fixed');
-  const [showPunishmentSection, setShowPunishmentSection] = useState(false);
 
   // Helper to get translated scenario name/description based on scenario ID and category
   const getScenarioName = () => {
@@ -255,20 +254,18 @@ export const Step2StarterTemplate: React.FC = () => {
     }
 
     if (scenarioId === 'public_goods') {
-      // Translate default values for public goods scenario
-      const defaultResourceName = t('experimentBuilder.resourceConfig.resourceOptions.tokens', { defaultValue: 'Tokens' });
-      const defaultActionName = t('experimentBuilder.step2.actionNames.Contribute', { defaultValue: 'Contribute' });
-      const defaultActionDesc = t('experimentBuilder.step2.actionDescriptions.Contribute', { defaultValue: 'Contribute {resource} to the shared pool' });
+      // Default values per design spec
+      const defaultResourceName = t('experimentBuilder.resourceConfig.resourceOptions.tokens', { defaultValue: 'tokens' });
 
       return (
         <ResourceConfig
           values={{
             resource_name: (scenarioParams.resource_name as string) || defaultResourceName,
-            resource_name_custom: (scenarioParams.resource_name_custom as string) || '',
-            initial_amount: (scenarioParams.initial_amount as number) || 20,
-            multiplier: (scenarioParams.multiplier as number) || 1.5,
-            action_name: (scenarioParams.action_name as string) || defaultActionName,
-            action_description: (scenarioParams.action_description as string) || defaultActionDesc,
+            tokens_per_round: (scenarioParams.tokens_per_round as number) ?? 10,
+            multiplier: (scenarioParams.multiplier as number) ?? 1.3,
+            deduction_budget_per_phase: (scenarioParams.deduction_budget_per_phase as number) ?? 0,
+            deduction_cost_ratio: (scenarioParams.deduction_cost_ratio as number) ?? 3,
+            deduction_anonymous: (scenarioParams.deduction_anonymous as boolean) ?? false,
           }}
           onChange={handleParamChange}
         />
@@ -293,8 +290,12 @@ export const Step2StarterTemplate: React.FC = () => {
       ?? 'strict_cascade'
   );
   const visibleParameters = selectedScenarioData.parameters.filter((param) => {
-    // Exclude punishment category parameters - they have their own section
-    if (param.category === 'punishment') {
+    // Exclude deduction category parameters - they're handled by ResourceConfig
+    if (param.category === 'deduction') {
+      return false;
+    }
+    // Exclude resource category parameters - they're handled by ResourceConfig
+    if (param.category === 'resource') {
       return false;
     }
     if (!DISTORTION_ONLY_PARAM_KEYS.has(param.key)) {
@@ -417,87 +418,6 @@ export const Step2StarterTemplate: React.FC = () => {
           <p className="text-sm text-gray-600">
             {t('experimentBuilder.step2.noParameters')}
           </p>
-        </div>
-      )}
-
-      {/* Punishment Configuration Section - Only for PUBLIC_GOODS */}
-      {selectedScenarioData?.id === 'public_goods' && (
-        <div className="border border-gray-200 rounded-lg mt-6">
-          <button
-            type="button"
-            onClick={() => setShowPunishmentSection(!showPunishmentSection)}
-            className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-            aria-expanded={showPunishmentSection}
-          >
-            <div className="flex items-center gap-2">
-              <Settings className="w-5 h-5 text-gray-600" />
-              <span className="font-medium text-gray-900">
-                {t('experimentBuilder.punishment.title')}
-              </span>
-            </div>
-            <ChevronDown
-              className={`w-5 h-5 text-gray-600 transition-transform ${
-                showPunishmentSection ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
-
-          {showPunishmentSection && (
-            <div className="p-4 space-y-4 border-t border-gray-200">
-              <p className="text-sm text-gray-600">
-                {t('experimentBuilder.punishment.description')}
-              </p>
-
-              {/* Render punishment parameters */}
-              {selectedScenarioData?.parameters
-                ?.filter((param) => param.category === 'punishment')
-                .map((param) => (
-                  <div key={param.key}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t(`experimentBuilder.punishment.${
-                        param.key === 'punishment_budget_per_round'
-                          ? 'budgetLabel'
-                          : param.key === 'punishment_cost_ratio'
-                          ? 'costRatioLabel'
-                          : 'anonymousLabel'
-                      }`)}
-                    </label>
-                    <ParameterField
-                      param={{
-                        type: param.type === 'number' ? 'integer' : 'string',
-                        default: param.default,
-                        ui_hint: param.ui_hint || 'text',
-                        min: param.min,
-                        max: param.max,
-                        step: param.step,
-                        options: param.options,
-                        placeholder: param.placeholder,
-                      }}
-                      value={getParamValue(param)}
-                      onChange={(val) => handleParamChange(param.key, val)}
-                    />
-                    <p className="mt-1 text-xs text-gray-500">
-                      {t(`experimentBuilder.punishment.${
-                        param.key === 'punishment_budget_per_round'
-                          ? 'budgetHint'
-                          : param.key === 'punishment_cost_ratio'
-                          ? 'costRatioHint'
-                          : 'anonymousHint'
-                      }`)}
-                    </p>
-                  </div>
-                ))}
-
-              {/* Show disabled message when budget is 0 */}
-              {(scenarioParams.punishment_budget_per_round ?? 0) === 0 && (
-                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                  <p className="text-sm text-blue-800">
-                    {t('experimentBuilder.punishment.disabled')}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )}
 

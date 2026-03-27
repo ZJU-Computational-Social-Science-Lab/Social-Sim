@@ -101,7 +101,7 @@ def generate_archetype_template(
     """
     Make ONE LLM call to get description and roles for an archetype.
 
-    Traits are now user-specified, not LLM-generated. This function only
+    Traits are user-specified, not LLM-generated. This function only
     retrieves the description and potential roles from the LLM.
 
     Args:
@@ -448,29 +448,31 @@ def generate_agents_with_archetypes(
                 )
                 properties[trait["name"]] = value
 
-            # Build enriched profile with demographics and traits
-            profile_parts = [template["description"]]
+            # Build profile in "EMBODY THIS PERSON" format
+            # (Header is added in prompt_builder.py to ensure consistency with manual agents)
+            profile_lines = []
 
-            # Add demographic attributes (Age, Location, etc.)
+            # Main description: You are a {role}. {bio}. When responding...
+            description = template["description"]
+            profile_lines.append(
+                f"You are a {role}. {description} When responding, think and react as this person would — not as a neutral assistant."
+            )
+
+            # Attributes line: Age: X | Location: Y | Trust: Z (0-100)
+            attr_parts = []
             if arch["attributes"]:
-                demo_parts = []
                 for key, value in arch["attributes"].items():
-                    # Format key nicely (e.g., "age_range" -> "Age Range")
                     formatted_key = key.replace("_", " ").title()
-                    demo_parts.append(f"{formatted_key}: {value}")
-                if demo_parts:
-                    profile_parts.append("Demographics: " + ", ".join(demo_parts))
-
-            # Add trait values
-            trait_parts = []
+                    attr_parts.append(f"{formatted_key}: {value}")
             for trait in traits:
                 trait_name = trait["name"]
                 if trait_name in properties:
-                    trait_parts.append(f"{trait_name}: {properties[trait_name]:.0f}")
-            if trait_parts:
-                profile_parts.append("Traits: " + ", ".join(trait_parts))
+                    attr_parts.append(f"{trait_name}: {properties[trait_name]:.0f} (0-100)")
 
-            profile = " | ".join(profile_parts)
+            if attr_parts:
+                profile_lines.append(" | ".join(attr_parts))
+
+            profile = "\n".join(profile_lines)
 
             agent = {
                 "id": f"agent_{agent_num}",

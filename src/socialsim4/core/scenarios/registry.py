@@ -633,7 +633,7 @@ PUBLIC_GOODS: Dict[str, Any] = {
     "id": "public_goods",
     "name": "Public Goods Game",
     "category": "game_theory",
-    "description": "Each agent has resources and decides how much to contribute to a shared pool. The pool is multiplied and distributed equally among all agents, regardless of contribution.",
+    "description": "Each person has resources and decides how much to contribute to a shared pool. The pool is multiplied and distributed equally among all members, regardless of contribution.",
     "grouping_mode": "group",
     "payoff_type": "pool",
     "interaction_mode": "simultaneous",
@@ -654,7 +654,7 @@ PUBLIC_GOODS: Dict[str, Any] = {
             "key": "tokens_per_round",
             "label": "Amount per Round",
             "type": "integer",
-            "default": 20,
+            "default": 10,
             "ui_hint": "number",
             "min": 1,
             "category": "resource",
@@ -665,7 +665,7 @@ PUBLIC_GOODS: Dict[str, Any] = {
             "key": "multiplier",
             "label": "Pool Multiplier",
             "type": "number",
-            "default": 1.6,
+            "default": 1.3,
             "ui_hint": "number",
             "step": 0.01,
             "category": "resource",
@@ -677,7 +677,7 @@ PUBLIC_GOODS: Dict[str, Any] = {
             "key": "deduction_budget_per_phase",
             "label": "Deduction Budget per Phase",
             "type": "integer",
-            "default": 10,
+            "default": 0,
             "ui_hint": "number",
             "min": 0,
             "max": 100,
@@ -709,9 +709,39 @@ PUBLIC_GOODS: Dict[str, Any] = {
     ],
     # All actions registered - phase filtering handled by get_scene_actions()
     "actions": [
-        {"id": "allocate", "name": "Allocate", "description": "Allocate resources to the group account"},
+        {
+            "id": "allocate",
+            "name": "Allocate",
+            "description": "Allocate resources to the group account",
+            "parameters": [
+                {
+                    "name": "amount",
+                    "type": "integer",
+                    "required": True,
+                    "description": "How much to contribute (0 to your total resources)",
+                }
+            ]
+        },
         {"id": "keep", "name": "Keep", "description": "Keep all your resources this round"},
-        {"id": "reduce", "name": "Reduce", "description": "Reduce another agent's resources"},
+        {
+            "id": "reduce",
+            "name": "Reduce",
+            "description": "Reduce another agent's resources",
+            "parameters": [
+                {
+                    "name": "target",
+                    "type": "string",
+                    "required": True,
+                    "description": "Name of the agent to reduce",
+                },
+                {
+                    "name": "amount",
+                    "type": "integer",
+                    "required": True,
+                    "description": "How many deduction points to spend",
+                }
+            ]
+        },
         {"id": "skip", "name": "Skip", "description": "Do nothing this phase"},
     ],
     # Note: resources schema set dynamically in _initialize_state using resource_name

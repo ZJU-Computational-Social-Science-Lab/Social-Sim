@@ -695,8 +695,13 @@ class ExperimentRunner:
         # PGG Phase: Advance phase after round completes
         # This toggles between allocate <-> deduct for next round
         if self.scene and hasattr(self.scene, 'advance_pgg_phase'):
+            old_phase = self.scene.get_pgg_phase() if hasattr(self.scene, 'get_pgg_phase') else 'unknown'
             self.scene.advance_pgg_phase()
+            new_phase = self.scene.get_pgg_phase() if hasattr(self.scene, 'get_pgg_phase') else 'unknown'
+            logger.info(f"[PGG] Phase advanced: {old_phase} -> {new_phase} (round {round_num} complete)")
             logger.debug(f"[PGG] Advanced phase (round {round_num} complete)")
+            # Also write to debug file for visibility
+            write_debug(f"\n[PGG] Phase advanced: {old_phase} -> {new_phase} (round {round_num} complete)\n")
 
         logger.info(f"Round {round_num} complete: {len(round_result.actions)} actions")
 
@@ -764,6 +769,9 @@ class ExperimentRunner:
         debug_buffer.append(f"\n--- ACTION FILTERING ---\n")
         debug_buffer.append(f"  self.scene type: {type(self.scene).__name__ if self.scene else 'None'}\n")
         debug_buffer.append(f"  has get_scene_actions: {hasattr(self.scene, 'get_scene_actions') if self.scene else 'N/A'}\n")
+        # PGG Phase debug
+        if self.scene and hasattr(self.scene, 'get_pgg_phase'):
+            debug_buffer.append(f"  PGG phase: {self.scene.get_pgg_phase()}\n")
         if allowed_actions:
             debug_buffer.append(f"  filtered actions for {agent.name}: {allowed_actions}\n")
         else:

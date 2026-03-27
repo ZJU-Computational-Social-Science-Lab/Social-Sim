@@ -316,6 +316,47 @@ class TestExperimentSceneState:
         assert restored.state.agents["Alice"].resources["tokens"] == 13
         assert restored.state.extensions["pools"]["main"] == 7
 
+    def test_pgg_phase_persists_across_serialization(self):
+        """PGG phase should persist through serialize/deserialize cycle."""
+        config = ExperimentConfig(
+            scenario_id="public_goods",
+            agents=[{"name": "Alice"}],
+            actions=[],
+            parameters={"deduction_budget_per_phase": 3},
+        )
+        scene = ExperimentScene(config)
+
+        # Initial phase should be "allocate"
+        assert scene.get_pgg_phase() == "allocate"
+
+        # Advance to "deduct" phase
+        scene.advance_pgg_phase()
+        assert scene.get_pgg_phase() == "deduct"
+
+        # Serialize and deserialize
+        serialized = scene.serialize_config()
+        restored = ExperimentScene.deserialize_config(serialized)
+
+        # Phase should still be "deduct" after restoration
+        assert restored.get_pgg_phase() == "deduct"
+
+    def test_pgg_phase_defaults_to_allocate_for_backwards_compatibility(self):
+        """PGG phase should default to 'allocate' when not in serialized data."""
+        config = ExperimentConfig(
+            scenario_id="public_goods",
+            agents=[{"name": "Alice"}],
+            actions=[],
+        )
+        # Manually serialize without pgg_phase (simulating old serialized data)
+        scene = ExperimentScene(config)
+        serialized = scene.serialize_config()
+        # Remove pgg_phase to simulate old data
+        serialized.pop("pgg_phase", None)
+
+        # Deserialize - should default to "allocate"
+        restored = ExperimentScene.deserialize_config(serialized)
+        assert restored.get_pgg_phase() == "allocate"
+
     def test_skipped_actions_are_not_written_into_round_history(self):
         config = ExperimentConfig(
             scenario_id="council_chamber",

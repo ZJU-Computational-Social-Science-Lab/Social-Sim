@@ -2,35 +2,35 @@
 Tests for ExperimentScene game config creation.
 
 Covers scenario parameter handling, action normalization,
-and punishment action filtering based on budget configuration.
+and deduction action filtering based on budget configuration.
 """
 from socialsim4.core.experiment.config import ExperimentConfig
 from socialsim4.core.experiment.scene import ExperimentScene
 
 
 def test_public_goods_game_config_uses_registry_semantics():
+    """PUBLIC_GOODS now uses allocate/keep actions from registry."""
     config = ExperimentConfig(
         scenario_id="public_goods",
         agents=[{"name": "Alice"}],
-        actions=[{"name": "Contribute", "description": "Contribute some tokens to the pool"}],
+        actions=[],  # Use registry defaults
         parameters={
-            "initial_amount": 20,
-            "multiplier": 1.5,
+            "tokens_per_round": 10,
+            "multiplier": 1.3,
         },
     )
 
     scene = ExperimentScene(config)
     game_config = scene._create_game_config()
 
-    assert game_config.actions == ["contribute"]
-    assert game_config.action_descriptions == {
-        "contribute": "Contribute some tokens to the pool"
-    }
+    # Registry provides allocate, keep, reduce, skip
+    assert "allocate" in game_config.actions
+    assert "keep" in game_config.actions
     assert game_config.payoff_type == "pool"
     assert game_config.grouping_mode == "group"
     assert game_config.payoff_config == {
-        "multiplier": 1.5,
-        "initial_tokens": 20,
+        "multiplier": 1.3,
+        "initial_tokens": 10,
     }
 
 
@@ -124,72 +124,67 @@ def test_custom_game_config_preserves_action_parameter_schema():
     }
 
 
-# FEAT-PGG: Punishment action filtering tests
+# FEAT-PGG: Deduction action filtering tests (renamed from punishment)
 
-def test_punish_action_excluded_when_budget_zero():
-    """Punish action should NOT be available when punishment_budget_per_round = 0."""
+def test_reduce_action_excluded_when_budget_zero():
+    """Reduce action should NOT be available when deduction_budget_per_phase = 0."""
     config = ExperimentConfig(
         scenario_id="public_goods",
         agents=[{"name": "Alice"}],
-        actions=[
-            {"name": "contribute", "description": "Contribute to the pool"},
-            {"name": "punish", "description": "Punish another agent"},
-        ],
+        actions=[],  # Use registry defaults
         parameters={
-            "initial_amount": 20,
-            "multiplier": 1.5,
-            "punishment_budget_per_round": 0,  # Disabled
+            "tokens_per_round": 10,
+            "multiplier": 1.3,
+            "deduction_budget_per_phase": 0,  # Disabled
         },
     )
 
     scene = ExperimentScene(config)
     game_config = scene._create_game_config()
 
-    assert "contribute" in game_config.actions
-    assert "punish" not in game_config.actions
+    assert "allocate" in game_config.actions
+    assert "keep" in game_config.actions
+    assert "reduce" not in game_config.actions
 
 
-def test_punish_action_excluded_when_budget_not_set():
-    """Punish action should NOT be available when punishment_budget_per_round is not set."""
+def test_reduce_action_excluded_when_budget_not_set():
+    """Reduce action should NOT be available when deduction_budget_per_phase is not set."""
     config = ExperimentConfig(
         scenario_id="public_goods",
         agents=[{"name": "Alice"}],
-        actions=[
-            {"name": "contribute", "description": "Contribute to the pool"},
-            {"name": "punish", "description": "Punish another agent"},
-        ],
+        actions=[],  # Use registry defaults
         parameters={
-            "initial_amount": 20,
-            "multiplier": 1.5,
-            # No punishment_budget_per_round set
+            "tokens_per_round": 10,
+            "multiplier": 1.3,
+            # No deduction_budget_per_phase set
         },
     )
 
     scene = ExperimentScene(config)
     game_config = scene._create_game_config()
 
-    assert "contribute" in game_config.actions
-    assert "punish" not in game_config.actions
+    assert "allocate" in game_config.actions
+    assert "keep" in game_config.actions
+    assert "reduce" not in game_config.actions
 
 
-def test_punish_action_included_when_budget_positive():
-    """Punish action SHOULD be available when punishment_budget_per_round > 0."""
+def test_reduce_action_included_when_budget_positive():
+    """Reduce action SHOULD be available when deduction_budget_per_phase > 0."""
     config = ExperimentConfig(
         scenario_id="public_goods",
         agents=[{"name": "Alice"}],
-        actions=[
-            {"name": "contribute", "description": "Contribute to the pool"},
-            {"name": "punish", "description": "Punish another agent"},
-        ],
+        actions=[],  # Use registry defaults
         parameters={
-            "initial_amount": 20,
-            "multiplier": 1.5,
-            "punishment_budget_per_round": 10,  # Enabled
+            "tokens_per_round": 10,
+            "multiplier": 1.3,
+            "deduction_budget_per_phase": 5,  # Enabled
         },
     )
 
     scene = ExperimentScene(config)
     game_config = scene._create_game_config()
 
-    assert "contribute" in game_config.actions
-    assert "punish" in game_config.actions
+    assert "allocate" in game_config.actions
+    assert "keep" in game_config.actions
+    assert "reduce" in game_config.actions
+    assert "skip" in game_config.actions

@@ -339,7 +339,8 @@ class ExperimentScene:
                     {
                         "name": matched.get("id", raw_name),
                         "description": action.get("description") or matched.get("description") or raw_name,
-                        "parameters": action.get("parameters", []),
+                        # Use registry parameters if frontend doesn't provide them
+                        "parameters": action.get("parameters") or matched.get("parameters", []),
                     }
                 )
             else:
@@ -409,7 +410,11 @@ class ExperimentScene:
             }
 
         # Build description: use description_template if present on the scenario
+        # For PUBLIC_GOODS, we handle description in _build_payoff_summary instead
         description = self.config.description
+        if self.config.scenario_id == "public_goods":
+            # For PUBLIC_GOODS, description is handled entirely by _build_payoff_summary
+            description = ""
         try:
             _scenario = scenario
             if _scenario and "description_template" in _scenario and params.get("action_1") and params.get("action_2"):
@@ -568,6 +573,7 @@ class ExperimentScene:
         """Build payoff_summary from scenario parameters - GENERIC version.
 
         Handles all game types:
+        - PUBLIC_GOODS: Intertwined format with "person" language
         - Prisoner's Dilemma: Uses formatted payoff table
         - Other games: Generic parameter display
         """
@@ -577,6 +583,43 @@ class ExperimentScene:
         if not params:
             logger.debug("[PAYOFF] No parameters, returning empty")
             return ""
+
+        # PUBLIC_GOODS: Use intertwined format with "person" language
+        if self.config.scenario_id == "public_goods":
+            tokens_per_round = params.get("tokens_per_round", 10)
+            resource_name = params.get("resource_name", "tokens")
+            multiplier = params.get("multiplier", 1.3)
+            num_members = len(self.agents) if self.agents else 4
+            deduction_budget = params.get("deduction_budget_per_phase", 0)
+            deduction_cost_ratio = params.get("deduction_cost_ratio", 3)
+            deduction_anonymous = params.get("deduction_anonymous", False)
+
+            # Build intertwined scenario description
+            lines = [
+                f"In this experiment, you receive {tokens_per_round} {resource_name} each round.",
+                "Each person has resources and decides how much to contribute to a shared pool.",
+                "The pool is multiplied and distributed equally among all members, regardless of contribution.",
+                "",
+                f"The total group contribution is multiplied by {multiplier} and distributed equally among all {num_members} members.",
+                f"You keep any {resource_name} you do not allocate.",
+            ]
+
+            # Add deduction mechanics if enabled
+            if deduction_budget and deduction_budget > 0:
+                lines.append("")
+                anonymity_text = (
+                    "Your reductions are anonymous - targets will not know who reduced their resources."
+                    if deduction_anonymous
+                    else "Your reductions are visible - targets will see who reduced their resources."
+                )
+                lines.append(
+                    f"After the contribution phase, you have the opportunity to reduce other members' {resource_name}. "
+                    f"You have a deduction budget of {deduction_budget} points. "
+                    f"For each 1 point from your budget, the target loses {deduction_cost_ratio} {resource_name}. "
+                    f"{anonymity_text}"
+                )
+
+            return "\n".join(lines)
 
         # Check if this is a Prisoner's Dilemma style game (has all 4 PD params)
         pd_params = ["cooperate_reward", "sucker_penalty", "temptation_reward", "defect_penalty"]
@@ -760,13 +803,19 @@ class ExperimentScene:
         if self.config.scenario_id != "public_goods":
             return None  # None = no filtering, use all configured actions
 
-        if self._pgg_phase == "allocate":
+        current_phase = self._pgg_phase
+        params = self.config.parameters or {}
+        deduction_budget = params.get("deduction_budget_per_phase", 0)
+
+        logger.info(f"[PGG] get_scene_actions called: phase={current_phase}, deduction_budget={deduction_budget}")
+
+        if current_phase == "allocate":
             return ["allocate", "keep"]
         else:  # deduct phase
             # Only show reduce/skip if deduction is enabled
-            params = self.config.parameters or {}
-            if params.get("deduction_budget_per_phase", 0) > 0:
+            if deduction_budget and deduction_budget > 0:
                 return ["reduce", "skip"]
+            logger.info(f"[PGG] Deduct phase but deduction_budget={deduction_budget} <= 0, returning empty actions")
             return []  # Empty = no actions available (deductions disabled)
 
     def inject_host_message(self, message: str) -> None:
@@ -790,6 +839,7 @@ class ExperimentScene:
             "history": self._history,
             "state": self.state.to_dict(),
             "pending_host_messages": self._pending_host_messages,
+            "pgg_phase": self._pgg_phase,
         }
 
     @classmethod
@@ -802,4 +852,6 @@ class ExperimentScene:
         if data.get("state") is not None:
             scene.state = ExperimentState.from_dict(data["state"])
         scene._pending_host_messages = data.get("pending_host_messages", [])
+        # Restore PGG phase state (defaults to "allocate" for backwards compatibility)
+        scene._pgg_phase = data.get("pgg_phase", "allocate")
         return scene
