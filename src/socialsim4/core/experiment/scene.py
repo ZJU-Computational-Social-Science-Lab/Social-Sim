@@ -94,16 +94,22 @@ class ExperimentScene:
         pd_keys = ["cooperate_reward", "sucker_penalty", "temptation_reward", "defect_penalty"]
         has_pd_payoffs = all(params.get(k) is not None for k in pd_keys)
         if information_model.scope_type == "all" and len(self.agents) > 2 and has_pd_payoffs:
+            # Get show_average_contribution from parameters
+            show_average = bool(params.get("show_average_contribution", False))
             information_model = InformationModel(
                 scope_type="pair",
                 pairing_fn=pair_agents_randomly,
                 recent_window=information_model.recent_window,
                 payoff_template="Round {N}: I {my_action}, partner {partner_action} → {payoff} pts",
+                show_average_contribution=show_average,
             )
 
         # For games without score-based payoffs, ensure include_scores=False
         # This handles cases where scenario_id doesn't match registry exactly
         payoff_type = params.get("payoff_type", "matrix")
+        show_average = bool(params.get("show_average_contribution", False))
+
+        # CRITICAL: Always apply show_average_contribution if parameter is True
         if payoff_type in ("feedback", "none", "") and information_model.include_scores:
             information_model = InformationModel(
                 scope_type=information_model.scope_type,
@@ -114,6 +120,21 @@ class ExperimentScene:
                 context_budget_chars=information_model.context_budget_chars,
                 payoff_template=information_model.payoff_template,
                 include_scores=False,
+                show_average_contribution=show_average,
+            )
+        elif show_average:
+            # CRITICAL: Apply show_average_contribution even for normal payoff types
+            # Recreate information_model with the parameter
+            information_model = InformationModel(
+                scope_type=information_model.scope_type,
+                scope_fn=information_model.scope_fn,
+                pairing_fn=information_model.pairing_fn,
+                recent_window=information_model.recent_window,
+                primacy_keep=information_model.primacy_keep,
+                context_budget_chars=information_model.context_budget_chars,
+                payoff_template=information_model.payoff_template,
+                include_scores=information_model.include_scores,
+                show_average_contribution=show_average,
             )
 
         # Create the runner
