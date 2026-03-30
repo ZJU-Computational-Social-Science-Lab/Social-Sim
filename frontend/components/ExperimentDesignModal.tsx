@@ -45,7 +45,8 @@ const parseConditionUpdates = (text: string): Record<string, any> => {
 
 const inferThreadKind = (text: string): string => {
   const normalized = String(text || '');
-  if (/越级|投诉|告状/.test(normalized)) return 'escalation';
+  if (/越级|跳级|投诉|告状/.test(normalized)) return 'skip_level_complaint';
+  if (/升级反馈|升级上报|升级反映|继续升级/.test(normalized)) return 'escalation';
   if (/反馈|汇报|上报/.test(normalized)) return 'upward_feedback';
   if (/通知|转办/.test(normalized)) return 'subordinate_notice';
   if (/协商|讨论|商量|私聊|发消息|发送消息/.test(normalized)) return 'peer_consult';
@@ -111,6 +112,10 @@ const parseThreadSeed = (text: string, agentNames: string[]): Record<string, any
   return seed;
 };
 
+const hasMeaningfulInterventionText = (text: string): boolean => {
+  return String(text || '').trim().length > 0;
+};
+
 export const ExperimentDesignModal: React.FC = () => {
   const { t } = useTranslation();
   const isOpen = useSimulationStore(state => state.isExperimentDesignerOpen);
@@ -122,8 +127,15 @@ export const ExperimentDesignModal: React.FC = () => {
   const engineConfig = useSimulationStore(state => state.engineConfig);
   const currentSimulation = useSimulationStore(state => state.currentSimulation);
   const addNotification = useSimulationStore(state => state.addNotification);
+  const currentSceneType = currentSimulation?.scene_type
+    || (currentSimulation as any)?.sceneType
+    || (currentSimulation as any)?.scene_config?.scene_type
+    || (currentSimulation as any)?.scene_config?.sceneType
+    || '';
+  const isPolicyCascadeTemplate = currentSceneType === 'policy_cascade_scene';
 
   const baseNode = nodes.find(n => n.id === selectedNodeId);
+  const expectedVariantParentId = baseNode ? (baseNode.parentId == null ? baseNode.id : baseNode.parentId) : null;
 
   const [experimentName, setExperimentName] = useState('');
   const [variants, setVariants] = useState<ExperimentVariant[]>([
@@ -161,7 +173,7 @@ export const ExperimentDesignModal: React.FC = () => {
     const token = (window as any).__engine_token__ || '';
 
     variants.forEach((variant) => {
-      const nodeByMeta = nodes.find(n => (n as any).meta && (n as any).meta.variant_id && n.parentId === baseNode.id && n.name.includes(variant.name));
+      const nodeByMeta = nodes.find(n => (n as any).meta && (n as any).meta.variant_id && n.parentId === expectedVariantParentId && n.name.includes(variant.name));
       const nodeByName = nodes.find(n => n.name === `${experimentName}: ${variant.name}`);
       const node = nodeByMeta || nodeByName;
       const nid = node ? node.id : null;
@@ -197,6 +209,18 @@ export const ExperimentDesignModal: React.FC = () => {
       toggle(false);
     }
   }, [isOpen, baseNode, addNotification, t, toggle]);
+
+  useEffect(() => {
+    if (isPolicyCascadeTemplate) return;
+    setVariants((prev) => prev.map((variant) => ({
+      ...variant,
+      interventions: (variant.interventions || []).map((iv) => (
+        iv.type === 'FOLLOW_UP_CONDITION' || iv.type === 'FOLLOW_UP_THREAD_SEED'
+          ? { ...iv, type: 'ENVIRONMENT' }
+          : iv
+      )),
+    })));
+  }, [isPolicyCascadeTemplate]);
 
   // Fetch scenario data for SCENARIO_PARAMS intervention UI
   useEffect(() => {
@@ -383,22 +407,31 @@ export const ExperimentDesignModal: React.FC = () => {
         if (iv.type === 'AGENT_PROPERTY' && iv.targetId) {
           // parse description as JSON updates or key=value pairs
           const updates = parseConditionUpdates(iv.description || '');
+          if (!Object.keys(updates).length) return;
 
           const target = agents.find((a) => a.id === iv.targetId);
           const name = target ? target.name : iv.targetId;
           ops.push({ op: 'agent_props_patch', name, updates });
         } else if (iv.type === 'INSTRUCTION') {
+          if (!hasMeaningfulInterventionText(iv.description || '')) return;
           // broadcast instruction as public event
           ops.push({ op: 'public_broadcast', text: iv.description || '' });
         } else if (iv.type === 'ENVIRONMENT') {
-          ops.push({ op: 'public_broadcast', text: iv.description || '' });
-        } else if (iv.type === 'FOLLOW_UP_CONDITION') {
+          if (!hasMeaningfulInterventionText(iv.description || '')) return;
+          if (isPolicyCascadeTemplate) {
+            ops.push({ op: 'environment_event', text: iv.description || '', event_type: 'environment' });
+          } else {
+            ops.push({ op: 'public_broadcast', text: iv.description || '' });
+          }
+        } else if (iv.type === 'FOLLOW_UP_CONDITION' && isPolicyCascadeTemplate) {
           const updates = parseConditionUpdates(iv.description || '');
+          if (!Object.keys(updates).length) return;
           Object.assign(pendingFollowUpConditions, updates);
-        } else if (iv.type === 'FOLLOW_UP_THREAD_SEED' && iv.targetId) {
+        } else if (iv.type === 'FOLLOW_UP_THREAD_SEED' && iv.targetId && isPolicyCascadeTemplate) {
           const seed = parseThreadSeed(iv.description || '', agents.map((a) => a.name));
           const target = agents.find((a) => a.id === iv.targetId);
           const recipient = seed.recipient || (target ? target.name : iv.targetId);
+          if (!recipient || (!seed.message && !seed.notice)) return;
           pendingThreadSeeds.push({
             recipient,
             sender: seed.sender,
@@ -554,7 +587,7 @@ export const ExperimentDesignModal: React.FC = () => {
                         {(() => {
                           // Prefer meta-based mapping when available (experiment/variant ids),
                           // otherwise fall back to name-based matching for compatibility.
-                          const nodeByMeta = nodes.find(n => (n as any).meta && (n as any).meta.variant_id && n.parentId === baseNode.id && n.name.includes(variant.name));
+                          const nodeByMeta = nodes.find(n => (n as any).meta && (n as any).meta.variant_id && n.parentId === expectedVariantParentId && n.name.includes(variant.name));
                           const nodeByName = nodes.find(n => n.name === `${experimentName}: ${variant.name}`);
                           const node = nodeByMeta || nodeByName;
                           const st = node ? node.status : 'pending';
@@ -566,7 +599,7 @@ export const ExperimentDesignModal: React.FC = () => {
 
                         {(() => {
                           // Show a compact live log preview if we have a mapped node id
-                          const nodeByMeta = nodes.find(n => (n as any).meta && (n as any).meta.variant_id && n.parentId === baseNode.id && n.name.includes(variant.name));
+                          const nodeByMeta = nodes.find(n => (n as any).meta && (n as any).meta.variant_id && n.parentId === expectedVariantParentId && n.name.includes(variant.name));
                           const nodeByName = nodes.find(n => n.name === `${experimentName}: ${variant.name}`);
                           const node = nodeByMeta || nodeByName;
                           const nid = node ? node.id : null;
@@ -615,9 +648,11 @@ export const ExperimentDesignModal: React.FC = () => {
                                   <option value="INSTRUCTION">{t('components.experimentDesignModal.instructionType')}</option>
                                   <option value="AGENT_PROPERTY">{t('components.experimentDesignModal.propertyType')}</option>
                                   <option value="ENVIRONMENT">{t('components.experimentDesignModal.environmentType')}</option>
+                                  {isPolicyCascadeTemplate && <option value="FOLLOW_UP_CONDITION">{t('components.experimentDesignModal.followUpConditionType', { defaultValue: 'Follow-up condition' })}</option>}
+                                  {isPolicyCascadeTemplate && <option value="FOLLOW_UP_THREAD_SEED">{t('components.experimentDesignModal.followUpThreadSeedType', { defaultValue: 'Follow-up thread seed' })}</option>}
                                 </select>
 
-                                {iv.type === 'AGENT_PROPERTY' && (
+                                {(iv.type === 'AGENT_PROPERTY' || iv.type === 'FOLLOW_UP_THREAD_SEED') && (
                                   <select
                                     value={iv.targetId || ''}
                                     onChange={(e) => updateIntervention(variant.id, iv.id, 'targetId', e.target.value)}
@@ -1163,6 +1198,10 @@ export const ExperimentDesignModal: React.FC = () => {
                                 placeholder={
                                   iv.type === 'AGENT_PROPERTY'
                                     ? t('components.experimentDesignModal.propertyPlaceholder')
+                                    : iv.type === 'FOLLOW_UP_CONDITION'
+                                      ? t('components.experimentDesignModal.followUpConditionPlaceholder', { defaultValue: '例如: resource_shortage=0.8, public_opinion_pressure=0.6 或 {"resource_shortage": 0.8}' })
+                                      : iv.type === 'FOLLOW_UP_THREAD_SEED'
+                                        ? t('components.experimentDesignModal.followUpThreadSeedPlaceholder', { defaultValue: '例如: 智能体3想要给智能体4发消息，消息内容为执行困难，需要回应。也支持 JSON。' })
                                     : t('components.experimentDesignModal.descriptionPlaceholder')
                                 }
                                 className="w-full text-xs bg-white border rounded p-2 focus:ring-1 focus:ring-indigo-500 outline-none resize-none h-16"
