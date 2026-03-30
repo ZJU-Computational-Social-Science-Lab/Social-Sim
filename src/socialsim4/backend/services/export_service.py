@@ -21,3 +21,17 @@ def generate_export_filename(scenario_id: str, format: str) -> str:
     date_str = now.strftime("%Y_%m_%d")
     time_str = now.strftime("%H_%M")
     return f"Scenario_{scenario_id}_{date_str}_{time_str}.{format}"
+
+
+def simplify_log_type(event_type: str) -> str:
+    """Simplify log types to AGENT_ACTION or SYSTEM.
+
+    Args:
+        event_type: Original event type from logs
+
+    Returns:
+        Simplified type: "AGENT_ACTION" or "SYSTEM"
+    """
+    if event_type in ("AGENT_SAY", "AGENT_ACTION"):
+        return "AGENT_ACTION"
+    return "SYSTEM"
