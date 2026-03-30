@@ -4,6 +4,9 @@ Export service for simulation data.
 Handles transformation of simulation events into clean CSV/JSON export format
 with scenario parameters and simplified log types.
 """
+import csv
+import io
+import json
 from datetime import datetime
 
 
@@ -95,3 +98,37 @@ def transform_event_for_export(event: dict, scenario_params: dict) -> dict:
     result.update(scenario_params)
 
     return result
+
+
+def export_events(events: list[dict], scenario_params: dict, format: str) -> str:
+    """Export events to CSV or JSON format.
+
+    Args:
+        events: List of log events
+        scenario_params: Scenario parameters to include
+        format: "csv" or "json"
+
+    Returns:
+        Formatted export content
+    """
+    transformed = [transform_event_for_export(e, scenario_params) for e in events]
+
+    if format == "json":
+        return json.dumps(transformed, indent=2, default=str)
+
+    # CSV format
+    if not transformed:
+        # Return header row only, using scenario params as column reference
+        output = io.StringIO()
+        base_cols = ["timestamp", "node_id", "round", "agent_id", "type", "action", "follow_up"]
+        fieldnames = base_cols + list(scenario_params.keys())
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+        return output.getvalue()
+
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=transformed[0].keys())
+    writer.writeheader()
+    writer.writerows(transformed)
+
+    return output.getvalue()

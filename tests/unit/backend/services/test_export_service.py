@@ -90,3 +90,60 @@ def test_transform_event_for_export():
     assert result["follow_up"] == "12"
     assert result["tokens_per_round"] == 10
     assert result["multiplier"] == 1.3
+
+
+def test_export_events_to_csv():
+    """Test exporting events to CSV format."""
+    from socialsim4.backend.services.export_service import export_events
+
+    events = [
+        {
+            "sequence": 1,
+            "tree_node_id": 1,
+            "event_type": "AGENT_ACTION",
+            "payload": {
+                "action": {"name": "allocate", "parameters": {"amount": 12}},
+                "agent": "Agent 1"
+            },
+            "created_at": datetime(2026, 3, 30, 14, 30, 0)
+        }
+    ]
+
+    scenario_params = {"tokens_per_round": 10, "multiplier": 1.3}
+
+    csv_content = export_events(events, scenario_params, "csv")
+
+    assert "timestamp" in csv_content
+    assert "Agent 1" in csv_content
+    assert "allocate" in csv_content
+    assert "12" in csv_content
+    assert "tokens_per_round" in csv_content
+
+
+def test_export_events_to_json():
+    """Test exporting events to JSON format."""
+    import json
+    from socialsim4.backend.services.export_service import export_events
+
+    events = [
+        {
+            "sequence": 1,
+            "tree_node_id": 1,
+            "event_type": "AGENT_ACTION",
+            "payload": {
+                "action": {"name": "allocate", "parameters": {"amount": 12}},
+                "agent": "Agent 1"
+            },
+            "created_at": datetime(2026, 3, 30, 14, 30, 0)
+        }
+    ]
+
+    scenario_params = {"tokens_per_round": 10, "multiplier": 1.3}
+
+    json_content = export_events(events, scenario_params, "json")
+    data = json.loads(json_content)
+
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert data[0]["agent_id"] == "Agent 1"
+    assert data[0]["action"] == "allocate"
