@@ -29,7 +29,7 @@ def create_router() -> Router:
     """
     # Import route handlers from submodules
     from . import crud, lifecycle, snapshots, tree_operations
-    from . import websocket_handlers, agent_documents, global_knowledge
+    from . import websocket_handlers, agent_documents, global_knowledge, export
 
     return Router(
         path="/simulations",
@@ -75,6 +75,8 @@ def create_router() -> Router:
             global_knowledge.upload_global_document,
             global_knowledge.list_global_knowledge,
             global_knowledge.delete_global_knowledge,
+            # Export operations
+            export.export_simulation,
         ],
     )
 
