@@ -1,5 +1,6 @@
 """Tests for export service."""
 import pytest
+from datetime import datetime
 from socialsim4.backend.services.export_service import generate_export_filename
 
 
@@ -57,3 +58,35 @@ def test_extract_action_and_follow_up_deduct():
     action, follow_up = extract_action_and_follow_up(event)
     assert action == "deduct"
     assert follow_up == "Agent 2; 3"
+
+
+def test_transform_event_for_export():
+    """Test transforming a log event into export format."""
+    from socialsim4.backend.services.export_service import transform_event_for_export
+
+    event = {
+        "sequence": 1,
+        "tree_node_id": 5,
+        "event_type": "AGENT_ACTION",
+        "payload": {
+            "action": {"name": "allocate", "parameters": {"amount": 12}},
+            "agent": "Agent 1"
+        },
+        "created_at": datetime(2026, 3, 30, 14, 30, 0)
+    }
+
+    scenario_params = {
+        "tokens_per_round": 10,
+        "multiplier": 1.3
+    }
+
+    result = transform_event_for_export(event, scenario_params)
+
+    assert result["sequence"] == 1
+    assert result["node_id"] == "5"
+    assert result["agent_id"] == "Agent 1"
+    assert result["type"] == "AGENT_ACTION"
+    assert result["action"] == "allocate"
+    assert result["follow_up"] == "12"
+    assert result["tokens_per_round"] == 10
+    assert result["multiplier"] == 1.3

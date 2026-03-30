@@ -61,3 +61,37 @@ def extract_action_and_follow_up(event: dict) -> tuple[str, str]:
     follow_up = "; ".join(values)
 
     return (action_name, follow_up)
+
+
+def transform_event_for_export(event: dict, scenario_params: dict) -> dict:
+    """Transform a log event into export format with scenario params.
+
+    Args:
+        event: Log event dictionary
+        scenario_params: Scenario parameters to include in export
+
+    Returns:
+        Dictionary with export columns
+    """
+    payload = event.get("payload", {})
+
+    # Extract basic fields
+    result = {
+        "sequence": event.get("sequence"),
+        "timestamp": event.get("created_at", "").isoformat() if hasattr(event.get("created_at", ""), "isoformat") else str(event.get("created_at", "")),
+        "node_id": str(event.get("tree_node_id", "")),
+        "round": payload.get("round", event.get("round", "")),
+        "agent_id": payload.get("agent", ""),
+        "type": simplify_log_type(event.get("event_type", "SYSTEM")),
+    }
+
+    # extract_action_and_follow_up expects {"data": <action-containing-dict>}
+    # payload is the event's payload, which contains the "action" key at top level
+    action, follow_up = extract_action_and_follow_up({"data": payload})
+    result["action"] = action
+    result["follow_up"] = follow_up
+
+    # Add scenario parameters
+    result.update(scenario_params)
+
+    return result
