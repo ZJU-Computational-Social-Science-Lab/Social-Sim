@@ -1,0 +1,38 @@
+--- src/socialsim4/core/context_builder.py.orig	2026-03-30
++++ src/socialsim4/core/context_builder.py	2026-03-30
+@@ -232,15 +18 else:
+             parts = []
+             if my_event:
+                 parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))
++            # CRITICAL: Only apply during allocate phase, not deduct
++            if info_model.show_average_contribution and other_events and state and graph:
+                 # Calculate average from visible contributions
++                visible = info_model.get_visible_contributions(for_agent, state, graph)
++                if visible:
++                    # CRITICAL: Use len(visible) for neighbor count, NOT len(other_events)
++                    # This ensures count matches average source
++                    neighbor_count = len(visible)
++                    avg = sum(visible.values()) / neighbor_count
++
++                    # Keep own action, show average for neighbors
++                    if my_event:
++                        parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))
++                    parts.append(f"Average contribution from {neighbor_count} neighbors: {avg:.1f}")
++                else:
++                    # No visible contributions - fall back to original behavior
++                    if my_event:
++                        parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))
++                    for e in other_events:
++                        parts.append(_format_action_with_parameters(e.agent_name, e.action_name, e.parameters))
++            else:
++                # Average not enabled or missing data - show individual contributions
++                if my_event:
++                    parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))
++                for e in other_events:
++                    parts.append(_format_action_with_parameters(e.agent_name, e.action_name, e.parameters))
+             line = f"Round {r}: {', '.join(parts)}." if parts else f"Round {r}: (no actions)"
+             if any("amount" in e.parameters for e in round_events):
+                 total_contribution = sum(e.parameters.get("amount", 0) for e in round_events)
+                 line += f" Total contribution: {total_contribution}."
+             if my_event and my_event.payoff is not None:
+                 line += f" My payoff: {my_event.payoff}."

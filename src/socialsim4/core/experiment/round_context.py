@@ -173,6 +173,8 @@ class RoundContextManager:
             events=visible_events,
             info_model=self.information_model,
             agent_score=agent_score if self.information_model.include_scores else None,
+            state=self.scene_state.get("state") if self.scene_state else None,
+            graph=self.scene_state.get("graph") or self.scene_state.get("social_network") if self.scene_state else None,
         )
 
     def get_round_events(self, round_num: int) -> List[RoundEvent]:
