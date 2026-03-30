@@ -75,11 +75,11 @@ export const NodeWorkspacePanel: React.FC<NodeWorkspacePanelProps> = ({
 
   const pathLabel = currentPath.map((node) => getNodeLabel(node, t)).join(" / ");
   const selectedLabel = getNodeLabel(selectedNode, t);
-  const sceneConfig = ((currentSimulation as any)?.scene_config || {}) as Record<string, any>;
-  const scenarioSummary =
+  const sceneConfig = (currentSimulation?.scene_config ?? {}) as Record<string, any>;
+  const subtitle =
     sceneConfig.description ||
     sceneConfig.initial_event ||
-    (currentSimulation as any)?.description ||
+    currentSimulation?.description ||
     t("simulationWorkspace.subtitleFallback");
   const isObservationMode = workspaceMode === "observation";
   const providerSelection = selectedProviderId ?? currentProviderId ?? null;
@@ -142,7 +142,7 @@ export const NodeWorkspacePanel: React.FC<NodeWorkspacePanelProps> = ({
           <div className="ss-node-workspace__summary-card">
             <span>{t("controlRoom.currentNodeConfiguration")}</span>
             <strong>{currentSimulation?.name || t("simulationWorkspace.titleFallback")}</strong>
-            <p>{scenarioSummary}</p>
+            <p>{subtitle}</p>
           </div>
           {!isObservationMode ? (
             <div className="ss-node-workspace__summary-card">

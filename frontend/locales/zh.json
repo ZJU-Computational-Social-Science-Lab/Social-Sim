@@ -500,7 +500,7 @@
       "dimensionNamePlaceholder": "维度名称 (如: Age)",
       "categoriesLabel": "类别 (用逗号分隔):",
       "addCategory": "添加类别",
-      "archetypes": "生成的原型",
+      "archetypes": "生成的原型：{{count}}",
       "archetypesHint": "原型 × 人口维度 = 智能体组合",
       "totalProbability": "总概率",
       "shouldBeOne": "(应为 1.0)",

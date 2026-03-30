@@ -1,15 +1,22 @@
 import { create } from "zustand";
 
+export interface AuthUser {
+  id: number | string;
+  email: string;
+  role: string;
+  [key: string]: unknown;
+}
+
 type AuthState = {
   accessToken: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
-  user: Record<string, unknown> | null;
+  user: AuthUser | null;
   hasRestored: boolean;
   setSession: (payload: {
     accessToken: string;
     refreshToken: string;
-    user: Record<string, unknown>;
+    user: AuthUser;
   }) => void;
   clearSession: () => void;
   restoreSession: () => void;
@@ -65,7 +72,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       return;
     }
     try {
-      const user = JSON.parse(userRaw) as Record<string, unknown>;
+      const user = JSON.parse(userRaw) as AuthUser;
       set({ accessToken: access, refreshToken: refresh, user, isAuthenticated: true, hasRestored: true });
     } catch (error) {
       console.error("Failed to parse stored user", error);

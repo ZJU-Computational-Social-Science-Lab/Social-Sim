@@ -56,11 +56,11 @@ export const SimulationHero: React.FC<SimulationHeroProps> = ({
     return primaryTitle?.trim() || rawTitle;
   }, [currentSimulation?.name, t]);
 
-  const sceneConfig = ((currentSimulation as any)?.scene_config || {}) as Record<string, any>;
+  const sceneConfig = (currentSimulation?.scene_config ?? {}) as Record<string, any>;
   const summary =
     sceneConfig.description ||
     sceneConfig.initial_event ||
-    (currentSimulation as any)?.description ||
+    currentSimulation?.description ||
     t("simulationWorkspace.subtitleFallback");
 
   const compactSummary = React.useMemo(() => {

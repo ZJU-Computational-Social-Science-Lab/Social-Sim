@@ -42,11 +42,11 @@ export const SimulationWorkspaceChrome: React.FC<SimulationWorkspaceChromeProps>
     [nodes, selectedNodeId]
   );
 
-  const sceneConfig = ((currentSim as any)?.scene_config || {}) as Record<string, any>;
+  const sceneConfig = (currentSim?.scene_config ?? {}) as Record<string, any>;
   const subtitle =
     sceneConfig.description ||
     sceneConfig.initial_event ||
-    (currentSim as any)?.description ||
+    currentSim?.description ||
     t("simulationWorkspace.subtitleFallback");
   const workspaceTitle = React.useMemo(() => {
     const rawTitle = currentSim?.name || t("simulationWorkspace.titleFallback");

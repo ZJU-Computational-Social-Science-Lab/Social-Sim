@@ -47,7 +47,7 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
   const providerSelection = selectedProviderId ?? currentProviderId ?? null;
   const selectedProvider =
     llmProviders.find((provider) => provider.id === providerSelection) || null;
-  const sceneConfig = ((currentSimulation as any)?.scene_config || {}) as Record<string, any>;
+  const sceneConfig = (currentSimulation?.scene_config ?? {}) as Record<string, any>;
   const selectedNodeLogCount = logs.filter((entry) => entry.nodeId === selectedNodeId).length;
 
   const summaryFacts = [
@@ -90,7 +90,7 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
     },
     {
       label: isZh ? "实验目标" : "Experiment goal",
-      value: sceneConfig.goal || sceneConfig.objective || (currentSimulation as any)?.description || (isZh ? "围绕当前场景观察分支、节点和参与者变化。" : "Observe how branches, nodes, and agents evolve inside the current scene."),
+      value: sceneConfig.goal || sceneConfig.objective || currentSimulation?.description || (isZh ? "围绕当前场景观察分支、节点和参与者变化。" : "Observe how branches, nodes, and agents evolve inside the current scene."),
     },
     {
       label: isZh ? "终止条件" : "Termination",

@@ -6,6 +6,8 @@ import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useAuthStore } from "../store/auth";
 import { useThemeStore } from "../store/theme";
 
+const DESKTOP_BREAKPOINT_QUERY = "(min-width: 961px)";
+
 export type NavBarVariant = "default" | "product";
 
 export function NavBar({ variant = "default" }: { variant?: NavBarVariant }) {
@@ -21,7 +23,7 @@ export function NavBar({ variant = "default" }: { variant?: NavBarVariant }) {
   const toggle = useThemeStore((s) => s.toggle);
 
   const isProduct = variant === "product";
-  const isAdmin = String((user as any)?.role || "") === "admin";
+  const isAdmin = String(user?.role ?? "") === "admin";
   const navItems = [
     { to: "/dashboard", label: t("nav.dashboard") },
     { to: "/simulations/new", label: t("nav.new") },
@@ -50,7 +52,7 @@ export function NavBar({ variant = "default" }: { variant?: NavBarVariant }) {
       return;
     }
 
-    const media = window.matchMedia("(min-width: 961px)");
+    const media = window.matchMedia(DESKTOP_BREAKPOINT_QUERY);
     const closeCompact = () => {
       if (media.matches) {
         setCompactOpen(false);
@@ -109,7 +111,7 @@ export function NavBar({ variant = "default" }: { variant?: NavBarVariant }) {
             {isAuthenticated ? (
               <div className={`nav-user ${isProduct ? "nav-user--product" : ""}`}>
                 <span className="nav-username">
-                  {String((user as any)?.email ?? "")}
+                  {String(user?.email ?? "")}
                 </span>
                 <button
                   type="button"
@@ -164,7 +166,7 @@ export function NavBar({ variant = "default" }: { variant?: NavBarVariant }) {
 
             {isAuthenticated ? (
               <div className="nav-mobile-session nav-mobile-session--user">
-                <span className="nav-mobile-email">{String((user as any)?.email ?? "")}</span>
+                <span className="nav-mobile-email">{String(user?.email ?? "")}</span>
                 <button type="button" className="nav-mobile-signout" onClick={clearSession}>
                   {t("nav.signout")}
                 </button>

@@ -17,7 +17,7 @@ import React from 'react';
 import { Bot } from 'lucide-react';
 
 interface LLMProvider {
-  id: string;
+  id: number;
   name: string;
   provider?: string;
   model?: string;
@@ -28,8 +28,8 @@ interface LLMProvider {
 
 interface ProviderSelectorProps {
   providers: LLMProvider[];
-  selectedProviderId: string | null;
-  onProviderChange: (id: string | null) => void;
+  selectedProviderId: number | null;
+  onProviderChange: (id: number | null) => void;
   title: string;
   hint: string;
   noProviderOption: string;
@@ -71,7 +71,7 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
 
       <select
         value={selectedProviderId ?? ''}
-        onChange={(e) => onProviderChange(e.target.value || null)}
+        onChange={(e) => onProviderChange(e.target.value ? Number(e.target.value) : null)}
         className="text-xs border-indigo-200 rounded px-2 py-1.5 focus:ring-indigo-500 min-w-[300px]"
       >
         {providers.length === 0 && (

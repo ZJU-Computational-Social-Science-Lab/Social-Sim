@@ -33,7 +33,7 @@ import {
   Minus,
 } from 'lucide-react';
 import Papa from 'papaparse';
-import { Agent, LLMConfig, TimeUnit, GenericTemplateConfig, Template } from '../types';
+import { Agent, LLMConfig, TimeUnit, GenericTemplateConfig, SimulationTemplate } from '../types';
 import { uploadImage } from '../services/uploads';
 import { TemplateBuilder, createEmptyGenericTemplate } from './TemplateBuilder';
 import {
@@ -41,6 +41,7 @@ import {
   generateAgentsWithDemographics,
   useSimulationStore,
 } from '../store';
+import { Provider } from '../store/providers';
 import {
   WizardHeader,
   WizardFooter,
@@ -258,23 +259,25 @@ export const SimulationWizard: React.FC = () => {
 
   const selectedTemplate = savedTemplates.find((tpl) => tpl.id === selectedTemplateId) || savedTemplates[0];
 
-  const defaultLlmConfig: LLMConfig = llmProviders.find((p) => p.id === selectedProviderId) ||
-    llmProviders.find((p) => (p as any).is_active || (p as any).is_default) ||
-    llmProviders[0]
+  const selectedProvider: Provider | null =
+    llmProviders.find((p) => p.id === selectedProviderId) ??
+    llmProviders.find((p) => p.is_active || p.is_default) ??
+    llmProviders[0] ??
+    null;
+
+  const defaultLlmConfig: LLMConfig = selectedProvider
     ? {
-        provider: (llmProviders.find((p) => p.id === selectedProviderId) as any)?.name ||
-          (llmProviders.find((p) => p.id === selectedProviderId) as any)?.provider ||
-          'backend',
-        model: (llmProviders.find((p) => p.id === selectedProviderId) as any)?.model || 'default'
+        provider: selectedProvider.name || selectedProvider.provider || 'backend',
+        model: selectedProvider.model || 'default',
       }
     : {
         provider: 'backend',
-        model: 'default'
+        model: 'default',
       };
 
   const visionCapable = !!(
-    (llmProviders.find((p) => p.id === selectedProviderId) as any)?.model &&
-    /vision|gpt-4o|4o-mini|o1|gemini-pro-vision|gemini 1\.5|flash|pro|llava|llama-?3\.2|qwen2-vl/i.test((llmProviders.find((p) => p.id === selectedProviderId) as any)?.model)
+    selectedProvider?.model &&
+    /vision|gpt-4o|4o-mini|o1|gemini-pro-vision|gemini 1\.5|flash|pro|llava|llama-?3\.2|qwen2-vl/i.test(selectedProvider.model)
   );
 
   // ============================================================================
@@ -521,7 +524,6 @@ export const SimulationWizard: React.FC = () => {
       setCustomAgents(agents);
       addNotification('success', t('wizard.messages.generatedAgents', { count: agents.length }));
     } catch (e) {
-      console.error('Agent generation error:', e);
       const errorMessage = e instanceof Error ? e.message : String(e);
       setImportError(`${t('wizard.messages.generationFailed')}: ${errorMessage}`);
     } finally {
@@ -618,7 +620,6 @@ export const SimulationWizard: React.FC = () => {
   // Next step with provider check
   const handleNext = () => {
     if (llmProviders.length === 0 || !selectedProviderId) {
-      window.alert(`${t('wizard.alerts.noProviderTitle')}${t('wizard.alerts.noProviderMessage')}`);
       addNotification('error', t('wizard.alerts.noProviderMessage'));
     }
     setStep((s) => s + 1);

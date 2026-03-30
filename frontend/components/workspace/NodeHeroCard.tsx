@@ -48,11 +48,11 @@ export const NodeHeroCard: React.FC<NodeHeroCardProps> = ({ observationMode }) =
     [nodeLookup, selectedNode],
   );
 
-  const sceneConfig = ((currentSimulation as any)?.scene_config || {}) as Record<string, any>;
+  const sceneConfig = (currentSimulation?.scene_config ?? {}) as Record<string, any>;
   const scenarioSummary =
     sceneConfig.description ||
     sceneConfig.initial_event ||
-    (currentSimulation as any)?.description ||
+    currentSimulation?.description ||
     t("simulationWorkspace.subtitleFallback");
   const providerSelection = selectedProviderId ?? currentProviderId ?? null;
   const selectedProvider =

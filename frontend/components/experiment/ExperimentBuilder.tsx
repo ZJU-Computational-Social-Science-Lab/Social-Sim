@@ -1,6 +1,5 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 
 import { useExperimentBuilder } from "../../store/experiment-builder";
 import { Step1InteractionType } from "./Step1InteractionType";
@@ -19,6 +18,25 @@ import { GuideMascotTrigger } from "./workflow/GuideMascotTrigger";
 import { GuidePopover } from "./workflow/GuidePopover";
 import { GuideHintBubble } from "./workflow/GuideHintBubble";
 import { SummaryInfoCard } from "./workflow/SummaryInfoCard";
+import {
+  SS_EVENTS,
+  DRAFT_STORAGE_KEY,
+  GUIDE_HINTS_STORAGE_KEY,
+  IDLE_HINT_DELAY_MS,
+  STEP_SIX_ENTRY_WINDOW_MS,
+  JUMP_THEN_FOCUS_DELAY_MS,
+} from "./workflow/constants";
+import {
+  focusStepTwoTarget,
+  focusStepFourTarget,
+  focusStepFiveTarget,
+  focusStepSixTarget,
+  focusGuideElement,
+} from "./workflow/guideHelpers";
+import { getEdgeCount } from "./workflow/networkUtils";
+import { summarizeActionStructure } from "./workflow/summarizeActionStructure";
+import { useBuilderNavigation, useDismissedHints } from "./workflow/useBuilderNavigation";
+import { useGuideIdleState } from "./workflow/useGuideIdleState";
 
 type StepId = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -45,84 +63,13 @@ interface GuideHintState {
   onAction: () => void;
 }
 
-const getEdgeCount = (network: Record<string, string[]>) => {
-  const dedup = new Set<string>();
-  Object.entries(network).forEach(([source, targets]) => {
-    targets.forEach((target) => {
-      const key = source < target ? `${source}|${target}` : `${target}|${source}`;
-      dedup.add(key);
-    });
-  });
-  return dedup.size;
-};
-
-const getDraftStorageKey = () => "socialsim4.experiment-draft";
-const getGuideHintStorageKey = () => "socialsim4.guide-hints.dismissed";
-
-const focusStepTwoTarget = (target: "scenario" | "params" | "schedule") => {
-  window.dispatchEvent(new CustomEvent("ss-step2-guide", { detail: { target } }));
-};
-
-const focusStepFourTarget = (target: "mode" | "name" | "registry" | "editor" | "provider") => {
-  window.dispatchEvent(new CustomEvent("ss-step4-guide", { detail: { target } }));
-};
-
-const focusStepFiveTarget = (
-  target: "templates" | "summary" | "details" | "graph" | "links" | "roster"
-) => {
-  window.dispatchEvent(new CustomEvent("ss-step5-guide", { detail: { target } }));
-};
-
-const focusStepSixTarget = (target: "status" | "checklist" | "summary" | "details") => {
-  window.dispatchEvent(new CustomEvent("ss-step6-guide", { detail: { target } }));
-};
-
-const focusGuideElement = (elementId: string) => {
-  const element = document.getElementById(elementId);
-  if (!element) {
-    return;
-  }
-
-  element.classList.remove("is-guided");
-  element.scrollIntoView({ behavior: "smooth", block: "center" });
-
-  window.requestAnimationFrame(() => {
-    element.classList.add("is-guided");
-    window.setTimeout(() => element.classList.remove("is-guided"), 1800);
-  });
-};
-
-const summarizeActionStructure = (
-  actions: string[],
-  isZh: boolean,
-  minimumActionCount = 2
-) => {
-  if (actions.length < minimumActionCount) {
-    return isZh ? "动作不足" : "Too few actions";
-  }
-
-  if (minimumActionCount === 1) {
-    return isZh ? "单动作场景" : "Single-action scene";
-  }
-
-  const source = actions.join(" ").toLowerCase();
-  if (/cooperate|合作|协作/.test(source) && /defect|背叛|betray|竞争/.test(source)) {
-    return isZh ? "对抗型双动作" : "Contrastive two-action set";
-  }
-
-  if (actions.length <= 4) {
-    return isZh ? "紧凑策略集合" : "Compact strategy set";
-  }
-
-  return isZh ? "扩展策略集合" : "Expanded strategy set";
-};
-
 export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
   onComplete,
   onCancel,
 }) => {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _reactRouterNavigate = () => { /* navigate is provided via useBuilderNavigation hook */ };
   const isZh = i18n.language.startsWith("zh");
   const {
     currentStep,
@@ -788,7 +735,7 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
   );
 
   React.useEffect(() => {
-    const raw = localStorage.getItem(getGuideHintStorageKey());
+    const raw = localStorage.getItem(GUIDE_HINTS_STORAGE_KEY);
     setDismissedGuideHints(raw ? JSON.parse(raw) : []);
   }, []);
 
@@ -797,8 +744,8 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
       setStepOneInteractionTick((value) => value + 1);
     };
 
-    window.addEventListener("ss-step1-interaction", handleStepOneInteraction);
-    return () => window.removeEventListener("ss-step1-interaction", handleStepOneInteraction);
+    window.addEventListener(SS_EVENTS.STEP1_INTERACTION, handleStepOneInteraction);
+    return () => window.removeEventListener(SS_EVENTS.STEP1_INTERACTION, handleStepOneInteraction);
   }, []);
 
   React.useEffect(() => {
@@ -808,7 +755,7 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
     }
 
     setStepOneIdleReady(false);
-    const timer = window.setTimeout(() => setStepOneIdleReady(true), 5000);
+    const timer = window.setTimeout(() => setStepOneIdleReady(true), IDLE_HINT_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, [currentStep, stepOneInteractionTick, templateReady]);
 
@@ -839,9 +786,9 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
       }
     };
 
-    window.addEventListener("ss-step5-guide-state", handleStepFiveState as EventListener);
+    window.addEventListener(SS_EVENTS.STEP5_GUIDE_STATE, handleStepFiveState as EventListener);
     return () =>
-      window.removeEventListener("ss-step5-guide-state", handleStepFiveState as EventListener);
+      window.removeEventListener(SS_EVENTS.STEP5_GUIDE_STATE, handleStepFiveState as EventListener);
   }, []);
 
   React.useEffect(() => {
@@ -851,7 +798,7 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
     }
 
     setStepFiveIdleReady(false);
-    const timer = window.setTimeout(() => setStepFiveIdleReady(true), 5000);
+    const timer = window.setTimeout(() => setStepFiveIdleReady(true), IDLE_HINT_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, [currentStep, stepFiveInteractionTick, stepFiveSelectedPreset]);
 
@@ -878,12 +825,12 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
     }
 
     setStepSixEntryWindow(true);
-    const timer = window.setTimeout(() => setStepSixEntryWindow(false), 4000);
+    const timer = window.setTimeout(() => setStepSixEntryWindow(false), STEP_SIX_ENTRY_WINDOW_MS);
     return () => window.clearTimeout(timer);
   }, [currentStep]);
 
   React.useEffect(() => {
-    if (currentStep > 3 && currentStep !== 4 && currentStep !== 5 && currentStep !== 6) {
+    if (currentStep <= 3) {
       setGuideOpen(false);
     }
   }, [currentStep]);
@@ -895,7 +842,7 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
       }
 
       const next = [...current, hintId];
-      localStorage.setItem(getGuideHintStorageKey(), JSON.stringify(next));
+      localStorage.setItem(GUIDE_HINTS_STORAGE_KEY, JSON.stringify(next));
       return next;
     });
   }, []);
@@ -905,7 +852,7 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
       setGuideOpen(false);
       setCurrentStep(step);
       if (after) {
-        window.setTimeout(after, 220);
+        window.setTimeout(after, JUMP_THEN_FOCUS_DELAY_MS);
       }
     },
     [setCurrentStep]
@@ -914,7 +861,7 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
   const jumpToLaunchGap = React.useCallback(() => {
     if (!launchProviderReady) {
       setGuideOpen(false);
-      navigate("/settings?tab=providers_llm");
+      window.location.href = "/settings?tab=providers_llm";
       return;
     }
     if (firstLaunchGap === "scenario") {
@@ -1462,7 +1409,7 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
   const handleSaveDraft = () => {
     const state = useExperimentBuilder.getState();
     localStorage.setItem(
-      getDraftStorageKey(),
+      DRAFT_STORAGE_KEY,
       JSON.stringify({
         currentStep: state.currentStep,
         selectedScenarioId: state.selectedScenarioId,
