@@ -107,14 +107,18 @@ const resizeTierOrder = (current: string[], count: number): string[] => {
   return next;
 };
 
-const isPolicyCascadeScenario = (scenarioId: string, scenarioName: string): boolean => {
-  const normalizedName = scenarioName.toLowerCase();
+const isPolicyCascadeScenario = (scenario: {
+  id?: string;
+  sceneType?: string;
+} | null | undefined): boolean => {
+  if (!scenario) return false;
+  const scenarioId = String(scenario.id || '').toLowerCase();
   return (
+    scenario.sceneType === 'policy_cascade_scene' ||
     scenarioId === 'policy_diffusion' ||
-    scenarioId === 'policyDiffusion' ||
-    normalizedName.includes('policy') ||
-    normalizedName.includes('cascade') ||
-    normalizedName.includes('diffusion')
+    scenarioId === 'policydiffusion' ||
+    scenarioId === 'policy_erosion' ||
+    scenarioId === 'policyerosion'
   );
 };
 
@@ -206,8 +210,7 @@ export const Step4Agents: React.FC = () => {
   const [tierOrderDraft, setTierOrderDraft] = useState<string[]>(['top', 'mid', 'low']);
 
   const scenarioId = selectedScenarioData?.id || selectedScenarioId || '';
-  const scenarioName = (selectedScenarioData?.name || '').toLowerCase();
-  const showTierControls = isPolicyCascadeScenario(scenarioId, scenarioName);
+  const showTierControls = isPolicyCascadeScenario(selectedScenarioData || { id: scenarioId });
   const tierOrder = useMemo(() => parseTierOrder(scenarioParams?.tier_order), [scenarioParams]);
   const cascadeMode = String(scenarioParams?.cascade_mode || 'strict_cascade');
   const tierOrderDraftValid =
