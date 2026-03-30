@@ -166,6 +166,8 @@ def build_structured_context(
     events: list,
     info_model: "InformationModel",
     agent_score: "int | None" = None,
+    state: "ExperimentState | None" = None,
+    graph: dict | None = None,
 ) -> str:
     """Build deterministic, budget-bounded structured context for an agent.
 
@@ -177,6 +179,8 @@ def build_structured_context(
         events: Pre-filtered RoundEvent list (caller must filter by observed_by)
         info_model: InformationModel controlling window/primacy/template
         agent_score: Agent's cumulative score (shown if info_model.include_scores)
+        state: Current experiment state (required for average contribution mode)
+        graph: Network graph (required for average contribution mode)
 
     Returns:
         Formatted context string
@@ -226,11 +230,34 @@ def build_structured_context(
             parts.append(f"→ {my_event.feedback}")
             line = " ".join(parts)
         else:
-            parts = []
-            if my_event:
-                parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))
-            for e in other_events:
-                parts.append(_format_action_with_parameters(e.agent_name, e.action_name, e.parameters))
+            # CRITICAL: Only apply during allocate phase, not deduct
+            if info_model.show_average_contribution and other_events and state and graph:
+                # Calculate average from visible contributions
+                visible = info_model.get_visible_contributions(for_agent, state, graph)
+                if visible:
+                    # CRITICAL: Use len(visible) for neighbor count, NOT len(other_events)
+                    # This ensures count matches average source
+                    neighbor_count = len(visible)
+                    avg = sum(visible.values()) / neighbor_count
+                    # Keep own action, show average for neighbors
+                    parts = []
+                    if my_event:
+                        parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))
+                    parts.append(f"Average contribution from {neighbor_count} neighbors: {avg:.1f}")
+                else:
+                    # No visible contributions - fall back to original behavior
+                    parts = []
+                    if my_event:
+                        parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))
+                    for e in other_events:
+                        parts.append(_format_action_with_parameters(e.agent_name, e.action_name, e.parameters))
+            else:
+                # Average not enabled or missing data - show individual contributions
+                parts = []
+                if my_event:
+                    parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))
+                for e in other_events:
+                    parts.append(_format_action_with_parameters(e.agent_name, e.action_name, e.parameters))
             line = f"Round {r}: {', '.join(parts)}." if parts else f"Round {r}: (no actions)"
             if any("amount" in e.parameters for e in round_events):
                 total_contribution = sum(e.parameters.get("amount", 0) for e in round_events)
