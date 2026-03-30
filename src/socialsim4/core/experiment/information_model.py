@@ -32,6 +32,7 @@ class InformationModel:
                          {partner_action}, {payoff}. Replaces the default "Round N: ..."
                          line entirely — do NOT add a round prefix separately.
         include_scores: Show cumulative score in context (default True)
+        show_average_contribution: Show average neighbor contribution instead of individuals (default False)
     """
     scope_type: str
     scope_fn: Optional[Callable] = None
@@ -41,6 +42,7 @@ class InformationModel:
     context_budget_chars: int = 0
     payoff_template: Optional[str] = None
     include_scores: bool = True
+    show_average_contribution: bool = False
 
     def __post_init__(self):
         valid = {"self", "pair", "neighborhood", "all", "role_based"}
@@ -150,3 +152,30 @@ class InformationModel:
                 visible[neighbor] = contribution
 
         return visible
+
+    def get_neighbor_average(
+        self,
+        agent_name: str,
+        state: "ExperimentState",
+        graph: dict,
+    ) -> float | None:
+        """Calculate average contribution from neighbors.
+
+        Args:
+            agent_name: Name of the viewing agent
+            state: Current experiment state with agent contributions
+            graph: Network graph with "edges" list
+
+        Returns:
+            Average contribution from neighbors, or None if no neighbors
+        """
+        visible = self.get_visible_contributions(agent_name, state, graph)
+
+        if not visible:
+            return None
+
+        contributions = list(visible.values())
+        if not contributions:
+            return None
+
+        return sum(contributions) / len(contributions)
