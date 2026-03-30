@@ -16,6 +16,7 @@ export const ExportModal: React.FC = () => {
   const currentSim = useSimulationStore(state => state.currentSimulation);
   const nodes = useSimulationStore(state => state.nodes);
   const selectedNodeId = useSimulationStore(state => state.selectedNodeId);
+  const engineConfig = useSimulationStore(state => state.engineConfig);
 
   const [format, setFormat] = useState<'json' | 'csv'>('json');
   const [scope, setScope] = useState<'all_logs' | 'agent_data'>('all_logs');
@@ -23,95 +24,138 @@ export const ExportModal: React.FC = () => {
 
   if (!isOpen) return null;
 
-  const handleExport = () => {
+  const handleExport = async () => {
     setIsExporting(true);
-    
-    // Simulate slight delay for UX
-    setTimeout(() => {
-      let content = '';
-      let mimeType = 'application/json';
-      let filename = `${currentSim?.name || 'simulation'}_${scope}_${new Date().toISOString().slice(0,10)}`;
 
-      // 1. Prepare Data
-      let dataToExport: any[] | object = [];
-      
-      if (scope === 'all_logs') {
-        // Export uses raw events re-mapped, including all metadata events
-        if (rawEvents.length > 0) {
-          // Group events by node (if events include node information)
-          // Otherwise use selected node's information as default
-          const currentNode = nodes.find(n => n.id === selectedNodeId);
-          const defaultNodeId = currentNode?.id || selectedNodeId || 'unknown';
-          const defaultRound = currentNode?.depth || 0;
+    try {
+      // In connected mode with all_logs scope, use backend export endpoint
+      if (engineConfig.mode === 'connected' && scope === 'all_logs' && currentSim?.id) {
+        const token = (engineConfig as any).token;
+        const baseUrl = engineConfig.endpoint;
+        const simId = currentSim.id;
 
-          // Re-map all events, including all metadata
-          // Note: If event contains node information, extract from event
-          const allLogs = mapBackendEventsToLogs(
-            rawEvents,
-            defaultNodeId,
-            defaultRound,
-            agents,
-            true // Include all metadata when exporting
-          );
-          dataToExport = allLogs.map(l => ({ ...l, image_preview: l.imageUrl ? `![img](${l.imageUrl})` : '' }));
-        } else {
-          // If no raw events (standalone mode), use current filtered logs
-          dataToExport = logs.map(l => ({ ...l, image_preview: l.imageUrl ? `![img](${l.imageUrl})` : '' }));
+        const response = await fetch(
+          `${baseUrl}/simulations/${simId}/export?format=${format}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Export failed: ${response.status}`);
         }
-      } else {
-        dataToExport = agents;
-      }
 
-      // 2. Format Data
-      if (format === 'json') {
-        content = JSON.stringify(dataToExport, null, 2);
-        mimeType = 'application/json';
-        filename += '.json';
-      } else {
-        // CSV
-        if (scope === 'all_logs') {
-          const flat = (dataToExport as any[]).map(l => ({
-            timestamp: (l as any).timestamp,
-            nodeId: (l as any).nodeId,
-            type: (l as any).type,
-            agentId: (l as any).agentId,
-            content: (l as any).content,
-            imageUrl: (l as any).imageUrl,
-            image_preview: (l as any).image_preview,
-          }));
-          content = Papa.unparse(flat);
-        } else {
-          // For agents, flatten nested objects like properties/history if possible, 
-          // or just export basic info for CSV to stay simple
-          const flattenedAgents = agents.map(a => ({
-            id: a.id,
-            name: a.name,
-            role: a.role,
-            avatarUrl: a.avatarUrl,
-            profile: a.profile,
-            // Simple stringify for complex objects in CSV
-            properties: JSON.stringify(a.properties),
-            memory_count: a.memory.length
-          }));
-          content = Papa.unparse(flattenedAgents);
-        }
-        mimeType = 'text/csv';
-        filename += '.csv';
-      }
+        // Get filename from Content-Disposition header
+        const contentDisp = response.headers.get('Content-Disposition');
+        const filenameMatch = contentDisp?.match(/filename="(.+)"/);
+        const filename = filenameMatch ? filenameMatch[1] : `export.${format}`;
 
-      // 3. Trigger Download
-      const blob = new Blob([content], { type: mimeType });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
+        // Download file
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        // Standalone mode or agent_data scope: use local export
+        await handleLocalExport();
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      alert(t('components.exportModal.exportFailed') || 'Export failed. Please try again.');
+    } finally {
       setIsExporting(false);
       toggle(false);
-    }, 800);
+    }
+  };
+
+  const handleLocalExport = async () => {
+    let content = '';
+    let mimeType = 'application/json';
+    let filename = `${currentSim?.name || 'simulation'}_${scope}_${new Date().toISOString().slice(0,10)}`;
+
+    // 1. Prepare Data
+    let dataToExport: any[] | object = [];
+
+    if (scope === 'all_logs') {
+      // Export uses raw events re-mapped, including all metadata events
+      if (rawEvents.length > 0) {
+        // Group events by node (if events include node information)
+        // Otherwise use selected node's information as default
+        const currentNode = nodes.find(n => n.id === selectedNodeId);
+        const defaultNodeId = currentNode?.id || selectedNodeId || 'unknown';
+        const defaultRound = currentNode?.depth || 0;
+
+        // Re-map all events, including all metadata
+        // Note: If event contains node information, extract from event
+        const allLogs = mapBackendEventsToLogs(
+          rawEvents,
+          defaultNodeId,
+          defaultRound,
+          agents,
+          true // Include all metadata when exporting
+        );
+        dataToExport = allLogs.map(l => ({ ...l, image_preview: l.imageUrl ? `![img](${l.imageUrl})` : '' }));
+      } else {
+        // If no raw events (standalone mode), use current filtered logs
+        dataToExport = logs.map(l => ({ ...l, image_preview: l.imageUrl ? `![img](${l.imageUrl})` : '' }));
+      }
+    } else {
+      dataToExport = agents;
+    }
+
+    // 2. Format Data
+    if (format === 'json') {
+      content = JSON.stringify(dataToExport, null, 2);
+      mimeType = 'application/json';
+      filename += '.json';
+    } else {
+      // CSV
+      if (scope === 'all_logs') {
+        const flat = (dataToExport as any[]).map(l => ({
+          timestamp: (l as any).timestamp,
+          nodeId: (l as any).nodeId,
+          type: (l as any).type,
+          agentId: (l as any).agentId,
+          content: (l as any).content,
+          imageUrl: (l as any).imageUrl,
+          image_preview: (l as any).image_preview,
+        }));
+        content = Papa.unparse(flat);
+      } else {
+        // For agents, flatten nested objects like properties/history if possible,
+        // or just export basic info for CSV to stay simple
+        const flattenedAgents = agents.map(a => ({
+          id: a.id,
+          name: a.name,
+          role: a.role,
+          avatarUrl: a.avatarUrl,
+          profile: a.profile,
+          // Simple stringify for complex objects in CSV
+          properties: JSON.stringify(a.properties),
+          memory_count: a.memory.length
+        }));
+        content = Papa.unparse(flattenedAgents);
+      }
+      mimeType = 'text/csv';
+      filename += '.csv';
+    }
+
+    // 3. Trigger Download
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
