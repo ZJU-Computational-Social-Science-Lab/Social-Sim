@@ -19,6 +19,7 @@ interface ResourceConfigProps {
     deduction_budget_per_phase: number;
     deduction_cost_ratio: number;
     deduction_anonymous: boolean;
+    show_average_contribution: boolean;
   };
   onChange: (key: string, value: string | number | boolean) => void;
 }

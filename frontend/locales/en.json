@@ -2187,7 +2187,11 @@
       "title": "Resource Settings",
       "resourceNameLabel": "Resource Name",
       "amountPerRoundLabel": "Amount per Round",
-      "multiplierLabel": "Pool Multiplier"
+      "amountPerRoundHint": "The number of tokens each agent receives at the phase",
+      "multiplierLabel": "Pool Multiplier",
+      "multiplierHint": "The multiplier applied to the total pool contribution before distribution",
+      "showAverageLabel": "Only show average contribution",
+      "showAverageHint": "When enabled, agents see only the average contribution from their network neighbors instead of individual contributions. Use a fully-connected network to show the global average (as in Grujić et al. 2019). Useful for large groups."
     },
     "deductionSettings": {
       "title": "Deduction Settings",

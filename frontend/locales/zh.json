@@ -2171,7 +2171,11 @@
       "title": "资源设置",
       "resourceNameLabel": "资源名称",
       "amountPerRoundLabel": "每轮数量",
-      "multiplierLabel": "资金池倍数"
+      "amountPerRoundHint": "每个代理人在每阶段获得的代币数量",
+      "multiplierLabel": "资金池倍数",
+      "multiplierHint": "应用于总资金池贡献的倍数，分配前进行乘法",
+      "showAverageLabel": "仅显示平均贡献",
+      "showAverageHint": "启用后，智能体将只看到其网络邻居的平均贡献，而不是个人贡献。使用全连接网络可显示全局平均（如 Grujić et al. 2019）。适用于大规模群体。"
     },
     "deductionSettings": {
       "title": "扣除设置",
