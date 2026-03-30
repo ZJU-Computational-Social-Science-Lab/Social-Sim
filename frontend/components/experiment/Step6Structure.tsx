@@ -74,10 +74,6 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
     return key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
-  const previewProperties = Object.entries(agentTypeProperties || {}).filter(
-    ([key]) => !['avatarUrl', 'llm_config', 'provider_id'].includes(key)
-  );
-
   // Build formatted scenario description for PUBLIC_GOODS
   const getFormattedScenario = () => {
     if (scenarioId === 'public_goods') {
@@ -148,31 +144,23 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
         {/* Section 1: Agent Description */}
         <div className="mb-4">
           <span className="text-blue-600">You are</span> {agentTypeLabel}.
-          {agentTypeRolePrompt && (
+          {/*
+            Display agent description - prefer rolePrompt if available,
+            fall back to profile. Don't show both if they contain the same content
+            (demographic generator sets both to the same value).
+          */}
+          {agentTypeRolePrompt ? (
             <>
               {' '}
               {agentTypeRolePrompt}
             </>
-          )}
-          {agentTypeProfile && (
+          ) : agentTypeProfile ? (
             <>
               {' '}
               {agentTypeProfile}
             </>
-          )}
+          ) : null}
         </div>
-
-        {/* Section 1b: Agent Properties */}
-        {previewProperties.length > 0 && (
-          <div className="mb-4">
-            <div className="font-semibold text-gray-900 mb-1">Agent Properties:</div>
-            <div className="pl-2">
-              {previewProperties.map(([key, value]) => (
-                <div key={key}>- {formatParamKey(key)}: {String(value)}</div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Section 2: Scenario (with intertwined parameters for PGG) */}
         <div className="mb-4">

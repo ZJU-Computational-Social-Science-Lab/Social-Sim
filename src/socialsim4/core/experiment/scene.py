@@ -93,6 +93,7 @@ class ExperimentScene:
         params = self.config.parameters or {}
         pd_keys = ["cooperate_reward", "sucker_penalty", "temptation_reward", "defect_penalty"]
         has_pd_payoffs = all(params.get(k) is not None for k in pd_keys)
+
         if information_model.scope_type == "all" and len(self.agents) > 2 and has_pd_payoffs:
             # Get show_average_contribution from parameters
             show_average = bool(params.get("show_average_contribution", False))
@@ -147,12 +148,17 @@ class ExperimentScene:
             scene=self,  # GAP-CLOSURE-01: pass scene for action filtering
         )
 
-        # Wire social network graph to runner's scene_state
+        # Wire social network graph AND state to runner's scene_state
+        # CRITICAL: Both graph and state are needed for show_average_contribution feature
+        # - graph: defines network neighbors for visibility calculation
+        # - state: contains agent properties including last_contribution
+        scene_state_dict = {"state": self.state}
         if self.config.social_network:
-            self.runner.set_scene_state({"graph": self.config.social_network})
+            scene_state_dict["graph"] = self.config.social_network
             logger.debug(f"Social network set: {len(self.config.social_network.get('edges', []))} edges")
         else:
             logger.warning("No social network configured for this experiment")
+        self.runner.set_scene_state(scene_state_dict)
 
         logger.debug(f"ExperimentRunner initialized:")
         logger.debug(f"  scenario_id={self.config.scenario_id}")
@@ -779,16 +785,27 @@ class ExperimentScene:
         """Advance to next PGG phase.
 
         Cycles: allocate -> deduct -> allocate (next round) -> ...
+        BUT: Skip deduct phase entirely if deduction_budget_per_phase is 0.
+
+        This ensures every "advance" click runs a valid allocation round
+        with proper actions, never an empty/null round.
 
         Note: Does NOT reset deduction budget here. Budget reset happens
         via _reset_deduction_budgets() when entering deduct phase to avoid
         spurious resets from initialization or state replay.
         """
+        params = self.config.parameters or {}
+        deduction_budget = params.get("deduction_budget_per_phase", 0)
+
         if self._pgg_phase == "allocate":
-            self._pgg_phase = "deduct"
+            # Only go to deduct phase if deduction is enabled
+            if deduction_budget and deduction_budget > 0:
+                self._pgg_phase = "deduct"
+            else:
+                # Skip deduct phase entirely - stay in allocate for next round
+                pass  # Phase stays "allocate", round advances in run_round()
         else:
             self._pgg_phase = "allocate"
-            # Round advances in run_round(), not here
 
     def _reset_deduction_budgets(self) -> None:
         """Reset deduction budgets at start of deduct phase.
@@ -836,8 +853,10 @@ class ExperimentScene:
             # Only show reduce/skip if deduction is enabled
             if deduction_budget and deduction_budget > 0:
                 return ["reduce", "skip"]
-            logger.info(f"[PGG] Deduct phase but deduction_budget={deduction_budget} <= 0, returning empty actions")
-            return []  # Empty = no actions available (deductions disabled)
+            # SAFETY: If we somehow reach deduct phase with no budget,
+            # return None to use all configured actions (shouldn't happen with advance_pgg_phase fix)
+            logger.warning(f"[PGG] Deduct phase reached but deduction_budget={deduction_budget} <= 0, returning None as fallback")
+            return None  # None = use all configured actions (safety fallback)
 
     def inject_host_message(self, message: str) -> None:
         """Queue a host message to be injected into all agents' context on the next round."""

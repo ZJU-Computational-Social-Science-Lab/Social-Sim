@@ -416,6 +416,16 @@ class ExperimentRunner:
                     pairs.append((agent_names[i], agent_names[i + 1]))
         round_payoffs = self._calculate_scores(actions, pairs=pairs)
 
+        # CRITICAL: Store last_contribution for show_average_contribution display setting
+        # This must happen before record_action_with_observers so context builder
+        # can read it when building context for the NEXT round
+        if self.scene and hasattr(self.scene, 'state'):
+            for result in actions:
+                if not result.skipped and result.action_name in ("allocate", "contribute"):
+                    amount = result.parameters.get("amount", 0)
+                    if result.agent_name in self.scene.state.agents:
+                        self.scene.state.agents[result.agent_name].properties["last_contribution"] = amount
+
         # Record to context with observers and payoffs (done after scores are known
         # so payoff can be stored with the event; simultaneous = no mid-round visibility)
         for result in actions:
@@ -465,6 +475,14 @@ class ExperimentRunner:
 
         # Calculate scores based on actions
         round_payoffs = self._calculate_scores(actions)
+
+        # CRITICAL: Store last_contribution for show_average_contribution display setting
+        if self.scene and hasattr(self.scene, 'state'):
+            for result in actions:
+                if not result.skipped and result.action_name in ("allocate", "contribute"):
+                    amount = result.parameters.get("amount", 0)
+                    if result.agent_name in self.scene.state.agents:
+                        self.scene.state.agents[result.agent_name].properties["last_contribution"] = amount
 
         self._apply_coordination_feedback(actions, round_num)
 
@@ -520,6 +538,14 @@ class ExperimentRunner:
                 [a.name for a in self.agents], round_num
             )
         round_payoffs = self._calculate_scores(actions, pairs=pairs)
+
+        # CRITICAL: Store last_contribution for show_average_contribution display setting
+        if self.scene and hasattr(self.scene, 'state'):
+            for result in actions:
+                if not result.skipped and result.action_name in ("allocate", "contribute"):
+                    amount = result.parameters.get("amount", 0)
+                    if result.agent_name in self.scene.state.agents:
+                        self.scene.state.agents[result.agent_name].properties["last_contribution"] = amount
 
         self._apply_coordination_feedback(actions, round_num)
 
@@ -612,6 +638,14 @@ class ExperimentRunner:
 
         # Calculate scores based on actions (for paired mode, scores are calculated per-pair)
         round_payoffs = self._calculate_scores(all_actions, pairs=pairs)
+
+        # CRITICAL: Store last_contribution for show_average_contribution display setting
+        if self.scene and hasattr(self.scene, 'state'):
+            for result in all_actions:
+                if not result.skipped and result.action_name in ("allocate", "contribute"):
+                    amount = result.parameters.get("amount", 0)
+                    if result.agent_name in self.scene.state.agents:
+                        self.scene.state.agents[result.agent_name].properties["last_contribution"] = amount
 
         # Record to context with observers and payoffs (after scores are known)
         for result in all_actions:

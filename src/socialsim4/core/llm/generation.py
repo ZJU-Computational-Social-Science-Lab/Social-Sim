@@ -396,20 +396,20 @@ def generate_agents_with_archetypes(
     # Step 2.6: Validate trait ranges
     _validate_trait_ranges(traits)
 
-    # Step 3: Calculate agent counts per archetype
-    total_prob = sum(a["probability"] for a in archetypes) or 1.0
-    counts = {}
-    remaining = total_agents
+    # Step 3: Select archetypes using weighted random selection
+    # This ensures each agent has a truly random chance of being any archetype
+    # based on probability weights, avoiding the issue where deterministic
+    # rounding causes all agents to pile into the last archetype
+    selected_archetypes = random.choices(
+        archetypes,
+        weights=[a["probability"] for a in archetypes],
+        k=total_agents
+    )
 
-    for i, arch in enumerate(archetypes):
-        if i == len(archetypes) - 1:
-            counts[arch["id"]] = remaining
-        else:
-            normalized_prob = arch["probability"] / total_prob
-            count = int(round(total_agents * normalized_prob))
-            count = min(count, remaining)
-            counts[arch["id"]] = count
-            remaining -= count
+    # Count how many agents per archetype
+    counts = {}
+    for arch in selected_archetypes:
+        counts[arch["id"]] = counts.get(arch["id"], 0) + 1
 
     # Step 4: Generate agents - ONE ARCHETYPE AT A TIME
     agents = []

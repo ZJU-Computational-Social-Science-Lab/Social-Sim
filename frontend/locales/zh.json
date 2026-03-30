@@ -2169,6 +2169,7 @@
     },
     "resourceConfig": {
       "title": "资源设置",
+      "displaySettingsTitle": "显示设置",
       "resourceNameLabel": "资源名称",
       "amountPerRoundLabel": "每轮数量",
       "amountPerRoundHint": "每个代理人在每阶段获得的代币数量",

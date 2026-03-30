@@ -79,7 +79,7 @@ class TestExperimentSceneState:
                     (),
                     {"get_round_events": lambda self, round_num: []},
                 )()
-                self.execute_action = lambda action_name, agent_name, parameters, state: {"success": True}
+                self.execute_action = lambda action_name, agent_name, parameters, state, scene: {"success": True}
 
             async def _run_single_round(self, round_num, context_summary, round_history):
                 return RoundResult(
@@ -357,6 +357,48 @@ class TestExperimentSceneState:
         restored = ExperimentScene.deserialize_config(serialized)
         assert restored.get_pgg_phase() == "allocate"
 
+    def test_advance_pgg_phase_skips_deduct_when_budget_is_zero(self):
+        """When deduction_budget_per_phase is 0, phase should stay in allocate."""
+        config = ExperimentConfig(
+            scenario_id="public_goods",
+            agents=[{"name": "Alice"}],
+            actions=[],
+            parameters={"deduction_budget_per_phase": 0},
+        )
+        scene = ExperimentScene(config)
+
+        # Initial phase should be "allocate"
+        assert scene.get_pgg_phase() == "allocate"
+
+        # Advance phase - should STAY in allocate since deduction is disabled
+        scene.advance_pgg_phase()
+        assert scene.get_pgg_phase() == "allocate"
+
+        # Multiple advances should still stay in allocate
+        scene.advance_pgg_phase()
+        assert scene.get_pgg_phase() == "allocate"
+
+    def test_advance_pgg_phase_advances_when_deduction_enabled(self):
+        """When deduction_budget_per_phase > 0, phase should cycle normally."""
+        config = ExperimentConfig(
+            scenario_id="public_goods",
+            agents=[{"name": "Alice"}],
+            actions=[],
+            parameters={"deduction_budget_per_phase": 5},
+        )
+        scene = ExperimentScene(config)
+
+        # Initial phase should be "allocate"
+        assert scene.get_pgg_phase() == "allocate"
+
+        # Advance phase - should go to deduct
+        scene.advance_pgg_phase()
+        assert scene.get_pgg_phase() == "deduct"
+
+        # Advance again - should return to allocate
+        scene.advance_pgg_phase()
+        assert scene.get_pgg_phase() == "allocate"
+
     def test_skipped_actions_are_not_written_into_round_history(self):
         config = ExperimentConfig(
             scenario_id="council_chamber",
@@ -373,7 +415,7 @@ class TestExperimentSceneState:
                     (),
                     {"get_round_events": lambda self, round_num: []},
                 )()
-                self.execute_action = lambda action_name, agent_name, parameters, state: {"success": True}
+                self.execute_action = lambda action_name, agent_name, parameters, state, scene: {"success": True}
 
             async def _run_single_round(self, round_num, context_summary, round_history):
                 return RoundResult(

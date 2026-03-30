@@ -231,21 +231,51 @@ def build_structured_context(
             line = " ".join(parts)
         else:
             # CRITICAL: Only apply during allocate phase, not deduct
-            if info_model.show_average_contribution and other_events and state and graph:
-                # Calculate average from visible contributions
-                visible = info_model.get_visible_contributions(for_agent, state, graph)
-                if visible:
-                    # CRITICAL: Use len(visible) for neighbor count, NOT len(other_events)
-                    # This ensures count matches average source
-                    neighbor_count = len(visible)
-                    avg = sum(visible.values()) / neighbor_count
-                    # Keep own action, show average for neighbors
-                    parts = []
-                    if my_event:
-                        parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))
-                    parts.append(f"Average contribution from {neighbor_count} neighbors: {avg:.1f}")
+            if info_model.show_average_contribution and other_events and state:
+                # Calculate average based on scope_type
+                if info_model.scope_type == "all":
+                    # For "all" scope, calculate average from ALL other agents' contributions
+                    all_contributions = {}
+                    for agent_name, agent_state in state.agents.items():
+                        if agent_name != for_agent:
+                            contribution = agent_state.properties.get("last_contribution", 0)
+                            all_contributions[agent_name] = contribution
+
+                    if all_contributions:
+                        neighbor_count = len(all_contributions)
+                        avg = sum(all_contributions.values()) / neighbor_count
+                        # Keep own action, show average for all others
+                        parts = []
+                        if my_event:
+                            parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))
+                        parts.append(f"Average contribution from {neighbor_count} other agents: {avg:.1f}")
+                    else:
+                        # No other contributions - show just own action
+                        parts = []
+                        if my_event:
+                            parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))
+                elif graph:
+                    # For neighborhood scope, calculate from visible neighbors
+                    visible = info_model.get_visible_contributions(for_agent, state, graph)
+                    if visible:
+                        # CRITICAL: Use len(visible) for neighbor count, NOT len(other_events)
+                        # This ensures count matches average source
+                        neighbor_count = len(visible)
+                        avg = sum(visible.values()) / neighbor_count
+                        # Keep own action, show average for neighbors
+                        parts = []
+                        if my_event:
+                            parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))
+                        parts.append(f"Average contribution from {neighbor_count} neighbors: {avg:.1f}")
+                    else:
+                        # No visible contributions - fall back to original behavior
+                        parts = []
+                        if my_event:
+                            parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))
+                        for e in other_events:
+                            parts.append(_format_action_with_parameters(e.agent_name, e.action_name, e.parameters))
                 else:
-                    # No visible contributions - fall back to original behavior
+                    # No graph available - fall back to showing individuals
                     parts = []
                     if my_event:
                         parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))

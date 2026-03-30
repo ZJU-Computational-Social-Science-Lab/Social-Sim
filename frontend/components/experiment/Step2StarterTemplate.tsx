@@ -266,6 +266,7 @@ export const Step2StarterTemplate: React.FC = () => {
             deduction_budget_per_phase: (scenarioParams.deduction_budget_per_phase as number) ?? 0,
             deduction_cost_ratio: (scenarioParams.deduction_cost_ratio as number) ?? 3,
             deduction_anonymous: (scenarioParams.deduction_anonymous as boolean) ?? false,
+            show_average_contribution: (scenarioParams.show_average_contribution as boolean) ?? false,
           }}
           onChange={handleParamChange}
         />

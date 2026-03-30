@@ -14,7 +14,7 @@ class MockScene:
 
     def __init__(self):
         self.emitted_events = []
-        self.config = type('obj', (object,), {'parameters': {'deduction_cost_ratio': 3.0}})()
+        self.config = type('obj', (object,), {'parameters': {'deduction_cost_ratio': 3.0, 'deduction_budget_per_phase': 10}})()
 
     def _emit_event(self, event_type: str, data: dict):
         """Store emitted events for verification."""
@@ -81,7 +81,7 @@ class TestActionHandler:
 
     # Wave 1: Punishment event emission tests (FEAT-PGG-09 through FEAT-PGG-11)
     def test_punish_emits_event(self):
-        """Punish action should emit punishment_action event."""
+        """Punish action should emit reduction_action event."""
         handler = ActionHandler()
         state = ExperimentState()
         state.agents["Alice"] = AgentState(
@@ -97,8 +97,8 @@ class TestActionHandler:
 
         assert result["success"] is True
         assert len(mock_scene.emitted_events) == 1
-        assert mock_scene.emitted_events[0]["type"] == "punishment_action"
-        assert mock_scene.emitted_events[0]["data"]["punisher"] == "Alice"
+        assert mock_scene.emitted_events[0]["type"] == "reduction_action"
+        assert mock_scene.emitted_events[0]["data"]["reducer"] == "Alice"
         assert mock_scene.emitted_events[0]["data"]["target"] == "Bob"
 
     def test_punish_event_includes_amount(self):

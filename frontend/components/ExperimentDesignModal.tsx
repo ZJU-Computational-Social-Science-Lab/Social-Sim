@@ -804,9 +804,9 @@ export const ExperimentDesignModal: React.FC = () => {
                                               )}
                                               <ParameterField
                                                 param={{
-                                                  type: param.type === 'number' ? 'integer' : 'string',
+                                                  type: param.type === 'number' ? 'integer' : param.type === 'boolean' ? 'boolean' : 'string',
                                                   default: param.default,
-                                                  ui_hint: param.ui_hint || 'text',
+                                                  ui_hint: param.ui_hint || (param.type === 'boolean' ? 'toggle' : 'text'),
                                                   min: param.min,
                                                   max: param.max,
                                                   step: param.step,

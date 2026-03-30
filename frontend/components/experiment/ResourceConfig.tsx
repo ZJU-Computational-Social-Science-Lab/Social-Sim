@@ -129,6 +129,31 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({
           </label>
         </div>
       </div>
+
+      {/* Average Contribution Display */}
+      <div className="space-y-4 border-t border-gray-200 pt-4">
+        <h3 className="text-sm font-medium text-gray-700">
+          {t('experimentBuilder.resourceConfig.displaySettingsTitle')}
+        </h3>
+
+        <div className="flex items-start">
+          <input
+            type="checkbox"
+            id="show_average_contribution"
+            checked={values.show_average_contribution}
+            onChange={(e) => onChange('show_average_contribution', e.target.checked)}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-0.5"
+          />
+          <div className="ml-2">
+            <label htmlFor="show_average_contribution" className="block text-sm text-gray-700">
+              {t('experimentBuilder.resourceConfig.showAverageLabel')}
+            </label>
+            <p className="text-xs text-gray-500 mt-1">
+              {t('experimentBuilder.resourceConfig.showAverageHint')}
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

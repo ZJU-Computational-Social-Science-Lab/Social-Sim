@@ -2185,6 +2185,7 @@
     },
     "resourceConfig": {
       "title": "Resource Settings",
+      "displaySettingsTitle": "Display Settings",
       "resourceNameLabel": "Resource Name",
       "amountPerRoundLabel": "Amount per Round",
       "amountPerRoundHint": "The number of tokens each agent receives at the phase",
