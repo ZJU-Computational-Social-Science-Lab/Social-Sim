@@ -27,3 +27,33 @@ def test_simplify_log_type_system():
     assert simplify_log_type("ENVIRONMENT") == "SYSTEM"
     assert simplify_log_type("SYSTEM") == "SYSTEM"
     assert simplify_log_type("AGENT_METADATA") == "SYSTEM"
+
+
+def test_extract_action_and_follow_up_allocate():
+    """Test extracting action and follow-up from allocate action."""
+    from socialsim4.backend.services.export_service import extract_action_and_follow_up
+
+    event = {
+        "event_type": "action_end",
+        "data": {
+            "action": {"name": "allocate", "parameters": {"amount": 12}}
+        }
+    }
+    action, follow_up = extract_action_and_follow_up(event)
+    assert action == "allocate"
+    assert follow_up == "12"
+
+
+def test_extract_action_and_follow_up_deduct():
+    """Test extracting action and follow-up with multiple parameters."""
+    from socialsim4.backend.services.export_service import extract_action_and_follow_up
+
+    event = {
+        "event_type": "action_end",
+        "data": {
+            "action": {"name": "deduct", "parameters": {"target": "Agent 2", "amount": 3}}
+        }
+    }
+    action, follow_up = extract_action_and_follow_up(event)
+    assert action == "deduct"
+    assert follow_up == "Agent 2; 3"

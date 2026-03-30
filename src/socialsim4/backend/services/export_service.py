@@ -35,3 +35,29 @@ def simplify_log_type(event_type: str) -> str:
     if event_type in ("AGENT_SAY", "AGENT_ACTION"):
         return "AGENT_ACTION"
     return "SYSTEM"
+
+
+def extract_action_and_follow_up(event: dict) -> tuple[str, str]:
+    """Extract action name and follow-up value from event.
+
+    Args:
+        event: Event dictionary with action data
+
+    Returns:
+        Tuple of (action_name, follow_up_value)
+        follow_up_value is semicolon-separated for multiple params
+    """
+    data = event.get("data", {})
+    action_data = data.get("action", {})
+
+    action_name = action_data.get("name", "")
+    parameters = action_data.get("parameters", {})
+
+    if not parameters:
+        return (action_name, "")
+
+    # Extract parameter values, semicolon-separated
+    values = [str(v) for v in parameters.values()]
+    follow_up = "; ".join(values)
+
+    return (action_name, follow_up)
