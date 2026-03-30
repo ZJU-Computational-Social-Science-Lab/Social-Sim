@@ -11,17 +11,21 @@ import { useExperimentBuilder } from '../store/experiment-builder';
 import { ExperimentBuilder } from './experiment/ExperimentBuilder';
 import { X } from 'lucide-react';
 import { useSimulationStore } from '../store';
+import { NavBar } from './NavBar';
+import { useThemeStore } from '../store/theme';
 
 interface ExperimentBuilderModalProps {
   isOpen?: boolean;
   onClose?: () => void;
   onComplete?: (config: unknown) => void;
+  presentation?: 'modal' | 'page';
 }
 
 export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
   isOpen,
   onClose,
   onComplete,
+  presentation = 'modal',
 }) => {
   const { t } = useTranslation();
 
@@ -30,6 +34,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
   const toggleWizard = useSimulationStore((state) => state.toggleWizard);
   const addSimulation = useSimulationStore((state) => state.addSimulation);
   const addNotification = useSimulationStore((state) => state.addNotification);
+  const themeMode = useThemeStore((state) => state.mode);
 
   // Use prop if explicitly provided, otherwise use store state
   const useExplicitState = isOpen !== undefined;
@@ -196,7 +201,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
 
     if (onComplete) {
       onComplete({});
-    } else {
+    } else if (presentation === 'modal') {
       handleClose();
     }
   };
@@ -206,25 +211,31 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
     return null;
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
-            {t('experimentBuilder.modalTitle')}
-          </h2>
-          <button
-            onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-            aria-label={t('experimentBuilder.close')}
-          >
-            <X size={20} />
-          </button>
+  if (presentation === 'page') {
+    return (
+      <div className={`ss-setup-page ${themeMode === 'dark' ? 'is-dark' : 'is-light'}`}>
+        <NavBar variant="product" />
+        <div className="ss-setup-page__viewport">
+          <ExperimentBuilder
+            onComplete={handleComplete}
+            onCancel={handleClose}
+          />
         </div>
+      </div>
+    );
+  }
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto">
+  return (
+    <div className="ss-setup-modal">
+      <div className="ss-setup-modal__dialog">
+        <button
+          onClick={handleClose}
+          className="ss-setup-modal__close"
+          aria-label={t('experimentBuilder.close')}
+        >
+          <X size={18} />
+        </button>
+        <div className="ss-setup-modal__body">
           <ExperimentBuilder
             onComplete={handleComplete}
             onCancel={handleClose}

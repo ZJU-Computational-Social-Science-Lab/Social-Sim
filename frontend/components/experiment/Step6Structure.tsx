@@ -1,18 +1,13 @@
-/**
- * Step 6: Prompt Preview
- *
- * Displays a preview of exactly what each agent type will see
- * at the start of the simulation. This matches the backend's
- * prompt_builder.py build_prompt() function template.
- *
- * Shows only the first agent type as full preview panel,
- * with remaining types shown as compact list.
- */
+import React from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { useExperimentBuilder } from '../../store/experiment-builder';
-import { AlertCircle } from 'lucide-react';
+import { useExperimentBuilder } from "../../store/experiment-builder";
+import { buildAgentCollections } from "../../utils/agentCollections";
+import { Button } from "../ui/button";
+import { ResearchInputPanel } from "./workflow/ResearchInputPanel";
+import { SecondaryGhostButton } from "./workflow/SecondaryGhostButton";
+import { SummaryInfoCard } from "./workflow/SummaryInfoCard";
 
 interface PromptPreviewPanelProps {
   agentTypeLabel: string;
@@ -25,15 +20,105 @@ interface PromptPreviewPanelProps {
   selectedActionIds: string[];
 }
 
-/**
- * Component that renders the prompt preview for a single agent type.
- * Matches the 5-section prompt structure from backend's prompt_builder.py:
- * 1. Agent Description
- * 2. Scenario
- * 3. Available Actions
- * 4. Context (first round - no previous context)
- * 5. Output Format (JSON response instruction)
- */
+interface LaunchCheckItem {
+  key: string;
+  label: string;
+  value: string;
+  helper: string;
+  complete: boolean;
+  required?: boolean;
+}
+
+const getEdgeCount = (network: Record<string, string[]>) => {
+  const edges = new Set<string>();
+  Object.entries(network).forEach(([source, targets]) => {
+    targets.forEach((target) => {
+      const key = source < target ? `${source}|${target}` : `${target}|${source}`;
+      edges.add(key);
+    });
+  });
+  return edges.size;
+};
+
+const formatValue = (value: unknown) => {
+  if (Array.isArray(value)) {
+    return value.join(", ");
+  }
+  return String(value);
+};
+
+const focusLaunchReviewElement = (elementId: string) => {
+  const element = document.getElementById(elementId);
+  if (!element) {
+    return;
+  }
+
+  element.classList.remove("is-guided");
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+  window.requestAnimationFrame(() => {
+    element.classList.add("is-guided");
+    window.setTimeout(() => element.classList.remove("is-guided"), 1800);
+  });
+};
+
+const getStructureLabel = (
+  scenarioData: ReturnType<typeof useExperimentBuilder.getState>["selectedScenarioData"],
+  edgeCount: number,
+  isZh: boolean
+) => {
+  const topology = scenarioData?.topology_type;
+  if (topology === "full") {
+    return isZh ? "全连接" : "Fully connected";
+  }
+  if (topology === "random") {
+    return isZh ? "随机" : "Random";
+  }
+  if (topology === "ring") {
+    return isZh ? "环形" : "Ring";
+  }
+  if (topology === "star") {
+    return isZh ? "星形" : "Star";
+  }
+  if (topology === "newman-watts") {
+    return isZh ? "小世界" : "Small world";
+  }
+  if (topology === "core-periphery") {
+    return isZh ? "核心-边缘" : "Core-periphery";
+  }
+  if (topology === "sbm") {
+    return isZh ? "社区" : "Community";
+  }
+  if (topology === "custom") {
+    return isZh ? "自定义结构" : "Custom structure";
+  }
+  if (edgeCount > 0) {
+    return isZh ? "已建立连接" : "Connections configured";
+  }
+  return isZh ? "尚未确认" : "Not confirmed";
+};
+
+const getLaunchMissingStep = (
+  scenarioReady: boolean,
+  actionReady: boolean,
+  participantReady: boolean,
+  providerReady: boolean,
+  structureReady: boolean
+) => {
+  if (!scenarioReady) {
+    return 1 as const;
+  }
+  if (!actionReady) {
+    return 3 as const;
+  }
+  if (!participantReady || !providerReady) {
+    return 4 as const;
+  }
+  if (!structureReady) {
+    return 5 as const;
+  }
+  return 6 as const;
+};
+
 const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
   agentTypeLabel,
   agentTypeProfile,
@@ -44,219 +129,560 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
   availableActions,
   selectedActionIds,
 }) => {
-  // Filter actions to only selected ones
-  const selectedActions = availableActions.filter((a) =>
-    selectedActionIds.includes(a.name)
+  const { i18n } = useTranslation();
+  const isZh = i18n.language.startsWith("zh");
+  const selectedActions = availableActions.filter((action) =>
+    selectedActionIds.includes(action.name)
   );
-
-  // Build actions list string
-  const actionsList = selectedActions
-    .map((a) => `- ${a.name}: ${a.description}`)
-    .join('\n  ');
-
-  // Build the actions string for the response format
-  const actionsForResponse = selectedActions.map((a) => `"${a.name}"`).join(', ');
-
-  // Format parameter key for display (snake_case to Title Case)
-  const formatParamKey = (key: string): string => {
-    return key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-  };
-
   const previewProperties = Object.entries(agentTypeProperties || {}).filter(
-    ([key]) => !['avatarUrl', 'llm_config', 'provider_id'].includes(key)
+    ([key]) => !["avatarUrl", "llm_config", "provider_id"].includes(key)
   );
 
   return (
-    <div className="border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50">
-      {/* Header */}
-      <div className="bg-gray-200 px-4 py-2 border-b border-gray-300">
-        <span className="text-sm font-semibold text-gray-700">
-          Agent Type: "{agentTypeLabel}"
-        </span>
+    <div className="ss-launch-preview__prompt">
+      <div className="ss-launch-preview__prompt-head">
+        <div>
+          <div className="ss-workflow-kicker">
+            {isZh ? "系统说明预览" : "System prompt preview"}
+          </div>
+          <h3>{agentTypeLabel}</h3>
+          <p>
+            {isZh
+              ? "以下内容展示该参与者在实验启动前会收到的代表性说明。"
+              : "This shows the representative instruction summary the participant will receive before launch."}
+          </p>
+        </div>
       </div>
 
-      {/* Prompt Content */}
-      <div className="p-4 font-mono text-sm text-gray-800 whitespace-pre-wrap bg-white">
-        {/* Section 1: Agent Description */}
-        <div className="mb-4">
-          <span className="text-blue-600">You are</span> {agentTypeLabel}.
-          {agentTypeRolePrompt && (
-            <>
-              {' '}
-              {agentTypeRolePrompt}
-            </>
-          )}
-          {agentTypeProfile && (
-            <>
-              {' '}
-              {agentTypeProfile}
-            </>
-          )}
-        </div>
+      <div className="ss-launch-preview__prompt-body">
+        <section>
+          <h4>{isZh ? "参与者定位" : "Participant framing"}</h4>
+          <p>
+            {[agentTypeRolePrompt, agentTypeProfile].filter(Boolean).join(" ") ||
+              (isZh ? "尚未补充具体定位。" : "No participant framing has been added yet.")}
+          </p>
+        </section>
 
-        {/* Section 1b: Agent Properties */}
-        {previewProperties.length > 0 && (
-          <div className="mb-4">
-            <div className="font-semibold text-gray-900 mb-1">Agent Properties:</div>
-            <div className="pl-2">
-              {previewProperties.map(([key, value]) => (
-                <div key={key}>- {formatParamKey(key)}: {String(value)}</div>
-              ))}
-            </div>
-          </div>
-        )}
+        <section>
+          <h4>{isZh ? "研究场景" : "Scenario"}</h4>
+          <p>
+            {scenarioDescription ||
+              (isZh ? "尚未补充研究说明。" : "No research framing has been entered yet.")}
+          </p>
+        </section>
 
-        {/* Section 2: Scenario */}
-        <div className="mb-4">
-          <div className="font-semibold text-gray-900 mb-1">Scenario:</div>
-          {scenarioDescription || (
-            <span className="text-gray-400 italic">No scenario description provided</span>
-          )}
-        </div>
-
-        {/* Section 2b: Game Parameters */}
-        {Object.keys(scenarioParams).length > 0 && (
-          <div className="mb-4">
-            <div className="font-semibold text-gray-900 mb-1">Game Parameters:</div>
-            <div className="pl-2">
+        <section>
+          <h4>{isZh ? "当前参数" : "Current parameters"}</h4>
+          {Object.keys(scenarioParams).length > 0 ? (
+            <ul>
               {Object.entries(scenarioParams).map(([key, value]) => (
-                <div key={key}>- {formatParamKey(key)}: {String(value)}</div>
+                <li key={key}>
+                  <strong>{key}</strong>
+                  <span>{formatValue(value)}</span>
+                </li>
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* Section 3: Available Actions */}
-        <div className="mb-4">
-          <div className="font-semibold text-gray-900 mb-1">Available actions:</div>
-          {selectedActions.length > 0 ? (
-            <div className="pl-2">{actionsList}</div>
+            </ul>
           ) : (
-            <span className="text-gray-400 italic">No actions selected</span>
+            <p>{isZh ? "当前没有额外参数。" : "No scenario parameters have been set."}</p>
           )}
-        </div>
+        </section>
 
-        {/* Section 4: Context */}
-        <div className="mb-4">
-          <div className="font-semibold text-gray-900 mb-1">Context:</div>
-          <div className="pl-2">This is the first round.</div>
-        </div>
-
-        {/* Section 5: Output Format */}
-        <div className="border-t border-gray-200 pt-3 mt-3">
-          <div className="font-semibold text-gray-900 mb-1">Your Response:</div>
+        <section>
+          <h4>{isZh ? "可执行动作" : "Available actions"}</h4>
           {selectedActions.length > 0 ? (
-            <div className="pl-2">
-              Respond with only JSON: {`{{"action": "<${actionsForResponse}>"}}`}
-            </div>
+            <ul>
+              {selectedActions.map((action) => (
+                <li key={action.name}>
+                  <strong>{action.name}</strong>
+                  <span>{action.description}</span>
+                </li>
+              ))}
+            </ul>
           ) : (
-            <div className="pl-2 text-gray-400 italic">
-              Add actions in Step 3 to see the response format
-            </div>
+            <p>{isZh ? "尚未添加行为规则。" : "No heuristics have been selected yet."}</p>
           )}
-        </div>
+        </section>
+
+        {previewProperties.length > 0 ? (
+          <section>
+            <h4>{isZh ? "参与者属性" : "Participant properties"}</h4>
+            <ul>
+              {previewProperties.map(([key, value]) => (
+                <li key={key}>
+                  <strong>{key}</strong>
+                  <span>{formatValue(value)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
       </div>
     </div>
   );
 };
 
 export const Step6Structure: React.FC = () => {
-  const { t } = useTranslation();
+  const { i18n } = useTranslation();
+  const navigate = useNavigate();
+  const isZh = i18n.language.startsWith("zh");
   const {
+    setCurrentStep,
     agentTypes,
     scenarioDescription,
     scenarioParams,
     availableActions,
     selectedActionIds,
+    selectedScenarioId,
+    selectedScenarioData,
+    socialNetwork,
+    llmProviders,
+    selectedProviderId,
+    roundVisibility,
+    turnOrder,
   } = useExperimentBuilder();
+  const [detailsDrawerOpen, setDetailsDrawerOpen] = React.useState(false);
 
-  const totalAgents = agentTypes.reduce((sum, t) => sum + t.count, 0);
+  const totalAgents = agentTypes.reduce((sum, type) => sum + type.count, 0);
+  const networkEdges = React.useMemo(() => getEdgeCount(socialNetwork), [socialNetwork]);
+  const fallbackProviderId =
+    agentTypes.find((agent) => agent.providerId !== null)?.providerId ?? null;
+  const effectiveProviderId =
+    selectedProviderId === null
+      ? fallbackProviderId === null
+        ? null
+        : Number(fallbackProviderId)
+      : Number(selectedProviderId);
+  const effectiveProvider =
+    llmProviders.find((provider) => provider.id === effectiveProviderId) ?? null;
+  const providerConfigured = effectiveProviderId !== null;
+  const providerLabel =
+    effectiveProvider?.name ?? (isZh ? "尚未配置" : "Not configured");
+  const scheduleLabel =
+    roundVisibility === "simultaneous"
+      ? isZh
+        ? "同时推进"
+        : "Simultaneous"
+      : turnOrder === "random"
+        ? isZh
+          ? "随机顺序"
+          : "Random"
+        : isZh
+          ? "固定顺序"
+          : "Fixed order";
+  const scenarioName =
+    selectedScenarioData?.name || (isZh ? "尚未命名实验" : "Untitled study");
+  const structureLabel = getStructureLabel(selectedScenarioData, networkEdges, isZh);
+  const actionCount = selectedActionIds.length;
+  const minimumActionCount = availableActions.length <= 1 ? 1 : 2;
+  const scenarioReady = Boolean(selectedScenarioId);
+  const actionReady = selectedActionIds.length >= minimumActionCount;
+  const participantReady = totalAgents > 0;
+  const structureReady = Object.keys(socialNetwork).length > 0;
+  const agentCollections = React.useMemo(
+    () => buildAgentCollections(agentTypes, () => ""),
+    [agentTypes]
+  );
+  const representativeAgent = agentCollections[0]?.representative ?? null;
+  const selectedActions = React.useMemo(
+    () => availableActions.filter((action) => selectedActionIds.includes(action.name)),
+    [availableActions, selectedActionIds]
+  );
+  const parameterCount = selectedScenarioData?.parameters.length ?? Object.keys(scenarioParams).length;
 
-  // If no agents defined, show warning
-  if (agentTypes.length === 0) {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <div className="text-center max-w-md">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 rounded-full mb-4">
-            <AlertCircle className="w-8 h-8 text-amber-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {t('experimentBuilder.step6.noAgentsDefined')}
-          </h3>
-          <p className="text-gray-600">
-            {t('experimentBuilder.step6.goBackToStep4')}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const launchChecks = React.useMemo<LaunchCheckItem[]>(
+    () => [
+      {
+        key: "scenario",
+        label: isZh ? "已选择研究场景" : "Scenario selected",
+        value: scenarioReady ? scenarioName : isZh ? "尚未选择" : "Not selected",
+        helper: isZh
+          ? "实验会从这个社会情境开始运行。"
+          : "The run will start from this social situation.",
+        complete: scenarioReady,
+      },
+      {
+        key: "actions",
+        label: isZh ? "已配置行为规则" : "Behavior rules configured",
+        value: isZh ? `${actionCount} 条` : `${actionCount}`,
+        helper: isZh
+          ? minimumActionCount === 1
+            ? "当前场景保留 1 个核心动作即可启动。"
+            : `至少保留 ${minimumActionCount} 个动作才能形成基础比较。`
+          : minimumActionCount === 1
+            ? "This scene can launch with one core action."
+            : `Keep at least ${minimumActionCount} actions to support a basic comparison.`,
+        complete: actionReady,
+      },
+      {
+        key: "participants",
+        label: isZh ? "已录入参与者群体" : "Participant groups defined",
+        value: isZh
+          ? `${agentTypes.length} 组 / ${totalAgents} 名成员`
+          : `${agentTypes.length} groups / ${totalAgents} participants`,
+        helper: isZh
+          ? "至少需要一个参与者群体。"
+          : "At least one participant group is required.",
+        complete: participantReady,
+      },
+      {
+        key: "schedule",
+        label: isZh ? "已确认推进机制" : "Schedule confirmed",
+        value: scheduleLabel,
+        helper: isZh
+          ? "启动后会按这里的推进方式进入首轮运行。"
+          : "The first run will use this scheduling mode.",
+        complete: true,
+        required: false,
+      },
+      {
+        key: "structure",
+        label: isZh ? "已确认关系结构" : "Relationship structure confirmed",
+        value: structureLabel,
+        helper: isZh
+          ? "这会决定参与者如何彼此连接。"
+          : "This decides how participants connect with one another.",
+        complete: structureReady,
+      },
+      {
+        key: "provider",
+        label: isZh ? "模型提供商" : "Model provider",
+        value: providerLabel,
+        helper: isZh
+          ? "智能仿真启动前需要至少一个可用模型。"
+          : "A working model provider is required before the intelligent run can start.",
+        complete: providerConfigured,
+      },
+    ],
+    [
+      actionCount,
+      actionReady,
+      agentTypes.length,
+      isZh,
+      minimumActionCount,
+      participantReady,
+      providerConfigured,
+      providerLabel,
+      scenarioName,
+      scenarioReady,
+      scheduleLabel,
+      structureLabel,
+      structureReady,
+      totalAgents,
+    ]
+  );
 
-  const firstAgentType = agentTypes[0];
-  const remainingAgentTypes = agentTypes.slice(1);
+  const missingRequiredChecks = launchChecks.filter(
+    (check) => check.required !== false && !check.complete
+  );
+  const launchReady = missingRequiredChecks.length === 0;
+  const providerMissing = !providerConfigured;
+  const launchStatusTitle = providerMissing
+    ? isZh
+      ? "尚未配置模型提供商，智能仿真暂不可启动"
+      : "No model provider is configured yet, so the intelligent run cannot start."
+    : launchReady
+      ? isZh
+        ? "当前实验已基本配置完成，可直接启动"
+        : "The experiment is basically configured and ready to launch."
+      : isZh
+        ? "当前仍有缺失配置，补齐后即可启动"
+        : "A few required items are still missing. Complete them before launch.";
+  const launchStatusBody = providerMissing
+    ? isZh
+      ? "请先在参与者配置中确认一个可用的模型提供商，再启动实验。"
+      : "Confirm an active model provider in participant setup before launching the run."
+    : launchReady
+      ? isZh
+        ? "启动后将进入仿真运行页，生成首轮状态，并开始记录参与者行为结果。"
+        : "Launching will open the simulation run view, generate the first state, and begin recording behavior outcomes."
+      : isZh
+        ? `当前还缺少 ${missingRequiredChecks.length} 项关键配置。先补齐检查单中的待补项，再启动实验。`
+        : `${missingRequiredChecks.length} required items are still missing. Complete the checklist before launch.`;
+  const launchStatusTone = providerMissing ? "blocked" : launchReady ? "ready" : "pending";
+  const firstMissingStep = getLaunchMissingStep(
+    scenarioReady,
+    actionReady,
+    participantReady,
+    providerConfigured,
+    structureReady
+  );
+
+  React.useEffect(() => {
+    const onGuideTarget = (event: Event) => {
+      const detail = (event as CustomEvent<{ target?: string }>).detail;
+      const target = detail?.target;
+
+      if (target === "details") {
+        if (!detailsDrawerOpen) {
+          setDetailsDrawerOpen(true);
+        }
+        window.setTimeout(() => focusLaunchReviewElement("ss-step6-launch-details"), 180);
+        return;
+      }
+
+      const targetMap: Record<string, string> = {
+        status: "ss-step6-launch-status",
+        checklist: "ss-step6-launch-checklist",
+        summary: "ss-step6-experiment-summary",
+        details: "ss-step6-launch-details",
+      };
+
+      const elementId = target ? targetMap[target] : "";
+      if (elementId) {
+        focusLaunchReviewElement(elementId);
+      }
+    };
+
+    window.addEventListener("ss-step6-guide", onGuideTarget as EventListener);
+    return () =>
+      window.removeEventListener("ss-step6-guide", onGuideTarget as EventListener);
+  }, [detailsDrawerOpen]);
+
+  const handleGoFixMissing = () => {
+    if (!providerConfigured) {
+      navigate("/settings?tab=providers_llm");
+      return;
+    }
+    setCurrentStep(firstMissingStep);
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-blue-900">
-          {t('experimentBuilder.promptPreview.title')} (Agent Type: {firstAgentType.label})
-        </h3>
-        <p className="text-sm text-blue-700 mt-1">
-          {t('experimentBuilder.promptPreview.note', { n: agentTypes.length })}
-        </p>
-      </div>
+    <div className="ss-launch-review">
+      <ResearchInputPanel
+        eyebrow={isZh ? "启动前确认 / Launch review" : "Launch review"}
+        title={isZh ? "启动前确认" : "Launch review"}
+        description={
+          isZh
+            ? "先确认当前实验已经准备好了什么、还缺什么，以及启动后会发生什么。"
+            : "Review what is ready, what is still missing, and what will happen after launch."
+        }
+      >
+        <div
+          id="ss-step6-launch-status"
+          className={`ss-launch-review__status-banner is-${launchStatusTone}`}
+        >
+          <div className="ss-launch-review__status-copy">
+            <div className="ss-workflow-kicker">
+              {isZh ? "启动状态" : "Launch status"}
+            </div>
+            <h3>{launchStatusTitle}</h3>
+            <p>{launchStatusBody}</p>
+          </div>
 
-      {/* Full preview for first agent type */}
-      <PromptPreviewPanel
-        agentTypeLabel={firstAgentType.label}
-        agentTypeProfile={firstAgentType.userProfile || ''}
-        agentTypeRolePrompt={firstAgentType.rolePrompt || ''}
-        agentTypeProperties={firstAgentType.properties || {}}
-        scenarioDescription={scenarioDescription}
-        scenarioParams={scenarioParams}
-        availableActions={availableActions}
-        selectedActionIds={selectedActionIds}
-      />
+          <div className="ss-launch-review__status-actions">
+            <span className={`ss-launch-review__status-pill is-${launchStatusTone}`}>
+              {launchReady
+                ? isZh
+                  ? "可启动"
+                  : "Ready"
+                : isZh
+                  ? "需补充"
+                  : "Needs input"}
+            </span>
 
-      {/* Compact list for remaining agent types */}
-      {remainingAgentTypes.length > 0 && (
-        <div className="border-t pt-4">
-          <h4 className="font-medium text-gray-700 mb-3">
-            {t('experimentBuilder.promptPreview.otherTypes')}
-          </h4>
-          <div className="space-y-2">
-            {remainingAgentTypes.map(type => (
-              <div key={type.id} className="bg-gray-50 rounded p-3">
-                <div className="font-medium">{type.label}</div>
-                {type.rolePrompt && (
-                  <div className="text-sm text-gray-600 mt-1">
-                    Role: {type.rolePrompt}
-                  </div>
-                )}
-                {type.userProfile && (
-                  <div className="text-sm text-gray-600 mt-1">
-                    Profile: {type.userProfile}
-                  </div>
-                )}
-                {Object.entries(type.properties || {}).filter(([key]) => !['avatarUrl', 'llm_config', 'provider_id'].includes(key)).length > 0 && (
-                  <div className="text-sm text-gray-600 mt-1">
-                    Properties:{' '}
-                    {Object.entries(type.properties || {})
-                      .filter(([key]) => !['avatarUrl', 'llm_config', 'provider_id'].includes(key))
-                      .map(([key, value]) => `${key}=${String(value)}`)
-                      .join(', ')}
-                  </div>
-                )}
-              </div>
-            ))}
+            {!launchReady ? (
+              <SecondaryGhostButton type="button" onClick={handleGoFixMissing}>
+                {isZh ? "去补充缺失项" : "Go fix missing items"}
+              </SecondaryGhostButton>
+            ) : null}
           </div>
         </div>
-      )}
 
-      {/* Summary */}
-      <div className="text-sm text-gray-600">
-        {t('experimentBuilder.step6.totalAgentsTypes', { agents: totalAgents, types: agentTypes.length })}
-      </div>
+        <div className="ss-launch-review__overview-grid">
+          <section
+            id="ss-step6-launch-checklist"
+            className="ss-launch-review__panel ss-launch-review__panel--checklist"
+          >
+            <div className="ss-launch-review__panel-head">
+              <div>
+                <div className="ss-workflow-kicker">
+                  {isZh ? "启动检查单" : "Launch checklist"}
+                </div>
+                <h3>{isZh ? "逐项确认关键配置" : "Confirm each required item"}</h3>
+              </div>
+              <span className="ss-launch-review__panel-meta">
+                {isZh
+                  ? `${launchChecks.filter((item) => item.complete).length} / ${launchChecks.length} 已完成`
+                  : `${launchChecks.filter((item) => item.complete).length} / ${launchChecks.length} complete`}
+              </span>
+            </div>
+
+            <div className="ss-launch-review__checklist">
+              {launchChecks.map((item) => (
+                <div
+                  key={item.key}
+                  className={`ss-launch-review__check-row${item.complete ? " is-complete" : ""}`.trim()}
+                >
+                  <div className="ss-launch-review__check-copy">
+                    <div className="ss-launch-review__check-title">{item.label}</div>
+                    <div className="ss-launch-review__check-helper">{item.helper}</div>
+                  </div>
+
+                  <div className="ss-launch-review__check-value">
+                    <strong>{item.value}</strong>
+                    <span>{item.complete ? (isZh ? "已完成" : "Complete") : isZh ? "待补" : "Missing"}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section
+            id="ss-step6-experiment-summary"
+            className="ss-launch-review__panel ss-launch-review__panel--summary"
+          >
+            <div className="ss-launch-review__panel-head">
+              <div>
+                <div className="ss-workflow-kicker">
+                  {isZh ? "实验摘要" : "Experiment summary"}
+                </div>
+                <h3>{isZh ? "先快速看懂当前实验" : "Review the experiment at a glance"}</h3>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setDetailsDrawerOpen(true)}
+              >
+                {isZh ? "查看完整配置" : "View full details"}
+              </Button>
+            </div>
+
+            <div className="ss-workflow-summary-grid">
+              <SummaryInfoCard label={isZh ? "场景" : "Scenario"} value={scenarioName} />
+              <SummaryInfoCard label={isZh ? "行动数" : "Actions"} value={actionCount} />
+              <SummaryInfoCard
+                label={isZh ? "参与者数" : "Participants"}
+                value={totalAgents}
+              />
+              <SummaryInfoCard
+                label={isZh ? "推进机制" : "Schedule"}
+                value={scheduleLabel}
+              />
+              <SummaryInfoCard
+                label={isZh ? "关系结构" : "Structure"}
+                value={structureLabel}
+              />
+              <SummaryInfoCard
+                label={isZh ? "关键参数数" : "Key parameters"}
+                value={parameterCount}
+              />
+            </div>
+          </section>
+        </div>
+      </ResearchInputPanel>
+
+      {detailsDrawerOpen ? (
+        <div className="ss-launch-review__drawer-backdrop" onClick={() => setDetailsDrawerOpen(false)}>
+          <aside
+            className="ss-launch-review__drawer"
+            onClick={(event) => event.stopPropagation()}
+            aria-modal="true"
+            role="dialog"
+            aria-labelledby="ss-step6-launch-details"
+          >
+            <div className="ss-workflow-panel__head">
+              <div>
+                <div className="ss-workflow-kicker">
+                  {isZh ? "完整配置说明" : "Full configuration details"}
+                </div>
+                <h2 className="ss-workflow-panel__title" id="ss-step6-launch-details">
+                  {isZh ? "按需查看完整实验配置" : "Inspect the complete experiment setup"}
+                </h2>
+                <p className="ss-workflow-panel__copy">
+                  {isZh
+                    ? "这里集中放研究说明、参数明细、行为规则与代表性系统说明；主页面只保留启动摘要。"
+                    : "Research framing, parameters, behavior rules, and the representative system prompt live here so the main page can stay focused."}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setDetailsDrawerOpen(false)}
+              >
+                {isZh ? "返回启动摘要" : "Back to launch review"}
+              </Button>
+            </div>
+
+            <div className="ss-launch-review__drawer-body">
+              <section className="ss-launch-review__detail-block">
+                <div className="ss-workflow-kicker">
+                  {isZh ? "研究说明" : "Research framing"}
+                </div>
+                <p>
+                  {scenarioDescription ||
+                    (isZh
+                      ? "当前场景会沿用模板说明；后续也可以继续补充研究背景。"
+                      : "The study will currently use the template framing. You can still enrich the research description later.")}
+                </p>
+              </section>
+
+              <section className="ss-launch-review__detail-block">
+                <div className="ss-workflow-kicker">
+                  {isZh ? "参数明细" : "Parameter details"}
+                </div>
+                {Object.keys(scenarioParams).length > 0 ? (
+                  <div className="ss-launch-review__detail-list">
+                    {Object.entries(scenarioParams).map(([key, value]) => (
+                      <div key={key} className="ss-launch-review__detail-row">
+                        <span>{key}</span>
+                        <strong>{formatValue(value)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p>{isZh ? "当前没有额外参数。" : "No additional parameters yet."}</p>
+                )}
+              </section>
+
+              <section className="ss-launch-review__detail-block">
+                <div className="ss-workflow-kicker">
+                  {isZh ? "行为规则" : "Behavior rules"}
+                </div>
+                {selectedActions.length > 0 ? (
+                  <div className="ss-launch-review__detail-list">
+                    {selectedActions.map((action) => (
+                      <div key={action.name} className="ss-launch-review__detail-row">
+                        <span>{action.name}</span>
+                        <strong>{action.description}</strong>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p>{isZh ? "尚未添加行为规则。" : "No behavior rules selected yet."}</p>
+                )}
+              </section>
+
+              {representativeAgent ? (
+                <PromptPreviewPanel
+                  agentTypeLabel={representativeAgent.label}
+                  agentTypeProfile={representativeAgent.userProfile || ""}
+                  agentTypeRolePrompt={representativeAgent.rolePrompt || ""}
+                  agentTypeProperties={representativeAgent.properties || {}}
+                  scenarioDescription={scenarioDescription}
+                  scenarioParams={scenarioParams}
+                  availableActions={availableActions}
+                  selectedActionIds={selectedActionIds}
+                />
+              ) : (
+                <div className="ss-launch-review__detail-block">
+                  <div className="ss-workflow-kicker">
+                    {isZh ? "系统说明预览" : "System prompt preview"}
+                  </div>
+                  <p>
+                    {isZh
+                      ? "当前还没有参与者，因此暂无可预览的系统说明。"
+                      : "There are no participants yet, so no system prompt preview is available."}
+                  </p>
+                </div>
+              )}
+            </div>
+          </aside>
+        </div>
+      ) : null}
     </div>
   );
 };
+
+export default Step6Structure;

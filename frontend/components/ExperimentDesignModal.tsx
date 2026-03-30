@@ -149,8 +149,6 @@ export const ExperimentDesignModal: React.FC = () => {
   // Establish node-level WS subscriptions for mapped variant nodes
   useEffect(() => {
     if (!isOpen) return;
-    const endpoint = (window as any).__engine_endpoint__ || '';
-    const token = (window as any).__engine_token__ || '';
 
     variants.forEach((variant) => {
       const nodeByMeta = nodes.find(n => (n as any).meta && (n as any).meta.variant_id && n.parentId === baseNode.id && n.name.includes(variant.name));
@@ -332,137 +330,276 @@ export const ExperimentDesignModal: React.FC = () => {
     setVariants([{ id: 'v1', name: `${t('components.experimentDesignModal.variantPrefix')} A`, description: '', interventions: [] }]);
   };
 
+  const totalInterventions = variants.reduce((sum, variant) => sum + variant.interventions.length, 0);
+
+  const getVariantNode = (variant: ExperimentVariant) => {
+    const nodeByMeta = nodes.find(
+      (node) =>
+        (node as any).meta &&
+        (node as any).meta.variant_id &&
+        node.parentId === baseNode.id &&
+        node.name.includes(variant.name)
+    );
+    const nodeByName = nodes.find((node) => node.name === `${experimentName}: ${variant.name}`);
+    return nodeByMeta || nodeByName || null;
+  };
+
+  const getVariantStatusClass = (status?: string) => {
+    if (status === 'running') return 'border-amber-400/20 bg-amber-400/10 text-amber-100';
+    if (status === 'completed') return 'border-emerald-400/20 bg-emerald-400/10 text-emerald-100';
+    if (status === 'failed') return 'border-rose-400/20 bg-rose-400/10 text-rose-100';
+    return 'border-white/10 bg-white/5 text-slate-300';
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        
-        {/* Header */}
-        <div className="px-6 py-4 border-b flex justify-between items-center bg-indigo-50 shrink-0">
-          <div>
-            <h2 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
-              <Beaker className="text-indigo-600" size={24} />
+    <div className="ss-intervention-modal">
+      <div className="ss-intervention-modal__dialog animate-in fade-in zoom-in-95 duration-200">
+        <div className="ss-intervention-modal__header">
+          <div className="space-y-3">
+            <div className="ss-kicker text-[rgba(191,219,254,0.78)]">
               {t('components.experimentDesignModal.title')}
-            </h2>
-            <p className="text-xs text-indigo-600 mt-1" dangerouslySetInnerHTML={{
-              __html: t('components.experimentDesignModal.subtitle', {
-                displayId: baseNode.display_id,
-                name: baseNode.name
-              })
-            }} />
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/6 text-[#8FB8F3]">
+                <Beaker size={22} />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-semibold tracking-[-0.04em] text-slate-50">
+                  {t('components.experimentDesignModal.title')}
+                </h2>
+                <p
+                  className="max-w-3xl text-sm leading-7 text-slate-300"
+                  dangerouslySetInnerHTML={{
+                    __html: t('components.experimentDesignModal.subtitle', {
+                      displayId: baseNode.display_id,
+                      name: baseNode.name,
+                    }),
+                  }}
+                />
+              </div>
+            </div>
           </div>
-          <button onClick={() => toggle(false)} className="text-slate-400 hover:text-slate-600">
-            <X size={24} />
-          </button>
+
+          <div className="flex items-center gap-3">
+            <span className="ss-pill border-white/10 bg-white/6 text-slate-200">
+              {t('components.experimentDesignModal.controlGroup')}: {baseNode.display_id}
+            </span>
+            <button
+              onClick={() => toggle(false)}
+              className="ss-icon-button border-white/10 bg-white/6 text-slate-200 hover:bg-white/10"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
-          
-          {/* Sidebar: Global Settings & Control Group */}
-          <div className="w-full md:w-80 bg-slate-50 border-r p-6 overflow-y-auto shrink-0 space-y-6">
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">{t('components.experimentDesignModal.experimentNameLabel')}</label>
+        <div className="ss-intervention-modal__body">
+          <aside className="ss-intervention-modal__rail overflow-y-auto">
+            <section className="ss-intervention-card space-y-4 p-5">
+              <div>
+                <div className="ss-kicker text-[rgba(191,219,254,0.78)]">
+                  {t('components.experimentDesignModal.experimentNameLabel')}
+                </div>
+                <p className="mt-2 text-sm leading-6 text-slate-400">
+                  {t('components.experimentDesignModal.hintTitle')}
+                </p>
+              </div>
               <input
                 type="text"
                 value={experimentName}
                 onChange={(e) => setExperimentName(e.target.value)}
                 placeholder={t('components.experimentDesignModal.experimentNamePlaceholder')}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                className="ss-input border-white/10 bg-white/6 text-slate-50 placeholder:text-slate-500"
               />
-            </div>
+              <div className="grid gap-3">
+                <div className="ss-inset border-white/10 bg-white/5 px-4 py-3">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                    {t('components.experimentDesignModal.controlGroup')}
+                  </div>
+                  <div className="mt-2 text-base font-semibold text-slate-100">{baseNode.name}</div>
+                  <div className="mt-2 text-sm leading-6 text-slate-400">
+                    {t('components.experimentDesignModal.controlGroupDescription')}
+                  </div>
+                </div>
+                <div className="ss-inset border-white/10 bg-white/5 px-4 py-3">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                    {t('components.experimentDesignModal.baselineReference', { defaultValue: 'Baseline Reference' })}
+                  </div>
+                  <div className="mt-2 text-sm font-medium text-slate-100">
+                    {t('components.experimentDesignModal.controlGroupState')}
+                  </div>
+                  <div className="mt-2 text-xs leading-6 text-slate-400">
+                    {t('components.experimentDesignModal.baselineHint', {
+                      defaultValue: 'All variants branch from the selected node and inherit its current world, memory, and public state.',
+                    })}
+                  </div>
+                </div>
+              </div>
+            </section>
 
-            <div className="bg-white border rounded-lg p-4 shadow-sm relative overflow-hidden">
-               <div className="absolute top-0 left-0 w-1 h-full bg-slate-300"></div>
-               <h3 className="text-sm font-bold text-slate-800 mb-1">{t('components.experimentDesignModal.controlGroup')}</h3>
-               <p className="text-xs text-slate-500 mb-3">{t('components.experimentDesignModal.controlGroupDescription')}</p>
-               <div className="text-xs bg-slate-100 p-2 rounded text-slate-600">
-                  {t('components.experimentDesignModal.controlGroupState')}
-               </div>
-            </div>
-
-            <div className="text-xs text-slate-400 leading-relaxed">
-              <p>{t('components.experimentDesignModal.hintTitle')}</p>
-              <ul className="list-disc pl-4 space-y-1 mt-1">
-                <li>{t('components.experimentDesignModal.hintAddVariant')}</li>
-                <li>{t('components.experimentDesignModal.hintDefineVariables')}</li>
-                <li>{t('components.experimentDesignModal.hintAutoParallel')}</li>
+            <section className="ss-intervention-card space-y-4 p-5">
+              <div className="ss-kicker text-[rgba(191,219,254,0.78)]">
+                {t('components.experimentDesignModal.designerGuide', { defaultValue: 'Design Guide' })}
+              </div>
+              <ul className="space-y-3 text-sm leading-6 text-slate-300">
+                <li className="ss-inset border-white/10 bg-white/5 px-4 py-3">
+                  {t('components.experimentDesignModal.hintAddVariant')}
+                </li>
+                <li className="ss-inset border-white/10 bg-white/5 px-4 py-3">
+                  {t('components.experimentDesignModal.hintDefineVariables')}
+                </li>
+                <li className="ss-inset border-white/10 bg-white/5 px-4 py-3">
+                  {t('components.experimentDesignModal.hintAutoParallel')}
+                </li>
               </ul>
-            </div>
-          </div>
+            </section>
+          </aside>
 
-          {/* Main Area: Variants */}
-          <div className="flex-1 bg-slate-100/50 p-6 overflow-y-auto">
-             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <main className="ss-intervention-modal__main">
+            <div className="flex flex-wrap items-end justify-between gap-4 pb-5">
+              <div>
+                <div className="ss-kicker text-[rgba(191,219,254,0.78)]">
+                  {t('components.experimentDesignModal.variantWorkspace', { defaultValue: 'Variant Workspace' })}
+                </div>
+                <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-slate-50">
+                  {t('components.experimentDesignModal.variantTitle', { defaultValue: 'Configure experimental branches' })}
+                </h3>
+                <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">
+                  {t('components.experimentDesignModal.variantCopy', {
+                    defaultValue: 'Each branch inherits the selected baseline and applies a controlled set of interventions before launch.',
+                  })}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="ss-pill border-white/10 bg-white/6 text-slate-200">
+                  {t('components.experimentDesignModal.variantCount', { defaultValue: 'Variants' })}: {variants.length}
+                </span>
+                <span className="ss-pill border-white/10 bg-white/6 text-slate-200">
+                  {t('components.experimentDesignModal.interventionCount', { defaultValue: 'Interventions' })}: {totalInterventions}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid gap-5 xl:grid-cols-2">
                 
-                {variants.map((variant, index) => (
-                  <div key={variant.id} className="bg-white border rounded-xl shadow-sm overflow-hidden group hover:shadow-md transition-shadow">
-                    <div className="px-4 py-3 border-b bg-white flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <input 
-                          type="text" 
+                {variants.map((variant, index) => {
+                  const variantNode = getVariantNode(variant);
+                  const status = variantNode?.status || 'pending';
+                  const variantLogItems = variantNode ? nodeLogs[String(variantNode.id)] || [] : [];
+
+                  return (
+                  <section key={variant.id} className="ss-intervention-card overflow-hidden">
+                    <div className="flex items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="ss-kicker text-[rgba(191,219,254,0.72)]">
+                            {t('components.experimentDesignModal.variantPrefix')} {String.fromCharCode(65 + index)}
+                          </span>
+                          <span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] ${getVariantStatusClass(status)}`}>
+                            {status}
+                          </span>
+                        </div>
+                        <input
+                          type="text"
                           value={variant.name}
                           onChange={(e) => handleUpdateVariant(variant.id, 'name', e.target.value)}
-                          className="font-bold text-slate-800 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-500 outline-none px-1"
+                          className="w-full border-0 bg-transparent px-0 text-xl font-semibold tracking-[-0.03em] text-slate-50 focus:outline-none focus:ring-0"
                         />
-                        {/* Status badge: try to find corresponding node in tree by name */}
-                        {(() => {
-                          // Prefer meta-based mapping when available (experiment/variant ids),
-                          // otherwise fall back to name-based matching for compatibility.
-                          const nodeByMeta = nodes.find(n => (n as any).meta && (n as any).meta.variant_id && n.parentId === baseNode.id && n.name.includes(variant.name));
-                          const nodeByName = nodes.find(n => n.name === `${experimentName}: ${variant.name}`);
-                          const node = nodeByMeta || nodeByName;
-                          const st = node ? node.status : 'pending';
-                          const color = st === 'running' ? 'text-amber-600' : st === 'completed' || st === 'completed' ? 'text-green-600' : 'text-slate-400';
-                          return (
-                            <span className={`text-xs font-medium ${color} bg-slate-100 px-2 py-0.5 rounded`}>{st}</span>
-                          );
-                        })()}
-
-                        {(() => {
-                          // Show a compact live log preview if we have a mapped node id
-                          const nodeByMeta = nodes.find(n => (n as any).meta && (n as any).meta.variant_id && n.parentId === baseNode.id && n.name.includes(variant.name));
-                          const nodeByName = nodes.find(n => n.name === `${experimentName}: ${variant.name}`);
-                          const node = nodeByMeta || nodeByName;
-                          const nid = node ? node.id : null;
-                          if (!nid) return null;
-                          const logs = nodeLogs[String(nid)] || [];
-                          return (
-                            <div className="mt-2 text-xs text-slate-500">
-                              <div className="flex items-center gap-2">
-                                <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
-                                <span>{t('components.experimentDesignModal.liveLogPreview', { count: Math.min(5, logs.length) })}</span>
-                              </div>
-                              <div className="mt-2 bg-slate-50 border rounded p-2 text-[11px] h-20 overflow-auto">
-                                {logs.slice(-5).map((l: any, i: number) => (
-                                  <div key={i} className="py-0.5 border-b border-slate-100">
-                                    <div className="font-mono text-[11px] text-slate-600">{String(l.type || l.event_type || 'evt')}</div>
-                                    <div className="text-slate-700">{String((l.data && (l.data.action || l.data.message || JSON.stringify(l.data))) || l.data || '')}</div>
-                                  </div>
-                                ))}
-                                {logs.length === 0 && <div className="text-slate-400">{t('components.experimentDesignModal.noLogsYet')}</div>}
-                              </div>
-                            </div>
-                          );
-                        })()}
+                        <textarea
+                          value={variant.description || ''}
+                          onChange={(e) => handleUpdateVariant(variant.id, 'description', e.target.value)}
+                          rows={2}
+                          placeholder={t('components.experimentDesignModal.variantDescriptionPlaceholder', {
+                            defaultValue: 'Describe the intended branch logic, observation focus, or treatment goal.',
+                          })}
+                          className="ss-input min-h-[86px] border-white/10 bg-white/6 text-slate-100 placeholder:text-slate-500"
+                        />
                       </div>
-                      <button onClick={() => handleRemoveVariant(variant.id)} className="text-slate-300 hover:text-red-500 transition-colors">
+                      <button
+                        onClick={() => handleRemoveVariant(variant.id)}
+                        className="ss-icon-button border-white/10 bg-white/5 text-slate-300 hover:text-rose-100"
+                      >
                         <Trash2 size={16} />
                       </button>
                     </div>
 
-                    <div className="p-4 space-y-3 min-h-[200px]">
-                       {variant.interventions.length === 0 ? (
-                         <div className="text-center py-8 text-slate-400 text-sm border-2 border-dashed border-slate-100 rounded-lg">
-                           {t('components.experimentDesignModal.noInterventions')}
-                         </div>
-                       ) : (
-                         variant.interventions.map((iv, i) => (
-                           <div key={iv.id} className="bg-slate-50 rounded-lg border p-3 text-sm relative">
-                              <div className="flex gap-2 mb-2">
+                    <div className="space-y-4 px-5 py-5">
+                      {variantNode ? (
+                        <div className="ss-inset border-white/10 bg-white/5 px-4 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                                {t('components.experimentDesignModal.liveVariantChannel', { defaultValue: 'Live Variant Channel' })}
+                              </div>
+                              <div className="mt-2 text-sm font-medium text-slate-100">
+                                {variantNode.display_id || variantNode.id}
+                              </div>
+                            </div>
+                            <span className="inline-flex items-center gap-2 text-xs text-emerald-200">
+                              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                              {t('components.experimentDesignModal.liveLogPreview', {
+                                count: Math.min(5, variantLogItems.length),
+                              })}
+                            </span>
+                          </div>
+                          <div className="mt-3 max-h-32 space-y-2 overflow-y-auto rounded-2xl border border-white/10 bg-black/20 p-3">
+                            {variantLogItems.length > 0 ? (
+                              variantLogItems.slice(-4).map((entry: any, entryIndex: number) => (
+                                <div key={`${variant.id}-${entryIndex}`} className="border-b border-white/5 pb-2 last:border-b-0 last:pb-0">
+                                  <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+                                    {String(entry.type || entry.event_type || 'evt')}
+                                  </div>
+                                  <div className="mt-1 text-xs leading-5 text-slate-300">
+                                    {String((entry.data && (entry.data.action || entry.data.message || JSON.stringify(entry.data))) || entry.data || '')}
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-xs text-slate-500">{t('components.experimentDesignModal.noLogsYet')}</div>
+                            )}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      <div>
+                        <div className="ss-kicker text-[rgba(191,219,254,0.72)]">
+                          {t('components.experimentDesignModal.interventionWorkbench', { defaultValue: 'Intervention Workbench' })}
+                        </div>
+                        <p className="mt-2 text-sm leading-6 text-slate-400">
+                          {t('components.experimentDesignModal.interventionCount', { defaultValue: 'Interventions' })}: {variant.interventions.length}
+                        </p>
+                      </div>
+
+                      {variant.interventions.length === 0 ? (
+                        <div className="rounded-[18px] border border-dashed border-white/10 bg-white/3 px-5 py-10 text-center text-sm text-slate-400">
+                          {t('components.experimentDesignModal.noInterventions')}
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {variant.interventions.map((iv) => (
+                            <div key={iv.id} className="ss-inset relative space-y-3 border-white/10 bg-white/5 p-4">
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2 text-sm font-medium text-slate-100">
+                                  {iv.type === 'AGENT_PROPERTY' ? <UserCog size={16} className="text-[#8FB8F3]" /> : null}
+                                  {iv.type === 'ENVIRONMENT' ? <Settings size={16} className="text-emerald-300" /> : null}
+                                  {iv.type === 'FOLLOW_UP_CONDITION' ? <ArrowRight size={16} className="text-amber-200" /> : null}
+                                  {iv.type === 'FOLLOW_UP_THREAD_SEED' ? <ArrowRight size={16} className="text-[#D6C9F8]" /> : null}
+                                  {iv.type === 'INSTRUCTION' ? <Zap size={16} className="text-amber-200" /> : null}
+                                  <span>{t('components.experimentDesignModal.interventionCardTitle', { defaultValue: 'Intervention' })}</span>
+                                </div>
+                                <button
+                                  onClick={() => removeIntervention(variant.id, iv.id)}
+                                  className="ss-icon-button border-white/10 bg-white/5 text-slate-300 hover:text-rose-100"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+
+                              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px]">
                                 <select
                                   value={iv.type}
                                   onChange={(e) => updateIntervention(variant.id, iv.id, 'type', e.target.value)}
-                                  className="text-[10px] font-bold uppercase bg-white border rounded px-1 py-0.5 text-slate-600 outline-none"
+                                  className="ss-input border-white/10 bg-white/6 text-slate-100"
                                 >
                                   <option value="INSTRUCTION">{t('components.experimentDesignModal.instructionType')}</option>
                                   <option value="AGENT_PROPERTY">{t('components.experimentDesignModal.propertyType')}</option>
@@ -475,19 +612,26 @@ export const ExperimentDesignModal: React.FC = () => {
                                   <select
                                     value={iv.targetId || ''}
                                     onChange={(e) => updateIntervention(variant.id, iv.id, 'targetId', e.target.value)}
-                                    className="text-[10px] bg-white border rounded px-1 py-0.5 text-slate-600 outline-none max-w-[100px]"
+                                    className="ss-input border-white/10 bg-white/6 text-slate-100"
                                   >
                                     <option value="">{t('components.experimentDesignModal.selectAgent')}</option>
-                                    {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                    {agents.map((agent) => (
+                                      <option key={agent.id} value={agent.id}>
+                                        {agent.name}
+                                      </option>
+                                    ))}
                                   </select>
                                 )}
                               </div>
-                              
-                              <MultimodalInput
-                                label={t('components.experimentDesignModal.imageLabel')}
-                                helperText={t('components.experimentDesignModal.imageHelper')}
-                                onInsert={(url) => handleEmbedInterventionImage(variant.id, iv.id, url)}
-                              />
+
+                              <div className="rounded-[18px] border border-white/10 bg-black/20 p-3">
+                                <MultimodalInput
+                                  label={t('components.experimentDesignModal.imageLabel')}
+                                  helperText={t('components.experimentDesignModal.imageHelper')}
+                                  onInsert={(url) => handleEmbedInterventionImage(variant.id, iv.id, url)}
+                                />
+                              </div>
+
                               <textarea
                                 value={iv.description}
                                 onChange={(e) => updateIntervention(variant.id, iv.id, 'description', e.target.value)}
@@ -498,66 +642,111 @@ export const ExperimentDesignModal: React.FC = () => {
                                       ? t('components.experimentDesignModal.followUpConditionPlaceholder', { defaultValue: '例如: resource_shortage=0.8, public_opinion_pressure=0.6 或 {"resource_shortage": 0.8}' })
                                       : iv.type === 'FOLLOW_UP_THREAD_SEED'
                                         ? t('components.experimentDesignModal.followUpThreadSeedPlaceholder', { defaultValue: '例如: 智能体3想要给智能体4发消息，消息内容为执行困难，需要回应。也支持 JSON。' })
-                                      : t('components.experimentDesignModal.descriptionPlaceholder')
+                                        : t('components.experimentDesignModal.descriptionPlaceholder')
                                 }
-                                className="w-full text-xs bg-white border rounded p-2 focus:ring-1 focus:ring-indigo-500 outline-none resize-none h-16"
+                                className="ss-input min-h-[112px] resize-y border-white/10 bg-white/6 text-slate-100 placeholder:text-slate-500"
                               />
+
                               {extractMarkdownImages(iv.description || '').length > 0 && (
-                                <div className="mt-2 flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-2">
                                   {extractMarkdownImages(iv.description || '').map((url) => (
-                                    <div key={url} className="w-16 h-16 border rounded overflow-hidden bg-slate-50">
-                                      <img src={url} alt="preview" className="w-full h-full object-cover" />
+                                    <div key={url} className="h-16 w-16 overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+                                      <img src={url} alt="preview" className="h-full w-full object-cover" />
                                     </div>
                                   ))}
                                 </div>
                               )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
 
-                              <button 
-                                onClick={() => removeIntervention(variant.id, iv.id)}
-                                className="absolute top-2 right-2 text-slate-300 hover:text-slate-500"
-                              >
-                                <X size={14} />
-                              </button>
-                           </div>
-                         ))
-                       )}
-                       
-                       <button
-                         onClick={() => addIntervention(variant.id)}
-                         className="w-full py-2 border-2 border-dashed border-indigo-100 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors"
-                       >
-                         <Plus size={14} /> {t('components.experimentDesignModal.addIntervention')}
-                       </button>
+                      <button
+                        onClick={() => addIntervention(variant.id)}
+                        className="ss-button-secondary w-full border-dashed border-[#6EA9F6]/30 bg-[#2F80ED]/8 text-[#DCEBFD]"
+                      >
+                        <Plus size={14} /> {t('components.experimentDesignModal.addIntervention')}
+                      </button>
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          </main>
+
+          <aside className="ss-intervention-modal__summary overflow-y-auto">
+            <button onClick={handleAddVariant} className="ss-button">
+              <Plus size={16} />
+              {t('components.experimentDesignModal.addVariant')}
+            </button>
+
+            <section className="ss-intervention-card space-y-4 p-5">
+              <div className="ss-kicker text-[rgba(191,219,254,0.78)]">
+                {t('components.experimentDesignModal.launchQueue', { defaultValue: 'Launch Queue' })}
+              </div>
+              <div className="grid gap-3">
+                <div className="ss-inset border-white/10 bg-white/5 px-4 py-3">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                    {t('components.experimentDesignModal.variantCount', { defaultValue: 'Variants' })}
+                  </div>
+                  <div className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-50">
+                    {variants.length}
+                  </div>
+                </div>
+                <div className="ss-inset border-white/10 bg-white/5 px-4 py-3">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                    {t('components.experimentDesignModal.interventionCount', { defaultValue: 'Interventions' })}
+                  </div>
+                  <div className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-50">
+                    {totalInterventions}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="ss-intervention-card space-y-4 p-5">
+              <div className="ss-kicker text-[rgba(191,219,254,0.78)]">
+                {t('components.experimentDesignModal.summaryTitle', { defaultValue: 'Summary' })}
+              </div>
+              <div className="space-y-3">
+                {variants.map((variant, index) => (
+                  <div key={variant.id} className="ss-inset border-white/10 bg-white/5 px-4 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-medium text-slate-100">{variant.name}</div>
+                        <div className="mt-1 text-xs text-slate-400">
+                          {t('components.experimentDesignModal.interventionCount', { defaultValue: 'Interventions' })}: {variant.interventions.length}
+                        </div>
+                      </div>
+                      <span className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                        {String.fromCharCode(65 + index)}
+                      </span>
                     </div>
                   </div>
                 ))}
+              </div>
+            </section>
 
-                {/* Add Variant Button */}
-                <button
-                  onClick={handleAddVariant}
-                  className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl min-h-[200px] flex flex-col items-center justify-center text-slate-400 hover:text-indigo-500 hover:border-indigo-300 hover:bg-indigo-50/30 transition-all gap-2"
-                >
-                  <div className="w-12 h-12 rounded-full bg-white border-2 border-current flex items-center justify-center">
-                    <Plus size={24} />
-                  </div>
-                  <span className="font-bold text-sm">{t('components.experimentDesignModal.addVariant')}</span>
+            <section className="ss-intervention-card mt-auto space-y-4 p-5">
+              <div className="ss-kicker text-[rgba(191,219,254,0.78)]">
+                {t('components.experimentDesignModal.launchDecision', { defaultValue: 'Launch Decision' })}
+              </div>
+              <p className="text-sm leading-7 text-slate-300">
+                {t('components.experimentDesignModal.launchCopy', {
+                  defaultValue: 'Launching creates a parallel set of branches from the selected control node while preserving the current simulation state as the baseline.',
+                })}
+              </p>
+              <div className="grid gap-3">
+                <button onClick={() => toggle(false)} className="ss-button-secondary w-full border-white/10 bg-white/6 text-slate-100">
+                  {t('components.experimentDesignModal.cancel')}
                 </button>
-             </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t bg-white flex justify-end gap-3 shrink-0">
-          <button onClick={() => toggle(false)} className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg">
-            {t('components.experimentDesignModal.cancel')}
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="px-6 py-2 text-sm bg-indigo-600 text-white font-medium hover:bg-indigo-700 rounded-lg shadow-sm flex items-center gap-2"
-          >
-            <Zap size={16} />
-            {t('components.experimentDesignModal.startBatch', { count: variants.length })}
-          </button>
+                <button onClick={handleSubmit} disabled={!experimentName.trim()} className="ss-button w-full">
+                  <Zap size={16} />
+                  {t('components.experimentDesignModal.startBatch', { count: variants.length })}
+                </button>
+              </div>
+            </section>
+          </aside>
         </div>
       </div>
     </div>

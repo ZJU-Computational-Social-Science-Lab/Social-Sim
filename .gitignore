@@ -175,3 +175,14 @@ experiment_debug_*.txt
 
 # Temporary files
 nul
+
+# Runtime / process log files (machine-specific, never commit)
+*.err
+*.out
+backend-dev.*
+frontend-dev.*
+frontend-dev.log
+backend-dev.log
+
+# Video artifacts (large binary, not for git)
+artifacts/**/*.mp4

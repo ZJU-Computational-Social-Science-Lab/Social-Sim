@@ -55,11 +55,12 @@ def run_experiment_task(self, simulation_id: str, exp_id: str, run_id: int, turn
             else:
                 provider = active[0]
                 dialect = (provider.provider or "").lower()
+                base_url = provider.base_url.strip() if provider.base_url else None
                 cfg = LLMConfig(
                     dialect=dialect,
                     api_key=provider.api_key or "",
                     model=provider.model,
-                    base_url=provider.base_url or ("http://127.0.0.1:11434" if dialect == "ollama" else None),
+                    base_url=base_url or ("http://127.0.0.1:11434" if dialect == "ollama" else None),
                     temperature=0.0,
                     top_p=1.0,
                     frequency_penalty=0.0,

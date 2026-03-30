@@ -12,7 +12,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSimulationStore } from '../store';
 import { useTranslation } from 'react-i18next';
 import { LogEntry, ViewMode } from '../types';
-import { List, CreditCard, Clock, Filter, Search, X, Check, GitCommit, Image as ImageIcon } from 'lucide-react';
+import { Activity, BookOpen, Brain, CreditCard, Clock, Filter, GitCommit, Image as ImageIcon, List, Search, UserRound, X, Check } from 'lucide-react';
 import { getActionConfig, getResourceName } from '../utils/scenarioHelpers';
 
 type DiffOp<T> = {
@@ -160,23 +160,23 @@ const buildInlineDiffSegments = (leftText: string, rightText: string, side: 'lef
 
 const inlineSegmentClassName = (kind: InlineDiffSegment['kind']) => {
   if (kind === 'added') {
-    return 'bg-emerald-200/70 text-emerald-900 rounded px-0.5';
+    return 'rounded px-0.5 bg-emerald-500/18 text-emerald-100';
   }
   if (kind === 'removed') {
-    return 'bg-rose-200/70 text-rose-900 rounded px-0.5';
+    return 'rounded px-0.5 bg-rose-500/18 text-rose-100';
   }
   return '';
 };
 
 const diffCellClassName = (kind: PolicyDiffRow['kind'], side: 'left' | 'right') => {
   if (kind === 'modified') {
-    return 'border-amber-200 bg-amber-50/80';
+    return 'border-amber-400/30 bg-amber-500/10';
   }
   if (kind === 'removed' && side === 'left') {
-    return 'border-rose-200 bg-rose-50';
+    return 'border-rose-400/30 bg-rose-500/10';
   }
   if (kind === 'added' && side === 'right') {
-    return 'border-emerald-200 bg-emerald-50';
+    return 'border-emerald-400/30 bg-emerald-500/10';
   }
   return 'border-transparent bg-transparent';
 };
@@ -196,20 +196,22 @@ const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        {data.agentLabel && <span className="text-sm font-semibold text-slate-800">{data.agentLabel}</span>}
-        <span className="text-sm font-semibold text-slate-700">{data.title}</span>
+        {data.agentLabel && (
+          <span className="text-sm font-semibold text-[var(--ss-workspace-heading)]">{data.agentLabel}</span>
+        )}
+        <span className="text-sm font-semibold text-[var(--ss-workspace-heading)]">{data.title}</span>
       </div>
 
-      <div className="text-xs text-slate-500">
+      <div className="text-xs leading-6 text-[var(--ss-workspace-muted)]">
         左侧显示该层收到的上级政策版本，右侧显示最终真正发给下一级的内容；若下方出现附加框，则表示 agent 原始草稿。
       </div>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <div className="rounded-lg border border-slate-200 bg-slate-50 overflow-hidden">
-          <div className="border-b border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">
+        <div className="overflow-hidden rounded-lg border border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface-strong)]">
+          <div className="border-b border-[var(--ss-workspace-border)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--ss-workspace-muted)]">
             {data.leftTitle}
           </div>
-          <div className="max-h-80 overflow-auto px-3 py-3 text-sm leading-6 text-slate-700 space-y-1">
+          <div className="max-h-80 space-y-1 overflow-auto px-3 py-3 text-sm leading-7 text-[var(--ss-workspace-text)]">
             {rows.filter(row => row.left).map((row, idx) => {
               const segments = row.kind === 'modified'
                 ? buildInlineDiffSegments(row.left, row.right, 'left')
@@ -234,11 +236,11 @@ const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
           </div>
         </div>
 
-        <div className="rounded-lg border border-blue-200 bg-blue-50 overflow-hidden">
-          <div className="border-b border-blue-200 bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-700 uppercase tracking-wide">
+        <div className="overflow-hidden rounded-lg border border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface-strong)]">
+          <div className="border-b border-[var(--ss-workspace-border)] bg-[rgba(47,230,166,0.08)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--ss-workspace-heading)]">
             {data.rightTitle}
           </div>
-          <div className="max-h-80 overflow-auto px-3 py-3 text-sm leading-6 text-slate-700 space-y-1">
+          <div className="max-h-80 space-y-1 overflow-auto px-3 py-3 text-sm leading-7 text-[var(--ss-workspace-text)]">
             {rows.filter(row => row.right).map((row, idx) => {
               const segments = row.kind === 'modified'
                 ? buildInlineDiffSegments(row.left, row.right, 'right')
@@ -267,35 +269,35 @@ const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
       {data.draftContent && (
         <details
           open={showDraftExpanded}
-          className="rounded-lg border border-slate-200 bg-white overflow-hidden group"
+          className="group overflow-hidden rounded-lg border border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface-strong)]"
         >
-          <summary className="flex cursor-pointer list-none items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">
+          <summary className="flex cursor-pointer list-none items-center justify-between border-b border-[var(--ss-workspace-border)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--ss-workspace-muted)]">
             <span>{data.draftTitle}</span>
-            <span className="text-[11px] font-medium normal-case tracking-normal text-slate-400 group-open:hidden">
+            <span className="text-[11px] font-medium normal-case tracking-normal text-[var(--ss-workspace-muted)] group-open:hidden">
               调试信息，点击展开
             </span>
-            <span className="hidden text-[11px] font-medium normal-case tracking-normal text-slate-400 group-open:inline">
+            <span className="hidden text-[11px] font-medium normal-case tracking-normal text-[var(--ss-workspace-muted)] group-open:inline">
               调试信息，点击折叠
             </span>
           </summary>
-          <div className="max-h-64 overflow-auto px-3 py-3 text-sm leading-6 text-slate-700 whitespace-pre-wrap break-words">
+          <div className="max-h-64 overflow-auto whitespace-pre-wrap break-words px-3 py-3 text-sm leading-7 text-[var(--ss-workspace-text)]">
             {data.draftContent}
           </div>
         </details>
       )}
 
-      <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-        <span className="rounded-full bg-emerald-100 px-2 py-1 text-emerald-700">新增</span>
-        <span className="rounded-full bg-rose-100 px-2 py-1 text-rose-700">删除</span>
-        <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-700">改写</span>
+      <div className="flex flex-wrap gap-2 text-xs text-[var(--ss-workspace-muted)]">
+        <span className="rounded-full bg-emerald-500/16 px-2 py-1 text-emerald-100">新增</span>
+        <span className="rounded-full bg-rose-500/16 px-2 py-1 text-rose-100">删除</span>
+        <span className="rounded-full bg-amber-500/16 px-2 py-1 text-amber-100">改写</span>
       </div>
 
-      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+      <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
         <div className="font-medium">{data.reasonLabel}：</div>
         <div className="mt-1 whitespace-pre-wrap break-words">{data.reason}</div>
       </div>
 
-      <div className="text-xs text-slate-500 whitespace-pre-wrap break-words">
+      <div className="whitespace-pre-wrap break-words text-xs text-[var(--ss-workspace-muted)]">
         <span className="font-medium">{data.metricsLabel}：</span>
         {data.metrics}
       </div>
@@ -387,12 +389,12 @@ const LogItem: React.FC<{
 
   const getBadgeColor = () => {
     switch (entry.type) {
-      case 'SYSTEM': return 'bg-slate-100 text-slate-600';
-      case 'AGENT_SAY': return 'bg-blue-50 text-blue-600';
-      case 'AGENT_ACTION': return 'bg-amber-50 text-amber-600';
-      case 'AGENT_METADATA': return 'bg-purple-50 text-purple-600';
-      case 'ENVIRONMENT': return 'bg-emerald-50 text-emerald-600';
-      default: return 'bg-slate-100 text-slate-500';
+      case 'SYSTEM': return 'bg-slate-500/15 text-slate-200';
+      case 'AGENT_SAY': return 'bg-[#2F80ED]/15 text-[#B9D7FF]';
+      case 'AGENT_ACTION': return 'bg-amber-400/15 text-amber-200';
+      case 'AGENT_METADATA': return 'bg-[#7C6FA8]/18 text-[#DDD7F5]';
+      case 'ENVIRONMENT': return 'bg-emerald-400/15 text-emerald-200';
+      default: return 'bg-slate-500/15 text-slate-200';
     }
   };
 
@@ -504,20 +506,20 @@ const LogItem: React.FC<{
 
   if (mode === ViewMode.LIST) {
     return (
-      <div className={`py-2 px-4 border-b hover:bg-slate-50 text-sm flex gap-4 ${entry.type === 'SYSTEM' ? 'bg-slate-50/50' : ''}`}>
-        <span className="font-mono text-slate-400 text-xs w-24 shrink-0 whitespace-nowrap">{displayTime}</span>
-        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase self-start whitespace-nowrap ${getBadgeColor()}`}>
+      <div className={`ss-logviewer__item flex gap-4 border-b px-4 py-3 text-[0.95rem] ${entry.type === 'SYSTEM' ? 'bg-white/[0.02]' : ''}`}>
+        <span className="w-24 shrink-0 whitespace-nowrap font-mono text-[11px] text-[var(--ss-workspace-muted)]">{displayTime}</span>
+        <span className={`self-start whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${getBadgeColor()}`}>
           {translateType(entry.type, entry.agentId)}
         </span>
         <div className="flex-1">
           {/* For AGENT_METADATA, don't repeat agentId since it's already shown in the badge */}
           {entry.agentId && entry.type !== 'AGENT_METADATA' && (
-            <span className="font-bold text-slate-700 mr-2">{entry.agentId}:</span>
+            <span className="mr-2 font-bold text-[var(--ss-workspace-heading)]">{entry.agentId}:</span>
           )}
           {hasPolicyDiff ? (
             <PolicyDiffCard entry={entry} />
           ) : (
-            <span className="text-slate-600">{displayContent}</span>
+            <span className="leading-7 text-[var(--ss-workspace-text)]">{displayContent}</span>
           )}
           <ImageComponent />
           <MediaBadges />
@@ -528,9 +530,9 @@ const LogItem: React.FC<{
 
   // Card & Timeline Views
   return (
-    <div className={`mb-3 p-3 bg-white border rounded shadow-sm relative ${getBorderColor()} border-l-4 hover:shadow-md transition-shadow`}>
+    <div className={`ss-logviewer__item relative mb-3 border-l-4 p-4 ${getBorderColor()}`}>
        {mode === ViewMode.TIMELINE && (
-         <div className="absolute -left-[29px] top-4 w-3 h-3 rounded-full bg-slate-300 border-2 border-slate-50 z-10"></div>
+         <div className="absolute -left-[29px] top-4 z-10 h-3 w-3 rounded-full border-2 border-[var(--ss-workspace-surface)] bg-[var(--ss-workspace-node-selected)]"></div>
        )}
       <div className="flex justify-between items-start mb-2">
         <div className="flex items-center gap-2">
@@ -539,15 +541,15 @@ const LogItem: React.FC<{
           </span>
           {/* For AGENT_METADATA, don't repeat agentId since it's already shown in the badge */}
           {entry.agentId && entry.type !== 'AGENT_METADATA' && (
-            <span className="text-xs font-bold text-slate-800">{entry.agentId}</span>
+            <span className="text-xs font-bold text-[var(--ss-workspace-heading)]">{entry.agentId}</span>
           )}
         </div>
-        <span className="text-[10px] font-mono text-slate-400">{displayTime}</span>
+        <span className="text-[10px] font-mono text-[var(--ss-workspace-muted)]">{displayTime}</span>
       </div>
       {hasPolicyDiff ? (
         <PolicyDiffCard entry={entry} />
       ) : (
-        <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{displayContent}</p>
+        <p className="text-[0.98rem] leading-8 whitespace-pre-line text-[var(--ss-workspace-text)]">{displayContent}</p>
       )}
       <ImageComponent />
       <MediaBadges />
@@ -555,8 +557,19 @@ const LogItem: React.FC<{
   );
 };
 
-export const LogViewer: React.FC = () => {
-  const { t } = useTranslation();
+const MemoLogItem = React.memo(LogItem);
+
+interface LogViewerProps {
+  selectedAgentId?: string | null;
+  onClearSelectedAgent?: () => void;
+}
+
+export const LogViewer: React.FC<LogViewerProps> = ({
+  selectedAgentId = null,
+  onClearSelectedAgent,
+}) => {
+  const { t, i18n } = useTranslation();
+  const isZh = i18n.language.startsWith('zh');
   const logs = useSimulationStore(state => state.logs);
   const nodes = useSimulationStore(state => state.nodes);
   const selectedNodeId = useSimulationStore(state => state.selectedNodeId);
@@ -577,24 +590,52 @@ export const LogViewer: React.FC = () => {
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   
   const scrollRef = useRef<HTMLDivElement>(null);
+  const shouldFollowRef = useRef(true);
+  const nodeLookup = useMemo(
+    () => new globalThis.Map(nodes.map((node) => [node.id, node])),
+    [nodes]
+  );
+
+  const selectedAgent = useMemo(
+    () => agents.find((agent) => agent.id === selectedAgentId) || null,
+    [agents, selectedAgentId]
+  );
 
   // Compute Ancestry Path for current selection
+  const currentPath = useMemo(() => {
+    const path: typeof nodes = [];
+    let current = selectedNodeId ? nodeLookup.get(selectedNodeId) : null;
+    while (current) {
+      path.unshift(current);
+      current = current.parentId ? nodeLookup.get(current.parentId) || null : null;
+    }
+    return path;
+  }, [nodeLookup, selectedNodeId]);
+
   const ancestorIds = useMemo(() => {
     const ids = new Set<string>();
-    let current = nodes.find(n => n.id === selectedNodeId);
+    let current = selectedNodeId ? nodeLookup.get(selectedNodeId) : null;
     while (current) {
       ids.add(current.id);
-      current = nodes.find(n => n.id === current.parentId);
+      current = current.parentId ? nodeLookup.get(current.parentId) || null : null;
     }
     return ids;
-  }, [nodes, selectedNodeId]);
+  }, [nodeLookup, selectedNodeId]);
 
   // Filter Logic
   const filteredLogs = useMemo(() => {
+    const forcedAgentIds = selectedAgent ? new Set([selectedAgent.id, selectedAgent.name]) : null;
+
     return logs.filter(log => {
       // 0. Ancestry Filter (Strict: only show logs from current path)
       if (log.nodeId && !ancestorIds.has(log.nodeId)) {
         return false;
+      }
+
+      if (forcedAgentIds) {
+        if (!log.agentId || !forcedAgentIds.has(log.agentId)) {
+          return false;
+        }
       }
 
       // 1. Search Text
@@ -612,7 +653,7 @@ export const LogViewer: React.FC = () => {
       }
 
       // 3. Filter by Agent
-      if (selectedAgents.length > 0) {
+      if (!forcedAgentIds && selectedAgents.length > 0) {
         if (!log.agentId || !selectedAgents.includes(log.agentId)) {
           return false;
         }
@@ -620,14 +661,41 @@ export const LogViewer: React.FC = () => {
 
       return true;
     });
-  }, [logs, searchQuery, selectedTypes, selectedAgents, ancestorIds]);
+  }, [logs, searchQuery, selectedTypes, selectedAgents, ancestorIds, selectedAgent]);
 
-  // Auto-scroll to bottom when logs change
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [filteredLogs.length, selectedNodeId]);
+    setSelectedAgents([]);
+  }, [selectedAgentId]);
+
+  useEffect(() => {
+    const viewport = scrollRef.current;
+    if (!viewport) return;
+
+    const handleScroll = () => {
+      const distanceFromBottom =
+        viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop;
+      shouldFollowRef.current = distanceFromBottom < 56;
+    };
+
+    handleScroll();
+    viewport.addEventListener('scroll', handleScroll);
+    return () => viewport.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // When branch context changes, jump to the latest event once.
+  useEffect(() => {
+    const viewport = scrollRef.current;
+    if (!viewport) return;
+    viewport.scrollTop = viewport.scrollHeight;
+    shouldFollowRef.current = true;
+  }, [selectedNodeId]);
+
+  // Follow new events only when the user is already pinned near the bottom.
+  useEffect(() => {
+    const viewport = scrollRef.current;
+    if (!viewport || !shouldFollowRef.current) return;
+    viewport.scrollTop = viewport.scrollHeight;
+  }, [filteredLogs.length]);
 
   const toggleType = (type: string) => {
     setSelectedTypes(prev => 
@@ -648,53 +716,153 @@ export const LogViewer: React.FC = () => {
   };
 
   const hasActiveFilters = searchQuery || selectedTypes.length > 0 || selectedAgents.length > 0;
+  const latestFocusedLog = selectedAgent ? filteredLogs[filteredLogs.length - 1] || null : null;
+  const latestMemory = selectedAgent?.memory[selectedAgent.memory.length - 1] || null;
+  const visibleProperties = selectedAgent
+    ? Object.entries(selectedAgent.properties || {}).filter(([key]) => !["avatarUrl", "internal", "_internal"].includes(key))
+    : [];
+  const pathLabel = currentPath.map((node) => node.display_id || node.id).join(" / ");
+  const stageTitle = selectedAgent
+    ? t("controlRoom.focusedStageTitle", { name: selectedAgent.name })
+    : isZh
+      ? "生成事件与内容"
+      : "Generated events and content";
+  const stageSubtitle = selectedAgent
+    ? t("controlRoom.focusedStageSubtitle")
+    : isZh
+      ? "按时间线查看生成事件、分支变化与世界更新。"
+      : "Follow generated events, branch changes, and world updates in time order.";
+  const contextBadge = selectedAgent ? t("controlRoom.focusContext") : t("controlRoom.globalContext");
+  const searchPlaceholder = selectedAgent
+    ? t("controlRoom.roleEvents")
+    : t("controlRoom.branchEvents");
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 border rounded-lg overflow-hidden relative">
-      {/* Toolbar */}
-      <div className="bg-white border-b px-4 py-2 flex flex-col gap-2 shrink-0 z-20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border">
+    <div className="ss-workspace__panel ss-workspace__panel--stage ss-logviewer h-full relative">
+      <div className="ss-logviewer__toolbar z-20 flex shrink-0 flex-col gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="ss-kicker">{t('simulationWorkspace.stageTitle')}</div>
+            <h2 className="mt-1.5 text-[1.1rem] font-semibold tracking-[-0.04em] text-[var(--ss-workspace-heading)]">
+              {stageTitle}
+            </h2>
+            <p className="mt-1.5 max-w-2xl text-[0.86rem] leading-6 text-[var(--ss-workspace-muted)]">
+              {stageSubtitle}
+            </p>
+          </div>
+          <div className="ss-pill ss-pill--quiet">
+            <GitCommit size={12} />
+            {contextBadge}
+          </div>
+        </div>
+
+        <div className="ss-stage__context">
+          <div className="ss-stage__context-card">
+            <span className="ss-stage__context-label">{t("controlRoom.currentPath")}</span>
+            <strong className="ss-stage__context-value">{pathLabel || "--"}</strong>
+          </div>
+          {selectedAgent ? (
+            <div className="ss-stage__context-card is-focused">
+              <span className="ss-stage__context-label">{t("controlRoom.focusedAgent")}</span>
+              <strong className="ss-stage__context-value">{selectedAgent.name}</strong>
+            </div>
+          ) : null}
+        </div>
+
+        {selectedAgent ? (
+          <div className="ss-stage__focus-strip">
+            <div className="ss-stage__focus-card ss-stage__focus-card--identity">
+              <div className="flex items-start gap-3">
+                <img src={selectedAgent.avatarUrl} alt={selectedAgent.name} className="ss-stage__focus-avatar" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="ss-stage__focus-name">{selectedAgent.name}</span>
+                    <span className="ss-stage__focus-role">{selectedAgent.role || t("common.none")}</span>
+                  </div>
+                  <p className="ss-stage__focus-copy">
+                    {latestFocusedLog?.content || latestMemory?.content || t("controlRoom.noRoleEvents")}
+                  </p>
+                </div>
+                {onClearSelectedAgent ? (
+                  <button onClick={onClearSelectedAgent} className="ss-button-secondary">
+                    {t("controlRoom.clearFocus")}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="ss-stage__focus-card">
+              <div className="ss-stage__focus-metrics">
+                <div className="ss-stage__focus-metric">
+                  <UserRound size={15} />
+                  <div>
+                    <span>{t("controlRoom.roleState")}</span>
+                    <strong>{visibleProperties.length}</strong>
+                  </div>
+                </div>
+                <div className="ss-stage__focus-metric">
+                  <Brain size={15} />
+                  <div>
+                    <span>{t("controlRoom.memoryCount")}</span>
+                    <strong>{selectedAgent.memory.length}</strong>
+                  </div>
+                </div>
+                <div className="ss-stage__focus-metric">
+                  <BookOpen size={15} />
+                  <div>
+                    <span>{t("controlRoom.knowledgeCount")}</span>
+                    <strong>{selectedAgent.knowledgeBase.length}</strong>
+                  </div>
+                </div>
+                <div className="ss-stage__focus-metric">
+                  <Activity size={15} />
+                  <div>
+                    <span>{t("controlRoom.lastObserved")}</span>
+                    <strong>{latestFocusedLog ? `R${latestFocusedLog.round}` : "--"}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-1 rounded-2xl border border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface-strong)] p-1">
             <button
               onClick={() => setViewMode(ViewMode.LIST)}
-              className={`p-1.5 rounded-md transition-all ${viewMode === ViewMode.LIST ? 'bg-white shadow text-brand-600' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`rounded-xl p-2 transition-all ${viewMode === ViewMode.LIST ? 'bg-[rgba(47,230,166,0.14)] text-[var(--ss-workspace-heading)]' : 'text-[var(--ss-workspace-muted)] hover:text-[var(--ss-workspace-heading)]'}`}
               title={t('components.logViewer.listView')}
             >
               <List size={16} />
             </button>
             <button
                onClick={() => setViewMode(ViewMode.CARD)}
-               className={`p-1.5 rounded-md transition-all ${viewMode === ViewMode.CARD ? 'bg-white shadow text-brand-600' : 'text-slate-500 hover:text-slate-700'}`}
+               className={`rounded-xl p-2 transition-all ${viewMode === ViewMode.CARD ? 'bg-[rgba(47,230,166,0.14)] text-[var(--ss-workspace-heading)]' : 'text-[var(--ss-workspace-muted)] hover:text-[var(--ss-workspace-heading)]'}`}
                title={t('components.logViewer.cardView')}
             >
               <CreditCard size={16} />
             </button>
              <button
                onClick={() => setViewMode(ViewMode.TIMELINE)}
-               className={`p-1.5 rounded-md transition-all ${viewMode === ViewMode.TIMELINE ? 'bg-white shadow text-brand-600' : 'text-slate-500 hover:text-slate-700'}`}
+               className={`rounded-xl p-2 transition-all ${viewMode === ViewMode.TIMELINE ? 'bg-[rgba(47,230,166,0.14)] text-[var(--ss-workspace-heading)]' : 'text-[var(--ss-workspace-muted)] hover:text-[var(--ss-workspace-heading)]'}`}
                title={t('components.logViewer.timelineView')}
             >
               <Clock size={16} />
             </button>
           </div>
 
-          <div className="flex items-center gap-2 flex-1 justify-end">
-            <div className="flex items-center gap-1 text-[10px] text-slate-400 bg-slate-50 border px-2 py-1 rounded">
-               <GitCommit size={12} />
-               <span>{t('components.logViewer.currentBranchFilter')}</span>
-            </div>
-
-            <div className="relative max-w-[180px] w-full">
+          <div className="flex flex-1 items-center justify-end gap-2">
+            <div className="relative w-full max-w-[220px]">
               <input
                 type="text"
-                placeholder={t('components.logViewer.searchPlaceholder')}
+                placeholder={`${t('common.search')} ${searchPlaceholder.toLowerCase()}…`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs border rounded bg-slate-50 focus:bg-white focus:ring-1 focus:ring-brand-500 outline-none transition-all"
+                className="ss-input w-full bg-[var(--ss-workspace-surface-strong)] py-2.5 pl-8 pr-3 text-xs"
               />
-              <Search size={12} className="absolute left-2.5 top-2 text-slate-400" />
+              <Search size={12} className="absolute left-2.5 top-2.5 text-[var(--ss-workspace-muted)]" />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-2 top-2 text-slate-400 hover:text-slate-600">
+                <button onClick={() => setSearchQuery('')} className="absolute right-2 top-2.5 text-[var(--ss-workspace-muted)] hover:text-[var(--ss-workspace-heading)]">
                   <X size={12} />
                 </button>
               )}
@@ -702,12 +870,12 @@ export const LogViewer: React.FC = () => {
 
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium border rounded transition-colors ${isFilterOpen || (hasActiveFilters && !searchQuery) ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+              className={`flex items-center gap-1 rounded-2xl border px-3 py-2 text-xs font-medium transition-colors ${isFilterOpen || (hasActiveFilters && !searchQuery) ? 'border-[rgba(47,230,166,0.24)] bg-[rgba(47,230,166,0.14)] text-[var(--ss-workspace-heading)]' : 'border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface-strong)] text-[var(--ss-workspace-muted)] hover:text-[var(--ss-workspace-heading)]'}`}
             >
               <Filter size={14} />
               <span className="hidden sm:inline">{t('components.logViewer.filter')}</span>
               {(selectedTypes.length > 0 || selectedAgents.length > 0) && (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-600 text-[9px] text-white">
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--ss-primary-500)] text-[9px] text-white">
                   {selectedTypes.length + selectedAgents.length}
                 </span>
               )}
@@ -717,9 +885,9 @@ export const LogViewer: React.FC = () => {
         
         {/* Filter Panel */}
         {isFilterOpen && (
-          <div className="pt-2 pb-3 border-t mt-1 space-y-3 animate-in slide-in-from-top-2 duration-200">
+          <div className="mt-1 space-y-3 border-t border-[var(--ss-workspace-border)] pb-3 pt-3 animate-in slide-in-from-top-2 duration-200">
              <div>
-              <div className="text-[10px] uppercase font-bold text-slate-400 mb-1.5 tracking-wider">{t('components.logViewer.eventTypes')}</div>
+              <div className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--ss-workspace-muted)]">{t('components.logViewer.eventTypes')}</div>
               <div className="flex flex-wrap gap-2">
                 {[
                   { id: 'SYSTEM', label: t('components.logViewer.system') },
@@ -733,8 +901,8 @@ export const LogViewer: React.FC = () => {
                     onClick={() => toggleType(type.id)}
                     className={`px-2 py-1 rounded text-xs border flex items-center gap-1.5 transition-all ${
                       selectedTypes.includes(type.id)
-                        ? 'bg-brand-600 text-white border-brand-600 shadow-sm'
-                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                        ? 'border-[rgba(47,230,166,0.24)] bg-[rgba(47,230,166,0.14)] text-[var(--ss-workspace-heading)]'
+                        : 'border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface-strong)] text-[var(--ss-workspace-muted)] hover:text-[var(--ss-workspace-heading)]'
                     }`}
                   >
                     {selectedTypes.includes(type.id) && <Check size={10} />}
@@ -745,9 +913,9 @@ export const LogViewer: React.FC = () => {
             </div>
 
             {/* Agents */}
-            {agents.length > 0 && (
+            {!selectedAgent && agents.length > 0 && (
               <div>
-                <div className="text-[10px] uppercase font-bold text-slate-400 mb-1.5 tracking-wider">{t('components.logViewer.relatedAgents')}</div>
+                <div className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--ss-workspace-muted)]">{t('components.logViewer.relatedAgents')}</div>
                 <div className="flex flex-wrap gap-2">
                   {agents.map(agent => (
                     <button
@@ -755,8 +923,8 @@ export const LogViewer: React.FC = () => {
                       onClick={() => toggleAgent(agent.id)}
                       className={`px-2 py-1 rounded-full text-xs border flex items-center gap-1.5 transition-all pl-1 ${
                         selectedAgents.includes(agent.id)
-                          ? 'bg-brand-600 text-white border-brand-600 shadow-sm'
-                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                          ? 'border-[rgba(47,230,166,0.24)] bg-[rgba(47,230,166,0.14)] text-[var(--ss-workspace-heading)]'
+                          : 'border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface-strong)] text-[var(--ss-workspace-muted)] hover:text-[var(--ss-workspace-heading)]'
                       }`}
                     >
                       <img src={agent.avatarUrl} alt="" className="w-4 h-4 rounded-full bg-slate-100" />
@@ -771,7 +939,7 @@ export const LogViewer: React.FC = () => {
             <div className="flex justify-end pt-2">
               <button
                 onClick={clearFilters}
-                className="text-xs text-slate-400 hover:text-slate-600 underline decoration-slate-300 underline-offset-2"
+                className="text-xs text-[var(--ss-workspace-muted)] underline decoration-[var(--ss-workspace-border)] underline-offset-2 hover:text-[var(--ss-workspace-heading)]"
               >
                 {t('components.logViewer.clearAllFilters')}
               </button>
@@ -781,17 +949,17 @@ export const LogViewer: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div ref={scrollRef} className={`flex-1 overflow-y-auto p-4 scroll-smooth ${viewMode === ViewMode.TIMELINE ? 'pl-10' : ''}`}>
+      <div ref={scrollRef} className={`ss-logviewer__body ${viewMode === ViewMode.TIMELINE ? 'pl-10' : ''}`}>
         {viewMode === ViewMode.TIMELINE && filteredLogs.length > 0 && (
-           <div className="absolute left-[36px] top-0 bottom-0 w-0.5 bg-slate-200 -z-0"></div>
+           <div className="absolute bottom-0 left-[36px] top-0 -z-0 w-0.5 bg-[var(--ss-workspace-topology-link)]"></div>
         )}
         
         {filteredLogs.length > 0 ? (
           filteredLogs.map(log => {
              // Find corresponding node worldTime if available (optional enhancement)
-             const node = nodes.find(n => n.id === log.nodeId);
+             const node = nodeLookup.get(log.nodeId);
              return (
-               <LogItem
+               <MemoLogItem
                  key={log.id}
                  entry={log}
                  mode={viewMode}
@@ -801,24 +969,72 @@ export const LogViewer: React.FC = () => {
                />
              );
           })
+        ) : hasActiveFilters ? (
+          <div className="ss-stage__empty is-filtered">
+            <Search size={26} className="ss-stage__empty-icon" />
+            <div className="ss-stage__empty-title">
+              {selectedAgent ? t("controlRoom.noRoleEvents") : t("controlRoom.noBranchEvents")}
+            </div>
+            <p className="ss-stage__empty-copy">
+              {isZh
+                ? "当前筛选条件下没有匹配记录，清空筛选后可回到完整事件流。"
+                : "No records match the current filters. Clear the filters to return to the full event stream."}
+            </p>
+            <button onClick={clearFilters} className="ss-button-secondary">
+              {t('components.logViewer.clearFilters')}
+            </button>
+          </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-40 text-slate-400">
-            <Search size={32} className="mb-2 opacity-20" />
-            <p className="text-sm">{t('components.logViewer.noMatchingLogs')}</p>
-            {hasActiveFilters && (
-              <button onClick={clearFilters} className="mt-2 text-xs text-brand-600 hover:underline">
-                {t('components.logViewer.clearFilters')}
-              </button>
-            )}
-            {!hasActiveFilters && (
-               <p className="text-xs mt-1 text-slate-300">{t('components.logViewer.noActivityYet')}</p>
-            )}
+          <div className="ss-stage__empty">
+            <Activity size={28} className="ss-stage__empty-icon" />
+            <div className="ss-stage__empty-title">
+              {selectedAgent
+                ? (isZh ? "该角色暂时还没有新活动" : "No role activity yet")
+                : (isZh ? "当前还没有分支活动" : "No branch activity yet")}
+            </div>
+            <p className="ss-stage__empty-copy">
+              {selectedAgent
+                ? (isZh
+                    ? "继续模拟后，这里会显示该角色的最新动作、状态变化与记忆片段。"
+                    : "Continue the simulation to populate this view with the role's latest actions, state changes, and memory fragments.")
+                : (isZh
+                    ? "继续模拟后，这里会依时间线展示世界状态更新、分支事件与关键干预记录。创建分支后，也能在这里对比不同路径的变化。"
+                    : "Continue the simulation to populate this area with world-state updates, branch events, and intervention records. After branching, this stage also helps compare how paths diverge.")}
+            </p>
+            {!selectedAgent ? (
+              <div className="ss-stage__empty-grid">
+                <div className="ss-stage__empty-card">
+                  <strong>{isZh ? "时间线" : "Timeline"}</strong>
+                  <span>
+                    {isZh
+                      ? "按时间顺序记录新的世界状态与事件。"
+                      : "Follow new world-state updates and events in time order."}
+                  </span>
+                </div>
+                <div className="ss-stage__empty-card">
+                  <strong>{isZh ? "分支事件" : "Branch events"}</strong>
+                  <span>
+                    {isZh
+                      ? "创建分支后，在这里查看不同路径如何分化。"
+                      : "See how different paths diverge after creating a branch."}
+                  </span>
+                </div>
+                <div className="ss-stage__empty-card">
+                  <strong>{isZh ? "干预记录" : "Interventions"}</strong>
+                  <span>
+                    {isZh
+                      ? "主持干预与关键操作会被收束到同一观察区。"
+                      : "Interventions and key operator actions appear in the same observation area."}
+                  </span>
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
       </div>
       
       {/* Footer Info */}
-      <div className="bg-slate-50 border-t px-3 py-1 text-[10px] text-slate-400 flex justify-between">
+      <div className="ss-logviewer__footer flex justify-between text-[10px]">
         <span>{t('components.logViewer.showingRecords', { count: filteredLogs.length })}</span>
         {hasActiveFilters && <span>{t('components.logViewer.filterActive')}</span>}
       </div>

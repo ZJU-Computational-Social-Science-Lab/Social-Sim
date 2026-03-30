@@ -146,31 +146,31 @@ export const HostPanel: React.FC = () => {
   const properties = selectedAgent ? Object.keys(selectedAgent.properties) : [];
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      <div className="p-3 border-b bg-amber-50/50">
-         <p className="text-xs text-amber-800 leading-relaxed">
+    <div className="ss-host-panel flex h-full flex-col">
+      <div className="border-b border-[var(--ss-workspace-border)] bg-[rgba(124,111,168,0.08)] p-3">
+         <p className="text-xs leading-relaxed text-[var(--ss-workspace-text)]">
            <strong>{t('components.hostPanel.godModeTitle')}</strong>: {t('components.hostPanel.godModeDescription')}
          </p>
          <button
            onClick={() => toggleInitialEvents(true)}
-           className="mt-2 text-[11px] px-2 py-1 bg-white border border-amber-200 text-amber-700 rounded flex items-center gap-1"
+           className="ss-button-secondary mt-2 inline-flex items-center gap-1 px-2 py-1 text-[11px]"
          >
            <FilePlus size={12} /> {t('components.hostPanel.initialEventsEditor')}
          </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      <div className="ss-host-panel__body flex-1 space-y-6 overflow-y-auto">
         
         {/* #12 Environment Advisor */}
-        <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-100">
+        <div className="ss-host-panel__section">
           <div className="flex justify-between items-center mb-2">
-            <label className="text-xs font-bold text-indigo-800 flex items-center gap-1">
+            <label className="flex items-center gap-1 text-xs font-bold text-[#DDD7F5]">
               <Sparkles size={14} /> {t('components.hostPanel.aiAdvisor')}
             </label>
             <button
               onClick={handleGetSuggestions}
               disabled={isSuggesting}
-              className="text-[10px] bg-white border border-indigo-200 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 disabled:opacity-50"
+              className="ss-button-secondary px-2 py-1 text-[10px] disabled:opacity-50"
             >
               {isSuggesting ? <Loader2 size={10} className="animate-spin inline" /> : t('components.hostPanel.getSuggestions')}
             </button>
@@ -179,12 +179,12 @@ export const HostPanel: React.FC = () => {
           {suggestions.length > 0 ? (
             <div className="space-y-2">
               {suggestions.map((s, i) => (
-                <div key={i} className="bg-white p-2 rounded border border-indigo-100 text-xs shadow-sm group">
-                  <p className="font-bold text-slate-700 mb-1">{s.event}</p>
-                  <p className="text-slate-400 text-[10px] mb-2">{s.reason}</p>
+                <div key={i} className="group rounded-2xl border border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface)] p-2 text-xs shadow-sm">
+                  <p className="mb-1 font-bold text-[var(--ss-workspace-heading)]">{s.event}</p>
+                  <p className="mb-2 text-[10px] text-[var(--ss-workspace-muted)]">{s.reason}</p>
                   <button
                     onClick={() => handleAdoptSuggestion(s.event)}
-                    className="w-full py-1 bg-indigo-50 text-indigo-600 font-bold rounded hover:bg-indigo-100 flex items-center justify-center gap-1 opacity-80 hover:opacity-100"
+                    className="ss-button-secondary flex w-full items-center justify-center gap-1 py-1 font-bold opacity-80 hover:opacity-100"
                   >
                     <Check size={12} /> {t('components.hostPanel.adoptEvent')}
                   </button>
@@ -192,27 +192,27 @@ export const HostPanel: React.FC = () => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-4 text-indigo-300 text-xs italic">
+            <div className="py-4 text-center text-xs italic text-[var(--ss-workspace-muted)]">
                {t('components.hostPanel.getSuggestionsHint')}
             </div>
           )}
         </div>
 
-        <hr className="border-slate-100" />
+        <hr className="border-[var(--ss-workspace-border)]" />
 
         {/* Broadcast */}
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+        <div className="ss-host-panel__section space-y-2">
+          <label className="flex items-center gap-1 text-xs font-bold text-[var(--ss-workspace-heading)]">
             <Megaphone size={14} /> {t('components.hostPanel.systemBroadcast')}
           </label>
-          <div className="text-[11px] text-slate-500 mb-1">
+          <div className="mb-1 text-[11px] text-[var(--ss-workspace-muted)]">
             {t('components.hostPanel.recipientHint', '选择接收者（为空则全员）：')}
           </div>
           <div className="flex flex-wrap gap-1 mb-2">
             {agents.map((a) => {
               const checked = broadcastRecipients.includes(a.name) || broadcastRecipients.includes(a.id);
               return (
-                <label key={a.id} className="flex items-center gap-1 text-[11px] px-2 py-1 border border-slate-200 rounded bg-white hover:bg-slate-50 cursor-pointer">
+                <label key={a.id} className="flex cursor-pointer items-center gap-1 rounded-full border border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface)] px-2 py-1 text-[11px] hover:bg-black/5">
                   <input
                     type="checkbox"
                     className="accent-brand-500"
@@ -235,27 +235,27 @@ export const HostPanel: React.FC = () => {
               value={broadcastMsg}
               onChange={(e) => setBroadcastMsg(e.target.value)}
               placeholder={t('components.hostPanel.broadcastPlaceholder')}
-              className="flex-1 text-sm border rounded p-2 focus:ring-1 focus:ring-brand-500 outline-none resize-none h-20"
+              className="ss-input h-20 flex-1 resize-none p-2 text-sm"
             />
           </div>
           <button
             onClick={handleBroadcast}
             disabled={!broadcastMsg}
-            className="w-full py-1.5 text-xs bg-slate-800 text-white rounded hover:bg-slate-700 disabled:opacity-50"
+            className="ss-button w-full py-1.5 text-xs disabled:opacity-50"
           >
             {t('components.hostPanel.sendBroadcast')}
           </button>
         </div>
 
-        <hr className="border-slate-100" />
+        <hr className="border-[var(--ss-workspace-border)]" />
 
         {/* Environment with Multimodal Support #24 */}
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+        <div className="ss-host-panel__section space-y-2">
+          <label className="flex items-center gap-1 text-xs font-bold text-[var(--ss-workspace-heading)]">
             <CloudLightning size={14} /> {t('components.hostPanel.injectEvent')}
           </label>
           {currentSimulation?.scene_type === 'policy_cascade_scene' && (
-            <div className="text-[11px] text-slate-400 italic">
+            <div className="text-[11px] italic text-[var(--ss-workspace-muted)]">
               {t('components.hostPanel.injectNoticeOnly', '注：注入环境事件为 notice-only（不触发系统广播），用于干预后续事件。')}
             </div>
           )}
@@ -265,7 +265,7 @@ export const HostPanel: React.FC = () => {
               value={envEvent}
               onChange={(e) => setEnvEvent(e.target.value)}
               placeholder={t('components.hostPanel.eventPlaceholder')}
-              className="w-full text-sm border rounded px-2 py-1.5 focus:ring-1 focus:ring-emerald-500 outline-none"
+              className="ss-input w-full px-2 py-1.5 text-sm"
             />
 
             <MultimodalInput
@@ -281,17 +281,17 @@ export const HostPanel: React.FC = () => {
           <button
             onClick={() => handleEnvEvent()}
             disabled={!envEvent && !envImage}
-            className="w-full py-1.5 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50"
+            className="ss-button w-full py-1.5 text-xs disabled:opacity-50"
           >
             {t('components.hostPanel.triggerEvent')}
           </button>
         </div>
 
-        <hr className="border-slate-100" />
+        <hr className="border-[var(--ss-workspace-border)]" />
 
         {/* State Editing */}
-        <div className="space-y-3 bg-slate-50 p-3 rounded-lg border">
-          <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+        <div className="ss-host-panel__section space-y-3">
+          <label className="flex items-center gap-1 text-xs font-bold text-[var(--ss-workspace-heading)]">
             <Edit size={14} /> {t('components.hostPanel.modifyState')}
           </label>
 
@@ -302,7 +302,7 @@ export const HostPanel: React.FC = () => {
               setSelectedProp('');
               setPropValue('');
             }}
-            className="w-full text-xs border rounded px-2 py-1.5 bg-white"
+            className="ss-input w-full px-2 py-1.5 text-xs"
           >
             {agents.map(a => <option key={a.id} value={a.id}>{a.name} ({a.role})</option>)}
           </select>
@@ -311,7 +311,7 @@ export const HostPanel: React.FC = () => {
             value={selectedProp}
             onChange={(e) => setSelectedProp(e.target.value)}
             disabled={!selectedAgent}
-            className="w-full text-xs border rounded px-2 py-1.5 bg-white disabled:opacity-50"
+            className="ss-input w-full px-2 py-1.5 text-xs disabled:opacity-50"
           >
             <option value="">{t('components.hostPanel.selectProperty')}</option>
             {properties.map(p => <option key={p} value={p}>{p}</option>)}
@@ -323,13 +323,13 @@ export const HostPanel: React.FC = () => {
             onChange={(e) => setPropValue(e.target.value)}
             placeholder={t('components.hostPanel.enterNewValue')}
             disabled={!selectedProp}
-            className="w-full text-xs border rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100"
+            className="ss-input w-full px-2 py-1.5 text-xs disabled:opacity-50"
           />
 
           <button
             onClick={handleUpdateProp}
             disabled={!selectedProp || !propValue}
-            className="w-full py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-1"
+            className="ss-button flex w-full items-center justify-center gap-1 py-1.5 text-xs disabled:opacity-50"
           >
             <Save size={12} /> {t('components.hostPanel.updateProperty')}
           </button>

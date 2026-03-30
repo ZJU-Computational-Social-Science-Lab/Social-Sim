@@ -1,5 +1,14 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import {
+  ArrowRight,
+  Building2,
+  LockKeyhole,
+  Mail,
+  Phone,
+  User,
+  UserRound,
+} from "lucide-react";
 
 import { apiClient } from "../services/client";
 import { useTranslation } from "react-i18next";
@@ -64,46 +73,155 @@ export function RegisterPage() {
   };
 
   return (
-    <section className="panel" style={{ maxWidth: 520, margin: "0 auto", gap: "0.75rem" }}>
-      <div className="panel-title">{t('auth.register.title')}</div>
-      <form onSubmit={onSubmit} className="card" style={{ gap: "0.5rem" }}>
-        <label>
-          {t('auth.register.organization')}
-          <input className="input" value={form.organization} onChange={(e) => handleChange("organization", e.target.value)} required />
-        </label>
-        <label>
-          {t('auth.register.email')}
-          <input className="input" type="email" value={form.email} onChange={(e) => handleChange("email", e.target.value)} required />
-        </label>
-        <label>
-          {t('auth.register.username')}
-          <input className="input" value={form.username} onChange={(e) => handleChange("username", e.target.value)} required />
-        </label>
-        <label>
-          {t('auth.register.fullName')}
-          <input className="input" value={form.full_name} onChange={(e) => handleChange("full_name", e.target.value)} required />
-        </label>
-        <label>
-          {t('auth.register.phone')}
-          <input className="input" value={form.phone_number} onChange={(e) => handleChange("phone_number", e.target.value)} required pattern="^\+?[1-9]\d{7,14}$" title={t('auth.register.invalidPhoneTitle') || '+123456789 (8-15 digits)'} />
-        </label>
-        <label>
-          {t('auth.register.password')}
-          <input className="input" type="password" value={form.password} onChange={(e) => handleChange("password", e.target.value)} required />
-        </label>
-        {error === 'invalid_phone' && <div style={{ color: "#f87171" }}>{t('auth.register.invalidPhone')}</div>}
-        {error && error !== 'invalid_phone' && (
-          <div style={{ color: "#f87171" }}>
-            {error === 'register_failed' ? t('auth.register.failed') : `Error: ${String(error).toLowerCase()}`}
+    <section className="ss-auth__card ss-auth__card--wide">
+      <div className="space-y-3">
+        <div className="ss-auth__hero-badge">{t("auth.register.badge")}</div>
+        <div className="ss-auth__intro">
+          <div className="ss-auth__intro-mark">
+            <Building2 size={20} />
           </div>
-        )}
-        {success && <div style={{ color: "#34d399" }}>{t('auth.register.success')}</div>}
-        <button type="submit" className="button" disabled={loading}>
-          {loading ? t('auth.register.submit') + '…' : t('auth.register.submit')}
+          <div className="space-y-2">
+            <h2 className="ss-auth__title">
+              {t("auth.register.title")}
+            </h2>
+            <p className="ss-auth__copy">
+              {t("auth.register.subtitle")}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <form onSubmit={onSubmit} className="mt-8 space-y-5">
+        <div className="ss-auth__grid">
+          <label className="ss-auth__field-block">
+            <span className="ss-auth__label">{t("auth.register.organization")}</span>
+            <div className="ss-auth__field">
+              <Building2 size={16} className="ss-auth__field-icon" />
+              <input
+                className="ss-input ss-auth__input"
+                value={form.organization}
+                onChange={(e) => handleChange("organization", e.target.value)}
+                placeholder={t("auth.register.organization")}
+                required
+              />
+            </div>
+          </label>
+
+          <label className="ss-auth__field-block">
+            <span className="ss-auth__label">{t("auth.register.email")}</span>
+            <div className="ss-auth__field">
+              <Mail size={16} className="ss-auth__field-icon" />
+              <input
+                className="ss-input ss-auth__input"
+                type="email"
+                value={form.email}
+                onChange={(e) => handleChange("email", e.target.value)}
+                placeholder={t("auth.register.emailPlaceholder")}
+                required
+              />
+            </div>
+          </label>
+
+          <label className="ss-auth__field-block">
+            <span className="ss-auth__label">{t("auth.register.username")}</span>
+            <div className="ss-auth__field">
+              <User size={16} className="ss-auth__field-icon" />
+              <input
+                className="ss-input ss-auth__input"
+                value={form.username}
+                onChange={(e) => handleChange("username", e.target.value)}
+                placeholder={t("auth.register.username")}
+                required
+              />
+            </div>
+          </label>
+
+          <label className="ss-auth__field-block">
+            <span className="ss-auth__label">{t("auth.register.fullName")}</span>
+            <div className="ss-auth__field">
+              <UserRound size={16} className="ss-auth__field-icon" />
+              <input
+                className="ss-input ss-auth__input"
+                value={form.full_name}
+                onChange={(e) => handleChange("full_name", e.target.value)}
+                placeholder={t("auth.register.fullName")}
+                required
+              />
+            </div>
+          </label>
+
+          <label className="ss-auth__field-block">
+            <span className="ss-auth__label">{t("auth.register.phone")}</span>
+            <div className="ss-auth__field">
+              <Phone size={16} className="ss-auth__field-icon" />
+              <input
+                className="ss-input ss-auth__input"
+                value={form.phone_number}
+                onChange={(e) => handleChange("phone_number", e.target.value)}
+                placeholder={t("auth.register.phonePlaceholder")}
+                required
+                pattern="^\+?[1-9]\d{7,14}$"
+                title={t("auth.register.invalidPhoneTitle") || "+123456789 (8-15 digits)"}
+              />
+            </div>
+            <span className="ss-auth__helper">
+              {t("auth.register.invalidPhoneTitle") || "+123456789 (8-15 digits)"}
+            </span>
+          </label>
+
+          <label className="ss-auth__field-block">
+            <span className="ss-auth__label">{t("auth.register.password")}</span>
+            <div className="ss-auth__field">
+              <LockKeyhole size={16} className="ss-auth__field-icon" />
+              <input
+                className="ss-input ss-auth__input"
+                type="password"
+                value={form.password}
+                onChange={(e) => handleChange("password", e.target.value)}
+                placeholder={t("auth.register.passwordPlaceholder")}
+                required
+              />
+            </div>
+          </label>
+        </div>
+
+        {error === "invalid_phone" ? (
+          <div className="ss-auth__status ss-auth__status--error">
+            {t("auth.register.invalidPhone")}
+          </div>
+        ) : null}
+
+        {error && error !== "invalid_phone" ? (
+          <div className="ss-auth__status ss-auth__status--error">
+            {error === "register_failed"
+              ? t("auth.register.failed")
+              : `Error: ${String(error).toLowerCase()}`}
+          </div>
+        ) : null}
+
+        {success ? (
+          <div className="ss-auth__status ss-auth__status--success">
+            {t("auth.register.success")}
+          </div>
+        ) : null}
+
+        <button type="submit" className="ss-button w-full justify-between px-5" disabled={loading}>
+          <span>{loading ? `${t("auth.register.submit")}…` : t("auth.register.submit")}</span>
+          <ArrowRight size={16} />
         </button>
       </form>
-      <div style={{ color: "var(--muted)" }}>
-        {t('auth.register.have')} <Link to="/login">{t('auth.register.signin')}</Link>
+
+      <div className="ss-auth__footer">
+        <p className="ss-auth__footer-text">
+          {t("auth.register.have")}{" "}
+          <Link to="/login" className="ss-auth__footer-link">
+            {t("auth.register.signin")}
+          </Link>
+        </p>
+        <div className="ss-auth__footer-note">
+          <span>{t("auth.register.footerLeft")}</span>
+          <span>{t("auth.register.footerRight")}</span>
+        </div>
       </div>
     </section>
   );
