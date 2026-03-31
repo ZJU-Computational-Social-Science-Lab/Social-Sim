@@ -42,6 +42,14 @@ export interface ExperimentsSlice {
   toggleCompareMode: (isOpen: boolean) => void;
   generateComparisonAnalysis: () => Promise<void>;
 
+  // Auto-advance
+  isAutoAdvancing: boolean;
+  autoAdvanceTotal: number;
+  autoAdvanceCurrent: number;
+  highlightedNodeId: string | null;
+  startAutoAdvance: (steps: number, delayMs?: number) => Promise<void>;
+  stopAutoAdvance: () => void;
+
   // Simulation control
   advanceSimulation: () => Promise<void>;
   branchSimulation: () => void;
@@ -90,12 +98,114 @@ export const createExperimentsSlice: StateCreator<
     roundStart: null,
     roundEnd: null
   },
+  isAutoAdvancing: false,
+  autoAdvanceTotal: 0,
+  autoAdvanceCurrent: 0,
+  highlightedNodeId: null,
 
   // Actions
   updateAnalysisConfig: (patch) => {
     set((state) => ({
       analysisConfig: { ...state.analysisConfig, ...patch }
     }));
+  },
+
+  stopAutoAdvance: () => {
+    set({
+      isAutoAdvancing: false,
+      autoAdvanceTotal: 0,
+      autoAdvanceCurrent: 0,
+      highlightedNodeId: null,
+    } as any);
+  },
+
+  startAutoAdvance: async (steps: number, delayMs: number = 500) => {
+    const state = get() as any;
+
+    // Guards
+    if (!state.currentSimulation || !state.selectedNodeId) {
+      console.error('[startAutoAdvance] No simulation or node selected');
+      return;
+    }
+    if (state.isAutoAdvancing || state.isGenerating) {
+      console.warn('[startAutoAdvance] Already in progress');
+      return;
+    }
+
+    // Validate and clamp inputs
+    const totalSteps = Math.min(100, Math.max(1, Math.floor(steps)));
+    const delay = Math.min(5000, Math.max(100, delayMs));
+
+    set({
+      isAutoAdvancing: true,
+      autoAdvanceTotal: totalSteps,
+      autoAdvanceCurrent: 0,
+    } as any);
+
+    for (let i = 0; i < totalSteps; i++) {
+      // CRITICAL: Read fresh state on every iteration so that
+      // stopAutoAdvance() is detected between steps.
+      const current = get() as any;
+      if (!current.isAutoAdvancing) {
+        current.addNotification?.(
+          'info',
+          i18n.t('simPage.autoAdvanceStopped', { current: i, total: totalSteps })
+        );
+        return;
+      }
+
+      set({ autoAdvanceCurrent: i + 1 } as any);
+
+      try {
+        await current.advanceSimulation();
+
+        // Highlight newly selected node
+        const afterAdvance = get() as any;
+        if (afterAdvance.selectedNodeId) {
+          const nodeId = afterAdvance.selectedNodeId;
+          set({ highlightedNodeId: nodeId } as any);
+
+          // Clear highlight after 2 seconds
+          setTimeout(() => {
+            const s = get() as any;
+            if (s.highlightedNodeId === nodeId) {
+              set({ highlightedNodeId: null } as any);
+            }
+          }, 2000);
+        }
+      } catch (error) {
+        console.error('[startAutoAdvance] Step failed:', error);
+        (get() as any).addNotification?.(
+          'error',
+          i18n.t('simPage.autoAdvanceError', { error: String(error) })
+        );
+        set({
+          isAutoAdvancing: false,
+          autoAdvanceTotal: 0,
+          autoAdvanceCurrent: 0,
+        } as any);
+        return;
+      }
+
+      // Delay between steps (skip after last step)
+      if (i < totalSteps - 1) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+
+    // All steps complete
+    const final = get() as any;
+    if (final.isAutoAdvancing) {
+      set({
+        isAutoAdvancing: false,
+        autoAdvanceTotal: 0,
+        autoAdvanceCurrent: 0,
+      } as any);
+      final.addNotification?.(
+        'success',
+        i18n.t('simPage.autoAdvanceComplete', { count: totalSteps })
+      );
+    }
   },
 
   setComparisonUseLLM: (v) => set({ comparisonUseLLM: v }),
