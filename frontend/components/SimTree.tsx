@@ -19,6 +19,7 @@ export const SimTree: React.FC = () => {
   const toggleHelpModal = useSimulationStore(state => state.toggleHelpModal);
   const isCompareMode = useSimulationStore(state => state.isCompareMode);
   const deleteNode = useSimulationStore(state => state.deleteNode);
+  const highlightedNodeId = useSimulationStore(state => state.highlightedNodeId);
 
   // Keep track of zoom behavior to call it programmatically
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
@@ -172,11 +173,27 @@ const root = d3.stratify<SimNode>()
       .text(d => d.data.display_id || d.data.id)
       .attr('class', d => `text-xs font-medium pointer-events-none select-none drop-shadow-sm bg-white ${d.data.status === 'failed' ? 'fill-red-600' : 'fill-slate-600'}`);
 
+    // Auto-advance highlight ring
+    if (highlightedNodeId) {
+      nodeGroup.filter(d => d.data.id === highlightedNodeId)
+        .append('circle')
+        .attr('r', 22)
+        .attr('fill', 'none')
+        .attr('stroke', '#10b981')  // emerald-500
+        .attr('stroke-width', 3)
+        .attr('opacity', 1)
+        .transition()
+        .duration(2000)
+        .attr('r', 28)
+        .attr('opacity', 0)
+        .remove();
+    }
+
     // Initial positioning
     const initialTransform = d3.zoomIdentity.translate(80, height / 2).scale(1);
     svg.call(zoom.transform, initialTransform);
 
-  }, [nodes, selectedNodeId, compareTargetNodeId, selectNode, setCompareTarget, isCompareMode, i18n.language]);
+  }, [nodes, selectedNodeId, compareTargetNodeId, selectNode, setCompareTarget, isCompareMode, i18n.language, highlightedNodeId]);
 
   const handleZoomIn = () => {
     if (svgRef.current && zoomRef.current) {

@@ -52,6 +52,7 @@ import {
   Globe,
   RotateCcw,
   Trash2,
+  Square,
 } from "lucide-react";
 
 // ---------------- Header ----------------
@@ -247,6 +248,14 @@ const Toolbar: React.FC = () => {
     (state) => state.setCompareTarget
   );
 
+  const isAutoAdvancing = useSimulationStore((state) => state.isAutoAdvancing);
+  const autoAdvanceCurrent = useSimulationStore((state) => state.autoAdvanceCurrent);
+  const autoAdvanceTotal = useSimulationStore((state) => state.autoAdvanceTotal);
+  const startAutoAdvance = useSimulationStore((state) => state.startAutoAdvance);
+  const stopAutoAdvance = useSimulationStore((state) => state.stopAutoAdvance);
+
+  const [advanceSteps, setAdvanceSteps] = React.useState(1);
+
   const currentSim = useSimulationStore((state) => state.currentSimulation);
   const providerSelection = selectedProviderId ?? currentProviderId ?? null;
 
@@ -289,6 +298,55 @@ const Toolbar: React.FC = () => {
             <GitFork size={14} />
             {t('simPage.branch')}
           </button>
+
+          {/* Auto-advance controls */}
+          <div className="h-4 w-px bg-slate-200 mx-1"></div>
+
+          <input
+            type="number"
+            min={1}
+            max={100}
+            value={advanceSteps}
+            onChange={(e) => {
+              const v = parseInt(e.target.value, 10);
+              if (!isNaN(v)) setAdvanceSteps(Math.min(100, Math.max(1, v)));
+            }}
+            disabled={isAutoAdvancing || isGenerating || isCompareMode}
+            className="w-16 px-2 py-1.5 text-xs text-center border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:opacity-50"
+            title={t('simPage.enterSteps')}
+          />
+
+          {isAutoAdvancing ? (
+            <button
+              onClick={() => stopAutoAdvance()}
+              className="flex items-center gap-2 px-3 py-1.5 bg-red-500 text-white hover:bg-red-600 text-xs font-bold rounded shadow-sm transition-all active:scale-95"
+            >
+              <Square size={14} />
+              {t('simPage.stop')}
+            </button>
+          ) : (
+            <button
+              onClick={() => startAutoAdvance(advanceSteps)}
+              disabled={isGenerating || isCompareMode}
+              className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded shadow-sm transition-all active:scale-95 ${
+                isGenerating || isCompareMode
+                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+              }`}
+            >
+              <SkipForward size={14} />
+              {t('simPage.autoAdvance')}
+            </button>
+          )}
+
+          {isAutoAdvancing && (
+            <span className="text-xs text-slate-500">
+              {t('simPage.advancingProgress', {
+                current: autoAdvanceCurrent,
+                total: autoAdvanceTotal,
+              })}
+            </span>
+          )}
         </div>
 
         {/* Experiment Designer */}
