@@ -8,16 +8,13 @@ import logging
 from litestar import get, Request
 from litestar.exceptions import HTTPException
 from litestar.response import Response
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from socialsim4.backend.core.database import get_session
 from socialsim4.backend.dependencies import extract_bearer_token, resolve_current_user
-from socialsim4.backend.models.simulation import SimulationLog
 from socialsim4.backend.services.export_service import export_events, generate_export_filename
-from socialsim4.core.scenarios.registry import SCENARIO_REGISTRY
+from socialsim4.core.scenarios.registry import get_scenario
 
-from .helpers import get_simulation_for_owner
+from .helpers import get_simulation_and_tree_any
 
 
 logger = logging.getLogger(__name__)
@@ -41,12 +38,16 @@ async def export_simulation(
     Returns:
         File download response with proper filename
     """
+    logger.info(f"Export request - simulation_id={simulation_id}, format={format}, node_id={node_id}")
+
+    # Extract bearer token
     token = extract_bearer_token(request)
     async with get_session() as session:
         current_user = await resolve_current_user(session, token)
 
-        # Fetch simulation
-        sim = await get_simulation_for_owner(session, current_user.id, simulation_id)
+        # Fetch simulation and tree from memory (logs are stored in SimTree, not database)
+        sim, record = await get_simulation_and_tree_any(session, simulation_id)
+        logger.info(f"Found simulation: {sim.id}, owner_id={current_user.id}")
 
         if not sim:
             raise HTTPException(status_code=404, detail="Simulation not found")
@@ -56,7 +57,7 @@ async def export_simulation(
         scenario_id = scene_config.get("scenario_id", "unknown")
 
         # Fetch scenario parameters from registry
-        scenario_def = SCENARIO_REGISTRY.get(scenario_id, {})
+        scenario_def = get_scenario(scenario_id) or {}
         param_defs = scenario_def.get("parameters", [])
 
         # Extract scenario parameter values from scene_config
@@ -68,32 +69,61 @@ async def export_simulation(
             elif "default" in param_def:
                 scenario_params[key] = param_def["default"]
 
-        # Fetch logs
-        query = select(SimulationLog).where(
-            SimulationLog.simulation_id == sim.id
-        ).order_by(SimulationLog.sequence)
+        logger.info(f"Scenario params: {scenario_params}")
+
+        # Collect logs from tree nodes (logs are stored in memory, not database)
+        all_logs = []
 
         if node_id:
-            query = query.where(SimulationLog.tree_node_id == int(node_id))
+            # Export logs for specific node
+            target_node_id = int(node_id)
+            node = record.tree.nodes.get(target_node_id)
+            if node is None:
+                raise HTTPException(status_code=404, detail=f"Node {node_id} not found")
+            node_logs = node.get("logs", [])
+            all_logs.extend(node_logs)
+            logger.info(f"Found {len(node_logs)} logs for node {node_id}")
+        else:
+            # Export logs for all nodes
+            for nid, node in record.tree.nodes.items():
+                node_logs = node.get("logs", [])
+                all_logs.extend(node_logs)
 
-        result = await session.execute(query)
-        logs = result.scalars().all()
+        logger.info(f"Found {len(all_logs)} total logs across all nodes")
 
-        # Convert to dict format
-        events = [
-            {
-                "sequence": log.sequence,
-                "tree_node_id": log.tree_node_id,
-                "event_type": log.event_type,
-                "payload": log.payload,
-                "created_at": log.created_at,
-            }
-            for log in logs
-        ]
+        # Sort logs by sequence if available, otherwise by node then sequence
+        def get_sort_key(log_entry):
+            # Logs have format: {"type": kind, "data": data, "node": int(node_id)}
+            node_seq = log_entry.get("node", 0)
+            data = log_entry.get("data", {})
+            # Try to get sequence from data
+            seq = data.get("sequence", data.get("turn", 0))
+            return (node_seq, seq)
+
+        all_logs.sort(key=get_sort_key)
+
+        # Log sample for debugging
+        if all_logs:
+            for i, log in enumerate(all_logs[:3]):
+                logger.info(f"Sample log {i}: type={log.get('type')}, data keys={list(log.get('data', {}).keys()) if log.get('data') else 'None'}")
+
+        # Convert to format expected by export_service
+        # export_service expects events with: sequence, tree_node_id, event_type, payload, created_at
+        events = []
+        for seq_num, log in enumerate(all_logs):
+            log_data = log.get("data", {})
+            events.append({
+                "sequence": seq_num,
+                "tree_node_id": log.get("node"),
+                "event_type": log.get("type"),
+                "payload": log_data,
+                "created_at": log_data.get("created_at") or log_data.get("timestamp"),
+            })
 
         # Export
         content = export_events(events, scenario_params, format)
         filename = generate_export_filename(scenario_id, format)
+        logger.info(f"Export content length: {len(content)} chars, first 500 chars: {content[:500]}")
 
         # Return with proper headers
         media_type = "text/csv" if format == "csv" else "application/json"

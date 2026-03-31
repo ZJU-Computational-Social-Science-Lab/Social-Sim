@@ -33,6 +33,7 @@ import {
   Minus,
 } from 'lucide-react';
 import Papa from 'papaparse';
+import seedrandom from 'seedrandom';
 import { Agent, LLMConfig, TimeUnit, GenericTemplateConfig, Template } from '../types';
 import { uploadImage } from '../services/uploads';
 import { TemplateBuilder, createEmptyGenericTemplate } from './TemplateBuilder';
@@ -108,6 +109,90 @@ const generateArchetypes = (demographics: Demographic[]): Archetype[] => {
   }));
 };
 
+// =============================================================================
+// LLM Distribution Helper
+// =============================================================================
+
+interface LLMAllocation {
+  providerId: number;
+  providerName: string;
+  modelName: string;
+  percentage: number;
+}
+
+/**
+ * Apply LLM distribution to agents using largest-remainder method.
+ * Returns a new array of agents with llmConfig populated.
+ */
+function applyLlmDistribution(
+  agents: Agent[],
+  allocations: LLMAllocation[],
+  simulationId: string,
+  defaultLLMConfig: LLMConfig
+): Agent[] {
+  // If no allocations configured, apply simulation default
+  if (allocations.length === 0) {
+    return agents.map(agent => ({
+      ...agent,
+      llmConfig: { ...defaultLLMConfig }
+    }));
+  }
+
+  // Validate total is 100%
+  const total = allocations.reduce((sum, a) => sum + a.percentage, 0);
+  if (total !== 100) {
+    throw new Error('LLM allocations must sum to 100%');
+  }
+
+  const agentCount = agents.length;
+
+  // --- Largest-remainder method ---
+  // Step 1: Compute floor counts and remainders
+  const entries = allocations.map(allocation => {
+    const exact = (allocation.percentage / 100) * agentCount;
+    const floor = Math.floor(exact);
+    const remainder = exact - floor;
+    return { allocation, count: floor, remainder };
+  });
+
+  // Step 2: Distribute leftover slots to largest remainders
+  let assigned = entries.reduce((sum, e) => sum + e.count, 0);
+  let leftover = agentCount - assigned;
+
+  // Sort by remainder descending, break ties by original order
+  const sorted = entries
+    .map((e, i) => ({ ...e, originalIndex: i }))
+    .sort((a, b) => b.remainder - a.remainder || a.originalIndex - b.originalIndex);
+
+  for (let i = 0; i < leftover; i++) {
+    sorted[i].count += 1;
+  }
+
+  // Step 3: Build assignment list
+  const assignmentList: LLMAllocation[] = [];
+  for (const entry of sorted) {
+    for (let i = 0; i < entry.count; i++) {
+      assignmentList.push(entry.allocation);
+    }
+  }
+
+  // Step 4: Shuffle with seeded PRNG for reproducibility
+  const rng = seedrandom(simulationId);
+  for (let i = assignmentList.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [assignmentList[i], assignmentList[j]] = [assignmentList[j], assignmentList[i]];
+  }
+
+  // Step 5: Assign to agents
+  return agents.map((agent, index) => ({
+    ...agent,
+    llmConfig: {
+      provider: assignmentList[index].providerName,
+      model: assignmentList[index].modelName
+    }
+  }));
+}
+
 export const SimulationWizard: React.FC = () => {
   const { t, i18n } = useTranslation();
   const isOpen = useSimulationStore((state) => state.isWizardOpen);
@@ -120,9 +205,15 @@ export const SimulationWizard: React.FC = () => {
 
   // provider related
   const llmProviders = useSimulationStore((s) => s.llmProviders);
+  const providersLoading = useSimulationStore((s) => s.providersLoading);
   const selectedProviderId = useSimulationStore((s) => s.selectedProviderId);
   const setSelectedProvider = useSimulationStore((s) => s.setSelectedProvider);
   const loadProviders = useSimulationStore((s) => s.loadProviders);
+
+  // Debug: Log provider state
+  console.log('[SimulationWizard] llmProviders:', llmProviders);
+  console.log('[SimulationWizard] llmProviders length:', llmProviders?.length);
+  console.log('[SimulationWizard] providersLoading:', providersLoading);
 
   // ============================================================================
   // State
@@ -174,7 +265,10 @@ export const SimulationWizard: React.FC = () => {
   // Load providers and initialize on open
   useEffect(() => {
     if (isOpen) {
-      loadProviders();
+      // Only load providers if not already loaded and not currently loading
+      if (llmProviders.length === 0 && !providersLoading) {
+        loadProviders();
+      }
       if (selectedTemplateId === 'policy_diffusion') {
         setDemographics([{ id: generateId(), name: t('wizard.defaults.tierLabel'), categories: ['top', 'mid', 'low'] }]);
       } else if (demographics.length === 0) {
@@ -196,7 +290,7 @@ export const SimulationWizard: React.FC = () => {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, loadProviders, selectedTemplateId]);
+  }, [isOpen, selectedTemplateId]);
 
   // Update demographics when language changes
   useEffect(() => {
@@ -300,16 +394,29 @@ export const SimulationWizard: React.FC = () => {
   };
 
   const handleFinish = () => {
-    const agentsToUse = importMode === 'custom' || importMode === 'generate'
-      ? customAgents
+    let agentsToUse = importMode === 'custom' || importMode === 'generate'
+      ? [...customAgents]
       : undefined;
 
-    if (agentsToUse) {
-      agentsToUse.forEach((a) => {
-        if (!a.llmConfig) {
-          a.llmConfig = defaultLlmConfig;
-        }
-      });
+    // Apply LLM distribution if agents exist
+    if (agentsToUse && agentsToUse.length > 0) {
+      // Validate LLM distribution before applying
+      const totalAllocation = llmAllocations.reduce((sum, a) => sum + a.percentage, 0);
+      if (llmAllocations.length > 0 && totalAllocation !== 100) {
+        addNotification('error', t('wizard.step2.llmMustEqual100', { current: totalAllocation }));
+        return;
+      }
+
+      // Generate a simulation ID for seeded shuffle (use timestamp + random)
+      const tempSimulationId = `sim_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Apply distribution
+      agentsToUse = applyLlmDistribution(
+        agentsToUse,
+        llmAllocations,
+        tempSimulationId,
+        defaultLlmConfig
+      );
     }
 
     // If using custom template, create a template from generic config
@@ -920,7 +1027,7 @@ export const SimulationWizard: React.FC = () => {
                       onRemoveLlmAllocation={handleRemoveLlmAllocation}
                       onUpdateLlmAllocation={handleUpdateLlmAllocation}
                       availableProviders={llmProviders}
-                      providersLoading={false}
+                      providersLoading={providersLoading}
                       t={t}
                     />
                   )}
@@ -962,7 +1069,14 @@ export const SimulationWizard: React.FC = () => {
           onNext={handleNext}
           onPrevious={() => setStep(step - 1)}
           onFinish={handleFinish}
-          isSaving={isGeneratingGlobal}
+          isSaving={isGeneratingGlobal || (() => {
+            // Disable if on step 2 with invalid LLM distribution
+            if (step === 2 && llmAllocations.length > 0) {
+              const total = llmAllocations.reduce((sum, a) => sum + a.percentage, 0);
+              return total !== 100;
+            }
+            return false;
+          })()}
           cancelText={t('wizard.footer.cancel')}
           previousText={t('wizard.footer.previous')}
           nextText={t('wizard.footer.next')}
@@ -1043,6 +1157,11 @@ const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = ({
   providersLoading = false,
   t,
 }) => {
+  // Debug logging
+  console.log('[Step2DemographicsEditor] availableProviders:', availableProviders);
+  console.log('[Step2DemographicsEditor] providersLoading:', providersLoading);
+  console.log('[Step2DemographicsEditor] availableProviders length:', availableProviders?.length);
+
   return (
     <div className="flex-1 flex flex-col gap-4 overflow-y-auto">
       {/* Demographics Configuration */}
@@ -1226,6 +1345,11 @@ const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = ({
             <Plus size={14} /> {t('wizard.step2.addLlm')}
           </button>
         </div>
+
+        {/* Debug Info */}
+        {console.log('[LLM Distribution Render] availableProviders:', availableProviders)}
+        {console.log('[LLM Distribution Render] providersLoading:', providersLoading)}
+        {console.log('[LLM Distribution Render] availableProviders.length:', availableProviders?.length)}
 
         {/* Loading State */}
         {providersLoading ? (

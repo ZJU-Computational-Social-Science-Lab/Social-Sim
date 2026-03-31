@@ -83,7 +83,8 @@ export const DemographicsBuilder: React.FC<DemographicsBuilderProps> = ({
       }
     };
     fetchProviders();
-  }, [t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // LLM Distribution handlers
   const addLlmAllocation = () => {

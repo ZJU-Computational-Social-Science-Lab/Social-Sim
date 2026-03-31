@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useSimulationStore } from '../store';
+import { useAuthStore } from '../store/auth';
 import { useTranslation } from 'react-i18next';
 import { X, Download, FileJson, FileSpreadsheet, Database, Users } from 'lucide-react';
 import Papa from 'papaparse';
@@ -30,7 +31,8 @@ export const ExportModal: React.FC = () => {
     try {
       // In connected mode with all_logs scope, use backend export endpoint
       if (engineConfig.mode === 'connected' && scope === 'all_logs' && currentSim?.id) {
-        const token = (engineConfig as any).token;
+        // Use token with fallback to auth store (same pattern as httpGet in client.ts)
+        const token = (engineConfig as any).token ?? useAuthStore.getState().accessToken ?? undefined;
         const baseUrl = engineConfig.endpoint;
         const simId = currentSim.id;
 

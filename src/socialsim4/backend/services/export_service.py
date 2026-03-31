@@ -35,7 +35,8 @@ def simplify_log_type(event_type: str) -> str:
     Returns:
         Simplified type: "AGENT_ACTION" or "SYSTEM"
     """
-    if event_type in ("AGENT_SAY", "AGENT_ACTION"):
+    # Agent-related action types
+    if event_type in ("AGENT_SAY", "AGENT_ACTION", "experiment_action", "agent_action"):
         return "AGENT_ACTION"
     return "SYSTEM"
 
@@ -51,10 +52,24 @@ def extract_action_and_follow_up(event: dict) -> tuple[str, str]:
         follow_up_value is semicolon-separated for multiple params
     """
     data = event.get("data", {})
-    action_data = data.get("action", {})
 
-    action_name = action_data.get("name", "")
-    parameters = action_data.get("parameters", {})
+    # Handle multiple formats:
+    # 1. Nested action: data = {"action": {"name": "allocate", "parameters": {...}}}
+    # 2. Direct action: data = {"action": "allocate", "parameters": {...}}
+    # 3. Direct fields: data = {"agent": "Agent 1", "action": "allocate", ...}
+    action_field = data.get("action")
+
+    if isinstance(action_field, dict):
+        # Nested action format
+        action_name = action_field.get("name", "")
+        parameters = action_field.get("parameters", {})
+    elif isinstance(action_field, str):
+        # Direct action string
+        action_name = action_field
+        parameters = data.get("parameters", {})
+    else:
+        action_name = ""
+        parameters = {}
 
     if not parameters:
         return (action_name, "")
