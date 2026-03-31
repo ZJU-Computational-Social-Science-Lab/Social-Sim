@@ -14,7 +14,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useExperimentBuilder, ManualAgentType, LLMProvider } from '../../store/experiment-builder';
 import { generateAgentsWithDemographics, isZh } from '../../store/helpers';
-import { Step2DemographicsEditor, Demographic, Archetype, TraitConfig } from '../wizard/Step2DemographicsEditor';
+import { Step2DemographicsEditor, Demographic, Archetype, TraitConfig, LLMAllocation } from '../wizard/Step2DemographicsEditor';
 import type { Agent } from '../../types';
 import { Button } from '../ui/button';
 
@@ -208,6 +208,7 @@ export const Step4Agents: React.FC = () => {
   const [generatedAgents, setGeneratedAgents] = useState<Agent[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
   const [tierOrderDraft, setTierOrderDraft] = useState<string[]>(['top', 'mid', 'low']);
+  const [llmAllocations, setLlmAllocations] = useState<LLMAllocation[]>([]);
 
   const scenarioId = selectedScenarioData?.id || selectedScenarioId || '';
   const showTierControls = isPolicyCascadeScenario(selectedScenarioData || { id: scenarioId });
@@ -600,6 +601,39 @@ export const Step4Agents: React.FC = () => {
     setTraits(traits.map((t) => (t.id === id ? { ...t, [field]: value } : t)));
   };
 
+  // ==================== LLM Allocation Handlers ====================
+
+  const handleAddLlmAllocation = () => {
+    if (llmProviders.length === 0) return;
+    const firstProvider = llmProviders[0];
+    setLlmAllocations([...llmAllocations, {
+      providerId: firstProvider.id,
+      providerName: firstProvider.name,
+      modelName: firstProvider.model || '',
+      percentage: 100,
+    }]);
+  };
+
+  const handleRemoveLlmAllocation = (index: number) => {
+    setLlmAllocations(llmAllocations.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateLlmAllocation = (index: number, field: keyof LLMAllocation, value: number | string) => {
+    setLlmAllocations(llmAllocations.map((a, i) => {
+      if (i !== index) return a;
+      const updated = { ...a, [field]: value };
+      // When provider changes, sync name and model from llmProviders
+      if (field === 'providerId') {
+        const provider = llmProviders.find((p) => p.id === Number(value));
+        if (provider) {
+          updated.providerName = provider.name;
+          updated.modelName = provider.model || '';
+        }
+      }
+      return updated;
+    }));
+  };
+
   const handleGenerateAgents = async () => {
     if (demographics.length === 0 || demographics.some((d) => d.categories.length === 0)) {
       setImportError('Please add at least one demographic dimension with categories.');
@@ -643,8 +677,32 @@ export const Step4Agents: React.FC = () => {
 
       setGeneratedAgents(agents);
 
+      // Build provider assignment map using largest-remainder method for fair distribution
+      const totalCount = agents.length;
+      let providerAssignments: (number | null)[];
+      if (llmAllocations.length > 0) {
+        const exact = llmAllocations.map((a) => (a.percentage / 100) * totalCount);
+        const floors = exact.map(Math.floor);
+        const remainders = exact.map((v, i) => v - floors[i]);
+        const totalFloor = floors.reduce((a, b) => a + b, 0);
+        const remaining = totalCount - totalFloor;
+        const sortedIndices = remainders
+          .map((r, i) => ({ r, i }))
+          .sort((a, b) => b.r - a.r);
+        const counts = [...floors];
+        for (let i = 0; i < remaining; i++) counts[sortedIndices[i].i]++;
+        providerAssignments = [];
+        for (let i = 0; i < llmAllocations.length; i++) {
+          for (let j = 0; j < counts[i]; j++) {
+            providerAssignments.push(llmAllocations[i].providerId);
+          }
+        }
+      } else {
+        providerAssignments = agents.map(() => selectedProviderId ?? null);
+      }
+
       // Convert generated agents to ManualAgentType format and add to store
-      agents.forEach((agent) => {
+      agents.forEach((agent, agentIndex) => {
         const inferredTier = inferOrderedTier({
           properties: {
             tier: agent.properties?.tier,
@@ -672,7 +730,7 @@ export const Step4Agents: React.FC = () => {
           rolePrompt: agent.profile,
           userProfile: agent.profile,
           properties: nextProperties,
-          providerId: selectedProviderId ?? undefined,
+          providerId: providerAssignments[agentIndex] ?? undefined,
         };
         addAgentType(agentType);
       });
@@ -993,6 +1051,12 @@ export const Step4Agents: React.FC = () => {
             customAgents={generatedAgents}
             setCustomAgents={setGeneratedAgents}
             importError={importError}
+            llmAllocations={llmAllocations}
+            onAddLlmAllocation={handleAddLlmAllocation}
+            onRemoveLlmAllocation={handleRemoveLlmAllocation}
+            onUpdateLlmAllocation={handleUpdateLlmAllocation}
+            availableProviders={llmProviders as any}
+            providersLoading={false}
             useTranslation={false}
           />
         </div>
