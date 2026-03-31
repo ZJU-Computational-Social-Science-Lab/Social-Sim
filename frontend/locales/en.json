@@ -942,7 +942,15 @@
     "resetSuccess": "Simulation reset",
     "resetFail": "Failed to reset simulation",
     "deleteSuccess": "Simulation deleted",
-    "deleteFail": "Failed to delete simulation"
+    "deleteFail": "Failed to delete simulation",
+    "autoAdvance": "Auto advance",
+    "steps": "Steps",
+    "stop": "Stop",
+    "advancingProgress": "Advancing {{current}}/{{total}}...",
+    "autoAdvanceComplete": "Auto-advance complete. Created {{count}} nodes.",
+    "autoAdvanceError": "Auto-advance stopped: {{error}}",
+    "autoAdvanceStopped": "Auto-advance stopped at step {{current}} of {{total}}.",
+    "enterSteps": "Enter number of steps (1–100)"
   },
   "components": {
     "agentPanel": {

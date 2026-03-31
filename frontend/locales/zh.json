@@ -942,7 +942,15 @@
     "resetSuccess": "仿真已重置",
     "resetFail": "重置仿真失败",
     "deleteSuccess": "仿真已删除",
-    "deleteFail": "删除仿真失败"
+    "deleteFail": "删除仿真失败",
+    "autoAdvance": "自动推进",
+    "steps": "步数",
+    "stop": "停止",
+    "advancingProgress": "推进中 {{current}}/{{total}}...",
+    "autoAdvanceComplete": "自动推进完成！已创建 {{count}} 个节点。",
+    "autoAdvanceError": "自动推进出错：{{error}}",
+    "autoAdvanceStopped": "自动推进已在第 {{current}}/{{total}} 步停止。",
+    "enterSteps": "请输入步数 (1–100)"
   },
   "components": {
     "agentPanel": {
