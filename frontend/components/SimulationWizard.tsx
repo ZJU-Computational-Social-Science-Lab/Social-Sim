@@ -164,6 +164,9 @@ export const SimulationWizard: React.FC = () => {
     { id: generateId(), name: t('wizard.defaults.traits.assertiveness'), mean: 50, std: 15 }
   ]);
 
+  // LLM Distribution state
+  const [llmAllocations, setLlmAllocations] = useState<{providerId: number; providerName: string; modelName: string; percentage: number}[]>([]);
+
   // ============================================================================
   // Effects
   // ============================================================================
@@ -593,6 +596,38 @@ export const SimulationWizard: React.FC = () => {
     setTraits(traits.map(t => t.id === id ? { ...t, [field]: value } : t));
   };
 
+  // LLM Allocation handlers
+  const handleAddLlmAllocation = () => {
+    if (llmProviders.length === 0) return;
+    const firstProvider = llmProviders[0];
+    setLlmAllocations([...llmAllocations, {
+      providerId: firstProvider.id,
+      providerName: firstProvider.provider || firstProvider.name || 'Provider',
+      modelName: firstProvider.model || 'default',
+      percentage: 0
+    }]);
+  };
+
+  const handleRemoveLlmAllocation = (index: number) => {
+    setLlmAllocations(llmAllocations.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateLlmAllocation = (index: number, field: string, value: number | string) => {
+    setLlmAllocations(llmAllocations.map((allocation, i) => {
+      if (i !== index) return allocation;
+      if (field === 'providerId') {
+        const provider = llmProviders.find(p => p.id === value);
+        return {
+          ...allocation,
+          providerId: value as number,
+          providerName: provider?.provider || provider?.name || 'Provider',
+          modelName: provider?.model || 'default'
+        };
+      }
+      return { ...allocation, [field]: value };
+    }));
+  };
+
   // Archetype probability handlers
   const handleUpdateArchetypeProbability = (archId: string, newProb: number) => {
     const oldProb = archetypes.find(a => a.id === archId)?.probability || 0;
@@ -880,6 +915,12 @@ export const SimulationWizard: React.FC = () => {
                       customAgents={customAgents}
                       setCustomAgents={setCustomAgents}
                       importError={importError}
+                      llmAllocations={llmAllocations}
+                      onAddLlmAllocation={handleAddLlmAllocation}
+                      onRemoveLlmAllocation={handleRemoveLlmAllocation}
+                      onUpdateLlmAllocation={handleUpdateLlmAllocation}
+                      availableProviders={llmProviders}
+                      providersLoading={false}
                       t={t}
                     />
                   )}
@@ -961,6 +1002,13 @@ interface Step2DemographicsEditorProps {
   customAgents: Agent[];
   setCustomAgents: (agents: Agent[]) => void;
   importError: string | null;
+  // LLM Distribution props
+  llmAllocations?: {providerId: number; providerName: string; modelName: string; percentage: number}[];
+  onAddLlmAllocation?: () => void;
+  onRemoveLlmAllocation?: (index: number) => void;
+  onUpdateLlmAllocation?: (index: number, field: string, value: number | string) => void;
+  availableProviders?: {id: number; provider?: string; name?: string; model?: string}[];
+  providersLoading?: boolean;
   t: (key: string) => string;
 }
 
@@ -987,6 +1035,12 @@ const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = ({
   customAgents,
   setCustomAgents,
   importError,
+  llmAllocations = [],
+  onAddLlmAllocation,
+  onRemoveLlmAllocation,
+  onUpdateLlmAllocation,
+  availableProviders = [],
+  providersLoading = false,
   t,
 }) => {
   return (
@@ -1154,6 +1208,90 @@ const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = ({
           ))}
         </div>
         <p className="text-xs text-slate-500 mt-2">{t('wizard.step2.traitsHint')}</p>
+      </div>
+
+      {/* LLM Distribution */}
+      <div className="border border-slate-200 rounded-lg p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h4 className="text-sm font-bold text-slate-800">{t('wizard.step2.llmDistribution')}</h4>
+            <span className="text-xs text-slate-500">{t('wizard.step2.llmDistributionHint')}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => onAddLlmAllocation?.()}
+            disabled={providersLoading || !availableProviders || availableProviders.length === 0}
+            className="text-xs px-3 py-1.5 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+          >
+            <Plus size={14} /> {t('wizard.step2.addLlm')}
+          </button>
+        </div>
+
+        {/* Loading State */}
+        {providersLoading ? (
+          <div className="text-xs text-slate-500 py-4 text-center">
+            {t('wizard.step2.llmLoadingProviders')}
+          </div>
+        ) : !availableProviders || availableProviders.length === 0 ? (
+          <div className="text-xs text-amber-600 py-4 text-center">
+            {t('wizard.step2.llmNoProviders')}
+          </div>
+        ) : (
+          <>
+            {/* Allocation Rows */}
+            {llmAllocations && llmAllocations.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {llmAllocations.map((allocation, idx) => (
+                  <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50 rounded">
+                    <select
+                      value={allocation.providerId}
+                      onChange={(e) => onUpdateLlmAllocation?.(idx, 'providerId', parseInt(e.target.value))}
+                      className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm"
+                    >
+                      {availableProviders.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {(p as any).provider || (p as any).name || 'Provider'} - {(p as any).model || 'default'}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={allocation.percentage}
+                        onChange={(e) => onUpdateLlmAllocation?.(idx, 'percentage', parseInt(e.target.value) || 0)}
+                        className="w-16 px-2 py-1 border border-slate-300 rounded text-sm text-right"
+                      />
+                      <span className="text-sm text-slate-500">%</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onRemoveLlmAllocation?.(idx)}
+                      className="p-1 text-red-500 hover:bg-red-50 rounded"
+                      title={t('wizard.step2.llmRemove')}
+                    >
+                      <Minus size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Total Indicator */}
+            {llmAllocations && llmAllocations.length > 0 && (() => {
+              const total = llmAllocations.reduce((sum, a) => sum + a.percentage, 0);
+              const isValid = total === 100;
+              return (
+                <div className={`text-xs p-2 rounded ${isValid ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
+                  {isValid
+                    ? t('wizard.step2.llmTotalValid', { current: total })
+                    : t('wizard.step2.llmMustEqual100', { current: total })}
+                </div>
+              );
+            })()}
+          </>
+        )}
       </div>
 
       {/* Generation Settings */}
