@@ -1,6 +1,7 @@
 // frontend/pages/SimulationWizard.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import seedrandom from 'seedrandom';
 import {
   useSimulationStore,
   generateAgentsWithAI,
@@ -20,7 +21,7 @@ import {
 } from 'lucide-react';
 import Papa from 'papaparse';
 import { Agent, LLMConfig, TimeUnit } from '../types';
-import { DemographicsBuilder } from '../components/DemographicsBuilder';
+import { DemographicsBuilder, LLMAllocation } from '../components/DemographicsBuilder';
 
 export const SimulationWizard: React.FC = () => {
   const { t } = useTranslation();
@@ -69,6 +70,7 @@ export const SimulationWizard: React.FC = () => {
   const [demoTotalAgents, setDemoTotalAgents] = useState(50);
   const [demographics, setDemographics] = useState<Array<{name: string, categories: string[]}>>([]);
   const [traits, setTraits] = useState<Array<{name: string, mean: number, std: number}>>([]);
+  const [llmAllocations, setLlmAllocations] = useState<LLMAllocation[]>([]);
 
   const [genCount, setGenCount] = useState(5);
   const [genDesc, setGenDesc] = useState(
@@ -256,6 +258,79 @@ export const SimulationWizard: React.FC = () => {
     }
   };
 
+  /**
+   * Apply LLM distribution to agents using largest-remainder method.
+   * If no allocations configured, applies simulation default to all agents.
+   */
+  const applyLlmDistribution = (
+    agents: Agent[],
+    allocations: LLMAllocation[],
+    simulationId: string,
+    defaultConfig: LLMConfig
+  ): Agent[] => {
+    // If no allocations configured, apply simulation default to all agents
+    if (allocations.length === 0) {
+      return agents.map(agent => ({
+        ...agent,
+        llmConfig: { ...defaultConfig }
+      }));
+    }
+
+    // Validate total is 100%
+    const total = allocations.reduce((sum, a) => sum + a.percentage, 0);
+    if (total !== 100) {
+      throw new Error('LLM allocations must sum to 100%');
+    }
+
+    const agentCount = agents.length;
+
+    // --- Largest-remainder method ---
+    // Step 1: Compute floor counts and remainders
+    const entries = allocations.map(allocation => {
+      const exact = (allocation.percentage / 100) * agentCount;
+      const floor = Math.floor(exact);
+      const remainder = exact - floor;
+      return { allocation, count: floor, remainder };
+    });
+
+    // Step 2: Distribute leftover slots to largest remainders
+    let assigned = entries.reduce((sum, e) => sum + e.count, 0);
+    let leftover = agentCount - assigned;
+
+    // Sort by remainder descending, break ties by original order
+    const sorted = entries
+      .map((e, i) => ({ ...e, originalIndex: i }))
+      .sort((a, b) => b.remainder - a.remainder || a.originalIndex - b.originalIndex);
+
+    for (let i = 0; i < leftover; i++) {
+      sorted[i].count += 1;
+    }
+
+    // Step 3: Build assignment list
+    const llmAssignments: LLMAllocation[] = [];
+    for (const entry of sorted) {
+      for (let i = 0; i < entry.count; i++) {
+        llmAssignments.push(entry.allocation);
+      }
+    }
+
+    // Step 4: Shuffle with seeded PRNG for reproducibility
+    const rng = seedrandom(simulationId);
+    for (let i = llmAssignments.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [llmAssignments[i], llmAssignments[j]] = [llmAssignments[j], llmAssignments[i]];
+    }
+
+    // Step 5: Assign to agents
+    return agents.map((agent, index) => ({
+      ...agent,
+      llmConfig: {
+        provider: llmAssignments[index].providerName,
+        model: llmAssignments[index].modelName
+      }
+    }));
+  };
+
   const handleGenerateDemographics = async () => {
     setIsGenerating(true);
     setImportError(null);
@@ -268,7 +343,7 @@ export const SimulationWizard: React.FC = () => {
         });
       });
 
-      const agents = await generateAgentsWithDemographics(
+      let agents = await generateAgentsWithDemographics(
         demoTotalAgents,
         demographics,
         archetypeProbs,
@@ -276,9 +351,11 @@ export const SimulationWizard: React.FC = () => {
         'en',
         selectedProviderId ?? undefined
       );
-      agents.forEach((a) => {
-        a.llmConfig = defaultLlmConfig;
-      });
+
+      // Apply LLM distribution to generated agents
+      const simulationId = `sim_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      agents = applyLlmDistribution(agents, llmAllocations, simulationId, defaultLlmConfig);
+
       setCustomAgents(agents);
       addNotification('success', t('wizard.messages.generatedAgents', { count: agents.length }));
     } catch (e) {
@@ -495,6 +572,8 @@ export const SimulationWizard: React.FC = () => {
                   setTraits={setTraits}
                   onGenerate={handleGenerateDemographics}
                   isGenerating={isGenerating}
+                  llmAllocations={llmAllocations}
+                  setLlmAllocations={setLlmAllocations}
                 />
               )}
 

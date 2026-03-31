@@ -1,6 +1,16 @@
-import React, { useState } from 'react';
-import { Plus, Trash2, Loader2 } from 'lucide-react';
+/**
+ * Demographics builder component for simulation wizard.
+ *
+ * Allows configuration of agent demographics, traits, and LLM distribution
+ * for generating agent populations. Fetches available LLM providers
+ * from the backend API.
+ *
+ * Exports: DemographicsBuilder (default)
+ */
+import React, { useState, useEffect } from 'react';
+import { Plus, Trash2, Loader2, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { listProviders, type Provider } from '../services/providers';
 
 interface Demographic {
   name: string;
@@ -13,6 +23,13 @@ interface Trait {
   std: number;
 }
 
+export interface LLMAllocation {
+  providerId: number;
+  providerName: string;
+  modelName: string;
+  percentage: number;
+}
+
 interface DemographicsBuilderProps {
   totalAgents: number;
   setTotalAgents: (n: number) => void;
@@ -22,6 +39,8 @@ interface DemographicsBuilderProps {
   setTraits: (t: Trait[]) => void;
   onGenerate: () => void;
   isGenerating: boolean;
+  llmAllocations: LLMAllocation[];
+  setLlmAllocations: (allocations: LLMAllocation[]) => void;
 }
 
 export const DemographicsBuilder: React.FC<DemographicsBuilderProps> = ({
@@ -32,7 +51,9 @@ export const DemographicsBuilder: React.FC<DemographicsBuilderProps> = ({
   traits,
   setTraits,
   onGenerate,
-  isGenerating
+  isGenerating,
+  llmAllocations = [],
+  setLlmAllocations
 }) => {
   const { t } = useTranslation();
   const [newDemographicName, setNewDemographicName] = useState('');
@@ -40,6 +61,68 @@ export const DemographicsBuilder: React.FC<DemographicsBuilderProps> = ({
   const [newTraitName, setNewTraitName] = useState('');
   const [newTraitMean, setNewTraitMean] = useState(50);
   const [newTraitStd, setNewTraitStd] = useState(20);
+
+  // LLM Distribution state
+  const [availableProviders, setAvailableProviders] = useState<Provider[]>([]);
+  const [providersLoading, setProvidersLoading] = useState<boolean>(true);
+  const [providersError, setProvidersError] = useState<string | null>(null);
+
+  // Fetch available LLM providers
+  useEffect(() => {
+    const fetchProviders = async () => {
+      setProvidersLoading(true);
+      setProvidersError(null);
+      try {
+        const providers = await listProviders();
+        setAvailableProviders(providers);
+      } catch (err) {
+        console.error('Failed to fetch LLM providers:', err);
+        setProvidersError(t('wizard.llmDistribution.loadProvidersError', { defaultValue: 'Failed to load LLM providers. Please try again.' }));
+      } finally {
+        setProvidersLoading(false);
+      }
+    };
+    fetchProviders();
+  }, [t]);
+
+  // LLM Distribution handlers
+  const addLlmAllocation = () => {
+    if (availableProviders.length === 0) return;
+    const firstProvider = availableProviders[0];
+    const newAllocation: LLMAllocation = {
+      providerId: firstProvider.id,
+      providerName: firstProvider.provider,
+      modelName: firstProvider.model,
+      percentage: 0
+    };
+    setLlmAllocations([...llmAllocations, newAllocation]);
+  };
+
+  const removeLlmAllocation = (index: number) => {
+    setLlmAllocations(llmAllocations.filter((_, i) => i !== index));
+  };
+
+  const updateLlmAllocation = (index: number, field: keyof LLMAllocation, value: string | number) => {
+    const updated = [...llmAllocations];
+    if (field === 'providerId') {
+      const provider = availableProviders.find(p => p.id === value);
+      if (provider) {
+        updated[index] = {
+          ...updated[index],
+          providerId: provider.id,
+          providerName: provider.provider,
+          modelName: provider.model
+        };
+      }
+    } else {
+      (updated[index] as any)[field] = value;
+    }
+    setLlmAllocations(updated);
+  };
+
+  // Calculate total percentage
+  const totalPercentage = llmAllocations.reduce((sum, a) => sum + a.percentage, 0);
+  const isLlmDistributionValid = llmAllocations.length === 0 || totalPercentage === 100;
 
   const addDemographic = () => {
     if (!newDemographicName || !newDemographicCategories) return;
@@ -178,10 +261,98 @@ export const DemographicsBuilder: React.FC<DemographicsBuilderProps> = ({
         </div>
       </div>
 
+      {/* LLM Distribution */}
+      <div>
+        <h3 className="text-sm font-semibold text-slate-700 mb-3">
+          {t('wizard.llmDistribution.title', { defaultValue: 'LLM Distribution' })}
+        </h3>
+
+        {providersLoading ? (
+          <div className="flex items-center justify-center py-4 text-slate-500">
+            <Loader2 size={18} className="animate-spin mr-2" />
+            {t('wizard.llmDistribution.loadingProviders', { defaultValue: 'Loading providers...' })}
+          </div>
+        ) : providersError ? (
+          <div className="flex items-center justify-between py-3 px-3 bg-red-50 rounded-lg">
+            <span className="text-sm text-red-600">{providersError}</span>
+            <button
+              onClick={() => {
+                setProvidersError(null);
+                setProvidersLoading(true);
+                listProviders().then(setAvailableProviders).catch(() => {
+                  setProvidersError(t('wizard.llmDistribution.loadProvidersError', { defaultValue: 'Failed to load LLM providers. Please try again.' }));
+                }).finally(() => setProvidersLoading(false));
+              }}
+              className="flex items-center gap-1 text-sm text-red-600 hover:text-red-700"
+            >
+              <RefreshCw size={14} />
+              {t('wizard.llmDistribution.retry', { defaultValue: 'Retry' })}
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-2 mb-3">
+              {llmAllocations.map((allocation, index) => (
+                <div key={index} className="flex items-center gap-2 p-2 bg-slate-50 rounded">
+                  <select
+                    value={allocation.providerId}
+                    onChange={(e) => updateLlmAllocation(index, 'providerId', Number(e.target.value))}
+                    className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm"
+                  >
+                    {availableProviders.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.provider} - {p.model}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={allocation.percentage || ''}
+                    onChange={(e) => updateLlmAllocation(index, 'percentage', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                    className="w-20 px-2 py-1 border border-slate-300 rounded text-sm text-center"
+                    placeholder="%"
+                  />
+                  <span className="text-sm text-slate-500">%</span>
+                  <button
+                    onClick={() => removeLlmAllocation(index)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2 mb-2">
+              <button
+                onClick={addLlmAllocation}
+                disabled={availableProviders.length === 0}
+                className="flex items-center gap-1 px-3 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-sm"
+              >
+                <Plus size={14} />
+                {t('wizard.llmDistribution.addLlm', { defaultValue: 'Add LLM' })}
+              </button>
+
+              {llmAllocations.length > 0 && (
+                <div className={`text-sm ${isLlmDistributionValid ? 'text-green-600' : 'text-red-600'}`}>
+                  {isLlmDistributionValid ? (
+                    <span>{t('wizard.llmDistribution.totalValid', { defaultValue: 'Total: 100% ✓' })}</span>
+                  ) : (
+                    <span>{t('wizard.llmDistribution.mustEqual100', { current: totalPercentage, defaultValue: `Total must equal 100% (currently ${totalPercentage}%)` })}</span>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
       {/* Generate Button */}
       <button
         onClick={onGenerate}
-        disabled={isGenerating || demographics.length === 0}
+        disabled={isGenerating || demographics.length === 0 || !isLlmDistributionValid}
         className="w-full px-4 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 disabled:bg-slate-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {isGenerating ? (

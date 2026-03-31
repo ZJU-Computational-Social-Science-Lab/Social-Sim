@@ -40,6 +40,7 @@ def create_router() -> Router:
             crud.read_simulation,
             crud.update_simulation,
             crud.delete_simulation,
+            crud.update_agent_llm_config,
             # Lifecycle operations
             lifecycle.start_simulation,
             lifecycle.resume_simulation,

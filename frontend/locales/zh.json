@@ -504,6 +504,20 @@
       "generating": "生成中...",
       "generateButton": "生成智能体"
     },
+    "llmDistribution": {
+      "title": "LLM 分布配置",
+      "addLlm": "添加 LLM",
+      "provider": "提供商",
+      "model": "模型",
+      "percentage": "百分比",
+      "total": "总计",
+      "totalValid": "总计: 100% ✓",
+      "mustEqual100": "总计必须等于 100%（当前 {{current}}%）",
+      "remove": "移除",
+      "loadingProviders": "正在加载提供商...",
+      "loadProvidersError": "加载 LLM 提供商失败，请重试。",
+      "retry": "重试"
+    },
     "footer": {
       "previous": "上一步",
       "cancel": "取消",
@@ -974,7 +988,11 @@
       "supportedFormats": "支持：PDF, TXT, DOCX, MD (最大 10MB)",
       "noUploadedDocs": "暂无上传文档",
       "textChunks": "个文本块",
-      "shortTermMemory": "短期记忆"
+      "shortTermMemory": "短期记忆",
+      "changeLLM": "更换 LLM",
+      "providersLoadError": "加载提供商失败",
+      "llmUpdateSuccess": "LLM 已更新",
+      "llmUpdateError": "LLM 更新失败"
     },
     "copyButton": {
       "copy": "复制",

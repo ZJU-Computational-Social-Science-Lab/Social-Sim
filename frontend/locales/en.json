@@ -504,6 +504,20 @@
       "generating": "Generating...",
       "generateButton": "Generate Agents"
     },
+    "llmDistribution": {
+      "title": "LLM Distribution",
+      "addLlm": "Add LLM",
+      "provider": "Provider",
+      "model": "Model",
+      "percentage": "Percentage",
+      "total": "Total",
+      "totalValid": "Total: 100% ✓",
+      "mustEqual100": "Total must equal 100% (currently {{current}}%)",
+      "remove": "Remove",
+      "loadingProviders": "Loading providers...",
+      "loadProvidersError": "Failed to load LLM providers. Please try again.",
+      "retry": "Retry"
+    },
     "footer": {
       "previous": "Previous",
       "cancel": "Cancel",
@@ -974,7 +988,11 @@
       "supportedFormats": "Supports: PDF, TXT, DOCX, MD (max 10MB)",
       "noUploadedDocs": "No uploaded documents yet",
       "textChunks": "text chunks",
-      "shortTermMemory": "Short-term Memory"
+      "shortTermMemory": "Short-term Memory",
+      "changeLLM": "Change LLM",
+      "providersLoadError": "Failed to load providers",
+      "llmUpdateSuccess": "LLM updated successfully",
+      "llmUpdateError": "Failed to update LLM"
     },
     "copyButton": {
       "copy": "Copy",

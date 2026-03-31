@@ -53,6 +53,7 @@ export interface AgentsSlice {
   setAgents: (agents: Agent[]) => void;
   updateAgentProperty: (agentId: string, property: string, value: any) => void;
   updateAgentProfile: (agentId: string, profile: string) => void;
+  updateAgentLLM: (agentId: string, llmConfig: { provider: string; model: string }) => void;
 
   // Knowledge base actions
   addKnowledgeToAgent: (agentId: string, item: KnowledgeItem) => void;
@@ -112,6 +113,40 @@ export const createAgentsSlice: StateCreator<
     const addNotification = (get() as any).addNotification;
     injectLog?.('HOST_INTERVENTION', `Host 更新了 ${agentName} 的个人简介`);
     addNotification?.('success', '智能体简介已更新');
+  },
+
+  updateAgentLLM: async (agentId, llmConfig) => {
+    const simulationId = (get() as any).currentSimulation?.id;
+    if (!simulationId) return;
+
+    const previousAgents = [...get().agents];
+
+    // Optimistically update local state
+    set((state) => ({
+      agents: state.agents.map((a) =>
+        a.id === agentId ? { ...a, llmConfig: { provider: llmConfig.provider, model: llmConfig.model } } : a
+      )
+    }));
+
+    try {
+      const { updateAgentLLMConfig } = await import('../services/simulations');
+      await updateAgentLLMConfig(simulationId, agentId, {
+        provider: llmConfig.provider,
+        model: llmConfig.model
+      });
+
+      const agentName = get().agents.find((a) => a.id === agentId)?.name || agentId;
+      const injectLog = (get() as any).injectLog;
+      const addNotification = (get() as any).addNotification;
+      injectLog?.('HOST_INTERVENTION', `Host updated ${agentName}'s LLM to ${llmConfig.provider}/${llmConfig.model}`);
+      addNotification?.('success', 'components.agentPanel.llmUpdateSuccess');
+    } catch (error) {
+      console.error('Failed to update agent LLM:', error);
+      // Rollback to previous state
+      set({ agents: previousAgents });
+      const addNotification = (get() as any).addNotification;
+      addNotification?.('error', 'components.agentPanel.llmUpdateError');
+    }
   },
 
   // Knowledge base actions
