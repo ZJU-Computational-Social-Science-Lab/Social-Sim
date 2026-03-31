@@ -10,7 +10,6 @@ import { SimTree } from "../components/SimTree";
 import { Sidebar } from "../components/Sidebar";
 import { LogViewer } from "../components/LogViewer";
 import { ComparisonView } from "../components/ComparisonView";
-import { SimulationWizard } from "../components/SimulationWizard";
 import { ExperimentBuilderModal } from "../components/ExperimentBuilderModal";
 import SyncModal from "../components/SyncModal";
 import { HelpModal } from "../components/HelpModal";
