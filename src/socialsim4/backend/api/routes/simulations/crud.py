@@ -420,10 +420,12 @@ async def update_agent_llm_config(
         agent_config = sim.agent_config or {"agents": []}
         agents = agent_config.get("agents", [])
 
-        # Find agent by agent_id
+        # Find agent by agent_id or name (frontend uses name as identifier)
         agent_found = False
         for agent in agents:
-            if isinstance(agent, dict) and agent.get("id") == data.agent_id:
+            if isinstance(agent, dict) and (
+                agent.get("id") == data.agent_id or agent.get("name") == data.agent_id
+            ):
                 agent["llm_config"] = data.llm_config
                 agent_found = True
                 break
@@ -431,7 +433,7 @@ async def update_agent_llm_config(
         if not agent_found:
             raise HTTPException(
                 status_code=404,
-                detail=f"Agent with id '{data.agent_id}' not found"
+                detail=f"Agent with id/name '{data.agent_id}' not found"
             )
 
         sim.agent_config = agent_config

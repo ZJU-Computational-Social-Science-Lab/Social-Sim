@@ -67,7 +67,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
     const provider = availableProviders.find(p => p.id === providerId);
     if (!provider) return;
 
-    await updateAgentLLM(agent.id, {
+    await updateAgentLLM(agent.name, {
       provider: provider.provider,
       model: provider.model
     });
@@ -298,12 +298,15 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                 </div>
               ) : (
                 <select
-                  value={agent.llmConfig?.provider && agent.llmConfig?.model
-                    ? `${agent.llmConfig.provider}|${agent.llmConfig.model}`
-                    : ''}
+                  value={(() => {
+                    const matched = availableProviders.find(p =>
+                      p.provider === agent.llmConfig?.provider && p.model === agent.llmConfig?.model
+                    );
+                    return matched ? String(matched.id) : '';
+                  })()}
                   onChange={(e) => {
                     const providerId = Number(e.target.value);
-                    handleLLMChange(providerId);
+                    if (!isNaN(providerId)) handleLLMChange(providerId);
                   }}
                   className={`text-[10px] border rounded px-1.5 py-0.5 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 ${getModelBadgeStyle(agent.llmConfig?.provider || 'default')}`}
                   title={t('components.agentPanel.changeLLM')}
@@ -312,7 +315,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                     {agent.llmConfig?.model || t('components.agentPanel.auto')}
                   </option>
                   {availableProviders.map(p => (
-                    <option key={p.id} value={p.id}>
+                    <option key={p.id} value={String(p.id)}>
                       {p.provider} - {p.model}
                     </option>
                   ))}

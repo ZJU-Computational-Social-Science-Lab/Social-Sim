@@ -84,11 +84,13 @@ class ExperimentScene:
             # Handle both dict (from config) and LLMConfig object
             if agent.llm_config:
                 # Extract config values - handle both dict and LLMConfig object
+                _known_dialects = {"openai", "gemini", "mock", "ollama"}
                 if isinstance(agent.llm_config, dict):
                     # Accept "dialect" or "provider" as the dialect key (frontend sends "provider")
                     dialect = agent.llm_config.get("dialect") or agent.llm_config.get("provider")
-                    if not dialect:
-                        # No dialect: try direct provider_id lookup, else fall back to default
+                    # Treat unknown/sentinel values (e.g. "backend") as "use default"
+                    if not dialect or dialect not in _known_dialects:
+                        # Try provider_id lookup, else fall back to default
                         if agent.provider_id and provider_clients and agent.provider_id in provider_clients:
                             self._agent_llm_clients[agent.name] = provider_clients[agent.provider_id]
                         else:

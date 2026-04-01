@@ -93,11 +93,11 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
         const selectedProvider = state.llmProviders.find((p) => p.id === providerId);
         const llmConfig = selectedProvider
           ? {
-              dialect: selectedProvider.provider,
+              provider: selectedProvider.provider,
               model: selectedProvider.model || 'default',
             }
           : {
-              dialect: 'backend',
+              provider: 'backend',
               model: 'default',
             };
 
