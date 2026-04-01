@@ -1006,13 +1006,14 @@ export const Step4Agents: React.FC = () => {
       {/* Demographic Generation */}
       {agentMode === 'demographic' && (
         <div className="p-4 border border-gray-200 rounded-lg bg-white">
-          {/* LLM Provider Selector */}
+          {/* Agent Generation LLM Selector */}
           {llmProviders.length > 0 && (
             <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-              <label className="block text-sm font-medium text-gray-700 mb-2">{t('experimentBuilder.step4.llmProvider')}</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.generationLlmProvider')}</label>
+              <p className="text-xs text-gray-500 mb-2">{t('experimentBuilder.step4.generationLlmProviderHint')}</p>
               <select
                 value={selectedProviderId || ''}
-                onChange={(e) => setSelectedProviderId(e.target.value || null)}
+                onChange={(e) => setSelectedProviderId(e.target.value ? Number(e.target.value) : null)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
               >
                 <option value="">{t('experimentBuilder.step4.defaultProvider')}</option>

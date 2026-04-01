@@ -2160,6 +2160,8 @@
       "totalAgents": "Total agents: {{count}}",
       "agentsDefined": "{{count}} agent(s) defined",
       "llmProvider": "LLM Provider",
+      "generationLlmProvider": "Agent Generation Model",
+      "generationLlmProviderHint": "Which AI generates the agent profiles. Use LLM Distribution below to control which providers agents use during the simulation.",
       "defaultProvider": "Default Provider",
       "importTitle": "Import Agent Data",
       "importDesc": "Upload a CSV or JSON file with agent definitions.",

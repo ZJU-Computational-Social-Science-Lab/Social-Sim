@@ -2143,6 +2143,8 @@
       "totalAgents": "代理总数：{{count}}",
       "agentsDefined": "已定义 {{count}} 个代理",
       "llmProvider": "LLM 提供商",
+      "generationLlmProvider": "代理生成模型",
+      "generationLlmProviderHint": "用于生成代理档案的AI。使用下方的LLM分配来控制代理在模拟过程中使用哪些提供商。",
       "defaultProvider": "默认提供商",
       "importTitle": "导入代理数据",
       "importDesc": "上传包含代理定义的 CSV 或 JSON 文件。",
