@@ -102,6 +102,14 @@ class ExperimentRunner:
         self.controller = ExperimentController(self.kernel, self.context_manager)
         self.action_handler = ActionHandler()
 
+        # Initialize round state (moved from dead code after return statement)
+        self.payoff_engine = PayoffEngine()
+        self.feedback_builder = CoordinationFeedbackBuilder()
+        self.current_round = 0  # Start at 0, incremented when rounds run
+        self.turn_order: List[str] | None = None  # Store shuffled order for random/paired mode
+        self.scores: Dict[str, int] = {}  # Track cumulative scores per agent (for paired mode)
+        self.pending_host_messages: list[str] = []  # Injected by host before each round
+
     def get_agent_llm_client(self, agent: ExperimentAgent) -> LLMClient:
         """Get the LLM client for a specific agent.
 
@@ -119,12 +127,6 @@ class ExperimentRunner:
             return self.agent_llm_clients[agent.name]
         logger.debug(f"Using default LLM client for {agent.name}")
         return self.llm_client
-        self.payoff_engine = PayoffEngine()
-        self.feedback_builder = CoordinationFeedbackBuilder()
-        self.current_round = 0
-        self.turn_order: List[str] | None = None  # Store shuffled order for random/paired mode
-        self.scores: Dict[str, int] = {}  # Track cumulative scores per agent (for paired mode)
-        self.pending_host_messages: list[str] = []  # Injected by host before each round
 
     def set_scene_state(self, state: Dict[str, Any]) -> None:
         """Merge new state into scene_state. context_manager holds the same reference."""
