@@ -69,21 +69,24 @@ class ExperimentRunner:
         round_visibility: Literal["simultaneous", "sequential", "random", "paired"] = "simultaneous",
         information_model: "InformationModel | None" = None,
         scene: Optional["ExperimentScene"] = None,
+        agent_llm_clients: Optional[Dict[str, LLMClient]] = None,
     ):
         """Initialize the experiment runner.
 
         Args:
             agents: List of agents in the experiment
             game_config: Game configuration
-            llm_client: LLM client for prompts and context updates
+            llm_client: Default LLM client for prompts and context updates (fallback)
             kernel: Action registry (uses default if None)
             round_visibility: How agents see each other's choices
             information_model: Optional InformationModel for structured context
             scene: Optional scene instance for action filtering (GAP-CLOSURE-01)
+            agent_llm_clients: Optional dict mapping agent names to their specific LLM clients
         """
         self.agents = agents
         self.game_config = game_config
-        self.llm_client = llm_client
+        self.llm_client = llm_client  # Default/fallback client
+        self.agent_llm_clients = agent_llm_clients or {}  # Per-agent LLM clients
         self.kernel = kernel or ExperimentKernel()
         self.round_visibility = round_visibility
         self.information_model = information_model
@@ -98,6 +101,24 @@ class ExperimentRunner:
         )
         self.controller = ExperimentController(self.kernel, self.context_manager)
         self.action_handler = ActionHandler()
+
+    def get_agent_llm_client(self, agent: ExperimentAgent) -> LLMClient:
+        """Get the LLM client for a specific agent.
+
+        Uses per-agent client if available (LLM distribution),
+        otherwise falls back to the default client.
+
+        Args:
+            agent: The agent to get the LLM client for
+
+        Returns:
+            LLMClient to use for this agent
+        """
+        if agent.name in self.agent_llm_clients:
+            logger.debug(f"Using per-agent LLM client for {agent.name}")
+            return self.agent_llm_clients[agent.name]
+        logger.debug(f"Using default LLM client for {agent.name}")
+        return self.llm_client
         self.payoff_engine = PayoffEngine()
         self.feedback_builder = CoordinationFeedbackBuilder()
         self.current_round = 0
@@ -868,10 +889,13 @@ class ExperimentRunner:
         logger.debug(f"Game config: actions={self.game_config.actions}, type={self.game_config.action_type}")
 
         try:
+            # Get per-agent LLM client (LLM distribution)
+            agent_llm_client = self.get_agent_llm_client(agent)
+
             # Call LLM (wrap synchronous call for async compatibility)
             messages = [{"role": "user", "content": prompt}]
             raw_response = await asyncio.to_thread(
-                self.llm_client.chat, messages, json_mode=True
+                agent_llm_client.chat, messages, json_mode=True
             )
 
             # Handle empty response gracefully (e.g., Qwen3 via Ollama returns 0 chars)
@@ -933,7 +957,7 @@ class ExperimentRunner:
             logger.debug(f"[RUNNER] Final action_schemas keys: {list(action_schemas.keys())}")
             result = await self.controller.process_response_with_followup(
                 raw_response, agent, self.game_config,
-                self.llm_client, round_num,
+                agent_llm_client, round_num,  # Use per-agent LLM client
                 action_schemas=action_schemas,
                 context_summary=context,
                 information_model=self.information_model,
