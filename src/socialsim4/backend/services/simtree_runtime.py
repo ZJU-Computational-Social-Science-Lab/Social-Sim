@@ -81,16 +81,17 @@ class ExperimentRunnerAdapter:
         self.agents = {}  # Empty dict - no legacy agents
         self.events: list[dict] = []
         self._llm_client = clients.get("chat") or clients.get("default")
+        self._provider_clients: dict = clients.get("providers", {}) if clients else {}
         self.log_event = None  # Will be set by SimTree._attach_log_handler
 
         # Pre-initialize to populate scene.agents so UI can render agent cards without running a round
         if self._llm_client is not None and not self.scene.agents:
-            self.scene.initialize(self._llm_client)
+            self.scene.initialize(self._llm_client, provider_clients=self._provider_clients)
 
     def run(self, max_turns: int = 1) -> None:
         """Run experiment rounds (each 'turn' = one round)."""
         if not self.scene.runner:
-            self.scene.initialize(self._llm_client)
+            self.scene.initialize(self._llm_client, provider_clients=self._provider_clients)
 
         for _ in range(max_turns):
             if self.scene.is_complete():
