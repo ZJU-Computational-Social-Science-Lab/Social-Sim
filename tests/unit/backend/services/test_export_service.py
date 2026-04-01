@@ -147,3 +147,109 @@ def test_export_events_to_json():
     assert len(data) == 1
     assert data[0]["agent_id"] == "Agent 1"
     assert data[0]["action"] == "allocate"
+
+
+def test_export_events_deduplication():
+    """Test that duplicate events from inherited logs are deduplicated.
+
+    This tests the scenario where:
+    - Node 1 has Round 1 logs
+    - Node 2 (child of 1) inherits Round 1 logs + has Round 2 logs
+    - Node 3 (child of 2) inherits Round 1+2 logs + has Round 3 logs
+
+    Without deduplication, Round 1 would appear 3x, Round 2 would appear 2x.
+    With deduplication, each round should appear exactly once.
+    """
+    from socialsim4.backend.services.export_service import export_events
+
+    # Simulate logs from 3 nodes where child inherits parent logs
+    # This mimics the actual SimTree behavior
+    events = [
+        # Round 1 - Agent 1 (appears in all 3 nodes due to inheritance)
+        {
+            "sequence": 0,
+            "tree_node_id": 1,
+            "event_type": "AGENT_ACTION",
+            "payload": {
+                "action": {"name": "allocate", "parameters": {"amount": 6}},
+                "agent": "Agent 1",
+                "round": 1
+            },
+            "created_at": datetime(2026, 3, 30, 14, 30, 0)
+        },
+        {
+            "sequence": 0,
+            "tree_node_id": 2,  # Duplicate from node 2
+            "event_type": "AGENT_ACTION",
+            "payload": {
+                "action": {"name": "allocate", "parameters": {"amount": 6}},
+                "agent": "Agent 1",
+                "round": 1
+            },
+            "created_at": datetime(2026, 3, 30, 14, 30, 0)
+        },
+        {
+            "sequence": 0,
+            "tree_node_id": 3,  # Duplicate from node 3
+            "event_type": "AGENT_ACTION",
+            "payload": {
+                "action": {"name": "allocate", "parameters": {"amount": 6}},
+                "agent": "Agent 1",
+                "round": 1
+            },
+            "created_at": datetime(2026, 3, 30, 14, 30, 0)
+        },
+        # Round 2 - Agent 1 (appears in nodes 2 and 3)
+        {
+            "sequence": 5,
+            "tree_node_id": 2,
+            "event_type": "AGENT_ACTION",
+            "payload": {
+                "action": {"name": "allocate", "parameters": {"amount": 5}},
+                "agent": "Agent 1",
+                "round": 2
+            },
+            "created_at": datetime(2026, 3, 30, 14, 31, 0)
+        },
+        {
+            "sequence": 5,
+            "tree_node_id": 3,  # Duplicate from node 3
+            "event_type": "AGENT_ACTION",
+            "payload": {
+                "action": {"name": "allocate", "parameters": {"amount": 5}},
+                "agent": "Agent 1",
+                "round": 2
+            },
+            "created_at": datetime(2026, 3, 30, 14, 31, 0)
+        },
+        # Round 3 - Agent 1 (only in node 3)
+        {
+            "sequence": 10,
+            "tree_node_id": 3,
+            "event_type": "AGENT_ACTION",
+            "payload": {
+                "action": {"name": "allocate", "parameters": {"amount": 4}},
+                "agent": "Agent 1",
+                "round": 3
+            },
+            "created_at": datetime(2026, 3, 30, 14, 32, 0)
+        },
+    ]
+
+    scenario_params = {"tokens_per_round": 10}
+
+    # Export to JSON for easier assertion
+    json_content = export_events(events, scenario_params, "json")
+    import json
+    data = json.loads(json_content)
+
+    # Should have exactly 3 events (one per round), not 6
+    assert len(data) == 3, f"Expected 3 unique events, got {len(data)}"
+
+    # Verify we have one event per round
+    rounds = [e["round"] for e in data]
+    assert rounds == [1, 2, 3], f"Expected rounds [1, 2, 3], got {rounds}"
+
+    # Verify amounts are correct (6, 5, 4)
+    amounts = [e["follow_up"] for e in data]
+    assert amounts == ["6", "5", "4"], f"Expected amounts ['6', '5', '4'], got {amounts}"

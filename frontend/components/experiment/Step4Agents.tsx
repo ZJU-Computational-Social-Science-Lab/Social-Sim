@@ -611,7 +611,10 @@ export const Step4Agents: React.FC = () => {
   // ==================== LLM Allocation Handlers ====================
 
   const handleAddLlmAllocation = () => {
-    if (llmProviders.length === 0) return;
+    if (llmProviders.length === 0) {
+      console.warn('[handleAddLlmAllocation] No LLM providers available');
+      return;
+    }
     const firstProvider = llmProviders[0];
     setLlmAllocations([...llmAllocations, {
       providerId: firstProvider.id,
@@ -1142,7 +1145,7 @@ export const Step4Agents: React.FC = () => {
                         padding: '2px 8px',
                       }}
                     >
-                    <div className="rounded-lg border border-gray-200 overflow-hidden">
+                      <div className="rounded-lg border border-gray-200 overflow-hidden">
                       {/* Compact row — always visible */}
                       <div
                         className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors"
@@ -1296,16 +1299,16 @@ export const Step4Agents: React.FC = () => {
                               </div>
                             </div>
                           )}
-                        </div>{/* closes agent card */}
-                      </div>{/* closes virtualizer wrapper */}
-                      );
-                    })}
-                </div>{/* closes relative inner div */}
-              </div>{/* closes scroll container */}
-            )}
-              </div>
-            )}
-          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
       {/* File Import */}
       {agentMode === 'import' && (
