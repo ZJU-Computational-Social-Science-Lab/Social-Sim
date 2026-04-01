@@ -73,6 +73,7 @@ export interface Step2DemographicsEditorProps {
   onAddLlmAllocation?: () => void;
   onRemoveLlmAllocation?: (index: number) => void;
   onUpdateLlmAllocation?: (index: number, field: keyof LLMAllocation, value: number | string) => void;
+  onApplyLlmDistribution?: () => void;  // Apply distribution to existing agents
   availableProviders?: Provider[];  // Providers from parent
   providersLoading?: boolean;       // Loading state from parent
   useTranslation?: boolean; // If true, use t() function for labels
@@ -160,6 +161,7 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
   onAddLlmAllocation,
   onRemoveLlmAllocation,
   onUpdateLlmAllocation,
+  onApplyLlmDistribution,
   availableProviders: propAvailableProviders = [],  // From parent
   providersLoading: propProvidersLoading = false,   // From parent
   useTranslation = false,
@@ -425,7 +427,7 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
                   <select
                     value={allocation.providerId}
                     onChange={(e) => onUpdateLlmAllocation && onUpdateLlmAllocation(index, 'providerId', Number(e.target.value))}
-                    className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm"
+                    className="flex-1 min-w-[200px] px-2 py-1 border border-slate-300 rounded text-sm"
                   >
                     {availableProviders && availableProviders.map(p => (
                       <option key={p.id} value={p.id}>
@@ -466,11 +468,21 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
                 </button>
               )}
               {llmAllocations && llmAllocations.length > 0 && (
-                <div className={`text-sm ${isLlmDistributionValid ? 'text-green-600' : 'text-red-600'}`}>
-                  {isLlmDistributionValid ? (
-                    <span>{getText('wizard.llmDistribution.totalValid', 'Total: 100% ✓')}</span>
-                  ) : (
-                    <span>{getText('wizard.llmDistribution.mustEqual100', `Total must equal 100% (currently ${totalPercentage}%)`)}</span>
+                <div className="space-y-2">
+                  <div className={`text-sm ${isLlmDistributionValid ? 'text-green-600' : 'text-red-600'}`}>
+                    {isLlmDistributionValid ? (
+                      <span>{getText('wizard.llmDistribution.totalValid', 'Total: 100% ✓')}</span>
+                    ) : (
+                      <span>{getText('wizard.llmDistribution.mustEqual100', `Total must equal 100% (currently ${totalPercentage}%)`)}</span>
+                    )}
+                  </div>
+                  {isLlmDistributionValid && onApplyLlmDistribution && (
+                    <button
+                      onClick={onApplyLlmDistribution}
+                      className="w-full mt-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm font-medium"
+                    >
+                      {getText('wizard.llmDistribution.applyDistribution', 'Apply Distribution')}
+                    </button>
                   )}
                 </div>
               )}

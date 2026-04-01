@@ -615,17 +615,50 @@ export const Step4Agents: React.FC = () => {
       console.warn('[handleAddLlmAllocation] No LLM providers available');
       return;
     }
+
+    const newCount = llmAllocations.length + 1;
+    const basePercentage = Math.floor(100 / newCount);
+    const remainder = 100 - (basePercentage * newCount);
+
+    // Add the new allocation first (at base percentage, no remainder)
     const firstProvider = llmProviders[0];
-    setLlmAllocations([...llmAllocations, {
-      providerId: firstProvider.id,
-      providerName: firstProvider.name,
-      modelName: firstProvider.model || '',
-      percentage: 100,
-    }]);
+    const withNew = [
+      ...llmAllocations,
+      {
+        providerId: firstProvider.id,
+        providerName: firstProvider.name,
+        modelName: firstProvider.model || '',
+        percentage: basePercentage,
+      },
+    ];
+
+    // Redistribute evenly — first item absorbs any remainder
+    const redistributed = withNew.map((a, i) => ({
+      ...a,
+      percentage: basePercentage + (i === 0 ? remainder : 0),
+    }));
+
+    setLlmAllocations(redistributed);
   };
 
   const handleRemoveLlmAllocation = (index: number) => {
-    setLlmAllocations(llmAllocations.filter((_, i) => i !== index));
+    const newAllocations = llmAllocations.filter((_, i) => i !== index);
+
+    if (newAllocations.length === 0) {
+      setLlmAllocations([]);
+      return;
+    }
+
+    // Redistribute percentages evenly — first item absorbs any remainder
+    const basePercentage = Math.floor(100 / newAllocations.length);
+    const remainder = 100 - (basePercentage * newAllocations.length);
+
+    const redistributed = newAllocations.map((a, i) => ({
+      ...a,
+      percentage: basePercentage + (i === 0 ? remainder : 0),
+    }));
+
+    setLlmAllocations(redistributed);
   };
 
   const handleUpdateLlmAllocation = (index: number, field: keyof LLMAllocation, value: number | string) => {
@@ -642,6 +675,42 @@ export const Step4Agents: React.FC = () => {
       }
       return updated;
     }));
+  };
+
+  // ==================== Apply Distribution Button ====================
+
+  const handleApplyDistribution = () => {
+    // Apply provider distribution to existing agents
+    if (llmAllocations.length === 0 || agentTypes.length === 0) {
+      return;
+    }
+
+    const totalCount = agentTypes.length;
+    const exact = llmAllocations.map((a) => (a.percentage / 100) * totalCount);
+    const floors = exact.map(Math.floor);
+    const remainders = exact.map((v, i) => v - floors[i]);
+    const totalFloor = floors.reduce((a, b) => a + b, 0);
+    const remaining = totalCount - totalFloor;
+    const sortedIndices = remainders
+      .map((r, i) => ({ r, i }))
+      .sort((a, b) => b.r - a.r);
+    const counts = [...floors];
+    for (let i = 0; i < remaining; i++) counts[sortedIndices[i].i]++;
+
+    // Build provider assignment list
+    const providerAssignments: (number | null)[] = [];
+    for (let i = 0; i < llmAllocations.length; i++) {
+      for (let j = 0; j < counts[i]; j++) {
+        providerAssignments.push(llmAllocations[i].providerId);
+      }
+    }
+
+    // Apply to agents
+    providerAssignments.forEach((providerId, index) => {
+      if (index < agentTypes.length) {
+        updateAgentType(agentTypes[index].id, { providerId });
+      }
+    });
   };
 
   const handleGenerateAgents = async () => {
@@ -1075,6 +1144,7 @@ export const Step4Agents: React.FC = () => {
             onAddLlmAllocation={handleAddLlmAllocation}
             onRemoveLlmAllocation={handleRemoveLlmAllocation}
             onUpdateLlmAllocation={handleUpdateLlmAllocation}
+            onApplyLlmDistribution={handleApplyDistribution}
             availableProviders={llmProviders as any}
             providersLoading={false}
             useTranslation={false}
