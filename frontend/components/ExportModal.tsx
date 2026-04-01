@@ -18,6 +18,7 @@ export const ExportModal: React.FC = () => {
   const nodes = useSimulationStore(state => state.nodes);
   const selectedNodeId = useSimulationStore(state => state.selectedNodeId);
   const engineConfig = useSimulationStore(state => state.engineConfig);
+  const llmProviders = useSimulationStore(state => state.llmProviders);
 
   const [format, setFormat] = useState<'json' | 'csv'>('json');
   const [scope, setScope] = useState<'all_logs' | 'agent_data'>('all_logs');
@@ -131,18 +132,73 @@ export const ExportModal: React.FC = () => {
         }));
         content = Papa.unparse(flat);
       } else {
-        // For agents, flatten nested objects like properties/history if possible,
-        // or just export basic info for CSV to stay simple
-        const flattenedAgents = agents.map(a => ({
-          id: a.id,
-          name: a.name,
-          role: a.role,
-          avatarUrl: a.avatarUrl,
-          profile: a.profile,
-          // Simple stringify for complex objects in CSV
-          properties: JSON.stringify(a.properties),
-          memory_count: a.memory.length
-        }));
+        // For agents, create a clean export with flattened properties
+        // First, collect all unique property keys across all agents
+        const allPropertyKeys = new Set<string>();
+        agents.forEach(a => {
+          if (a.properties && typeof a.properties === 'object') {
+            Object.keys(a.properties).forEach(key => allPropertyKeys.add(key));
+          }
+        });
+
+        // Extract short role name from "You are a [Role]." pattern
+        const extractRoleName = (roleText: string) => {
+          if (!roleText) return '';
+          // Match "You are a/an [Role Name]." at the start
+          const match = roleText.match(/^You are (?:a|an) ([^.]+)\./i);
+          if (match) {
+            return match[1].trim(); // Return just the role name
+          }
+          // If pattern doesn't match, return as-is (might already be short)
+          return roleText.split('.')[0].trim();
+        };
+
+        // Clean profile text by removing "You are a X." prefix
+        const cleanProfile = (profile: string) => {
+          if (!profile) return '';
+          // Remove "You are a [Role]." pattern from the beginning
+          return profile.replace(/^You are a [^.]+\.\s*/i, '').trim();
+        };
+
+        // Build flattened agent data with dynamic property columns
+        const flattenedAgents = agents.map(a => {
+          // Try to get LLM info from llmConfig first, then from properties.provider_id
+          let llmModel = 'unknown';
+          let llmProvider = 'unknown';
+
+          if (a.llmConfig && a.llmConfig.model) {
+            llmModel = a.llmConfig.model;
+            llmProvider = a.llmConfig.provider || 'unknown';
+          } else if (a.properties?.provider_id != null) {
+            // Look up provider from store
+            const providers = useSimulationStore.getState().llmProviders || [];
+            const provider = providers.find((p: any) => p.id === Number(a.properties.provider_id));
+            if (provider) {
+              llmProvider = provider.provider || provider.name;
+              llmModel = provider.model || 'unknown';
+            }
+          }
+
+          const baseData: any = {
+            id: a.id,
+            name: a.name,
+            role: extractRoleName(a.role || ''),
+            profile: cleanProfile(a.profile || ''),
+            llm_provider: llmProvider,
+            llm_model: llmModel
+          };
+
+          // Add flattened properties (exclude internal/redundant fields)
+          const excludeKeys = new Set(['provider_id', 'demographic_attributes', 'role']);
+          allPropertyKeys.forEach(key => {
+            if (!excludeKeys.has(key)) {
+              baseData[key] = a.properties?.[key] ?? '';
+            }
+          });
+
+          return baseData;
+        });
+
         content = Papa.unparse(flattenedAgents);
       }
       mimeType = 'text/csv';

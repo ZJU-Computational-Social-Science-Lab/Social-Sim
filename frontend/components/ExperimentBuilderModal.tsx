@@ -109,7 +109,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
           profile: userProfile || rolePrompt || '',  // backend expects 'profile' or 'user_profile'
           user_profile: userProfile || '',  // snake_case for backend
           avatarUrl: avatarUrl,
-          llm_config: llmConfig,
+          llmConfig: llmConfig,
           provider_id: providerId,  // Track which provider this agent uses
           properties: {
             ...props,

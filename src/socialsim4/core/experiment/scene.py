@@ -54,7 +54,7 @@ class ExperimentScene:
         """Create ExperimentAgents directly from config.
 
         Args:
-            llm_client: LLM client for prompting agents
+            llm_client: LLM client for prompting agents (default for agents without llm_config)
         """
         if self.runner is not None:
             return  # Already initialized
@@ -74,6 +74,52 @@ class ExperimentScene:
             )
             for a in self.config.agents
         ]
+
+        # Create per-agent LLM clients based on llm_config.dialect
+        # This enables LLM distribution - different agents can use different providers
+        self._agent_llm_clients = {}
+        for agent in self.agents:
+            # Handle both dict (from config) and LLMConfig object
+            if agent.llm_config:
+                # Extract config values - handle both dict and LLMConfig object
+                if isinstance(agent.llm_config, dict):
+                    dialect = agent.llm_config.get("dialect")
+                    if not dialect:
+                        self._agent_llm_clients[agent.name] = llm_client
+                        continue
+                    model = agent.llm_config.get("model", "")
+                    api_key = agent.llm_config.get("api_key", "")
+                    base_url = agent.llm_config.get("base_url")
+                    temperature = agent.llm_config.get("temperature", 0.7)
+                else:
+                    # It's an LLMConfig object
+                    dialect = getattr(agent.llm_config, 'dialect', None)
+                    if not dialect:
+                        self._agent_llm_clients[agent.name] = llm_client
+                        continue
+                    model = getattr(agent.llm_config, 'model', "")
+                    api_key = getattr(agent.llm_config, 'api_key', "")
+                    base_url = getattr(agent.llm_config, 'base_url', None)
+                    temperature = getattr(agent.llm_config, 'temperature', 0.7)
+
+                # Create LLM client for this agent based on their dialect
+                from socialsim4.core.llm_config import LLMConfig
+                from socialsim4.core.llm.client import LLMClient as AgentLLMClient
+
+                config = LLMConfig(
+                    dialect=dialect,
+                    model=model,
+                    api_key=api_key,
+                    base_url=base_url,
+                    temperature=temperature,
+                )
+                self._agent_llm_clients[agent.name] = AgentLLMClient(config)
+                logger.debug(f"Created LLM client for {agent.name}: dialect={config.dialect}, model={config.model}")
+            else:
+                # Use default client for agents without explicit llm_config
+                self._agent_llm_clients[agent.name] = llm_client
+
+        logger.debug(f"Created {len(self.agents)} ExperimentAgents with LLM distribution")
 
         logger.debug(f"Created {len(self.agents)} ExperimentAgents")
 
@@ -146,6 +192,7 @@ class ExperimentScene:
             round_visibility=self.config.round_visibility,
             information_model=information_model,
             scene=self,  # GAP-CLOSURE-01: pass scene for action filtering
+            agent_llm_clients=self._agent_llm_clients,  # Pass per-agent LLM clients
         )
 
         # Wire social network graph AND state to runner's scene_state

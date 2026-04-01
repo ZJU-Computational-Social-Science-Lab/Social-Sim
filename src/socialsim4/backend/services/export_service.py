@@ -115,6 +115,40 @@ def transform_event_for_export(event: dict, scenario_params: dict) -> dict:
     return result
 
 
+def deduplicate_events(events: list[dict]) -> list[dict]:
+    """Deduplicate events that appear in multiple tree nodes due to log inheritance.
+
+    When child nodes are created, they inherit all parent logs. This causes
+    the same event to appear in multiple nodes. We deduplicate based on
+    the actual event content (agent, round, action, parameters).
+
+    Args:
+        events: List of transformed events (output from transform_event_for_export)
+
+    Returns:
+        Deduplicated list of events, keeping the first occurrence
+    """
+    seen = set()
+    deduplicated = []
+
+    for event in events:
+        # Create a deduplication key based on meaningful event content
+        # We exclude node_id, sequence, and timestamp as these differ across nodes
+        key = (
+            event.get("round"),
+            event.get("agent_id"),
+            event.get("type"),
+            event.get("action"),
+            event.get("follow_up"),
+        )
+
+        if key not in seen:
+            seen.add(key)
+            deduplicated.append(event)
+
+    return deduplicated
+
+
 def export_events(events: list[dict], scenario_params: dict, format: str) -> str:
     """Export events to CSV or JSON format.
 
@@ -127,6 +161,9 @@ def export_events(events: list[dict], scenario_params: dict, format: str) -> str
         Formatted export content
     """
     transformed = [transform_event_for_export(e, scenario_params) for e in events]
+
+    # Deduplicate events that appear in multiple tree nodes
+    transformed = deduplicate_events(transformed)
 
     if format == "json":
         return json.dumps(transformed, indent=2, default=str)

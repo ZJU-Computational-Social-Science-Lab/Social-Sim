@@ -10,13 +10,15 @@
  * from the original SimulationWizard design.
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useExperimentBuilder, ManualAgentType, LLMProvider } from '../../store/experiment-builder';
 import { generateAgentsWithDemographics, isZh } from '../../store/helpers';
-import { Step2DemographicsEditor, Demographic, Archetype, TraitConfig } from '../wizard/Step2DemographicsEditor';
+import { Step2DemographicsEditor, Demographic, Archetype, TraitConfig, LLMAllocation } from '../wizard/Step2DemographicsEditor';
 import type { Agent } from '../../types';
 import { Button } from '../ui/button';
+import { ChevronDown } from 'lucide-react';
 
 type TierValue = string;
 
@@ -208,6 +210,12 @@ export const Step4Agents: React.FC = () => {
   const [generatedAgents, setGeneratedAgents] = useState<Agent[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
   const [tierOrderDraft, setTierOrderDraft] = useState<string[]>(['top', 'mid', 'low']);
+  const [llmAllocations, setLlmAllocations] = useState<LLMAllocation[]>([]);
+
+  // ==================== Agent List UI State ====================
+  const [isAgentListOpen, setIsAgentListOpen] = useState(false);
+  const [expandedAgentId, setExpandedAgentId] = useState<string | null>(null);
+  const agentListRef = useRef<HTMLDivElement>(null);
 
   const scenarioId = selectedScenarioData?.id || selectedScenarioId || '';
   const showTierControls = isPolicyCascadeScenario(selectedScenarioData || { id: scenarioId });
@@ -600,6 +608,42 @@ export const Step4Agents: React.FC = () => {
     setTraits(traits.map((t) => (t.id === id ? { ...t, [field]: value } : t)));
   };
 
+  // ==================== LLM Allocation Handlers ====================
+
+  const handleAddLlmAllocation = () => {
+    if (llmProviders.length === 0) {
+      console.warn('[handleAddLlmAllocation] No LLM providers available');
+      return;
+    }
+    const firstProvider = llmProviders[0];
+    setLlmAllocations([...llmAllocations, {
+      providerId: firstProvider.id,
+      providerName: firstProvider.name,
+      modelName: firstProvider.model || '',
+      percentage: 100,
+    }]);
+  };
+
+  const handleRemoveLlmAllocation = (index: number) => {
+    setLlmAllocations(llmAllocations.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateLlmAllocation = (index: number, field: keyof LLMAllocation, value: number | string) => {
+    setLlmAllocations(llmAllocations.map((a, i) => {
+      if (i !== index) return a;
+      const updated = { ...a, [field]: value };
+      // When provider changes, sync name and model from llmProviders
+      if (field === 'providerId') {
+        const provider = llmProviders.find((p) => p.id === Number(value));
+        if (provider) {
+          updated.providerName = provider.name;
+          updated.modelName = provider.model || '';
+        }
+      }
+      return updated;
+    }));
+  };
+
   const handleGenerateAgents = async () => {
     if (demographics.length === 0 || demographics.some((d) => d.categories.length === 0)) {
       setImportError('Please add at least one demographic dimension with categories.');
@@ -643,8 +687,32 @@ export const Step4Agents: React.FC = () => {
 
       setGeneratedAgents(agents);
 
+      // Build provider assignment map using largest-remainder method for fair distribution
+      const totalCount = agents.length;
+      let providerAssignments: (number | null)[];
+      if (llmAllocations.length > 0) {
+        const exact = llmAllocations.map((a) => (a.percentage / 100) * totalCount);
+        const floors = exact.map(Math.floor);
+        const remainders = exact.map((v, i) => v - floors[i]);
+        const totalFloor = floors.reduce((a, b) => a + b, 0);
+        const remaining = totalCount - totalFloor;
+        const sortedIndices = remainders
+          .map((r, i) => ({ r, i }))
+          .sort((a, b) => b.r - a.r);
+        const counts = [...floors];
+        for (let i = 0; i < remaining; i++) counts[sortedIndices[i].i]++;
+        providerAssignments = [];
+        for (let i = 0; i < llmAllocations.length; i++) {
+          for (let j = 0; j < counts[i]; j++) {
+            providerAssignments.push(llmAllocations[i].providerId);
+          }
+        }
+      } else {
+        providerAssignments = agents.map(() => selectedProviderId ?? null);
+      }
+
       // Convert generated agents to ManualAgentType format and add to store
-      agents.forEach((agent) => {
+      agents.forEach((agent, agentIndex) => {
         const inferredTier = inferOrderedTier({
           properties: {
             tier: agent.properties?.tier,
@@ -672,7 +740,7 @@ export const Step4Agents: React.FC = () => {
           rolePrompt: agent.profile,
           userProfile: agent.profile,
           properties: nextProperties,
-          providerId: selectedProviderId ?? undefined,
+          providerId: providerAssignments[agentIndex] ?? undefined,
         };
         addAgentType(agentType);
       });
@@ -687,6 +755,15 @@ export const Step4Agents: React.FC = () => {
   // ==================== Computed Values ====================
 
   const totalAgents = agentTypes.reduce((sum, t) => sum + t.count, 0);
+
+  // Virtual list — only renders rows visible in the 500px scroll window.
+  // measureElement lets rows grow when expanded without layout thrash.
+  const agentVirtualizer = useVirtualizer({
+    count: agentTypes.length,
+    getScrollElement: () => agentListRef.current,
+    estimateSize: () => 49, // compact row height (px) — re-measured automatically
+    overscan: 8,
+  });
   const tierPreviewStats = useMemo(() => {
     const counts: Record<string, number> = {};
     tierOrder.forEach((tier) => {
@@ -948,13 +1025,14 @@ export const Step4Agents: React.FC = () => {
       {/* Demographic Generation */}
       {agentMode === 'demographic' && (
         <div className="p-4 border border-gray-200 rounded-lg bg-white">
-          {/* LLM Provider Selector */}
+          {/* Agent Generation LLM Selector */}
           {llmProviders.length > 0 && (
             <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-              <label className="block text-sm font-medium text-gray-700 mb-2">{t('experimentBuilder.step4.llmProvider')}</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.generationLlmProvider')}</label>
+              <p className="text-xs text-gray-500 mb-2">{t('experimentBuilder.step4.generationLlmProviderHint')}</p>
               <select
                 value={selectedProviderId || ''}
-                onChange={(e) => setSelectedProviderId(e.target.value || null)}
+                onChange={(e) => setSelectedProviderId(e.target.value ? Number(e.target.value) : null)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
               >
                 <option value="">{t('experimentBuilder.step4.defaultProvider')}</option>
@@ -993,159 +1071,244 @@ export const Step4Agents: React.FC = () => {
             customAgents={generatedAgents}
             setCustomAgents={setGeneratedAgents}
             importError={importError}
+            llmAllocations={llmAllocations}
+            onAddLlmAllocation={handleAddLlmAllocation}
+            onRemoveLlmAllocation={handleRemoveLlmAllocation}
+            onUpdateLlmAllocation={handleUpdateLlmAllocation}
+            availableProviders={llmProviders as any}
+            providersLoading={false}
             useTranslation={false}
           />
         </div>
       )}
 
       {/* Editable Agent List */}
-      <div className="p-4 border border-gray-200 rounded-lg bg-white">
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="font-semibold text-gray-900">{t('experimentBuilder.step4.agentListTitle')}</h4>
-          {totalAgents > 0 && (
-            <div className="text-sm text-gray-600">{t('experimentBuilder.step4.totalAgents', { count: totalAgents })}</div>
-          )}
-        </div>
+      <div className="border border-gray-200 rounded-lg bg-white overflow-hidden">
+        {/* Collapsible header */}
+        <button
+          type="button"
+          onClick={() => setIsAgentListOpen((o) => !o)}
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+        >
+          <div className="flex items-center gap-2">
+            <h4 className="font-semibold text-gray-900">{t('experimentBuilder.step4.agentListTitle')}</h4>
+            <span className="text-sm text-gray-500">
+              ({t('experimentBuilder.step4.totalAgents', { count: totalAgents })})
+            </span>
+          </div>
+          <ChevronDown
+            size={18}
+            className={`text-gray-400 transition-transform duration-200 ${isAgentListOpen ? 'rotate-180' : ''}`}
+          />
+        </button>
 
-        {agentTypes.length === 0 ? (
-          <p className="text-sm text-gray-600 text-center py-4">{t('experimentBuilder.step4.noTypes')}</p>
-        ) : (
-          <div className="space-y-4">
-            {agentTypes.map((type) => {
-              const avatarUrl = type.properties?.avatarUrl as string ||
-                `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(type.label)}`;
-              const tier = inferOrderedTier(type, tierOrder);
-              const editableProperties = propertyDrafts[type.id] || [];
+        {isAgentListOpen && (
+          <div className="border-t border-gray-100">
+            {agentTypes.length === 0 ? (
+              <p className="text-sm text-gray-600 text-center py-4">{t('experimentBuilder.step4.noTypes')}</p>
+            ) : (
+              /* Scroll container — fixed height so the virtualizer knows its viewport */
+              <div
+                ref={agentListRef}
+                className="overflow-y-auto"
+                style={{ height: '500px' }}
+              >
+                {/* Inner div height = sum of all row heights, real and virtual */}
+                <div
+                  className="relative w-full"
+                  style={{ height: `${agentVirtualizer.getTotalSize()}px` }}
+                >
+                  {agentVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const type = agentTypes[virtualRow.index];
+                  const avatarUrl = type.properties?.avatarUrl as string ||
+                    `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(type.label)}`;
+                  const tier = inferOrderedTier(type, tierOrder);
+                  const editableProperties = propertyDrafts[type.id] || [];
+                  const isExpanded = expandedAgentId === type.id;
+                  const assignedProvider = type.providerId
+                    ? llmProviders.find((p) => p.id === type.providerId)
+                    : null;
 
-              return (
-                <div key={type.id} className="rounded-lg border border-gray-200 p-4">
-                  <div className="mb-4 flex items-start gap-3">
-                    <img
-                      src={avatarUrl}
-                      alt={type.label}
-                      className="w-12 h-12 rounded-full border border-gray-200 bg-gray-50"
-                    />
-                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.agentName')}</label>
-                        <input
-                          type="text"
-                          value={type.label}
-                          onChange={(e) => updateAgentType(type.id, { label: e.target.value })}
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
-                        />
-                      </div>
-                      {showTierControls && (
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.tier')}</label>
-                          <select
-                            value={tier}
-                            onChange={(e) => handleUpdateTier(type.id, e.target.value as TierValue)}
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
-                          >
-                            <option value="">{t('experimentBuilder.step4.autoDetectTier')}</option>
-                            {tierOrder.map((tierOption) => (
-                              <option key={tierOption} value={tierOption}>{tierOption}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-                      <div className="md:col-span-2">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.userProfile')}</label>
-                        <input
-                          type="text"
-                          value={type.userProfile || ''}
-                          onChange={(e) => updateAgentType(type.id, { userProfile: e.target.value })}
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
-                        />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.rolePrompt')}</label>
-                        <textarea
-                          value={type.rolePrompt || ''}
-                          onChange={(e) => updateAgentType(type.id, { rolePrompt: e.target.value })}
-                          rows={3}
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.llmProvider')}</label>
-                        <select
-                          value={type.providerId ?? ''}
-                          onChange={(e) => updateAgentType(type.id, { providerId: e.target.value ? Number(e.target.value) : null })}
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
-                        >
-                          <option value="">{t('experimentBuilder.step4.defaultProvider')}</option>
-                          {llmProviders.map((p) => (
-                            <option key={p.id} value={p.id}>{p.name}{p.model ? ` (${p.model})` : ''}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeAgentType(type.id)}
-                      className="text-red-600 hover:text-red-700"
+                  return (
+                    // Absolutely positioned wrapper required by the virtualizer.
+                    // data-index + ref={measureElement} lets it track dynamic row heights.
+                    <div
+                      key={virtualRow.key}
+                      data-index={virtualRow.index}
+                      ref={agentVirtualizer.measureElement}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        transform: `translateY(${virtualRow.start}px)`,
+                        padding: '2px 8px',
+                      }}
                     >
-                      {t('experimentBuilder.step4.remove')}
-                    </Button>
-                  </div>
+                      <div className="rounded-lg border border-gray-200 overflow-hidden">
+                      {/* Compact row — always visible */}
+                      <div
+                        className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors"
+                        onClick={() => setExpandedAgentId(isExpanded ? null : type.id)}
+                      >
+                        <img
+                          src={avatarUrl}
+                          alt={type.label}
+                          className="w-8 h-8 rounded-full border border-gray-200 bg-gray-50 flex-shrink-0"
+                        />
+                        <span className="flex-1 text-sm font-medium text-gray-900 truncate">{type.label}</span>
+                        {assignedProvider && (
+                          <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full flex-shrink-0">
+                            {assignedProvider.name}
+                          </span>
+                        )}
+                        {showTierControls && tier && (
+                          <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full flex-shrink-0">
+                            {tier}
+                          </span>
+                        )}
+                        <ChevronDown
+                          size={14}
+                          className={`text-gray-400 flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => { e.stopPropagation(); removeAgentType(type.id); }}
+                          className="text-red-500 hover:text-red-700 flex-shrink-0 px-2"
+                        >
+                          {t('experimentBuilder.step4.remove')}
+                        </Button>
+                      </div>
 
-                  <div className="rounded-md bg-gray-50 p-3">
-                    <div className="mb-3 flex items-center justify-between">
-                      <div className="text-xs font-medium text-gray-700">{t('experimentBuilder.step4.properties')}</div>
-                      <Button size="sm" variant="outline" onClick={() => handleAddProperty(type.id)}>
-                        {t('experimentBuilder.step4.addProperty')}
-                      </Button>
-                    </div>
-
-                    <div className="space-y-2">
-                      {editableProperties.length === 0 && (
-                        <div className="text-xs text-gray-500">{t('experimentBuilder.step4.noProperties')}</div>
-                      )}
-                      {editableProperties.map((item) => (
-                        <div key={item.id} className="grid grid-cols-[1fr_1fr_auto] gap-2">
-                          <div className="relative">
-                            <input
-                              type="text"
-                              value={item.key}
-                              onChange={(e) => handleDraftPropertyChange(type.id, item.id, 'key', e.target.value)}
-                              onBlur={() => handleCommitPropertyKey(type.id, item.id)}
-                              className="w-full px-2 py-1.5 pr-14 text-sm border border-gray-300 rounded bg-white"
+                      {/* Expanded edit form */}
+                      {isExpanded && (
+                        <div className="border-t border-gray-100 p-4">
+                          <div className="mb-4 flex items-start gap-3">
+                            <img
+                              src={avatarUrl}
+                              alt={type.label}
+                              className="w-12 h-12 rounded-full border border-gray-200 bg-gray-50"
                             />
-                            {(sharedPropertyOwners[item.originalKey] || []).length > 1 && (
-                              <span
-                                title={t('experimentBuilder.step4.sharedPropertyTooltip', {
-                                  key: item.originalKey,
-                                  agents: sharedPropertyOwners[item.originalKey].join('、'),
-                                })}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 cursor-help"
-                              >
-                                {t('experimentBuilder.step4.sharedPropertyBadge')}
-                              </span>
-                            )}
+                            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.agentName')}</label>
+                                <input
+                                  type="text"
+                                  value={type.label}
+                                  onChange={(e) => updateAgentType(type.id, { label: e.target.value })}
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                                />
+                              </div>
+                              {showTierControls && (
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.tier')}</label>
+                                  <select
+                                    value={tier}
+                                    onChange={(e) => handleUpdateTier(type.id, e.target.value as TierValue)}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                                  >
+                                    <option value="">{t('experimentBuilder.step4.autoDetectTier')}</option>
+                                    {tierOrder.map((tierOption) => (
+                                      <option key={tierOption} value={tierOption}>{tierOption}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
+                              <div className="md:col-span-2">
+                                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.userProfile')}</label>
+                                <input
+                                  type="text"
+                                  value={type.userProfile || ''}
+                                  onChange={(e) => updateAgentType(type.id, { userProfile: e.target.value })}
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                                />
+                              </div>
+                              <div className="md:col-span-2">
+                                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.rolePrompt')}</label>
+                                <textarea
+                                  value={type.rolePrompt || ''}
+                                  onChange={(e) => updateAgentType(type.id, { rolePrompt: e.target.value })}
+                                  rows={3}
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.llmProvider')}</label>
+                                <select
+                                  value={type.providerId ?? ''}
+                                  onChange={(e) => updateAgentType(type.id, { providerId: e.target.value ? Number(e.target.value) : null })}
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                                >
+                                  <option value="">{t('experimentBuilder.step4.defaultProvider')}</option>
+                                  {llmProviders.map((p) => (
+                                    <option key={p.id} value={p.id}>{p.name}{p.model ? ` (${p.model})` : ''}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
                           </div>
-                          <input
-                            type="text"
-                            value={item.value}
-                            onChange={(e) => handleDraftPropertyChange(type.id, item.id, 'value', e.target.value)}
-                            onBlur={() => handleCommitPropertyValue(type.id, item.id)}
-                            className="px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
-                          />
-                          <Button variant="ghost" size="sm" onClick={() => handleRemoveProperty(type.id, item.originalKey)} className="text-red-600 hover:text-red-700">
-                            {t('experimentBuilder.step4.remove')}
-                          </Button>
+
+                          <div className="rounded-md bg-gray-50 p-3">
+                            <div className="mb-3 flex items-center justify-between">
+                              <div className="text-xs font-medium text-gray-700">{t('experimentBuilder.step4.properties')}</div>
+                              <Button size="sm" variant="outline" onClick={() => handleAddProperty(type.id)}>
+                                {t('experimentBuilder.step4.addProperty')}
+                              </Button>
+                            </div>
+
+                            <div className="space-y-2">
+                              {editableProperties.length === 0 && (
+                                <div className="text-xs text-gray-500">{t('experimentBuilder.step4.noProperties')}</div>
+                              )}
+                              {editableProperties.map((item) => (
+                                <div key={item.id} className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                                  <div className="relative">
+                                    <input
+                                      type="text"
+                                      value={item.key}
+                                      onChange={(e) => handleDraftPropertyChange(type.id, item.id, 'key', e.target.value)}
+                                      onBlur={() => handleCommitPropertyKey(type.id, item.id)}
+                                      className="w-full px-2 py-1.5 pr-14 text-sm border border-gray-300 rounded bg-white"
+                                    />
+                                        {(sharedPropertyOwners[item.originalKey] || []).length > 1 && (
+                                          <span
+                                            title={t('experimentBuilder.step4.sharedPropertyTooltip', {
+                                              key: item.originalKey,
+                                              agents: sharedPropertyOwners[item.originalKey].join('、'),
+                                            })}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 cursor-help"
+                                          >
+                                            {t('experimentBuilder.step4.sharedPropertyBadge')}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <input
+                                        type="text"
+                                        value={item.value}
+                                        onChange={(e) => handleDraftPropertyChange(type.id, item.id, 'value', e.target.value)}
+                                        onBlur={() => handleCommitPropertyValue(type.id, item.id)}
+                                        className="px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
+                                      />
+                                      <Button variant="ghost" size="sm" onClick={() => handleRemoveProperty(type.id, item.originalKey)} className="text-red-600 hover:text-red-700">
+                                        {t('experimentBuilder.step4.remove')}
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    );
+                  })}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+              )}
+            </div>
+          )}
+        </div>
 
       {/* File Import */}
       {agentMode === 'import' && (
