@@ -527,7 +527,8 @@
       "remove": "Remove",
       "loadingProviders": "Loading providers...",
       "loadProvidersError": "Failed to load LLM providers. Please try again.",
-      "retry": "Retry"
+      "retry": "Retry",
+      "distributionHint": "Distribution will be applied when agents are generated."
     },
     "footer": {
       "previous": "Previous",

@@ -50,11 +50,12 @@ class ExperimentScene:
 
         logger.debug(f"ExperimentScene initialized: scenario_id='{config.scenario_id}' (type: {type(config.scenario_id).__name__})")
 
-    def initialize(self, llm_client: LLMClient) -> None:
+    def initialize(self, llm_client: LLMClient, provider_clients: dict | None = None) -> None:
         """Create ExperimentAgents directly from config.
 
         Args:
             llm_client: LLM client for prompting agents (default for agents without llm_config)
+            provider_clients: Optional mapping of provider_id -> LLMClient for per-agent distribution
         """
         if self.runner is not None:
             return  # Already initialized
@@ -71,6 +72,7 @@ class ExperimentScene:
                 # Accept multiple field names for compatibility (camelCase from frontend, snake_case from backend)
                 role_prompt=a.get("role_prompt") or a.get("rolePrompt") or a.get("profile"),
                 knowledge_base=list(a.get("knowledgeBase") or a.get("knowledge_base") or []),
+                provider_id=a.get("provider_id") or a.get("providerId"),
             )
             for a in self.config.agents
         ]
@@ -82,15 +84,31 @@ class ExperimentScene:
             # Handle both dict (from config) and LLMConfig object
             if agent.llm_config:
                 # Extract config values - handle both dict and LLMConfig object
+                _known_dialects = {"openai", "gemini", "mock", "ollama"}
                 if isinstance(agent.llm_config, dict):
-                    dialect = agent.llm_config.get("dialect")
-                    if not dialect:
-                        self._agent_llm_clients[agent.name] = llm_client
+                    # Accept "dialect" or "provider" as the dialect key (frontend sends "provider")
+                    dialect = agent.llm_config.get("dialect") or agent.llm_config.get("provider")
+                    # Treat unknown/sentinel values (e.g. "backend") as "use default"
+                    if not dialect or dialect not in _known_dialects:
+                        # Try provider_id lookup, else fall back to default
+                        if agent.provider_id and provider_clients and agent.provider_id in provider_clients:
+                            self._agent_llm_clients[agent.name] = provider_clients[agent.provider_id]
+                        else:
+                            self._agent_llm_clients[agent.name] = llm_client
                         continue
                     model = agent.llm_config.get("model", "")
                     api_key = agent.llm_config.get("api_key", "")
                     base_url = agent.llm_config.get("base_url")
                     temperature = agent.llm_config.get("temperature", 0.7)
+                    # If api_key missing, resolve from provider_clients or fall back to default client creds
+                    if not api_key:
+                        if agent.provider_id and provider_clients and agent.provider_id in provider_clients:
+                            p = provider_clients[agent.provider_id].provider
+                            api_key = p.api_key
+                            base_url = base_url or p.base_url
+                        elif hasattr(llm_client, 'provider'):
+                            api_key = llm_client.provider.api_key
+                            base_url = base_url or llm_client.provider.base_url
                 else:
                     # It's an LLMConfig object
                     dialect = getattr(agent.llm_config, 'dialect', None)

@@ -160,6 +160,7 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
   onAddLlmAllocation,
   onRemoveLlmAllocation,
   onUpdateLlmAllocation,
+  onApplyLlmDistribution,
   availableProviders: propAvailableProviders = [],  // From parent
   providersLoading: propProvidersLoading = false,   // From parent
   useTranslation = false,
@@ -363,43 +364,7 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
         </p>
       </div>
 
-      {/* Generation Settings */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50 border border-blue-200 p-4 rounded-lg">
-        <div>
-          <label className="block text-xs font-bold text-blue-800 mb-2">
-            {getText('wizard.step2.generateCount', 'Generate Count')}
-          </label>
-          <input
-            type="number"
-            min="1"
-            value={genCount}
-            onChange={(e) => onSetGenCount(Math.max(1, parseInt(e.target.value) || 1))}
-            className="w-full px-3 py-2 border border-blue-200 rounded text-sm focus:ring-blue-500"
-          />
-        </div>
-        <div className="flex items-end">
-          <button
-            onClick={onGenerateAgents}
-            disabled={isGenerating}
-            className="px-6 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
-          >
-            {isGenerating ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <Sparkles size={16} />
-            )}
-            {getText('wizard.step2.startGeneration', 'Start Generating')}
-          </button>
-        </div>
-      </div>
-
-      {importError && (
-        <div className="p-3 bg-red-50 text-red-700 text-xs rounded border border-red-200">
-          {importError}
-        </div>
-      )}
-
-      {/* LLM Distribution Section */}
+      {/* LLM Distribution Section - Configure before generating */}
       <div className="border border-slate-200 rounded-lg p-4">
         <div className="flex items-center justify-between mb-3">
           <h4 className="text-sm font-bold text-slate-800">
@@ -425,7 +390,7 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
                   <select
                     value={allocation.providerId}
                     onChange={(e) => onUpdateLlmAllocation && onUpdateLlmAllocation(index, 'providerId', Number(e.target.value))}
-                    className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm"
+                    className="flex-1 min-w-[200px] px-2 py-1 border border-slate-300 rounded text-sm"
                   >
                     {availableProviders && availableProviders.map(p => (
                       <option key={p.id} value={p.id}>
@@ -466,11 +431,19 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
                 </button>
               )}
               {llmAllocations && llmAllocations.length > 0 && (
-                <div className={`text-sm ${isLlmDistributionValid ? 'text-green-600' : 'text-red-600'}`}>
-                  {isLlmDistributionValid ? (
-                    <span>{getText('wizard.llmDistribution.totalValid', 'Total: 100% ✓')}</span>
-                  ) : (
-                    <span>{getText('wizard.llmDistribution.mustEqual100', `Total must equal 100% (currently ${totalPercentage}%)`)}</span>
+                <div className="space-y-2">
+                  <div className={`text-sm ${isLlmDistributionValid ? 'text-green-600' : 'text-red-600'}`}>
+                    {isLlmDistributionValid ? (
+                      <span>{getText('wizard.llmDistribution.totalValid', 'Total: 100% ✓')}</span>
+                    ) : (
+                      <span>{getText('wizard.llmDistribution.mustEqual100', `Total must equal 100% (currently ${totalPercentage}%)`)}</span>
+                    )}
+                  </div>
+                  {llmAllocations && llmAllocations.length > 0 && (
+                    <p className="text-xs text-slate-500 mt-2">
+                      {getText('wizard.llmDistribution.distributionHint',
+                        'Distribution will be applied when agents are generated.')}
+                    </p>
                   )}
                 </div>
               )}
@@ -478,6 +451,42 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
           </>
         )}
       </div>
+
+      {/* Generation Settings */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50 border border-blue-200 p-4 rounded-lg">
+        <div>
+          <label className="block text-xs font-bold text-blue-800 mb-2">
+            {getText('wizard.step2.generateCount', 'Generate Count')}
+          </label>
+          <input
+            type="number"
+            min="1"
+            value={genCount}
+            onChange={(e) => onSetGenCount(Math.max(1, parseInt(e.target.value) || 1))}
+            className="w-full px-3 py-2 border border-blue-200 rounded text-sm focus:ring-blue-500"
+          />
+        </div>
+        <div className="flex items-end">
+          <button
+            onClick={onGenerateAgents}
+            disabled={isGenerating}
+            className="px-6 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
+          >
+            {isGenerating ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Sparkles size={16} />
+            )}
+            {getText('wizard.step2.startGeneration', 'Start Generating')}
+          </button>
+        </div>
+      </div>
+
+      {importError && (
+        <div className="p-3 bg-red-50 text-red-700 text-xs rounded border border-red-200">
+          {importError}
+        </div>
+      )}
 
       {/* Preview for Generated Agents */}
       {customAgents.length > 0 ? (

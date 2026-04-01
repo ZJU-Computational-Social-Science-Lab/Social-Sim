@@ -107,13 +107,15 @@ export const createSimulationSlice: StateCreator<
     // Helper to convert provider_id to llmConfig
     const buildLLMConfig = (agent: any) => {
       // If llmConfig already exists and is valid, use it
-      if (agent.llmConfig && agent.llmConfig.provider && agent.llmConfig.model) {
-        console.log(`[buildLLMConfig] Agent ${agent.name}: Using existing llmConfig:`, agent.llmConfig);
-        return agent.llmConfig;
+      // Check both camelCase (llmConfig) and snake_case (llm_config)
+      const llmConfig = agent.llmConfig || agent.llm_config;
+      if (llmConfig && llmConfig.provider && llmConfig.model) {
+        console.log(`[buildLLMConfig] Agent ${agent.name}: Using existing llmConfig:`, llmConfig);
+        return llmConfig;
       }
 
-      // Try to get provider_id from properties or root
-      const providerId = agent.properties?.provider_id || agent.provider_id;
+      // Try to get provider_id from properties, root, or camelCase variant
+      const providerId = agent.properties?.provider_id || agent.provider_id || agent.providerId;
 
       console.log(`[buildLLMConfig] Agent ${agent.name}: provider_id=${providerId}, available providers:`, llmProviders.length);
 

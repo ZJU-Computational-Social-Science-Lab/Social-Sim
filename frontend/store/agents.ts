@@ -121,10 +121,10 @@ export const createAgentsSlice: StateCreator<
 
     const previousAgents = [...get().agents];
 
-    // Optimistically update local state
+    // Optimistically update local state (agentId is agent.name)
     set((state) => ({
       agents: state.agents.map((a) =>
-        a.id === agentId ? { ...a, llmConfig: { provider: llmConfig.provider, model: llmConfig.model } } : a
+        (a.name === agentId || a.id === agentId) ? { ...a, llmConfig: { provider: llmConfig.provider, model: llmConfig.model } } : a
       )
     }));
 
@@ -135,7 +135,7 @@ export const createAgentsSlice: StateCreator<
         model: llmConfig.model
       });
 
-      const agentName = get().agents.find((a) => a.id === agentId)?.name || agentId;
+      const agentName = get().agents.find((a) => a.name === agentId || a.id === agentId)?.name || agentId;
       const injectLog = (get() as any).injectLog;
       const addNotification = (get() as any).addNotification;
       injectLog?.('HOST_INTERVENTION', `Host updated ${agentName}'s LLM to ${llmConfig.provider}/${llmConfig.model}`);
