@@ -10,8 +10,9 @@
  * from the original SimulationWizard design.
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useExperimentBuilder, ManualAgentType, LLMProvider } from '../../store/experiment-builder';
 import { generateAgentsWithDemographics, isZh } from '../../store/helpers';
 import { Step2DemographicsEditor, Demographic, Archetype, TraitConfig, LLMAllocation } from '../wizard/Step2DemographicsEditor';
@@ -214,6 +215,7 @@ export const Step4Agents: React.FC = () => {
   // ==================== Agent List UI State ====================
   const [isAgentListOpen, setIsAgentListOpen] = useState(false);
   const [expandedAgentId, setExpandedAgentId] = useState<string | null>(null);
+  const agentListRef = useRef<HTMLDivElement>(null);
 
   const scenarioId = selectedScenarioData?.id || selectedScenarioId || '';
   const showTierControls = isPolicyCascadeScenario(selectedScenarioData || { id: scenarioId });
@@ -750,6 +752,15 @@ export const Step4Agents: React.FC = () => {
   // ==================== Computed Values ====================
 
   const totalAgents = agentTypes.reduce((sum, t) => sum + t.count, 0);
+
+  // Virtual list — only renders rows visible in the 500px scroll window.
+  // measureElement lets rows grow when expanded without layout thrash.
+  const agentVirtualizer = useVirtualizer({
+    count: agentTypes.length,
+    getScrollElement: () => agentListRef.current,
+    estimateSize: () => 49, // compact row height (px) — re-measured automatically
+    overscan: 8,
+  });
   const tierPreviewStats = useMemo(() => {
     const counts: Record<string, number> = {};
     tierOrder.forEach((tier) => {
@@ -1089,12 +1100,23 @@ export const Step4Agents: React.FC = () => {
         </button>
 
         {isAgentListOpen && (
-          <div className="border-t border-gray-100 px-4 pb-4 pt-3">
+          <div className="border-t border-gray-100">
             {agentTypes.length === 0 ? (
               <p className="text-sm text-gray-600 text-center py-4">{t('experimentBuilder.step4.noTypes')}</p>
             ) : (
-              <div className="space-y-1">
-                {agentTypes.map((type) => {
+              /* Scroll container — fixed height so the virtualizer knows its viewport */
+              <div
+                ref={agentListRef}
+                className="overflow-y-auto"
+                style={{ height: '500px' }}
+              >
+                {/* Inner div height = sum of all row heights, real and virtual */}
+                <div
+                  className="relative w-full"
+                  style={{ height: `${agentVirtualizer.getTotalSize()}px` }}
+                >
+                  {agentVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const type = agentTypes[virtualRow.index];
                   const avatarUrl = type.properties?.avatarUrl as string ||
                     `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(type.label)}`;
                   const tier = inferOrderedTier(type, tierOrder);
@@ -1105,7 +1127,22 @@ export const Step4Agents: React.FC = () => {
                     : null;
 
                   return (
-                    <div key={type.id} className="rounded-lg border border-gray-200 overflow-hidden">
+                    // Absolutely positioned wrapper required by the virtualizer.
+                    // data-index + ref={measureElement} lets it track dynamic row heights.
+                    <div
+                      key={virtualRow.key}
+                      data-index={virtualRow.index}
+                      ref={agentVirtualizer.measureElement}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        transform: `translateY(${virtualRow.start}px)`,
+                        padding: '2px 8px',
+                      }}
+                    >
+                    <div className="rounded-lg border border-gray-200 overflow-hidden">
                       {/* Compact row — always visible */}
                       <div
                         className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors"
@@ -1259,11 +1296,13 @@ export const Step4Agents: React.FC = () => {
                               </div>
                             </div>
                           )}
-                        </div>
+                        </div>{/* closes agent card */}
+                      </div>{/* closes virtualizer wrapper */}
                       );
                     })}
-                  </div>
-                )}
+                </div>{/* closes relative inner div */}
+              </div>{/* closes scroll container */}
+            )}
               </div>
             )}
           </div>
