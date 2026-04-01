@@ -379,26 +379,51 @@ def build_reprompt(
 
         return full_prompt
 
-    # For JSON mode, include the full base prompt with JSON format instructions
-    base_prompt = build_prompt(
-        agent, game_config, context_summary, include_section_markers,
-        information_model=information_model,
-        kb_context=kb_context,
-        neighbor_context=neighbor_context,
-        allowed_actions=allowed_actions,
-        speak_instruction=speak_instruction,
-    )
+    # For JSON mode, build a simpler follow-up prompt WITHOUT full action list
+    # This prevents confusion where the model re-selects from all actions instead of providing parameters
+    sections = []
 
-    # Add re-prompt instruction with section marker
+    # Section 1: Agent Description (keep identity context)
+    agent_desc = build_agent_description(
+        agent.get_properties_dict(),
+        role_prompt=getattr(agent, 'role_prompt', None),
+        agent_name=agent.name
+    )
     if include_section_markers:
-        reprompt_header = "\n=== FOLLOW-UP PROMPT (Action Requires Parameters) ==="
+        sections.append("=== SECTION 1: AGENT DESCRIPTION ===")
+    sections.append(agent_desc)
+
+    # Section 2: Scenario (keep game context)
+    scenario_text = game_config.description
+    if game_config.payoff_summary:
+        scenario_text += f"\n\n{game_config.payoff_summary}"
+    if include_section_markers:
+        sections.append("\n=== SECTION 2: SCENARIO ===")
+    sections.append(f"\n## Scenario\n{scenario_text}")
+
+    # Section 4: Context (truncated if needed)
+    if include_section_markers:
+        sections.append("\n=== SECTION 4: CONTEXT ===")
+    budget = getattr(information_model, 'context_budget_chars', 0) if information_model else 0
+    display_context = (
+        truncate_context_to_budget(context_summary, budget)
+        if context_summary else ""
+    )
+    if display_context:
+        sections.append(f"\n## Context\n{display_context}")
     else:
-        reprompt_header = ""
+        sections.append("\n## Context\nThis is the first round - no previous context.")
+
+    # Follow-up instruction with JSON format
+    if include_section_markers:
+        sections.append("\n=== FOLLOW-UP PROMPT (Action Requires Parameters) ===")
 
     params_desc = ", ".join(f'"{k}": <{v.get("description", k)}>' for k, v in parameter_schema.items())
-    reprompt = f"{reprompt_header}\n\nYou chose to {chosen_action}. This action requires parameters.\nRespond ONLY with valid JSON: {{\"action\": \"{chosen_action}\", {params_desc}}}"
+    sections.append(f"\nYou chose to {chosen_action}. This action requires parameters.")
+    sections.append(f"Respond ONLY with valid JSON: {{\"action\": \"{chosen_action}\", {params_desc}}}")
+    sections.append("\nNo markdown. No explanation. Only JSON.")
 
-    full_prompt = base_prompt + reprompt
+    full_prompt = "\n".join(sections)
 
     # Log the follow-up prompt
     if include_section_markers:

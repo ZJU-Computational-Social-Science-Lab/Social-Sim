@@ -965,6 +965,7 @@ class ExperimentRunner:
                 information_model=self.information_model,
                 kb_context=kb_context,
                 neighbor_context=neighbor_context,
+                allowed_actions=allowed_actions,
                 speak_instruction=speak_instruction,
             )
 

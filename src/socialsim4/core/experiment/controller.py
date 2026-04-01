@@ -220,6 +220,7 @@ class ExperimentController:
         kb_context: str = "",
         neighbor_context: str = "",
         speak_instruction: str | None = None,
+        allowed_actions: Optional[List[str]] = None,
     ) -> ActionResult:
         """Process an LLM response with potential follow-up prompt for parameters.
 
@@ -237,6 +238,7 @@ class ExperimentController:
             information_model: Information model used when building the prompt
             kb_context: Knowledge-base context used in the main prompt
             neighbor_context: Social-network context used in the main prompt
+            allowed_actions: Optional filtered list of actions for phase-based filtering
             speak_instruction: Optional instruction for speak action (e.g., brevity constraint)
 
         Returns:
@@ -307,6 +309,7 @@ class ExperimentController:
                 information_model=information_model,
                 kb_context=kb_context,
                 neighbor_context=neighbor_context,
+                allowed_actions=allowed_actions,
                 speak_instruction=speak_instruction,
             )
 
