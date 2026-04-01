@@ -527,7 +527,8 @@
       "remove": "移除",
       "loadingProviders": "正在加载提供商...",
       "loadProvidersError": "加载 LLM 提供商失败，请重试。",
-      "retry": "重试"
+      "retry": "重试",
+      "distributionHint": "分布将在生成智能体时应用。"
     },
     "footer": {
       "previous": "上一步",
