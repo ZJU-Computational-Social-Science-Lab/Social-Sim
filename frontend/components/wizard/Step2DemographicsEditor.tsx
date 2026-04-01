@@ -73,7 +73,6 @@ export interface Step2DemographicsEditorProps {
   onAddLlmAllocation?: () => void;
   onRemoveLlmAllocation?: (index: number) => void;
   onUpdateLlmAllocation?: (index: number, field: keyof LLMAllocation, value: number | string) => void;
-  onApplyLlmDistribution?: () => void;  // Apply distribution to existing agents
   availableProviders?: Provider[];  // Providers from parent
   providersLoading?: boolean;       // Loading state from parent
   useTranslation?: boolean; // If true, use t() function for labels
@@ -476,13 +475,11 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
                       <span>{getText('wizard.llmDistribution.mustEqual100', `Total must equal 100% (currently ${totalPercentage}%)`)}</span>
                     )}
                   </div>
-                  {isLlmDistributionValid && onApplyLlmDistribution && (
-                    <button
-                      onClick={onApplyLlmDistribution}
-                      className="w-full mt-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm font-medium"
-                    >
-                      {getText('wizard.llmDistribution.applyDistribution', 'Apply Distribution')}
-                    </button>
+                  {llmAllocations && llmAllocations.length > 0 && (
+                    <p className="text-xs text-slate-500 mt-2">
+                      {getText('wizard.llmDistribution.distributionHint',
+                        'Distribution will be applied when agents are generated.')}
+                    </p>
                   )}
                 </div>
               )}

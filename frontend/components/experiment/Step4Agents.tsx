@@ -677,42 +677,6 @@ export const Step4Agents: React.FC = () => {
     }));
   };
 
-  // ==================== Apply Distribution Button ====================
-
-  const handleApplyDistribution = () => {
-    // Apply provider distribution to existing agents
-    if (llmAllocations.length === 0 || agentTypes.length === 0) {
-      return;
-    }
-
-    const totalCount = agentTypes.length;
-    const exact = llmAllocations.map((a) => (a.percentage / 100) * totalCount);
-    const floors = exact.map(Math.floor);
-    const remainders = exact.map((v, i) => v - floors[i]);
-    const totalFloor = floors.reduce((a, b) => a + b, 0);
-    const remaining = totalCount - totalFloor;
-    const sortedIndices = remainders
-      .map((r, i) => ({ r, i }))
-      .sort((a, b) => b.r - a.r);
-    const counts = [...floors];
-    for (let i = 0; i < remaining; i++) counts[sortedIndices[i].i]++;
-
-    // Build provider assignment list
-    const providerAssignments: (number | null)[] = [];
-    for (let i = 0; i < llmAllocations.length; i++) {
-      for (let j = 0; j < counts[i]; j++) {
-        providerAssignments.push(llmAllocations[i].providerId);
-      }
-    }
-
-    // Apply to agents
-    providerAssignments.forEach((providerId, index) => {
-      if (index < agentTypes.length) {
-        updateAgentType(agentTypes[index].id, { providerId });
-      }
-    });
-  };
-
   const handleGenerateAgents = async () => {
     if (demographics.length === 0 || demographics.some((d) => d.categories.length === 0)) {
       setImportError('Please add at least one demographic dimension with categories.');
@@ -1144,7 +1108,6 @@ export const Step4Agents: React.FC = () => {
             onAddLlmAllocation={handleAddLlmAllocation}
             onRemoveLlmAllocation={handleRemoveLlmAllocation}
             onUpdateLlmAllocation={handleUpdateLlmAllocation}
-            onApplyLlmDistribution={handleApplyDistribution}
             availableProviders={llmProviders as any}
             providersLoading={false}
             useTranslation={false}
