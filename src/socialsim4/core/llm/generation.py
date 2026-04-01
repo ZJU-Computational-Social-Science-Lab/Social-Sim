@@ -342,7 +342,8 @@ def generate_agents_with_archetypes(
     traits: List[Dict[str, Any]],
     llm_client,
     language: str = "en",
-    timeout: int = 30
+    timeout: int = 30,
+    provider_id: Optional[int] = None
 ) -> List[Dict[str, Any]]:
     """
     Generate agents based on demographics and archetype probabilities.
@@ -483,7 +484,8 @@ def generate_agents_with_archetypes(
                 "properties": properties,
                 "history": {},
                 "memory": [],
-                "knowledgeBase": []
+                "knowledgeBase": [],
+                "provider_id": provider_id  # Preserve provider distribution assignment
             }
 
             agents.append(agent)

@@ -169,13 +169,17 @@ export const ExportModal: React.FC = () => {
           if (a.llmConfig && a.llmConfig.model) {
             llmModel = a.llmConfig.model;
             llmProvider = a.llmConfig.provider || 'unknown';
-          } else if (a.properties?.provider_id != null) {
-            // Look up provider from store
-            const providers = useSimulationStore.getState().llmProviders || [];
-            const provider = providers.find((p: any) => p.id === Number(a.properties.provider_id));
-            if (provider) {
-              llmProvider = provider.provider || provider.name;
-              llmModel = provider.model || 'unknown';
+          } else {
+            // Check both top-level provider_id AND properties.provider_id
+            const providerId = a.provider_id ?? a.properties?.provider_id;
+            if (providerId != null) {
+              // Look up provider from store
+              const providers = useSimulationStore.getState().llmProviders || [];
+              const provider = providers.find((p: any) => p.id === Number(providerId));
+              if (provider) {
+                llmProvider = provider.provider || provider.name;
+                llmModel = provider.model || 'unknown';
+              }
             }
           }
 

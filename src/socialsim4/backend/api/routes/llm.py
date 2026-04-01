@@ -410,7 +410,8 @@ async def generate_agents_demographics(
                     archetype_probabilities=data.archetype_probabilities,
                     traits=traits_dicts,
                     llm_client=llm,
-                    language=data.language
+                    language=data.language,
+                    provider_id=data.provider_id  # Pass through for provider distribution
                 )
             except ValueError as ve:
                 # Re-raise ValueError with more context
@@ -433,6 +434,7 @@ async def generate_agents_demographics(
                         profile=agent_dict.get("profile", ""),
                         provider=provider.provider or "backend",
                         model=provider.model or "default",
+                        provider_id=agent_dict.get("provider_id"),  # Preserve provider distribution
                         properties=agent_dict.get("properties", {}),
                         history=agent_dict.get("history", {}),
                         memory=agent_dict.get("memory", []),

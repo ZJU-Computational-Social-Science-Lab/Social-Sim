@@ -48,12 +48,14 @@ def run_experiment_task(self, simulation_id: str, exp_id: str, run_id: int, turn
                 select(ProviderConfig).where(ProviderConfig.user_id == sim.owner_id)
             )
             items = result.scalars().all()
-            active = [p for p in items if (p.config or {}).get("active")]
-            if len(active) != 1:
-                # fallback to empty clients
-                clients = {}
-            else:
-                provider = active[0]
+
+            # Create LLM clients for ALL providers (not just active) to support provider distribution
+            # This allows different agents to use different LLM providers
+            provider_clients = {}
+            default_llm_client = None
+            active_provider = None  # Track active provider for quota management
+
+            for provider in items:
                 dialect = (provider.provider or "").lower()
                 cfg = LLMConfig(
                     dialect=dialect,
@@ -69,6 +71,20 @@ def run_experiment_task(self, simulation_id: str, exp_id: str, run_id: int, turn
                 )
                 llm_client = create_llm_client(cfg)
 
+                # Store in provider_clients mapping (provider_id -> client)
+                provider_clients[provider.id] = llm_client
+
+                # Use the active provider as the default client
+                if (provider.config or {}).get("active"):
+                    default_llm_client = llm_client
+                    active_provider = provider  # Save for quota logic
+
+            # If no active provider found, use the first one as default
+            if default_llm_client is None and provider_clients:
+                default_llm_client = list(provider_clients.values())[0]
+
+            # Build clients dict with provider distribution support
+            if default_llm_client is not None:
                 # search provider
                 result_s = await session.execute(
                     select(SearchProviderConfig).where(SearchProviderConfig.user_id == sim.owner_id)
@@ -84,7 +100,16 @@ def run_experiment_task(self, simulation_id: str, exp_id: str, run_id: int, turn
                         params=sprov.config or {},
                     )
                 search_client = create_search_client(s_cfg)
-                clients = {"chat": llm_client, "default": llm_client, "search": search_client}
+
+                clients = {
+                    "chat": default_llm_client,
+                    "default": default_llm_client,
+                    "search": search_client,
+                    "providers": provider_clients,  # Provider distribution mapping
+                }
+            else:
+                # No providers configured
+                clients = {}
 
             # create local SimTree from provided tree_state
             tree = SimTree.deserialize(tree_state, clients=clients)
@@ -92,20 +117,20 @@ def run_experiment_task(self, simulation_id: str, exp_id: str, run_id: int, turn
             node_ids = [int(v.get("node_id")) for v in variants if v.get("node_id") and int(v.get("node_id")) in tree.nodes]
 
             # Reserve a conservative per-run budget if provider configured
-            per_run_budget = int((provider.config or {}).get("per_run_budget", 1024)) if 'provider' in locals() and provider is not None else 0
+            per_run_budget = int((active_provider.config or {}).get("per_run_budget", 1024)) if active_provider is not None else 0
             if per_run_budget and node_ids:
                 try:
                     from ..models.llm_usage import LLMUsage
                     async with get_session() as s2:
-                        stmt = select(LLMUsage).where(LLMUsage.user_id == sim.owner_id, LLMUsage.provider_id == provider.id).with_for_update()
+                        stmt = select(LLMUsage).where(LLMUsage.user_id == sim.owner_id, LLMUsage.provider_id == active_provider.id).with_for_update()
                         resu = await s2.execute(stmt)
                         usage = resu.scalars().first()
                         if usage is None:
-                            usage = LLMUsage(user_id=sim.owner_id, provider_id=provider.id, tokens_used=0, tokens_reserved=0)
+                            usage = LLMUsage(user_id=sim.owner_id, provider_id=active_provider.id, tokens_used=0, tokens_reserved=0)
                             s2.add(usage)
                             await s2.flush()
                         total_needed = per_run_budget * len(node_ids)
-                        available = int((provider.config or {}).get("quota", 100000)) - ((usage.tokens_used or 0) + (usage.tokens_reserved or 0))
+                        available = int((active_provider.config or {}).get("quota", 100000)) - ((usage.tokens_used or 0) + (usage.tokens_reserved or 0))
                         if available < total_needed:
                             # Not enough quota for full reservation; disable LLM for this run
                             clients = {}
