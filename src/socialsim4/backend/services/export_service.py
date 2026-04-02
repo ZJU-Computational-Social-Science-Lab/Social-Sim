@@ -94,12 +94,17 @@ def transform_event_for_export(event: dict, scenario_params: dict) -> dict:
     payload = event.get("payload", {})
 
     # Extract basic fields
+    # Normalize agent_id to lowercase with underscores (e.g., "Agent 1" -> "agent_1")
+    # This ensures consistent merging with agent demographic data
+    raw_agent_id = payload.get("agent", "")
+    normalized_agent_id = raw_agent_id.lower().replace(" ", "_") if raw_agent_id else ""
+
     result = {
         "sequence": event.get("sequence"),
         "timestamp": event.get("created_at", "").isoformat() if hasattr(event.get("created_at", ""), "isoformat") else str(event.get("created_at", "")),
         "node_id": str(event.get("tree_node_id", "")),
         "round": payload.get("round", event.get("round", "")),
-        "agent_id": payload.get("agent", ""),
+        "agent_id": normalized_agent_id,
         "type": simplify_log_type(event.get("event_type", "SYSTEM")),
     }
 
