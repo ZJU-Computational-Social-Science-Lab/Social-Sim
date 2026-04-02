@@ -785,6 +785,7 @@ export async function generateAgentsWithDemographics(
     avatarUrl: a.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || `agent_${index}`)}`,
     profile: a.profile || fallbackProfile,
     llmConfig: { provider: a.provider || "backend", model: a.model || "default" },
+    provider_id: a.provider_id,  // Include stratified provider_id from backend
     properties: a.properties || {},
     history: a.history || {},
     memory: a.memory || [],

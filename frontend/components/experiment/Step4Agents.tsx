@@ -720,29 +720,11 @@ export const Step4Agents: React.FC = () => {
 
       setGeneratedAgents(agents);
 
-      // Build provider assignment map using largest-remainder method for fair distribution
-      const totalCount = agents.length;
-      let providerAssignments: (number | null)[];
-      if (llmAllocations.length > 0) {
-        const exact = llmAllocations.map((a) => (a.percentage / 100) * totalCount);
-        const floors = exact.map(Math.floor);
-        const remainders = exact.map((v, i) => v - floors[i]);
-        const totalFloor = floors.reduce((a, b) => a + b, 0);
-        const remaining = totalCount - totalFloor;
-        const sortedIndices = remainders
-          .map((r, i) => ({ r, i }))
-          .sort((a, b) => b.r - a.r);
-        const counts = [...floors];
-        for (let i = 0; i < remaining; i++) counts[sortedIndices[i].i]++;
-        providerAssignments = [];
-        for (let i = 0; i < llmAllocations.length; i++) {
-          for (let j = 0; j < counts[i]; j++) {
-            providerAssignments.push(llmAllocations[i].providerId);
-          }
-        }
-      } else {
-        providerAssignments = agents.map(() => selectedProviderId ?? null);
-      }
+      // Use stratified provider_id from backend response if available
+      // The backend distributes providers across demographic groups to avoid confounding
+      const providerAssignments: (number | null)[] = agents.map(
+        (agent) => agent.provider_id ?? selectedProviderId ?? null
+      );
 
       // Convert generated agents to ManualAgentType format and add to store
       agents.forEach((agent, agentIndex) => {

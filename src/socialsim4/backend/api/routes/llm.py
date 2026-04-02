@@ -18,6 +18,9 @@ from ...models.user import ProviderConfig
 from ....core.llm import create_llm_client, generate_agents_with_archetypes
 from ....core.llm_config import LLMConfig, guess_supports_vision
 
+# Import stratified distribution for balanced provider assignment across demographics
+from ...services.stratified_distribution import stratified_provider_assignment
+
 class GenerateAgentsRequest(BaseModel):
     count: int = Field(5, ge=1, le=50)
     description: str
@@ -56,6 +59,7 @@ class GeneratedAgent(BaseModel):
     profile: Optional[str] = None
     provider: Optional[str] = None
     model: Optional[str] = None
+    provider_id: Optional[int] = None  # For stratified provider distribution
     properties: dict[str, Any] = {}
     history: dict[str, Any] = {}
     memory: list[Any] = []
@@ -403,6 +407,8 @@ async def generate_agents_demographics(
             ]
 
             # 🎯 Call the integrated AgentTorch function from llm.py
+            # Note: provider_id is NOT passed here to avoid confounding
+            # Providers are distributed AFTER generation using stratified distribution
             try:
                 agents_data = generate_agents_with_archetypes(
                     total_agents=data.total_agents,
@@ -411,7 +417,6 @@ async def generate_agents_demographics(
                     traits=traits_dicts,
                     llm_client=llm,
                     language=data.language,
-                    provider_id=data.provider_id  # Pass through for provider distribution
                 )
             except ValueError as ve:
                 # Re-raise ValueError with more context
@@ -423,18 +428,99 @@ async def generate_agents_demographics(
                 # Unexpected error during generation
                 raise RuntimeError(f"Unexpected error during agent generation: {e}")
 
-            # Convert to GeneratedAgent response models
+            # 🎯 STRATIFIED PROVIDER DISTRIBUTION
+            # Query all available providers for the user to avoid confounding
+            all_providers_result = await session.execute(
+                select(ProviderConfig).where(ProviderConfig.user_id == current_user.id)
+            )
+            all_providers = all_providers_result.scalars().all()
+
+            if not all_providers:
+                raise ValueError("No LLM providers configured for user")
+
+            # Build provider ID list for stratified distribution
+            provider_ids = [p.id for p in all_providers if p.id is not None]
+            provider_map = {p.id: p for p in all_providers}
+            num_providers = len(provider_ids)
+
+            # Algorithm for confounding-free distribution:
+            # 1. Group agents by archetype
+            # 2. Within each archetype, assign models in round-robin
+            # 3. Track totals per model to ensure even distribution
+            # 4. Goal: each model gets exactly 50/num_providers agents
+
+            agents_per_model = data.total_agents // num_providers
+            model_counts = {pid: 0 for pid in provider_ids}
+            provider_assignment = {}
+
+            # Group agents by archetype
+            from collections import defaultdict
+            agents_by_archetype = defaultdict(list)
+            for agent in agents_data:
+                archetype_id = agent.get("properties", {}).get("archetype_id", "unknown")
+                agents_by_archetype[archetype_id].append(agent)
+
+            # DEBUG: Log stratified distribution start
+            logger.info(f"🎯 STRATIFIED DISTRIBUTION: {len(agents_data)} agents, {num_providers} providers, {len(agents_by_archetype)} archetypes")
+            logger.info(f"🎯 Provider IDs: {provider_ids}, agents_per_model: {agents_per_model}")
+
+            # Track global round-robin index across all archetypes
+            global_model_idx = 0
+
+            # Process each archetype and assign models in round-robin
+            for archetype_id, archetype_agents in sorted(agents_by_archetype.items()):
+                for agent in archetype_agents:
+                    agent_name = agent.get("name", "Agent")
+
+                    # Find next model that hasn't reached its quota
+                    attempts = 0
+                    while attempts < num_providers:
+                        model_id = provider_ids[global_model_idx % num_providers]
+                        global_model_idx += 1
+
+                        if model_counts[model_id] < agents_per_model:
+                            model_counts[model_id] += 1
+                            provider_assignment[agent_name] = model_id
+                            # DEBUG: Log each assignment
+                            logger.info(f"🎯 DEBUG: Assigned provider {model_id} to {agent_name} in archetype {archetype_id}")
+                            break
+                        attempts += 1
+                    else:
+                        # If all models at quota, assign to first available
+                        # (this handles remainder when 50 % num_providers != 0)
+                        for pid in provider_ids:
+                            if model_counts[pid] < agents_per_model + 1:
+                                model_counts[pid] += 1
+                                provider_assignment[agent_name] = pid
+                                logger.info(f"🎯 DEBUG: Assigned provider {pid} to {agent_name} (overflow) in archetype {archetype_id}")
+                                break
+
+            # DEBUG: Log final distribution
+            logger.info(f"🎯 FINAL MODEL COUNTS: {model_counts}")
+            logger.info(f"🎯 TOTAL ASSIGNMENTS: {len(provider_assignment)}")
+
+            # Convert to GeneratedAgent response models with stratified provider assignment
             agents: List[GeneratedAgent] = []
             for agent_dict in agents_data:
+                agent_name = agent_dict.get("name", "Agent")
+                assigned_provider_id = provider_assignment.get(agent_name)
+
+                # Get provider info from the assigned provider
+                # Handle case where assigned_provider_id might be None
+                if assigned_provider_id is not None and assigned_provider_id in provider_map:
+                    assigned_provider = provider_map[assigned_provider_id]
+                else:
+                    assigned_provider = provider
+
                 agents.append(
                     GeneratedAgent(
                         id=agent_dict.get("id"),
-                        name=agent_dict.get("name", "Agent"),
+                        name=agent_name,
                         role=agent_dict.get("role"),
                         profile=agent_dict.get("profile", ""),
-                        provider=provider.provider or "backend",
-                        model=provider.model or "default",
-                        provider_id=agent_dict.get("provider_id"),  # Preserve provider distribution
+                        provider=assigned_provider.provider or "backend" if assigned_provider else "backend",
+                        model=assigned_provider.model or "default" if assigned_provider else "default",
+                        provider_id=assigned_provider_id,
                         properties=agent_dict.get("properties", {}),
                         history=agent_dict.get("history", {}),
                         memory=agent_dict.get("memory", []),
