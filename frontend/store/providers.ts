@@ -31,6 +31,7 @@ export interface ProvidersSlice {
   llmProviders: Provider[];
   currentProviderId: number | null;
   selectedProviderId: number | null;
+  providersLoading: boolean;
 
   // Actions
   loadProviders: () => Promise<void>;
@@ -45,24 +46,32 @@ export const createProvidersSlice: StateCreator<
 > = (set, get) => ({
   // Initial state
   llmProviders: [],
+  providersLoading: false,
   currentProviderId: null,
   selectedProviderId: null,
 
   // Actions
   loadProviders: async () => {
+    console.log('[loadProviders] Starting to load providers...');
     const { listProviders } = await import('../services/providers');
+    set({ providersLoading: true });
     try {
       const providers = await listProviders();
+      console.log('[loadProviders] Loaded providers:', providers);
+      console.log('[loadProviders] Providers count:', providers?.length);
       const current =
         providers.find((p) => p.is_active || p.is_default) || providers[0] || null;
 
       set({
         llmProviders: providers,
+        providersLoading: false,
         currentProviderId: current ? current.id : null,
         selectedProviderId: current ? current.id : null
       });
+      console.log('[loadProviders] State updated successfully');
     } catch (e) {
-      console.error("加载 LLM 提供商失败", e);
+      console.error("[loadProviders] Failed to load providers:", e);
+      set({ providersLoading: false });
     }
   },
 

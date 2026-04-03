@@ -1,25 +1,27 @@
 /**
  * Resource configuration component for Public Goods Game.
  *
- * Allows researchers to customize the resource type (tokens, money, etc.)
- * and action labels. Supports preset options and custom resource names.
+ * Simplified UI with free text resource name and NumberField steppers.
+ * Uses neutral language (allocate/deduct) matching backend.
  *
  * Exports: ResourceConfig (default)
  */
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import NumberField from './parameter_widgets/NumberField';
 
 interface ResourceConfigProps {
   values: {
     resource_name: string;
-    resource_name_custom: string;
-    initial_amount: number;
+    tokens_per_round: number;
     multiplier: number;
-    action_name: string;
-    action_description: string;
+    deduction_budget_per_phase: number;
+    deduction_cost_ratio: number;
+    deduction_anonymous: boolean;
+    show_average_contribution: boolean;
   };
-  onChange: (key: string, value: string | number) => void;
+  onChange: (key: string, value: string | number | boolean) => void;
 }
 
 export const ResourceConfig: React.FC<ResourceConfigProps> = ({
@@ -27,17 +29,6 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({
   onChange,
 }) => {
   const { t } = useTranslation();
-
-  const resourceOptions = [
-    { value: 'Tokens', label: t('experimentBuilder.resourceConfig.resourceOptions.tokens') },
-    { value: 'Money', label: t('experimentBuilder.resourceConfig.resourceOptions.money') },
-    { value: 'Effort Points', label: t('experimentBuilder.resourceConfig.resourceOptions.effortPoints') },
-    { value: 'Time (hours)', label: t('experimentBuilder.resourceConfig.resourceOptions.timeHours') },
-    { value: 'Resources', label: t('experimentBuilder.resourceConfig.resourceOptions.resources') },
-    { value: 'Custom', label: t('experimentBuilder.resourceConfig.resourceOptions.custom') },
-  ];
-
-  const showCustomField = values.resource_name === 'Custom';
 
   return (
     <div className="space-y-6">
@@ -51,96 +42,116 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({
           <label className="block text-sm font-medium text-gray-700 mb-1">
             {t('experimentBuilder.resourceConfig.resourceNameLabel')}
           </label>
-          <select
+          <input
+            type="text"
             value={values.resource_name}
             onChange={(e) => onChange('resource_name', e.target.value)}
+            placeholder="tokens"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            {resourceOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {showCustomField && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('experimentBuilder.resourceConfig.customResourceLabel')}
-            </label>
-            <input
-              type="text"
-              value={values.resource_name_custom}
-              onChange={(e) => onChange('resource_name_custom', e.target.value)}
-              placeholder={t('experimentBuilder.resourceConfig.customResourcePlaceholder')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-        )}
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t('experimentBuilder.resourceConfig.initialAmountLabel')}: {values.initial_amount}
-          </label>
-          <input
-            type="range"
-            min="10"
-            max="100"
-            value={values.initial_amount}
-            onChange={(e) => onChange('initial_amount', parseInt(e.target.value))}
-            className="w-full"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t('experimentBuilder.resourceConfig.multiplierLabel')}: {values.multiplier}
+            {t('experimentBuilder.resourceConfig.amountPerRoundLabel')}
           </label>
-          <input
-            type="range"
-            min="1.0"
-            max="3.0"
-            step="0.1"
+          <NumberField
+            value={values.tokens_per_round}
+            onChange={(v) => onChange('tokens_per_round', v)}
+            min={1}
+            max={1000}
+            step={1}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {t('experimentBuilder.resourceConfig.multiplierLabel')}
+          </label>
+          <NumberField
             value={values.multiplier}
-            onChange={(e) => onChange('multiplier', parseFloat(e.target.value))}
-            className="w-full"
+            onChange={(v) => onChange('multiplier', v)}
+            min={0.01}
+            max={100}
+            step={0.01}
           />
         </div>
       </div>
 
-      {/* Action Labels */}
+      {/* Deduction Settings */}
       <div className="space-y-4 border-t border-gray-200 pt-4">
         <h3 className="text-sm font-medium text-gray-700">
-          {t('experimentBuilder.resourceConfig.actionLabelsTitle')}
+          {t('experimentBuilder.deductionSettings.title')}
         </h3>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t('experimentBuilder.resourceConfig.actionNameLabel')}
+            {t('experimentBuilder.deductionSettings.budgetLabel')}
           </label>
-          <input
-            type="text"
-            value={values.action_name}
-            onChange={(e) => onChange('action_name', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          <NumberField
+            value={values.deduction_budget_per_phase}
+            onChange={(v) => onChange('deduction_budget_per_phase', v)}
+            min={0}
+            max={100}
+            step={1}
           />
+          <p className="text-xs text-gray-500 mt-1">
+            {t('experimentBuilder.deductionSettings.budgetHint')}
+          </p>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t('experimentBuilder.resourceConfig.actionDescriptionLabel')}
+            {t('experimentBuilder.deductionSettings.costRatioLabel')}
           </label>
-          <input
-            type="text"
-            value={values.action_description}
-            onChange={(e) => onChange('action_description', e.target.value)}
-            placeholder="Use {resource} for the resource name"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          <NumberField
+            value={values.deduction_cost_ratio}
+            onChange={(v) => onChange('deduction_cost_ratio', v)}
+            min={1.0}
+            max={10.0}
+            step={0.1}
           />
           <p className="text-xs text-gray-500 mt-1">
-            Use {'{resource}'} as a placeholder for the resource name
+            {t('experimentBuilder.deductionSettings.costRatioHint')}
           </p>
+        </div>
+
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="deduction_anonymous"
+            checked={values.deduction_anonymous}
+            onChange={(e) => onChange('deduction_anonymous', e.target.checked)}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+          <label htmlFor="deduction_anonymous" className="ml-2 block text-sm text-gray-700">
+            {t('experimentBuilder.deductionSettings.anonymousLabel')}
+          </label>
+        </div>
+      </div>
+
+      {/* Average Contribution Display */}
+      <div className="space-y-4 border-t border-gray-200 pt-4">
+        <h3 className="text-sm font-medium text-gray-700">
+          {t('experimentBuilder.resourceConfig.displaySettingsTitle')}
+        </h3>
+
+        <div className="flex items-start">
+          <input
+            type="checkbox"
+            id="show_average_contribution"
+            checked={values.show_average_contribution}
+            onChange={(e) => onChange('show_average_contribution', e.target.checked)}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-0.5"
+          />
+          <div className="ml-2">
+            <label htmlFor="show_average_contribution" className="block text-sm text-gray-700">
+              {t('experimentBuilder.resourceConfig.showAverageLabel')}
+            </label>
+            <p className="text-xs text-gray-500 mt-1">
+              {t('experimentBuilder.resourceConfig.showAverageHint')}
+            </p>
+          </div>
         </div>
       </div>
     </div>

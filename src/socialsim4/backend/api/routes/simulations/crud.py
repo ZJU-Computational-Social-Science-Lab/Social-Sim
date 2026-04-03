@@ -34,6 +34,7 @@ from socialsim4.backend.schemas.simulation import (
     SimulationCreate,
     SimulationUpdate,
 )
+from socialsim4.backend.schemas.simtree import UpdateAgentLLMConfigRequest
 from socialsim4.backend.services.simulations import generate_simulation_id, generate_simulation_name
 from socialsim4.backend.services.simtree_runtime import SIM_TREE_REGISTRY
 
@@ -386,3 +387,62 @@ async def delete_simulation(
 
         # Remove from runtime registry
         SIM_TREE_REGISTRY.remove(simulation_id)
+
+
+@patch("/{simulation_id:str}/agents/llm-config")
+async def update_agent_llm_config(
+    request: Request,
+    simulation_id: str,
+    data: UpdateAgentLLMConfigRequest,
+) -> dict:
+    """
+    Update an agent's LLM configuration.
+
+    Finds the agent by agent_id in the simulation's agent_config and updates
+    their llm_config field. The change is persisted to the database.
+
+    Args:
+        request: Litestar request with auth token
+        simulation_id: Simulation identifier
+        data: Request payload with agent_id and llm_config
+
+    Returns:
+        Success message with updated agent info
+
+    Raises:
+        HTTPException: If authentication fails or simulation/agent not found
+    """
+    token = extract_bearer_token(request)
+    async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
+        sim = await get_simulation_for_owner(session, current_user.id, simulation_id)
+
+        agent_config = sim.agent_config or {"agents": []}
+        agents = agent_config.get("agents", [])
+
+        # Find agent by agent_id or name (frontend uses name as identifier)
+        agent_found = False
+        for agent in agents:
+            if isinstance(agent, dict) and (
+                agent.get("id") == data.agent_id or agent.get("name") == data.agent_id
+            ):
+                agent["llm_config"] = data.llm_config
+                agent_found = True
+                break
+
+        if not agent_found:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Agent with id/name '{data.agent_id}' not found"
+            )
+
+        sim.agent_config = agent_config
+        flag_modified(sim, "agent_config")
+        await session.commit()
+        await session.refresh(sim)
+
+        return {
+            "message": "Agent LLM config updated successfully",
+            "agent_id": data.agent_id,
+            "llm_config": data.llm_config
+        }

@@ -250,3 +250,40 @@ export async function deleteGlobalKnowledge(
   );
   return data;
 }
+
+// ---------------------------------------------------------
+// Agent LLM Config API
+// ---------------------------------------------------------
+
+export interface UpdateAgentLLMConfigRequest {
+  agent_id: string;
+  llm_config: {
+    provider: string;
+    model: string;
+  };
+}
+
+export interface UpdateAgentLLMConfigResponse {
+  message: string;
+  agent_id: string;
+  llm_config: {
+    provider: string;
+    model: string;
+  };
+}
+
+// Update an agent's LLM configuration
+export async function updateAgentLLMConfig(
+  simulationId: string,
+  agentId: string,
+  llmConfig: { provider: string; model: string }
+): Promise<UpdateAgentLLMConfigResponse> {
+  const { data } = await apiClient.patch(
+    `/simulations/${encodeURIComponent(simulationId)}/agents/llm-config`,
+    {
+      agent_id: agentId,
+      llm_config: llmConfig
+    }
+  );
+  return data;
+}

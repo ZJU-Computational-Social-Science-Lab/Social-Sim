@@ -154,7 +154,38 @@ async def get_tree_record(
         )
 
     search_client = create_search_client(s_cfg)
-    clients = {"chat": llm_client, "default": llm_client, "search": search_client}
+
+    # Build per-provider client map for LLM distribution across agents
+    provider_clients: dict[int, object] = {}
+    for p in items:
+        p_dialect = (p.provider or "").lower()
+        if p_dialect not in {"openai", "gemini", "mock", "ollama"}:
+            continue
+        if p_dialect in {"openai", "gemini"} and not p.api_key:
+            continue
+        if not p.model:
+            continue
+        try:
+            p_base_url = p.base_url or ("http://127.0.0.1:11434" if p_dialect == "ollama" else None)
+            if p_dialect == "openai" and p_base_url and "localhost" in p_base_url and "/v1" not in p_base_url:
+                p_base_url = p_base_url.rstrip("/") + "/v1"
+            p_cfg = LLMConfig(
+                dialect=p_dialect,
+                api_key=p.api_key or "",
+                model=p.model,
+                base_url=p_base_url,
+                temperature=0.7,
+                top_p=1.0,
+                frequency_penalty=0.0,
+                presence_penalty=0.0,
+                max_tokens=1024,
+                supports_vision=guess_supports_vision(p.model),
+            )
+            provider_clients[p.id] = create_llm_client(p_cfg)
+        except Exception:
+            logger.warning(f"Failed to create LLM client for provider {p.id}")
+
+    clients = {"chat": llm_client, "default": llm_client, "search": search_client, "providers": provider_clients}
 
     return await SIM_TREE_REGISTRY.get_or_create_from_sim(sim, clients)
 

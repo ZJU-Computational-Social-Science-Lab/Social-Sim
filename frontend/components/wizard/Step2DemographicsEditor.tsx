@@ -9,9 +9,10 @@
  * that was used in the original SimulationWizard design.
  */
 
-import React from 'react';
-import { Loader2, Sparkles, Plus, Minus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Loader2, Sparkles, Plus, Minus, Trash2, RefreshCw } from 'lucide-react';
 import type { Agent } from '../../types';
+import type { Provider } from '../../services/providers';
 
 // =============================================================================
 // Types
@@ -37,6 +38,13 @@ export interface TraitConfig {
   std: number;
 }
 
+export interface LLMAllocation {
+  providerId: number;
+  providerName: string;
+  modelName: string;
+  percentage: number;
+}
+
 export interface Step2DemographicsEditorProps {
   demographics: Demographic[];
   archetypes: Archetype[];
@@ -60,6 +68,13 @@ export interface Step2DemographicsEditorProps {
   customAgents: Agent[];
   setCustomAgents: (agents: Agent[]) => void;
   importError: string | null;
+  // LLM Distribution props
+  llmAllocations?: LLMAllocation[];
+  onAddLlmAllocation?: () => void;
+  onRemoveLlmAllocation?: (index: number) => void;
+  onUpdateLlmAllocation?: (index: number, field: keyof LLMAllocation, value: number | string) => void;
+  availableProviders?: Provider[];  // Providers from parent
+  providersLoading?: boolean;       // Loading state from parent
   useTranslation?: boolean; // If true, use t() function for labels
   t?: (key: string) => string;
 }
@@ -141,10 +156,25 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
   customAgents,
   setCustomAgents,
   importError,
+  llmAllocations = [],
+  onAddLlmAllocation,
+  onRemoveLlmAllocation,
+  onUpdateLlmAllocation,
+  onApplyLlmDistribution,
+  availableProviders: propAvailableProviders = [],  // From parent
+  providersLoading: propProvidersLoading = false,   // From parent
   useTranslation = false,
   t,
 }) => {
   const getText = (key: string, fallback: string) => (useTranslation && t ? t(key) : fallback);
+
+  // Use providers from props (managed by parent)
+  const availableProviders = propAvailableProviders;
+  const providersLoading = propProvidersLoading;
+
+  // Calculate total percentage and validation
+  const totalPercentage = llmAllocations.reduce((sum, a) => sum + a.percentage, 0);
+  const isLlmDistributionValid = llmAllocations.length === 0 || totalPercentage === 100;
 
   return (
     <div className="flex-1 flex flex-col gap-4 overflow-y-auto">
@@ -332,6 +362,94 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
         <p className="text-xs text-slate-500 mt-2">
           {getText('wizard.step2.traitsHint', 'Traits will use Gaussian distribution (mean ± std), limited to 0-100 range.')}
         </p>
+      </div>
+
+      {/* LLM Distribution Section - Configure before generating */}
+      <div className="border border-slate-200 rounded-lg p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-sm font-bold text-slate-800">
+            {getText('wizard.llmDistribution.title', 'LLM Distribution')}
+          </h4>
+        </div>
+
+        {providersLoading ? (
+          <div className="flex items-center justify-center py-4 text-slate-500">
+            <Loader2 size={18} className="animate-spin mr-2" />
+            {getText('wizard.llmDistribution.loadingProviders', 'Loading providers...')}
+          </div>
+        ) : availableProviders.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-4 text-slate-500">
+            <p className="text-sm">{getText('wizard.llmDistribution.noProviders', 'No LLM providers configured.')}</p>
+            <p className="text-xs mt-1">{getText('wizard.llmDistribution.configureInSettings', 'Please configure providers in Settings.')}</p>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-2 mb-3">
+              {llmAllocations && llmAllocations.map((allocation, index) => (
+                <div key={index} className="flex items-center gap-2 p-2 bg-slate-50 rounded">
+                  <select
+                    value={allocation.providerId}
+                    onChange={(e) => onUpdateLlmAllocation && onUpdateLlmAllocation(index, 'providerId', Number(e.target.value))}
+                    className="flex-1 min-w-[200px] px-2 py-1 border border-slate-300 rounded text-sm"
+                  >
+                    {availableProviders && availableProviders.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.provider} - {p.model}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={allocation.percentage || ''}
+                    onChange={(e) => onUpdateLlmAllocation && onUpdateLlmAllocation(index, 'percentage', Math.min(100, Math.max(0, parseInt(e.target.value) || 1)))}
+                    className="w-20 px-2 py-1 border border-slate-300 rounded text-sm text-center"
+                    placeholder="%"
+                  />
+                  <span className="text-sm text-slate-500">%</span>
+                  {onRemoveLlmAllocation && (
+                    <button
+                      onClick={() => onRemoveLlmAllocation(index)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              {onAddLlmAllocation && (
+                <button
+                  onClick={onAddLlmAllocation}
+                  disabled={availableProviders.length === 0}
+                  className="flex items-center gap-1 px-3 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-sm"
+                >
+                  <Plus size={14} />
+                  {getText('wizard.llmDistribution.addLlm', 'Add LLM')}
+                </button>
+              )}
+              {llmAllocations && llmAllocations.length > 0 && (
+                <div className="space-y-2">
+                  <div className={`text-sm ${isLlmDistributionValid ? 'text-green-600' : 'text-red-600'}`}>
+                    {isLlmDistributionValid ? (
+                      <span>{getText('wizard.llmDistribution.totalValid', 'Total: 100% ✓')}</span>
+                    ) : (
+                      <span>{getText('wizard.llmDistribution.mustEqual100', `Total must equal 100% (currently ${totalPercentage}%)`)}</span>
+                    )}
+                  </div>
+                  {llmAllocations && llmAllocations.length > 0 && (
+                    <p className="text-xs text-slate-500 mt-2">
+                      {getText('wizard.llmDistribution.distributionHint',
+                        'Distribution will be applied when agents are generated.')}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Generation Settings */}

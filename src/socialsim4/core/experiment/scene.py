@@ -45,14 +45,17 @@ class ExperimentScene:
         self._history: list[dict[str, Any]] = []
         self._pending_host_messages: list[str] = []
         self.state: ExperimentState = ExperimentState()
+        # PGG phase tracking: "allocate" or "deduct"
+        self._pgg_phase: str = "allocate"
 
         logger.debug(f"ExperimentScene initialized: scenario_id='{config.scenario_id}' (type: {type(config.scenario_id).__name__})")
 
-    def initialize(self, llm_client: LLMClient) -> None:
+    def initialize(self, llm_client: LLMClient, provider_clients: dict | None = None) -> None:
         """Create ExperimentAgents directly from config.
 
         Args:
-            llm_client: LLM client for prompting agents
+            llm_client: LLM client for prompting agents (default for agents without llm_config)
+            provider_clients: Optional mapping of provider_id -> LLMClient for per-agent distribution
         """
         if self.runner is not None:
             return  # Already initialized
@@ -69,9 +72,72 @@ class ExperimentScene:
                 # Accept multiple field names for compatibility (camelCase from frontend, snake_case from backend)
                 role_prompt=a.get("role_prompt") or a.get("rolePrompt") or a.get("profile"),
                 knowledge_base=list(a.get("knowledgeBase") or a.get("knowledge_base") or []),
+                provider_id=a.get("provider_id") or a.get("providerId"),
             )
             for a in self.config.agents
         ]
+
+        # Create per-agent LLM clients based on llm_config.dialect
+        # This enables LLM distribution - different agents can use different providers
+        self._agent_llm_clients = {}
+        for agent in self.agents:
+            # Handle both dict (from config) and LLMConfig object
+            if agent.llm_config:
+                # Extract config values - handle both dict and LLMConfig object
+                _known_dialects = {"openai", "gemini", "mock", "ollama"}
+                if isinstance(agent.llm_config, dict):
+                    # Accept "dialect" or "provider" as the dialect key (frontend sends "provider")
+                    dialect = agent.llm_config.get("dialect") or agent.llm_config.get("provider")
+                    # Treat unknown/sentinel values (e.g. "backend") as "use default"
+                    if not dialect or dialect not in _known_dialects:
+                        # Try provider_id lookup, else fall back to default
+                        if agent.provider_id and provider_clients and agent.provider_id in provider_clients:
+                            self._agent_llm_clients[agent.name] = provider_clients[agent.provider_id]
+                        else:
+                            self._agent_llm_clients[agent.name] = llm_client
+                        continue
+                    model = agent.llm_config.get("model", "")
+                    api_key = agent.llm_config.get("api_key", "")
+                    base_url = agent.llm_config.get("base_url")
+                    temperature = agent.llm_config.get("temperature", 0.7)
+                    # If api_key missing, resolve from provider_clients or fall back to default client creds
+                    if not api_key:
+                        if agent.provider_id and provider_clients and agent.provider_id in provider_clients:
+                            p = provider_clients[agent.provider_id].provider
+                            api_key = p.api_key
+                            base_url = base_url or p.base_url
+                        elif hasattr(llm_client, 'provider'):
+                            api_key = llm_client.provider.api_key
+                            base_url = base_url or llm_client.provider.base_url
+                else:
+                    # It's an LLMConfig object
+                    dialect = getattr(agent.llm_config, 'dialect', None)
+                    if not dialect:
+                        self._agent_llm_clients[agent.name] = llm_client
+                        continue
+                    model = getattr(agent.llm_config, 'model', "")
+                    api_key = getattr(agent.llm_config, 'api_key', "")
+                    base_url = getattr(agent.llm_config, 'base_url', None)
+                    temperature = getattr(agent.llm_config, 'temperature', 0.7)
+
+                # Create LLM client for this agent based on their dialect
+                from socialsim4.core.llm_config import LLMConfig
+                from socialsim4.core.llm.client import LLMClient as AgentLLMClient
+
+                config = LLMConfig(
+                    dialect=dialect,
+                    model=model,
+                    api_key=api_key,
+                    base_url=base_url,
+                    temperature=temperature,
+                )
+                self._agent_llm_clients[agent.name] = AgentLLMClient(config)
+                logger.debug(f"Created LLM client for {agent.name}: dialect={config.dialect}, model={config.model}")
+            else:
+                # Use default client for agents without explicit llm_config
+                self._agent_llm_clients[agent.name] = llm_client
+
+        logger.debug(f"Created {len(self.agents)} ExperimentAgents with LLM distribution")
 
         logger.debug(f"Created {len(self.agents)} ExperimentAgents")
 
@@ -91,17 +157,24 @@ class ExperimentScene:
         params = self.config.parameters or {}
         pd_keys = ["cooperate_reward", "sucker_penalty", "temptation_reward", "defect_penalty"]
         has_pd_payoffs = all(params.get(k) is not None for k in pd_keys)
+
         if information_model.scope_type == "all" and len(self.agents) > 2 and has_pd_payoffs:
+            # Get show_average_contribution from parameters
+            show_average = bool(params.get("show_average_contribution", False))
             information_model = InformationModel(
                 scope_type="pair",
                 pairing_fn=pair_agents_randomly,
                 recent_window=information_model.recent_window,
                 payoff_template="Round {N}: I {my_action}, partner {partner_action} → {payoff} pts",
+                show_average_contribution=show_average,
             )
 
         # For games without score-based payoffs, ensure include_scores=False
         # This handles cases where scenario_id doesn't match registry exactly
         payoff_type = params.get("payoff_type", "matrix")
+        show_average = bool(params.get("show_average_contribution", False))
+
+        # CRITICAL: Always apply show_average_contribution if parameter is True
         if payoff_type in ("feedback", "none", "") and information_model.include_scores:
             information_model = InformationModel(
                 scope_type=information_model.scope_type,
@@ -112,6 +185,21 @@ class ExperimentScene:
                 context_budget_chars=information_model.context_budget_chars,
                 payoff_template=information_model.payoff_template,
                 include_scores=False,
+                show_average_contribution=show_average,
+            )
+        elif show_average:
+            # CRITICAL: Apply show_average_contribution even for normal payoff types
+            # Recreate information_model with the parameter
+            information_model = InformationModel(
+                scope_type=information_model.scope_type,
+                scope_fn=information_model.scope_fn,
+                pairing_fn=information_model.pairing_fn,
+                recent_window=information_model.recent_window,
+                primacy_keep=information_model.primacy_keep,
+                context_budget_chars=information_model.context_budget_chars,
+                payoff_template=information_model.payoff_template,
+                include_scores=information_model.include_scores,
+                show_average_contribution=show_average,
             )
 
         # Create the runner
@@ -121,14 +209,21 @@ class ExperimentScene:
             llm_client=llm_client,
             round_visibility=self.config.round_visibility,
             information_model=information_model,
+            scene=self,  # GAP-CLOSURE-01: pass scene for action filtering
+            agent_llm_clients=self._agent_llm_clients,  # Pass per-agent LLM clients
         )
 
-        # Wire social network graph to runner's scene_state
+        # Wire social network graph AND state to runner's scene_state
+        # CRITICAL: Both graph and state are needed for show_average_contribution feature
+        # - graph: defines network neighbors for visibility calculation
+        # - state: contains agent properties including last_contribution
+        scene_state_dict = {"state": self.state}
         if self.config.social_network:
-            self.runner.set_scene_state({"graph": self.config.social_network})
+            scene_state_dict["graph"] = self.config.social_network
             logger.debug(f"Social network set: {len(self.config.social_network.get('edges', []))} edges")
         else:
             logger.warning("No social network configured for this experiment")
+        self.runner.set_scene_state(scene_state_dict)
 
         logger.debug(f"ExperimentRunner initialized:")
         logger.debug(f"  scenario_id={self.config.scenario_id}")
@@ -186,6 +281,7 @@ class ExperimentScene:
                 action.agent_name,
                 action.parameters,
                 self.state,
+                self,  # Pass scene for council action handlers
             )
 
         # Update history for next round's context
@@ -230,24 +326,50 @@ class ExperimentScene:
 
         logger.info(f"Round {round_num} complete: {len(result.actions)} actions")
 
+        # Phase transition hook for council scenes (FEAT-COUNCIL-02)
+        # Check if scene has facilitator with check_and_transition_phase method
+        if hasattr(self, 'facilitator') and hasattr(self.facilitator, 'check_and_transition_phase'):
+            transitioned = self.facilitator.check_and_transition_phase(round_num)
+            if transitioned:
+                logger.info(f"Phase transitioned to VOTING after round {round_num}")
+
         return result
 
     def _initialize_state(self) -> None:
         """Initialize ExperimentState from config.
 
         Creates AgentState for each agent and applies state_schema extensions.
+        Also initializes deduction budget if configured.
+
         Called during initialize() after agents are created.
         """
+        params = self.config.parameters or {}
+
+        # Get configurable resource name (default "tokens")
+        resource_name = params.get("resource_name", "tokens")
+        tokens_per_round = int(params.get("tokens_per_round", 20) or 20)
+        deduction_budget = int(params.get("deduction_budget_per_phase", 0) or 0)
+
         # Create AgentState for each agent
         for agent_config in self.config.agents:
             name = agent_config.get("name", "")
             if not name:
                 continue
 
+            resources = deepcopy(agent_config.get("resources", {}))
+
+            # Set initial resources using dynamic resource_name key
+            if resource_name not in resources:
+                resources[resource_name] = tokens_per_round
+
+            # Add deduction budget if configured
+            if deduction_budget > 0:
+                resources["deduction_budget"] = deduction_budget
+
             agent_state = AgentState(
                 score=0,
                 position=agent_config.get("position"),
-                resources=deepcopy(agent_config.get("resources", {})),
+                resources=resources,
                 properties=deepcopy(agent_config.get("properties", {})),
             )
             self.state.agents[name] = agent_state
@@ -257,7 +379,14 @@ class ExperimentScene:
             if "extensions" in self.config.state_schema:
                 self.state.extensions.update(deepcopy(self.config.state_schema["extensions"]))
 
-        logger.debug(f"Initialized state for {len(self.state.agents)} agents")
+        # Initialize reductions tracking in extensions (renamed from punishments)
+        if "reductions" not in self.state.extensions:
+            self.state.extensions["reductions"] = {}
+
+        logger.debug(
+            f"Initialized state for {len(self.state.agents)} agents "
+            f"(resource_name={resource_name}, deduction_budget={deduction_budget})"
+        )
 
     def _create_game_config(self) -> GameConfig:
         """Create GameConfig from config data."""
@@ -302,7 +431,8 @@ class ExperimentScene:
                     {
                         "name": matched.get("id", raw_name),
                         "description": action.get("description") or matched.get("description") or raw_name,
-                        "parameters": action.get("parameters", []),
+                        # Use registry parameters if frontend doesn't provide them
+                        "parameters": action.get("parameters") or matched.get("parameters", []),
                     }
                 )
             else:
@@ -372,7 +502,11 @@ class ExperimentScene:
             }
 
         # Build description: use description_template if present on the scenario
+        # For PUBLIC_GOODS, we handle description in _build_payoff_summary instead
         description = self.config.description
+        if self.config.scenario_id == "public_goods":
+            # For PUBLIC_GOODS, description is handled entirely by _build_payoff_summary
+            description = ""
         try:
             _scenario = scenario
             if _scenario and "description_template" in _scenario and params.get("action_1") and params.get("action_2"):
@@ -427,8 +561,8 @@ class ExperimentScene:
             if _scenario_for_payoff and _scenario_for_payoff.get("payoff_type") == "pool":
                 defaults = {p["id"]: p.get("default") for p in _scenario_for_payoff.get("parameters", [])}
                 payoff_config = {
-                    "multiplier": params.get("multiplier", defaults.get("multiplier", 1.5)),
-                    "initial_tokens": params.get("initial_amount", defaults.get("initial_amount", 20)),
+                    "multiplier": params.get("multiplier", defaults.get("multiplier", 1.6)),
+                    "initial_tokens": params.get("tokens_per_round", defaults.get("tokens_per_round", 20)),
                 }
             if _scenario_for_payoff and _scenario_for_payoff.get("payoff_type") == "feedback":
                 defaults = {p["id"]: p.get("default") for p in _scenario_for_payoff.get("parameters", [])}
@@ -439,6 +573,28 @@ class ExperimentScene:
             pass
 
         followup_modes = self._get_action_followup_modes(action_names)
+
+        # FEAT-PGG: Handle reduce action based on deduction_budget_per_phase
+        # When budget > 0: ensure reduce action is available
+        # When budget <= 0: remove reduce action
+        deduction_budget = int(params.get("deduction_budget_per_phase", 0) or 0)
+        if deduction_budget > 0:
+            # Add reduce action when deduction is enabled
+            if "reduce" not in action_names:
+                action_names = action_names + ["reduce"]
+                action_descriptions["reduce"] = "Reduce another agent's resources"
+                if "reduce" not in followup_modes:
+                    followup_modes["reduce"] = "json"
+            logger.debug(f"[GAME_CONFIG] Added 'reduce' action (deduction_budget={deduction_budget})")
+        else:
+            # Remove reduce action when deduction is disabled
+            if "reduce" in action_names:
+                action_names = [a for a in action_names if a != "reduce"]
+                action_descriptions.pop("reduce", None)
+                action_schemas.pop("reduce", None)
+                followup_modes.pop("reduce", None)
+                logger.debug(f"[GAME_CONFIG] Filtered 'reduce' action (deduction_budget={deduction_budget})")
+
         logger.info(f"[GAME_CONFIG] scenario_id='{self.config.scenario_id}', action_names={action_names}, followup_modes={followup_modes}")
 
         return GameConfig(
@@ -509,6 +665,7 @@ class ExperimentScene:
         """Build payoff_summary from scenario parameters - GENERIC version.
 
         Handles all game types:
+        - PUBLIC_GOODS: Intertwined format with "person" language
         - Prisoner's Dilemma: Uses formatted payoff table
         - Other games: Generic parameter display
         """
@@ -518,6 +675,43 @@ class ExperimentScene:
         if not params:
             logger.debug("[PAYOFF] No parameters, returning empty")
             return ""
+
+        # PUBLIC_GOODS: Use intertwined format with "person" language
+        if self.config.scenario_id == "public_goods":
+            tokens_per_round = params.get("tokens_per_round", 10)
+            resource_name = params.get("resource_name", "tokens")
+            multiplier = params.get("multiplier", 1.3)
+            num_members = len(self.agents) if self.agents else 4
+            deduction_budget = params.get("deduction_budget_per_phase", 0)
+            deduction_cost_ratio = params.get("deduction_cost_ratio", 3)
+            deduction_anonymous = params.get("deduction_anonymous", False)
+
+            # Build intertwined scenario description
+            lines = [
+                f"In this experiment, you receive {tokens_per_round} {resource_name} each round.",
+                "Each person has resources and decides how much to contribute to a shared pool.",
+                "The pool is multiplied and distributed equally among all members, regardless of contribution.",
+                "",
+                f"The total group contribution is multiplied by {multiplier} and distributed equally among all {num_members} members.",
+                f"You keep any {resource_name} you do not allocate.",
+            ]
+
+            # Add deduction mechanics if enabled
+            if deduction_budget and deduction_budget > 0:
+                lines.append("")
+                anonymity_text = (
+                    "Your reductions are anonymous - targets will not know who reduced their resources."
+                    if deduction_anonymous
+                    else "Your reductions are visible - targets will see who reduced their resources."
+                )
+                lines.append(
+                    f"After the contribution phase, you have the opportunity to reduce other members' {resource_name}. "
+                    f"You have a deduction budget of {deduction_budget} points. "
+                    f"For each 1 point from your budget, the target loses {deduction_cost_ratio} {resource_name}. "
+                    f"{anonymity_text}"
+                )
+
+            return "\n".join(lines)
 
         # Check if this is a Prisoner's Dilemma style game (has all 4 PD params)
         pd_params = ["cooperate_reward", "sucker_penalty", "temptation_reward", "defect_penalty"]
@@ -605,6 +799,16 @@ class ExperimentScene:
                 }
                 lines.append(dist_map.get(initial_distribution, f"Initial distribution: {initial_distribution}."))
 
+        elif scenario_id == "council":
+            # GAP-CLOSURE-01: Include deliberation rounds info for council scenarios
+            deliberation_rounds = params.get("deliberation_rounds")
+            proposal_text = params.get("proposal_text", "")
+            if proposal_text:
+                lines.append(f"The proposal under discussion is: \"{proposal_text}\"")
+            if deliberation_rounds is not None and deliberation_rounds > 0:
+                lines.append(f"There will be {deliberation_rounds} round(s) of deliberation before voting begins.")
+                lines.append("You cannot vote until the deliberation period is complete.")
+
         return "\n".join(lines)
 
     def _build_context_summary(self) -> str:
@@ -634,6 +838,91 @@ class ExperimentScene:
         """Check if experiment has natural end (most don't)."""
         return False  # Run forever via SimTree control
 
+    def get_pgg_phase(self) -> str:
+        """Get current PGG phase.
+
+        Returns:
+            "allocate" or "deduct"
+        """
+        return self._pgg_phase
+
+    def advance_pgg_phase(self) -> None:
+        """Advance to next PGG phase.
+
+        Cycles: allocate -> deduct -> allocate (next round) -> ...
+        BUT: Skip deduct phase entirely if deduction_budget_per_phase is 0.
+
+        This ensures every "advance" click runs a valid allocation round
+        with proper actions, never an empty/null round.
+
+        Note: Does NOT reset deduction budget here. Budget reset happens
+        via _reset_deduction_budgets() when entering deduct phase to avoid
+        spurious resets from initialization or state replay.
+        """
+        params = self.config.parameters or {}
+        deduction_budget = params.get("deduction_budget_per_phase", 0)
+
+        if self._pgg_phase == "allocate":
+            # Only go to deduct phase if deduction is enabled
+            if deduction_budget and deduction_budget > 0:
+                self._pgg_phase = "deduct"
+            else:
+                # Skip deduct phase entirely - stay in allocate for next round
+                pass  # Phase stays "allocate", round advances in run_round()
+        else:
+            self._pgg_phase = "allocate"
+
+    def _reset_deduction_budgets(self) -> None:
+        """Reset deduction budgets at start of deduct phase.
+
+        Reads deduction_budget_per_phase from current config, so mid-run
+        config changes will affect subsequent phases. Setting budget to 0
+        clears any leftover budget from when it was enabled.
+
+        Called by runner when entering deduct phase, NOT in advance_pgg_phase
+        to avoid spurious resets during initialization or state replay.
+        """
+        params = self.config.parameters or {}
+        budget = int(params.get("deduction_budget_per_phase", 0) or 0)
+
+        for agent_state in self.state.agents.values():
+            agent_state.resources["deduction_budget"] = budget
+
+        logger.debug(f"Reset deduction budgets to {budget} for {len(self.state.agents)} agents")
+
+    def get_scene_actions(self, agent_name: str) -> list[str] | None:
+        """Filter available actions by current PGG phase.
+
+        For PUBLIC_GOODS scenario, returns phase-appropriate actions.
+        For other scenarios, returns None (caller should use all configured actions).
+
+        Args:
+            agent_name: Name of agent (for future per-agent filtering)
+
+        Returns:
+            List of action names available in current phase, or None if
+            no filtering should be applied (use all configured actions).
+        """
+        if self.config.scenario_id != "public_goods":
+            return None  # None = no filtering, use all configured actions
+
+        current_phase = self._pgg_phase
+        params = self.config.parameters or {}
+        deduction_budget = params.get("deduction_budget_per_phase", 0)
+
+        logger.info(f"[PGG] get_scene_actions called: phase={current_phase}, deduction_budget={deduction_budget}")
+
+        if current_phase == "allocate":
+            return ["allocate", "keep"]
+        else:  # deduct phase
+            # Only show reduce/skip if deduction is enabled
+            if deduction_budget and deduction_budget > 0:
+                return ["reduce", "skip"]
+            # SAFETY: If we somehow reach deduct phase with no budget,
+            # return None to use all configured actions (shouldn't happen with advance_pgg_phase fix)
+            logger.warning(f"[PGG] Deduct phase reached but deduction_budget={deduction_budget} <= 0, returning None as fallback")
+            return None  # None = use all configured actions (safety fallback)
+
     def inject_host_message(self, message: str) -> None:
         """Queue a host message to be injected into all agents' context on the next round."""
         self._pending_host_messages.append(message)
@@ -655,6 +944,7 @@ class ExperimentScene:
             "history": self._history,
             "state": self.state.to_dict(),
             "pending_host_messages": self._pending_host_messages,
+            "pgg_phase": self._pgg_phase,
         }
 
     @classmethod
@@ -667,4 +957,6 @@ class ExperimentScene:
         if data.get("state") is not None:
             scene.state = ExperimentState.from_dict(data["state"])
         scene._pending_host_messages = data.get("pending_host_messages", [])
+        # Restore PGG phase state (defaults to "allocate" for backwards compatibility)
+        scene._pgg_phase = data.get("pgg_phase", "allocate")
         return scene

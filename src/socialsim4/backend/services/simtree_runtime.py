@@ -16,6 +16,8 @@ from socialsim4.core.environment_config import EnvironmentConfig
 from socialsim4.scenarios.basic import make_clients_from_env
 from socialsim4.core.experiment.config import ExperimentConfig
 from socialsim4.core.experiment.scene import ExperimentScene
+from socialsim4.core.experiment.game_configs import create_council_config
+from socialsim4.core.experiment.scenes.council_experiment import CouncilExperimentScene
 
 
 logger = logging.getLogger(__name__)
@@ -23,7 +25,6 @@ _logging_handler = logging.StreamHandler(sys.stdout)
 _logging_handler.setLevel(logging.DEBUG)
 _logging_handler.setFormatter(logging.Formatter('[SIMTREE RUNTIME] %(message)s'))
 logger.addHandler(_logging_handler)
-
 
 def _normalize_language(value: str | None) -> str:
     lang = str(value or "").strip()
@@ -59,6 +60,9 @@ class SimTreeRecord:
         # Track which suggestion intervals have been viewed (to avoid re-showing)
         self._suggestions_viewed_intervals: set[int] = set()
 
+    def replace_tree(self, tree: SimTree) -> None:
+        self.tree = tree
+
 
 def _quiet_logger(event_type: str, data: dict) -> None:
     return
@@ -77,16 +81,17 @@ class ExperimentRunnerAdapter:
         self.agents = {}  # Empty dict - no legacy agents
         self.events: list[dict] = []
         self._llm_client = clients.get("chat") or clients.get("default")
+        self._provider_clients: dict = clients.get("providers", {}) if clients else {}
         self.log_event = None  # Will be set by SimTree._attach_log_handler
 
         # Pre-initialize to populate scene.agents so UI can render agent cards without running a round
         if self._llm_client is not None and not self.scene.agents:
-            self.scene.initialize(self._llm_client)
+            self.scene.initialize(self._llm_client, provider_clients=self._provider_clients)
 
     def run(self, max_turns: int = 1) -> None:
         """Run experiment rounds (each 'turn' = one round)."""
         if not self.scene.runner:
-            self.scene.initialize(self._llm_client)
+            self.scene.initialize(self._llm_client, provider_clients=self._provider_clients)
 
         for _ in range(max_turns):
             if self.scene.is_complete():
@@ -102,6 +107,13 @@ class ExperimentRunnerAdapter:
                 # No running loop - we're in a thread or standalone
                 # Use asyncio.run() to create a new event loop
                 asyncio.run(self.scene.run_round(self._emit_event))
+
+            # CYCLE PHASE FIX: Advance round counter and check for phase transitions
+            # This is the ACTUAL code path used by the backend!
+            if hasattr(self.scene, '_advance_round'):
+                logger.info(f"[CYCLE PHASE FIX] Calling scene._advance_round() for {type(self.scene).__name__}")
+                self.scene._advance_round()
+                logger.info(f"[CYCLE PHASE FIX] Phase is now: {getattr(self.scene, 'cycle_phase', 'N/A')}, rounds_in_phase: {getattr(self.scene, 'rounds_in_cycle_phase', 'N/A')}")
 
     def _emit_event(self, event_type: str, data: dict) -> None:
         """Collect events for SimTree and emit to log handler."""
@@ -131,7 +143,14 @@ class ExperimentRunnerAdapter:
     def deserialize(cls, data: dict, clients: dict, log_handler=None):
         """Deserialize for SimTree compatibility."""
         scene_data = data["scene"]["config"]
-        scene = ExperimentScene.deserialize_config(scene_data)
+        scenario_id = scene_data.get("config", {}).get("scenario_id", "")
+
+        # GAP-CLOSURE-01: Deserialize to correct scene type based on scenario_id
+        if scenario_id in ("council", "council_chamber"):
+            from socialsim4.core.experiment.scenes.council_experiment import CouncilExperimentScene
+            scene = CouncilExperimentScene.deserialize_config(scene_data)
+        else:
+            scene = ExperimentScene.deserialize_config(scene_data)
 
         adapter = cls(scene, clients)
         adapter.scene.current_round = data.get("turns", 0)
@@ -409,22 +428,110 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         # Unwrap generic_config if the config is nested (frontend sends nested structure)
         inner_cfg = cfg.get("generic_config") or cfg
 
-        config = ExperimentConfig(
-            agents=agent_config.get("agents", []),
-            actions=inner_cfg.get("actions", []),
-            parameters=inner_cfg.get("parameters", {}),
-            description=inner_cfg.get("description", ""),
-            scenario_id=inner_cfg.get("scenario_id", "custom"),
-            round_visibility=inner_cfg.get("round_visibility", "simultaneous"),
-            social_network=inner_cfg.get("social_network") or {},
-        )
-        logger.debug(f"[EXPERIMENT] Creating ExperimentConfig with parameters: {cfg.get('parameters', {})}")
-        scene = ExperimentScene(config)
+        scenario_id = inner_cfg.get("scenario_id", "custom")
+
+        # GAP-CLOSURE-01: Use CouncilExperimentScene for council scenarios
+        # Support both "council" and "council_chamber" scenario_ids (frontend uses council_chamber)
+        if scenario_id in ("council", "council_chamber"):
+            # NO DEFAULTS - fail fast if parameters are missing
+            params = inner_cfg.get("parameters", {})
+
+            # Handle parameter name mapping: max_rounds -> deliberation_rounds
+            # Frontend may send 'max_rounds' but backend expects 'deliberation_rounds'
+            if "deliberation_rounds" not in params and "max_rounds" in params:
+                params["deliberation_rounds"] = params["max_rounds"]
+                logger.info(f"[PARAMETER MAPPING] Mapped max_rounds={params['max_rounds']} to deliberation_rounds")
+
+            if "deliberation_rounds" not in params:
+                raise ValueError(f"deliberation_rounds parameter is required for council experiment. Got parameters: {params}")
+            if "voting_threshold" not in params:
+                raise ValueError(f"voting_threshold parameter is required for council experiment. Got parameters: {params}")
+            if "proposal_text" not in params:
+                raise ValueError(f"proposal_text parameter is required for council experiment. Got parameters: {params}")
+
+            council_game_config = create_council_config(
+                proposal_text=params["proposal_text"],
+                deliberation_rounds=params["deliberation_rounds"],
+                voting_threshold=params["voting_threshold"],
+            )
+            config = ExperimentConfig(
+                agents=agent_config.get("agents", []),
+                actions=[{"name": a} for a in council_game_config.actions],
+                parameters={
+                    "deliberation_rounds": council_game_config.deliberation_rounds,
+                    "voting_threshold": council_game_config.voting_threshold,
+                    "proposal_text": council_game_config.proposal_text,
+                },
+                description=council_game_config.description,
+                scenario_id="council",
+                round_visibility="sequential",
+                social_network=inner_cfg.get("social_network") or {},
+            )
+            logger.debug(f"[COUNCIL_EXPERIMENT] Creating CouncilExperimentScene with parameters: {config.parameters}")
+            scene = CouncilExperimentScene(config)
+        else:
+            config = ExperimentConfig(
+                agents=agent_config.get("agents", []),
+                actions=inner_cfg.get("actions", []),
+                parameters=inner_cfg.get("parameters", {}),
+                description=inner_cfg.get("description", ""),
+                scenario_id=scenario_id,
+                round_visibility=inner_cfg.get("round_visibility", "simultaneous"),
+                social_network=inner_cfg.get("social_network") or {},
+            )
+            logger.debug(f"[EXPERIMENT] Creating ExperimentConfig with parameters: {cfg.get('parameters', {})}")
+            scene = ExperimentScene(config)
 
         # Use adapter instead of full Simulator
         adapter = ExperimentRunnerAdapter(scene, clients or make_clients_from_env())
 
         logger.debug(f"Created ExperimentScene with adapter: {config.scenario_id}")
+
+        return SimTree.new(adapter, adapter.clients)
+    elif scene_key == "council_experiment":
+        # REFACTOR-COUNCIL-06: Council experiment using experiment framework
+        # NO DEFAULTS - fail fast if parameters are missing
+
+        # Handle parameter name mapping: max_rounds -> deliberation_rounds
+        # Frontend may send 'max_rounds' but backend expects 'deliberation_rounds'
+        if "deliberation_rounds" not in cfg and "max_rounds" in cfg:
+            cfg["deliberation_rounds"] = cfg["max_rounds"]
+            logger.info(f"[PARAMETER MAPPING] Mapped max_rounds={cfg['max_rounds']} to deliberation_rounds")
+
+        if "deliberation_rounds" not in cfg:
+            raise ValueError(f"deliberation_rounds parameter is required for council experiment. Got config keys: {list(cfg.keys())}")
+        if "voting_threshold" not in cfg:
+            raise ValueError(f"voting_threshold parameter is required for council experiment. Got config keys: {list(cfg.keys())}")
+        if "proposal_text" not in cfg:
+            raise ValueError(f"proposal_text parameter is required for council experiment. Got config keys: {list(cfg.keys())}")
+
+        # Create CouncilConfig with council-specific parameters
+        council_game_config = create_council_config(
+            proposal_text=cfg["proposal_text"],
+            deliberation_rounds=cfg["deliberation_rounds"],
+            voting_threshold=cfg["voting_threshold"],
+        )
+
+        config = ExperimentConfig(
+            agents=agent_config.get("agents", []),
+            actions=[{"name": a} for a in council_game_config.actions],
+            parameters={
+                "deliberation_rounds": council_game_config.deliberation_rounds,
+                "voting_threshold": council_game_config.voting_threshold,
+                "proposal_text": council_game_config.proposal_text,
+            },
+            description=council_game_config.description,
+            scenario_id="council",
+            round_visibility="sequential",  # Council uses sequential rounds
+            social_network=cfg.get("social_network") or {},
+        )
+        logger.debug(f"[COUNCIL_EXPERIMENT] Creating CouncilExperimentScene with parameters: {config.parameters}")
+        scene = CouncilExperimentScene(config)
+
+        # Use adapter instead of full Simulator
+        adapter = ExperimentRunnerAdapter(scene, clients or make_clients_from_env())
+
+        logger.debug(f"Created CouncilExperimentScene with adapter: council")
 
         return SimTree.new(adapter, adapter.clients)
     else:
@@ -622,10 +729,36 @@ class SimTreeRegistry:
         key = sim_record.id.upper()
         record = self._records.get(key)
         if record is not None:
+            if not record.running and getattr(sim_record, "latest_state", None) and record.tree.serialize() != sim_record.latest_state:
+                loop = asyncio.get_running_loop()
+                tree = SimTree.deserialize(sim_record.latest_state, clients or make_clients_from_env())
+                tree.attach_event_loop(loop)
+
+                def _fanout(event: dict) -> None:
+                    if int(event.get("node", -1)) not in record.running:
+                        return
+                    for q in list(record.subs):
+                        loop.call_soon_threadsafe(q.put_nowait, event)
+
+                tree.set_tree_broadcast(_fanout)
+                record.replace_tree(tree)
             return record
         async with self._lock:
             record = self._records.get(key)
             if record is not None:
+                if not record.running and getattr(sim_record, "latest_state", None) and record.tree.serialize() != sim_record.latest_state:
+                    loop = asyncio.get_running_loop()
+                    tree = SimTree.deserialize(sim_record.latest_state, clients or make_clients_from_env())
+                    tree.attach_event_loop(loop)
+
+                    def _fanout(event: dict) -> None:
+                        if int(event.get("node", -1)) not in record.running:
+                            return
+                        for q in list(record.subs):
+                            loop.call_soon_threadsafe(q.put_nowait, event)
+
+                    tree.set_tree_broadcast(_fanout)
+                    record.replace_tree(tree)
                 return record
             # 优先使用最新持久化的 latest_state 进行恢复；否则重新构建
             if getattr(sim_record, "latest_state", None):

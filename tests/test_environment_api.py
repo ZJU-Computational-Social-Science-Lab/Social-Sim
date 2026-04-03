@@ -1,6 +1,10 @@
 import pytest
 import os
 import sys
+import asyncio
+from types import SimpleNamespace
+
+from socialsim4.backend.services import environment_suggestion_service
 
 
 def test_environment_service_file_exists():
@@ -35,3 +39,104 @@ def test_environment_routes_registered():
         content = f.read()
     assert "environment" in content
     assert "environment.router" in content
+
+
+def test_generate_environment_suggestions_accepts_requested_node(monkeypatch):
+    seen = {}
+
+    async def fake_get_simulation_state(simulation_id, db, user_id, node_id=None):
+        seen["node_id"] = node_id
+        return {"clients": {"chat": object()}, "turns": 6}
+
+    class DummyAnalyzer:
+        def __init__(self, clients):
+            self.clients = clients
+
+        def generate_suggestions(self, context, count=3):
+            return [{"event_type": "notification", "description": "branch notice", "severity": "mild"}]
+
+    class DummyResult:
+        def scalar_one_or_none(self):
+            return SimpleNamespace(agent_config={"agents": [{}, {}]})
+
+    class DummyDB:
+        async def execute(self, *_args, **_kwargs):
+            return DummyResult()
+
+    monkeypatch.setattr(environment_suggestion_service, "get_simulation_state", fake_get_simulation_state)
+    monkeypatch.setattr(environment_suggestion_service, "EnvironmentAnalyzer", DummyAnalyzer)
+
+    suggestions = asyncio.run(
+        environment_suggestion_service.generate_environment_suggestions("SIM1", DummyDB(), 1, node_id=9)
+    )
+
+    assert seen["node_id"] == 9
+    assert suggestions == [{"event_type": "notification", "description": "branch notice", "severity": "mild"}]
+
+
+def test_broadcast_environment_event_uses_requested_branch_node(monkeypatch):
+    seen = {}
+
+    class DummyAgent:
+        def __init__(self):
+            self.feedback = []
+
+        def add_env_feedback(self, description, images=None):
+            self.feedback.append((description, images or []))
+
+    class DummyScene:
+        TYPE = "policy_cascade_scene"
+
+        def __init__(self):
+            self.public_events = []
+            self.private_events = []
+
+        def on_event(self, sim, event_type, data):
+            self.public_events.append((event_type, data))
+
+        def on_private_event(self, sim, event_type, data, recipients):
+            self.private_events.append((event_type, data, recipients))
+
+    class DummyEnvironmentConfig:
+        turn_interval = 5
+
+    scene = DummyScene()
+    agent = DummyAgent()
+    simulator = SimpleNamespace(
+        agents={"Top": agent},
+        scene=scene,
+        environment_config=DummyEnvironmentConfig(),
+        turns=6,
+        clients={},
+    )
+
+    async def fake_get_simulation_state(simulation_id, db, user_id, node_id=None):
+        seen["node_id"] = node_id
+        return {"tree": SimpleNamespace(nodes={42: {"sim": simulator}}), "node_id": 42}
+
+    monkeypatch.setattr(environment_suggestion_service, "get_simulation_state", fake_get_simulation_state)
+    monkeypatch.setitem(
+        environment_suggestion_service.SIM_TREE_REGISTRY,
+        "SIM1",
+        SimpleNamespace(_suggestions_viewed_intervals=set()),
+    )
+
+    try:
+        ok = asyncio.run(
+            environment_suggestion_service.broadcast_environment_event(
+                "SIM1",
+                {"description": "分支公告", "event_type": "environment", "node_id": 42},
+                None,
+                1,
+            )
+        )
+    finally:
+        environment_suggestion_service.SIM_TREE_REGISTRY.pop("SIM1", None)
+
+    assert ok is True
+    assert seen["node_id"] == 42
+    assert agent.feedback == [("分支公告", [])]
+    assert scene.public_events == [(
+        "environment",
+        {"description": "分支公告", "event_type": "environment", "notice_only": True},
+    )]

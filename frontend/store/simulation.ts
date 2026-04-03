@@ -102,6 +102,41 @@ export const createSimulationSlice: StateCreator<
     const state = get();
     const base = state.engineConfig.endpoint;
     const token = (state.engineConfig as any).token;
+    const llmProviders = state.llmProviders || [];
+
+    // Helper to convert provider_id to llmConfig
+    const buildLLMConfig = (agent: any) => {
+      // If llmConfig already exists and is valid, use it
+      // Check both camelCase (llmConfig) and snake_case (llm_config)
+      const llmConfig = agent.llmConfig || agent.llm_config;
+      if (llmConfig && llmConfig.provider && llmConfig.model) {
+        console.log(`[buildLLMConfig] Agent ${agent.name}: Using existing llmConfig:`, llmConfig);
+        return llmConfig;
+      }
+
+      // Try to get provider_id from properties, root, or camelCase variant
+      const providerId = agent.properties?.provider_id || agent.provider_id || agent.providerId;
+
+      console.log(`[buildLLMConfig] Agent ${agent.name}: provider_id=${providerId}, available providers:`, llmProviders.length);
+
+      if (providerId != null && llmProviders.length > 0) {
+        const provider = llmProviders.find((p: any) => p.id === Number(providerId));
+        if (provider) {
+          const config = {
+            provider: provider.provider || provider.name,
+            model: provider.model || 'default'
+          };
+          console.log(`[buildLLMConfig] Agent ${agent.name}: Found provider:`, config);
+          return config;
+        } else {
+          console.warn(`[buildLLMConfig] Agent ${agent.name}: Provider ID ${providerId} not found in providers list`);
+        }
+      }
+
+      // Fallback to default
+      console.warn(`[buildLLMConfig] Agent ${agent.name}: Using fallback default config`);
+      return { provider: 'backend', model: 'default' };
+    };
 
     try {
       const { getSimulation } = await import('../services/simulations');
@@ -149,7 +184,7 @@ export const createSimulationSlice: StateCreator<
               role: a.role || fallbackRole || '',
               avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
               profile: fallbackProfile,
-              llmConfig: a.llmConfig || { provider: 'mock', model: 'default' },
+              llmConfig: buildLLMConfig(a),
               properties: a.properties || {},
               history: {},
               memory: (a.short_memory || []).map((m: any, j: number) => ({
@@ -208,10 +243,10 @@ export const createSimulationSlice: StateCreator<
                 role: a.role || (a.properties || {}).role || '',
                 avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
                 profile: '',
-                llmConfig: { provider: 'mock', model: 'default' },
+                llmConfig: buildLLMConfig(a),
                 properties: a.properties || {},
                 history: {},
-                memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
+                memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 1), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
                 knowledgeBase: a.knowledgeBase || []
               }));
             } else if (latestAgents2 && typeof latestAgents2 === 'object') {
@@ -223,7 +258,7 @@ export const createSimulationSlice: StateCreator<
                   role: a.role || (a.properties || {}).role || '',
                   avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || k)}`,
                   profile: '',
-                  llmConfig: { provider: 'mock', model: 'default' },
+                  llmConfig: buildLLMConfig(a),
                   properties: a.properties || {},
                   history: {},
                   memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
@@ -473,7 +508,7 @@ export const createSimulationSlice: StateCreator<
 
           const mapSceneType: Record<string, string> = {
             village: 'village_scene',
-            council: 'council_scene',
+            council: 'council_experiment',  // REFACTOR-COUNCIL-06: Use new experiment scene
             werewolf: 'werewolf_scene',
             generic: 'generic_scene',
             experiment: 'experiment_template'
@@ -499,6 +534,22 @@ export const createSimulationSlice: StateCreator<
             } else if (template.description) {
               sceneConfig.initial_event = template.description;
             }
+          } else if (backendSceneType === 'council_experiment') {
+            // REFACTOR-COUNCIL-06: Council experiment configuration
+            // NO DEFAULTS - fail fast if parameters are missing
+            const params = (template.genericConfig as any)?.parameters;
+            if (!params?.deliberation_rounds) {
+              throw new Error('deliberation_rounds parameter is required for council experiment');
+            }
+            if (!params?.voting_threshold) {
+              throw new Error('voting_threshold parameter is required for council experiment');
+            }
+            if (!params?.proposal_text && !template.description) {
+              throw new Error('proposal_text or description is required for council experiment');
+            }
+            sceneConfig.deliberation_rounds = params.deliberation_rounds;
+            sceneConfig.voting_threshold = params.voting_threshold;
+            sceneConfig.proposal_text = params.proposal_text || template.description;
           } else if (template.description) {
             sceneConfig.initial_event = template.description;
             sceneConfig.initial_events = [template.description];
@@ -519,10 +570,8 @@ export const createSimulationSlice: StateCreator<
               parameters: action.parameters || [],
             }));
             sceneConfig.round_visibility = template.genericConfig?.round_visibility || 'simultaneous';
-            sceneConfig.max_rounds = template.genericConfig?.max_rounds || 50;
             sceneConfig.settings = {
               round_visibility: template.genericConfig?.round_visibility || 'simultaneous',
-              max_rounds: template.genericConfig?.max_rounds || 50,
             };
           } else if (templateActions.length > 0) {
             // Legacy format
@@ -541,6 +590,7 @@ export const createSimulationSlice: StateCreator<
                 role: a.role,
                 avatarUrl: a.avatarUrl,
                 llmConfig: a.llmConfig,
+                provider_id: a.provider_id,  // CRITICAL: Preserve provider_id for LLM assignment
                 properties: { ...a.properties, role: a.role },
                 history: a.history || {},
                 memory: a.memory || [],
@@ -566,10 +616,13 @@ export const createSimulationSlice: StateCreator<
             id: sim.id,
             name: name || sim.name,
             templateId: template.id,
+            scene_type: sim.scene_type || (isExperimentTemplate ? 'experiment_template' : backendSceneType),
             status: 'active',
             createdAt: new Date().toISOString().split('T')[0],
             timeConfig: finalTimeConfig,
-            socialNetwork: template.defaultNetwork || {}
+            socialNetwork: template.defaultNetwork || {},
+            // Include scene_config so Experiment Design Modal can access parameters
+            scene_config: sceneConfig
           };
 
           set({

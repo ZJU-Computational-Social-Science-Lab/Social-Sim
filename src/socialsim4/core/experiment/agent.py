@@ -34,6 +34,7 @@ class ExperimentAgent:
     properties: Dict[str, Any]
     llm_config: LLMConfig
     role_prompt: str | None = None
+    provider_id: int | None = None
     action_history: List[Dict[str, Any]] = field(default_factory=list)
     score: int = 0
     knowledge_base: List[Dict[str, Any]] = field(default_factory=list)

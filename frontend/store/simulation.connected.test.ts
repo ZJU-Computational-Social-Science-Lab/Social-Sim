@@ -59,7 +59,6 @@ describe('Simulation Slice - Connected Experiment Payload', () => {
           description: 'Public goods experiment',
           scenario_id: 'public_goods',
           round_visibility: 'simultaneous',
-          max_rounds: 3,
           parameters: {
             initial_amount: 20,
             multiplier: 1.5,

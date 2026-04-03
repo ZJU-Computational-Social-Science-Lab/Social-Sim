@@ -6,27 +6,24 @@ import { applyEnvironmentEvent } from '../services/environmentSuggestions';
 import { Megaphone, CloudLightning, Edit, Save, Sparkles, Loader2, Check, FilePlus } from 'lucide-react';
 import { MultimodalInput } from './MultimodalInput';
 import { InitialEventsModal } from './InitialEventsModal';
-import { injectHostMessage } from '../services/simulationTree';
-import { API_BASE_URL } from '../services/client';
-import { useAuthStore } from '../store/auth';
 
 export const HostPanel: React.FC = () => {
-  const { t } = useTranslation();
+   const { t } = useTranslation();
   const agents = useSimulationStore(state => state.agents);
   const logs = useSimulationStore(state => state.logs);
   const currentSimulation = useSimulationStore(state => state.currentSimulation);
+  const selectedNodeId = useSimulationStore(state => state.selectedNodeId);
   const engineMode = useSimulationStore(state => state.engineConfig.mode);
   const injectLog = useSimulationStore(state => state.injectLog);
   const updateAgentProperty = useSimulationStore(state => state.updateAgentProperty);
   const addNotification = useSimulationStore(state => state.addNotification);
   const toggleInitialEvents = useSimulationStore((state: any) => state.toggleInitialEvents);
-  const selectedNodeId = useSimulationStore((state: any) => state.selectedNodeId);
 
   const [broadcastMsg, setBroadcastMsg] = useState('');
   const [envEvent, setEnvEvent] = useState('');
   const [envImage, setEnvImage] = useState<string | null>(null);
   const [broadcastRecipients, setBroadcastRecipients] = useState<string[]>([]);
-
+  
   // God Mode State
   const [selectedAgentId, setSelectedAgentId] = useState(agents[0]?.id || '');
   const [selectedProp, setSelectedProp] = useState('');
@@ -46,8 +43,7 @@ export const HostPanel: React.FC = () => {
       : t('components.hostPanel.allAgentsLog', '全体智能体');
     return `${scopeLabel}\n${t('components.hostPanel.recipientsLog', '接收者')}: ${recipientLabel}\n${description}`;
   };
-
-  // Shared function for pushing environment events
+  
   const pushEnvironmentEvent = async (description: string, eventType: string) => {
     if (!description.trim()) return;
     const recipients = eventType === 'broadcast' && broadcastRecipients.length > 0
@@ -62,6 +58,7 @@ export const HostPanel: React.FC = () => {
         description,
         severity: 'mild',
         receivers: recipients,
+        node_id: selectedNodeId,
       };
       // Only include explicit notice_only for policy cascade scene to avoid
       // changing semantics in other scene types.
@@ -77,31 +74,7 @@ export const HostPanel: React.FC = () => {
 
   const handleBroadcast = async () => {
     if (!broadcastMsg.trim()) return;
-
-    const message = `${t('components.hostPanel.logPrefixSystemAnnouncement')} ${broadcastMsg}`;
-
-    // Log to UI
-    injectLog('SYSTEM', message);
-
-    // Experiment simulations: use experiment-specific API for message injection
-    if (currentSimulation?.id && selectedNodeId) {
-      try {
-        await injectHostMessage(API_BASE_URL, currentSimulation.id, selectedNodeId, broadcastMsg, useAuthStore.getState().accessToken);
-        addNotification('success', t('components.hostPanel.broadcastSent'));
-      } catch (error) {
-        console.error('Failed to inject host message:', error);
-        addNotification('error', t('components.hostPanel.broadcastFailed'));
-      }
-    } else if (engineMode === 'connected' && currentSimulation?.id) {
-      // Regular connected simulations: use general environment event API
-      await applyEnvironmentEvent(currentSimulation.id, {
-        event_type: 'broadcast',
-        description: message,
-        severity: 'mild',
-        receivers: broadcastRecipients.length > 0 ? broadcastRecipients : undefined,
-      });
-    }
-
+    await pushEnvironmentEvent(`${t('components.hostPanel.logPrefixSystemAnnouncement')} ${broadcastMsg}`, 'broadcast');
     setBroadcastMsg('');
   };
 
@@ -109,8 +82,8 @@ export const HostPanel: React.FC = () => {
     if (!text.trim() && !envImage) return;
     await pushEnvironmentEvent(`${t('components.hostPanel.logPrefixEnvironmentEvent')} ${text}`, 'environment');
     if (text === envEvent) {
-      setEnvEvent('');
-      setEnvImage(null);
+       setEnvEvent('');
+       setEnvImage(null);
     }
   };
 

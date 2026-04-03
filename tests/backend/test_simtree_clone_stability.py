@@ -204,6 +204,19 @@ def test_simtree_clone_event_queue_cleared_and_not_shared(kind: str):
     assert after_qsize_base == before_qsize_base, f"[{kind}] base event_queue size changed after clone emit"
 
 
+def test_simtree_clone_resets_transient_offline_state():
+    base_sim = make_simulator("simple_chat_zh")
+    first_agent = next(iter(base_sim.agents.values()))
+    first_agent.consecutive_llm_errors = 3
+    first_agent.is_offline = True
+
+    cloned_sim, _tree = _make_clone_via_simulator(base_sim)
+    cloned_agent = cloned_sim.agents[first_agent.name]
+
+    assert cloned_agent.is_offline is False
+    assert cloned_agent.consecutive_llm_errors == 0
+
+
 @pytest.mark.parametrize("kind", SCENARIO_KINDS)
 def test_simtree_clone_deepcopy_of_agent_and_scene_state(kind: str):
     """

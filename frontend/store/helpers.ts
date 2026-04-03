@@ -320,40 +320,42 @@ export const mapBackendEventsToLogs = (
 
     const evType = ev.type || ev.event_type;
     const data = payload;
+
+    // Get labels using i18n.t() for runtime language switching
     const labels = {
-      reasoningStep: (step: number) => pickText(`Starting step ${step} reasoning`, `开始第 ${step} 步推理`),
-      reasoningStart: pickText('Starting reasoning', '开始推理'),
-      reasoningDone: pickText('Reasoning complete', '完成推理'),
-      actionPrefix: pickText('Action', '动作'),
-      yieldTurn: pickText('Yielded the floor', '结束本轮发言'),
-      planUpdate: pickText('Plan updated', '更新计划'),
-      agentError: pickText('Agent error', '智能体发生错误'),
-      llmCallError: pickText('LLM call failed', 'LLM 调用失败'),
-      llmParseError: pickText('LLM output parse failed', 'LLM 输出解析失败'),
-      agentOffline: pickText('Agent went offline', '智能体已掉线'),
-      distortionBlocked: pickText('Policy transmission blocked', '政策传递被截留'),
-      distortionAdjusted: pickText('Policy transmission distorted', '政策传递发生失真'),
-      distortionUnchanged: pickText('Policy transmission stayed effectively unchanged', '政策传递基本保持原样'),
-      distortedReason: pickText('Distortion reason', '已发生失真，原因'),
-      pressureReason: pickText('Distortion pressure', '存在失真压力，但本次保持原样，原因'),
-      distortionInput: pickText('Announcement classified as distortion cascade input', '本条公告被识别为：distortion cascade input'),
-      nonDistortionInput: pickText('Announcement did not enter distortion cascade', '本条公告未进入 distortion cascade'),
-      privateCascadeInput: pickText('This is a private cascade input, visible only to', '这是一条私有级联输入，仅'),
-      waitingForTopTier: pickText('waiting for top-tier relay', '可见，等待其作为 top tier 下传'),
-      privateBroadcast: pickText('Targeted private broadcast', '定向私有广播'),
-      globalBroadcast: pickText('Global broadcast', '全局广播'),
-      recipientsLabel: pickText('Recipients', '接收者'),
-      allAgents: pickText('All agents', '全体智能体'),
-      originalMessage: pickText('Received upstream policy version', '收到的上级政策版本'),
-      draftMessage: pickText('Agent draft before scene rewrite', 'Agent 原始下传草稿'),
-      finalMessage: pickText('Actual downstream message', '实际对下发送内容'),
-      reasonLabel: pickText('Reason', '原因'),
-      metricsLabel: pickText('Metrics', '参数/评分'),
-      actionStart: pickText('Started action', '开始执行动作'),
-      actionEnd: pickText('performed action', '执行了动作'),
-      systemEvent: pickText('System event', '系统事件'),
-      agentResponse: pickText('Agent response', 'Agent responded'),
-      choseAction: (agent: string, action: string) => pickText(`${agent} chose ${action}`, `${agent} 选择了 ${action}`)
+      reasoningStep: (step: number) => i18n.t('log.reasoningStep', { step }),
+      reasoningStart: i18n.t('log.reasoningStart'),
+      reasoningDone: i18n.t('log.reasoningDone'),
+      actionPrefix: i18n.t('log.actionPrefix'),
+      yieldTurn: i18n.t('log.yieldTurn'),
+      planUpdate: i18n.t('log.planUpdate'),
+      agentError: i18n.t('log.agentError'),
+      llmCallError: i18n.t('log.llmCallError'),
+      llmParseError: i18n.t('log.llmParseError'),
+      agentOffline: i18n.t('log.agentOffline'),
+      distortionBlocked: i18n.t('log.distortionBlocked'),
+      distortionAdjusted: i18n.t('log.distortionAdjusted'),
+      distortionUnchanged: i18n.t('log.distortionUnchanged'),
+      distortedReason: i18n.t('log.distortedReason'),
+      pressureReason: i18n.t('log.pressureReason'),
+      distortionInput: i18n.t('log.distortionInput'),
+      nonDistortionInput: i18n.t('log.nonDistortionInput'),
+      privateCascadeInput: i18n.t('log.privateCascadeInput'),
+      waitingForTopTier: i18n.t('log.waitingForTopTier'),
+      privateBroadcast: i18n.t('log.privateBroadcast'),
+      globalBroadcast: i18n.t('log.globalBroadcast'),
+      recipientsLabel: i18n.t('log.recipientsLabel'),
+      allAgents: i18n.t('log.allAgents'),
+      originalMessage: i18n.t('log.originalMessage'),
+      draftMessage: i18n.t('log.draftMessage'),
+      finalMessage: i18n.t('log.finalMessage'),
+      reasonLabel: i18n.t('log.reasonLabel'),
+      metricsLabel: i18n.t('log.metricsLabel'),
+      actionStart: i18n.t('log.actionStart'),
+      actionEnd: i18n.t('log.actionEnd'),
+      systemEvent: i18n.t('log.systemEvent'),
+      agentResponse: i18n.t('log.agentResponse'),
+      choseAction: (agent: string, action: string) => i18n.t('log.choseAction', { agent, action })
     };
 
     // Agent context delta
@@ -458,7 +460,7 @@ export const mapBackendEventsToLogs = (
       const agentName: string = data.agent || '';
       const kind: string = data.kind || '';
       const errText: string = String(data.error || data.message || '').slice(0, 400);
-      const agentLabel = agentName || pickText('Unknown', '未知');
+      const agentLabel = agentName || i18n.t('log.unknown');
       const kindLabel = kind === 'llm_call'
         ? labels.llmCallError
         : kind === 'parse'
@@ -467,7 +469,7 @@ export const mapBackendEventsToLogs = (
             ? labels.agentOffline
             : labels.agentError;
       const baseLabel = isZh() ? `智能体「${agentLabel}」${kindLabel}` : `Agent "${agentLabel}" ${kindLabel}`;
-      const label = baseLabel + (errText ? pickText(`: ${errText}`, `：${errText}`) : '');
+      const label = baseLabel + (errText ? (isZh() ? `：${errText}` : `: ${errText}`) : '');
       return { ...base, type: 'SYSTEM', content: label };
     }
 
@@ -476,15 +478,15 @@ export const mapBackendEventsToLogs = (
       const tier: string = data.tier || '';
       const blocked = Boolean(data.blocked);
       const changed = data.changed !== false;
-      const originalMessage = String(data.original_message || '').trim() || pickText('(empty)', '（空）');
+      const originalMessage = String(data.original_message || '').trim() || i18n.t('log.empty');
       const draftMessage = String(data.agent_draft_message || '').trim();
-      const finalMessage = String(data.final_message || '').trim() || pickText('(blocked / no downstream message)', '（已截留 / 无下传内容）');
-      const reason = String(data.reason || '').trim() || pickText('No reason provided', '未提供原因');
-      const metrics = `${pickText('strength', '失真强度')}=${data.distortion_strength ?? '-'}, `
-        + `${pickText('conflict', '冲突敏感度')}=${data.conflict_sensitivity ?? '-'}, `
-        + `${pickText('block', '阻断概率')}=${data.block_probability ?? '-'}, `
-        + `${pickText('pressure', '冲突压力')}=${data.pressure ?? '-'}, `
-        + `${pickText('tendency', '截留倾向')}=${data.block_tendency ?? '-'}`;
+      const finalMessage = String(data.final_message || '').trim() || i18n.t('log.blockedNoDownstream');
+      const reason = String(data.reason || '').trim() || i18n.t('log.noReasonProvided');
+      const metrics = `${i18n.t('log.strength')}=${data.distortion_strength ?? '-'}, `
+        + `${i18n.t('log.conflict')}=${data.conflict_sensitivity ?? '-'}, `
+        + `${i18n.t('log.block')}=${data.block_probability ?? '-'}, `
+        + `${i18n.t('log.pressure')}=${data.pressure ?? '-'}, `
+        + `${i18n.t('log.tendency')}=${data.block_tendency ?? '-'}`;
       const title = blocked ? labels.distortionBlocked : changed ? labels.distortionAdjusted : labels.distortionUnchanged;
       const reasonLine = blocked || changed
         ? `${labels.distortedReason}: ${reason}`
@@ -605,7 +607,7 @@ export const mapBackendEventsToLogs = (
       if (isSpeech) return null as any;
 
       const readableAction = translateActionName(actionName);
-      const label = actorName ? `${actorName} ${labels.actionEnd} ${readableAction}` : `${pickText('Performed action', '执行了动作')} ${readableAction}`;
+      const label = actorName ? `${actorName} ${labels.actionEnd} ${readableAction}` : `${i18n.t('log.performedAction')} ${readableAction}`;
       return { ...base, type: 'AGENT_ACTION', agentId, content: label };
     }
 
@@ -634,15 +636,9 @@ export const mapBackendEventsToLogs = (
       // Otherwise build our own label
       let label: string;
       if (skipped) {
-        label = pickText(
-          `Round ${round}: ${agentName} - skipped turn`,
-          `第${round}轮: ${agentName} - 跳过回合`
-        );
+        label = i18n.t('log.skippedTurn', { round, agent: agentName });
       } else {
-        label = pickText(
-          `Round ${round}: ${agentName} chose ${readableAction}`,
-          `第${round}轮: ${agentName} 选择了 ${readableAction}`
-        );
+        label = i18n.t('log.roundAction', { round, agent: agentName, action: readableAction });
       }
 
       // Add parameters if any meaningful ones exist
@@ -662,6 +658,33 @@ export const mapBackendEventsToLogs = (
       }
 
       return { ...base, type: 'AGENT_ACTION', agentId, content: label };
+    }
+
+    // Handle punishment action events (FEAT-PGG-09, FEAT-PGG-10, FEAT-PGG-11)
+    if (evType === 'punishment_action') {
+      const punisher: string = data.punisher || '';
+      const target: string = data.target || '';
+      const amount: number = data.amount || 0;
+      const deduction: number = data.deduction || 0;
+      const roundNum: number = data.round || roundVal;
+
+      const punisherId = punisher ? nameToId.get(punisher) : undefined;
+
+      // Use i18n for runtime language switching
+      const content = i18n.t('log.punishmentAction', {
+        punisher,
+        target,
+        amount,
+        deduction
+      });
+
+      return {
+        ...base,
+        type: 'AGENT_ACTION',
+        agentId: punisherId,
+        content,
+        round: roundNum,
+      };
     }
 
     const text = data.text || data.message || evType || labels.systemEvent;
@@ -762,6 +785,7 @@ export async function generateAgentsWithDemographics(
     avatarUrl: a.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || `agent_${index}`)}`,
     profile: a.profile || fallbackProfile,
     llmConfig: { provider: a.provider || "backend", model: a.model || "default" },
+    provider_id: a.provider_id,  // Include stratified provider_id from backend
     properties: a.properties || {},
     history: a.history || {},
     memory: a.memory || [],

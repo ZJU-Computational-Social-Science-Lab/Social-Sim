@@ -1,6 +1,18 @@
-import { httpGet, httpPost, httpDelete } from "./client";
+/**
+ * Simulation tree WebSocket and API services.
+ *
+ * Provides functions for connecting to simulation event streams via WebSocket,
+ * and API calls for tree manipulation (advance, branch, delete).
+ *
+ * WebSocket connections are tracked in auth store for proactive token refresh.
+ *
+ * Exports: connectTreeEvents, connectNodeEvents, getTreeGraph, treeAdvanceChain, etc.
+ */
 
-export type GraphNode = { id: number; depth: number };
+import { httpGet, httpPost, httpDelete } from "./client";
+import { useAuthStore } from "../store/auth";
+
+export type GraphNode = { id: number; depth: number; meta?: Record<string, unknown> | null };
 export type GraphEdge = { from: number; to: number; type: string; ops?: unknown[] };
 
 export type Graph = {
@@ -13,6 +25,9 @@ export type Graph = {
 
 export type SimEvent = { type: string; data?: Record<string, unknown> | null; node?: number };
 
+// Track active WebSocket connections count
+let activeWsConnections = 0;
+
 function toWsUrl(base: string, path: string, token?: string): string {
   const b = base.replace(/\/$/, "");
   const url = new URL(b);
@@ -20,6 +35,26 @@ function toWsUrl(base: string, path: string, token?: string): string {
   const full = new URL(path.replace(/^\//, "/"), url);
   if (token) full.searchParams.set("token", token);
   return full.toString();
+}
+
+/**
+ * Notify auth store of WebSocket connection state change.
+ * Called when any WebSocket connects or disconnects.
+ */
+function notifyWsStateChange(connected: boolean): void {
+  if (connected) {
+    activeWsConnections++;
+    if (activeWsConnections === 1) {
+      // First connection - notify auth store
+      useAuthStore.getState().setWebSocketConnected(true);
+    }
+  } else {
+    activeWsConnections = Math.max(0, activeWsConnections - 1);
+    if (activeWsConnections === 0) {
+      // Last connection closed - notify auth store
+      useAuthStore.getState().setWebSocketConnected(false);
+    }
+  }
 }
 
 export async function getTreeGraph(base: string, id: string, token?: string): Promise<Graph | null> {
@@ -32,15 +67,35 @@ export async function getTreeGraph(base: string, id: string, token?: string): Pr
 
 export function connectTreeEvents(base: string, id: string, token: string | undefined, onMessage: (event: SimEvent) => void): WebSocket {
   const ws = new WebSocket(toWsUrl(base, `/simulations/${id}/tree/events`, token));
-  ws.onopen = () => ws.send("ready");
+
+  ws.onopen = () => {
+    notifyWsStateChange(true);
+    ws.send("ready");
+  };
+
   ws.onmessage = (ev) => onMessage(JSON.parse(ev.data));
+
+  ws.onclose = () => {
+    notifyWsStateChange(false);
+  };
+
   return ws;
 }
 
 export function connectNodeEvents(base: string, id: string, node: number, token: string | undefined, onMessage: (event: SimEvent) => void): WebSocket {
   const ws = new WebSocket(toWsUrl(base, `/simulations/${id}/tree/${node}/events`, token));
-  ws.onopen = () => ws.send("ready");
+
+  ws.onopen = () => {
+    notifyWsStateChange(true);
+    ws.send("ready");
+  };
+
   ws.onmessage = (ev) => onMessage(JSON.parse(ev.data));
+
+  ws.onclose = () => {
+    notifyWsStateChange(false);
+  };
+
   return ws;
 }
 

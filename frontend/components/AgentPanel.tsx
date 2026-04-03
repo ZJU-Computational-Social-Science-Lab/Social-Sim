@@ -2,9 +2,10 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSimulationStore } from '../store';
-import { User, Brain, Activity, ChevronDown, ChevronRight, Bot, BookOpen, Plus, FileText, Trash2, Upload, File, Loader2, Edit3, Save, X } from 'lucide-react';
+import { User, Brain, Activity, ChevronDown, ChevronRight, Bot, BookOpen, Plus, FileText, Trash2, Upload, File, Loader2, Edit3, Save, X, RefreshCw } from 'lucide-react';
 import { Agent, KnowledgeItem } from '../types';
 import { uploadAgentDocument, listAgentDocuments, deleteAgentDocument, DocumentInfo } from '../services/simulations';
+import { listProviders, Provider } from '../services/providers';
 import { MultimodalInput } from './MultimodalInput';
 
 const renderProfileHtml = (text: string) => {
@@ -29,6 +30,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   const removeKnowledgeFromAgent = useSimulationStore(state => state.removeKnowledgeFromAgent);
   const updateKnowledgeInAgent = useSimulationStore(state => state.updateKnowledgeInAgent);
   const updateAgentProfile = useSimulationStore(state => state.updateAgentProfile);
+  const updateAgentLLM = useSimulationStore(state => state.updateAgentLLM);
   const addNotification = useSimulationStore(state => state.addNotification);
   const simulationId = useSimulationStore(state => state.currentSimulation?.id);
   const selectedNodeId = useSimulationStore(state => state.selectedNodeId);
@@ -36,6 +38,40 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   const [newKbTitle, setNewKbTitle] = useState('');
   const [newKbContent, setNewKbContent] = useState('');
   const [isAddingKB, setIsAddingKB] = useState(false);
+
+  // LLM dropdown state
+  const [availableProviders, setAvailableProviders] = useState<Provider[]>([]);
+  const [providersLoading, setProvidersLoading] = useState<boolean>(true);
+  const [providersError, setProvidersError] = useState<string | null>(null);
+
+  // Fetch available LLM providers
+  useEffect(() => {
+    const fetchProviders = async () => {
+      setProvidersLoading(true);
+      setProvidersError(null);
+      try {
+        const providers = await listProviders();
+        setAvailableProviders(providers);
+      } catch (err) {
+        console.error('Failed to fetch LLM providers:', err);
+        setProvidersError(t('components.agentPanel.providersLoadError'));
+      } finally {
+        setProvidersLoading(false);
+      }
+    };
+    fetchProviders();
+  }, [t]);
+
+  // Handle LLM change
+  const handleLLMChange = async (providerId: number) => {
+    const provider = availableProviders.find(p => p.id === providerId);
+    if (!provider) return;
+
+    await updateAgentLLM(agent.name, {
+      provider: provider.provider,
+      model: provider.model
+    });
+  };
 
   // Edit state for knowledge items
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -230,10 +266,61 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
           {/* Name row with model badge */}
           <div className="flex items-center justify-between">
             <h4 className="font-bold text-slate-800 truncate">{agent.name}</h4>
-            {/* #10 Model Badge */}
-            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border ${getModelBadgeStyle(agent.llmConfig?.provider || 'default')}`} title={`${t('components.agentPanel.modelTooltip')} ${agent.llmConfig?.model}`}>
-              <Bot size={10} />
-              <span className="font-mono">{agent.llmConfig?.model || t('components.agentPanel.auto')}</span>
+            {/* #10 Model Badge with Dropdown */}
+            <div className="flex items-center gap-1">
+              {providersLoading ? (
+                <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border ${getModelBadgeStyle(agent.llmConfig?.provider || 'default')}`}>
+                  <Loader2 size={10} className="animate-spin" />
+                  <span className="font-mono">{agent.llmConfig?.model || t('components.agentPanel.auto')}</span>
+                </span>
+              ) : providersError ? (
+                <div className="flex items-center gap-1">
+                  <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border ${getModelBadgeStyle(agent.llmConfig?.provider || 'default')}`}>
+                    <Bot size={10} />
+                    <span className="font-mono">{agent.llmConfig?.model || t('components.agentPanel.auto')}</span>
+                  </span>
+                  <button
+                    onClick={() => {
+                      setProvidersError(null);
+                      setProvidersLoading(true);
+                      listProviders()
+                        .then(setAvailableProviders)
+                        .catch(() => {
+                          setProvidersError(t('components.agentPanel.providersLoadError'));
+                        })
+                        .finally(() => setProvidersLoading(false));
+                    }}
+                    className="text-slate-400 hover:text-brand-500 p-1"
+                    title={t('components.agentPanel.retry')}
+                  >
+                    <RefreshCw size={10} />
+                  </button>
+                </div>
+              ) : (
+                <select
+                  value={(() => {
+                    const matched = availableProviders.find(p =>
+                      p.provider === agent.llmConfig?.provider && p.model === agent.llmConfig?.model
+                    );
+                    return matched ? String(matched.id) : '';
+                  })()}
+                  onChange={(e) => {
+                    const providerId = Number(e.target.value);
+                    if (!isNaN(providerId)) handleLLMChange(providerId);
+                  }}
+                  className={`text-[10px] border rounded px-1.5 py-0.5 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 ${getModelBadgeStyle(agent.llmConfig?.provider || 'default')}`}
+                  title={t('components.agentPanel.changeLLM')}
+                >
+                  <option value="" disabled>
+                    {agent.llmConfig?.model || t('components.agentPanel.auto')}
+                  </option>
+                  {availableProviders.map(p => (
+                    <option key={p.id} value={String(p.id)}>
+                      {p.provider} - {p.model}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 

@@ -109,7 +109,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
           profile: userProfile || rolePrompt || '',  // backend expects 'profile' or 'user_profile'
           user_profile: userProfile || '',  // snake_case for backend
           avatarUrl: avatarUrl,
-          llm_config: llmConfig,
+          llmConfig: llmConfig,
           provider_id: providerId,  // Track which provider this agent uses
           properties: {
             ...props,
@@ -160,7 +160,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
       scenarioData?.id === 'policy_diffusion' ||
       scenarioData?.id === 'policyDiffusion' ||
       (scenarioData?.name || '').toLowerCase().includes('policy') ||
-      (scenarioData?.name || '').includes('政策');
+      (scenarioData?.name || '').toLowerCase().includes('cascade');
 
     // Determine if this uses the new Three-Layer Architecture
     // (strategic_decisions or any scenario with structured actions)

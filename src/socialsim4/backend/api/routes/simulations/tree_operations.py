@@ -91,7 +91,11 @@ async def simulation_tree_graph(
             }
 
             nodes = [
-                {"id": int(node["id"]), "depth": int(node["depth"])}
+                {
+                    "id": int(node["id"]),
+                    "depth": int(node["depth"]),
+                    "meta": node.get("meta", {}),
+                }
                 for node in tree.nodes.values()
                 if node.get("depth") is not None
             ]
@@ -316,48 +320,67 @@ async def simulation_tree_advance_chain(
     Raises:
         HTTPException: If simulation not found
     """
-    async with get_session() as session:
-        sim, record = await get_simulation_and_tree_any(session, simulation_id)
-        tree = record.tree
+    try:
+        async with get_session() as session:
+            sim, record = await get_simulation_and_tree_any(session, simulation_id)
+            tree = record.tree
 
-        parent = int(data.parent)
-        steps = max(1, int(data.turns))
-        last = parent
+            parent = int(data.parent)
+            steps = max(1, int(data.turns))
+            last = parent
 
-        for _ in range(steps):
-            cid = tree.copy_sim(last)
-            tree.attach(last, [{"op": "advance", "turns": 1}], cid)
-            node = tree.nodes[cid]
-            broadcast_tree_event(
-                record,
-                {
-                    "type": "attached",
-                    "data": {
-                        "node": int(cid),
-                        "parent": int(last),
-                        "depth": int(node["depth"]),
-                        "edge_type": node["edge_type"],
-                        "ops": node["ops"],
+            for _ in range(steps):
+                cid = tree.copy_sim(last)
+                tree.attach(last, [{"op": "advance", "turns": 1}], cid)
+                node = tree.nodes[cid]
+                broadcast_tree_event(
+                    record,
+                    {
+                        "type": "attached",
+                        "data": {
+                            "node": int(cid),
+                            "parent": int(last),
+                            "depth": int(node["depth"]),
+                            "edge_type": node["edge_type"],
+                            "ops": node["ops"],
+                        },
                     },
-                },
-            )
-            record.running.add(cid)
-            broadcast_tree_event(record, {"type": "run_start", "data": {"node": int(cid)}})
-            await asyncio.sleep(0)
+                )
+                record.running.add(cid)
+                broadcast_tree_event(record, {"type": "run_start", "data": {"node": int(cid)}})
+                await asyncio.sleep(0)
 
-            simulator = tree.nodes[cid]["sim"]
-            total_turns = 1 * max(1, len(simulator.agents))
-            await asyncio.to_thread(simulator.run, max_turns=total_turns)
+                simulator = tree.nodes[cid]["sim"]
+                total_turns = 1 * max(1, len(simulator.agents))
+                logger.debug(f"[ADVANCE_CHAIN] Running simulator for node {cid}, max_turns={total_turns}")
+                await asyncio.to_thread(simulator.run, max_turns=total_turns)
+                logger.debug(f"[ADVANCE_CHAIN] Simulator run complete for node {cid}")
 
-            if cid in record.running:
-                record.running.remove(cid)
-            broadcast_tree_event(record, {"type": "run_finish", "data": {"node": int(cid)}})
-            last = cid
+                # Log events collected
+                from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
+                if isinstance(simulator, ExperimentRunnerAdapter):
+                    logger.debug(f"[ADVANCE_CHAIN] Adapter events count: {len(simulator.events)}")
+                    logger.debug(f"[ADVANCE_CHAIN] Node logs count: {len(node.get('logs', []))}")
 
-        sim.latest_state = tree.serialize()
-        await session.commit()
+                if cid in record.running:
+                    record.running.remove(cid)
+                broadcast_tree_event(record, {"type": "run_finish", "data": {"node": int(cid)}})
+                last = cid
 
-        return {"child": int(last)}
+            try:
+                serialized = tree.serialize()
+                logger.debug(f"[ADVANCE_CHAIN] Serialized tree with {len(serialized.get('nodes', []))} nodes")
+                sim.latest_state = serialized
+            except Exception as e:
+                logger.exception(f"[ADVANCE_CHAIN] Failed to serialize tree: {e}")
+                raise
+
+            await session.commit()
+
+            return {"child": int(last)}
+    except Exception as e:
+        logger.exception(f"[ADVANCE_CHAIN] Unhandled exception: {e}")
+        raise
 
 
 @post("/{simulation_id:str}/tree/branch")
@@ -417,12 +440,12 @@ async def simulation_tree_branch(
         return {"child": int(cid)}
 
 
-@delete("/{simulation_id:str}/tree/node/{node_id:int}")
+@delete("/{simulation_id:str}/tree/node/{node_id:int}", status_code=200)
 async def simulation_tree_delete_subtree(
     request: Request,
     simulation_id: str,
     node_id: int,
-) -> None:
+) -> dict:
     """
     Delete a subtree from a node.
 
@@ -438,9 +461,12 @@ async def simulation_tree_delete_subtree(
         HTTPException: If simulation not found or trying to delete root
     """
     async with get_session() as session:
-        _, record = await get_simulation_and_tree_any(session, simulation_id)
+        sim, record = await get_simulation_and_tree_any(session, simulation_id)
         record.tree.delete_subtree(int(node_id))
+        sim.latest_state = record.tree.serialize()
+        await session.commit()
         broadcast_tree_event(record, {"type": "deleted", "data": {"node": int(node_id)}})
+        return {"ok": True}
 
 
 @get("/{simulation_id:str}/tree/sim/{node_id:int}/events")

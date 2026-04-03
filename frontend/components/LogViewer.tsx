@@ -182,6 +182,7 @@ const diffCellClassName = (kind: PolicyDiffRow['kind'], side: 'left' | 'right') 
 };
 
 const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
+  const { t } = useTranslation();
   const data = entry.structuredData;
   const showDraftExpanded = import.meta.env.DEV;
   const rows = useMemo(
@@ -201,7 +202,7 @@ const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
       </div>
 
       <div className="text-xs text-slate-500">
-        左侧显示该层收到的上级政策版本，右侧显示最终真正发给下一级的内容；若下方出现附加框，则表示 agent 原始草稿。
+        {t('simulation.log.diff.description')}
       </div>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -272,10 +273,10 @@ const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
           <summary className="flex cursor-pointer list-none items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">
             <span>{data.draftTitle}</span>
             <span className="text-[11px] font-medium normal-case tracking-normal text-slate-400 group-open:hidden">
-              调试信息，点击展开
+              {t('simulation.log.diff.debugExpand')}
             </span>
             <span className="hidden text-[11px] font-medium normal-case tracking-normal text-slate-400 group-open:inline">
-              调试信息，点击折叠
+              {t('simulation.log.diff.debugCollapse')}
             </span>
           </summary>
           <div className="max-h-64 overflow-auto px-3 py-3 text-sm leading-6 text-slate-700 whitespace-pre-wrap break-words">
@@ -285,18 +286,18 @@ const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
       )}
 
       <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-        <span className="rounded-full bg-emerald-100 px-2 py-1 text-emerald-700">新增</span>
-        <span className="rounded-full bg-rose-100 px-2 py-1 text-rose-700">删除</span>
-        <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-700">改写</span>
+        <span className="rounded-full bg-emerald-100 px-2 py-1 text-emerald-700">{t('simulation.log.diff.added')}</span>
+        <span className="rounded-full bg-rose-100 px-2 py-1 text-rose-700">{t('simulation.log.diff.removed')}</span>
+        <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-700">{t('simulation.log.diff.modified')}</span>
       </div>
 
       <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-        <div className="font-medium">{data.reasonLabel}：</div>
+        <div className="font-medium">{data.reasonLabel}{t('common.colon')}</div>
         <div className="mt-1 whitespace-pre-wrap break-words">{data.reason}</div>
       </div>
 
       <div className="text-xs text-slate-500 whitespace-pre-wrap break-words">
-        <span className="font-medium">{data.metricsLabel}：</span>
+        <span className="font-medium">{data.metricsLabel}{t('common.colon')}</span>
         {data.metrics}
       </div>
     </div>
@@ -589,15 +590,37 @@ export const LogViewer: React.FC = () => {
     return ids;
   }, [nodes, selectedNodeId]);
 
-  // Filter Logic
+  // Debug: Detect duplicate event IDs in incoming logs (Task 1: BUG-UI-02 investigation)
+  useEffect(() => {
+    const ids = logs.map(l => l.id);
+    const uniqueIds = new Set(ids);
+    if (ids.length !== uniqueIds.size) {
+      console.warn('Duplicate event IDs detected:', {
+        total: ids.length,
+        unique: uniqueIds.size,
+        duplicates: ids.filter((id, idx) => ids.indexOf(id) !== idx)
+      });
+    }
+  }, [logs]);
+
+  // Filter Logic with deduplication (BUG-UI-02 fix)
   const filteredLogs = useMemo(() => {
+    const seenIds = new Set<string>();
+
     return logs.filter(log => {
-      // 0. Ancestry Filter (Strict: only show logs from current path)
+      // 0. Deduplication guard - prevent duplicate event IDs
+      if (seenIds.has(log.id)) {
+        console.warn(`Duplicate event filtered: ${log.id}`);
+        return false;
+      }
+      seenIds.add(log.id);
+
+      // 1. Ancestry Filter (Strict: only show logs from current path)
       if (log.nodeId && !ancestorIds.has(log.nodeId)) {
         return false;
       }
 
-      // 1. Search Text
+      // 2. Search Text
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const contentMatch = log.content.toLowerCase().includes(query);
@@ -606,12 +629,12 @@ export const LogViewer: React.FC = () => {
         if (!contentMatch && !agentMatch && !typeMatch) return false;
       }
 
-      // 2. Filter by Type
+      // 3. Filter by Type
       if (selectedTypes.length > 0 && !selectedTypes.includes(log.type)) {
         return false;
       }
 
-      // 3. Filter by Agent
+      // 4. Filter by Agent
       if (selectedAgents.length > 0) {
         if (!log.agentId || !selectedAgents.includes(log.agentId)) {
           return false;

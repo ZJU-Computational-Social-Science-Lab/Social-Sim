@@ -52,15 +52,53 @@ class CompareRequest(BaseModel):
 @post("/{simulation_id:str}/experiments")
 async def create_experiment(request: Request, simulation_id: str, data: CreateExperimentRequest) -> dict:
     async with get_session() as session:  # validate simulation exists and tree built
-        await get_simulation_and_tree_any(session, simulation_id)
+        sim, record = await get_simulation_and_tree_any(session, simulation_id)
     # persist experiment to DB
     # coerce base_node to int (floor) to tolerate frontend float inputs like 2.1
     exp_id = await create_experiment_db(simulation_id, int(data.base_node), data.name, None, [v.dict() for v in data.variants])
-    return {"experiment_id": exp_id}
+    async with get_session() as session:
+        sim = await session.get(Simulation, simulation_id.upper())
+        stmt = select(Experiment).options(selectinload(Experiment.variants)).where(Experiment.id == exp_id)
+        res = await session.execute(stmt)
+        exp = res.scalars().first()
+        if exp is None:
+            raise HTTPException(status_code=404, detail="Experiment not found after creation")
+
+        _, record = await get_simulation_and_tree_any(session, simulation_id)
+        tree = record.tree
+        node_mapping = []
+        for v in exp.variants or []:
+            cid = tree.branch(int(exp.base_node), [dict(op) for op in (v.ops or [])])
+            v.node_id = int(cid)
+            tree.nodes[int(cid)]["meta"] = {
+                **dict(tree.nodes[int(cid)].get("meta") or {}),
+                "experiment_id": exp.id,
+                "variant_id": v.id,
+                "variant_name": v.name,
+                "experiment_name": exp.name,
+                "base_node": int(exp.base_node),
+                "ops": [dict(op) for op in (v.ops or [])],
+            }
+            session.add(v)
+            node_mapping.append({"variant_id": v.id, "node_id": int(cid), "variant_name": v.name})
+
+        exp.status = "branched"
+        session.add(exp)
+        if sim is not None:
+            sim.latest_state = tree.serialize()
+            session.add(sim)
+        await session.commit()
+    return {"experiment_id": exp_id, "node_mapping": node_mapping}
 
 
 @post("/{simulation_id:str}/experiments/{exp_id:str}/run")
 async def run_experiment(request: Request, simulation_id: str, exp_id: str, data: RunExperimentRequest) -> dict:
+    logger.info(
+        "[EXPERIMENT_RUN] request simulation_id=%s exp_id=%s turns=%s",
+        simulation_id,
+        exp_id,
+        int(data.turns),
+    )
     async with get_session() as session:
         _, record = await get_simulation_and_tree_any(session, simulation_id)
         # broadcast run starts for visibility
@@ -81,6 +119,13 @@ async def run_experiment(request: Request, simulation_id: str, exp_id: str, data
                     node_mapping.append({"variant_id": v.id, "node_id": int(v.node_id)})
 
     res = {"run_id": run_id, "node_mapping": node_mapping}
+    logger.info(
+        "[EXPERIMENT_RUN] response simulation_id=%s exp_id=%s run_id=%s node_mapping=%s",
+        simulation_id,
+        exp_id,
+        run_id,
+        node_mapping,
+    )
     async with get_session() as session:
         _, record = await get_simulation_and_tree_any(session, simulation_id)
         broadcast_tree_event(record, {"type": "experiment_run_finish", "data": {"experiment": exp_id, "nodes": res.get("finished", [])}})

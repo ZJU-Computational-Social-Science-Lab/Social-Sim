@@ -4,6 +4,7 @@ import * as d3 from 'd3';
 import { SimNode } from '../types';
 import { useSimulationStore } from '../store';
 import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 import { HelpCircle, Move, ZoomIn, ZoomOut, Maximize, MousePointer2, Trash2 } from 'lucide-react';
 import { EnvironmentSuggestionDialogWrapper, EnvironmentToggleButton } from './EnvironmentSuggestion';
 
@@ -18,6 +19,7 @@ export const SimTree: React.FC = () => {
   const toggleHelpModal = useSimulationStore(state => state.toggleHelpModal);
   const isCompareMode = useSimulationStore(state => state.isCompareMode);
   const deleteNode = useSimulationStore(state => state.deleteNode);
+  const highlightedNodeId = useSimulationStore(state => state.highlightedNodeId);
 
   // Keep track of zoom behavior to call it programmatically
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
@@ -28,7 +30,25 @@ export const SimTree: React.FC = () => {
 
     const width = containerRef.current.clientWidth;
     const height = containerRef.current.clientHeight;
-    
+
+    // Guard against zero dimensions (Docker container may not be laid out yet)
+    if (width === 0 || height === 0) {
+      console.warn('SimTree: Container has zero dimensions, retrying...', {
+        width, height, nodes: nodes.length
+      });
+      // Retry after a short delay to allow layout to complete
+      const retryTimer = setTimeout(() => {
+        if (containerRef.current) {
+          const newWidth = containerRef.current.clientWidth;
+          const newHeight = containerRef.current.clientHeight;
+          if (newWidth > 0 && newHeight > 0) {
+            console.log('SimTree: Retry successful', { width: newWidth, height: newHeight });
+          }
+        }
+      }, 100);
+      return () => clearTimeout(retryTimer);
+    }
+
     // Clear previous
     d3.select(containerRef.current).selectAll('*').remove();
 
@@ -153,11 +173,27 @@ const root = d3.stratify<SimNode>()
       .text(d => d.data.display_id || d.data.id)
       .attr('class', d => `text-xs font-medium pointer-events-none select-none drop-shadow-sm bg-white ${d.data.status === 'failed' ? 'fill-red-600' : 'fill-slate-600'}`);
 
+    // Auto-advance highlight ring
+    if (highlightedNodeId) {
+      nodeGroup.filter(d => d.data.id === highlightedNodeId)
+        .append('circle')
+        .attr('r', 22)
+        .attr('fill', 'none')
+        .attr('stroke', '#10b981')  // emerald-500
+        .attr('stroke-width', 3)
+        .attr('opacity', 1)
+        .transition()
+        .duration(2000)
+        .attr('r', 28)
+        .attr('opacity', 0)
+        .remove();
+    }
+
     // Initial positioning
     const initialTransform = d3.zoomIdentity.translate(80, height / 2).scale(1);
     svg.call(zoom.transform, initialTransform);
 
-  }, [nodes, selectedNodeId, compareTargetNodeId, selectNode, setCompareTarget, isCompareMode]);
+  }, [nodes, selectedNodeId, compareTargetNodeId, selectNode, setCompareTarget, isCompareMode, i18n.language, highlightedNodeId]);
 
   const handleZoomIn = () => {
     if (svgRef.current && zoomRef.current) {

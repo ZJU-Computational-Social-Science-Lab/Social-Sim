@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import time
 from typing import Dict, List
 from sqlalchemy import select
@@ -38,6 +39,9 @@ async def create_experiment_db(simulation_id: str, base_node: int, name: str, de
 async def run_experiment_db(simulation_id: str, exp_id: str, turns: int) -> List[int]:
     # Load experiment and variants, create a run record, branch variants then run them
     async with get_session() as session:
+        sim = await session.get(Simulation, simulation_id.upper())
+        if sim is None:
+            raise RuntimeError("Simulation not found")
         exp = await session.get(Experiment, exp_id)
         if exp is None:
             raise RuntimeError("Experiment not found")
@@ -63,8 +67,16 @@ async def run_experiment_db(simulation_id: str, exp_id: str, turns: int) -> List
             cid = tree.branch(int(exp.base_node), [dict(op) for op in ops])
             v.node_id = int(cid)
             node_ids.append(int(cid))
+            tree.nodes[int(cid)]["meta"] = {
+                **dict(tree.nodes[int(cid)].get("meta") or {}),
+                "experiment_id": exp.id,
+                "variant_id": v.id,
+                "variant_name": v.name,
+                "experiment_name": exp.name,
+            }
             session.add(v)
 
+        sim.latest_state = tree.serialize()
         await session.commit()
 
         # Run variants in parallel (threaded simulation runs)
@@ -125,6 +137,7 @@ async def run_experiment_db(simulation_id: str, exp_id: str, turns: int) -> List
         # update run record
         run.status = "finished"
         run.result_meta = {"finished_nodes": finished, "summaries": summaries}
+        sim.latest_state = tree.serialize()
         await session.commit()
         return finished
 
@@ -214,6 +227,7 @@ async def run_variants_parallel(simulation_id: str, node_ids: List[int], turns: 
 
 # In-memory map to track running ExperimentRun tasks: run_id -> asyncio.Task
 _RUN_TASKS: dict[int, asyncio.Task] = {}
+_USE_CELERY_EXPERIMENTS = str(os.environ.get("SOCIALSIM4_USE_CELERY_EXPERIMENTS") or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
 async def start_experiment_run_background(simulation_id: str, exp_id: str, turns: int) -> int:
@@ -254,17 +268,32 @@ async def start_experiment_run_background(simulation_id: str, exp_id: str, turns
             run.result_meta = {"error": "SimTree not loaded"}
             await session.commit()
             return run_id
-        tree_state = rec.tree.serialize()
+        tree = rec.tree
 
-        # collect variant ops to pass to worker
+        # Materialize branch nodes immediately so frontend can render them right away.
         variants = []
         for v in list(exp.variants or []):
-            variants.append({"name": v.name, "ops": v.ops or [], "base_node": int(exp.base_node)})
+            node_id = v.node_id
+            if not node_id or int(node_id) not in tree.nodes:
+                node_id = tree.branch(int(exp.base_node), [dict(op) for op in (v.ops or [])])
+                v.node_id = int(node_id)
+                session.add(v)
+            tree.nodes[int(node_id)]["meta"] = {
+                **dict(tree.nodes[int(node_id)].get("meta") or {}),
+                "experiment_id": exp.id,
+                "variant_id": v.id,
+                "variant_name": v.name,
+                "experiment_name": exp.name,
+            }
+            variants.append({"id": v.id, "name": v.name, "ops": v.ops or [], "base_node": int(exp.base_node), "node_id": int(node_id)})
+
+        sim.latest_state = tree.serialize()
+        tree_state = sim.latest_state
 
         await session.commit()
 
-    # If Celery task is available, enqueue; otherwise fall back to in-process task
-    if run_experiment_task is not None:
+    # Only use Celery when explicitly enabled; local/dev runs should execute in-process
+    if _USE_CELERY_EXPERIMENTS and run_experiment_task is not None:
         # enqueue Celery task
         async_result = run_experiment_task.delay(simulation_id, exp_id, run_id, int(turns), tree_state, variants)
         task_id = getattr(async_result, "id", None)
@@ -305,11 +334,30 @@ async def _run_experiment_worker(simulation_id: str, exp_id: str, run_id: int, t
             node_ids = []
             for v in variants:
                 # v is a dict here (id, name, ops, node_id)
-                if not v.get("node_id"):
+                if not v.get("node_id") or int(v.get("node_id")) not in tree.nodes:
                     cid = tree.branch(int(exp.base_node), [dict(op) for op in (v.get("ops") or [])])
                     v["node_id"] = int(cid)
+                meta = dict(tree.nodes[int(v.get("node_id"))].get("meta") or {})
+                meta.update(
+                    {
+                        "experiment_id": exp.id,
+                        "variant_id": v.get("id"),
+                        "variant_name": v.get("name"),
+                        "experiment_name": exp.name,
+                    }
+                )
+                tree.nodes[int(v.get("node_id"))]["meta"] = meta
                 node_ids.append(int(v.get("node_id")))
                 # we don't add the dict back to session; persist node_id to DB below if needed
+
+            for v in exp.variants or []:
+                for dv in variants:
+                    if dv.get("id") == v.id and dv.get("node_id"):
+                        v.node_id = int(dv.get("node_id"))
+                        session.add(v)
+
+            sim_record = await session.get(Simulation, simulation_id.upper())
+            sim_record.latest_state = tree.serialize()
 
             # update run status to running
             run = await session.get(ExperimentRun, run_id)
@@ -368,6 +416,8 @@ async def _run_experiment_worker(simulation_id: str, exp_id: str, run_id: int, t
             run = await session.get(ExperimentRun, run_id)
             run.status = "finished"
             run.result_meta = results_summary
+            sim_record = await session.get(Simulation, simulation_id.upper())
+            sim_record.latest_state = tree.serialize()
             await session.commit()
     except asyncio.CancelledError:
         # mark run as cancelled

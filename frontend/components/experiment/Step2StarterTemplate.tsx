@@ -8,6 +8,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ChevronDown } from 'lucide-react';
 import { useExperimentBuilder } from '../../store/experiment-builder';
 import ParameterField from './ParameterField';
 import { ActionEditor } from './ActionEditor';
@@ -43,6 +44,14 @@ function PayoffInput({ value, actionA = 'Action 1', actionB = 'Action 2', onChan
   const { t } = useTranslation();
   const defaults = { cooperate_reward: 3, sucker_penalty: 0, temptation_reward: 5, defect_penalty: 1 };
 
+  // Helper to translate action names
+  const translateAction = (action: string) => {
+    return t(`experimentBuilder.step2.actionNames.${action}`, { defaultValue: action });
+  };
+
+  const translatedActionA = translateAction(actionA);
+  const translatedActionB = translateAction(actionB);
+
   const update = (key: keyof typeof defaults, raw: string) => {
     onChange({
       cooperate_reward: value.cooperate_reward ?? defaults.cooperate_reward,
@@ -63,7 +72,7 @@ function PayoffInput({ value, actionA = 'Action 1', actionB = 'Action 2', onChan
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t('experimentBuilder.step2.payoffInput.youThey', { actionA, actionB: actionA })}
+            {t('experimentBuilder.step2.payoffInput.youThey', { actionA: translatedActionA, actionB: translatedActionA })}
           </label>
           <input
             type="number"
@@ -75,7 +84,7 @@ function PayoffInput({ value, actionA = 'Action 1', actionB = 'Action 2', onChan
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t('experimentBuilder.step2.payoffInput.youThey', { actionA, actionB })}
+            {t('experimentBuilder.step2.payoffInput.youThey', { actionA: translatedActionA, actionB: translatedActionB })}
           </label>
           <input
             type="number"
@@ -87,7 +96,7 @@ function PayoffInput({ value, actionA = 'Action 1', actionB = 'Action 2', onChan
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t('experimentBuilder.step2.payoffInput.youThey', { actionA: actionB, actionB: actionA })}
+            {t('experimentBuilder.step2.payoffInput.youThey', { actionA: translatedActionB, actionB: translatedActionA })}
           </label>
           <input
             type="number"
@@ -99,7 +108,7 @@ function PayoffInput({ value, actionA = 'Action 1', actionB = 'Action 2', onChan
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t('experimentBuilder.step2.payoffInput.youThey', { actionA: actionB, actionB: actionB })}
+            {t('experimentBuilder.step2.payoffInput.youThey', { actionA: translatedActionB, actionB: translatedActionB })}
           </label>
           <input
             type="number"
@@ -130,16 +139,34 @@ export const Step2StarterTemplate: React.FC = () => {
   const [localRoundVisibility, setLocalRoundVisibility] = useState<'simultaneous' | 'sequential'>('simultaneous');
   const [localTurnOrder, setLocalTurnOrder] = useState<'fixed' | 'random'>('fixed');
 
+  // Helper to get translated scenario name/description based on scenario ID and category
+  const getScenarioName = () => {
+    if (!selectedScenarioData) return '';
+    const scenarioId = selectedScenarioData.id;
+    const category = selectedScenarioData.category || 'game_theory';
+    // Try to get translated name from locale files using the actual category
+    const translatedName = t(`scenario.${category}.${scenarioId}.name`, { defaultValue: selectedScenarioData.name });
+    return translatedName;
+  };
+
+  const getScenarioDescription = () => {
+    if (!selectedScenarioData) return '';
+    const scenarioId = selectedScenarioData.id;
+    const category = selectedScenarioData.category || 'game_theory';
+    // Try to get translated description from locale files using the actual category
+    return t(`scenario.${category}.${scenarioId}.description`, { defaultValue: selectedScenarioData.description });
+  };
+
   // Update local state when store changes
   useEffect(() => {
     if (roundVisibility) setLocalRoundVisibility(roundVisibility);
     if (turnOrder) setLocalTurnOrder(turnOrder);
   }, [roundVisibility, turnOrder]);
 
-  // Initialize scenario description from selected scenario
+  // Initialize scenario description from selected scenario (use translated version)
   useEffect(() => {
     if (selectedScenarioData && !scenarioDescription) {
-      setScenarioDescription(selectedScenarioData.description);
+      setScenarioDescription(getScenarioDescription());
     }
   }, [selectedScenarioData, scenarioDescription, setScenarioDescription]);
 
@@ -196,6 +223,12 @@ export const Step2StarterTemplate: React.FC = () => {
     const scenarioId = selectedScenarioData.id;
 
     if (scenarioId === 'battle_of_the_sexes' || scenarioId === 'stag_hunt') {
+      // Translate default action names and descriptions
+      const action1Name = selectedScenarioData.actions?.[0]?.name || 'Action 1';
+      const action1Desc = selectedScenarioData.actions?.[0]?.description || '';
+      const action2Name = selectedScenarioData.actions?.[1]?.name || 'Action 2';
+      const action2Desc = selectedScenarioData.actions?.[1]?.description || '';
+
       return (
         <ActionEditor
           actions={[
@@ -203,15 +236,15 @@ export const Step2StarterTemplate: React.FC = () => {
               id: 'action_1',
               nameParam: 'action_1_name',
               descParam: 'action_1_description',
-              defaultName: selectedScenarioData.actions?.[0]?.name || 'Action 1',
-              defaultDesc: selectedScenarioData.actions?.[0]?.description || '',
+              defaultName: t(`experimentBuilder.step2.actionNames.${action1Name}`, { defaultValue: action1Name }),
+              defaultDesc: t(`experimentBuilder.step2.actionDescriptions.${action1Name}`, { defaultValue: action1Desc }),
             },
             {
               id: 'action_2',
               nameParam: 'action_2_name',
               descParam: 'action_2_description',
-              defaultName: selectedScenarioData.actions?.[1]?.name || 'Action 2',
-              defaultDesc: selectedScenarioData.actions?.[1]?.description || '',
+              defaultName: t(`experimentBuilder.step2.actionNames.${action2Name}`, { defaultValue: action2Name }),
+              defaultDesc: t(`experimentBuilder.step2.actionDescriptions.${action2Name}`, { defaultValue: action2Desc }),
             },
           ]}
           values={scenarioParams as Record<string, string>}
@@ -221,15 +254,19 @@ export const Step2StarterTemplate: React.FC = () => {
     }
 
     if (scenarioId === 'public_goods') {
+      // Default values per design spec
+      const defaultResourceName = t('experimentBuilder.resourceConfig.resourceOptions.tokens', { defaultValue: 'tokens' });
+
       return (
         <ResourceConfig
           values={{
-            resource_name: (scenarioParams.resource_name as string) || 'Tokens',
-            resource_name_custom: (scenarioParams.resource_name_custom as string) || '',
-            initial_amount: (scenarioParams.initial_amount as number) || 20,
-            multiplier: (scenarioParams.multiplier as number) || 1.5,
-            action_name: (scenarioParams.action_name as string) || 'Contribute',
-            action_description: (scenarioParams.action_description as string) || 'Contribute {resource} to the shared pool',
+            resource_name: (scenarioParams.resource_name as string) || defaultResourceName,
+            tokens_per_round: (scenarioParams.tokens_per_round as number) ?? 10,
+            multiplier: (scenarioParams.multiplier as number) ?? 1.3,
+            deduction_budget_per_phase: (scenarioParams.deduction_budget_per_phase as number) ?? 0,
+            deduction_cost_ratio: (scenarioParams.deduction_cost_ratio as number) ?? 3,
+            deduction_anonymous: (scenarioParams.deduction_anonymous as boolean) ?? false,
+            show_average_contribution: (scenarioParams.show_average_contribution as boolean) ?? false,
           }}
           onChange={handleParamChange}
         />
@@ -254,6 +291,14 @@ export const Step2StarterTemplate: React.FC = () => {
       ?? 'strict_cascade'
   );
   const visibleParameters = selectedScenarioData.parameters.filter((param) => {
+    // Exclude deduction category parameters - they're handled by ResourceConfig
+    if (param.category === 'deduction') {
+      return false;
+    }
+    // Exclude resource category parameters - they're handled by ResourceConfig
+    if (param.category === 'resource') {
+      return false;
+    }
     if (!DISTORTION_ONLY_PARAM_KEYS.has(param.key)) {
       return true;
     }
@@ -271,7 +316,7 @@ export const Step2StarterTemplate: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-gray-900">
-          {t('experimentBuilder.step2.configureTitle', { name: selectedScenarioData.name })}
+          {t('experimentBuilder.step2.configureTitle', { name: getScenarioName() })}
         </h2>
         <p className="text-sm text-gray-600 mt-1">
           {t('experimentBuilder.step2.configureSubtitle')}

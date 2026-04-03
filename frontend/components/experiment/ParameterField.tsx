@@ -50,6 +50,16 @@ export default function ParameterField({
         />
       );
 
+    case 'number':
+      return (
+        <Widgets.NumberField
+          {...commonProps}
+          min={param.min ?? 0}
+          max={param.max ?? 100}
+          step={param.step ?? 1}
+        />
+      );
+
     case 'percentage':
       return <Widgets.PercentageField {...commonProps} />;
 

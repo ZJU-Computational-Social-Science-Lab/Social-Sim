@@ -373,6 +373,12 @@ Recent Context Summary:
     """
         return prompt
 
+    def _tr(self, key: str, **kwargs) -> str:
+        return T(key, locale=self.language, **kwargs)
+
+    def _json_retry_feedback(self, error) -> str:
+        return self._tr("prompts.agent.json_retry_feedback", error=str(error))
+
     # -------------------------------------------------------------------------
     # LLM Interaction
     # -------------------------------------------------------------------------
@@ -509,6 +515,7 @@ Use the above context to inform your responses when relevant.
                 if getattr(self, "is_offline", False):
                     break
                 if i < attempts - 1:
+                    ctx.append({"role": "user", "content": self._json_retry_feedback(e)})
                     continue
                 break
 
@@ -539,6 +546,7 @@ Use the above context to inform your responses when relevant.
                 if getattr(self, "is_offline", False):
                     break
                 if i < attempts - 1:
+                    ctx.append({"role": "user", "content": self._json_retry_feedback(e)})
                     print(f"{self.name} action parse error: {e}; retry {i + 1}/{attempts - 1}...")
                     continue
                 print(f"{self.name} action parse error after {attempts} attempts: {e}")
@@ -551,124 +559,148 @@ Use the above context to inform your responses when relevant.
 
         # --- Reprompt handling for actions requiring free-text input ---
         reprompt_storage_handled = False
+        action_lookup = {
+            getattr(action, "NAME", ""): action
+            for action in self.action_space
+        }
 
-        # Build lookup for action classes
-        action_lookup = {getattr(act, "NAME", None): act for act in self.action_space}
+        for item in action_data:
+            action_payload = item.get("action") or {}
+            if type(action_payload) is dict:
+                action_name = str(action_payload.get("name") or action_payload.get("action") or "").strip()
+            else:
+                action_name = str(action_payload or item.get("action") or item.get("name") or "").strip()
 
-        for action_item in (action_data or []):
-            action_name = action_item.get("action") or action_item.get("name")
-
-            # Handle nested action format: {"action": {"name": "look_around"}}
-            # Some LLMs return actions as dicts instead of strings
-            if isinstance(action_name, dict):
-                action_name = action_name.get("name") or action_name.get("action")
-
-            # Skip if action_name is not a string (unhashable as dict key)
-            if not isinstance(action_name, str):
-                print(f"[AGENT DEBUG] {self.name} got non-string action: {action_name} (type: {type(action_name).__name__})")
+            if not action_name:
                 continue
 
-            act = action_lookup.get(action_name)
-
-            if not act:
+            action_def = action_lookup.get(action_name)
+            if not action_def:
                 continue
 
-            reprompt_param = getattr(act, "REPROMPT_PARAM", None)
-            if reprompt_param:
-                # Store first response (action choice) in memory
-                self.short_memory.append("assistant", llm_output)
-                if self.log_event:
-                    self.log_event(
-                        "agent_ctx_delta",
-                        {"agent": self.name, "role": "assistant", "content": llm_output},
-                    )
-                reprompt_storage_handled = True
+            reprompt_param = getattr(action_def, "REPROMPT_PARAM", None)
+            if not reprompt_param:
+                continue
 
-                # Build and store the reprompt instruction
-                reprompt_instruction = (
-                    f"You selected the '{action_name}' action. "
-                    f"Now write your message (plain text only, no JSON):"
+            reprompt_scene_types = getattr(action_def, "REPROMPT_SCENE_TYPES", None)
+            if reprompt_scene_types:
+                scene_type = getattr(scene, "TYPE", "") if scene else ""
+                if scene_type not in reprompt_scene_types:
+                    continue
+
+            reprompt_task_modes = getattr(action_def, "REPROMPT_TASK_MODES", None)
+            if reprompt_task_modes:
+                task_mode = scene._effective_task_mode_for(self)
+                if task_mode not in reprompt_task_modes:
+                    continue
+
+            existing_value = ""
+            if type(action_payload) is dict:
+                existing_value = str(action_payload.get(reprompt_param) or "").strip()
+            else:
+                existing_value = str(item.get(reprompt_param) or "").strip()
+            if existing_value:
+                continue
+
+            self.short_memory.append("assistant", llm_output)
+            if self.log_event:
+                self.log_event(
+                    "agent_ctx_delta",
+                    {"agent": self.name, "role": "assistant", "content": llm_output},
                 )
-                self.short_memory.append("user", reprompt_instruction)
-                if self.log_event:
-                    self.log_event(
-                        "agent_ctx_delta",
-                        {"agent": self.name, "role": "user", "content": reprompt_instruction},
-                    )
+            reprompt_storage_handled = True
 
-                # Build reprompt context from updated memory
-                reprompt_ctx = self.short_memory.searilize(dialect="default")
-                reprompt_ctx.insert(0, {"role": "system", "content": system_prompt})
+            reprompt_instruction = (
+                self._tr(
+                    "prompts.agent.reprompt_instruction",
+                    action_name=action_name,
+                    reprompt_param=reprompt_param,
+                )
+            )
+            self.short_memory.append("user", reprompt_instruction)
+            if self.log_event:
+                self.log_event(
+                    "agent_ctx_delta",
+                    {"agent": self.name, "role": "user", "content": reprompt_instruction},
+                )
 
-                # Call LLM for free-text response
-                try:
-                    reprompt_output = self.call_llm(clients, reprompt_ctx)
-                    reprompt_output = reprompt_output.strip()
+            reprompt_ctx = self.short_memory.serialize(dialect="default")
+            reprompt_ctx.insert(0, {"role": "system", "content": system_prompt})
 
-                    # Inject the free-text response as the action parameter
-                    action_item[reprompt_param] = reprompt_output
+            reprompt_output = self.call_llm(clients, reprompt_ctx).strip()
 
-                    # Store reprompt response in memory
-                    self.short_memory.append("assistant", reprompt_output)
-                    if self.log_event:
-                        self.log_event(
-                            "agent_ctx_delta",
-                            {"agent": self.name, "role": "assistant", "content": reprompt_output},
-                        )
+            if type(action_payload) is dict:
+                action_payload[reprompt_param] = reprompt_output
+            else:
+                item[reprompt_param] = reprompt_output
 
-                    # Debug logging
-                    try:
-                        with open(_debug_file, 'a', encoding='utf-8') as f:
-                            f.write(f"\n--- REPROMPT for '{action_name}' ---\n")
-                            f.write(f"Instruction: {reprompt_instruction}\n")
-                            f.write(f"Response: {reprompt_output}\n")
-                            f.write(f"--- END REPROMPT ---\n\n")
-                    except Exception:
-                        pass
+            self.short_memory.append("assistant", reprompt_output)
+            if self.log_event:
+                self.log_event(
+                    "agent_ctx_delta",
+                    {"agent": self.name, "role": "assistant", "content": reprompt_output},
+                )
 
-                except Exception as e:
-                    print(f"[REPROMPT] {self.name} failed to get reprompt for '{action_name}': {e}")
-                    # Fall through — action will fail naturally if param missing
+            try:
+                with open(_debug_file, 'a', encoding='utf-8') as f:
+                    f.write(f"\n--- REPROMPT for '{action_name}' ---\n")
+                    f.write(f"Instruction: {reprompt_instruction}\n")
+                    f.write(f"Response: {reprompt_output}\n")
+                    f.write(f"--- END REPROMPT ---\n\n")
+            except Exception:
+                pass
 
         # --- End reprompt handling ---
 
-        # Store compact assistant memory (if reprompt didn't handle it)
-        # This reduces self-copying by storing structured memory instead of raw JSON
-        if not reprompt_storage_handled:
-            memory_parts = []
-            scene_type = getattr(scene, "TYPE", "") if scene else ""
-            scene_mode = str(scene.state.get("task_mode", "") or "") if scene else ""
+        # Store a compact assistant memory instead of raw JSON to reduce self-copying
+        memory_parts = []
+        scene_type = getattr(scene, "TYPE", "") if scene else ""
+        scene_mode = str(scene.state.get("task_mode", "") or "") if scene else ""
+        for item in action_data:
+            response = str(item.get("response", "") or "").strip()
+            if response:
+                memory_parts.append(response)
 
+            action_payload = item.get("action") or {}
+            action_name = ""
+            action_message = ""
+            if type(action_payload) is dict:
+                action_name = str(action_payload.get("name") or action_payload.get("action") or "").strip()
+                action_message = str(action_payload.get("message", "") or "").strip()
+
+            if action_message and action_message != response and not (scene_type == "policy_cascade_scene" and scene_mode == "notice"):
+                memory_parts.append(action_message)
+
+            context_update = str(item.get("context_update", "") or "").strip()
+            if context_update:
+                memory_parts.append(f"[Remember] {context_update}")
+
+        assistant_memory = "\n".join(memory_parts).strip()
+        if not assistant_memory:
+            fallback_parts = []
             for item in action_data:
-                response = str(item.get("response", "") or "").strip()
-                if response:
-                    memory_parts.append(response)
-
                 action_payload = item.get("action") or {}
-                action_name = ""
-                action_message = ""
-                if type(action_payload) is dict:
-                    action_name = str(action_payload.get("name") or action_payload.get("action") or "").strip()
-                    action_message = str(action_payload.get("message", "") or "").strip()
+                if type(action_payload) is not dict:
+                    continue
+                action_name = str(action_payload.get("name") or action_payload.get("action") or "").strip()
+                if not action_name or action_name == "yield":
+                    continue
+                target = str(action_payload.get("target", "") or "").strip()
+                if target:
+                    fallback_parts.append(f"[Action] {action_name} -> {target}")
+                else:
+                    fallback_parts.append(f"[Action] {action_name}")
+            assistant_memory = "\n".join(fallback_parts).strip()
 
-                if action_name:
-                    memory_parts.append(f"[Action] {action_name}")
-                if action_message and action_message != response and not (scene_type == "policy_cascade_scene" and scene_mode == "notice"):
-                    memory_parts.append(action_message)
-
-                context_update = str(item.get("context_update", "") or "").strip()
-                if context_update:
-                    memory_parts.append(f"[Remember] {context_update}")
-
-            assistant_memory = "\n".join(memory_parts).strip() or llm_output
+        if assistant_memory and not reprompt_storage_handled:
             self.short_memory.append("assistant", assistant_memory)
             if self.log_event:
                 self.log_event(
                     "agent_ctx_delta",
                     {"agent": self.name, "role": "assistant", "content": assistant_memory},
                 )
-
         self.last_history_length = len(self.short_memory)
+
         return action_data
 
     # -------------------------------------------------------------------------
@@ -701,9 +733,12 @@ Use the above context to inform your responses when relevant.
 
     def _record_llm_error(self, kind: str, error, attempt: int, final: bool):
         """Record an LLM call/parse error and mark agent offline if threshold exceeded."""
+        if not final:
+            return
+
         self.consecutive_llm_errors += 1
 
-        should_emit_error = bool(final)
+        should_emit_error = True
 
         if self.log_event and should_emit_error:
             self.log_event(

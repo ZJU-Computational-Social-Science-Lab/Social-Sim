@@ -11,8 +11,11 @@ The runner manages the main experiment loop:
 import asyncio
 import logging
 from datetime import datetime
-from typing import List, Dict, Any, Literal, Optional
+from typing import List, Dict, Any, Literal, Optional, TYPE_CHECKING
 from dataclasses import dataclass
+
+if TYPE_CHECKING:
+    from socialsim4.core.experiment.scene import ExperimentScene
 
 from socialsim4.core.experiment.agent import ExperimentAgent
 from socialsim4.core.experiment.information_model import InformationModel
@@ -65,23 +68,29 @@ class ExperimentRunner:
         kernel: ExperimentKernel | None = None,
         round_visibility: Literal["simultaneous", "sequential", "random", "paired"] = "simultaneous",
         information_model: "InformationModel | None" = None,
+        scene: Optional["ExperimentScene"] = None,
+        agent_llm_clients: Optional[Dict[str, LLMClient]] = None,
     ):
         """Initialize the experiment runner.
 
         Args:
             agents: List of agents in the experiment
             game_config: Game configuration
-            llm_client: LLM client for prompts and context updates
+            llm_client: Default LLM client for prompts and context updates (fallback)
             kernel: Action registry (uses default if None)
             round_visibility: How agents see each other's choices
             information_model: Optional InformationModel for structured context
+            scene: Optional scene instance for action filtering (GAP-CLOSURE-01)
+            agent_llm_clients: Optional dict mapping agent names to their specific LLM clients
         """
         self.agents = agents
         self.game_config = game_config
-        self.llm_client = llm_client
+        self.llm_client = llm_client  # Default/fallback client
+        self.agent_llm_clients = agent_llm_clients or {}  # Per-agent LLM clients
         self.kernel = kernel or ExperimentKernel()
         self.round_visibility = round_visibility
         self.information_model = information_model
+        self.scene = scene  # Store scene reference for action filtering
         self.scene_state: Dict[str, Any] = {}  # shared mutable ref; update via set_scene_state()
         self._debug_lock = asyncio.Lock()  # Lock for atomic debug file writes
 
@@ -92,12 +101,32 @@ class ExperimentRunner:
         )
         self.controller = ExperimentController(self.kernel, self.context_manager)
         self.action_handler = ActionHandler()
+
+        # Initialize round state (moved from dead code after return statement)
         self.payoff_engine = PayoffEngine()
         self.feedback_builder = CoordinationFeedbackBuilder()
-        self.current_round = 0
+        self.current_round = 0  # Start at 0, incremented when rounds run
         self.turn_order: List[str] | None = None  # Store shuffled order for random/paired mode
         self.scores: Dict[str, int] = {}  # Track cumulative scores per agent (for paired mode)
         self.pending_host_messages: list[str] = []  # Injected by host before each round
+
+    def get_agent_llm_client(self, agent: ExperimentAgent) -> LLMClient:
+        """Get the LLM client for a specific agent.
+
+        Uses per-agent client if available (LLM distribution),
+        otherwise falls back to the default client.
+
+        Args:
+            agent: The agent to get the LLM client for
+
+        Returns:
+            LLMClient to use for this agent
+        """
+        if agent.name in self.agent_llm_clients:
+            logger.debug(f"Using per-agent LLM client for {agent.name}")
+            return self.agent_llm_clients[agent.name]
+        logger.debug(f"Using default LLM client for {agent.name}")
+        return self.llm_client
 
     def set_scene_state(self, state: Dict[str, Any]) -> None:
         """Merge new state into scene_state. context_manager holds the same reference."""
@@ -108,9 +137,17 @@ class ExperimentRunner:
         async with self._debug_lock:
             write_debug(''.join(buffer))
 
-    def execute_action(self, action_name, agent_name, params, state):
-        """Delegate action execution to ActionHandler."""
-        return self.action_handler.execute(action_name, agent_name, params, state)
+    def execute_action(self, action_name, agent_name, params, state, scene=None):
+        """Delegate action execution to ActionHandler.
+
+        Args:
+            action_name: Name of action to execute
+            agent_name: Name of agent performing action
+            params: Action parameters
+            state: Current experiment state
+            scene: Optional scene instance for handlers that need scene context
+        """
+        return self.action_handler.execute(action_name, agent_name, params, state, scene)
 
     def _scene_has_followup_actions(self) -> bool:
         """Whether any allowed action in this scene requires a follow-up prompt."""
@@ -207,6 +244,12 @@ class ExperimentRunner:
             # Emit round completion event (could hook into websocket)
             logger.info(f"Round {round_num} complete: {len(round_result.actions)} actions")
 
+            # Notify scene of round completion for phase transitions (council cycle phase)
+            if self.scene and hasattr(self.scene, '_advance_round'):
+                logger.info(f"[CYCLE PHASE FIX] Calling scene._advance_round() for {type(self.scene).__name__}")
+                self.scene._advance_round()
+                logger.info(f"[CYCLE PHASE FIX] Phase is now: {getattr(self.scene, 'cycle_phase', 'N/A')}, rounds_in_phase: {getattr(self.scene, 'rounds_in_cycle_phase', 'N/A')}")
+
         return results
 
     def _record_action_to_agent(self, result: ActionResult) -> None:
@@ -263,6 +306,11 @@ class ExperimentRunner:
         # Get grouping_mode from game_config
         grouping_mode = getattr(self.game_config, 'grouping_mode', 'pairwise')
 
+        # Get ExperimentState from scene for contribution validation (BUG-PGG-01, BUG-PGG-02)
+        current_state = None
+        if self.scene and hasattr(self.scene, 'state'):
+            current_state = self.scene.state
+
         # Calculate payoffs using PayoffEngine
         round_payoffs = self.payoff_engine.calculate_round_payoffs(
             payoff_type=payoff_type,
@@ -270,6 +318,7 @@ class ExperimentRunner:
             config=payoff_config,
             grouping_mode=grouping_mode,
             graph=graph,
+            state=current_state,
         )
 
         # Update agent scores
@@ -390,6 +439,16 @@ class ExperimentRunner:
                     pairs.append((agent_names[i], agent_names[i + 1]))
         round_payoffs = self._calculate_scores(actions, pairs=pairs)
 
+        # CRITICAL: Store last_contribution for show_average_contribution display setting
+        # This must happen before record_action_with_observers so context builder
+        # can read it when building context for the NEXT round
+        if self.scene and hasattr(self.scene, 'state'):
+            for result in actions:
+                if not result.skipped and result.action_name in ("allocate", "contribute"):
+                    amount = result.parameters.get("amount", 0)
+                    if result.agent_name in self.scene.state.agents:
+                        self.scene.state.agents[result.agent_name].properties["last_contribution"] = amount
+
         # Record to context with observers and payoffs (done after scores are known
         # so payoff can be stored with the event; simultaneous = no mid-round visibility)
         for result in actions:
@@ -439,6 +498,14 @@ class ExperimentRunner:
 
         # Calculate scores based on actions
         round_payoffs = self._calculate_scores(actions)
+
+        # CRITICAL: Store last_contribution for show_average_contribution display setting
+        if self.scene and hasattr(self.scene, 'state'):
+            for result in actions:
+                if not result.skipped and result.action_name in ("allocate", "contribute"):
+                    amount = result.parameters.get("amount", 0)
+                    if result.agent_name in self.scene.state.agents:
+                        self.scene.state.agents[result.agent_name].properties["last_contribution"] = amount
 
         self._apply_coordination_feedback(actions, round_num)
 
@@ -494,6 +561,14 @@ class ExperimentRunner:
                 [a.name for a in self.agents], round_num
             )
         round_payoffs = self._calculate_scores(actions, pairs=pairs)
+
+        # CRITICAL: Store last_contribution for show_average_contribution display setting
+        if self.scene and hasattr(self.scene, 'state'):
+            for result in actions:
+                if not result.skipped and result.action_name in ("allocate", "contribute"):
+                    amount = result.parameters.get("amount", 0)
+                    if result.agent_name in self.scene.state.agents:
+                        self.scene.state.agents[result.agent_name].properties["last_contribution"] = amount
 
         self._apply_coordination_feedback(actions, round_num)
 
@@ -587,6 +662,14 @@ class ExperimentRunner:
         # Calculate scores based on actions (for paired mode, scores are calculated per-pair)
         round_payoffs = self._calculate_scores(all_actions, pairs=pairs)
 
+        # CRITICAL: Store last_contribution for show_average_contribution display setting
+        if self.scene and hasattr(self.scene, 'state'):
+            for result in all_actions:
+                if not result.skipped and result.action_name in ("allocate", "contribute"):
+                    amount = result.parameters.get("amount", 0)
+                    if result.agent_name in self.scene.state.agents:
+                        self.scene.state.agents[result.agent_name].properties["last_contribution"] = amount
+
         # Record to context with observers and payoffs (after scores are known)
         for result in all_actions:
             if not result.skipped:
@@ -646,6 +729,16 @@ class ExperimentRunner:
             # Fallback to shared context if no round_history provided
             self.context_manager.set_initial_context(context_summary)
 
+        # PGG Phase: Reset deduction budget when entering deduct phase
+        # This must happen BEFORE agents are prompted so they see fresh budget
+        if (self.scene and
+            hasattr(self.scene, 'config') and
+            getattr(self.scene.config, 'scenario_id', None) == "public_goods" and
+            hasattr(self.scene, 'get_pgg_phase') and
+            self.scene.get_pgg_phase() == "deduct"):
+            self.scene._reset_deduction_budgets()
+            logger.debug(f"[PGG] Reset deduction budgets for deduct phase (round {round_num})")
+
         # Run the round with appropriate visibility mode
         if self.round_visibility == "simultaneous":
             round_result = await self._run_simultaneous_round(round_num)
@@ -655,6 +748,17 @@ class ExperimentRunner:
             round_result = await self._run_paired_round(round_num)
         else:  # sequential
             round_result = await self._run_sequential_round(round_num)
+
+        # PGG Phase: Advance phase after round completes
+        # This toggles between allocate <-> deduct for next round
+        if self.scene and hasattr(self.scene, 'advance_pgg_phase'):
+            old_phase = self.scene.get_pgg_phase() if hasattr(self.scene, 'get_pgg_phase') else 'unknown'
+            self.scene.advance_pgg_phase()
+            new_phase = self.scene.get_pgg_phase() if hasattr(self.scene, 'get_pgg_phase') else 'unknown'
+            logger.info(f"[PGG] Phase advanced: {old_phase} -> {new_phase} (round {round_num} complete)")
+            logger.debug(f"[PGG] Advanced phase (round {round_num} complete)")
+            # Also write to debug file for visibility
+            write_debug(f"\n[PGG] Phase advanced: {old_phase} -> {new_phase} (round {round_num} complete)\n")
 
         logger.info(f"Round {round_num} complete: {len(round_result.actions)} actions")
 
@@ -690,7 +794,24 @@ class ExperimentRunner:
             neighbors = [b for a, b in edges if a == agent.name] + [a for a, b in edges if b == agent.name]
             if neighbors:
                 neighbor_context = f"Your social network neighbors: {', '.join(neighbors)}."
-        prompt = build_prompt(agent, self.game_config, context, include_section_markers=True, information_model=self.information_model, kb_context=kb_context, neighbor_context=neighbor_context)
+
+        # GAP-CLOSURE-01: Get filtered actions from scene if available (phase-based filtering)
+        # IMPORTANT: Must happen BEFORE build_prompt, not after!
+        allowed_actions = None
+        speak_instruction = None
+        if self.scene and hasattr(self.scene, 'get_scene_actions'):
+            allowed_actions = self.scene.get_scene_actions(agent.name)
+        if self.scene and hasattr(self.scene, 'get_speak_instruction'):
+            speak_instruction = self.scene.get_speak_instruction()
+
+        prompt = build_prompt(
+            agent, self.game_config, context, include_section_markers=True,
+            information_model=self.information_model,
+            kb_context=kb_context,
+            neighbor_context=neighbor_context,
+            allowed_actions=allowed_actions,
+            speak_instruction=speak_instruction,
+        )
 
         # Build debug output buffer (will be written atomically after LLM call)
         debug_buffer = []
@@ -700,6 +821,18 @@ class ExperimentRunner:
         debug_buffer.append(f"## AGENT: {agent.name}\n")
         debug_buffer.append(f"## ROUND: {round_num}\n")
         debug_buffer.append(f"## VISIBILITY MODE: {self.round_visibility}\n")
+
+        # ACTION FILTERING DEBUG - show what actions were filtered
+        debug_buffer.append(f"\n--- ACTION FILTERING ---\n")
+        debug_buffer.append(f"  self.scene type: {type(self.scene).__name__ if self.scene else 'None'}\n")
+        debug_buffer.append(f"  has get_scene_actions: {hasattr(self.scene, 'get_scene_actions') if self.scene else 'N/A'}\n")
+        # PGG Phase debug
+        if self.scene and hasattr(self.scene, 'get_pgg_phase'):
+            debug_buffer.append(f"  PGG phase: {self.scene.get_pgg_phase()}\n")
+        if allowed_actions:
+            debug_buffer.append(f"  filtered actions for {agent.name}: {allowed_actions}\n")
+        else:
+            debug_buffer.append(f"  filtered actions: None (no filtering available)\n")
 
         # --- NETWORK VISIBILITY DEBUG ---
         if self.information_model and self.information_model.scope_type in ("neighborhood", "neighbor"):
@@ -735,7 +868,11 @@ class ExperimentRunner:
             debug_buffer.append(f"  {k}: {v}\n")
         debug_buffer.append(f"\n--- GAME CONFIG ---\n")
         debug_buffer.append(f"  scenario: {self.game_config.description[:100]}...\n")
-        debug_buffer.append(f"  actions: {self.game_config.actions}\n")
+        # GAP-CLOSURE-01: Show filtered actions in debug output
+        if allowed_actions:
+            debug_buffer.append(f"  actions (filtered): {allowed_actions}\n")
+        else:
+            debug_buffer.append(f"  actions: {self.game_config.actions}\n")
         debug_buffer.append(f"  action_type: {self.game_config.action_type}\n")
         debug_buffer.append(f"  output_field: {self.game_config.output_field}\n")
         if self.game_config.action_descriptions:
@@ -754,10 +891,13 @@ class ExperimentRunner:
         logger.debug(f"Game config: actions={self.game_config.actions}, type={self.game_config.action_type}")
 
         try:
+            # Get per-agent LLM client (LLM distribution)
+            agent_llm_client = self.get_agent_llm_client(agent)
+
             # Call LLM (wrap synchronous call for async compatibility)
             messages = [{"role": "user", "content": prompt}]
             raw_response = await asyncio.to_thread(
-                self.llm_client.chat, messages, json_mode=True
+                agent_llm_client.chat, messages, json_mode=True
             )
 
             # Handle empty response gracefully (e.g., Qwen3 via Ollama returns 0 chars)
@@ -819,12 +959,14 @@ class ExperimentRunner:
             logger.debug(f"[RUNNER] Final action_schemas keys: {list(action_schemas.keys())}")
             result = await self.controller.process_response_with_followup(
                 raw_response, agent, self.game_config,
-                self.llm_client, round_num,
+                agent_llm_client, round_num,  # Use per-agent LLM client
                 action_schemas=action_schemas,
                 context_summary=context,
                 information_model=self.information_model,
                 kb_context=kb_context,
                 neighbor_context=neighbor_context,
+                allowed_actions=allowed_actions,
+                speak_instruction=speak_instruction,
             )
 
             # Append controller's debug log to our buffer

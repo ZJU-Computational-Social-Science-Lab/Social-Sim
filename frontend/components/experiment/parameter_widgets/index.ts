@@ -17,3 +17,4 @@ export { default as ListField } from './ListField';
 export { default as MultiSelectField } from './MultiSelectField';
 export { default as KeyValueField } from './KeyValueField';
 export { default as DragListField } from './DragListField';
+export { default as NumberField } from './NumberField';

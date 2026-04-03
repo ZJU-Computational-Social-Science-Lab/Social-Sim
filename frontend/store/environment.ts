@@ -47,7 +47,8 @@ export const createEnvironmentSlice: StateCreator<
 
     try {
       const { getSuggestionStatus } = await import('../services/environmentSuggestions');
-      const status = await getSuggestionStatus(currentSimulation.id);
+      const selectedNodeId = (get() as any).selectedNodeId;
+      const status = await getSuggestionStatus(currentSimulation.id, selectedNodeId);
 
       set({
         environmentSuggestionsAvailable: status.available || false,
@@ -66,12 +67,11 @@ export const createEnvironmentSlice: StateCreator<
 
     try {
       const { generateSuggestions } = await import('../services/environmentSuggestions');
-      const logs = (get() as any).logs || [];
-      const agents = (get() as any).agents || [];
-      const suggestions = await generateSuggestions(currentSimulation.id, logs, agents);
+      const selectedNodeId = (get() as any).selectedNodeId;
+      const result = await generateSuggestions(currentSimulation.id, selectedNodeId);
 
       set({
-        environmentSuggestions: suggestions,
+        environmentSuggestions: result.suggestions || [],
         environmentSuggestionsAvailable: false,
         environmentSuggestionsLoading: false
       });
@@ -89,15 +89,18 @@ export const createEnvironmentSlice: StateCreator<
 
     try {
       const { applyEnvironmentEvent } = await import('../services/environmentSuggestions');
-      await applyEnvironmentEvent(currentSimulation.id, suggestion);
+      const selectedNodeId = (get() as any).selectedNodeId;
+      await applyEnvironmentEvent(currentSimulation.id, {
+        ...suggestion,
+        node_id: selectedNodeId,
+      });
 
       // Inject as a log entry
-      const selectedNodeId = (get() as any).selectedNodeId;
       const injectLog = (get() as any).injectLog;
       if (selectedNodeId && injectLog) {
         injectLog(
           'ENVIRONMENT',
-          `[环境事件] ${suggestion.event}\n原因: ${suggestion.reason || ''}`
+          `[环境事件] ${suggestion.description}`
         );
       }
 
