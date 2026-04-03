@@ -101,7 +101,7 @@ def transform_event_for_export(event: dict, scenario_params: dict) -> dict:
 
     result = {
         "sequence": event.get("sequence"),
-        "timestamp": event.get("created_at", "").isoformat() if hasattr(event.get("created_at", ""), "isoformat") else str(event.get("created_at", "")),
+        "timestamp": event.get("created_at").isoformat() if hasattr(event.get("created_at"), "isoformat") else (str(event.get("created_at")) if event.get("created_at") is not None else ""),
         "node_id": str(event.get("tree_node_id", "")),
         "round": payload.get("round", event.get("round", "")),
         "agent_id": normalized_agent_id,

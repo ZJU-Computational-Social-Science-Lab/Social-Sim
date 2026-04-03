@@ -117,7 +117,7 @@ async def export_simulation(
                 "tree_node_id": log.get("node"),
                 "event_type": log.get("type"),
                 "payload": log_data,
-                "created_at": log_data.get("created_at") or log_data.get("timestamp"),
+                "created_at": log.get("timestamp") or log_data.get("created_at") or log_data.get("timestamp"),
             })
 
         # Export

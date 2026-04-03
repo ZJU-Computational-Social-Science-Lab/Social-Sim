@@ -3,6 +3,7 @@ import asyncio
 import logging
 from typing import Dict, List, Optional, TYPE_CHECKING
 import os
+from datetime import datetime
 
 from socialsim4.core.event import PublicEvent
 from socialsim4.core.simulator import Simulator
@@ -357,7 +358,7 @@ class SimTree:
                 except Exception:
                     logger.exception("failed to inject node_id into error event payload")
 
-            entry = {"type": kind, "data": data, "node": int(node_id)}
+            entry = {"type": kind, "data": data, "node": int(node_id), "timestamp": datetime.now().isoformat()}
             logs.append(entry)
 
             subs = self._node_subs.get(node_id) or []
