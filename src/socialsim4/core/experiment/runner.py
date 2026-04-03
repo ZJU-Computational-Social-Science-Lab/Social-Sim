@@ -446,6 +446,12 @@ class ExperimentRunner:
             for result in actions:
                 if not result.skipped and result.action_name in ("allocate", "contribute"):
                     amount = result.parameters.get("amount", 0)
+                    # Ensure amount is an integer (LLM might return string)
+                    if isinstance(amount, str):
+                        try:
+                            amount = int(amount)
+                        except ValueError:
+                            amount = 0
                     if result.agent_name in self.scene.state.agents:
                         self.scene.state.agents[result.agent_name].properties["last_contribution"] = amount
 
@@ -667,6 +673,12 @@ class ExperimentRunner:
             for result in all_actions:
                 if not result.skipped and result.action_name in ("allocate", "contribute"):
                     amount = result.parameters.get("amount", 0)
+                    # Ensure amount is an integer (LLM might return string)
+                    if isinstance(amount, str):
+                        try:
+                            amount = int(amount)
+                        except ValueError:
+                            amount = 0
                     if result.agent_name in self.scene.state.agents:
                         self.scene.state.agents[result.agent_name].properties["last_contribution"] = amount
 

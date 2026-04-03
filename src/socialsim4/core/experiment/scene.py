@@ -950,13 +950,18 @@ class ExperimentScene:
     @classmethod
     def deserialize_config(cls, data: dict) -> "ExperimentScene":
         """Restore from serialized state."""
+        from copy import deepcopy
+
         config = ExperimentConfig(**data["config"])
         scene = cls(config)
         scene.current_round = data.get("current_round", 0)
-        scene._history = data.get("history", [])
+        # CRITICAL FIX: Deep copy history to prevent sharing across cloned scenes
+        # Without this, all scenes share the same history list object, causing
+        # rounds from later nodes to appear in earlier nodes' histories
+        scene._history = deepcopy(data.get("history", []))
         if data.get("state") is not None:
             scene.state = ExperimentState.from_dict(data["state"])
-        scene._pending_host_messages = data.get("pending_host_messages", [])
+        scene._pending_host_messages = deepcopy(data.get("pending_host_messages", []))
         # Restore PGG phase state (defaults to "allocate" for backwards compatibility)
         scene._pgg_phase = data.get("pgg_phase", "allocate")
         return scene
