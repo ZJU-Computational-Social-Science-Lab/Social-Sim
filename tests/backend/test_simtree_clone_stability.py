@@ -123,6 +123,10 @@ def _make_clone_via_simulator(base_sim: Simulator) -> tuple[Simulator, SimTree]:
     cloned = Simulator.deserialize(snap, base_sim.clients, log_handler=None)
     # SimTree._clone_simulator_from_node 里会调用 reset_event_queue，这里也对齐
     cloned.reset_event_queue()
+    for agent in cloned.agents.values():
+        agent.last_history_length = max(0, len(agent.short_memory) - 1)
+        agent.consecutive_llm_errors = 0
+        agent.is_offline = False
     return cloned, tree
 
 
@@ -202,6 +206,19 @@ def test_simtree_clone_event_queue_cleared_and_not_shared(kind: str):
 
     assert after_qsize_clone == 1, f"[{kind}] cloned event_queue should have exactly one item"
     assert after_qsize_base == before_qsize_base, f"[{kind}] base event_queue size changed after clone emit"
+
+
+def test_simtree_clone_resets_transient_offline_state():
+    base_sim = make_simulator("simple_chat_zh")
+    first_agent = next(iter(base_sim.agents.values()))
+    first_agent.consecutive_llm_errors = 3
+    first_agent.is_offline = True
+
+    cloned_sim, _tree = _make_clone_via_simulator(base_sim)
+    cloned_agent = cloned_sim.agents[first_agent.name]
+
+    assert cloned_agent.is_offline is False
+    assert cloned_agent.consecutive_llm_errors == 0
 
 
 @pytest.mark.parametrize("kind", SCENARIO_KINDS)

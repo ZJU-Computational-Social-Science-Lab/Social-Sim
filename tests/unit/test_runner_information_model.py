@@ -118,3 +118,23 @@ def test_runner_sequential_records_immediately():
     # Both events should be visible to all (all scope)
     for e in events:
         assert set(e.observed_by) == {"Alice", "Bob"}
+
+
+def test_runner_neighbors_support_adjacency_list_graphs():
+    agents = make_agents(["Alice", "Bob", "Charlie"])
+    runner = ExperimentRunner(
+        agents=agents,
+        game_config=PRISONERS_DILEMMA,
+        llm_client=make_mock_llm(),
+        information_model=InformationModel(scope_type="neighborhood"),
+    )
+    runner.set_scene_state({
+        "graph": {
+            "Alice": ["Bob"],
+            "Bob": ["Alice", "Charlie"],
+            "Charlie": ["Bob"],
+        }
+    })
+
+    assert runner._get_neighbors("Alice") == ["Bob"]
+    assert runner._get_neighbors("Bob") == ["Alice", "Charlie"]

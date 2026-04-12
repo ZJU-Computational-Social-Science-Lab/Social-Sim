@@ -46,6 +46,12 @@ def serialize_agent(agent) -> dict:
 
     # Deep-copy properties
     props = json.loads(json.dumps(agent.properties))
+    plan = json.loads(json.dumps(getattr(agent, "plan_state", {
+        "goals": [],
+        "milestones": [],
+        "strategy": "",
+        "notes": "",
+    })))
 
     # Deep-copy knowledge base
     kb = json.loads(json.dumps(agent.knowledge_base))
@@ -65,6 +71,7 @@ def serialize_agent(agent) -> dict:
         "last_history_length": agent.last_history_length,
         "max_repeat": agent.max_repeat,
         "properties": props,
+        "plan_state": plan,
         # Knowledge Base (RAG)
         "knowledge_base": kb,
         # Documents (Embedded RAG)
@@ -108,12 +115,12 @@ def deserialize_agent(data: dict, event_handler=None, agent_class=None) -> objec
         initial_instruction=data["initial_instruction"],
         role_prompt=data["role_prompt"],
         language=data.get("language", "en"),
-    action_space=[
-        ACTION_SPACE_MAP[action_name]
-        for action_name in data["action_space"]
-        if action_name in ACTION_SPACE_MAP
-    ],
-    max_repeat=data.get("max_repeat", MAX_REPEAT),
+        action_space=[
+            ACTION_SPACE_MAP[action_name]
+            for action_name in data["action_space"]
+            if action_name in ACTION_SPACE_MAP
+        ],
+        max_repeat=data.get("max_repeat", MAX_REPEAT),
         event_handler=event_handler,
         # Other properties from props
         **props,
@@ -124,6 +131,19 @@ def deserialize_agent(data: dict, event_handler=None, agent_class=None) -> objec
         json.dumps(data.get("short_memory", []))
     )
     agent.last_history_length = data.get("last_history_length", 0)
+    agent.plan_state = json.loads(
+        json.dumps(
+            data.get(
+                "plan_state",
+                {
+                    "goals": [],
+                    "milestones": [],
+                    "strategy": "",
+                    "notes": "",
+                },
+            )
+        )
+    )
 
     # Restore knowledge base
     kb_data = data.get("knowledge_base", [])

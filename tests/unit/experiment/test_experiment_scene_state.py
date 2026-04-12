@@ -79,7 +79,7 @@ class TestExperimentSceneState:
                     (),
                     {"get_round_events": lambda self, round_num: []},
                 )()
-                self.execute_action = lambda action_name, agent_name, parameters, state: {"success": True}
+                self.execute_action = lambda action_name, agent_name, parameters, state, scene: {"success": True}
 
             async def _run_single_round(self, round_num, context_summary, round_history):
                 return RoundResult(
@@ -316,6 +316,89 @@ class TestExperimentSceneState:
         assert restored.state.agents["Alice"].resources["tokens"] == 13
         assert restored.state.extensions["pools"]["main"] == 7
 
+    def test_pgg_phase_persists_across_serialization(self):
+        """PGG phase should persist through serialize/deserialize cycle."""
+        config = ExperimentConfig(
+            scenario_id="public_goods",
+            agents=[{"name": "Alice"}],
+            actions=[],
+            parameters={"deduction_budget_per_phase": 3},
+        )
+        scene = ExperimentScene(config)
+
+        # Initial phase should be "allocate"
+        assert scene.get_pgg_phase() == "allocate"
+
+        # Advance to "deduct" phase
+        scene.advance_pgg_phase()
+        assert scene.get_pgg_phase() == "deduct"
+
+        # Serialize and deserialize
+        serialized = scene.serialize_config()
+        restored = ExperimentScene.deserialize_config(serialized)
+
+        # Phase should still be "deduct" after restoration
+        assert restored.get_pgg_phase() == "deduct"
+
+    def test_pgg_phase_defaults_to_allocate_for_backwards_compatibility(self):
+        """PGG phase should default to 'allocate' when not in serialized data."""
+        config = ExperimentConfig(
+            scenario_id="public_goods",
+            agents=[{"name": "Alice"}],
+            actions=[],
+        )
+        # Manually serialize without pgg_phase (simulating old serialized data)
+        scene = ExperimentScene(config)
+        serialized = scene.serialize_config()
+        # Remove pgg_phase to simulate old data
+        serialized.pop("pgg_phase", None)
+
+        # Deserialize - should default to "allocate"
+        restored = ExperimentScene.deserialize_config(serialized)
+        assert restored.get_pgg_phase() == "allocate"
+
+    def test_advance_pgg_phase_skips_deduct_when_budget_is_zero(self):
+        """When deduction_budget_per_phase is 0, phase should stay in allocate."""
+        config = ExperimentConfig(
+            scenario_id="public_goods",
+            agents=[{"name": "Alice"}],
+            actions=[],
+            parameters={"deduction_budget_per_phase": 0},
+        )
+        scene = ExperimentScene(config)
+
+        # Initial phase should be "allocate"
+        assert scene.get_pgg_phase() == "allocate"
+
+        # Advance phase - should STAY in allocate since deduction is disabled
+        scene.advance_pgg_phase()
+        assert scene.get_pgg_phase() == "allocate"
+
+        # Multiple advances should still stay in allocate
+        scene.advance_pgg_phase()
+        assert scene.get_pgg_phase() == "allocate"
+
+    def test_advance_pgg_phase_advances_when_deduction_enabled(self):
+        """When deduction_budget_per_phase > 0, phase should cycle normally."""
+        config = ExperimentConfig(
+            scenario_id="public_goods",
+            agents=[{"name": "Alice"}],
+            actions=[],
+            parameters={"deduction_budget_per_phase": 5},
+        )
+        scene = ExperimentScene(config)
+
+        # Initial phase should be "allocate"
+        assert scene.get_pgg_phase() == "allocate"
+
+        # Advance phase - should go to deduct
+        scene.advance_pgg_phase()
+        assert scene.get_pgg_phase() == "deduct"
+
+        # Advance again - should return to allocate
+        scene.advance_pgg_phase()
+        assert scene.get_pgg_phase() == "allocate"
+
     def test_skipped_actions_are_not_written_into_round_history(self):
         config = ExperimentConfig(
             scenario_id="council_chamber",
@@ -332,7 +415,7 @@ class TestExperimentSceneState:
                     (),
                     {"get_round_events": lambda self, round_num: []},
                 )()
-                self.execute_action = lambda action_name, agent_name, parameters, state: {"success": True}
+                self.execute_action = lambda action_name, agent_name, parameters, state, scene: {"success": True}
 
             async def _run_single_round(self, round_num, context_summary, round_history):
                 return RoundResult(

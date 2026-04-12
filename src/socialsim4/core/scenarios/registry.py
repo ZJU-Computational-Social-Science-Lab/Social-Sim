@@ -448,6 +448,139 @@ RESOURCE_SCARCITY: Dict[str, Any] = {
 }
 
 # ============================================================================
+# Social Dynamics
+# ============================================================================
+
+XIHU_YILIANBAO: Dict[str, Any] = {
+    "id": "xihu_yilianbao",
+    "name": "Xihu Yilianbao Enrollment Diffusion",
+    "category": "social_dynamics",
+    "description": (
+        "Residents who are eligible for Hangzhou's Xihu Yilianbao receive one "
+        "of the A0-A8 information interventions and then decide whether to enroll "
+        "for themselves or their family members. The simulation focuses on how "
+        "information complexity, framing, government endorsement, competitor-negative "
+        "news, and household medical burden reshape willingness to buy."
+    ),
+    "grouping_mode": "neighbor",
+    "payoff_type": "none",
+    "interaction_mode": "simultaneous",
+    "display_type": "params",
+    "topology_type": "core-periphery",
+    "parameters": [
+        {
+            "id": "intervention_arm",
+            "key": "intervention_arm",
+            "label": "Intervention Arm",
+            "type": "string",
+            "default": "A2 简明图文",
+            "ui_hint": "select",
+            "options": [
+                "A0 控制组",
+                "A1 官方复杂材料",
+                "A2 简明图文",
+                "A3 家庭+个人收益",
+                "A4 个人损失",
+                "A5 家庭损失",
+                "A6 个人收益",
+                "A7 竞品负面+官方正面",
+                "A8 视频信息",
+            ],
+            "description": "Choose which A0-A8 intervention package agents receive before they decide.",
+        },
+        {
+            "id": "decision_focus",
+            "key": "decision_focus",
+            "label": "Decision Focus",
+            "type": "string",
+            "default": "家庭统筹",
+            "ui_hint": "select",
+            "options": ["只考虑自己", "优先父母", "优先子女", "家庭统筹"],
+            "description": "What kind of enrollment target agents are primarily weighing in this run.",
+        },
+        {
+            "id": "household_medical_burden",
+            "key": "household_medical_burden",
+            "label": "Household Medical Burden",
+            "type": "string",
+            "default": "中等",
+            "ui_hint": "select",
+            "options": ["低", "中等", "高"],
+            "description": "How salient recent medical spending is for the household.",
+        },
+        {
+            "id": "prior_insurance_attitude",
+            "key": "prior_insurance_attitude",
+            "label": "Prior Insurance Attitude",
+            "type": "string",
+            "default": "分化",
+            "ui_hint": "select",
+            "options": ["保守怀疑", "中性观望", "普遍积极", "分化"],
+            "description": "Baseline attitude toward supplementary insurance before the intervention arrives.",
+        },
+        {
+            "id": "government_trust",
+            "key": "government_trust",
+            "label": "Government Trust",
+            "type": "number",
+            "default": 0.7,
+            "ui_hint": "percentage",
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.1,
+            "description": "Baseline trust that government supervision makes the product credible.",
+        },
+        {
+            "id": "personal_account_cue",
+            "key": "personal_account_cue",
+            "label": "Medical Account Payment Cue",
+            "type": "string",
+            "default": "提示可用",
+            "ui_hint": "select",
+            "options": ["提示可用", "不提示"],
+            "description": "Whether agents are reminded that eligible households can use medical savings accounts to pay.",
+        },
+        {
+            "id": "deadline_cue",
+            "key": "deadline_cue",
+            "label": "Enrollment Deadline Cue",
+            "type": "string",
+            "default": "提示投保期",
+            "ui_hint": "select",
+            "options": ["提示投保期", "不提示"],
+            "description": "Whether the limited enrollment window is made salient.",
+        },
+    ],
+    "actions": [
+        {
+            "id": "enroll_self",
+            "name": "为自己投保",
+            "description": "Decide to buy Xihu Yilianbao for yourself immediately.",
+        },
+        {
+            "id": "enroll_family",
+            "name": "为家人投保",
+            "description": "Decide to extend enrollment to parents, spouse, or children as well.",
+        },
+        {
+            "id": "wait_and_observe",
+            "name": "继续观望",
+            "description": "Delay the decision and keep watching how neighbors or relatives respond.",
+        },
+        {
+            "id": "decline_for_now",
+            "name": "暂不投保",
+            "description": "Choose not to buy under the current information conditions.",
+        },
+        {
+            "id": "speak",
+            "name": "表达理由",
+            "description": "Share your reasoning, concerns, or recommendation with nearby residents.",
+        },
+    ],
+}
+
+# ============================================================================
 # Discussion / Open Scenarios
 # ============================================================================
 
@@ -516,10 +649,10 @@ COUNCIL_CHAMBER: Dict[str, Any] = {
         },
     ],
     "actions": [
-        {"id": "speak", "name": "Speak", "description": "Make a statement"},
-        {"id": "call_vote", "name": "Call Vote", "description": "Initiate a vote"},
-        {"id": "vote_yes", "name": "Vote Yes", "description": "Vote in favor"},
-        {"id": "vote_no", "name": "Vote No", "description": "Vote against"},
+        {"id": "speak", "name": "Speak", "description": "Make a statement during deliberation"},
+        {"id": "skip", "name": "Skip", "description": "Pass your turn"},
+        {"id": "vote_yes", "name": "Vote Yes", "description": "Vote in favor of the proposal"},
+        {"id": "vote_no", "name": "Vote No", "description": "Vote against the proposal"},
         {"id": "abstain", "name": "Abstain", "description": "Neither yes nor no"},
     ],
 }
@@ -633,7 +766,7 @@ PUBLIC_GOODS: Dict[str, Any] = {
     "id": "public_goods",
     "name": "Public Goods Game",
     "category": "game_theory",
-    "description": "Each agent has resources and decides how much to contribute to a shared pool. The pool is multiplied and distributed equally among all agents, regardless of contribution.",
+    "description": "Each person has resources and decides how much to contribute to a shared pool. The pool is multiplied and distributed equally among all members, regardless of contribution.",
     "grouping_mode": "group",
     "payoff_type": "pool",
     "interaction_mode": "simultaneous",
@@ -644,68 +777,110 @@ PUBLIC_GOODS: Dict[str, Any] = {
             "key": "resource_name",
             "label": "Resource Name",
             "type": "string",
-            "default": "Tokens",
-            "ui_hint": "select",
-            "options": ["Tokens", "Money", "Effort Points", "Time (hours)", "Resources", "Custom"],
-            "category": "resource",
-        },
-        {
-            "id": "resource_name_custom",
-            "key": "resource_name_custom",
-            "label": "Custom Resource Name",
-            "type": "string",
-            "default": "",
+            "default": "tokens",
             "ui_hint": "text",
             "category": "resource",
+            "description": "Name of the resource (e.g., tokens, money, points)",
         },
         {
-            "id": "initial_amount",
-            "key": "initial_amount",
-            "label": "Initial Amount",
+            "id": "tokens_per_round",
+            "key": "tokens_per_round",
+            "label": "Amount per Round",
             "type": "integer",
-            "default": 20,
-            "ui_hint": "slider",
-            "min": 10,
-            "max": 100,
+            "default": 10,
+            "ui_hint": "number",
+            "min": 1,
             "category": "resource",
+            "description": "Amount of resources each agent receives per round",
         },
         {
             "id": "multiplier",
             "key": "multiplier",
             "label": "Pool Multiplier",
             "type": "number",
-            "default": 1.5,
-            "ui_hint": "slider",
-            "min": 1.0,
-            "max": 3.0,
-            "step": 0.1,
+            "default": 1.3,
+            "ui_hint": "number",
+            "step": 0.01,
             "category": "resource",
+            "description": "Multiplier applied to total group contributions before equal distribution",
+        },
+        # Deduction settings (punishment mechanism with neutral naming)
+        {
+            "id": "deduction_budget_per_phase",
+            "key": "deduction_budget_per_phase",
+            "label": "Deduction Budget per Phase",
+            "type": "integer",
+            "default": 0,
+            "ui_hint": "number",
+            "min": 0,
+            "max": 100,
+            "category": "deduction",
+            "description": "Deduction points each agent receives per deduct phase. Set to 0 to disable.",
         },
         {
-            "id": "action_name",
-            "key": "action_name",
-            "label": "Action Name",
-            "type": "string",
-            "default": "Contribute",
-            "ui_hint": "text",
-            "category": "actions",
+            "id": "deduction_cost_ratio",
+            "key": "deduction_cost_ratio",
+            "label": "Cost Ratio (1 : N)",
+            "type": "number",
+            "default": 3.0,
+            "ui_hint": "number",
+            "min": 1.0,
+            "step": 0.1,
+            "category": "deduction",
+            "description": "How much target payoff is reduced per deduction point spent. Higher = stronger effect.",
         },
         {
-            "id": "action_description",
-            "key": "action_description",
-            "label": "Action Description",
-            "type": "string",
-            "default": "Contribute {resource} to the shared pool",
-            "ui_hint": "text",
-            "category": "actions",
+            "id": "deduction_anonymous",
+            "key": "deduction_anonymous",
+            "label": "Anonymous Deductions",
+            "type": "boolean",
+            "default": False,
+            "ui_hint": "toggle",
+            "category": "deduction",
+            "description": "When enabled, targets don't see who deducted from them.",
         },
     ],
+    # All actions registered - phase filtering handled by get_scene_actions()
     "actions": [
-        {"id": "contribute", "name": "Contribute", "description": "Contribute some tokens to the pool"},
+        {
+            "id": "allocate",
+            "name": "Allocate",
+            "description": "Allocate resources to the group account",
+            "parameters": [
+                {
+                    "name": "amount",
+                    "type": "integer",
+                    "required": True,
+                    "description": "How many tokens to contribute this round (integer, 0 to tokens_per_round)",
+                }
+            ]
+        },
+        {"id": "keep", "name": "Keep", "description": "Keep all your resources this round"},
+        {
+            "id": "reduce",
+            "name": "Reduce",
+            "description": "Reduce another agent's resources",
+            "parameters": [
+                {
+                    "name": "target",
+                    "type": "string",
+                    "required": True,
+                    "description": "Name of the agent to reduce",
+                },
+                {
+                    "name": "amount",
+                    "type": "integer",
+                    "required": True,
+                    "description": "How many deduction points to spend",
+                }
+            ]
+        },
+        {"id": "skip", "name": "Skip", "description": "Do nothing this phase"},
     ],
+    # Note: resources schema set dynamically in _initialize_state using resource_name
     "state_schema": {
         "extensions": {"pools": {"main": 0}},
-        "resources": {"tokens": 20},
+        # Resources initialized dynamically - see ExperimentScene._initialize_state
     },
 }
 
@@ -841,6 +1016,7 @@ ALL_SCENARIOS: List[Dict[str, Any]] = [
     POLICY_EROSION,
     ECHO_CHAMBER,
     RESOURCE_SCARCITY,
+    XIHU_YILIANBAO,
     OPEN_DISCUSSION,
     COUNCIL_CHAMBER,
     GRID_WORLD,

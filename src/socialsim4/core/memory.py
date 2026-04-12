@@ -36,7 +36,7 @@ class ShortTermMemory:
     def clear(self):
         self.history = []
 
-    def searilize(self, dialect="default"):
+    def serialize(self, dialect="default"):
         if dialect == "default":
             return [
                 {
@@ -50,6 +50,9 @@ class ShortTermMemory:
             ]
         else:
             raise NotImplementedError(f"Unknown dialect: {dialect}")
+
+    def searilize(self, dialect="default"):
+        return self.serialize(dialect=dialect)
 
     def __len__(self):
         return len(self.history)

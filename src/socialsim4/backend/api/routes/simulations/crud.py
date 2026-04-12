@@ -34,8 +34,10 @@ from socialsim4.backend.schemas.simulation import (
     SimulationCreate,
     SimulationUpdate,
 )
+from socialsim4.backend.schemas.simtree import UpdateAgentLLMConfigRequest
 from socialsim4.backend.services.simulations import generate_simulation_id, generate_simulation_name
 from socialsim4.backend.services.simtree_runtime import SIM_TREE_REGISTRY
+from socialsim4.xihu_round1 import enrich_xihu_simulation_payload
 
 from .helpers import (
     get_simulation_for_owner,
@@ -44,6 +46,18 @@ from .helpers import (
 
 
 logger = logging.getLogger(__name__)
+
+
+def _enrich_xihu_experiment_payload(
+    scene_type: str,
+    scene_config: dict,
+    agent_config: dict,
+) -> tuple[dict, dict]:
+    return enrich_xihu_simulation_payload(
+        scene_type,
+        copy.deepcopy(scene_config),
+        copy.deepcopy(agent_config),
+    )
 
 
 def _normalize_agent_config(agent_config: dict) -> dict:
@@ -200,6 +214,12 @@ async def create_simulation(
         # Normalize agent config field names from camelCase to snake_case
         normalized_agent_config = _normalize_agent_config(data.agent_config or {})
 
+        enriched_scene_config, enriched_agent_config = _enrich_xihu_experiment_payload(
+            data.scene_type,
+            data.scene_config,
+            normalized_agent_config,
+        )
+
         sim_id = generate_simulation_id()
         name = data.name or generate_simulation_name(sim_id)
 
@@ -208,8 +228,8 @@ async def create_simulation(
             owner_id=current_user.id,
             name=name,
             scene_type=data.scene_type,
-            scene_config=data.scene_config,
-            agent_config=normalized_agent_config,
+            scene_config=enriched_scene_config,
+            agent_config=enriched_agent_config,
             status="draft",
         )
         session.add(sim)
@@ -344,6 +364,11 @@ async def update_simulation(
             # Merge scene_config with existing to preserve other settings
             existing_scene_config = sim.scene_config or {}
             merged_scene_config = {**existing_scene_config, **data.scene_config}
+            merged_scene_config, merged_agent_config = _enrich_xihu_experiment_payload(
+                sim.scene_type,
+                merged_scene_config,
+                sim.agent_config or {"agents": []},
+            )
             sim.scene_config = merged_scene_config
             flag_modified(sim, "scene_config")
             logger.debug(
@@ -351,6 +376,12 @@ async def update_simulation(
                 f"environment_enabled={merged_scene_config.get('environment_enabled')}, "
                 f"social_network={merged_scene_config.get('social_network', {})}"
             )
+            if merged_agent_config != (sim.agent_config or {}):
+                sim.agent_config = merged_agent_config
+                flag_modified(sim, "agent_config")
+                updated = SIM_TREE_REGISTRY.update_agent_knowledge(simulation_id, merged_agent_config)
+                if not updated:
+                    logger.debug(f"update_simulation: No cached tree to update Xihu knowledge for sim {simulation_id}")
 
         await session.commit()
         await session.refresh(sim)
@@ -386,3 +417,62 @@ async def delete_simulation(
 
         # Remove from runtime registry
         SIM_TREE_REGISTRY.remove(simulation_id)
+
+
+@patch("/{simulation_id:str}/agents/llm-config")
+async def update_agent_llm_config(
+    request: Request,
+    simulation_id: str,
+    data: UpdateAgentLLMConfigRequest,
+) -> dict:
+    """
+    Update an agent's LLM configuration.
+
+    Finds the agent by agent_id in the simulation's agent_config and updates
+    their llm_config field. The change is persisted to the database.
+
+    Args:
+        request: Litestar request with auth token
+        simulation_id: Simulation identifier
+        data: Request payload with agent_id and llm_config
+
+    Returns:
+        Success message with updated agent info
+
+    Raises:
+        HTTPException: If authentication fails or simulation/agent not found
+    """
+    token = extract_bearer_token(request)
+    async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
+        sim = await get_simulation_for_owner(session, current_user.id, simulation_id)
+
+        agent_config = sim.agent_config or {"agents": []}
+        agents = agent_config.get("agents", [])
+
+        # Find agent by agent_id or name (frontend uses name as identifier)
+        agent_found = False
+        for agent in agents:
+            if isinstance(agent, dict) and (
+                agent.get("id") == data.agent_id or agent.get("name") == data.agent_id
+            ):
+                agent["llm_config"] = data.llm_config
+                agent_found = True
+                break
+
+        if not agent_found:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Agent with id/name '{data.agent_id}' not found"
+            )
+
+        sim.agent_config = agent_config
+        flag_modified(sim, "agent_config")
+        await session.commit()
+        await session.refresh(sim)
+
+        return {
+            "message": "Agent LLM config updated successfully",
+            "agent_id": data.agent_id,
+            "llm_config": data.llm_config
+        }

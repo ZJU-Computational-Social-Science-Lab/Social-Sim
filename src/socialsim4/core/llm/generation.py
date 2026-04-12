@@ -22,6 +22,8 @@ import random
 import re
 from typing import List, Dict, Any, Optional
 
+from socialsim4.i18n import T
+
 
 def generate_archetypes_from_demographics(demographics: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
@@ -99,7 +101,7 @@ def generate_archetype_template(
     """
     Make ONE LLM call to get description and roles for an archetype.
 
-    Traits are now user-specified, not LLM-generated. This function only
+    Traits are user-specified, not LLM-generated. This function only
     retrieves the description and potential roles from the LLM.
 
     Args:
@@ -118,31 +120,23 @@ def generate_archetype_template(
     attrs_str = ", ".join(f"{k}: {v}" for k, v in archetype["attributes"].items())
     archetype_label = archetype.get("label", attrs_str)
 
-    if language == "zh":
-        prompt = f"""为此人口创建角色模板: {attrs_str}
+    # Use T() for locale-aware prompts
+    prompt = T('prompts.archetype.prompt', locale=language, attrs=attrs_str)
 
-返回这个格式的JSON:
-{{"description": "一句人物描述", "roles": ["职业1", "职业2", "职业3", "职业4", "职业5"]}}
-
-仅输出JSON，无其他文字。"""
+    # Fallback roles and descriptions for timeout/empty response
+    # fallback_roles is stored as a list in locale files
+    fallback_roles_raw = T('prompts.archetype.fallback_roles', locale=language)
+    # Handle both list and string formats
+    if isinstance(fallback_roles_raw, list):
+        fallback_roles = fallback_roles_raw
     else:
-        prompt = f"""Create agent template for: {attrs_str}
-
-Return JSON in this exact format:
-{{"description": "one sentence bio", "roles": ["Job Title 1", "Job Title 2", "Job Title 3", "Job Title 4", "Job Title 5"]}}
-
-JSON only, no other text."""
+        fallback_roles = json.loads(fallback_roles_raw) if isinstance(fallback_roles_raw, str) else ["Citizen", "Worker", "Professional", "Student", "Other"]
+    fallback_description = T('prompts.archetype.fallback_description', locale=language, archetype_label=archetype_label)
 
     messages = [
         {"role": "system", "content": "Return only valid JSON."},
         {"role": "user", "content": prompt}
     ]
-
-    # Fallback roles and descriptions for timeout/empty response
-    fallback_roles_en = ["Citizen", "Worker", "Professional", "Student", "Other"]
-    fallback_roles_zh = ["公民", "工人", "专业人士", "学生", "其他"]
-    fallback_description_en = f"Individual with background: {archetype_label}"
-    fallback_description_zh = f"具有以下背景的个人: {archetype_label}"
 
     # Cross-platform timeout using threading
     import threading
@@ -171,8 +165,8 @@ JSON only, no other text."""
         warnings.warn(f"LLM timeout for archetype '{attrs_str}' after {timeout} seconds. Using fallback roles/description.")
 
         return {
-            "description": fallback_description_zh if language == "zh" else fallback_description_en,
-            "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
+            "description": fallback_description,
+            "roles": fallback_roles
         }
 
     # Thread completed - check for result or exception
@@ -182,8 +176,8 @@ JSON only, no other text."""
         warnings.warn(f"LLM error for archetype '{attrs_str}': {e}. Using fallback roles/description.")
 
         return {
-            "description": fallback_description_zh if language == "zh" else fallback_description_en,
-            "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
+            "description": fallback_description,
+            "roles": fallback_roles
         }
 
     if result_queue.empty():
@@ -192,8 +186,8 @@ JSON only, no other text."""
         warnings.warn(f"LLM returned no result for archetype '{attrs_str}'. Using fallback roles/description.")
 
         return {
-            "description": fallback_description_zh if language == "zh" else fallback_description_en,
-            "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
+            "description": fallback_description,
+            "roles": fallback_roles
         }
 
     response = result_queue.get()
@@ -208,8 +202,8 @@ JSON only, no other text."""
         warnings.warn(f"LLM returned empty response for archetype '{attrs_str}'. Using fallback.")
 
         return {
-            "description": fallback_description_zh if language == "zh" else fallback_description_en,
-            "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
+            "description": fallback_description,
+            "roles": fallback_roles
         }
 
     # Strip markdown code blocks if present
@@ -225,8 +219,8 @@ JSON only, no other text."""
         warnings.warn(f"No JSON found in LLM response for archetype '{attrs_str}'. Using fallback.")
 
         return {
-            "description": fallback_description_zh if language == "zh" else fallback_description_en,
-            "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
+            "description": fallback_description,
+            "roles": fallback_roles
         }
 
     try:
@@ -236,20 +230,20 @@ JSON only, no other text."""
         warnings.warn(f"Invalid JSON in LLM response for archetype '{attrs_str}'. Using fallback.")
 
         return {
-            "description": fallback_description_zh if language == "zh" else fallback_description_en,
-            "roles": fallback_roles_zh if language == "zh" else fallback_roles_en
+            "description": fallback_description,
+            "roles": fallback_roles
         }
 
     # Validate required fields
     if "description" not in parsed or not isinstance(parsed["description"], str):
         import warnings
         warnings.warn(f"Missing 'description' for archetype '{attrs_str}'. Using fallback.")
-        parsed["description"] = fallback_description_zh if language == "zh" else fallback_description_en
+        parsed["description"] = fallback_description
 
     if "roles" not in parsed or not isinstance(parsed["roles"], list) or len(parsed["roles"]) == 0:
         import warnings
         warnings.warn(f"Missing or invalid 'roles' for archetype '{attrs_str}'. Using fallback.")
-        parsed["roles"] = fallback_roles_zh if language == "zh" else fallback_roles_en
+        parsed["roles"] = fallback_roles
     else:
         # Validate roles are strings
         valid_roles = []
@@ -261,7 +255,7 @@ JSON only, no other text."""
                 warnings.warn(f"Role {i} is not a valid string for archetype '{attrs_str}'. Skipping.")
 
         if not valid_roles:
-            parsed["roles"] = fallback_roles_zh if language == "zh" else fallback_roles_en
+            parsed["roles"] = fallback_roles
         else:
             parsed["roles"] = valid_roles
 
@@ -348,7 +342,7 @@ def generate_agents_with_archetypes(
     traits: List[Dict[str, Any]],
     llm_client,
     language: str = "en",
-    timeout: int = 30
+    timeout: int = 30,
 ) -> List[Dict[str, Any]]:
     """
     Generate agents based on demographics and archetype probabilities.
@@ -402,20 +396,20 @@ def generate_agents_with_archetypes(
     # Step 2.6: Validate trait ranges
     _validate_trait_ranges(traits)
 
-    # Step 3: Calculate agent counts per archetype
-    total_prob = sum(a["probability"] for a in archetypes) or 1.0
-    counts = {}
-    remaining = total_agents
+    # Step 3: Select archetypes using weighted random selection
+    # This ensures each agent has a truly random chance of being any archetype
+    # based on probability weights, avoiding the issue where deterministic
+    # rounding causes all agents to pile into the last archetype
+    selected_archetypes = random.choices(
+        archetypes,
+        weights=[a["probability"] for a in archetypes],
+        k=total_agents
+    )
 
-    for i, arch in enumerate(archetypes):
-        if i == len(archetypes) - 1:
-            counts[arch["id"]] = remaining
-        else:
-            normalized_prob = arch["probability"] / total_prob
-            count = int(round(total_agents * normalized_prob))
-            count = min(count, remaining)
-            counts[arch["id"]] = count
-            remaining -= count
+    # Count how many agents per archetype
+    counts = {}
+    for arch in selected_archetypes:
+        counts[arch["id"]] = counts.get(arch["id"], 0) + 1
 
     # Step 4: Generate agents - ONE ARCHETYPE AT A TIME
     agents = []
@@ -454,29 +448,31 @@ def generate_agents_with_archetypes(
                 )
                 properties[trait["name"]] = value
 
-            # Build enriched profile with demographics and traits
-            profile_parts = [template["description"]]
+            # Build profile in "EMBODY THIS PERSON" format
+            # (Header is added in prompt_builder.py to ensure consistency with manual agents)
+            profile_lines = []
 
-            # Add demographic attributes (Age, Location, etc.)
+            # Main description: You are a {role}. {bio}. When responding...
+            description = template["description"]
+            profile_lines.append(
+                f"You are a {role}. {description} When responding, think and react as this person would — not as a neutral assistant."
+            )
+
+            # Attributes line: Age: X | Location: Y | Trust: Z (0-100)
+            attr_parts = []
             if arch["attributes"]:
-                demo_parts = []
                 for key, value in arch["attributes"].items():
-                    # Format key nicely (e.g., "age_range" -> "Age Range")
                     formatted_key = key.replace("_", " ").title()
-                    demo_parts.append(f"{formatted_key}: {value}")
-                if demo_parts:
-                    profile_parts.append("Demographics: " + ", ".join(demo_parts))
-
-            # Add trait values
-            trait_parts = []
+                    attr_parts.append(f"{formatted_key}: {value}")
             for trait in traits:
                 trait_name = trait["name"]
                 if trait_name in properties:
-                    trait_parts.append(f"{trait_name}: {properties[trait_name]:.0f}")
-            if trait_parts:
-                profile_parts.append("Traits: " + ", ".join(trait_parts))
+                    attr_parts.append(f"{trait_name}: {properties[trait_name]:.0f} (0-100)")
 
-            profile = " | ".join(profile_parts)
+            if attr_parts:
+                profile_lines.append(" | ".join(attr_parts))
+
+            profile = "\n".join(profile_lines)
 
             agent = {
                 "id": f"agent_{agent_num}",
@@ -487,7 +483,7 @@ def generate_agents_with_archetypes(
                 "properties": properties,
                 "history": {},
                 "memory": [],
-                "knowledgeBase": []
+                "knowledgeBase": [],
             }
 
             agents.append(agent)

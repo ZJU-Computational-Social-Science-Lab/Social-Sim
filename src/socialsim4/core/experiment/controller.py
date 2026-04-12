@@ -41,9 +41,10 @@ class ActionResult:
         summary: One-line human-readable summary
         agent_name: Agent who performed the action
         round_num: Round number
-        skipped: True if validation failed and turn was skipped
-        error: Error message if skipped
-        debug_log: List of debug log lines (for atomic writing by runner)
+    skipped: True if validation failed and turn was skipped
+    error: Error message if skipped
+    text: Natural-language action text or utterance for UI/logging
+    debug_log: List of debug log lines (for atomic writing by runner)
     """
     success: bool
     action_name: str
@@ -53,7 +54,16 @@ class ActionResult:
     round_num: int
     skipped: bool = False
     error: str = ""
+    text: str = ""
     debug_log: List[str] = field(default_factory=list)
+
+
+def _extract_response_text(payload: dict) -> str:
+    for key in ("reason", "rationale", "statement", "message", "content", "text", "speech"):
+        value = str(payload.get(key, "")).strip()
+        if value:
+            return value
+    return ""
 
 
 class ExperimentController:
@@ -194,7 +204,8 @@ class ExperimentController:
         debug_log.append(f"  extracted action: {action_value}\n")
 
         print(f"[CONTROLLER] Extracted action: {action_value}")
-        summary = f"{agent.name} chose {action_value}"
+        response_text = _extract_response_text(parsed)
+        summary = f"{agent.name}: {response_text}" if response_text else f"{agent.name} chose {action_value}"
 
         return ActionResult(
             success=True,
@@ -204,6 +215,7 @@ class ExperimentController:
             agent_name=agent.name,
             round_num=round_num,
             skipped=False,
+            text=response_text,
             debug_log=debug_log
         )
 
@@ -219,6 +231,8 @@ class ExperimentController:
         information_model=None,
         kb_context: str = "",
         neighbor_context: str = "",
+        speak_instruction: str | None = None,
+        allowed_actions: Optional[List[str]] = None,
     ) -> ActionResult:
         """Process an LLM response with potential follow-up prompt for parameters.
 
@@ -236,6 +250,8 @@ class ExperimentController:
             information_model: Information model used when building the prompt
             kb_context: Knowledge-base context used in the main prompt
             neighbor_context: Social-network context used in the main prompt
+            allowed_actions: Optional filtered list of actions for phase-based filtering
+            speak_instruction: Optional instruction for speak action (e.g., brevity constraint)
 
         Returns:
             ActionResult with outcome and debug_log
@@ -305,6 +321,8 @@ class ExperimentController:
                 information_model=information_model,
                 kb_context=kb_context,
                 neighbor_context=neighbor_context,
+                allowed_actions=allowed_actions,
+                speak_instruction=speak_instruction,
             )
 
             # Log the follow-up prompt
@@ -331,13 +349,15 @@ class ExperimentController:
                 # Parse the follow-up response based on mode
                 if followup_mode == "plain_text":
                     # Plain text response (e.g., Speak action): store the whole string as "message"
-                    parameters = {"message": followup_response.strip()}
+                    response_text = followup_response.strip()
+                    parameters = {"message": response_text}
                     parameter_source = "followup_plain_text"
                 else:
                     # JSON response: parse and extract expected parameters
                     cleaned = extract_json(followup_response)
                     parsed_followup = json.loads(cleaned)
                     parameters = {k: parsed_followup.get(k) for k in param_schema.keys() if k in parsed_followup}
+                    response_text = _extract_response_text(parsed_followup) or initial_result.text
                     parameter_source = "followup_json"
 
                 debug_log.append(f"  final_parameter_source: {parameter_source}\n")
@@ -345,7 +365,12 @@ class ExperimentController:
 
                 # Update summary with parameters
                 param_str = ", ".join(f"{k}={v}" for k, v in parameters.items())
-                summary = f"{agent.name} chose {action_name} ({param_str})"
+                if response_text:
+                    summary = f"{agent.name}: {response_text}"
+                elif param_str:
+                    summary = f"{agent.name} chose {action_name} ({param_str})"
+                else:
+                    summary = f"{agent.name} chose {action_name}"
 
                 # Add final result to debug log
                 debug_log.append(f"\n--- PROCESSED RESULT ---\n")
@@ -359,10 +384,11 @@ class ExperimentController:
                     success=True,
                     action_name=canonical_action_name,
                     parameters=parameters,
-                    summary=f"{agent.name} chose {canonical_action_name} ({param_str})",
+                    summary=summary,
                     agent_name=agent.name,
                     round_num=round_num,
                     skipped=False,
+                    text=response_text,
                     debug_log=debug_log
                 )
 

@@ -15,6 +15,7 @@ from . import (
     experiment_templates,  # Experiment template management routes
     uploads,
     environment,  # Dynamic environment routes
+    xihu_round1,
 )
 
 router = Router(
@@ -33,5 +34,6 @@ router = Router(
         uploads.router,
         admin.router,
         environment.router,
+        xihu_round1.router,
     ],
 )

@@ -126,3 +126,73 @@ def test_policy_cascade_merges_multiple_upstream_inputs_for_one_recipient():
     assert "多个上层版本" in status_prompt
     assert "Agent 1" in status_prompt
     assert "Agent 2" in status_prompt
+
+
+def test_run_extends_until_current_cascade_tier_finishes():
+    scene = PolicyCascadeScene("policy", "")
+    scene.state["social_network"] = {
+        "Agent 1": ["Agent 3"],
+        "Agent 2": ["Agent 4"],
+        "Agent 3": ["Agent 5"],
+        "Agent 4": ["Agent 6"],
+        "Agent 5": [],
+        "Agent 6": [],
+    }
+    agents = [
+        _build_agent("Agent 1", "top"),
+        _build_agent("Agent 2", "top"),
+        _build_agent("Agent 3", "mid"),
+        _build_agent("Agent 4", "mid"),
+        _build_agent("Agent 5", "low"),
+        _build_agent("Agent 6", "low"),
+    ]
+    seen_events = []
+    simulator = Simulator(
+        agents,
+        scene,
+        {"chat": agents[0].llm_client, "default": agents[0].llm_client},
+        event_handler=lambda event_type, data: seen_events.append((event_type, data)),
+        ordering=SequentialOrdering(),
+    )
+
+    scene.state["latest_notice"] = "「系统公告」 关于开展高风险算法应用排查与标识工作的通知"
+    scene.state["latest_policy"] = "「系统公告」 关于开展高风险算法应用排查与标识工作的通知\n1. 目标：在未来 4 个月内，完成全域高风险算法应用场景的排查，并实现 100% 风险场景标识到位。"
+    scene.state["source_policy"] = scene.state["latest_policy"]
+    scene.state["relayed_policy"] = scene.state["latest_policy"]
+    scene.state["task_mode"] = "cascade"
+    scene.state["notice_kind"] = "execution"
+    scene.state["current_tier_idx"] = 2
+    scene.state["tier_seen"] = {"top": [], "mid": [], "low": []}
+    scene.state["tier_transmitted"] = {"top": True, "mid": True, "low": False}
+    scene.state["active_tier_targets"] = {"low": ["Agent 5", "Agent 6"]}
+    scene.state["private_events"] = {
+        "Agent 5": {
+            "latest_notice": scene.state["latest_notice"],
+            "latest_policy": scene.state["latest_policy"],
+            "source_policy": scene.state["source_policy"],
+            "relayed_policy": scene.state["relayed_policy"],
+            "task_mode": "cascade",
+            "notice_kind": "execution",
+        },
+        "Agent 6": {
+            "latest_notice": scene.state["latest_notice"],
+            "latest_policy": scene.state["latest_policy"],
+            "source_policy": scene.state["source_policy"],
+            "relayed_policy": scene.state["relayed_policy"],
+            "task_mode": "cascade",
+            "notice_kind": "execution",
+        },
+    }
+    scene._rebuild_tiers()
+
+    simulator.run(max_turns=1)
+
+    processed_agents = [
+        data.get("agent")
+        for event_type, data in seen_events
+        if event_type == "agent_process_start"
+    ]
+
+    assert "Agent 5" in processed_agents
+    assert "Agent 6" in processed_agents
+    assert scene.state["complete"] is True

@@ -7,8 +7,11 @@ keys to InformationModel instances.
 """
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Callable, List, Optional
+from typing import TYPE_CHECKING, Callable, List, Optional
 import logging
+
+if TYPE_CHECKING:
+    from socialsim4.core.experiment.state import ExperimentState
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +32,7 @@ class InformationModel:
                          {partner_action}, {payoff}. Replaces the default "Round N: ..."
                          line entirely — do NOT add a round prefix separately.
         include_scores: Show cumulative score in context (default True)
+        show_average_contribution: Show average neighbor contribution instead of individuals (default False)
     """
     scope_type: str
     scope_fn: Optional[Callable] = None
@@ -38,6 +42,7 @@ class InformationModel:
     context_budget_chars: int = 0
     payoff_template: Optional[str] = None
     include_scores: bool = True
+    show_average_contribution: bool = False
 
     def __post_init__(self):
         valid = {"self", "pair", "neighborhood", "all", "role_based"}
@@ -104,3 +109,73 @@ class InformationModel:
             return [for_agent]
 
         return list(all_agent_names)  # safe fallback
+
+    def get_visible_contributions(
+        self,
+        agent_name: str,
+        state: "ExperimentState",
+        graph: dict,
+    ) -> dict[str, int]:
+        """Get contributions visible to an agent based on network graph.
+
+        Agents only see contributions from agents they're directly connected
+        to in the network. Isolated agents see no contributions from others.
+
+        Args:
+            agent_name: Name of the viewing agent
+            state: Current experiment state with agent contributions
+            graph: Network graph with "edges" list
+
+        Returns:
+            Dict mapping neighbor_name -> contribution_amount for all
+            agents connected to the viewing agent.
+
+        Example:
+            graph = {"edges": [("Alice", "Bob"), ("Bob", "Charlie")]}
+            # Alice sees: {"Bob": contribution}
+            # Bob sees: {"Alice": contribution, "Charlie": contribution}
+            # Charlie sees: {"Bob": contribution}
+        """
+        edges = graph.get("edges", [])
+
+        # Find neighbors (bidirectional edges)
+        neighbors = (
+            [b for a, b in edges if a == agent_name] +
+            [a for a, b in edges if b == agent_name]
+        )
+
+        visible = {}
+        for neighbor in neighbors:
+            if neighbor in state.agents:
+                # Get contribution from agent properties
+                contribution = state.agents[neighbor].properties.get("last_contribution", 0)
+                visible[neighbor] = contribution
+
+        return visible
+
+    def get_neighbor_average(
+        self,
+        agent_name: str,
+        state: "ExperimentState",
+        graph: dict,
+    ) -> float | None:
+        """Calculate average contribution from neighbors.
+
+        Args:
+            agent_name: Name of the viewing agent
+            state: Current experiment state with agent contributions
+            graph: Network graph with "edges" list
+
+        Returns:
+            Average contribution from neighbors, or None if no neighbors
+        """
+        visible = self.get_visible_contributions(agent_name, state, graph)
+
+        if not visible:
+            return None
+
+        contributions = list(visible.values())
+        if not contributions:
+            return None
+
+        return sum(contributions) / len(contributions)

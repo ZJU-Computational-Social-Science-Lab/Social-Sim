@@ -16,6 +16,8 @@ from socialsim4.core.environment_config import EnvironmentConfig
 from socialsim4.scenarios.basic import make_clients_from_env
 from socialsim4.core.experiment.config import ExperimentConfig
 from socialsim4.core.experiment.scene import ExperimentScene
+from socialsim4.core.experiment.game_configs import create_council_config
+from socialsim4.core.experiment.scenes.council_experiment import CouncilExperimentScene
 
 
 logger = logging.getLogger(__name__)
@@ -23,7 +25,6 @@ _logging_handler = logging.StreamHandler(sys.stdout)
 _logging_handler.setLevel(logging.DEBUG)
 _logging_handler.setFormatter(logging.Formatter('[SIMTREE RUNTIME] %(message)s'))
 logger.addHandler(_logging_handler)
-
 
 def _normalize_language(value: str | None) -> str:
     lang = str(value or "").strip()
@@ -59,6 +60,9 @@ class SimTreeRecord:
         # Track which suggestion intervals have been viewed (to avoid re-showing)
         self._suggestions_viewed_intervals: set[int] = set()
 
+    def replace_tree(self, tree: SimTree) -> None:
+        self.tree = tree
+
 
 def _quiet_logger(event_type: str, data: dict) -> None:
     return
@@ -77,16 +81,17 @@ class ExperimentRunnerAdapter:
         self.agents = {}  # Empty dict - no legacy agents
         self.events: list[dict] = []
         self._llm_client = clients.get("chat") or clients.get("default")
+        self._provider_clients: dict = clients.get("providers", {}) if clients else {}
         self.log_event = None  # Will be set by SimTree._attach_log_handler
 
         # Pre-initialize to populate scene.agents so UI can render agent cards without running a round
         if self._llm_client is not None and not self.scene.agents:
-            self.scene.initialize(self._llm_client)
+            self.scene.initialize(self._llm_client, provider_clients=self._provider_clients)
 
     def run(self, max_turns: int = 1) -> None:
         """Run experiment rounds (each 'turn' = one round)."""
         if not self.scene.runner:
-            self.scene.initialize(self._llm_client)
+            self.scene.initialize(self._llm_client, provider_clients=self._provider_clients)
 
         for _ in range(max_turns):
             if self.scene.is_complete():
@@ -102,6 +107,13 @@ class ExperimentRunnerAdapter:
                 # No running loop - we're in a thread or standalone
                 # Use asyncio.run() to create a new event loop
                 asyncio.run(self.scene.run_round(self._emit_event))
+
+            # CYCLE PHASE FIX: Advance round counter and check for phase transitions
+            # This is the ACTUAL code path used by the backend!
+            if hasattr(self.scene, '_advance_round'):
+                logger.info(f"[CYCLE PHASE FIX] Calling scene._advance_round() for {type(self.scene).__name__}")
+                self.scene._advance_round()
+                logger.info(f"[CYCLE PHASE FIX] Phase is now: {getattr(self.scene, 'cycle_phase', 'N/A')}, rounds_in_phase: {getattr(self.scene, 'rounds_in_cycle_phase', 'N/A')}")
 
     def _emit_event(self, event_type: str, data: dict) -> None:
         """Collect events for SimTree and emit to log handler."""
@@ -131,7 +143,14 @@ class ExperimentRunnerAdapter:
     def deserialize(cls, data: dict, clients: dict, log_handler=None):
         """Deserialize for SimTree compatibility."""
         scene_data = data["scene"]["config"]
-        scene = ExperimentScene.deserialize_config(scene_data)
+        scenario_id = scene_data.get("config", {}).get("scenario_id", "")
+
+        # GAP-CLOSURE-01: Deserialize to correct scene type based on scenario_id
+        if scenario_id in ("council", "council_chamber"):
+            from socialsim4.core.experiment.scenes.council_experiment import CouncilExperimentScene
+            scene = CouncilExperimentScene.deserialize_config(scene_data)
+        else:
+            scene = ExperimentScene.deserialize_config(scene_data)
 
         adapter = cls(scene, clients)
         adapter.scene.current_round = data.get("turns", 0)
@@ -267,7 +286,6 @@ def _apply_agent_config(simulator, agent_config: dict | None):
             reg = SCENE_ACTIONS.get(scene_key, {}) if 'scene_key' in locals() else {}
             selected = (reg.get("basic") or []) + (reg.get("allowed") or [])
         scene_actions = simulator.scene.get_scene_actions(agent) or []
-        print(f"[ACTION_DEBUG] Agent {agent.name}: scene_actions={[getattr(a, 'NAME', a) for a in scene_actions]}, selected={selected}")
         picked = []
         for key in selected:
             act = ACTION_SPACE_MAP.get(key)
@@ -281,13 +299,11 @@ def _apply_agent_config(simulator, agent_config: dict | None):
                 merged.append(act)
                 seen.add(n)
         agent.action_space = merged
-        print(f"[ACTION_DEBUG] Agent {agent.name}: final action_space={[getattr(a, 'NAME', a) for a in agent.action_space]}")
     # Refresh ordering candidates after renames
     simulator.ordering.set_simulation(simulator)
 
 
 def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
-    print(f"[KB-DEBUG] _build_tree_for_sim: Building tree for sim {sim_record.id}")
     scene_type = sim_record.scene_type
     # Normalize scene_type to registry keys (allow aliases like 'village' -> 'village_scene')
     scene_key = scene_type if scene_type in SCENE_MAP else f"{scene_type}_scene"
@@ -325,14 +341,7 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
     logger.debug(f"{'='*60}\n")
 
     agent_config = getattr(sim_record, "agent_config", {}) or {}
-    print(f"[KB-DEBUG] _build_tree_for_sim: agent_config keys: {list(agent_config.keys())}")
     items = agent_config.get("agents") or []
-    print(f"[KB-DEBUG] _build_tree_for_sim: Found {len(items)} agents in config")
-    for i, agent in enumerate(items):
-        kb = agent.get("knowledgeBase", [])
-        print(f"[KB-DEBUG]   Agent {i} '{agent.get('name', 'unknown')}': {len(kb)} knowledge items, keys: {list(agent.keys())}")
-        for j, item in enumerate(kb):
-            print(f"[KB-DEBUG]     KB Item {j}: id={item.get('id')}, title='{item.get('title', '')[:50]}', enabled={item.get('enabled')}")
     first_language = None
     for cfg_agent in items:
         lang = str(cfg_agent.get("language") or "").strip()
@@ -409,22 +418,110 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         # Unwrap generic_config if the config is nested (frontend sends nested structure)
         inner_cfg = cfg.get("generic_config") or cfg
 
-        config = ExperimentConfig(
-            agents=agent_config.get("agents", []),
-            actions=inner_cfg.get("actions", []),
-            parameters=inner_cfg.get("parameters", {}),
-            description=inner_cfg.get("description", ""),
-            scenario_id=inner_cfg.get("scenario_id", "custom"),
-            round_visibility=inner_cfg.get("round_visibility", "simultaneous"),
-            social_network=inner_cfg.get("social_network") or {},
-        )
-        logger.debug(f"[EXPERIMENT] Creating ExperimentConfig with parameters: {cfg.get('parameters', {})}")
-        scene = ExperimentScene(config)
+        scenario_id = inner_cfg.get("scenario_id", "custom")
+
+        # GAP-CLOSURE-01: Use CouncilExperimentScene for council scenarios
+        # Support both "council" and "council_chamber" scenario_ids (frontend uses council_chamber)
+        if scenario_id in ("council", "council_chamber"):
+            # NO DEFAULTS - fail fast if parameters are missing
+            params = inner_cfg.get("parameters", {})
+
+            # Handle parameter name mapping: max_rounds -> deliberation_rounds
+            # Frontend may send 'max_rounds' but backend expects 'deliberation_rounds'
+            if "deliberation_rounds" not in params and "max_rounds" in params:
+                params["deliberation_rounds"] = params["max_rounds"]
+                logger.info(f"[PARAMETER MAPPING] Mapped max_rounds={params['max_rounds']} to deliberation_rounds")
+
+            if "deliberation_rounds" not in params:
+                raise ValueError(f"deliberation_rounds parameter is required for council experiment. Got parameters: {params}")
+            if "voting_threshold" not in params:
+                raise ValueError(f"voting_threshold parameter is required for council experiment. Got parameters: {params}")
+            if "proposal_text" not in params:
+                raise ValueError(f"proposal_text parameter is required for council experiment. Got parameters: {params}")
+
+            council_game_config = create_council_config(
+                proposal_text=params["proposal_text"],
+                deliberation_rounds=params["deliberation_rounds"],
+                voting_threshold=params["voting_threshold"],
+            )
+            config = ExperimentConfig(
+                agents=agent_config.get("agents", []),
+                actions=[{"name": a} for a in council_game_config.actions],
+                parameters={
+                    "deliberation_rounds": council_game_config.deliberation_rounds,
+                    "voting_threshold": council_game_config.voting_threshold,
+                    "proposal_text": council_game_config.proposal_text,
+                },
+                description=council_game_config.description,
+                scenario_id="council",
+                round_visibility="sequential",
+                social_network=inner_cfg.get("social_network") or {},
+            )
+            logger.debug(f"[COUNCIL_EXPERIMENT] Creating CouncilExperimentScene with parameters: {config.parameters}")
+            scene = CouncilExperimentScene(config)
+        else:
+            config = ExperimentConfig(
+                agents=agent_config.get("agents", []),
+                actions=inner_cfg.get("actions", []),
+                parameters=inner_cfg.get("parameters", {}),
+                description=inner_cfg.get("description", ""),
+                scenario_id=scenario_id,
+                round_visibility=inner_cfg.get("round_visibility", "simultaneous"),
+                social_network=inner_cfg.get("social_network") or {},
+            )
+            logger.debug(f"[EXPERIMENT] Creating ExperimentConfig with parameters: {cfg.get('parameters', {})}")
+            scene = ExperimentScene(config)
 
         # Use adapter instead of full Simulator
         adapter = ExperimentRunnerAdapter(scene, clients or make_clients_from_env())
 
         logger.debug(f"Created ExperimentScene with adapter: {config.scenario_id}")
+
+        return SimTree.new(adapter, adapter.clients)
+    elif scene_key == "council_experiment":
+        # REFACTOR-COUNCIL-06: Council experiment using experiment framework
+        # NO DEFAULTS - fail fast if parameters are missing
+
+        # Handle parameter name mapping: max_rounds -> deliberation_rounds
+        # Frontend may send 'max_rounds' but backend expects 'deliberation_rounds'
+        if "deliberation_rounds" not in cfg and "max_rounds" in cfg:
+            cfg["deliberation_rounds"] = cfg["max_rounds"]
+            logger.info(f"[PARAMETER MAPPING] Mapped max_rounds={cfg['max_rounds']} to deliberation_rounds")
+
+        if "deliberation_rounds" not in cfg:
+            raise ValueError(f"deliberation_rounds parameter is required for council experiment. Got config keys: {list(cfg.keys())}")
+        if "voting_threshold" not in cfg:
+            raise ValueError(f"voting_threshold parameter is required for council experiment. Got config keys: {list(cfg.keys())}")
+        if "proposal_text" not in cfg:
+            raise ValueError(f"proposal_text parameter is required for council experiment. Got config keys: {list(cfg.keys())}")
+
+        # Create CouncilConfig with council-specific parameters
+        council_game_config = create_council_config(
+            proposal_text=cfg["proposal_text"],
+            deliberation_rounds=cfg["deliberation_rounds"],
+            voting_threshold=cfg["voting_threshold"],
+        )
+
+        config = ExperimentConfig(
+            agents=agent_config.get("agents", []),
+            actions=[{"name": a} for a in council_game_config.actions],
+            parameters={
+                "deliberation_rounds": council_game_config.deliberation_rounds,
+                "voting_threshold": council_game_config.voting_threshold,
+                "proposal_text": council_game_config.proposal_text,
+            },
+            description=council_game_config.description,
+            scenario_id="council",
+            round_visibility="sequential",  # Council uses sequential rounds
+            social_network=cfg.get("social_network") or {},
+        )
+        logger.debug(f"[COUNCIL_EXPERIMENT] Creating CouncilExperimentScene with parameters: {config.parameters}")
+        scene = CouncilExperimentScene(config)
+
+        # Use adapter instead of full Simulator
+        adapter = ExperimentRunnerAdapter(scene, clients or make_clients_from_env())
+
+        logger.debug(f"Created CouncilExperimentScene with adapter: council")
 
         return SimTree.new(adapter, adapter.clients)
     else:
@@ -478,7 +575,6 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
         knowledge_base = list(cfg_agent.get("knowledgeBase") or cfg_agent.get("knowledge_base") or [])
         # Get documents from agent config
         documents = dict(cfg_agent.get("documents") or {})
-        print(f"[KB-DEBUG] Building agent '{aname}': passing {len(knowledge_base)} KB items, {len(documents)} documents to Agent.deserialize")
         agent_data = {
             "name": aname,
             "user_profile": profile,
@@ -492,7 +588,6 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
             "documents": documents,
         }
         new_agent = Agent.deserialize(agent_data)
-        print(f"[KB-DEBUG] After deserialize, agent '{aname}' has {len(new_agent.knowledge_base)} KB items, {len(new_agent.documents)} documents")
         built_agents.append(new_agent)
 
     ordering = SequentialOrdering()
@@ -560,7 +655,6 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
     if global_knowledge:
         for agent in built_agents:
             agent.set_global_knowledge(global_knowledge)
-        print(f"[KB-DEBUG] Set global knowledge ({len(global_knowledge)} items) on {len(built_agents)} agents")
 
     # Broadcast configured initial events as public events
     for text in cfg.get("initial_events") or []:
@@ -622,10 +716,36 @@ class SimTreeRegistry:
         key = sim_record.id.upper()
         record = self._records.get(key)
         if record is not None:
+            if not record.running and getattr(sim_record, "latest_state", None) and record.tree.serialize() != sim_record.latest_state:
+                loop = asyncio.get_running_loop()
+                tree = SimTree.deserialize(sim_record.latest_state, clients or make_clients_from_env())
+                tree.attach_event_loop(loop)
+
+                def _fanout(event: dict) -> None:
+                    if int(event.get("node", -1)) not in record.running:
+                        return
+                    for q in list(record.subs):
+                        loop.call_soon_threadsafe(q.put_nowait, event)
+
+                tree.set_tree_broadcast(_fanout)
+                record.replace_tree(tree)
             return record
         async with self._lock:
             record = self._records.get(key)
             if record is not None:
+                if not record.running and getattr(sim_record, "latest_state", None) and record.tree.serialize() != sim_record.latest_state:
+                    loop = asyncio.get_running_loop()
+                    tree = SimTree.deserialize(sim_record.latest_state, clients or make_clients_from_env())
+                    tree.attach_event_loop(loop)
+
+                    def _fanout(event: dict) -> None:
+                        if int(event.get("node", -1)) not in record.running:
+                            return
+                        for q in list(record.subs):
+                            loop.call_soon_threadsafe(q.put_nowait, event)
+
+                    tree.set_tree_broadcast(_fanout)
+                    record.replace_tree(tree)
                 return record
             # 优先使用最新持久化的 latest_state 进行恢复；否则重新构建
             if getattr(sim_record, "latest_state", None):
@@ -656,8 +776,20 @@ class SimTreeRegistry:
     def remove(self, simulation_id: str) -> None:
         self._records.pop(simulation_id.upper(), None)
 
-    def get(self, simulation_id: str) -> SimTreeRecord | None:
-        return self._records.get(simulation_id.upper())
+    def get(self, simulation_id: str, default=None) -> SimTreeRecord | None:
+        return self._records.get(simulation_id.upper(), default)
+
+    def pop(self, simulation_id: str, default=None):
+        return self._records.pop(simulation_id.upper(), default)
+
+    def __getitem__(self, simulation_id: str) -> SimTreeRecord:
+        return self._records[simulation_id.upper()]
+
+    def __setitem__(self, simulation_id: str, record: SimTreeRecord) -> None:
+        self._records[simulation_id.upper()] = record
+
+    def __delitem__(self, simulation_id: str) -> None:
+        del self._records[simulation_id.upper()]
 
     def update_agent_knowledge(self, simulation_id: str, agent_config: dict) -> bool:
         """
@@ -673,7 +805,6 @@ class SimTreeRegistry:
         key = simulation_id.upper()
         record = self._records.get(key)
         if record is None:
-            print(f"[KB-DEBUG] update_agent_knowledge: No cached tree for sim {simulation_id}")
             return False
 
         # Build a mapping of agent name -> knowledge base and documents from the new config
@@ -689,11 +820,9 @@ class SimTreeRegistry:
             # Only update documents if explicitly present in config
             if "documents" in agent_cfg:
                 docs_by_name[name] = agent_cfg["documents"]
-            print(f"[KB-DEBUG] update_agent_knowledge: {name} -> {len(kb_by_name.get(name, []))} KB items, {len(docs_by_name.get(name, {}))} documents")
 
         # Update knowledge base and documents in all tree nodes
         tree = record.tree
-        nodes_updated = 0
         for node_id, node_data in tree.nodes.items():
             sim = node_data.get("sim")
             if sim is None:
@@ -701,19 +830,10 @@ class SimTreeRegistry:
             for agent_name, agent in sim.agents.items():
                 # Only update knowledge base if we have new data for this agent
                 if agent_name in kb_by_name:
-                    old_kb_count = len(agent.knowledge_base)
                     agent.knowledge_base = list(kb_by_name[agent_name])
-                    new_kb_count = len(agent.knowledge_base)
-                    print(f"[KB-DEBUG] update_agent_knowledge: Node {node_id}, agent '{agent_name}': {old_kb_count} -> {new_kb_count} KB items")
                 # Only update documents if we have new data for this agent
                 if agent_name in docs_by_name:
-                    old_docs_count = len(agent.documents)
                     agent.documents = dict(docs_by_name[agent_name])
-                    new_docs_count = len(agent.documents)
-                    print(f"[KB-DEBUG] update_agent_knowledge: Node {node_id}, agent '{agent_name}': {old_docs_count} -> {new_docs_count} documents")
-            nodes_updated += 1
-
-        print(f"[KB-DEBUG] update_agent_knowledge: Updated {nodes_updated} nodes in tree for sim {simulation_id}")
         return True
 
     def update_global_knowledge(self, simulation_id: str, global_knowledge: dict) -> bool:
@@ -725,23 +845,16 @@ class SimTreeRegistry:
         key = simulation_id.upper()
         record = self._records.get(key)
         if record is None:
-            print(f"[KB-DEBUG] update_global_knowledge: No cached tree for sim {simulation_id}")
             return False
 
         # Update global knowledge in all tree nodes
         tree = record.tree
-        nodes_updated = 0
-        agents_updated = 0
         for node_id, node_data in tree.nodes.items():
             sim = node_data.get("sim")
             if sim is None:
                 continue
             for agent_name, agent in sim.agents.items():
                 agent.set_global_knowledge(global_knowledge)
-                agents_updated += 1
-            nodes_updated += 1
-
-        print(f"[KB-DEBUG] update_global_knowledge: Updated {agents_updated} agents in {nodes_updated} nodes for sim {simulation_id}")
         return True
 
 

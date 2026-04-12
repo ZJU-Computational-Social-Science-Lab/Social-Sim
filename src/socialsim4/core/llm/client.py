@@ -333,7 +333,7 @@ class LLMClient:
         if self.provider.dialect == "gemini":
             gemini = _get_gemini()
             def _do():
-                return gemini["gemini_completion"](self.client, self.provider.model, prompt)
+                return gemini["gemini_completion"](self.client, prompt)
             return self._with_timeout_and_retry(_do)
 
         if self.provider.dialect == "mock":
@@ -386,7 +386,7 @@ class LLMClient:
         if self.provider.dialect == "gemini":
             gemini = _get_gemini()
             def _do():
-                return gemini["gemini_embedding"](self.client, self.provider.model, text)
+                return gemini["gemini_embedding"](self.provider.model, text)
             return self._with_timeout_and_retry(_do)
 
         if self.provider.dialect == "mock":

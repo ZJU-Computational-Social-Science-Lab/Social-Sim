@@ -217,6 +217,98 @@ def _extract_json_objects(text: str, *, strict_duplicate_actions: bool = False) 
     return results
 
 
+def _coerce_dirty_action_alias(data: dict) -> dict:
+    raw_action = data.get("action")
+    alias_names = {"action", "response", "confirm"}
+
+    def _extract_message(*values) -> str:
+        for value in values:
+            text = str(value or "").strip()
+            if text:
+                return text
+        return ""
+
+    if type(raw_action) is dict:
+        nested_action = raw_action.get("action") if type(raw_action.get("action")) is dict else None
+        action_name = str(
+            raw_action.get("name")
+            or (nested_action or {}).get("name")
+            or raw_action.get("action")
+            or ""
+        ).strip().lower()
+        message = _extract_message(
+            raw_action.get("message"),
+            raw_action.get("content"),
+            (nested_action or {}).get("message"),
+            (nested_action or {}).get("content"),
+            data.get("message"),
+            data.get("content"),
+            data.get("response"),
+        )
+        if action_name in alias_names and message:
+            normalized = dict(data)
+            action_payload = dict(raw_action)
+            action_payload["name"] = "send_message"
+            action_payload["message"] = message
+            action_payload.pop("action", None)
+            normalized["action"] = action_payload
+            normalized["message"] = message
+            return normalized
+        if nested_action is not None:
+            normalized = dict(data)
+            action_payload = dict(raw_action)
+            action_payload.pop("action", None)
+            if action_name:
+                action_payload["name"] = action_name
+            if message and action_name == "send_message":
+                action_payload["message"] = message
+                normalized["message"] = message
+            if action_name == "yield" and message:
+                action_payload["name"] = "send_message"
+                action_payload["message"] = message
+                normalized["message"] = message
+            for extra_key in ("context_update", "metadata"):
+                if extra_key not in normalized and extra_key in raw_action:
+                    normalized[extra_key] = raw_action[extra_key]
+            normalized["action"] = action_payload
+            return normalized
+        if action_name == "yield" and message:
+            normalized = dict(data)
+            action_payload = dict(raw_action)
+            action_payload["name"] = "send_message"
+            action_payload["message"] = message
+            normalized["action"] = action_payload
+            normalized["message"] = message
+            return normalized
+        return data
+
+    action_name = str(raw_action or "").strip().lower()
+    message = _extract_message(data.get("message"), data.get("content"), data.get("response"))
+    if action_name in alias_names and message:
+        normalized = dict(data)
+        normalized["action"] = {"name": "send_message", "message": message}
+        normalized["message"] = message
+        return normalized
+    if action_name == "send_message":
+        normalized = dict(data)
+        action_payload = {"name": "send_message"}
+        if message:
+            action_payload["message"] = message
+            normalized["message"] = message
+        normalized["action"] = action_payload
+        return normalized
+    if action_name == "yield" and message:
+        normalized = dict(data)
+        normalized["action"] = {"name": "send_message", "message": message}
+        normalized["message"] = message
+        return normalized
+    if action_name == "yield":
+        normalized = dict(data)
+        normalized["action"] = {"name": "yield"}
+        return normalized
+    return data
+
+
 def parse_agent_response(response_text: str, *, strict_duplicate_actions: bool = False) -> dict:
     """Extract the first valid JSON object from LLM output.
 
@@ -275,6 +367,8 @@ def parse_actions(response_text: str, *, strict_duplicate_actions: bool = False)
     data = parse_agent_response(response_text, strict_duplicate_actions=strict_duplicate_actions)
     if not data:
         raise ValueError("LLM response is missing the required JSON object with an action.")
+
+    data = _coerce_dirty_action_alias(data)
 
     if "action" not in data:
         raise ValueError("LLM response must include an 'action' field with a valid name.")

@@ -508,3 +508,149 @@ class TestPoolPayoff:
 
         # Free rider should get more
         assert result["FreeRider"] > result["Contributor"]
+
+
+class TestPoolPayoffContributionValidation:
+    """Test contribution enforcement and payoff calculation accuracy.
+
+    Tests BUG-PGG-01 and BUG-PGG-02: Agents cannot contribute more tokens
+    than their current balance, and payoff calculations use the constrained
+    contribution value, not the attempted amount.
+    """
+
+    @pytest.fixture
+    def engine(self):
+        return PayoffEngine()
+
+    @pytest.fixture
+    def pool_config(self):
+        return {
+            "multiplier": 1.5,
+            "initial_tokens": 20,
+        }
+
+    def contribute_action(self, agent_name, amount):
+        return ActionResult(
+            agent_name=agent_name,
+            action_name="contribute",
+            parameters={"amount": amount},
+            summary=f"{agent_name} contributed {amount}",
+            success=True,
+            skipped=False,
+            round_num=1,
+        )
+
+    def test_over_contribution_clamped_to_balance(self, engine, pool_config):
+        """When agent attempts to contribute 25 tokens but only has 20,
+        contribution is capped at 20."""
+        from socialsim4.core.experiment.state import ExperimentState, AgentState
+
+        # Agent has 20 tokens, attempts 25
+        state = ExperimentState(
+            agents={"Alice": AgentState(resources={"tokens": 20})}
+        )
+        actions = [self.contribute_action("Alice", 25)]
+
+        result = engine.calculate_round_payoffs(
+            payoff_type="pool",
+            actions=actions,
+            config=pool_config,
+            grouping_mode="group",
+            state=state,
+        )
+
+        # Total contribution should be 20 (capped), not 25
+        # Pool return = 20 * 1.5 / 1 = 30
+        # Payoff = (20 - 20) + 30 = 30
+        assert result["Alice"] == 30.0
+
+    def test_payoff_uses_constrained_not_attempted_amount(self, engine, pool_config):
+        """Payoff calculation uses capped amount (15), not attempted amount (20).
+
+        Agent has 15 tokens, attempts 20.
+        Total contribution should be 15 (capped).
+        Payoff: (20 - 15) + pool_return, not (20 - 20) + pool_return
+        """
+        from socialsim4.core.experiment.state import ExperimentState, AgentState
+
+        # Agent has 15 tokens, attempts 20
+        state = ExperimentState(
+            agents={"Bob": AgentState(resources={"tokens": 15})}
+        )
+        actions = [self.contribute_action("Bob", 20)]
+
+        result = engine.calculate_round_payoffs(
+            payoff_type="pool",
+            actions=actions,
+            config=pool_config,
+            grouping_mode="group",
+            state=state,
+        )
+
+        # Contribution capped at 15
+        # Pool return = 15 * 1.5 / 1 = 22.5
+        # Payoff = (20 - 15) + 22.5 = 27.5
+        assert result["Bob"] == 27.5
+
+    def test_multiple_agents_mixed_over_under_contributions(self, engine, pool_config):
+        """Multiple agents with mixed valid and over-contributions.
+
+        Alice has 20, contributes 10 (valid)
+        Bob has 20, attempts 30 (capped to 20)
+        Charlie has 20, contributes 5 (valid)
+
+        All payoffs calculated correctly using constrained amounts.
+        """
+        from socialsim4.core.experiment.state import ExperimentState, AgentState
+
+        state = ExperimentState(
+            agents={
+                "Alice": AgentState(resources={"tokens": 20}),
+                "Bob": AgentState(resources={"tokens": 20}),
+                "Charlie": AgentState(resources={"tokens": 20}),
+            }
+        )
+        actions = [
+            self.contribute_action("Alice", 10),
+            self.contribute_action("Bob", 30),  # Over-contribution
+            self.contribute_action("Charlie", 5),
+        ]
+
+        result = engine.calculate_round_payoffs(
+            payoff_type="pool",
+            actions=actions,
+            config=pool_config,
+            grouping_mode="group",
+            state=state,
+        )
+
+        # Total contribution = 10 + 20 (capped) + 5 = 35
+        # Pool return = 35 * 1.5 / 3 = 17.5
+        # Alice: (20 - 10) + 17.5 = 27.5
+        # Bob: (20 - 20) + 17.5 = 17.5
+        # Charlie: (20 - 5) + 17.5 = 32.5
+        assert result["Alice"] == 27.5
+        assert result["Bob"] == 17.5
+        assert result["Charlie"] == 32.5
+
+    def test_agent_with_zero_tokens_cannot_contribute(self, engine, pool_config):
+        """Agent with 0 tokens cannot contribute (contribution capped at 0)."""
+        from socialsim4.core.experiment.state import ExperimentState, AgentState
+
+        state = ExperimentState(
+            agents={"Poor": AgentState(resources={"tokens": 0})}
+        )
+        actions = [self.contribute_action("Poor", 10)]
+
+        result = engine.calculate_round_payoffs(
+            payoff_type="pool",
+            actions=actions,
+            config=pool_config,
+            grouping_mode="group",
+            state=state,
+        )
+
+        # Contribution capped at 0
+        # Pool return = 0 * 1.5 / 1 = 0
+        # Payoff = (20 - 0) + 0 = 20
+        assert result["Poor"] == 20.0

@@ -3,6 +3,7 @@ import asyncio
 import logging
 from typing import Dict, List, Optional, TYPE_CHECKING
 import os
+from datetime import datetime
 
 from socialsim4.core.event import PublicEvent
 from socialsim4.core.simulator import Simulator
@@ -144,6 +145,8 @@ class SimTree:
         # 让克隆体的代理在新节点重新尝试发言：把 last_history_length 向前挪一步
         for agent in sim_clone.agents.values():
             agent.last_history_length = max(0, len(agent.short_memory) - 1)
+            agent.consecutive_llm_errors = 0
+            agent.is_offline = False
 
         # 3) 基础自检：检查 agents/scene/orderings 的独立性 + ordering 状态一致性 + queue 为空
         tree._check_simulator_clone(sim, sim_clone)
@@ -211,6 +214,8 @@ class SimTree:
         # 让 clone 在新节点重新发言：把 last_history_length 向前挪一步
         for agent in sim_copy.agents.values():
             agent.last_history_length = max(0, len(agent.short_memory) - 1)
+            agent.consecutive_llm_errors = 0
+            agent.is_offline = False
 
         return sim_copy
 
@@ -353,7 +358,7 @@ class SimTree:
                 except Exception:
                     logger.exception("failed to inject node_id into error event payload")
 
-            entry = {"type": kind, "data": data, "node": int(node_id)}
+            entry = {"type": kind, "data": data, "node": int(node_id), "timestamp": datetime.now().isoformat()}
             logs.append(entry)
 
             subs = self._node_subs.get(node_id) or []
@@ -510,8 +515,18 @@ class SimTree:
                 et = "agent_props"
             elif m == "scene_state_patch":
                 et = "scene_state"
+            elif m == "config_params_patch":
+                et = "config_params"
+            elif m == "config_description_patch":
+                et = "config_desc"
+            elif m == "config_settings_patch":
+                et = "config_settings"
+            elif m == "network_replace":
+                et = "network"
             elif m == "public_broadcast":
                 et = "public_event"
+            elif m == "environment_event":
+                et = "environment_event"
             elif m == "advance":
                 et = "advance"
         node["edge_type"] = et
@@ -527,8 +542,9 @@ class SimTree:
         return self.attach(parent_id, [{"op": "advance", "turns": int(turns)}], cid)
 
     def branch(self, parent_id: int, ops: List[dict]) -> int:
-        # For branching (what-if scenarios), we create a SIBLING node, not a child
-        # So we need to find the parent of parent_id and attach there
+        # For branching (what-if scenarios), we create a SIBLING node, not a child.
+        # The new branch must therefore start from the shared parent state rather than
+        # inheriting the selected sibling's already-mutated simulator state.
         if parent_id not in self.nodes:
             raise KeyError(f"Node {parent_id} not found in tree")
         actual_parent_id = self.nodes[parent_id]["parent"]
@@ -538,7 +554,7 @@ class SimTree:
         if actual_parent_id is None:
             actual_parent_id = parent_id
 
-        cid = self.copy_sim(parent_id)
+        cid = self.copy_sim(actual_parent_id)
         sim = self.nodes[cid]["sim"]
         for op in ops:
             name = op["op"]
@@ -563,8 +579,62 @@ class SimTree:
                 updates = op["updates"]
                 for k, v in updates.items():
                     sim.scene.state[k] = v
+            elif name == "config_params_patch":
+                # Merge patch: only update specified keys; preserve all others.
+                updates = op["updates"]
+                if hasattr(sim.scene, 'config') and hasattr(sim.scene.config, 'parameters'):
+                    merged = dict(sim.scene.config.parameters)  # copy base
+                    merged.update(updates)                        # apply patch
+                    sim.scene.config.parameters = merged
+            elif name == "config_description_patch":
+                # Update scenario description
+                if hasattr(sim.scene, 'config'):
+                    sim.scene.config.description = op["description"]
+            elif name == "config_settings_patch":
+                # Update scenario settings (e.g., round_visibility)
+                settings = op["settings"]
+                if hasattr(sim.scene, 'config'):
+                    for k, v in settings.items():
+                        if hasattr(sim.scene.config, k):
+                            setattr(sim.scene.config, k, v)
+            elif name == "network_replace":
+                # Replace the network with a pre-computed concrete edge list.
+                # The frontend generates and freezes the edge list at submit time.
+                # The backend stores it as-is; it does NOT regenerate from preset name.
+                #
+                # NOTE: Only valid at branch creation (before any turns run).
+                # Applying mid-simulation leaves agents with stale neighbor state.
+                network_data = op["network"]
+
+                if hasattr(sim.scene, 'config'):
+                    sim.scene.config.social_network = network_data
+
+                # Update runner's scene_state if runner exists (for ExperimentScene)
+                if hasattr(sim.scene, 'runner') and sim.scene.runner is not None:
+                    sim.scene.runner.set_scene_state({"graph": network_data})
             elif name == "public_broadcast":
                 sim.broadcast(PublicEvent(op["text"]))
+            elif name == "environment_event":
+                description = op["text"]
+                event_type = str(op.get("event_type") or "environment")
+                is_policy_scene = getattr(sim.scene, "TYPE", "") == "policy_cascade_scene"
+                notice_only = bool(op.get("notice_only")) if is_policy_scene else False
+                if is_policy_scene and "notice_only" not in op:
+                    notice_only = event_type != "broadcast"
+                payload = {"description": description, "event_type": event_type}
+                if is_policy_scene:
+                    payload["notice_only"] = notice_only
+                receivers = op.get("receivers")
+                if receivers:
+                    for receiver_name in receivers:
+                        if receiver_name not in sim.agents:
+                            raise ValueError(f"Unknown environment_event receiver: {receiver_name}")
+                        sim.agents[receiver_name].add_env_feedback(description, images=[])
+                    sim.scene.on_private_event(sim, "environment", payload, receivers)
+                else:
+                    for agent in sim.agents.values():
+                        agent.add_env_feedback(description, images=[])
+                    sim.scene.on_event(sim, "environment", payload)
             else:
                 raise ValueError("Unknown op: " + name)
 

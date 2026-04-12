@@ -6,6 +6,7 @@ from socialsim4.core.scenarios import (
     get_scenario,
     get_scenario_actions
 )
+from socialsim4.core.scenarios.registry import ALL_SCENARIOS
 
 
 def test_get_all_returns_list():
@@ -15,9 +16,9 @@ def test_get_all_returns_list():
 
 
 def test_get_all_contains_expected_count():
-    """Should return exactly 13 scenarios."""
+    """Should return every registered scenario."""
     result = get_all_scenarios()
-    assert len(result) == 13
+    assert len(result) == len(ALL_SCENARIOS)
 
 
 def test_all_scenarios_have_required_fields():
@@ -65,8 +66,20 @@ def test_prisoners_dilemma_structure():
     """Prisoner's Dilemma should have correct structure."""
     scenario = get_scenario("prisoners_dilemma")
     assert scenario["category"] == "game_theory"
-    assert len(scenario["parameters"]) == 3
+    assert len(scenario["parameters"]) >= 4
     assert len(scenario["actions"]) == 2
+
+
+def test_xihu_yilianbao_structure():
+    """Xihu Yilianbao scenario should expose intervention params and discussion actions."""
+    scenario = get_scenario("xihu_yilianbao")
+    assert scenario is not None
+    assert scenario["category"] == "social_dynamics"
+    assert scenario["grouping_mode"] == "neighbor"
+    assert scenario["payoff_type"] == "none"
+    assert any(param["key"] == "intervention_arm" for param in scenario["parameters"])
+    assert any(action["id"] == "enroll_self" for action in scenario["actions"])
+    assert any(action["id"] == "speak" for action in scenario["actions"])
 
 
 def test_custom_scenario_empty_actions():

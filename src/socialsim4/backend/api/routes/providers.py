@@ -31,19 +31,33 @@ from ...schemas.common import Message
 from ...schemas.provider import ProviderBase, ProviderCreate, ProviderUpdate
 
 
-def _clean_base_url(base_url: str | None) -> str | None:
-    return base_url.strip() if base_url else None
+def _normalize_dialect(raw: str, base_url: str | None) -> tuple[str, str | None]:
+    """
+    Normalize provider dialect and base_url.
 
+    For OpenAI + localhost, converts to Ollama dialect and strips /v1 suffix
+    from base_url (since native Ollama API doesn't use /v1 prefix).
 
-def _normalize_dialect(raw: str, base_url: str | None) -> str:
+    Args:
+        raw: Provider type string (e.g., "openai", "ollama", "gemini")
+        base_url: Optional base URL for the provider
+
+    Returns:
+        Tuple of (normalized_dialect, normalized_base_url)
+    """
     val = (raw or "").lower().strip()
-    base_url = _clean_base_url(base_url)
     if val == "ollama":
-        return "ollama"
+        # Strip /v1 suffix if present (native Ollama API doesn't use it)
+        if base_url and "/v1" in base_url:
+            base_url = base_url.replace("/v1", "").rstrip("/")
+        return "ollama", base_url
     # Heuristic: openai + localhost base_url ⇒ treat as ollama-compatible API
     if val == "openai" and base_url and "localhost" in base_url:
-        return "ollama"
-    return val
+        # Convert to Ollama dialect and strip /v1 suffix
+        if "/v1" in base_url:
+            base_url = base_url.replace("/v1", "").rstrip("/")
+        return "ollama", base_url
+    return val, base_url
 
 
 def _serialize_provider(provider: ProviderConfig) -> ProviderBase:
@@ -52,7 +66,7 @@ def _serialize_provider(provider: ProviderConfig) -> ProviderBase:
         name=provider.name,
         provider=provider.provider,
         model=provider.model,
-        base_url=_clean_base_url(provider.base_url),
+        base_url=provider.base_url,
         has_api_key=bool(provider.api_key),
         is_active=bool((provider.config or {}).get("active")),
         last_test_status=provider.last_test_status,
@@ -97,7 +111,7 @@ async def create_provider(request: Request, data: ProviderCreate) -> ProviderBas
             name=data.name,
             provider=data.provider,
             model=data.model,
-            base_url=_clean_base_url(data.base_url),
+            base_url=data.base_url,
             api_key=data.api_key,
             config=cfg,
         )
@@ -124,7 +138,7 @@ async def update_provider(
         if data.model is not None:
             provider.model = data.model
         if data.base_url is not None:
-            provider.base_url = _clean_base_url(data.base_url)
+            provider.base_url = data.base_url
         if data.api_key is not None:
             provider.api_key = data.api_key
         if data.config is not None:
@@ -154,13 +168,12 @@ async def test_provider(request: Request, provider_id: int) -> Message:
         provider = await session.get(ProviderConfig, provider_id)
         assert provider is not None and provider.user_id == current_user.id
 
-        base_url = _clean_base_url(provider.base_url)
-        dialect = _normalize_dialect(provider.provider, base_url)
+        dialect, normalized_base_url = _normalize_dialect(provider.provider, provider.base_url)
         cfg = LLMConfig(
             dialect=dialect,
             api_key=provider.api_key or "",
             model=provider.model,
-            base_url=base_url,
+            base_url=normalized_base_url,
             temperature=0.7,
             top_p=1.0,
             frequency_penalty=0.0,

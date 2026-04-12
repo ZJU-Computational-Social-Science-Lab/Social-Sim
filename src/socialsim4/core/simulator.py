@@ -105,6 +105,35 @@ class Simulator:
                 if merged:
                     agent.action_space = merged
 
+    def _refresh_scene_action_space(self, agent: Agent) -> None:
+        scene_key = getattr(self.scene, "TYPE", "")
+        if scene_key != "policy_cascade_scene":
+            return
+
+        from socialsim4.core.registry import SCENE_ACTIONS
+
+        reg = SCENE_ACTIONS.get(scene_key, {})
+        managed_names = set((reg.get("basic") or []) + (reg.get("allowed") or []))
+        current_scene_actions = self.scene.get_scene_actions(agent) or []
+
+        preserved = []
+        seen = set()
+        for act in agent.action_space:
+            name = getattr(act, "NAME", None)
+            if name in managed_names:
+                continue
+            if name and name not in seen:
+                preserved.append(act)
+                seen.add(name)
+
+        for act in current_scene_actions:
+            name = getattr(act, "NAME", None)
+            if name and name not in seen:
+                preserved.append(act)
+                seen.add(name)
+
+        agent.action_space = preserved
+
     # ----- Event plumbing: forward to ordering and external handler -----
 
     def emit_event(self, event_type: str, data: dict):
@@ -387,9 +416,16 @@ class Simulator:
         if hasattr(self.scene, "reset_for_run"):
             self.scene.reset_for_run()
 
-        while turns < max_turns:
+        while True:
             # Process any pending events before checking completion so scenes can reopen
             self.emit_remaining_events()
+
+            over_limit = turns >= max_turns
+            should_extend = False
+            if over_limit and hasattr(self.scene, "should_extend_run"):
+                should_extend = bool(self.scene.should_extend_run(turns, max_turns))
+            if over_limit and not should_extend:
+                break
 
             if self.scene.is_complete():
                 print("Scenario complete. Simulation ends.")
@@ -401,6 +437,8 @@ class Simulator:
 
             if not agent:
                 continue
+
+            self._refresh_scene_action_space(agent)
 
             print("Running turn..")
             # Optional: provide a status prompt at the start of each turn
@@ -416,6 +454,17 @@ class Simulator:
 
             # Skip turn based on scene rule
             if self.scene.should_skip_turn(agent, self):
+                skip_reason = ""
+                if hasattr(self.scene, "get_skip_reason"):
+                    skip_reason = self.scene.get_skip_reason(agent, self)
+                self.emit_event(
+                    "agent_idle",
+                    {
+                        "agent": agent.name,
+                        "mode": getattr(self.scene, "state", {}).get("task_mode"),
+                        "reason": skip_reason,
+                    },
+                )
                 print(f"Skipping turn for {agent.name} as per scene rules.")
                 self.scene.post_turn(agent, self)
                 self.ordering.post_turn(agent.name)
@@ -427,11 +476,8 @@ class Simulator:
             continue_turn = True
             self.emit_remaining_events()
 
-            print(2)
-
             while continue_turn and steps < self.max_steps_per_turn:
                 try:
-                    print(3)
                     self.emit_event(
                         "agent_process_start",
                         {"agent": agent.name, "step": steps + 1},
@@ -441,7 +487,6 @@ class Simulator:
                         initiative=False,
                         scene=self.scene,
                     )
-                    print(4)
                     self.emit_event(
                         "agent_process_end",
                         {

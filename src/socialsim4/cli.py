@@ -9,6 +9,7 @@ from typing import Iterable
 from socialsim4.core.llm import create_llm_client
 from socialsim4.core.llm_config import LLMConfig, guess_supports_vision
 from socialsim4.scenarios import SCENES, console_logger
+from socialsim4.xihu_round1 import DEFAULT_XIHU_PACKAGE_ID, import_xihu_round1
 
 
 def serve_backend(host: str, port: int, reload: bool) -> None:
@@ -84,11 +85,21 @@ def run_scenario(args: argparse.Namespace) -> None:
     simulator.run(max_turns=max_turns)
 
 
+def import_xihu_round1_command(args: argparse.Namespace) -> None:
+    package = import_xihu_round1(args.source, args.package_id)
+    print(
+        f"Imported {package['packageId']} with "
+        f"{len(package['arms'])} arms, "
+        f"{len(package['materials'])} materials, "
+        f"and {len(package['benchmarks'])} benchmark groups."
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="socialsim4", description="SocialSim4 command-line interface")
     subparsers = parser.add_subparsers(dest="command")
 
-    serve_parser = subparsers.add_parser("serve", help="Start the FastAPI backend server")
+    serve_parser = subparsers.add_parser("serve", help="Start the Litestar backend server")
     serve_parser.add_argument("--host", default="0.0.0.0", help="Host interface to bind (default: 0.0.0.0)")
     serve_parser.add_argument("--port", type=int, default=8000, help="Port to bind (default: 8000)")
     serve_parser.add_argument("--reload", action="store_true", help="Enable autoreload (development only)")
@@ -107,6 +118,17 @@ def build_parser() -> argparse.ArgumentParser:
     sim_parser.add_argument("--presence-penalty", type=float, help="Presence penalty")
     sim_parser.add_argument("--max-tokens", type=int, help="Maximum tokens per response")
 
+    xihu_parser = subparsers.add_parser(
+        "import-xihu-round1",
+        help="Import the Xihu Yilianbao round-1 intervention package",
+    )
+    xihu_parser.add_argument("--source", required=True, help="Local source directory containing A0-A8 materials")
+    xihu_parser.add_argument(
+        "--package-id",
+        default=DEFAULT_XIHU_PACKAGE_ID,
+        help=f"Destination package id (default: {DEFAULT_XIHU_PACKAGE_ID})",
+    )
+
     return parser
 
 
@@ -119,6 +141,9 @@ def main(argv: Iterable[str] | None = None) -> int:
         return 0
     if args.command == "run-sim":
         run_scenario(args)
+        return 0
+    if args.command == "import-xihu-round1":
+        import_xihu_round1_command(args)
         return 0
 
     parser.print_help()

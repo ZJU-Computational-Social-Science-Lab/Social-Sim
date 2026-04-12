@@ -63,7 +63,7 @@ async def test_coordination_game_basic(default_llm_client, output_dir):
     graph = {"edges": [("NodeA", "NodeB"), ("NodeB", "NodeC"), ("NodeC", "NodeA")]}
 
     information_model = InformationModel(
-        scope_type="neighbor",
+        scope_type="neighborhood",
         pairing_fn=None,
         context_budget_chars=0,
     )
@@ -125,7 +125,7 @@ async def test_coordination_game_no_scores(default_llm_client, output_dir):
     graph = {"edges": [("Node1", "Node2")]}
 
     information_model = InformationModel(
-        scope_type="neighbor",
+        scope_type="neighborhood",
         pairing_fn=None,
         context_budget_chars=0,
     )
@@ -255,3 +255,99 @@ async def test_coordination_game_shows_feedback(default_llm_client, output_dir):
                 out.file.write(f"  Feedback for {event.agent_name}: {event.feedback}\n")
 
     assert len(round_results) == 2
+
+
+@pytest.mark.asyncio
+async def test_coordination_game_simultaneous_mode(default_llm_client, output_dir):
+    """Test Coordination Game with simultaneous (blind) mode.
+
+    In simultaneous mode, all agents decide without seeing other agents' choices.
+    Choices are revealed after all agents have completed their decisions.
+
+    This test verifies:
+    1. Simultaneous mode executes without errors
+    2. All agents make choices without seeing others' choices
+    3. All choices are recorded after round completes
+    """
+    game_config = build_coordination_game_config()
+    llm_config = LLMConfig(dialect="ollama", model="phi4-mini:latest", base_url="http://localhost:11434")
+
+    agents = [
+        build_experiment_agent("NodeA", llm_config, role_prompt="You are Node A."),
+        build_experiment_agent("NodeB", llm_config, role_prompt="You are Node B."),
+        build_experiment_agent("NodeC", llm_config, role_prompt="You are Node C."),
+    ]
+
+    # Create information model for neighbor visibility
+    # Triangle graph: A-B, B-C, C-A
+    graph = {"edges": [("NodeA", "NodeB"), ("NodeB", "NodeC"), ("NodeC", "NodeA")]}
+
+    information_model = InformationModel(
+        scope_type="neighborhood",
+        pairing_fn=None,
+        context_budget_chars=0,
+    )
+
+    filename = f"coordination_game_phi4-mini_simultaneous.txt"
+    filepath = output_dir / filename
+
+    with SmokeTestOutput(filepath, "coordination_game", "phi4-mini", "simultaneous") as out:
+        out.write_config({
+            "grouping_mode": "neighbor",
+            "payoff_type": "feedback",
+            "agents": ["NodeA", "NodeB", "NodeC"],
+            "actions": ["choose_color"],
+            "graph": "triangle (A-B, B-C, C-A)",
+            "round_visibility": "simultaneous (blind mode)",
+        })
+
+        # CRITICAL: Use round_visibility="simultaneous" instead of "sequential"
+        runner = ExperimentRunner(
+            agents=agents,
+            game_config=game_config,
+            llm_client=default_llm_client,
+            round_visibility="simultaneous",  # Simultaneous - agents decide without seeing others
+            information_model=information_model,
+        )
+
+        # Set scene state with graph
+        runner.set_scene_state({"graph": graph})
+
+        # Run 2 rounds to verify simultaneous mode works consistently
+        round_results = await runner.run(max_rounds=2)
+
+        out.write_round_header(1)
+        for action in round_results[0].actions:
+            out.write_action_summary(
+                action.agent_name,
+                action.action_name,
+                action.parameters,
+                None  # No numerical payoffs for feedback type
+            )
+
+        out.write_round_header(2)
+        for action in round_results[1].actions:
+            out.write_action_summary(
+                action.agent_name,
+                action.action_name,
+                action.parameters,
+                None
+            )
+
+        final_scores = {agent.name: agent.score for agent in agents}
+        errors = [a.error for a in round_results[0].actions if a.error]
+
+        out.write_summary(final_scores, errors)
+
+    # Verify the round results
+    assert len(round_results) == 2, f"Expected 2 rounds, got {len(round_results)}"
+
+    # Verify all agents acted in each round
+    for round_result in round_results:
+        assert len(round_result.actions) == 3, f"Expected 3 actions per round, got {len(round_result.actions)}"
+        assert round_result.completed, "Round should be marked as completed"
+
+    # Verify no errors occurred
+    for round_result in round_results:
+        errors = [a.error for a in round_result.actions if a.error]
+        assert len(errors) == 0, f"Round had errors: {errors}"

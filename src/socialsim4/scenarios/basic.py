@@ -18,6 +18,9 @@ from socialsim4.core.scenes.simple_chat_scene import SimpleChatScene
 from socialsim4.core.scenes.village_scene import GameMap, VillageScene
 from socialsim4.core.scenes.werewolf_scene import WerewolfScene
 from socialsim4.core.simulator import Simulator
+from socialsim4.core.contagion.scene import ContagionScene
+from socialsim4.core.contagion.rules import StateTransition
+from socialsim4.core.contagion.states import ContagionState
 
 
 def console_logger(event_type: str, data: dict) -> None:
@@ -332,8 +335,83 @@ def build_simple_chat_sim_chinese(
     return sim
 
 
+def _default_council_agents() -> List[Agent]:
+    return [
+        Agent.deserialize(
+            {
+                "name": "Host",
+                "user_profile": (
+                    "You chair the legislative council. Remain neutral, enforce procedure, and summarize fairly."
+                ),
+                "style": "formal and neutral",
+                "initial_instruction": (
+                    "Open the session by summarizing the draft, invite opening remarks, and proceed to a vote when discussion has matured."
+                ),
+                "role_prompt": "",
+                "action_space": ["start_voting", "finish_meeting", "request_brief", "voting_status"],
+                "properties": {},
+            }
+        ),
+        Agent.deserialize(
+            {
+                "name": "Rep. Chen Wei",
+                "user_profile": "Centrist economist focused on fiscal responsibility and transit efficiency.",
+                "style": "measured and data-driven",
+                "initial_instruction": "",
+                "role_prompt": "Support pragmatic compromises balancing budgets and benefits.",
+                "action_space": ["send_message", "yield", "vote"],
+                "properties": {},
+            }
+        ),
+        Agent.deserialize(
+            {
+                "name": "Rep. Li Na",
+                "user_profile": "Progressive voice emphasizing equity and climate action.",
+                "style": "principled and empathetic",
+                "initial_instruction": "",
+                "role_prompt": "Press for environmental standards and equity safeguards.",
+                "action_space": ["send_message", "yield", "vote"],
+                "properties": {},
+            }
+        ),
+        Agent.deserialize(
+            {
+                "name": "Rep. Zhang Rui",
+                "user_profile": "Conservative representative concerned about small businesses and unintended consequences.",
+                "style": "direct and skeptical",
+                "initial_instruction": "",
+                "role_prompt": "Highlight risks to businesses and drivers.",
+                "action_space": ["send_message", "yield", "vote"],
+                "properties": {},
+            }
+        ),
+        Agent.deserialize(
+            {
+                "name": "Rep. Wang Mei",
+                "user_profile": "Business-aligned representative focused on competitiveness and logistics.",
+                "style": "pragmatic and concise",
+                "initial_instruction": "",
+                "role_prompt": "Seek exemptions that protect merchants and logistics.",
+                "action_space": ["send_message", "yield", "vote"],
+                "properties": {},
+            }
+        ),
+        Agent.deserialize(
+            {
+                "name": "Rep. Qiao Jun",
+                "user_profile": "Environmentalist pushing for ambitious climate policy and rapid emissions reduction.",
+                "style": "assertive and analytical",
+                "initial_instruction": "",
+                "role_prompt": "Push for strong air-quality targets and transparency.",
+                "action_space": ["send_message", "yield", "vote"],
+                "properties": {},
+            }
+        ),
+    ]
+
+
 def build_council_sim(
-    agents: List[Agent],
+    agents: List[Agent] | None = None,
     draft_text: str | None = None,
     clients: Dict[str, object] | None = None,
     *,
@@ -355,6 +433,8 @@ def build_council_sim(
     Returns:
         Configured Simulator ready to run
     """
+    agents = agents or _default_council_agents()
+
     # Ensure all agents have the council action space
     council_actions = ["send_message", "yield", "start_voting", "vote", "finish_meeting", "request_brief", "voting_status"]
 
@@ -607,6 +687,163 @@ def build_werewolf_sim(
     return sim
 
 
+def build_contagion_sim(
+    clients: Dict[str, object] | None = None,
+    *,
+    event_logger: Callable[[str, dict], None] = console_logger,
+) -> Simulator:
+    """
+    Build a contagion spread simulation with SEIR model.
+
+    Creates a village scenario where agents can spread contagion through
+    proximity and social interactions. Agents move on a grid and can
+    transmit infection to nearby agents.
+
+    Args:
+        clients: LLM clients for agent inference
+        event_logger: Event logging callback
+
+    Returns:
+        Configured Simulator with ContagionScene and 8 agents
+    """
+    # Define SEIR transition rules
+    rules = [
+        # Susceptible → Exposed (proximity-based, 30% chance)
+        StateTransition(
+            from_state=ContagionState.SUSCEPTIBLE,
+            to_state=ContagionState.EXPOSED,
+            trigger_type="proximity",
+            probability=0.3
+        ),
+        # Exposed → Infected (decay after 2 turns, 100% chance)
+        StateTransition(
+            from_state=ContagionState.EXPOSED,
+            to_state=ContagionState.INFECTED,
+            trigger_type="decay",
+            probability=1.0,
+            decay_turns=2
+        ),
+        # Infected → Recovered (decay after 5 turns, 100% chance)
+        StateTransition(
+            from_state=ContagionState.INFECTED,
+            to_state=ContagionState.RECOVERED,
+            trigger_type="decay",
+            probability=1.0,
+            decay_turns=5
+        ),
+    ]
+
+    # Load game map
+    map_path = Path(__file__).resolve().parents[3] / "scripts" / "default_map.json"
+    with open(map_path) as f:
+        map_data = json.load(f)
+    game_map = GameMap.deserialize(map_data)
+
+    # Create 8 agents with grid positions
+    agents = [
+        Agent.deserialize({
+            "name": "Marcus",
+            "user_profile": "Village doctor monitoring public health and disease patterns.",
+            "style": "clinical and cautious",
+            "initial_instruction": "Monitor villagers for signs of illness and track disease spread.",
+            "role_prompt": "Prioritize community health; report observations clearly.",
+            "action_space": ["move_adjacent", "speak_to", "yield"],
+            "properties": {"map_xy": [10, 10]}  # Village center
+        }),
+        Agent.deserialize({
+            "name": "Elena",
+            "user_profile": "Traveling merchant visiting from a neighboring town.",
+            "style": "friendly and gregarious",
+            "initial_instruction": "Trade goods at the market and meet new people.",
+            "role_prompt": "Be social but mindful of your health.",
+            "action_space": ["move_adjacent", "speak_to", "yield"],
+            "properties": {"map_xy": [15, 10]}  # Near market
+        }),
+        Agent.deserialize({
+            "name": "Tobias",
+            "user_profile": "Farmer working the fields outside the village.",
+            "style": "practical and reserved",
+            "initial_instruction": "Tend to crops at the farm and avoid crowded areas.",
+            "role_prompt": "Focus on work; minimize unnecessary contact.",
+            "action_space": ["move_adjacent", "speak_to", "yield"],
+            "properties": {"map_xy": [5, 10]}  # Near farm
+        }),
+        Agent.deserialize({
+            "name": "Lydia",
+            "user_profile": "Innkeeper managing the village gathering place.",
+            "style": "warm and sociable",
+            "initial_instruction": "Welcome travelers and maintain the inn.",
+            "role_prompt": "Be hospitable while watching for sick patrons.",
+            "action_space": ["move_adjacent", "speak_to", "yield"],
+            "properties": {"map_xy": [10, 12]}  # Near village center
+        }),
+        Agent.deserialize({
+            "name": "Roland",
+            "user_profile": "Town guard patrolling the village perimeter.",
+            "style": "alert and disciplined",
+            "initial_instruction": "Patrol the village and ensure safety.",
+            "role_prompt": "Maintain order; report unusual gatherings.",
+            "action_space": ["move_adjacent", "speak_to", "yield"],
+            "properties": {"map_xy": [8, 8]}  # Near house_1
+        }),
+        Agent.deserialize({
+            "name": "Clara",
+            "user_profile": "Herbalist gathering ingredients in the forest.",
+            "style": "thoughtful and observant",
+            "initial_instruction": "Search the forest for medicinal plants.",
+            "role_prompt": "Observe nature and health patterns.",
+            "action_space": ["move_adjacent", "speak_to", "yield"],
+            "properties": {"map_xy": [3, 5]}  # Near forest
+        }),
+        Agent.deserialize({
+            "name": "Victor",
+            "user_profile": "Blacksmith working at the forge.",
+            "style": "sturdy and straightforward",
+            "initial_instruction": "Craft tools at the blacksmith shop.",
+            "role_prompt": "Work efficiently; avoid spreading germs.",
+            "action_space": ["move_adjacent", "speak_to", "yield"],
+            "properties": {"map_xy": [10, 15]}  # Near blacksmith
+        }),
+        Agent.deserialize({
+            "name": "Sophie",
+            "user_profile": "Scholar researching at the ancient ruins.",
+            "style": "curious and analytical",
+            "initial_instruction": "Study the ancient ruins for historical clues.",
+            "role_prompt": "Document findings; share knowledge sparingly.",
+            "action_space": ["move_adjacent", "speak_to", "yield"],
+            "properties": {"map_xy": [12, 16]}  # Near ancient_ruins
+        }),
+    ]
+
+    # Create contagion scene
+    scene = ContagionScene(
+        name="contagion_village",
+        initial_event="A mysterious illness begins spreading through the village. Some residents report feeling unwell...",
+        game_map=game_map,
+        rules=rules,
+        initial_infected_count=2  # Start with 2 infected agents
+    )
+
+    # Build simulator
+    sim = Simulator(
+        agents,
+        scene,
+        clients or make_clients_from_env(),
+        ordering=SequentialOrdering(),
+        event_handler=event_logger
+    )
+
+    # Broadcast initial event
+    sim.broadcast(
+        PublicEvent(
+            "A strange sickness has appeared in the village. "
+            "Be cautious of close contact with others and monitor your health."
+        )
+    )
+
+    return sim
+
+
 class SceneSpec(NamedTuple):
     builder: Callable[[Dict[str, object], Callable[[str, dict], None]], Simulator]
     default_turns: int
@@ -622,7 +859,7 @@ SCENES: Dict[str, SceneSpec] = {
         default_turns=50,
     ),
     "council_scene": SceneSpec(
-        builder=lambda clients, logger=console_logger: build_council_sim(clients, event_logger=logger),
+        builder=lambda clients, logger=console_logger: build_council_sim(clients=clients, event_logger=logger),
         default_turns=120,
     ),
     "village_scene": SceneSpec(
@@ -636,5 +873,9 @@ SCENES: Dict[str, SceneSpec] = {
     "werewolf_scene": SceneSpec(
         builder=lambda clients, logger=console_logger: build_werewolf_sim(clients, event_logger=logger),
         default_turns=400,
+    ),
+    "contagion_scene": SceneSpec(
+        builder=lambda clients, logger=console_logger: build_contagion_sim(clients, event_logger=logger),
+        default_turns=100,  # Enough turns to observe full spread cycle
     ),
 }
