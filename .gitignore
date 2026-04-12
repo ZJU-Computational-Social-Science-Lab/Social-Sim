@@ -191,10 +191,15 @@ artifacts/**/*.mp4
 /temp_doc_content.txt
 /depth
 /claude
+/validate_agents.py
+/verify_fix.py
+/test_action_validation.py
+/test_coordination_manual.py
+/*temp_sim_wizard.tsx
 /tsc-errors.txt
 /.codex-merge-backup/
 /INTEGRATION_TEST_REPORT.md
 /package-lock.json
 /Social-Sim1/
-/stitch/test*.html
+/stitch/
 /frontend/public/test-modal.html
