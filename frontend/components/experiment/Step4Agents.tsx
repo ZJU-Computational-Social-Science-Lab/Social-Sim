@@ -12,147 +12,29 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search } from 'lucide-react';
 import { useExperimentBuilder, ManualAgentType, LLMProvider } from '../../store/experiment-builder';
 import { generateAgentsWithDemographics, isZh } from '../../store/helpers';
 import { Step2DemographicsEditor, Demographic, Archetype, TraitConfig } from '../wizard/Step2DemographicsEditor';
 import type { Agent } from '../../types';
 import { Button } from '../ui/button';
 import { buildAgentCollections } from '../../utils/agentCollections';
-import { FieldBlock } from './workflow/FieldBlock';
-import { ParticipantCard } from './workflow/ParticipantCard';
+import { Step4AgentRegistryPanel } from './step4Agents/Step4AgentRegistryPanel';
 import { ResearchInputPanel } from './workflow/ResearchInputPanel';
-import { SummaryInfoCard } from './workflow/SummaryInfoCard';
-
-type TierValue = string;
-
-// =============================================================================
-// Helper Functions
-// =============================================================================
-
-const generateId = () => `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-const normalizeTierValue = (value: string): TierValue => {
-  const normalized = value.toLowerCase().replace(/[\s_-]/g, '');
-  if (normalized.includes('top') || normalized.includes('high') || value.includes('高层')) return 'top';
-  if (normalized.includes('mid') || normalized.includes('middle') || value.includes('中层')) return 'mid';
-  if (normalized.includes('low') || normalized.includes('base') || value.includes('基层')) return 'low';
-  return '';
-};
-
-const inferTierFromAgent = (agent: Partial<ManualAgentType>): TierValue => {
-  const explicitTier = normalizeTierValue(String(agent.properties?.tier || ''));
-  if (explicitTier) return explicitTier;
-  return normalizeTierValue([
-    agent.label || '',
-    agent.rolePrompt || '',
-    agent.userProfile || '',
-  ].join(' '));
-};
-
-const parseTierOrder = (rawValue: unknown): string[] => {
-  const values = Array.isArray(rawValue)
-    ? rawValue.map((item) => String(item).trim())
-    : String(rawValue || 'top, mid, low')
-      .split(/[\n,，]+/)
-      .map((item) => item.trim());
-
-  const cleaned: string[] = [];
-  const seen = new Set<string>();
-  values.forEach((value) => {
-    if (!value) return;
-    const key = value.toLowerCase();
-    if (seen.has(key)) return;
-    seen.add(key);
-    cleaned.push(value);
-  });
-  return cleaned.length > 0 ? cleaned : ['top', 'mid', 'low'];
-};
-
-const inferOrderedTier = (agent: Partial<ManualAgentType>, tierOrder: string[]): string => {
-  const explicit = String(agent.properties?.tier || '').trim();
-  if (explicit) {
-    const matched = tierOrder.find((tier) => tier.toLowerCase() === explicit.toLowerCase());
-    if (matched) return matched;
-  }
-
-  const profileTier = String(agent.properties?.['政治职位层级'] || '').trim();
-  if (profileTier) {
-    const matched = tierOrder.find((tier) => tier.toLowerCase() === profileTier.toLowerCase());
-    if (matched) return matched;
-  }
-
-  const normalizedTier = inferTierFromAgent(agent);
-  if (!normalizedTier) return '';
-  const matched = tierOrder.find((tier) => normalizeTierValue(tier) === normalizedTier);
-  return matched || '';
-};
-
-const defaultTierName = (index: number): string => {
-  if (index === 0) return 'top';
-  if (index === 1) return 'mid';
-  if (index === 2) return 'low';
-  return `level_${index + 1}`;
-};
-
-const resizeTierOrder = (current: string[], count: number): string[] => {
-  const nextCount = Math.max(2, count || 2);
-  const next: string[] = [];
-  for (let i = 0; i < nextCount; i += 1) {
-    next.push(current[i] || defaultTierName(i));
-  }
-  return next;
-};
-
-const isPolicyCascadeScenario = (scenarioId: string, scenarioName: string): boolean => {
-  return (
-    scenarioId === 'policy_diffusion' ||
-    scenarioId === 'policyDiffusion' ||
-    scenarioName.includes('policy') ||
-    scenarioName.includes('政策')
-  );
-};
-
-// Generate archetypes from demographics (cross-product)
-const generateArchetypes = (demographics: Demographic[]): Archetype[] => {
-  if (demographics.length === 0) return [];
-
-  let combinations: Record<string, string>[] = demographics[0].categories.map((cat) => ({
-    [demographics[0].name]: cat,
-  }));
-
-  for (let i = 1; i < demographics.length; i++) {
-    const demo = demographics[i];
-    const newCombos: Record<string, string>[] = [];
-    for (const combo of combinations) {
-      for (const cat of demo.categories) {
-        newCombos.push({ ...combo, [demo.name]: cat });
-      }
-    }
-    combinations = newCombos;
-  }
-
-  const equalProb = 1 / combinations.length;
-  return combinations.map((attrs, idx) => ({
-    id: `arch_${idx}`,
-    attributes: attrs,
-    label: Object.entries(attrs)
-      .map(([k, v]) => `${k}: ${v}`)
-      .join(' | '),
-    probability: equalProb,
-  }));
-};
-
-const focusStepFourElement = (elementId: string) => {
-  const element = document.getElementById(elementId);
-  if (!element) return;
-  element.classList.remove('is-guided');
-  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  window.requestAnimationFrame(() => {
-    element.classList.add('is-guided');
-    window.setTimeout(() => element.classList.remove('is-guided'), 1800);
-  });
-};
+import {
+  buildXihuYilianbaoDefaultAgents,
+  buildXihuYilianbaoDefaultNetwork,
+  focusStepFourElement,
+  generateArchetypes,
+  generateId,
+  inferOrderedTier,
+  inferTierFromAgent,
+  isPolicyCascadeScenario,
+  parseTierOrder,
+  resizeTierOrder,
+  type EditablePropertyDraft,
+  type TierValue,
+  XIHU_YILIANBAO_SCENARIO_ID,
+} from './step4Agents/utils';
 
 // =============================================================================
 // Component
@@ -172,6 +54,8 @@ export const Step4Agents: React.FC = () => {
     setSelectedProviderId,
     scenarioParams,
     setScenarioParams,
+    socialNetwork,
+    setSocialNetwork,
     loadProviders,
     getSelectedProviderId,
     selectedScenarioId,
@@ -204,7 +88,7 @@ export const Step4Agents: React.FC = () => {
   const [traits, setTraits] = useState<TraitConfig[]>([
     { id: generateId(), name: 'Trust', mean: 50, std: 15 }
   ]);
-  const [propertyDrafts, setPropertyDrafts] = useState<Record<string, Array<{ id: string; originalKey: string; key: string; value: string }>>>({});
+  const [propertyDrafts, setPropertyDrafts] = useState<Record<string, EditablePropertyDraft[]>>({});
   const [genCount, setGenCount] = useState(5);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedAgents, setGeneratedAgents] = useState<Agent[]>([]);
@@ -216,6 +100,7 @@ export const Step4Agents: React.FC = () => {
   const scenarioId = selectedScenarioData?.id || selectedScenarioId || '';
   const scenarioName = (selectedScenarioData?.name || '').toLowerCase();
   const showTierControls = isPolicyCascadeScenario(scenarioId, scenarioName);
+  const isXihuYilianbaoScenario = scenarioId === XIHU_YILIANBAO_SCENARIO_ID;
   const tierOrder = useMemo(() => parseTierOrder(scenarioParams?.tier_order), [scenarioParams]);
   const cascadeMode = String(scenarioParams?.cascade_mode || 'strict_cascade');
   const tierOrderDraftValid =
@@ -238,6 +123,22 @@ export const Step4Agents: React.FC = () => {
   }, [showTierControls, tierOrder]);
 
   // Initialize demographics on first render
+  useEffect(() => {
+    if (!isXihuYilianbaoScenario) return;
+    if (agentTypes.length === 0) {
+      buildXihuYilianbaoDefaultAgents().forEach(addAgentType);
+    }
+    if (Object.keys(socialNetwork).length === 0) {
+      setSocialNetwork(buildXihuYilianbaoDefaultNetwork());
+    }
+  }, [
+    addAgentType,
+    agentTypes.length,
+    isXihuYilianbaoScenario,
+    setSocialNetwork,
+    socialNetwork,
+  ]);
+
   useEffect(() => {
     if (showTierControls) {
       const alreadyTier = demographics.length === 1 && demographics[0]?.name === '政治职位层级';
@@ -1134,285 +1035,35 @@ export const Step4Agents: React.FC = () => {
         </ResearchInputPanel>
       )}
 
-      {/* Editable Agent List */}
-      <ResearchInputPanel
-        eyebrow={t('experimentBuilder.step4.agentListTitle', { defaultValue: 'Participant registry' })}
-        title={t('experimentBuilder.step4.agentListTitle')}
-        description={t('experimentBuilder.step4.totalAgents', { count: totalAgents })}
-      >
-        <div className="ss-workflow-summary-grid">
-          <SummaryInfoCard
-            label={t('common.agents', { defaultValue: 'Agents' })}
-            value={totalAgents}
-          />
-          <SummaryInfoCard
-            label={t('experimentBuilder.step4.collectionLabel', { defaultValue: 'Collections' })}
-            value={agentCollections.length}
-          />
-          <SummaryInfoCard
-            label={t('simulationWorkspace.provider', { defaultValue: 'Providers' })}
-            value={providerCount}
-          />
-          <SummaryInfoCard
-            label={t('experimentBuilder.step4.sharedPropertyBadge', { defaultValue: 'Shared props' })}
-            value={sharedPropertyCount}
-          />
-        </div>
-
-        {agentTypes.length === 0 ? (
-          <p className="text-sm text-gray-600 text-center py-4">{t('experimentBuilder.step4.noTypes')}</p>
-        ) : (
-          <div id="ss-step4-participant-registry" className="ss-participant-workflow__registry">
-            <aside className="ss-participant-workflow__directory">
-              <div className="ss-participant-workflow__search">
-                <Search size={14} className="text-gray-400" />
-                <input
-                  value={agentDirectoryQuery}
-                  onChange={(e) => setAgentDirectoryQuery(e.target.value)}
-                  placeholder={t('experimentBuilder.step4.searchAgents', { defaultValue: 'Search collections or representative profiles' })}
-                  className="w-full bg-transparent text-sm outline-none"
-                />
-              </div>
-
-              <div className="mt-3 space-y-2 max-h-[720px] overflow-y-auto pr-1">
-                {filteredAgentCollections.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-gray-300 bg-white px-4 py-6 text-center text-sm text-gray-500">
-                    {t('experimentBuilder.step4.noDirectoryResults', {
-                      defaultValue: 'No collections match the current search.',
-                    })}
-                  </div>
-                ) : filteredAgentCollections.map((collection) => {
-                  const providerLabel =
-                    llmProviders.find((provider) => provider.id === collection.providerId)?.name ||
-                    t('experimentBuilder.step4.defaultProvider');
-                  const isSelected = selectedCollection?.key === collection.key;
-                  return (
-                    <ParticipantCard
-                      key={collection.key}
-                      onClick={() => setSelectedEditorAgentId(collection.representative.id)}
-                      selected={isSelected}
-                      title={collection.title}
-                      tag={showTierControls && collection.tier ? collection.tier : providerLabel}
-                      description={
-                        collection.representative.userProfile ||
-                        collection.representative.rolePrompt ||
-                        t('experimentBuilder.step4.noProperties')
-                      }
-                      meta={[
-                        t('experimentBuilder.step4.agentsDefined', {
-                          count: collection.count,
-                          defaultValue: '{{count}} agents',
-                        }),
-                        `${collection.propertyCount} ${t('experimentBuilder.step4.properties').toLowerCase()}`,
-                      ]}
-                    />
-                  );
-                })}
-              </div>
-            </aside>
-
-            {selectedEditorAgent ? (
-              <div id="ss-step4-participant-editor" className="ss-participant-workflow__editor">
-                {selectedCollection ? (
-                  <div className="ss-participant-workflow__collection-summary">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <div className="ss-workflow-kicker">
-                          {t('experimentBuilder.step4.collectionLabel', { defaultValue: 'Agent collection' })}
-                        </div>
-                        <div className="mt-1 text-base font-semibold text-slate-900">
-                          {selectedCollection.title}
-                        </div>
-                        <p className="mt-1 text-sm text-slate-600">
-                          {t('experimentBuilder.step4.collectionHint', {
-                            defaultValue: 'The main editor shows one representative profile for this category. Use the roster below if you need to inspect or tweak individual members.',
-                          })}
-                        </p>
-                      </div>
-                      <div className="ss-workflow-summary-grid">
-                        <SummaryInfoCard
-                          label={t('experimentBuilder.step4.collectionMembers', { defaultValue: 'Members' })}
-                          value={selectedCollection.count}
-                        />
-                        <SummaryInfoCard
-                          label={t('experimentBuilder.step4.sharedPropertyBadge', { defaultValue: 'Shared' })}
-                          value={selectedCollection.propertyCount}
-                        />
-                        <SummaryInfoCard
-                          label={t('experimentBuilder.step4.representativeLabel', { defaultValue: 'Representative' })}
-                          value={selectedCollection.representative.label}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="ss-participant-workflow__editor-head">
-                  <img
-                    src={selectedEditorAvatarUrl}
-                    alt={selectedEditorAgent.label}
-                    className="w-12 h-12 rounded-full border border-gray-200 bg-gray-50"
-                  />
-                  <div className="ss-participant-workflow__fields">
-                    <FieldBlock label={t('experimentBuilder.step4.agentName')}>
-                      <input
-                        id="ss-step4-editor-name"
-                        type="text"
-                        value={selectedEditorAgent.label}
-                        onChange={(e) => updateAgentType(selectedEditorAgent.id, { label: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
-                      />
-                    </FieldBlock>
-                    {showTierControls && (
-                      <FieldBlock label={t('experimentBuilder.step4.tier')}>
-                        <select
-                          value={selectedEditorTier}
-                          onChange={(e) => handleUpdateTier(selectedEditorAgent.id, e.target.value as TierValue)}
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
-                        >
-                          <option value="">{t('experimentBuilder.step4.autoDetectTier')}</option>
-                          {tierOrder.map((tierOption) => (
-                            <option key={tierOption} value={tierOption}>{tierOption}</option>
-                          ))}
-                        </select>
-                      </FieldBlock>
-                    )}
-                    <FieldBlock
-                      label={t('experimentBuilder.step4.userProfile')}
-                      className="md:col-span-2"
-                    >
-                      <input
-                        type="text"
-                        value={selectedEditorAgent.userProfile || ''}
-                        onChange={(e) => updateAgentType(selectedEditorAgent.id, { userProfile: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
-                      />
-                    </FieldBlock>
-                    <FieldBlock
-                      label={t('experimentBuilder.step4.rolePrompt')}
-                      helper={t('experimentBuilder.step4.rolePromptHelper', {
-                        defaultValue: '用一句话说明这个群体在实验中的角色、立场或行动倾向。',
-                      })}
-                      className="md:col-span-2"
-                    >
-                      <textarea
-                        value={selectedEditorAgent.rolePrompt || ''}
-                        onChange={(e) => updateAgentType(selectedEditorAgent.id, { rolePrompt: e.target.value })}
-                        rows={4}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
-                      />
-                    </FieldBlock>
-                    <FieldBlock label={t('experimentBuilder.step4.llmProvider')}>
-                      <select
-                        value={selectedEditorAgent.providerId ?? ''}
-                        onChange={(e) => updateAgentType(selectedEditorAgent.id, { providerId: e.target.value ? Number(e.target.value) : null })}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
-                      >
-                        <option value="">{t('experimentBuilder.step4.defaultProvider')}</option>
-                        {llmProviders.map((p) => (
-                          <option key={p.id} value={p.id}>{p.name}{p.model ? ` (${p.model})` : ''}</option>
-                        ))}
-                      </select>
-                    </FieldBlock>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeAgentType(selectedEditorAgent.id)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    {t('experimentBuilder.step4.remove')}
-                  </Button>
-                </div>
-
-                {selectedCollection && selectedCollection.members.length > 1 ? (
-                  <div className="mb-4 rounded-md border border-gray-200 bg-white p-3">
-                    <div className="mb-3 flex items-center justify-between">
-                      <div className="text-xs font-medium text-gray-700">
-                        {t('experimentBuilder.step4.memberRoster', { defaultValue: 'Member roster' })}
-                      </div>
-                      <span className="text-xs text-gray-500">
-                        {t('experimentBuilder.step4.memberRosterHint', {
-                          defaultValue: 'Switch members without reopening the whole category.',
-                        })}
-                      </span>
-                    </div>
-                    <div className="ss-participant-workflow__member-grid">
-                      {selectedCollection.members.map((member) => (
-                        <ParticipantCard
-                          key={member.id}
-                          onClick={() => setSelectedEditorAgentId(member.id)}
-                          selected={member.id === selectedEditorAgent.id}
-                          title={member.label}
-                          description={
-                            member.userProfile ||
-                            member.rolePrompt ||
-                            t('experimentBuilder.step4.noProperties')
-                          }
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="rounded-md bg-gray-50 p-3">
-                  <div className="mb-3 flex items-center justify-between">
-                    <div className="text-xs font-medium text-gray-700">{t('experimentBuilder.step4.properties')}</div>
-                    <Button size="sm" variant="outline" onClick={() => handleAddProperty(selectedEditorAgent.id)}>
-                      {t('experimentBuilder.step4.addProperty')}
-                    </Button>
-                  </div>
-
-                  <div className="space-y-2">
-                    {selectedEditableProperties.length === 0 && (
-                      <div className="text-xs text-gray-500">{t('experimentBuilder.step4.noProperties')}</div>
-                    )}
-                    {selectedEditableProperties.map((item) => (
-                      <div key={item.id} className="grid grid-cols-[1fr_1fr_auto] gap-2">
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={item.key}
-                            onChange={(e) => handleDraftPropertyChange(selectedEditorAgent.id, item.id, 'key', e.target.value)}
-                            onBlur={() => handleCommitPropertyKey(selectedEditorAgent.id, item.id)}
-                            className="w-full px-2 py-1.5 pr-14 text-sm border border-gray-300 rounded bg-white"
-                          />
-                          {(sharedPropertyOwners[item.originalKey] || []).length > 1 && (
-                            <span
-                              title={t('experimentBuilder.step4.sharedPropertyTooltip', {
-                                key: item.originalKey,
-                                agents: sharedPropertyOwners[item.originalKey].join('、'),
-                              })}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 rounded bg-[rgba(47,230,166,0.14)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--ss-brand-primary)] cursor-help"
-                            >
-                              {t('experimentBuilder.step4.sharedPropertyBadge')}
-                            </span>
-                          )}
-                        </div>
-                        <input
-                          type="text"
-                          value={item.value}
-                          onChange={(e) => handleDraftPropertyChange(selectedEditorAgent.id, item.id, 'value', e.target.value)}
-                          onBlur={() => handleCommitPropertyValue(selectedEditorAgent.id, item.id)}
-                          className="px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveProperty(selectedEditorAgent.id, item.originalKey)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          {t('experimentBuilder.step4.remove')}
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        )}
-      </ResearchInputPanel>
+      <Step4AgentRegistryPanel
+        t={t}
+        totalAgents={totalAgents}
+        agentTypes={agentTypes}
+        agentCollections={agentCollections}
+        providerCount={providerCount}
+        sharedPropertyCount={sharedPropertyCount}
+        filteredAgentCollections={filteredAgentCollections}
+        selectedCollection={selectedCollection}
+        selectedEditorAgent={selectedEditorAgent}
+        selectedEditorAvatarUrl={selectedEditorAvatarUrl}
+        selectedEditorTier={selectedEditorTier}
+        selectedEditableProperties={selectedEditableProperties}
+        sharedPropertyOwners={sharedPropertyOwners}
+        llmProviders={llmProviders}
+        tierOrder={tierOrder}
+        showTierControls={showTierControls}
+        agentDirectoryQuery={agentDirectoryQuery}
+        setAgentDirectoryQuery={setAgentDirectoryQuery}
+        setSelectedEditorAgentId={setSelectedEditorAgentId}
+        updateAgentType={updateAgentType}
+        removeAgentType={removeAgentType}
+        handleUpdateTier={handleUpdateTier}
+        handleAddProperty={handleAddProperty}
+        handleDraftPropertyChange={handleDraftPropertyChange}
+        handleCommitPropertyKey={handleCommitPropertyKey}
+        handleCommitPropertyValue={handleCommitPropertyValue}
+        handleRemoveProperty={handleRemoveProperty}
+      />
 
       {/* File Import */}
       {agentMode === 'import' && (

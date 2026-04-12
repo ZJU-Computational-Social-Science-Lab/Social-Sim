@@ -11,6 +11,7 @@
 
 import { StateCreator } from 'zustand';
 import type { LogEntry } from '../types';
+import type { StoreState } from './storeState';
 
 export interface LogsSlice {
   // State
@@ -24,7 +25,7 @@ export interface LogsSlice {
 }
 
 export const createLogsSlice: StateCreator<
-  LogsSlice,
+  StoreState,
   [],
   [],
   LogsSlice
@@ -35,7 +36,7 @@ export const createLogsSlice: StateCreator<
 
   // Actions
   injectLog: (type, content, imageUrl, audioUrl, videoUrl) => {
-    const selectedNodeId = (get() as any).selectedNodeId;
+    const { selectedNodeId } = get();
     if (!selectedNodeId) return;
 
     const log: LogEntry = {

@@ -11,6 +11,7 @@ export interface EnvironmentSuggestion {
 export interface SuggestionStatus {
   available: boolean;
   turn: number | null;
+  enabled?: boolean;
 }
 
 export async function getSuggestionStatus(simulationId: string): Promise<SuggestionStatus> {
@@ -18,9 +19,9 @@ export async function getSuggestionStatus(simulationId: string): Promise<Suggest
   return response.data;
 }
 
-export async function generateSuggestions(simulationId: string): Promise<{ suggestions: EnvironmentSuggestion[] }> {
+export async function generateSuggestions(simulationId: string): Promise<EnvironmentSuggestion[]> {
   const response = await apiClient.post(`/simulations/${simulationId}/suggestions/generate`);
-  return response.data;
+  return response.data.suggestions;
 }
 
 export async function applyEnvironmentEvent(

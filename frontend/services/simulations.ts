@@ -1,8 +1,8 @@
 // frontend/api/simulations.ts
 
 // 这一部分：给「旧前端」页面用（Dashboard / SavedSimulations 等）
-// 使用 axios backendClient，走后端 /api/simulations 这些接口
-import { apiClient } from "./backendClient";
+// 统一复用 client.ts 中的 axios client，避免重复鉴权/刷新逻辑
+import { apiClient } from "./client";
 
 // 列表类型可以先用 any，后面你想再加类型也可以
 export async function listSimulations(): Promise<any[]> {

@@ -11,10 +11,13 @@
 // Used by: AgentPanel, DemographicsBuilder, any component managing agents
 
 import { StateCreator } from 'zustand';
-import type { Agent, KnowledgeItem, InitialEventItem, LogEntry } from '../types';
+import { applyEnvironmentEvent } from '../services/environmentSuggestions';
+import { applyNodeOverrides } from '../services/simulationTree';
+import type { Agent, KnowledgeItem, InitialEventItem } from '../types';
+import type { StoreState } from './storeState';
 
 async function persistOverrides(
-  get: () => any,
+  get: () => StoreState,
   agentName: string,
   payload: {
     language?: string;
@@ -31,11 +34,10 @@ async function persistOverrides(
   const sim = state.currentSimulation;
   const nodeId = state.selectedNodeId;
   const base = state.engineConfig?.endpoint;
-  const token = (state.engineConfig as any)?.token;
+  const token = state.engineConfig?.token;
 
   if (!sim || nodeId == null || !base) return;
 
-  const { applyNodeOverrides } = await import('../services/simulationTree');
   const nodeNum = Number(nodeId);
   if (!Number.isFinite(nodeNum)) return;
 
@@ -64,7 +66,7 @@ export interface AgentsSlice {
 }
 
 export const createAgentsSlice: StateCreator<
-  AgentsSlice,
+  StoreState,
   [],
   [],
   AgentsSlice
@@ -88,9 +90,7 @@ export const createAgentsSlice: StateCreator<
 
     const agentName = get().agents.find((a) => a.id === agentId)?.name || agentId;
     const agent = get().agents.find((a) => a.id === agentId);
-    // Access injectLog and addNotification via get() - they exist in other slices
-    const injectLog = (get() as any).injectLog;
-    const addNotification = (get() as any).addNotification;
+    const { injectLog, addNotification } = get();
     injectLog?.('HOST_INTERVENTION', `Host 修改了 ${agentName} 的属性 [${property}] 为 ${value}`);
     addNotification?.('success', '智能体属性已更新');
 
@@ -108,8 +108,7 @@ export const createAgentsSlice: StateCreator<
       agents: state.agents.map((a) => (a.id === agentId ? { ...a, profile } : a))
     }));
     const agentName = get().agents.find((a) => a.id === agentId)?.name || agentId;
-    const injectLog = (get() as any).injectLog;
-    const addNotification = (get() as any).addNotification;
+    const { injectLog, addNotification } = get();
     injectLog?.('HOST_INTERVENTION', `Host 更新了 ${agentName} 的个人简介`);
     addNotification?.('success', '智能体简介已更新');
   },
@@ -126,8 +125,7 @@ export const createAgentsSlice: StateCreator<
     }));
     const agentName = get().agents.find((a) => a.id === agentId)?.name || agentId;
     const agent = get().agents.find((a) => a.id === agentId);
-    const injectLog = (get() as any).injectLog;
-    const addNotification = (get() as any).addNotification;
+    const { injectLog, addNotification } = get();
     injectLog?.('HOST_INTERVENTION', `Host 给 ${agentName} 添加了知识: ${item.title}`);
     addNotification?.('success', '知识已添加');
 
@@ -146,7 +144,7 @@ export const createAgentsSlice: StateCreator<
         return a;
       })
     }));
-    const addNotification = (get() as any).addNotification;
+    const { addNotification } = get();
     addNotification?.('success', '知识已移除');
 
     const agent = get().agents.find((a) => a.id === agentId);
@@ -170,7 +168,7 @@ export const createAgentsSlice: StateCreator<
         return a;
       })
     }));
-    const addNotification = (get() as any).addNotification;
+    const { addNotification } = get();
     addNotification?.('success', '知识已更新');
 
     const agent = get().agents.find((a) => a.id === agentId);
@@ -186,20 +184,18 @@ export const createAgentsSlice: StateCreator<
   addInitialEvent: (title, content, imageUrl, audioUrl, videoUrl) => {
     const id = `init-${Date.now()}`;
     const newEvent: InitialEventItem = { id, title, content, imageUrl, audioUrl, videoUrl };
-    const selectedNodeId = (get() as any).selectedNodeId;
-    const logs = (get() as any).logs || [];
+    const { selectedNodeId, logs } = get();
 
     set((state) => ({
       initialEvents: [...(state.initialEvents || []), newEvent]
     }));
 
     // If connected to backend, also broadcast as an environment event so agents receive it
-    const currentSimulation = (get() as any).currentSimulation;
-    const mode = (get() as any).engineConfig?.mode;
+    const { currentSimulation, engineConfig } = get();
+    const mode = engineConfig?.mode;
     if (mode === 'connected' && currentSimulation?.id) {
       (async () => {
         try {
-          const { applyEnvironmentEvent } = await import('../services/environmentSuggestions');
           await applyEnvironmentEvent(currentSimulation.id, {
             event_type: 'initial_event',
             description: `[初始事件] ${title}\n${content}`,
@@ -207,14 +203,14 @@ export const createAgentsSlice: StateCreator<
           });
         } catch (e) {
           console.error('Failed to broadcast initial event', e);
-          const addNotification = (get() as any).addNotification;
+          const { addNotification } = get();
           addNotification?.('error', '初始事件广播失败');
         }
       })();
     }
 
     // Also add to logs via the logs slice
-    const setLogs = (get() as any).setLogs;
+    const { setLogs } = get();
     if (setLogs && selectedNodeId) {
       setLogs([
         ...logs,
@@ -234,7 +230,7 @@ export const createAgentsSlice: StateCreator<
       ]);
     }
 
-    const addNotification = (get() as any).addNotification;
+    const { addNotification } = get();
     addNotification?.('success', '初始事件已保存');
   }
 });

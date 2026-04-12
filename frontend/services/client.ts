@@ -1,6 +1,6 @@
 // frontend/api/client.ts
 
-import axios from "axios";
+import axios, { type Method } from "axios";
 import { useAuthStore } from "../store/auth";
 import { getApiBase } from "./base";
 
@@ -8,7 +8,6 @@ import { getApiBase } from "./base";
  * 统一的后端基础 URL（例如 http://localhost:8000/api）
  */
 export const API_BASE_URL = getApiBase().replace(/\/+$/, "");
-console.log("Api base url is :", API_BASE_URL);
 
 /**
  * 旧前端使用的 axios 客户端，给 Login/Register/Admin/Providers 等用
@@ -38,7 +37,10 @@ const processQueue = (error: any | null, token: string | null = null) => {
 // ---- 拦截器：自动带上 access token，并处理 401 刷新 ----
 apiClient.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
-  if (token) {
+  const hasAuthorizationHeader =
+    Boolean((config.headers as any)?.Authorization) ||
+    Boolean((config.headers as any)?.authorization);
+  if (token && !hasAuthorizationHeader) {
     config.headers = config.headers ?? {};
     (config.headers as any).Authorization = `Bearer ${token}`;
   }
@@ -73,8 +75,9 @@ apiClient.interceptors.response.use(
 
       if (refreshToken) {
         try {
+          const refreshBase = String(originalRequest?.baseURL || `${API_BASE_URL}/`).replace(/\/+$/, "");
           const refreshResponse = await axios.post(
-            `${API_BASE_URL}/auth/token/refresh`,
+            `${refreshBase}/auth/token/refresh`,
             { refresh_token: refreshToken },
           );
           const data = refreshResponse.data as {
@@ -116,14 +119,25 @@ apiClient.interceptors.response.use(
   },
 );
 
-// ---------------------------------------------------------------------
-// 下面是新前端用的轻量 HTTP 工具（保留原有写法，避免其它文件改动）
-// ---------------------------------------------------------------------
+const normalizeBase = (base: string): string => base.replace(/\/+$/, "");
+const normalizePath = (path: string): string => path.replace(/^\/+/, "");
 
-export function buildUrl(base: string, path: string): string {
-  const b = base.replace(/\/$/, "");
-  const p = path.replace(/^\//, "");
-  return `${b}/${p}`;
+async function requestJson<T>(
+  method: Method,
+  base: string,
+  path: string,
+  body?: any,
+  token?: string,
+): Promise<T> {
+  const response = await apiClient.request<T>({
+    method,
+    baseURL: `${normalizeBase(base)}/`,
+    url: normalizePath(path),
+    data: body,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+
+  return (response.data === '' ? undefined : response.data) as T;
 }
 
 export async function httpGet<T>(
@@ -131,15 +145,7 @@ export async function httpGet<T>(
   path: string,
   token?: string,
 ): Promise<T> {
-  const url = buildUrl(base, path);
-  const effectiveToken = token ?? useAuthStore.getState().accessToken ?? undefined;
-  const res = await fetch(url, {
-    method: "GET",
-    headers: effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : undefined,
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return (await res.json()) as T;
+  return requestJson<T>("GET", base, path, undefined, token);
 }
 
 export async function httpPost<T>(
@@ -148,19 +154,7 @@ export async function httpPost<T>(
   body?: any,
   token?: string,
 ): Promise<T> {
-  const url = buildUrl(base, path);
-  const effectiveToken = token ?? useAuthStore.getState().accessToken ?? undefined;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : {}),
-    },
-    body: body != null ? JSON.stringify(body) : undefined,
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return (await res.json()) as T;
+  return requestJson<T>("POST", base, path, body, token);
 }
 
 export async function httpDelete<T>(
@@ -168,16 +162,7 @@ export async function httpDelete<T>(
   path: string,
   token?: string,
 ): Promise<T> {
-  const url = buildUrl(base, path);
-  const effectiveToken = token ?? useAuthStore.getState().accessToken ?? undefined;
-  const res = await fetch(url, {
-    method: "DELETE",
-    headers: effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : undefined,
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  const text = await res.text();
-  return text ? (JSON.parse(text) as T) : (undefined as unknown as T);
+  return requestJson<T>("DELETE", base, path, undefined, token);
 }
 
 /**

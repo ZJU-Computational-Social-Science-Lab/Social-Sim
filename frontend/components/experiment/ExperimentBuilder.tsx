@@ -1,5 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 import { useExperimentBuilder } from "../../store/experiment-builder";
 import { Step1InteractionType } from "./Step1InteractionType";
@@ -27,18 +28,23 @@ import {
   JUMP_THEN_FOCUS_DELAY_MS,
 } from "./workflow/constants";
 import {
+  getExperimentBuilderActionBarState,
+  getExperimentBuilderNotebookProps,
+  type ExperimentBuilderStepId,
+} from "./workflow/experimentBuilderView";
+import {
   focusStepTwoTarget,
   focusStepFourTarget,
   focusStepFiveTarget,
   focusStepSixTarget,
   focusGuideElement,
 } from "./workflow/guideHelpers";
-import { getEdgeCount } from "./workflow/networkUtils";
 import { summarizeActionStructure } from "./workflow/summarizeActionStructure";
 import { useBuilderNavigation, useDismissedHints } from "./workflow/useBuilderNavigation";
 import { useGuideIdleState } from "./workflow/useGuideIdleState";
+import { getLocalizedScenarioName } from "../../utils/scenarioLocalization";
 
-type StepId = 1 | 2 | 3 | 4 | 5 | 6;
+type StepId = ExperimentBuilderStepId;
 
 interface ExperimentBuilderProps {
   onComplete: () => void;
@@ -68,8 +74,7 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
   onCancel,
 }) => {
   const { t, i18n } = useTranslation();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _reactRouterNavigate = () => { /* navigate is provided via useBuilderNavigation hook */ };
+  const navigate = useNavigate();
   const isZh = i18n.language.startsWith("zh");
   const {
     currentStep,
@@ -79,7 +84,6 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
     validate,
     selectedScenarioId,
     selectedScenarioData,
-    scenarioDescription,
     scenarioParams,
     availableActions,
     selectedActionIds,
@@ -97,20 +101,6 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
       workflowSubtitle: isZh
         ? "沿着 6 个步骤逐步完成实验设计。"
         : "Move through six steps to set up the study.",
-      notebookTitle: isZh ? "实验摘要" : "Research notebook",
-      notebookSubtitle: isZh
-        ? "这里不做伪智能评分，只保留当前草稿、已完成项、待补充项和一条真正有用的建议。"
-        : "Track the draft, completed items, missing inputs, and one useful next suggestion.",
-      notebookStatus: isZh
-        ? `当前草稿 · 第 ${currentStep} 步 / 共 6 步`
-        : `Current draft · Step ${currentStep} of 6`,
-      completedTitle: isZh ? "已完成项" : "Completed",
-      pendingTitle: isZh ? "待补充项" : "Needs input",
-      suggestionTitle: isZh ? "下一步建议" : "Suggestion",
-      summaryScenario: isZh ? "研究场景" : "Scenario",
-      summaryParticipants: isZh ? "参与者" : "Participants",
-      summaryActions: isZh ? "行为规则" : "Heuristics",
-      summaryStructure: isZh ? "关系结构" : "Structure",
       actionPrev: isZh ? "上一步" : "Previous",
       actionSave: isZh ? "保存草稿" : "Save draft",
       actionNextQuestion: isZh ? "继续下一步" : "Continue",
@@ -119,7 +109,7 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
       actionNeedCurrent: isZh ? "先补全当前步骤" : "Complete this step first",
       saveStatePrefix: isZh ? "草稿已保存" : "Draft saved",
     }),
-    [currentStep, isZh]
+    [isZh]
   );
 
   const workflowSteps = React.useMemo<WorkflowSidebarStep[]>(
@@ -168,7 +158,6 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
   const namedParticipantTypes = agentTypes.filter((agent) => agent.label.trim().length > 0).length;
   const hasParticipantType = agentTypes.length > 0;
   const hasNamedParticipantType = namedParticipantTypes > 0;
-  const networkEdges = React.useMemo(() => getEdgeCount(socialNetwork), [socialNetwork]);
   const structureConfirmed = Object.keys(socialNetwork).length > 0;
   const fallbackProviderId =
     agentTypes.find((agent) => agent.providerId !== null)?.providerId ?? null;
@@ -188,7 +177,8 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
       : turnOrder === "random"
         ? t("experimentDesk.summary.random")
         : t("experimentDesk.summary.fixed");
-  const scenarioName = selectedScenarioData?.name ?? t("experimentDesk.summary.none");
+  const scenarioName =
+    getLocalizedScenarioName(t, selectedScenarioData) || t("experimentDesk.summary.none");
   const templateReady = selectedScenarioId !== null;
   const selectedCustomScenario = selectedScenarioData?.category === "custom";
   const defaultRoundVisibility =
@@ -258,133 +248,8 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
           : currentStep === 4
             ? totalAgents > 0
             : currentStep === 5
-              ? structureConfirmed
-              : launchReady;
-
-  const completedItems = React.useMemo(() => {
-    const items: string[] = [];
-    if (selectedScenarioId) {
-      items.push(isZh ? "已确定研究场景与模板" : "Scenario template selected");
-    }
-    if (scenarioDescription.trim()) {
-      items.push(isZh ? "研究说明已有草稿" : "Research framing drafted");
-    }
-    if (selectedActionIds.length > 0) {
-      items.push(
-        isZh
-          ? `已定义 ${selectedActionIds.length} 条行为规则`
-          : `${selectedActionIds.length} heuristics selected`
-      );
-    }
-    if (totalAgents > 0) {
-      items.push(
-        isZh ? `已录入 ${totalAgents} 位参与者` : `${totalAgents} participants defined`
-      );
-    }
-    if (networkEdges > 0) {
-      items.push(
-        isZh ? `关系结构已包含 ${networkEdges} 条连接` : `${networkEdges} structural links configured`
-      );
-    }
-    return items;
-  }, [isZh, networkEdges, scenarioDescription, selectedActionIds.length, selectedScenarioId, totalAgents]);
-
-  const pendingItems = React.useMemo(() => {
-    const items: string[] = [];
-    if (!selectedScenarioId) {
-      items.push(isZh ? "选择一个研究场景或模板" : "Choose a scenario template");
-    }
-    if (!scenarioDescription.trim()) {
-      items.push(isZh ? "补充研究问题与背景说明" : "Write the research framing");
-    }
-    if (selectedActionIds.length === 0) {
-      items.push(isZh ? "补充至少一条行为规则" : "Select at least one heuristic");
-    }
-    if (totalAgents === 0) {
-      items.push(isZh ? "至少定义一个参与者群体" : "Define at least one participant group");
-    }
-    if (networkEdges === 0) {
-      items.push(isZh ? "设置关系结构或至少一条连接" : "Configure the structure or add a tie");
-    }
-    return items;
-  }, [isZh, networkEdges, scenarioDescription, selectedActionIds.length, selectedScenarioId, totalAgents]);
-
-  const suggestion = React.useMemo(() => {
-    switch (currentStep) {
-      case 1:
-        if (!templateReady) {
-          return isZh
-            ? "先选择一个起始情境；如果需要从空白开始，可以切到“自定义”分类。"
-            : "Choose a starting scenario first. Switch to the custom category if you want to start from scratch.";
-        }
-        return isZh
-          ? "起始情境已选定，可以继续进入下一步。"
-          : "The starting scenario is ready. Continue to the next step.";
-      case 2:
-        return isZh
-          ? "优先补齐关键变量，不必一开始就把所有参数都写满。"
-          : "Start with the key variables before filling every parameter.";
-      case 3:
-        return isZh
-          ? "确保行为规则足够清楚，让研究者能判断每种行动意味着什么。"
-          : "Make the heuristic set explicit enough for researchers to read.";
-      case 4:
-        return isZh
-          ? "先定义群体，再逐个补充代表性成员，不要一开始就铺满所有个体。"
-          : "Define groups first, then refine representative participants.";
-      case 5:
-        return isZh
-          ? "先建立结构摘要，再做必要的局部手动连接。"
-          : "Start with structural summaries, then refine local ties.";
-      default:
-        return isZh
-          ? "逐项确认研究设置是否完整，再启动实验。"
-          : "Confirm the study is complete before launching the run.";
-    }
-  }, [currentStep, isZh, templateReady]);
-
-  const notebookSections = React.useMemo(
-    () => [
-      {
-        title: labels.completedTitle,
-        items:
-          completedItems.length > 0
-            ? completedItems
-            : [isZh ? "当前还没有已完成项。" : "No completed items yet."],
-      },
-      {
-        title: labels.pendingTitle,
-        items:
-          pendingItems.length > 0
-            ? pendingItems
-            : [isZh ? "当前步骤已齐备，可以继续。" : "This step is ready to continue."],
-      },
-      {
-        title: labels.suggestionTitle,
-        items: [suggestion],
-      },
-    ],
-    [
-      completedItems,
-      isZh,
-      labels.completedTitle,
-      labels.pendingTitle,
-      labels.suggestionTitle,
-      pendingItems,
-      suggestion,
-    ]
-  );
-
-  const notebookSummary = (
-    <div className="ss-workflow-summary-grid">
-      <SummaryInfoCard label={labels.summaryScenario} value={scenarioName} />
-      <SummaryInfoCard label={labels.summaryParticipants} value={totalAgents} />
-      <SummaryInfoCard label={labels.summaryActions} value={selectedActionIds.length} />
-      <SummaryInfoCard label={labels.summaryStructure} value={networkEdges} helper={scheduleLabel} />
-      <SummaryInfoCard label={t("simulationWorkspace.provider")} value={providerLabel} />
-      <SummaryInfoCard label={t("experimentDesk.summary.schedule")} value={scheduleLabel} />
-    </div>
-  );
+            ? structureConfirmed
+            : launchReady;
 
   const stepTwoTasks = React.useMemo(
     () => [
@@ -504,6 +369,8 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
     ],
     [actionsReady, isZh, minimumActionCount, selectedActionIds]
   );
+  const stepTwoCompletedCount = stepTwoTasks.filter((task) => task.done).length;
+  const stepThreeCompletedCount = stepThreeTasks.filter((task) => task.done).length;
 
   const stepThreeSections = React.useMemo(
     () => [
@@ -719,6 +586,56 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
     ),
     [isZh, scenarioName]
   );
+  const notebookPanelProps = React.useMemo(() => {
+    if (currentStep === 1) {
+      return null;
+    }
+
+    return getExperimentBuilderNotebookProps({
+      currentStep,
+      isZh,
+      templateReady,
+      totalAgents,
+      structureConfirmed,
+      hasParticipantType,
+      hasNamedParticipantType,
+      launchReady,
+      launchProviderReady,
+      launchCompletedCount,
+      stepTwoCompletedCount,
+      stepThreeCompletedCount,
+      stepTwoSections,
+      stepThreeSections,
+      stepFourSections,
+      stepFiveSections,
+      stepSixSections,
+      stepTwoSummaryCards,
+      stepFourSummaryCards,
+      stepSixSummaryCards,
+    });
+  }, [
+    currentStep,
+    hasNamedParticipantType,
+    hasParticipantType,
+    isZh,
+    launchCompletedCount,
+    launchMissingItems.length,
+    launchProviderReady,
+    launchReady,
+    stepFiveSections,
+    stepFourSections,
+    stepFourSummaryCards,
+    stepSixSections,
+    stepSixSummaryCards,
+    stepThreeCompletedCount,
+    stepThreeSections,
+    stepTwoCompletedCount,
+    stepTwoSections,
+    stepTwoSummaryCards,
+    structureConfirmed,
+    templateReady,
+    totalAgents,
+  ]);
 
   const stepOneTasks = React.useMemo<GuideTask[]>(
     () => [
@@ -1431,6 +1348,20 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
       })}`
     );
   };
+  const actionBarState = getExperimentBuilderActionBarState({
+    currentStep,
+    isZh,
+    stepReady,
+    templateReady,
+    scenarioConfigChangeCount,
+    actionsReady,
+    minimumActionCount,
+    stepOneActionHint,
+    launchReady,
+    launchProviderReady,
+    launchMissingCount: launchMissingItems.length,
+    labels,
+  });
 
   return (
     <div className="ss-setup-builder ss-workflow-builder">
@@ -1453,216 +1384,14 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
             saveLabel={labels.actionSave}
             onSave={handleSaveDraft}
             saveState={saveState}
-            primaryLabel={
-              currentStep === 6
-                ? labels.actionLaunch
-                : currentStep === 1
-                  ? labels.actionNextQuestion
-                  : currentStep === 2
-                    ? scenarioConfigChangeCount > 0
-                      ? isZh
-                        ? "继续配置行为规则"
-                        : "Continue to heuristics"
-                      : isZh
-                        ? "保存并进入下一步"
-                        : "Save and continue"
-                    : currentStep === 3
-                      ? actionsReady
-                        ? isZh
-                          ? "继续配置参与者"
-                          : "Continue to participants"
-                        : isZh
-                          ? `至少保留 ${minimumActionCount} 个动作`
-                          : `Keep at least ${minimumActionCount} action${minimumActionCount > 1 ? "s" : ""}`
-                      : currentStep === 5
-                        ? stepReady
-                          ? isZh
-                            ? "进入运行预览"
-                            : "Go to launch preview"
-                          : isZh
-                            ? "请先选择一种关系结构"
-                            : "Choose a structure first"
-                    : stepReady
-                      ? labels.actionNext
-                      : labels.actionNeedCurrent
-            }
+            primaryLabel={actionBarState.primaryLabel}
             onPrimary={handlePrimaryAction}
-            primaryDisabled={
-              currentStep === 1 ? false : !stepReady
-            }
-            hint={
-              currentStep === 1
-                ? stepOneActionHint
-                  : currentStep === 2 && !templateReady
-                    ? isZh
-                      ? "请先确认当前场景。"
-                      : "Please confirm the current scenario first."
-                  : currentStep === 3 && !actionsReady
-                    ? isZh
-                      ? `请至少启用 ${minimumActionCount} 个动作。`
-                      : `Please enable at least ${minimumActionCount} action${minimumActionCount > 1 ? "s" : ""}.`
-                  : currentStep === 5 && !stepReady
-                    ? isZh
-                      ? "请先选择一种关系结构。"
-                      : "Please choose a relationship structure first."
-                  : currentStep === 6 && !launchReady
-                    ? !launchProviderReady
-                      ? isZh
-                        ? "请先配置模型提供商。"
-                        : "Please configure a model provider first."
-                      : isZh
-                        ? `请先补齐 ${launchMissingItems.length} 项关键配置。`
-                        : `Please complete the remaining ${launchMissingItems.length} required item(s).`
-                  : null
-            }
+            primaryDisabled={actionBarState.primaryDisabled}
+            hint={actionBarState.hint}
           />
         </div>
 
-        {currentStep !== 1 ? (
-          <ResearchNotebookPanel
-            subtitle={
-              currentStep === 2
-                ? isZh
-                  ? "这里只保留当前步骤、状态与下一步。"
-                  : "Current step, status, and next."
-                : currentStep === 3
-                  ? isZh
-                    ? "这里只保留当前步骤、已启用动作与下一步。"
-                    : "Step status, enabled actions, and next."
-                  : currentStep === 4
-                    ? isZh
-                      ? "这里只保留当前步骤、参与者状态与下一步。"
-                      : "Step status, participant state, and next."
-                    : currentStep === 5
-                      ? isZh
-                        ? "这里只保留当前步骤、结构确认与下一步。"
-                        : "Step status, structure confirmation, and next."
-                      : currentStep === 6
-                        ? isZh
-                          ? "这里只保留启动状态、当前场景与启动后去向。"
-                          : "Launch status, scenario, and what happens next."
-                : labels.notebookSubtitle
-            }
-            title={
-              currentStep === 6
-                ? isZh
-                  ? "启动状态栏"
-                  : "Launch status"
-                : isZh
-                  ? "状态栏"
-                  : "Step status"
-            }
-            status={
-              currentStep === 2
-                ? isZh
-                  ? "关键参数"
-                  : "Key parameters"
-                : currentStep === 3
-                  ? isZh
-                    ? "行为空间"
-                    : "Behavior space"
-                  : currentStep === 4
-                    ? isZh
-                      ? "参与者状态"
-                      : "Participant state"
-                    : currentStep === 5
-                      ? isZh
-                        ? "关系结构"
-                        : "Relationship structure"
-                      : currentStep === 6
-                        ? isZh
-                          ? "启动前确认"
-                          : "Pre-launch review"
-                        : labels.notebookStatus
-            }
-            progress={
-              currentStep === 2
-                ? {
-                    stepLabel: isZh ? "第 2 步 / 共 6 步" : "Step 2 / 6",
-                    completionLabel: isZh
-                      ? `已完成 ${stepTwoTasks.filter((task) => task.done).length} / 3 项`
-                      : `${stepTwoTasks.filter((task) => task.done).length} / 3 done`,
-                  }
-                : currentStep === 3
-                  ? {
-                      stepLabel: isZh ? "第 3 步 / 共 6 步" : "Step 3 / 6",
-                      completionLabel: isZh
-                        ? `已完成 ${stepThreeTasks.filter((task) => task.done).length} / 2 项`
-                        : `${stepThreeTasks.filter((task) => task.done).length} / 2 done`,
-                    }
-                  : currentStep === 4
-                    ? {
-                        stepLabel: isZh ? "第 4 步 / 共 6 步" : "Step 4 / 6",
-                        completionLabel: isZh
-                          ? `已完成 ${[hasParticipantType, hasNamedParticipantType].filter(Boolean).length} / 2 项`
-                          : `${[hasParticipantType, hasNamedParticipantType].filter(Boolean).length} / 2 done`,
-                      }
-                  : currentStep === 5
-                    ? {
-                        stepLabel: isZh ? "第 5 步 / 共 6 步" : "Step 5 / 6",
-                        completionLabel: isZh
-                          ? `已完成 ${[templateReady, totalAgents > 0, structureConfirmed].filter(Boolean).length} / 3 项`
-                          : `${[templateReady, totalAgents > 0, structureConfirmed].filter(Boolean).length} / 3 done`,
-                      }
-                    : currentStep === 6
-                      ? {
-                          stepLabel: isZh ? "第 6 步 / 共 6 步" : "Step 6 / 6",
-                          completionLabel: launchReady
-                            ? isZh
-                              ? "可启动"
-                              : "Ready to launch"
-                            : !launchProviderReady
-                              ? isZh
-                                ? "需配置模型"
-                                : "Provider required"
-                              : isZh
-                                ? `已完成 ${launchCompletedCount} / 5 项`
-                                : `${launchCompletedCount} / 5 done`,
-                        }
-                : undefined
-            }
-            sections={
-              currentStep === 2
-                ? stepTwoSections
-                : currentStep === 3
-                  ? stepThreeSections
-                  : currentStep === 4
-                    ? stepFourSections
-                  : currentStep === 5
-                    ? stepFiveSections
-                    : currentStep === 6
-                      ? stepSixSections
-                  : notebookSections
-            }
-            summaryCards={
-              currentStep === 2
-                ? stepTwoSummaryCards
-                : currentStep === 3
-                  ? null
-                  : currentStep === 4
-                    ? stepFourSummaryCards
-                  : currentStep === 5
-                    ? null
-                    : currentStep === 6
-                      ? stepSixSummaryCards
-                  : notebookSummary
-            }
-            tip={
-              currentStep === 2 ||
-              currentStep === 3 ||
-              currentStep === 4 ||
-              currentStep === 5 ||
-              currentStep === 6
-                ? null
-                : {
-                    title: isZh ? "当前模板摘要" : "Current template summary",
-                    body: isZh
-                      ? `${scenarioName} · ${providerLabel} · ${scheduleLabel}`
-                      : `${scenarioName} · ${providerLabel} · ${scheduleLabel}`,
-                  }
-            }
-          />
-        ) : null}
+        {notebookPanelProps ? <ResearchNotebookPanel {...notebookPanelProps} /> : null}
 
         {(currentStep <= 6) && guidePopoverConfig ? (
           <div className="ss-guide-system">

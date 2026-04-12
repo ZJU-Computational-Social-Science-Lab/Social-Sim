@@ -10,8 +10,17 @@
 // Used by: EnvironmentSuggestion, SimulationPage, host controls
 
 import { StateCreator } from 'zustand';
-import type { EnvironmentSuggestion } from '../services/environmentSuggestions';
-import type { LogEntry, Agent } from '../types';
+import {
+  apiClient,
+} from '../services/client';
+import {
+  applyEnvironmentEvent,
+  dismissSuggestions,
+  generateSuggestions,
+  getSuggestionStatus,
+  type EnvironmentSuggestion,
+} from '../services/environmentSuggestions';
+import type { StoreState } from './storeState';
 
 export interface EnvironmentSlice {
   // State
@@ -24,12 +33,12 @@ export interface EnvironmentSlice {
   checkEnvironmentSuggestions: () => Promise<void>;
   generateEnvironmentSuggestions: () => Promise<void>;
   applyEnvironmentSuggestion: (suggestion: EnvironmentSuggestion) => Promise<void>;
-  dismissEnvironmentSuggestions: () => void;
+  dismissEnvironmentSuggestions: () => Promise<void>;
   toggleEnvironmentEnabled: () => Promise<void>;
 }
 
 export const createEnvironmentSlice: StateCreator<
-  EnvironmentSlice,
+  StoreState,
   [],
   [],
   EnvironmentSlice
@@ -42,11 +51,10 @@ export const createEnvironmentSlice: StateCreator<
 
   // Actions
   checkEnvironmentSuggestions: async () => {
-    const currentSimulation = (get() as any).currentSimulation;
+    const { currentSimulation } = get();
     if (!currentSimulation?.id) return;
 
     try {
-      const { getSuggestionStatus } = await import('../services/environmentSuggestions');
       const status = await getSuggestionStatus(currentSimulation.id);
 
       set({
@@ -59,16 +67,13 @@ export const createEnvironmentSlice: StateCreator<
   },
 
   generateEnvironmentSuggestions: async () => {
-    const currentSimulation = (get() as any).currentSimulation;
+    const { currentSimulation } = get();
     if (!currentSimulation?.id) return;
 
     set({ environmentSuggestionsLoading: true });
 
     try {
-      const { generateSuggestions } = await import('../services/environmentSuggestions');
-      const logs = (get() as any).logs || [];
-      const agents = (get() as any).agents || [];
-      const suggestions = await generateSuggestions(currentSimulation.id, logs, agents);
+      const suggestions = await generateSuggestions(currentSimulation.id);
 
       set({
         environmentSuggestions: suggestions,
@@ -78,61 +83,63 @@ export const createEnvironmentSlice: StateCreator<
     } catch (e) {
       console.error('Failed to generate environment suggestions', e);
       set({ environmentSuggestionsLoading: false });
-      const addNotification = (get() as any).addNotification;
+      const { addNotification } = get();
       addNotification?.('error', '生成环境事件建议失败');
     }
   },
 
   applyEnvironmentSuggestion: async (suggestion) => {
-    const currentSimulation = (get() as any).currentSimulation;
+    const { currentSimulation } = get();
     if (!currentSimulation?.id) return;
 
     try {
-      const { applyEnvironmentEvent } = await import('../services/environmentSuggestions');
       await applyEnvironmentEvent(currentSimulation.id, suggestion);
 
       // Inject as a log entry
-      const selectedNodeId = (get() as any).selectedNodeId;
-      const injectLog = (get() as any).injectLog;
+      const { selectedNodeId, injectLog } = get();
       if (selectedNodeId && injectLog) {
         injectLog(
           'ENVIRONMENT',
-          `[环境事件] ${suggestion.event}\n原因: ${suggestion.reason || ''}`
+          `[环境事件] ${suggestion.description}`
         );
       }
 
       set({ environmentSuggestions: [] });
-      const addNotification = (get() as any).addNotification;
+      const { addNotification } = get();
       addNotification?.('success', '环境事件已应用');
     } catch (e) {
       console.error('Failed to apply environment suggestion', e);
-      const addNotification = (get() as any).addNotification;
+      const { addNotification } = get();
       addNotification?.('error', '应用环境事件失败');
     }
   },
 
-  dismissEnvironmentSuggestions: () => {
+  dismissEnvironmentSuggestions: async () => {
+    const { currentSimulation } = get();
     set({ environmentSuggestions: [] });
+
+    if (!currentSimulation?.id) return;
+
+    await dismissSuggestions(currentSimulation.id);
   },
 
   toggleEnvironmentEnabled: async () => {
-    const currentSimulation = (get() as any).currentSimulation;
+    const { currentSimulation, environmentEnabled } = get();
     if (!currentSimulation?.id) return;
 
-    const newState = !get().environmentEnabled;
+    const newState = !environmentEnabled;
 
     try {
-      const { apiClient } = await import('../services/client');
       await apiClient.patch(`simulations/${currentSimulation.id}`, {
         scene_config: { environment_enabled: newState }
       });
 
       set({ environmentEnabled: newState });
-      const addNotification = (get() as any).addNotification;
+      const { addNotification } = get();
       addNotification?.('success', newState ? '环境事件已启用' : '环境事件已禁用');
     } catch (e) {
       console.error('Failed to toggle environment', e);
-      const addNotification = (get() as any).addNotification;
+      const { addNotification } = get();
       addNotification?.('error', '切换环境事件状态失败');
     }
   }

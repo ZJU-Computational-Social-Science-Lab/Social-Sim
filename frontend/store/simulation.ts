@@ -23,7 +23,19 @@ import type {
   SocialNetwork
 } from '../types';
 import { SYSTEM_TEMPLATES, generateNodes, mapGraphToNodes, DEFAULT_TIME_CONFIG, mapBackendEventsToLogs } from './helpers';
+import { buildSerializedSnapshot, mapBackendAgents, withSimulationSocialNetwork } from '../services/simulationSnapshots';
+import {
+  createSimulation,
+  deleteSimulation as deleteSimulationApi,
+  getSimulation,
+  listSimulations,
+  resetSimulation as resetSimulationApi,
+  startSimulation,
+  updateSimulation as updateSimulationApi,
+} from '../services/simulations';
+import { getRehydrate, getSimEvents, getSimState, getTreeGraph } from '../services/simulationTree';
 import i18n from '../i18n';
+import type { StoreState } from './storeState';
 
 const ENGINE_MODE_STORAGE_KEY = 'socialsim4.engine-mode';
 
@@ -65,7 +77,7 @@ export interface SimulationSlice {
 }
 
 export const createSimulationSlice: StateCreator<
-  SimulationSlice,
+  StoreState,
   [],
   [],
   SimulationSlice
@@ -96,8 +108,7 @@ export const createSimulationSlice: StateCreator<
 
   loadSimulations: async () => {
     try {
-      const { getSimulations } = await import('../services/simulations');
-      const simulations = await getSimulations();
+      const simulations = await listSimulations();
       set({ simulations });
     } catch (e) {
       console.error('Failed to load simulations', e);
@@ -109,13 +120,11 @@ export const createSimulationSlice: StateCreator<
 
     const state = get();
     const base = state.engineConfig.endpoint;
-    const token = (state.engineConfig as any).token;
+    const token = state.engineConfig.token;
 
     try {
-      const { getSimulation } = await import('../services/simulations');
-      const { getTreeGraph, getSimState, getSimEvents, getRehydrate } = await import('../services/simulationTree');
-
-      const sim = await getSimulation(id);
+      const sim = withSimulationSocialNetwork(await getSimulation(id));
+      const getNodeName = (nodeId: number | string) => i18n.t('simPage.nodeId', { id: nodeId });
 
       const graph = await getTreeGraph(base, id, token).catch(() => null);
 
@@ -148,34 +157,12 @@ export const createSimulationSlice: StateCreator<
 
         if (simState) {
           const turnVal = Number(simState?.turns ?? 0) || 0;
-          const agents = (simState?.agents || []).map((a: any, idx: number) => {
-            const fallbackRole = a.properties && (a.properties.role || a.properties.title || a.properties.position);
-            const fallbackProfile = a.profile || a.user_profile || a.userProfile || (a.properties && (a.properties.profile || a.properties.description)) || '';
-            return {
-              id: `a-${idx}-${a.name}`,
-              name: a.name,
-              role: a.role || fallbackRole || '',
-              avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
-              profile: fallbackProfile,
-              llmConfig: a.llmConfig || { provider: 'mock', model: 'default' },
-              properties: a.properties || {},
-              history: {},
-              memory: (a.short_memory || []).map((m: any, j: number) => ({
-                id: `m-${idx}-${j}`,
-                round: turnVal,
-                content: String(m.content ?? ''),
-                type: (String(m.role ?? '') === 'assistant' || String(m.role ?? '') === 'user') ? 'dialogue' : 'observation',
-                timestamp: new Date().toISOString()
-              })),
-              knowledgeBase: a.knowledgeBase || []
-            };
-          });
-
-          const socialNetwork = simState?.scene_config?.social_network || (sim as any).scene_config?.social_network || {};
+          const agents = mapBackendAgents(simState?.agents || [], turnVal);
+          const socialNetwork = simState?.scene_config?.social_network || sim.socialNetwork || {};
           const logs = mapBackendEventsToLogs(events || [], selectedId, turnVal, agents, true);
 
           set({
-            currentSimulation: { ...sim, socialNetwork },
+            currentSimulation: withSimulationSocialNetwork(sim, socialNetwork),
             nodes,
             selectedNodeId: selectedId,
             agents,
@@ -190,65 +177,13 @@ export const createSimulationSlice: StateCreator<
       try {
         const re = await getRehydrate(base, id, token).catch(() => null);
         if (re && typeof re === 'object') {
-          const nodesRaw2 = (re.nodes || []) as any[];
-          const nodes2 = nodesRaw2.map((n: any) => ({
-            id: String(n.id),
-            display_id: String(n.id),
-            parentId: n.parent == null ? null : String(n.parent),
-            name: i18n.t('simPage.nodeId', { id: n.id }),
-            depth: n.depth,
-            isLeaf: (n.depth || 0) === (Math.max(...(nodesRaw2.map((x: any) => x.depth || 0))) || 0),
-            status: 'completed',
-            timestamp: new Date().toLocaleTimeString(),
-            worldTime: new Date().toISOString(),
-            meta: n.meta || {}
-          }));
-
-          let agents2: any[] = [];
-          try {
-            const firstNode = nodesRaw2.find((n: any) => Number(n.id) === Number(nodes2[0]?.id));
-            const simSnap2 = firstNode?.sim || {};
-            const latestAgents2 = simSnap2?.agents || re.agents || [];
-            if (Array.isArray(latestAgents2)) {
-              agents2 = latestAgents2.map((a: any, idx: number) => ({
-                id: `a-${idx}-${a.name}`,
-                name: a.name,
-                role: a.role || (a.properties || {}).role || '',
-                avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
-                profile: '',
-                llmConfig: { provider: 'mock', model: 'default' },
-                properties: a.properties || {},
-                history: {},
-                memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                knowledgeBase: a.knowledgeBase || []
-              }));
-            } else if (latestAgents2 && typeof latestAgents2 === 'object') {
-              agents2 = Object.keys(latestAgents2).map((k: string, idx: number) => {
-                const a = (latestAgents2 as any)[k] || {};
-                return {
-                  id: `a-${idx}-${a.name || k}`,
-                  name: a.name || k,
-                  role: a.role || (a.properties || {}).role || '',
-                  avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || k)}`,
-                  profile: '',
-                  llmConfig: { provider: 'mock', model: 'default' },
-                  properties: a.properties || {},
-                  history: {},
-                  memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                  knowledgeBase: a.knowledgeBase || []
-                };
-              });
-            }
-          } catch (e) {
-            console.warn('rehydrate parsing failed', e);
-          }
-
-          if (nodes2.length > 0) {
+          const snapshot = buildSerializedSnapshot(re, getNodeName);
+          if (snapshot.nodes.length > 0) {
             set({
               currentSimulation: sim,
-              nodes: nodes2,
-              selectedNodeId: nodes2[0]?.id ?? null,
-              agents: agents2,
+              nodes: snapshot.nodes,
+              selectedNodeId: snapshot.selectedNodeId,
+              agents: snapshot.agents,
               rawEvents: [],
               logs: []
             });
@@ -263,75 +198,29 @@ export const createSimulationSlice: StateCreator<
       try {
         const latest = (sim as any).latest_state;
         if (latest && typeof latest === 'object') {
-          const nodesRaw = (latest.nodes || []) as any[];
-          const nodes = nodesRaw.map((n: any) => ({
-            id: String(n.id),
-            display_id: String(n.id),
-            parentId: n.parent == null ? null : String(n.parent),
-            name: i18n.t('simPage.nodeId', { id: n.id }),
-            depth: n.depth,
-            isLeaf: (n.depth || 0) === (Math.max(...(nodesRaw.map((x: any) => x.depth || 0))) || 0),
-            status: 'completed',
-            timestamp: new Date().toLocaleTimeString(),
-            worldTime: new Date().toISOString(),
-            meta: n.meta || {}
-          }));
-
-          let agents: any[] = [];
-          if (Array.isArray(nodesRaw)) {
-            const matched = nodesRaw.find((n: any) => Number(n.id) === Number(nodes[0]?.id));
-            const simSnap = matched?.sim || {};
-            const latestAgents = simSnap?.agents || latest.agents || [];
-            if (latestAgents && typeof latestAgents === 'object') {
-              if (Array.isArray(latestAgents)) {
-                agents = latestAgents.map((a: any, idx: number) => ({
-                  id: `a-${idx}-${a.name}`,
-                  name: a.name,
-                  role: a.role || (a.properties || {}).role || '',
-                  avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
-                  profile: '',
-                  llmConfig: { provider: 'mock', model: 'default' },
-                  properties: a.properties || {},
-                  history: {},
-                  memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                  knowledgeBase: a.knowledgeBase || []
-                }));
-              } else {
-                agents = Object.keys(latestAgents).map((k: string, idx: number) => {
-                  const a = (latestAgents as any)[k] || {};
-                  return {
-                    id: `a-${idx}-${a.name || k}`,
-                    name: a.name || k,
-                    role: a.role || (a.properties || {}).role || '',
-                    avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || k)}`,
-                    profile: '',
-                    llmConfig: { provider: 'mock', model: 'default' },
-                    properties: a.properties || {},
-                    history: {},
-                    memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                    knowledgeBase: a.knowledgeBase || []
-                  };
-                });
-              }
-            }
-          }
-
-          const socialNetwork = latest.social_network || (sim as any).scene_config?.social_network || {};
+          const snapshot = buildSerializedSnapshot(latest, getNodeName);
+          const socialNetwork = latest.social_network || sim.socialNetwork || {};
 
           // Attempt to fetch events for the selected node if numeric
           let events: any[] = [];
-          const selectedNodeNumeric = nodes[0]?.id ? Number(nodes[0].id) : null;
+          const selectedNodeNumeric = snapshot.selectedNodeId ? Number(snapshot.selectedNodeId) : null;
           if (selectedNodeNumeric != null && Number.isFinite(selectedNodeNumeric)) {
             events = await getSimEvents(base, id, selectedNodeNumeric, token).catch(() => []);
           }
 
-          const logs = mapBackendEventsToLogs(events || [], nodes[0]?.id ?? 'root', Number((latest as any)?.turns ?? 0) || 0, agents, true);
+          const logs = mapBackendEventsToLogs(
+            events || [],
+            snapshot.selectedNodeId ?? 'root',
+            snapshot.turn,
+            snapshot.agents,
+            true,
+          );
 
           set({
-            currentSimulation: { ...sim, socialNetwork },
-            nodes,
-            selectedNodeId: nodes[0]?.id ?? null,
-            agents,
+            currentSimulation: withSimulationSocialNetwork(sim, socialNetwork),
+            nodes: snapshot.nodes,
+            selectedNodeId: snapshot.selectedNodeId,
+            agents: snapshot.agents,
             rawEvents: events || [],
             logs
           });
@@ -353,7 +242,7 @@ export const createSimulationSlice: StateCreator<
     } catch (e) {
       console.error('Failed to load simulation by id', e);
       set({ currentSimulation: null, nodes: generateNodes(), selectedNodeId: 'root', agents: [], rawEvents: [] });
-      (get() as any).addNotification?.('error', i18n.t('store.failedToLoadSimulation') || 'Failed to load simulation');
+      get().addNotification?.('error', i18n.t('store.failedToLoadSimulation') || 'Failed to load simulation');
     }
   },
 
@@ -473,11 +362,8 @@ export const createSimulationSlice: StateCreator<
     if (state.engineConfig.mode === 'connected') {
       (async () => {
         try {
-          const { createSimulation, startSimulation } = await import('../services/simulations');
-          const { getTreeGraph } = await import('../services/simulationTree');
-
           const base = state.engineConfig.endpoint;
-          const token = (state.engineConfig as any).token;
+          const token = state.engineConfig.token;
 
           const mapSceneType: Record<string, string> = {
             village: 'village_scene',
@@ -577,7 +463,8 @@ export const createSimulationSlice: StateCreator<
             status: 'active',
             createdAt: new Date().toISOString().split('T')[0],
             timeConfig: finalTimeConfig,
-            socialNetwork: template.defaultNetwork || {}
+            socialNetwork: template.defaultNetwork || {},
+            scene_config: sim.scene_config,
           };
 
           set({
@@ -608,7 +495,6 @@ export const createSimulationSlice: StateCreator<
           }
 
           if (graph && graph.root != null) {
-            const { mapGraphToNodes } = await import('./helpers');
             const nodesMapped = mapGraphToNodes(graph);
             set({
               nodes: nodesMapped,
@@ -619,11 +505,11 @@ export const createSimulationSlice: StateCreator<
           }
 
           // Close the wizard
-          (get() as any).toggleWizard?.(false);
-          (get() as any).addNotification?.('success', t('store.simulationCreated', { name: newSim.name }));
+          get().toggleWizard?.(false);
+          get().addNotification?.('success', t('store.simulationCreated', { name: newSim.name }));
         } catch (e) {
           console.error(e);
-          (get() as any).addNotification?.('error', t('store.failedToCreateSimulation'));
+          get().addNotification?.('error', t('store.failedToCreateSimulation'));
         }
       })();
       return;
@@ -662,7 +548,7 @@ export const createSimulationSlice: StateCreator<
     const currentSim = get().currentSimulation;
     if (!currentSim) return;
 
-    const agents = (get() as any).agents || [];
+    const { agents } = get();
 
     const newTemplate: SimulationTemplate = {
       id: `tpl-${Date.now()}`,
@@ -695,11 +581,10 @@ export const createSimulationSlice: StateCreator<
     if (!currentSim) return;
 
     try {
-      const { updateSimulation: updateSimApi } = await import('../services/simulations');
       // Send social_network inside scene_config, not as a top-level socialNetwork field
       // The SimulationUpdate schema has scene_config field but the frontend was sending
       // a wrong key that gets silently ignored
-      await updateSimApi(currentSim.id, { scene_config: { social_network: network } });
+      await updateSimulationApi(currentSim.id, { scene_config: { social_network: network } });
 
       set((state) => ({
         currentSimulation: state.currentSimulation
@@ -720,11 +605,8 @@ export const createSimulationSlice: StateCreator<
       selectedNodeId: 'root'
     });
 
-    // Clear logs in the logs slice
-    (get() as any).logs = [];
-    (get() as any).rawEvents = [];
-
-    const addNotification = (get() as any).addNotification;
+    set({ logs: [], rawEvents: [] });
+    const { addNotification } = get();
     addNotification?.('info', '已退出当前模拟');
   },
 
@@ -734,10 +616,7 @@ export const createSimulationSlice: StateCreator<
 
     try {
       if (state.engineConfig.mode === 'connected') {
-        const { resetSimulation: resetSimApi } = await import('../services/simulations');
-        await resetSimApi(state.currentSimulation.id);
-
-        const { getTreeGraph } = await import('../services/simulationTree');
+        await resetSimulationApi(state.currentSimulation.id);
         const graph = await getTreeGraph(
           state.engineConfig.endpoint,
           state.currentSimulation.id,
@@ -758,15 +637,12 @@ export const createSimulationSlice: StateCreator<
         });
       }
 
-      // Clear logs
-      (get() as any).logs = [];
-      (get() as any).rawEvents = [];
-
-      const addNotification = (get() as any).addNotification;
+      set({ logs: [], rawEvents: [] });
+      const { addNotification } = get();
       addNotification?.('success', '模拟已重置');
     } catch (e) {
       console.error('resetSimulation failed', e);
-      const addNotification = (get() as any).addNotification;
+      const { addNotification } = get();
       addNotification?.('error', '重置模拟失败');
     }
   },
@@ -777,8 +653,7 @@ export const createSimulationSlice: StateCreator<
 
     try {
       if (state.engineConfig.mode === 'connected') {
-        const { deleteSimulation: deleteSimApi } = await import('../services/simulations');
-        await deleteSimApi(state.currentSimulation.id);
+        await deleteSimulationApi(state.currentSimulation.id);
       }
 
       set({
@@ -787,15 +662,12 @@ export const createSimulationSlice: StateCreator<
         selectedNodeId: 'root'
       });
 
-      // Clear logs
-      (get() as any).logs = [];
-      (get() as any).rawEvents = [];
-
-      const addNotification = (get() as any).addNotification;
+      set({ logs: [], rawEvents: [] });
+      const { addNotification } = get();
       addNotification?.('success', '模拟已删除');
     } catch (e) {
       console.error('deleteSimulation failed', e);
-      const addNotification = (get() as any).addNotification;
+      const { addNotification } = get();
       addNotification?.('error', '删除模拟失败');
     }
   }

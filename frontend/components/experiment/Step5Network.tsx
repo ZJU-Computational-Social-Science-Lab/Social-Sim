@@ -2,15 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import * as d3 from "d3";
 import * as d3Force from "d3-force";
 import {
-  Grid3X3,
-  Layers,
   Maximize,
-  RefreshCw,
-  Search,
-  Share2,
-  Shuffle,
-  SlidersHorizontal,
-  Users,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -21,151 +13,21 @@ import { buildAgentCollections } from "../../utils/agentCollections";
 import { buildNetworkOverview } from "../../utils/networkMetrics";
 import { Button } from "../ui/button";
 import { ResearchInputPanel } from "./workflow/ResearchInputPanel";
+import { ParamSlider } from "./step5Network/ParamSlider";
+import { Step5SelectionSummaryPanel } from "./step5Network/Step5SelectionSummaryPanel";
+import { Step5TemplateLibraryPanel } from "./step5Network/Step5TemplateLibraryPanel";
 import { SummaryInfoCard } from "./workflow/SummaryInfoCard";
-
-type NetworkPresetType =
-  | "full"
-  | "random"
-  | "ring"
-  | "star"
-  | "newman-watts"
-  | "core-periphery"
-  | "holme-kim"
-  | "waxman"
-  | "sbm";
-
-type PresetType = NetworkPresetType | "custom";
-type StepFiveDetailSurface = "overview" | "memberConnections" | null;
-
-interface PresetParams {
-  random: { connectionChance: number };
-  ring: Record<string, never>;
-  star: Record<string, never>;
-  "newman-watts": { neighborsEachSide: number; shortcutChance: number };
-  "core-periphery": {
-    influencerPercent: number;
-    influencerConnectivity: number;
-    influencerReach: number;
-    regularConnectivity: number;
-  };
-  "holme-kim": { newConnections: number; clusteringChance: number };
-  waxman: { maxDistance: number; distanceEffect: number };
-  sbm: { groupSize: number; withinGroupConnectivity: number; bridgeConnections: number };
-}
-
-const presetIcons: Record<
-  PresetType,
-  { icon: React.ElementType; translationKey: string; defaultLabel: string }
-> = {
-  full: { icon: Share2, translationKey: "fully_connected", defaultLabel: "Fully connected" },
-  random: { icon: Shuffle, translationKey: "random", defaultLabel: "Random" },
-  ring: { icon: RefreshCw, translationKey: "ring", defaultLabel: "Ring" },
-  star: { icon: Users, translationKey: "star", defaultLabel: "Star" },
-  "newman-watts": { icon: Grid3X3, translationKey: "small_world", defaultLabel: "Small world" },
-  "core-periphery": {
-    icon: Layers,
-    translationKey: "core_periphery",
-    defaultLabel: "Core-periphery",
-  },
-  "holme-kim": { icon: Share2, translationKey: "scale_free", defaultLabel: "Scale free" },
-  waxman: { icon: Grid3X3, translationKey: "spatial", defaultLabel: "Spatial" },
-  sbm: { icon: Users, translationKey: "communities", defaultLabel: "Communities" },
-  custom: { icon: SlidersHorizontal, translationKey: "custom_structure", defaultLabel: "Custom" },
-};
-
-const visiblePresets: PresetType[] = [
-  "full",
-  "random",
-  "ring",
-  "star",
-  "newman-watts",
-  "core-periphery",
-  "sbm",
-  "custom",
-];
-
-const defaultParams: PresetParams = {
-  random: { connectionChance: 0.3 },
-  ring: {},
-  star: {},
-  "newman-watts": { neighborsEachSide: 2, shortcutChance: 0.1 },
-  "core-periphery": {
-    influencerPercent: 0.2,
-    influencerConnectivity: 0.8,
-    influencerReach: 0.4,
-    regularConnectivity: 0.1,
-  },
-  "holme-kim": { newConnections: 3, clusteringChance: 0.5 },
-  waxman: { maxDistance: 0.5, distanceEffect: 0.5 },
-  sbm: { groupSize: 5, withinGroupConnectivity: 0.6, bridgeConnections: 1 },
-};
-
-const ensureNoIsolatedNodes = (
-  network: Record<string, string[]>,
-  ids: string[]
-): Record<string, string[]> => {
-  if (ids.length <= 1) return network;
-  const next = JSON.parse(JSON.stringify(network)) as Record<string, string[]>;
-  ids.forEach((agentId) => {
-    if ((next[agentId] || []).length > 0) return;
-    const neighbor = ids.find((id) => id !== agentId);
-    if (!neighbor) return;
-    next[agentId] = [neighbor];
-    next[neighbor] = [...(next[neighbor] || []), agentId];
-  });
-  return next;
-};
-
-const emitStepFiveGuide = (detail: Record<string, unknown>) => {
-  window.dispatchEvent(new CustomEvent("ss-step5-guide-state", { detail }));
-};
-
-const focusStepFiveElement = (elementId: string) => {
-  const element = document.getElementById(elementId);
-  if (!element) return;
-  element.classList.remove("is-guided");
-  element.scrollIntoView({ behavior: "smooth", block: "center" });
-  window.requestAnimationFrame(() => {
-    element.classList.add("is-guided");
-    window.setTimeout(() => element.classList.remove("is-guided"), 1800);
-  });
-};
-
-const ParamSlider = ({
-  label,
-  value,
-  min,
-  max,
-  step,
-  isInteger,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  isInteger?: boolean;
-  onChange: (value: number) => void;
-}) => (
-  <div className="ss-structure-workflow__slider">
-    <div className="ss-structure-workflow__slider-head">
-      <span>{label}</span>
-      <strong>{isInteger ? value : value.toFixed(2)}</strong>
-    </div>
-    <input
-      type="range"
-      min={min}
-      max={max}
-      step={step}
-      value={value}
-      onChange={(event) =>
-        onChange(isInteger ? parseInt(event.target.value, 10) : parseFloat(event.target.value))
-      }
-      className="ss-structure-workflow__slider-input"
-    />
-  </div>
-);
+import {
+  defaultParams,
+  emitStepFiveGuide,
+  ensureNoIsolatedNodes,
+  focusStepFiveElement,
+  presetIcons,
+  visiblePresets,
+  type PresetParams,
+  type PresetType,
+  type StepFiveDetailSurface,
+} from "./step5Network/utils";
 
 export const Step5Network: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -315,14 +177,6 @@ export const Step5Network: React.FC = () => {
       "core-periphery": {
         tags: isZh ? ["核心-边缘", "不对称接触"] : ["Core-periphery", "Asymmetric"],
         summary: isZh ? "少量核心成员高频互联，外围成员连接较少。" : "A small core stays highly connected while the periphery remains sparse.",
-      },
-      "holme-kim": {
-        tags: isZh ? ["尺度自由", "高聚类"] : ["Scale free", "Clustered"],
-        summary: isZh ? "连接倾向向已有高连接节点聚集。" : "Connections tend to accumulate around already well-connected nodes.",
-      },
-      waxman: {
-        tags: isZh ? ["空间距离", "邻近优先"] : ["Spatial", "Distance-based"],
-        summary: isZh ? "距离越近，建立连接的概率越高。" : "Closer nodes are more likely to connect.",
       },
       sbm: {
         tags: isZh ? ["社区结构", "分组接触"] : ["Communities", "Clustered groups"],
@@ -865,179 +719,31 @@ export const Step5Network: React.FC = () => {
       </ResearchInputPanel>
 
       <div className="ss-structure-workflow__layout">
-        <section className="ss-workflow-panel ss-guide-focus-target" id="ss-step5-template-library">
-          <div className="ss-workflow-panel__head">
-            <div>
-              <div className="ss-workflow-kicker">{t("experimentBuilder.step5.networkPresets")}</div>
-              <h2 className="ss-workflow-panel__title">
-                {isZh ? "选择一个起始情境结构" : "Choose a starting structure"}
-              </h2>
-              <p className="ss-workflow-panel__copy">
-                {isZh
-                  ? "从一个已有连接方式出发，快速决定参与者如何彼此接触。"
-                  : "Start from a familiar topology and decide how participants can reach one another."}
-              </p>
-            </div>
-          </div>
+        <Step5TemplateLibraryPanel
+          t={t}
+          isZh={isZh}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          filteredPresets={filteredPresets}
+          selectedPreset={selectedPreset}
+          presetMeta={presetMeta}
+          applyPreset={applyPreset}
+        />
 
-          <div className="ss-structure-workflow__search">
-            <Search size={16} />
-            <input
-              value={searchQuery}
-              onChange={(event) => {
-                setSearchQuery(event.target.value);
-                emitStepFiveGuide({ type: "interaction" });
-              }}
-              placeholder={isZh ? "搜索关系结构模板" : "Search structure templates"}
-            />
-          </div>
-
-          <div className="ss-structure-workflow__template-scroll">
-            <div className="ss-structure-workflow__template-grid">
-              {filteredPresets.map((preset) => {
-                const isSelected = selectedPreset === preset;
-                const { icon: Icon, translationKey, defaultLabel } = presetIcons[preset];
-
-                return (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => applyPreset(preset)}
-                    className={`ss-structure-workflow__template-card${isSelected ? " is-selected" : ""}`}
-                  >
-                    <div className="ss-structure-workflow__template-head">
-                      <span className="ss-structure-workflow__template-icon">
-                        <Icon size={16} />
-                      </span>
-                      {isSelected ? (
-                        <span className="ss-structure-workflow__template-state">{isZh ? "已选" : "Selected"}</span>
-                      ) : null}
-                    </div>
-                    <div className="ss-structure-workflow__template-title">
-                      {t(`experimentBuilder.step5.presets.${translationKey}.name`, {
-                        defaultValue: isZh && preset === "custom" ? "自定义结构" : defaultLabel,
-                      })}
-                    </div>
-                    <p className="ss-structure-workflow__template-copy">{presetMeta[preset].summary}</p>
-                    <div className="ss-structure-workflow__template-tags">
-                      {presetMeta[preset].tags.map((tag) => (
-                        <span key={tag}>{tag}</span>
-                      ))}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        <section
-          className="ss-workflow-panel ss-guide-focus-target ss-structure-workflow__summary-panel"
-          id="ss-step5-selection-summary"
-        >
-          {hasSelectedStructure ? (
-            <>
-              <div className="ss-workflow-panel__head">
-                <div>
-                  <div className="ss-workflow-kicker">{t("experimentBuilder.step5.summaryPattern")}</div>
-                  <h2 className="ss-workflow-panel__title">{currentPatternLabel}</h2>
-                  <p className="ss-workflow-panel__copy">
-                    {selectedPresetSummary ||
-                      (isZh
-                        ? "当前结构已经配置完成，可以先查看摘要，再决定是否展开更细设置。"
-                        : "The structure is configured. Review the summary first and open the details only when you need them.")}
-                  </p>
-                </div>
-                {selectedPresetTags.length > 0 ? (
-                  <div className="ss-structure-workflow__summary-tags">
-                    {selectedPresetTags.map((tag) => (
-                      <span key={tag}>{tag}</span>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="ss-workflow-summary-grid">
-                <SummaryInfoCard label={isZh ? "当前模型" : "Current model"} value={currentPatternLabel} />
-                <SummaryInfoCard label={isZh ? "角色数" : "Participants"} value={agentIds.length} />
-                <SummaryInfoCard label={isZh ? "连线数" : "Links"} value={networkOverview.edgeCount} />
-                <SummaryInfoCard label={t("components.networkEditorModal.density")} value={`${(networkOverview.density * 100).toFixed(0)}%`} />
-              </div>
-
-              <div className="ss-structure-workflow__preview-card">
-                <div className="ss-structure-workflow__preview-copy">
-                  <strong>{isZh ? "网络概览缩略图" : "Network overview preview"}</strong>
-                  <span>
-                    {isZh
-                      ? "首屏先看结构差异；完整图谱放到二级抽屉中查看。"
-                      : "Use the summary first; the full graph lives in a secondary drawer."}
-                  </span>
-                </div>
-                <div className="ss-structure-workflow__preview-graphic" aria-hidden="true">
-                  <svg viewBox={`0 0 ${miniPreview.width} ${miniPreview.height}`}>
-                    {miniPreview.edges.map((edge) => (
-                      <line
-                        key={edge.key}
-                        x1={edge.sourceNode.x}
-                        y1={edge.sourceNode.y}
-                        x2={edge.targetNode.x}
-                        y2={edge.targetNode.y}
-                      />
-                    ))}
-                    {miniPreview.nodes.map((node) => (
-                      <circle key={node.id} cx={node.x} cy={node.y} r={7} />
-                    ))}
-                  </svg>
-                  {miniPreview.remaining > 0 ? (
-                    <span className="ss-structure-workflow__preview-badge">+{miniPreview.remaining}</span>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="ss-structure-workflow__advanced-actions">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => openDetailSurface("overview")}
-                >
-                  {isZh ? "查看网络概览" : "View overview"}
-                </Button>
-                <Button type="button" variant="secondary" size="sm" onClick={openGraphDrawer}>
-                  {isZh ? "打开完整图谱" : "Open full graph"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => openDetailSurface("memberConnections")}
-                >
-                  {isZh ? "查看成员连接详情" : "View member connections"}
-                </Button>
-              </div>
-            </>
-          ) : (
-            <div className="ss-structure-workflow__summary-empty">
-              <div className="ss-workflow-kicker">{isZh ? "当前选择摘要" : "Current selection"}</div>
-              <h2 className="ss-workflow-panel__title">
-                {isZh ? "先选一个结构模板" : "Pick a structure template first"}
-              </h2>
-              <p className="ss-workflow-panel__copy">
-                {isZh
-                  ? "模板区只保留常见结构。先做结构决策，再按需查看概览和完整图谱。"
-                  : "Pick a familiar topology first, then open the overview and full graph only when needed."}
-              </p>
-              <div className="ss-workflow-summary-grid">
-                <SummaryInfoCard label={isZh ? "角色数" : "Participants"} value={agentIds.length} />
-                <SummaryInfoCard label={isZh ? "连线数" : "Links"} value={networkOverview.edgeCount} />
-                <SummaryInfoCard
-                  label={t("components.networkEditorModal.density")}
-                  value={`${(networkOverview.density * 100).toFixed(0)}%`}
-                />
-              </div>
-            </div>
-          )}
-        </section>
+        <Step5SelectionSummaryPanel
+          t={t}
+          isZh={isZh}
+          hasSelectedStructure={hasSelectedStructure}
+          currentPatternLabel={currentPatternLabel}
+          selectedPresetSummary={selectedPresetSummary}
+          selectedPresetTags={selectedPresetTags}
+          agentIdsLength={agentIds.length}
+          edgeCount={networkOverview.edgeCount}
+          density={networkOverview.density}
+          miniPreview={miniPreview}
+          openDetailSurface={openDetailSurface}
+          openGraphDrawer={openGraphDrawer}
+        />
 
         {detailSurface ? (
           <div className="ss-structure-workflow__drawer-backdrop" onClick={closeDetailSurface}>

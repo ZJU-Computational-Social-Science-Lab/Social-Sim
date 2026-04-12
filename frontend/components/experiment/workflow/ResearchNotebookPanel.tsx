@@ -24,7 +24,7 @@ export interface NotebookProgress {
   completionLabel: string;
 }
 
-interface ResearchNotebookPanelProps {
+export interface ResearchNotebookPanelProps {
   title: string;
   subtitle: string;
   status: string;

@@ -131,20 +131,13 @@ node_modules
 storage/
 socialsim.db
 socialsim4.db
-*.db
 *.db-shm
 *.db-wal
-*.pdf
 stats.sh
 .DS_Store
 frontend/dist/
 frontend/node_modules/
 uploads/
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.webp
 
 # Claude Code settings (local to each developer)
 .claude/
@@ -186,3 +179,22 @@ backend-dev.log
 
 # Video artifacts (large binary, not for git)
 artifacts/**/*.mp4
+
+# Local generated/process artifacts
+/artifacts/
+/tmp/
+/data/xihu_packages/
+/auth_history.txt
+/log*.txt
+/status*.txt
+/temp_doc_content.json
+/temp_doc_content.txt
+/depth
+/claude
+/tsc-errors.txt
+/.codex-merge-backup/
+/INTEGRATION_TEST_REPORT.md
+/package-lock.json
+/Social-Sim1/
+/stitch/test*.html
+/frontend/public/test-modal.html
