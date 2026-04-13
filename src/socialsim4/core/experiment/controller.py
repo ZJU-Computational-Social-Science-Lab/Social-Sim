@@ -107,8 +107,6 @@ class ExperimentController:
         debug_log.append(f"  output_field: {game_config.output_field}\n")
         debug_log.append(f"  allowed actions: {game_config.actions}\n")
 
-        print(f"\n[CONTROLLER] Processing response from {agent.name}")
-
         # Step 1: Extract and parse JSON (handles trailing content from some models)
         cleaned = extract_json(raw_json)
 
@@ -127,7 +125,6 @@ class ExperimentController:
 
             debug_log.append(f"  parsed OK: {parsed}\n")
 
-            print(f"[CONTROLLER] Parsed OK, action={parsed.get(game_config.output_field)}")
         except json.JSONDecodeError as e:
             # Try to salvage the first JSON-looking object in the text.
             import re
@@ -137,10 +134,8 @@ class ExperimentController:
                 try:
                     parsed = json.loads(candidate)
                     debug_log.append(f"  parsed via salvage: {parsed}\n")
-                    print(f"[CONTROLLER] Parsed via salvage, action={parsed.get(game_config.output_field)}")
                 except json.JSONDecodeError as e2:
                     debug_log.append(f"  ERROR: Failed to parse JSON after salvage: {e2}\n")
-                    print(f"[CONTROLLER] ERROR: Failed to parse JSON after salvage")
                     logger.error(f"Failed to parse JSON from {agent.name}: {e2}")
                     return ActionResult(
                         success=False,
@@ -155,7 +150,6 @@ class ExperimentController:
                     )
             else:
                 debug_log.append(f"  ERROR: Failed to parse JSON: {e}\n")
-                print(f"[CONTROLLER] ERROR: Failed to parse JSON")
                 logger.error(f"Failed to parse JSON from {agent.name}: {e}")
                 return ActionResult(
                     success=False,
@@ -174,7 +168,6 @@ class ExperimentController:
         if validated is None:
             debug_log.append(f"  ERROR: Validation failed - action not in allowed set\n")
             debug_log.append(f"  parsed action field: {parsed.get(game_config.output_field, '')}\n")
-            print(f"[CONTROLLER] ERROR: Validation failed")
             logger.error(f"Validation failed for {agent.name}: {parsed}")
             return ActionResult(
                 success=False,
@@ -193,7 +186,7 @@ class ExperimentController:
 
         debug_log.append(f"  extracted action: {action_value}\n")
 
-        print(f"[CONTROLLER] Extracted action: {action_value}")
+
         summary = f"{agent.name} chose {action_value}"
 
         return ActionResult(
@@ -290,7 +283,6 @@ class ExperimentController:
             debug_log.append(f"  mode: {followup_mode}\n")
             debug_log.append(f"  required params: {list(param_schema.keys())}\n")
 
-            print(f"\n[CONTROLLER] Action '{action_name}' requires follow-up prompt (mode={followup_mode})")
 
             followup_context = context_summary or self.context_manager.get_context_for_agent(
                 agent.name,
@@ -318,7 +310,6 @@ class ExperimentController:
             debug_log.append(followup_prompt)
             debug_log.append(f"\n--- END FOLLOW-UP PROMPT ---\n\n")
 
-            print(f"[CONTROLLER] Sending follow-up prompt to {agent.name}")
 
             try:
                 # Send follow-up prompt; use json_mode only for json-type follow-ups
@@ -332,7 +323,6 @@ class ExperimentController:
                 debug_log.append(followup_response)
                 debug_log.append(f"\n--- END FOLLOW-UP RESPONSE ---\n\n")
 
-                print(f"[CONTROLLER] Received follow-up response from {agent.name}")
 
                 # Parse the follow-up response based on mode
                 if followup_mode == "plain_text":
@@ -374,7 +364,6 @@ class ExperimentController:
 
             except Exception as e:
                 debug_log.append(f"\n  ERROR in follow-up: {e}\n")
-                print(f"[CONTROLLER] ERROR in follow-up: {e}")
                 logger.error(f"Follow-up prompt failed for {agent.name}: {e}")
                 # Return the initial result without parameters but with updated debug log
                 initial_result.debug_log = debug_log

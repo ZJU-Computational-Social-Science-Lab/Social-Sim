@@ -24,7 +24,7 @@ class Settings(BaseSettings):
 
     jwt_signing_key: SecretStr = SecretStr("change-me")
     jwt_algorithm: str = "HS256"
-    access_token_exp_minutes: int = 120  # 2 hours for long-running experiments
+    access_token_exp_minutes: int = 720  # 12 hours for long-running experiments
     refresh_token_exp_minutes: int = 60 * 24 * 14
 
     email_smtp_host: str | None = None

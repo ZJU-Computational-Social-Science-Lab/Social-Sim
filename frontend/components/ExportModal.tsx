@@ -166,14 +166,19 @@ export const ExportModal: React.FC = () => {
           let llmModel = 'unknown';
           let llmProvider = 'unknown';
 
-          if (a.llmConfig && a.llmConfig.model) {
+          // Sentinel values ("backend"/"default") mean the frontend couldn't resolve
+          // the provider at creation time — skip to provider_id lookup instead.
+          const isSentinelLlmConfig =
+            a.llmConfig &&
+            (a.llmConfig.provider === 'backend' || a.llmConfig.model === 'default');
+
+          if (a.llmConfig && a.llmConfig.model && !isSentinelLlmConfig) {
             llmModel = a.llmConfig.model;
             llmProvider = a.llmConfig.provider || 'unknown';
           } else {
-            // Check both top-level provider_id AND properties.provider_id
+            // Resolve actual provider via provider_id (from stratified distribution)
             const providerId = a.provider_id ?? a.properties?.provider_id;
             if (providerId != null) {
-              // Look up provider from store
               const providers = useSimulationStore.getState().llmProviders || [];
               const provider = providers.find((p: any) => p.id === Number(providerId));
               if (provider) {

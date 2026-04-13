@@ -718,7 +718,7 @@ PUBLIC_GOODS: Dict[str, Any] = {
                     "name": "amount",
                     "type": "integer",
                     "required": True,
-                    "description": "How many tokens to contribute this round (integer, 0 to tokens_per_round)",
+                    "description": "How many tokens to contribute this round (integer, 0 to {tokens_per_round})",
                 }
             ]
         },
