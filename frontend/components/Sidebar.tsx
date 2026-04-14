@@ -12,7 +12,7 @@ export const Sidebar: React.FC = () => {
   const agents = useSimulationStore(state => state.agents);
 
   return (
-    <div className="h-full flex flex-col bg-white border-l shadow-sm w-80">
+    <div className="h-full flex flex-col bg-white shadow-sm">
       {/* Tab Header */}
       <div className="flex border-b">
         <button
