@@ -1011,7 +1011,12 @@
     "resetSuccess": "Simulation reset",
     "resetFail": "Failed to reset simulation",
     "deleteSuccess": "Simulation deleted",
-    "deleteFail": "Failed to delete simulation"
+    "deleteFail": "Failed to delete simulation",
+    "tabs": {
+      "simTree": "Sim Tree",
+      "logs": "Logs",
+      "agents": "Agents"
+    }
   },
   "components": {
     "agentPanel": {

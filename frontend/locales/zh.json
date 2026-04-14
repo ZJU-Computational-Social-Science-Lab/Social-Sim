@@ -1011,7 +1011,12 @@
     "resetSuccess": "仿真已重置",
     "resetFail": "重置仿真失败",
     "deleteSuccess": "仿真已删除",
-    "deleteFail": "删除仿真失败"
+    "deleteFail": "删除仿真失败",
+    "tabs": {
+      "simTree": "模拟树",
+      "logs": "日志",
+      "agents": "智能体"
+    }
   },
   "components": {
     "agentPanel": {
