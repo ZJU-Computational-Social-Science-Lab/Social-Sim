@@ -72,7 +72,7 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="h-14 bg-white border-b flex items-center justify-between px-4 shrink-0 z-20">
+    <header className="h-14 border-b flex items-center justify-between px-4 shrink-0 z-20" style={{ background: 'var(--ss-nav-bg)', borderColor: 'var(--ss-nav-border)' }}>
       <div className="flex items-center gap-4">
         <Link to="/dashboard" className="flex items-center gap-2 text-brand-600 font-bold text-lg tracking-tight hover:opacity-80">
           <div className="w-8 h-8 bg-brand-600 text-white rounded-lg flex items-center justify-center">
@@ -80,29 +80,29 @@ const Header: React.FC = () => {
           </div>
           <span>
             SocialSim
-            <span className="text-slate-400 font-light">Next</span>
+            <span className="font-light" style={{ color: 'var(--ss-workspace-muted)' }}>Next</span>
           </span>
         </Link>
         
         {/* 导航链接 */}
         <nav className="flex items-center gap-1 ml-4">
-          <Link to="/dashboard" className="px-3 py-1.5 text-sm text-slate-600 hover:text-brand-600 hover:bg-slate-100 rounded">
+          <Link to="/dashboard" className="px-3 py-1.5 text-sm rounded hover:text-brand-600 hover:bg-slate-100" style={{ color: 'var(--ss-workspace-muted)' }}>
             {t('nav.dashboard')}
           </Link>
-          <Link to="/simulations/saved" className="px-3 py-1.5 text-sm text-slate-600 hover:text-brand-600 hover:bg-slate-100 rounded">
+          <Link to="/simulations/saved" className="px-3 py-1.5 text-sm rounded hover:text-brand-600 hover:bg-slate-100" style={{ color: 'var(--ss-workspace-muted)' }}>
             {t('nav.saved')}
           </Link>
-          <Link to="/settings" className="px-3 py-1.5 text-sm text-slate-600 hover:text-brand-600 hover:bg-slate-100 rounded">
+          <Link to="/settings" className="px-3 py-1.5 text-sm rounded hover:text-brand-600 hover:bg-slate-100" style={{ color: 'var(--ss-workspace-muted)' }}>
             {t('nav.settings')}
           </Link>
         </nav>
         
-        <div className="h-6 w-px bg-slate-200 mx-2"></div>
+        <div className="h-6 w-px mx-2" style={{ background: 'var(--ss-workspace-border)' }}></div>
         <div>
-          <h1 className="text-sm font-bold text-slate-800">
+          <h1 className="text-sm font-bold" style={{ color: 'var(--ss-workspace-heading)' }}>
             {currentSim?.name || t('simPage.noSimulation')}
           </h1>
-          <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">
+          <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color: 'var(--ss-workspace-muted)' }}>
             {currentSim?.id}
           </span>
         </div>
@@ -115,8 +115,9 @@ const Header: React.FC = () => {
           className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-full transition-all border ${
             engineConfig.mode === "connected"
               ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-              : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
+              : "hover:bg-slate-200"
           }`}
+          style={engineConfig.mode !== "connected" ? { background: 'var(--ss-workspace-surface)', color: 'var(--ss-workspace-muted)', borderColor: 'var(--ss-workspace-border)' } : undefined}
           title={
             engineConfig.mode === "connected"
               ? t('simPage.connectedTo', { endpoint: engineConfig.endpoint })
@@ -133,11 +134,12 @@ const Header: React.FC = () => {
             : t('simPage.standaloneMode')}
         </button>
 
-        <div className="h-4 w-px bg-slate-200 mx-2"></div>
+        <div className="h-4 w-px mx-2" style={{ background: 'var(--ss-workspace-border)' }}></div>
 
         <button
           onClick={() => toggleWizard(true)}
-          className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium hover:bg-slate-200 rounded-md transition-colors"
+          style={{ background: 'var(--ss-workspace-surface)', color: 'var(--ss-workspace-text)' }}
         >
           <Plus size={14} /> {t('simPage.newSimulation')}
         </button>
@@ -149,7 +151,8 @@ const Header: React.FC = () => {
                 resetSimulation();
               }
             }}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 border hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+            style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-text)' }}
             title={t('simPage.resetSimulation')}
             disabled={isGenerating}
           >
@@ -162,7 +165,8 @@ const Header: React.FC = () => {
                 deleteSimulation();
               }
             }}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-red-600 hover:text-red-700 hover:border-red-300 text-xs font-medium rounded shadow-sm transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 border hover:text-red-700 hover:border-red-300 text-xs font-medium rounded shadow-sm transition-all"
+            style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'rgb(220 38 38)' }}
             title={t('simPage.deleteSimulation')}
             disabled={isGenerating}
           >
@@ -171,32 +175,35 @@ const Header: React.FC = () => {
 
           <button
             onClick={() => toggleSaveTemplate(true)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 border hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+            style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-text)' }}
             title={t('simPage.saveAsTemplate')}
           >
             <Save size={14} />
           </button>
           <button
             onClick={() => useSimulationStore.getState().openSyncModal()}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 border hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+            style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-text)' }}
             title={t('simPage.syncBackend')}
           >
             {t('simPage.syncBackend')}
           </button>
         </div>
-        <Link to="/settings" className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md">
+        <Link to="/settings" className="p-2 hover:text-slate-600 hover:bg-slate-100 rounded-md" style={{ color: 'var(--ss-workspace-muted)' }}>
           <Settings size={18} />
         </Link>
-        
-        <div className="h-4 w-px bg-slate-200 mx-2"></div>
+
+        <div className="h-4 w-px mx-2" style={{ background: 'var(--ss-workspace-border)' }}></div>
         <LanguageSwitcher />
-        <div className="h-4 w-px bg-slate-200 mx-2"></div>
-        
+        <div className="h-4 w-px mx-2" style={{ background: 'var(--ss-workspace-border)' }}></div>
+
         {/* 用户信息 */}
-        <span className="text-sm text-slate-600">{user?.email}</span>
+        <span className="text-sm" style={{ color: 'var(--ss-workspace-muted)' }}>{user?.email}</span>
         <button
           onClick={logout}
-          className="flex items-center gap-1 px-2 py-1.5 text-xs text-slate-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+          className="flex items-center gap-1 px-2 py-1.5 text-xs hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+          style={{ color: 'var(--ss-workspace-muted)' }}
           title={t('nav.signout')}
         >
           <LogOut size={14} />
@@ -645,7 +652,7 @@ const SimulationPage: React.FC = () => {
   const activeTab = useSimulationStore((s) => s.activeTab);
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50">
+    <div className="flex flex-col h-screen" style={{ background: 'var(--ss-workspace-bg)' }}>
       <Header />
       <TabBar />
       <ContextToolbar />

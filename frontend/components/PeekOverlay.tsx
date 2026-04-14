@@ -23,9 +23,10 @@ export const PeekOverlay: React.FC = () => {
   return (
     <div
       className={`absolute top-0 right-0 bottom-0 z-30 w-[30%] max-w-[350px]
-                 bg-white/90 backdrop-blur-sm border-l shadow-xl
+                 backdrop-blur-sm border-l shadow-xl
                  overflow-hidden transition-transform duration-250 ease-out
                  ${peekTab ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'}`}
+      style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)' }}
       onMouseEnter={() => {
         // Access the store directly to keep the overlay alive while cursor is inside
         const current = useSimulationStore.getState().peekTab;

@@ -92,11 +92,18 @@ const ContextToolbar: React.FC = () => {
           disabled={isGenerating || isCompareMode}
           className={`flex items-center gap-2 px-4 py-1.5 text-xs font-bold rounded shadow-sm transition-all active:scale-95 ${
             isGenerating
-              ? "bg-slate-300 text-white cursor-wait"
+              ? "cursor-wait"
               : isCompareMode
-              ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-              : "bg-brand-600 hover:bg-brand-700 text-white"
+              ? "cursor-not-allowed"
+              : "hover:bg-brand-700"
           }`}
+          style={
+            isGenerating
+              ? { background: '#94a3b8', color: '#fff' }
+              : isCompareMode
+                ? { background: 'var(--ss-workspace-surface)', color: 'var(--ss-workspace-muted)' }
+                : { background: 'var(--ss-brand-primary)', color: 'var(--ss-brand-on)' }
+          }
         >
           {isGenerating ? (
             <Loader2 size={14} className="animate-spin" />
@@ -108,14 +115,15 @@ const ContextToolbar: React.FC = () => {
         <button
           onClick={branchSimulation}
           disabled={isGenerating || isCompareMode}
-          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 hover:border-brand-300 text-slate-700 text-xs font-medium rounded shadow-sm hover:bg-slate-50 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-3 py-1.5 border hover:border-brand-300 text-xs font-medium rounded shadow-sm hover:bg-slate-50 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-text)' }}
         >
           <GitFork size={14} />
           {t('simPage.branch')}
         </button>
 
         {/* Auto-advance controls */}
-        <div className="h-4 w-px bg-slate-200 mx-1"></div>
+        <div className="h-4 w-px mx-1" style={{ background: 'var(--ss-workspace-border)' }}></div>
 
         <input
           type="number"
@@ -127,7 +135,8 @@ const ContextToolbar: React.FC = () => {
             if (!isNaN(v)) setAdvanceSteps(Math.min(100, Math.max(1, v)));
           }}
           disabled={isAutoAdvancing || isGenerating || isCompareMode}
-          className="w-16 px-2 py-1.5 text-xs text-center border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:opacity-50"
+          className="w-16 px-2 py-1.5 text-xs text-center border rounded focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:opacity-50"
+          style={{ borderColor: 'var(--ss-workspace-border)' }}
           title={t('simPage.enterSteps')}
         />
 
@@ -145,9 +154,14 @@ const ContextToolbar: React.FC = () => {
             disabled={isGenerating || isCompareMode}
             className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded shadow-sm transition-all active:scale-95 ${
               isGenerating || isCompareMode
-                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                ? 'cursor-not-allowed'
+                : 'hover:bg-emerald-700'
             }`}
+            style={
+              isGenerating || isCompareMode
+                ? { background: 'var(--ss-workspace-surface)', color: 'var(--ss-workspace-muted)' }
+                : { background: '#059669', color: '#fff' }
+            }
           >
             <SkipForward size={14} />
             {t('simPage.autoAdvance')}
@@ -155,7 +169,7 @@ const ContextToolbar: React.FC = () => {
         )}
 
         {isAutoAdvancing && (
-          <span className="text-xs text-slate-500">
+          <span className="text-xs" style={{ color: 'var(--ss-workspace-muted)' }}>
             {t('simPage.advancingProgress', {
               current: autoAdvanceCurrent,
               total: autoAdvanceTotal,
@@ -180,8 +194,9 @@ const ContextToolbar: React.FC = () => {
         className={`flex items-center gap-2 px-3 py-1.5 border rounded text-xs font-medium transition-all ${
           isCompareMode
             ? "bg-amber-50 text-amber-700 border-amber-300 shadow-sm ring-1 ring-amber-200"
-            : "bg-white text-slate-600 border-slate-200 hover:text-brand-600 hover:border-brand-300"
+            : "hover:text-brand-600 hover:border-brand-300"
         }`}
+        style={isCompareMode ? undefined : { background: 'var(--ss-workspace-surface)', color: 'var(--ss-workspace-text)', borderColor: 'var(--ss-workspace-border)' }}
       >
         <Split
           size={14}
@@ -193,7 +208,8 @@ const ContextToolbar: React.FC = () => {
       {/* Time Settings */}
       <button
         onClick={() => toggleTimeSettings(true)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+        className="flex items-center gap-2 px-3 py-1.5 border hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+        style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-text)' }}
         title={t('simPage.timeSettings')}
       >
         <Clock size={14} />
@@ -203,15 +219,16 @@ const ContextToolbar: React.FC = () => {
       </button>
 
       {/* Provider Dropdown */}
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 text-xs rounded shadow-sm transition-all">
-        <span className="text-slate-500">{t('simPage.provider')}</span>
+      <div className="flex items-center gap-2 px-3 py-1.5 border text-xs rounded shadow-sm transition-all" style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-text)' }}>
+        <span style={{ color: 'var(--ss-workspace-muted)' }}>{t('simPage.provider')}</span>
         <select
           value={providerSelection ?? ''}
           onChange={(e) => {
             const val = e.target.value;
             setSelectedProvider(val ? Number(val) : null);
           }}
-          className="border border-slate-200 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+          className="border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
+          style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)' }}
         >
           <option value="">
             {t('simPage.selectProvider')}
@@ -240,14 +257,16 @@ const ContextToolbar: React.FC = () => {
 
       <button
         onClick={() => toggleExport(true)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+        className="flex items-center gap-2 px-3 py-1.5 border hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+        style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-text)' }}
       >
         <Download size={14} />
         {t('simPage.export')}
       </button>
       <button
         onClick={() => toggleAnalytics(true)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+        className="flex items-center gap-2 px-3 py-1.5 border hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+        style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-text)' }}
       >
         <BarChart2 size={14} />
         {t('simPage.analytics')}
@@ -261,7 +280,8 @@ const ContextToolbar: React.FC = () => {
       {/* Network Editor */}
       <button
         onClick={() => toggleNetworkEditor(true)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+        className="flex items-center gap-2 px-3 py-1.5 border hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+        style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-text)' }}
         title={t('simPage.networkTopology')}
       >
         <Network size={14} />
@@ -270,7 +290,8 @@ const ContextToolbar: React.FC = () => {
       {/* Global Knowledge */}
       <button
         onClick={() => setGlobalKnowledgeOpen(true)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+        className="flex items-center gap-2 px-3 py-1.5 border hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
+        style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-text)' }}
         title={t('simPage.globalKnowledge')}
       >
         <Globe size={14} />
@@ -279,7 +300,7 @@ const ContextToolbar: React.FC = () => {
   );
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2 border-b bg-white min-h-[44px]">
+    <div className="flex items-center gap-2 px-4 py-2 border-b min-h-[44px]" style={{ background: 'var(--ss-workspace-toolbar)', borderColor: 'var(--ss-workspace-border)' }}>
       {activeTab === 'simTree' && simTreeToolbar}
       {activeTab === 'logs' && logsToolbar}
       {activeTab === 'agents' && agentsToolbar}

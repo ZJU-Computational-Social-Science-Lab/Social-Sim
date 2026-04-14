@@ -78,7 +78,7 @@ export const TabBar: React.FC = () => {
   );
 
   return (
-    <div className="flex items-center gap-1 px-4 py-1 bg-white border-b">
+    <div className="flex items-center gap-1 px-4 py-1 border-b" style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)' }}>
       {TABS.map(({ key, icon: Icon }) => {
         const isActive = activeTab === key;
         const isPeeked = peekTab === key;
@@ -92,12 +92,19 @@ export const TabBar: React.FC = () => {
               flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-md
               transition-all duration-150
               ${isActive
-                ? 'bg-brand-50 text-brand-700 shadow-sm'
+                ? 'shadow-sm'
                 : isPeeked
-                  ? 'bg-slate-100 text-slate-700'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                  ? ''
+                  : 'hover:text-slate-700 hover:bg-slate-50'
               }
             `}
+            style={
+              isActive
+                ? { background: 'var(--ss-brand-soft)', color: 'var(--ss-brand-primary)' }
+                : isPeeked
+                  ? { background: 'var(--ss-workspace-surface)', color: 'var(--ss-workspace-text)' }
+                  : { color: 'var(--ss-workspace-muted)' }
+            }
           >
             <Icon size={14} />
             {t(`simPage.tabs.${key}`)}
