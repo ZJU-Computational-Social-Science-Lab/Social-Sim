@@ -16,6 +16,7 @@ import { Sidebar } from './Sidebar';
 export const PeekOverlay: React.FC = () => {
   const peekTab = useSimulationStore((s) => s.peekTab);
   const setPeekTab = useSimulationStore((s) => s.setPeekTab);
+  const setPeekOverlayActive = useSimulationStore((s) => s.setPeekOverlayActive);
 
   // Keep the overlay in the DOM when hidden (just invisible) so that
   // SimTree/LogViewer/Sidebar don't remount and re-initialize on every peek.
@@ -29,8 +30,12 @@ export const PeekOverlay: React.FC = () => {
         // Access the store directly to keep the overlay alive while cursor is inside
         const current = useSimulationStore.getState().peekTab;
         if (current) setPeekTab(current);
+        setPeekOverlayActive(true);
       }}
-      onMouseLeave={() => setPeekTab(null)}
+      onMouseLeave={() => {
+        setPeekOverlayActive(false);
+        setPeekTab(null);
+      }}
     >
       <div className="h-full overflow-auto">
         {/* All three panels stay mounted to avoid re-initialization costs */}

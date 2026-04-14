@@ -54,7 +54,10 @@ export const TabBar: React.FC = () => {
     }
     // Delay the dismiss so the cursor can reach the PeekOverlay without a flicker
     dismissTimerRef.current = setTimeout(() => {
-      setPeekTab(null);
+      // Don't dismiss if cursor has entered the overlay
+      if (!useSimulationStore.getState().peekOverlayActive) {
+        setPeekTab(null);
+      }
     }, PEEK_DISMISS_DELAY_MS);
   }, [setPeekTab]);
 

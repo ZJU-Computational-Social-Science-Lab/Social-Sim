@@ -1,4 +1,11 @@
-// frontend/pages/SimulationPage.tsx
+/**
+ * Main simulation workspace page.
+ *
+ * Orchestrates the tab-based layout (Sim Tree, Logs, Agents) with a peek overlay
+ * for cross-panel awareness. Loads simulation state from backend or standalone mode.
+ *
+ * Exports: SimulationPage (default), SimulationPage (named), Header
+ */
 
 import React from "react";
 import { Link } from "react-router-dom";
