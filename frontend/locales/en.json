@@ -1012,6 +1012,10 @@
     "resetFail": "Failed to reset simulation",
     "deleteSuccess": "Simulation deleted",
     "deleteFail": "Failed to delete simulation",
+    "autoAdvance": "Auto-advance",
+    "stop": "Stop",
+    "enterSteps": "Enter number of steps",
+    "advancingProgress": "Step {{current}} of {{total}}",
     "tabs": {
       "simTree": "Sim Tree",
       "logs": "Logs",

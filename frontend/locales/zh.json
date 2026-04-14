@@ -1012,6 +1012,10 @@
     "resetFail": "重置仿真失败",
     "deleteSuccess": "仿真已删除",
     "deleteFail": "删除仿真失败",
+    "autoAdvance": "自动推进",
+    "stop": "停止",
+    "enterSteps": "输入步数",
+    "advancingProgress": "第 {{current}} 步，共 {{total}} 步",
     "tabs": {
       "simTree": "模拟树",
       "logs": "日志",
