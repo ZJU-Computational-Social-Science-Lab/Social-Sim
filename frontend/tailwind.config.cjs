@@ -20,6 +20,9 @@ module.exports = {
       colors: {
         brand: colors.sky,
       },
+      transitionDuration: {
+        '250': '250ms',
+      },
     },
   },
   plugins: [],

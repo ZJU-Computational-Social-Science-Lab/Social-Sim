@@ -1,0 +1,43 @@
+/**
+ * Peek overlay for glancing at inactive tab content.
+ *
+ * Renders a semi-transparent side panel that slides in from the right
+ * when the user hovers over an inactive tab. Dismisses on mouse leave.
+ *
+ * Exports: PeekOverlay
+ */
+
+import React from 'react';
+import { useSimulationStore } from '../store';
+import { SimTree } from './SimTree';
+import { LogViewer } from './LogViewer';
+import { Sidebar } from './Sidebar';
+
+export const PeekOverlay: React.FC = () => {
+  const peekTab = useSimulationStore((s) => s.peekTab);
+  const setPeekTab = useSimulationStore((s) => s.setPeekTab);
+
+  // Keep the overlay in the DOM when hidden (just invisible) so that
+  // SimTree/LogViewer/Sidebar don't remount and re-initialize on every peek.
+  return (
+    <div
+      className={`absolute top-0 right-0 bottom-0 z-30 w-[30%] max-w-[350px]
+                 bg-white/90 backdrop-blur-sm border-l shadow-xl
+                 overflow-hidden transition-transform duration-250 ease-out
+                 ${peekTab ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'}`}
+      onMouseEnter={() => {
+        // Access the store directly to keep the overlay alive while cursor is inside
+        const current = useSimulationStore.getState().peekTab;
+        if (current) setPeekTab(current);
+      }}
+      onMouseLeave={() => setPeekTab(null)}
+    >
+      <div className="h-full overflow-auto">
+        {/* All three panels stay mounted to avoid re-initialization costs */}
+        <div className={peekTab === 'simTree' ? 'h-full' : 'hidden'}><SimTree /></div>
+        <div className={peekTab === 'logs' ? 'h-full' : 'hidden'}><LogViewer /></div>
+        <div className={peekTab === 'agents' ? 'h-full' : 'hidden'}><Sidebar /></div>
+      </div>
+    </div>
+  );
+};
