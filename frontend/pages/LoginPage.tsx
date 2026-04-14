@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { ArrowRight, AtSign, KeyRound, LifeBuoy, LockKeyhole, ShieldCheck } from "lucide-react";
 
 import { apiClient } from "../services/client";
 import { useAuthStore } from "../store/auth";
@@ -50,24 +51,105 @@ export function LoginPage() {
   };
 
   return (
-    <section className="panel" style={{ maxWidth: 420, margin: "0 auto", gap: "0.75rem" }}>
-      <div className="panel-title">{t('auth.login.welcome')}</div>
-      <form onSubmit={onSubmit} className="card" style={{ gap: "0.5rem" }}>
-        <label>
-          {t('auth.login.email')}
-          <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </label>
-        <label>
-          {t('auth.login.password')}
-          <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </label>
-        {error && <div style={{ color: "#f87171" }}>{t('auth.login.invalid')}</div>}
-        <button type="submit" className="button" disabled={loading}>
-          {loading ? t('auth.login.signin') + '…' : t('auth.login.signin')}
+    <section className="ss-auth__card">
+      <div className="space-y-3">
+        <div className="ss-auth__hero-badge">{t("auth.login.badge")}</div>
+        <div className="space-y-2">
+          <h2 className="ss-auth__title">
+            {t("auth.login.welcome")}
+          </h2>
+          <p className="ss-auth__copy">
+            {t("auth.login.subtitle")}
+          </p>
+        </div>
+      </div>
+
+      <form onSubmit={onSubmit} className="mt-8 space-y-5">
+        <div>
+          <label htmlFor="login-email" className="ss-auth__label">
+            {t("auth.login.email")}
+          </label>
+          <div className="ss-auth__field">
+            <AtSign size={16} className="ss-auth__field-icon" />
+            <input
+              id="login-email"
+              className="ss-input ss-auth__input"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder={t("auth.login.emailPlaceholder")}
+              required
+            />
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="login-password" className="ss-auth__label">
+            {t("auth.login.password")}
+          </label>
+          <div className="ss-auth__field">
+            <LockKeyhole size={16} className="ss-auth__field-icon" />
+            <input
+              id="login-password"
+              className="ss-input ss-auth__input"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder={t("auth.login.passwordPlaceholder")}
+              required
+            />
+          </div>
+        </div>
+
+        {error ? (
+          <div className="ss-auth__status ss-auth__status--error">
+            {t("auth.login.invalid")}
+          </div>
+        ) : null}
+
+        <button type="submit" className="ss-button w-full justify-between px-5" disabled={loading}>
+          <span>{loading ? `${t("auth.login.signin")}…` : t("auth.login.signin")}</span>
+          <ArrowRight size={16} />
         </button>
       </form>
-      <div style={{ color: "var(--muted)" }}>
-        {t('auth.login.noAccount')} <Link to="/register">{t('auth.login.create')}</Link>
+
+      <div className="ss-auth__trust-row">
+        <div className="ss-auth__trust-item">
+          <ShieldCheck size={15} />
+          <span>{t("auth.login.credentialCheck")}</span>
+        </div>
+        <div className="ss-auth__trust-item">
+          <KeyRound size={15} />
+          <span>{t("auth.login.workspaceBound")}</span>
+        </div>
+      </div>
+
+      <div className="ss-auth__action-list">
+        <button type="button" className="ss-auth__support-link">
+          <KeyRound size={15} />
+          <span>{t("auth.login.forgot")}</span>
+        </button>
+        <button type="button" className="ss-auth__support-link">
+          <ShieldCheck size={15} />
+          <span>{t("auth.login.sso")}</span>
+        </button>
+        <button type="button" className="ss-auth__support-link">
+          <LifeBuoy size={15} />
+          <span>{t("auth.login.help")}</span>
+        </button>
+      </div>
+
+      <div className="ss-auth__footer">
+        <p className="ss-auth__footer-text">
+          {t("auth.login.noAccount")}{" "}
+          <Link to="/register" className="ss-auth__footer-link">
+            {t("auth.login.create")}
+          </Link>
+        </p>
+        <div className="ss-auth__footer-note">
+          <span>{t("auth.login.footerLeft")}</span>
+          <span>{t("auth.login.footerRight")}</span>
+        </div>
       </div>
     </section>
   );
