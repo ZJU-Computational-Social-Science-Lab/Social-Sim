@@ -1391,6 +1391,9 @@
       "nodes": "nodes",
       "edges": "edges"
     },
+    "networkGraph": {
+      "emptyState": "No network to display"
+    },
     "reportModal": {
       "title": "Simulation Experiment Analysis Report",
       "subtitle": "Automated Analysis",

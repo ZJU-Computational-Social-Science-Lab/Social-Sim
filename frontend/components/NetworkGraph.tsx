@@ -8,6 +8,7 @@
  * Exports: NetworkGraph (default), networkToGraph
  */
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import {
@@ -234,6 +235,7 @@ export default function NetworkGraph({
   selectedNodeId,
   className,
 }: NetworkGraphProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Rebuild the graph whenever the network or agents change.
@@ -257,7 +259,7 @@ export default function NetworkGraph({
   if (graph.order === 0) {
     return (
       <div className={className} style={{ textAlign: 'center', padding: 24, color: '#888' }}>
-        No network to display
+        {t('components.networkGraph.emptyState')}
       </div>
     );
   }

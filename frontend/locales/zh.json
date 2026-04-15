@@ -1391,6 +1391,9 @@
       "nodes": "节点",
       "edges": "边"
     },
+    "networkGraph": {
+      "emptyState": "暂无网络可显示"
+    },
     "reportModal": {
       "title": "仿真实验分析报告",
       "subtitle": "自动分析",
