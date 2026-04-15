@@ -5,27 +5,22 @@
  * Reuses the network visualization from NetworkEditorModal but embedded in the wizard.
  */
 
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useExperimentBuilder } from '../../store/experiment-builder';
 import { Button } from '../ui/button';
-import * as d3 from 'd3';
-import * as d3Force from 'd3-force';
+import NetworkGraph from '../NetworkGraph';
 import {
-  Network,
-  Circle,
   RefreshCw,
   Share2,
   Grid3X3,
   Users,
   Shuffle,
   Layers,
-  ZoomIn,
-  ZoomOut,
-  Maximize,
   Settings2,
   ChevronRight,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { Agent } from '../../types';
 
 // =============================================================================
 // Types
@@ -47,12 +42,6 @@ interface PresetParams {
   'holme-kim': { newConnections: number; clusteringChance: number };
   waxman: { maxDistance: number; distanceEffect: number };
   sbm: { groupSize: number; withinGroupConnectivity: number; bridgeConnections: number };
-}
-
-interface PresetMeta {
-  name: string;
-  description: string;
-  icon: React.ElementType;
 }
 
 // =============================================================================
@@ -179,13 +168,6 @@ export const Step5Network: React.FC = () => {
   // Local state
   const [selectedPreset, setSelectedPreset] = useState<PresetType | null>(null);
   const [params, setParams] = useState<PresetParams>(JSON.parse(JSON.stringify(defaultParams)));
-  const [hoverInfo, setHoverInfo] = useState<{ name: string; profile?: string; x: number; y: number } | null>(null);
-
-  // D3 refs
-  const containerRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
-  const d3SvgRef = useRef<d3.Selection<SVGSVGElement, unknown, null, undefined> | null>(null);
-  const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
 
   // Get agent IDs from agent types
   const { agentIds, profileMap } = useMemo(() => {
@@ -203,6 +185,25 @@ export const Step5Network: React.FC = () => {
     }
     return { agentIds: ids, profileMap: profiles };
   }, [agentTypes]);
+
+  // Map experiment agent data to Agent objects for NetworkGraph.
+  // NetworkGraph uses agent.name for node labels and lookup.
+  const agents: Agent[] = useMemo(
+    () =>
+      agentIds.map((name, idx) => ({
+        id: String(idx),
+        name,
+        role: '',
+        avatarUrl: '',
+        profile: profileMap[name] ?? '',
+        llmConfig: { provider: '', model: '' },
+        properties: {},
+        history: {},
+        memory: [],
+        knowledgeBase: [],
+      })),
+    [agentIds, profileMap],
+  );
 
   // Keep manual link selectors in sync with current agents
   useEffect(() => {
@@ -359,187 +360,6 @@ export const Step5Network: React.FC = () => {
     }
   }, [agentIds.length, socialNetwork, applyPreset]);
 
-  // Initialize D3 visualization
-  useEffect(() => {
-    if (!svgRef.current || !containerRef.current) return;
-
-    const svg = d3.select(svgRef.current);
-    d3SvgRef.current = svg;
-
-    const width = containerRef.current.clientWidth;
-    const height = containerRef.current.clientHeight;
-
-    // Set up zoom behavior
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0, 8])
-      .on('zoom', (event) => {
-        svg.select('g.main').attr('transform', event.transform);
-      });
-
-    zoomBehaviorRef.current = zoom;
-
-    // Create main group
-    svg.append('g').attr('class', 'main');
-
-    // Handle zoom
-    svg.call(zoom.transform, d3.zoomIdentity.translate(width / 2, height / 2));
-
-  }, []);
-
-  // Update network visualization with D3 force simulation
-  useEffect(() => {
-    if (!d3SvgRef.current || !containerRef.current || Object.keys(socialNetwork).length === 0) return;
-
-    const svg = d3SvgRef.current;
-    const main = svg.select('g.main');
-    const width = containerRef.current.clientWidth;
-    const height = containerRef.current.clientHeight;
-
-    const tooltipCoords = (evt: MouseEvent | PointerEvent) => {
-      const rect = containerRef.current?.getBoundingClientRect();
-      const w = rect?.width || containerRef.current?.clientWidth || 0;
-      const h = rect?.height || containerRef.current?.clientHeight || 0;
-      const x = Math.max(8, Math.min(w - 220, evt.clientX - (rect?.left || 0) + 12));
-      const y = Math.max(8, Math.min(h - 160, evt.clientY - (rect?.top || 0) + 12));
-      return { x, y };
-    };
-
-    // Clear existing
-    main.selectAll('*').remove();
-
-    // Build nodes and links
-    const nodeIds = Object.keys(socialNetwork);
-    const nodes: { id: string; name: string; x?: number; y?: number; fx?: number | null; fy?: number | null; profile?: string }[] =
-      nodeIds.map((id) => ({ id, name: id, profile: profileMap[id] }));
-    const links: { source: string; target: string }[] = [];
-
-    // Create links (avoid duplicates)
-    const addedLinks = new Set<string>();
-    for (const [source, targets] of Object.entries(socialNetwork)) {
-      for (const target of targets) {
-        if (nodeIds.includes(target)) {
-          // Normalize link key to avoid duplicates
-          const key = source < target ? `${source}-${target}` : `${target}-${source}`;
-          if (!addedLinks.has(key)) {
-            links.push({ source, target });
-            addedLinks.add(key);
-          }
-        }
-      }
-    }
-
-    // Create force simulation
-    const simulation = d3Force.forceSimulation(nodes as any)
-      .force('link', d3Force.forceLink(links).id((d: any) => d.id).distance(120))
-      .force('charge', d3Force.forceManyBody().strength(-300))
-      .force('center', d3Force.forceCenter(0, 0))
-      .force('collide', d3Force.forceCollide(35));
-
-    // Draw links
-    const link = main.append('g')
-      .attr('class', 'links')
-      .selectAll('line')
-      .data(links)
-      .join('line')
-      .attr('stroke', '#94a3b8')
-      .attr('stroke-width', 1.5)
-      .attr('stroke-opacity', 0.6);
-
-    // Draw nodes as groups (circle + text label)
-    const node = main.append('g')
-      .attr('class', 'nodes')
-      .selectAll('.node')
-      .data(nodes)
-      .join('g')
-      .attr('class', 'node cursor-pointer')
-      .call(
-        d3.drag<SVGGElement, any>()
-          .on('start', (event, d) => {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
-          })
-          .on('drag', (event, d) => {
-            d.fx = event.x;
-            d.fy = event.y;
-          })
-          .on('end', (event, d) => {
-            if (!event.active) simulation.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
-          })
-      );
-
-    // Node circle
-    node.append('circle')
-      .attr('r', 16)
-      .attr('fill', '#3b82f6')
-      .attr('stroke', '#fff')
-      .attr('stroke-width', 2);
-
-    // Node text label (visible below circle)
-    node.append('text')
-      .attr('dy', 28)
-      .attr('text-anchor', 'middle')
-      .text((d) => d.name)
-      .attr('class', 'text-[10px] font-medium fill-slate-700 pointer-events-none select-none');
-
-    node.append('title').text((d) => (d.profile ? `${d.name}\n${d.profile}` : t('experimentBuilder.step5.noProfile')));
-
-    // Hover tooltip using React state for reliability
-    node
-      .on('mouseenter', (event, d: any) => {
-        const pos = tooltipCoords(event);
-        setHoverInfo({ name: d.name, profile: d.profile, ...pos });
-      })
-      .on('mousemove', (event) => {
-        const pos = tooltipCoords(event);
-        setHoverInfo((prev) => (prev ? { ...prev, ...pos } : null));
-      })
-      .on('mouseleave', () => setHoverInfo(null));
-
-    // Update positions on tick
-    simulation.on('tick', () => {
-      link
-        .attr('x1', (d: any) => d.source.x)
-        .attr('y1', (d: any) => d.source.y)
-        .attr('x2', (d: any) => d.target.x)
-        .attr('y2', (d: any) => d.target.y);
-
-      node.attr('transform', (d: any) => `translate(${d.x},${d.y})`);
-    });
-
-    // Cleanup
-    return () => {
-      simulation.stop();
-    };
-
-  }, [socialNetwork, profileMap, t]);
-
-  // Zoom controls
-  const handleZoomIn = () => {
-    if (d3SvgRef.current && zoomBehaviorRef.current) {
-      d3SvgRef.current.transition().duration(300).call(zoomBehaviorRef.current.scaleBy, 1.5);
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (d3SvgRef.current && zoomBehaviorRef.current) {
-      d3SvgRef.current.transition().duration(300).call(zoomBehaviorRef.current.scaleBy, 0.67);
-    }
-  };
-
-  const handleResetZoom = () => {
-    if (d3SvgRef.current && zoomBehaviorRef.current && containerRef.current) {
-      const width = containerRef.current.clientWidth;
-      const height = containerRef.current.clientHeight;
-      // Center the viewport on origin where nodes are positioned
-      d3SvgRef.current.transition().duration(500).call(
-        zoomBehaviorRef.current.transform,
-        d3.zoomIdentity.translate(width / 2, height / 2)
-      );
-    }
-  };
 
   // Render parameter controls
   const renderParamControls = () => {
@@ -787,32 +607,27 @@ export const Step5Network: React.FC = () => {
       </div>
 
       {/* Canvas */}
-      <div ref={containerRef} className="lg:col-span-3 bg-slate-50 relative overflow-hidden group">
-        <svg ref={svgRef} className="block w-full h-full"></svg>
-
-        {hoverInfo && (
-          <div
-            className="absolute z-20 pointer-events-none bg-white border border-slate-200 shadow-md rounded px-2 py-1 text-[11px] text-slate-700 max-w-xs"
-            style={{ left: hoverInfo.x, top: hoverInfo.y }}
-          >
-            <div className="font-semibold">{hoverInfo.name}</div>
-            <div className="text-slate-500 whitespace-pre-wrap break-words">{hoverInfo.profile || t('experimentBuilder.step5.noProfile')}</div>
-          </div>
-        )}
-
-        {/* Zoom Controls */}
-        <div className="absolute top-4 right-4 flex flex-col gap-1 bg-white border rounded shadow-sm p-1">
-          <button onClick={handleZoomIn} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('experimentBuilder.network.zoomIn')}>
-            <ZoomIn size={16} />
-          </button>
-          <button onClick={handleZoomOut} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('experimentBuilder.network.zoomOut')}>
-            <ZoomOut size={16} />
-          </button>
-          <div className="h-px bg-slate-200 my-0.5"></div>
-          <button onClick={handleResetZoom} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('experimentBuilder.network.resetView')}>
-            <Maximize size={16} />
-          </button>
-        </div>
+      <div className="lg:col-span-3 bg-slate-50 relative overflow-hidden group">
+        <NetworkGraph
+          network={socialNetwork}
+          agents={agents}
+          onEdgeToggle={(source, target) => {
+            const key = source < target ? `${source}|${target}` : `${target}|${source}`;
+            const exists = edges.some((e) => e.key === key);
+            if (exists) {
+              removeLink(key);
+            } else {
+              const next: Record<string, string[]> = {};
+              for (const id of agentIds) {
+                next[id] = [...(socialNetwork[id] || [])];
+              }
+              if (!next[source].includes(target)) next[source].push(target);
+              if (!next[target].includes(source)) next[target].push(source);
+              setSocialNetwork(next);
+            }
+          }}
+          className="w-full h-full"
+        />
 
         {/* Network Stats */}
         <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm border rounded-lg px-3 py-2 text-[10px] text-slate-600">
