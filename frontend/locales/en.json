@@ -1993,7 +1993,9 @@
       "csvFormat": "CSV Format Example:",
       "uploadCSV": "Upload CSV",
       "uploadJSON": "Upload JSON",
-      "importInfo": "File import will be implemented in Phase 7."
+      "importInfo": "File import will be implemented in Phase 7.",
+      "generationLlmProvider": "Agent Generation LLM Provider",
+      "generationLlmProviderHint": "Select the LLM provider to use for generating agents with demographic profiles"
     },
     "step5": {
       "networkPresets": "Network Presets",
@@ -2078,7 +2080,19 @@
         "timeHours": "Time (hours)",
         "resources": "Resources",
         "custom": "Custom..."
-      }
+      },
+      "amountPerRoundLabel": "Amount per Round",
+      "displaySettingsTitle": "Display Settings",
+      "showAverageLabel": "Show average contribution to agents",
+      "showAverageHint": "When enabled, agents can see the group's average contribution before making their decision"
+    },
+    "deductionSettings": {
+      "title": "Deduction Settings",
+      "budgetLabel": "Deduction Budget per Phase",
+      "budgetHint": "Number of deduction points each agent can use per phase to reduce others' contributions",
+      "costRatioLabel": "Deduction Cost Ratio",
+      "costRatioHint": "Cost to deduct 1 unit from others (e.g., 3.0 = spend 3 to deduct 1)",
+      "anonymousLabel": "Anonymous deductions (hide who deducted from whom)"
     }
   },
   "simulation": {

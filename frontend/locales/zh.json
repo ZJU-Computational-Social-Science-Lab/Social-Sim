@@ -1979,7 +1979,9 @@
       "csvFormat": "CSV 格式示例：",
       "uploadCSV": "上传 CSV",
       "uploadJSON": "上传 JSON",
-      "importInfo": "文件导入功能将在第7阶段实现。"
+      "importInfo": "文件导入功能将在第7阶段实现。",
+      "generationLlmProvider": "代理生成LLM提供商",
+      "generationLlmProviderHint": "选择用于生成具有人口统计特征的代理的LLM提供商"
     },
     "step5": {
       "networkPresets": "网络预设",
@@ -2064,7 +2066,19 @@
         "timeHours": "时间（小时）",
         "resources": "资源",
         "custom": "自定义..."
-      }
+      },
+      "amountPerRoundLabel": "每轮数量",
+      "displaySettingsTitle": "显示设置",
+      "showAverageLabel": "向代理显示平均贡献",
+      "showAverageHint": "启用后，代理可以在做决定前看到群体的平均贡献"
+    },
+    "deductionSettings": {
+      "title": "扣罚设置",
+      "budgetLabel": "每阶段扣罚预算",
+      "budgetHint": "每个代理每阶段可用于减少他人贡献的扣罚点数",
+      "costRatioLabel": "扣罚成本比率",
+      "costRatioHint": "从他人处扣除1单位的成本（例如：3.0 = 花费3来扣除1）",
+      "anonymousLabel": "匿名扣罚（隐藏谁从谁那里扣罚）"
     }
   },
   "simulation": {
