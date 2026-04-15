@@ -1,27 +1,8 @@
 @layer components {
   .ss-setup-page {
     min-height: 100vh;
-    background:
-      radial-gradient(circle at top right, rgba(135, 189, 255, 0.08), transparent 28%),
-      radial-gradient(circle at top left, rgba(255, 200, 112, 0.08), transparent 22%),
-      linear-gradient(180deg, #FFFEF9 0%, #FFFDF8 100%);
+    background: var(--ss-page-bg);
     color: var(--ss-text);
-  }
-
-  .theme-light .ss-setup-page {
-    background:
-      radial-gradient(circle at top right, rgba(135, 189, 255, 0.08), transparent 28%),
-      radial-gradient(circle at top left, rgba(255, 200, 112, 0.08), transparent 22%),
-      linear-gradient(180deg, #FFFEF9 0%, #FFFDF8 100%);
-  }
-
-  .dark .ss-setup-page,
-  .theme-dark .ss-setup-page,
-  .ss-setup-page.is-dark {
-    background:
-      radial-gradient(circle at top right, rgba(47, 230, 166, 0.16), transparent 28%),
-      radial-gradient(circle at top left, rgba(31, 209, 194, 0.1), transparent 22%),
-      linear-gradient(180deg, #08120f 0%, #07110f 100%);
   }
 
   .ss-setup-page__viewport {
@@ -114,14 +95,10 @@
     justify-content: space-between;
     gap: 1rem;
     padding: 1rem 0.65rem;
-    border: 1px solid rgba(130, 175, 160, 0.16);
+    border: 1px solid var(--ss-layer-outline);
     border-radius: 24px;
-    background:
-      radial-gradient(circle at top center, rgba(47, 230, 166, 0.08), transparent 40%),
-      rgba(10, 24, 21, 0.88);
-    box-shadow:
-      0 28px 72px rgba(0, 0, 0, 0.3),
-      inset 0 0 0 1px rgba(47, 230, 166, 0.04);
+    background: var(--ss-layer-panel);
+    box-shadow: var(--ss-layer-glow);
   }
 
   .ss-setup-modal .ss-setup-builder__utility-rail {
@@ -153,9 +130,9 @@
     justify-content: center;
     gap: 0.45rem;
     padding: 0.75rem 0.4rem;
-    border: 1px solid transparent;
+    border: 1px solid var(--ss-layer-outline);
     border-radius: 14px;
-    background: rgba(28, 27, 27, 0.94);
+    background: var(--ss-layer-card);
     color: #819386;
     font-size: 0.68rem;
     font-weight: 700;
@@ -171,14 +148,14 @@
 
   .ss-setup-builder__utility-card:hover {
     transform: translateY(-1px);
-    border-color: rgba(66, 72, 68, 0.9);
+    border-color: var(--ss-layer-outline);
     color: #c3c8c2;
   }
 
   .ss-setup-builder__utility-card.is-active {
     border-left: 2px solid #b8cbbc;
-    border-color: rgba(39, 52, 42, 0.95);
-    background: rgba(27, 43, 33, 0.92);
+    border-color: var(--ss-layer-outline);
+    background: var(--ss-layer-active);
     color: #b8cbbc;
   }
 
@@ -198,10 +175,10 @@
   .ss-setup-builder__phasebar,
   .ss-setup-builder__stage,
   .ss-setup-builder__review-rail {
-    border: 1px solid rgba(42, 42, 42, 0.9);
+    border: 1px solid var(--ss-layer-outline);
     border-radius: 24px;
-    background: rgba(28, 27, 27, 0.9);
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.2);
+    background: var(--ss-layer-panel);
+    box-shadow: var(--ss-layer-glow);
   }
 
   .ss-setup-builder__phasebar {
@@ -249,9 +226,9 @@
     align-items: flex-start;
     gap: 0.72rem;
     padding: 0.95rem 0.9rem;
-    border: 1px solid rgba(130, 175, 160, 0.14);
+    border: 1px solid var(--ss-layer-outline);
     border-radius: 16px;
-    background: rgba(10, 24, 21, 0.72);
+    background: var(--ss-layer-card);
     color: var(--ss-text-subtle);
     text-align: left;
     transition:
@@ -275,12 +252,10 @@
   }
 
   .ss-setup-builder__phase-step.is-current {
-    border-color: rgba(47, 230, 166, 0.34);
-    background: rgba(47, 230, 166, 0.12);
+    border-color: var(--ss-layer-outline);
+    background: var(--ss-layer-active);
     color: var(--ss-heading);
-    box-shadow:
-      0 16px 38px rgba(0, 0, 0, 0.22),
-      0 0 0 1px rgba(47, 230, 166, 0.12);
+    box-shadow: var(--ss-layer-glow);
   }
 
   .ss-setup-builder__phase-step.is-complete {
@@ -295,8 +270,8 @@
     height: 1.8rem;
     flex-shrink: 0;
     border-radius: 999px;
-    background: rgba(12, 30, 26, 0.82);
-    border: 1px solid rgba(130, 175, 160, 0.16);
+    background: var(--ss-layer-card);
+    border: 1px solid var(--ss-layer-outline);
   }
 
   .ss-setup-builder__phase-step-body {
@@ -346,8 +321,8 @@
     justify-content: space-between;
     gap: 1rem;
     padding: 1.4rem 1.5rem 1.1rem;
-    border-bottom: 1px solid rgba(130, 175, 160, 0.14);
-    background: rgba(10, 24, 21, 0.78);
+    border-bottom: 1px solid var(--ss-layer-outline);
+    background: var(--ss-layer-card);
   }
 
   .ss-setup-builder__stage-intro {
@@ -400,9 +375,9 @@
     align-items: center;
     min-height: 2rem;
     padding: 0.38rem 0.8rem;
-    border: 1px solid rgba(130, 175, 160, 0.16);
+    border: 1px solid var(--ss-layer-outline);
     border-radius: 999px;
-    background: rgba(12, 30, 26, 0.72);
+    background: var(--ss-layer-card);
     color: var(--ss-text-muted);
     font-size: 0.72rem;
     font-weight: 700;
@@ -422,11 +397,9 @@
     flex-direction: column;
     gap: 0.95rem;
     padding: 1.2rem 1rem 1rem;
-    background: rgba(10, 24, 21, 0.88);
-    border: 1px solid rgba(130, 175, 160, 0.14);
-    box-shadow:
-      0 18px 46px rgba(0, 0, 0, 0.28),
-      inset 0 0 0 1px rgba(47, 230, 166, 0.04);
+    background: var(--ss-layer-panel);
+    border: 1px solid var(--ss-layer-outline);
+    box-shadow: var(--ss-layer-glow);
   }
 
   .ss-setup-modal .ss-setup-builder__review-rail {
@@ -443,9 +416,9 @@
 
   .ss-setup-builder__review-section {
     padding: 0.95rem;
-    border: 1px solid rgba(130, 175, 160, 0.14);
+    border: 1px solid var(--ss-layer-outline);
     border-radius: 18px;
-    background: rgba(12, 30, 26, 0.76);
+    background: var(--ss-layer-card);
   }
 
   .ss-setup-builder__review-meter-head,
@@ -518,9 +491,9 @@
     align-items: center;
     gap: 0.45rem;
     padding: 0.85rem 0.95rem;
-    border: 1px solid rgba(53, 53, 52, 0.92);
+    border: 1px solid var(--ss-layer-outline);
     border-radius: 14px;
-    background: rgba(28, 27, 27, 0.94);
+    background: var(--ss-layer-card);
     color: #c3c8c2;
     font-size: 0.76rem;
     font-weight: 700;
