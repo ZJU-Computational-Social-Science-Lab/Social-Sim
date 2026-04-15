@@ -1043,6 +1043,7 @@
       "noCustomAttributes": "No custom attributes",
       "knowledgeBase": "Knowledge Base (RAG)",
       "noKnowledgeDocs": "No knowledge base documents yet",
+      "searchPlaceholder": "Search agents...",
       "save": "Save",
       "addKnowledge": "Add knowledge item",
       "documentKnowledgeBase": "Document Knowledge Base",

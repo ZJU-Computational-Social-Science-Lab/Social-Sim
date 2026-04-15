@@ -1043,6 +1043,7 @@
       "noCustomAttributes": "无自定义属性",
       "knowledgeBase": "知识库 (RAG)",
       "noKnowledgeDocs": "暂无知识库文档",
+      "searchPlaceholder": "搜索代理人...",
       "save": "保存",
       "addKnowledge": "添加知识条目",
       "documentKnowledgeBase": "文档知识库",
