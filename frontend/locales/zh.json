@@ -1017,8 +1017,7 @@
     "enterSteps": "输入步数",
     "advancingProgress": "第 {{current}} 步，共 {{total}} 步",
     "tabs": {
-      "simTree": "模拟树",
-      "logs": "日志",
+      "timeline": "时间线",
       "agents": "智能体"
     }
   },

@@ -2,12 +2,10 @@
  * Context-sensitive toolbar for the simulation page.
  *
  * Renders different toolbar buttons depending on the active tab:
- *   - simTree: Advance, Branch, Auto-advance, Design Experiment,
- *              Compare toggle, Time Settings, Provider dropdown
- *   - logs: Report, Export, Analytics
+ *   - timeline: Advance, Branch, Auto-advance, Design Experiment,
+ *               Compare toggle, Time Settings, Provider dropdown,
+ *               Report, Export, Analytics
  *   - agents: Network Topology, Global Knowledge
- *
- * Button logic is copied from the former Toolbar component in SimulationPage.tsx.
  *
  * Exports: ContextToolbar
  */
@@ -301,8 +299,7 @@ const ContextToolbar: React.FC = () => {
 
   return (
     <div className="flex items-center gap-2 px-4 py-2 border-b min-h-[44px]" style={{ background: 'var(--ss-workspace-toolbar)', borderColor: 'var(--ss-workspace-border)' }}>
-      {activeTab === 'simTree' && simTreeToolbar}
-      {activeTab === 'logs' && logsToolbar}
+      {activeTab === 'timeline' && <>{simTreeToolbar}{logsToolbar}</>}
       {activeTab === 'agents' && agentsToolbar}
     </div>
   );

@@ -39,9 +39,11 @@ export const PeekOverlay: React.FC = () => {
       }}
     >
       <div className="h-full overflow-auto">
-        {/* All three panels stay mounted to avoid re-initialization costs */}
-        <div className={peekTab === 'simTree' ? 'h-full' : 'hidden'}><SimTree /></div>
-        <div className={peekTab === 'logs' ? 'h-full' : 'hidden'}><LogViewer /></div>
+        {/* Panels stay mounted to avoid re-initialization costs */}
+        <div className={peekTab === 'timeline' ? 'h-full flex gap-2 p-2' : 'hidden'}>
+          <div className="w-[40%]"><SimTree /></div>
+          <div className="flex-1"><LogViewer /></div>
+        </div>
         <div className={peekTab === 'agents' ? 'h-full' : 'hidden'}><Sidebar /></div>
       </div>
     </div>

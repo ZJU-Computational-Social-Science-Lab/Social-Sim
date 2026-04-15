@@ -1017,8 +1017,7 @@
     "enterSteps": "Enter number of steps",
     "advancingProgress": "Step {{current}} of {{total}}",
     "tabs": {
-      "simTree": "Sim Tree",
-      "logs": "Logs",
+      "timeline": "Timeline",
       "agents": "Agents"
     }
   },

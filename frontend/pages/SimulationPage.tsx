@@ -658,9 +658,15 @@ const SimulationPage: React.FC = () => {
       <ContextToolbar />
 
       <div className="flex-1 overflow-hidden relative p-3">
-        {activeTab === 'simTree' && <SimTree />}
-        {activeTab === 'logs' && (
-          isCompareMode ? <ComparisonView /> : <LogViewer />
+        {activeTab === 'timeline' && (
+          <div className="flex gap-3 h-full">
+            <div className="w-[40%] flex flex-col">
+              <SimTree />
+            </div>
+            <div className="flex-1 flex flex-col">
+              {isCompareMode ? <ComparisonView /> : <LogViewer />}
+            </div>
+          </div>
         )}
         {activeTab === 'agents' && <Sidebar />}
 
