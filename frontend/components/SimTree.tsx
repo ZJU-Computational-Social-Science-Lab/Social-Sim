@@ -223,8 +223,8 @@ const root = d3.stratify<SimNode>()
   return (
     <>
       <EnvironmentSuggestionDialogWrapper />
-      <div className={`flex flex-col h-full border rounded-lg shadow-sm overflow-hidden relative transition-colors ${isCompareMode ? 'ring-2 ring-amber-400 border-amber-300' : ''}`} style={{ background: 'var(--ss-workspace-surface)' }}>
-        <div className="flex items-center justify-between px-4 py-3 border-b z-10 relative" style={{ background: 'var(--ss-surface-strong)' }}>
+      <div className={`flex flex-col h-full border rounded-lg shadow-sm overflow-hidden relative transition-colors ${isCompareMode ? 'ring-2 ring-amber-400 border-amber-300' : ''}`} style={{ background: 'var(--ss-workspace-surface)', borderColor: isCompareMode ? undefined : 'var(--ss-workspace-border)' }}>
+        <div className="flex items-center justify-between px-4 py-3 border-b z-10 relative" style={{ background: 'var(--ss-surface-strong)', borderColor: 'var(--ss-workspace-border)' }}>
           <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--ss-workspace-heading)' }}>
             {isCompareMode ? <MousePointer2 size={16} className="text-amber-500" /> : <Move size={16} style={{ color: 'var(--ss-workspace-muted)' }} />}
             {isCompareMode ? t('components.simTree.selectCompareNode') : t('components.simTree.title')}
@@ -242,7 +242,7 @@ const root = d3.stratify<SimNode>()
       </div>
       
       {/* Zoom Controls */}
-      <div className="absolute top-14 right-4 z-10 flex flex-col gap-1 border rounded shadow-sm p-1" style={{ background: 'var(--ss-workspace-surface)' }}>
+      <div className="absolute top-14 right-4 z-10 flex flex-col gap-1 border rounded shadow-sm p-1" style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)' }}>
         <button onClick={handleZoomIn} className="p-1.5 rounded" style={{ color: 'var(--ss-workspace-text)' }} title={t('components.simTree.zoomIn')}>
           <ZoomIn size={16} />
         </button>
@@ -272,7 +272,7 @@ const root = d3.stratify<SimNode>()
       <div ref={containerRef} className="flex-1 overflow-hidden relative" style={{ background: 'var(--ss-surface-strong)' }} />
       
       {/* Legend */}
-      <div className="px-4 py-2 border-t text-xs flex gap-4 z-10 relative" style={{ background: 'var(--ss-surface-strong)', color: 'var(--ss-workspace-muted)' }}>
+      <div className="px-4 py-2 border-t text-xs flex gap-4 z-10 relative" style={{ background: 'var(--ss-surface-strong)', color: 'var(--ss-workspace-muted)', borderColor: 'var(--ss-workspace-border)' }}>
         {isCompareMode ? (
           <>
             <div className="flex items-center gap-2">
