@@ -144,12 +144,14 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
               {children}
             </a>
           ),
-          code: ({ inline, children }) => {
+          code: ((props: any) => {
+            const inline = Boolean(props.inline);
+            const { children } = props;
             if (inline) {
               return <code style={codeStyles}>{children}</code>;
             }
             return <code style={{ ...codeStyles, backgroundColor: "transparent", color: "inherit" }}>{children}</code>;
-          },
+          }) as any,
           pre: ({ children }) => (
             <pre style={preStyles}>{children}</pre>
           ),

@@ -11,9 +11,9 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { I18nextProvider } from 'i18next';
+import { I18nextProvider } from 'react-i18next';
 import { Step1InteractionType } from '../Step1InteractionType';
-import { useExperimentBuilder } from '../../store/experiment-builder';
+import { useExperimentBuilder } from '../../../store/experiment-builder';
 import { vi } from 'vitest';
 
 // Mock i18next
@@ -81,7 +81,7 @@ describe('Step1InteractionType', () => {
         markStepComplete: vi.fn(),
       };
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore));
+      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore as any));
 
       render(<Step1InteractionType />, { wrapper });
 
@@ -96,7 +96,7 @@ describe('Step1InteractionType', () => {
         markStepComplete: vi.fn(),
       };
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore));
+      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore as any));
 
       render(<Step1InteractionType />, { wrapper });
 
@@ -114,7 +114,7 @@ describe('Step1InteractionType', () => {
         markStepComplete: vi.fn(),
       };
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore));
+      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore as any));
 
       render(<Step1InteractionType />, { wrapper });
 
@@ -138,7 +138,7 @@ describe('Step1InteractionType', () => {
         markStepComplete: vi.fn(),
       };
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore));
+      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore as any));
 
       render(<Step1InteractionType />, { wrapper });
 
@@ -166,7 +166,7 @@ describe('Step1InteractionType', () => {
         markStepComplete,
       };
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore));
+      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore as any));
 
       render(<Step1InteractionType />, { wrapper });
 

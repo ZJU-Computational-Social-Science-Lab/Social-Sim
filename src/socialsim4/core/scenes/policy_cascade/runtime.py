@@ -482,22 +482,58 @@ class PolicyCascadeRuntimeMixin:
         mode = str(self.state.get("task_mode") or "notice")
         if mode == "follow_up":
             private_event = self._private_event_for(agent.name)
+            if self._follow_up_requires_tier_order():
+                tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
+                if tier != self._active_tier():
+                    return True
             if agent.name in self._follow_up_no_action_agents() and not private_event:
                 return True
             return False
+        tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
+        active = self._active_tier()
+        if tier != active:
+            return True
+        active_targets = self._active_targets_for_tier(active)
+        if active_targets:
+            return agent.name not in active_targets
         private_recipients = self._private_recipient_names()
         if private_recipients:
             private_tier = self.tier_order[self._private_active_tier_idx()]
-            tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
-            return agent.name not in private_recipients or tier != private_tier
-        tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
-        return tier != self._active_tier()
+            if private_tier == active:
+                return agent.name not in private_recipients
+        return False
 
     def post_turn(self, agent: Agent, simulator) -> None:
         super().post_turn(agent, simulator)
         self._clear_follow_up_public_done(agent.name)
 
         if str(self.state.get("task_mode") or "") == "follow_up":
+            if self._follow_up_requires_tier_order():
+                tier = self._tier_map.get(agent.name) or self._extract_tier(agent)
+                active = self._active_tier()
+                if tier != active:
+                    return
+
+                seen = self.state.get("tier_seen", {})
+                if active not in seen:
+                    seen[active] = []
+                if agent.name not in seen[active]:
+                    seen[active].append(agent.name)
+
+                expected_agents = self._agents_by_tier.get(active, [])
+                if expected_agents and all(name in seen[active] for name in expected_agents):
+                    next_idx = self.tier_order.index(active) + 1
+                    if next_idx < len(self.tier_order):
+                        self.state["current_tier_idx"] = next_idx
+                    else:
+                        self.state["follow_up_force_tier_order"] = False
+                        self.state["current_tier_idx"] = 0
+                        if not self._private_recipient_names():
+                            self._auto_seed_follow_up_threads()
+                    self.state["tier_seen"] = {t: [] for t in self.tier_order}
+                    self._normalize_active_tier()
+                self._activate_next_thread(agent.name)
+                return
             self._activate_next_thread(agent.name)
             return
 

@@ -11,7 +11,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mapBackendEventsToLogs } from '../helpers';
-import type { Agent } from '../models';
+import type { Agent } from '../../types';
 
 describe('mapBackendEventsToLogs - punishment_action', () => {
   let mockAgents: Agent[];
@@ -19,9 +19,9 @@ describe('mapBackendEventsToLogs - punishment_action', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAgents = [
-      { id: 'agent-1', name: 'Alice', personality: '', goals: [] },
-      { id: 'agent-2', name: 'Bob', personality: '', goals: [] },
-    ];
+      { id: 'agent-1', name: 'Alice', role: '', avatarUrl: '', profile: '', llmConfig: { provider: 'mock', model: 'default' }, properties: {}, history: {}, memory: [], knowledgeBase: [] },
+      { id: 'agent-2', name: 'Bob', role: '', avatarUrl: '', profile: '', llmConfig: { provider: 'mock', model: 'default' }, properties: {}, history: {}, memory: [], knowledgeBase: [] },
+    ] as Agent[];
   });
 
   // =========================================================================

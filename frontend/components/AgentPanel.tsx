@@ -69,7 +69,8 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
 
     await updateAgentLLM(agent.name, {
       provider: provider.provider,
-      model: provider.model
+      model: provider.model,
+      provider_id: providerId,
     });
   };
 
@@ -299,6 +300,9 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
               ) : (
                 <select
                   value={(() => {
+                    if (agent.provider_id != null) {
+                      return String(agent.provider_id);
+                    }
                     const matched = availableProviders.find(p =>
                       p.provider === agent.llmConfig?.provider && p.model === agent.llmConfig?.model
                     );

@@ -10,6 +10,7 @@ console.log('[experiment-builder.ts] STORE MODULE LOADED');
 
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
+import type { SocialNetwork } from '../types';
 import {
   ScenarioData,
   ScenarioParam,
@@ -47,12 +48,19 @@ export interface ExperimentBuilderState {
   // Step 1: Scenario selection
   selectedScenarioId: string | null;
   selectedScenarioData: ScenarioData | null;
+  interactionTypes?: string[];
+  scenario?: string;
 
   // Step 2: Scenario configuration
   scenarioDescription: string;
   scenarioParams: Record<string, unknown>;
   roundVisibility: 'simultaneous' | 'sequential';
   turnOrder: 'fixed' | 'random';
+  successCondition?: { type: string; maxRounds?: number };
+  interRoundUpdate?: { type: string };
+  metrics?: string[];
+  networkType?: string;
+  mechanicConfigs?: Record<string, any>;
 
   // Step 3: Actions
   availableActions: ActionDef[];
@@ -130,6 +138,13 @@ const getInitialState = (): ExperimentBuilderState => ({
   selectedProviderId: null,
   socialNetwork: {},
   validationErrors: {},
+  interactionTypes: [],
+  scenario: '',
+  successCondition: { type: 'fixed_rounds' },
+  interRoundUpdate: { type: 'none' },
+  metrics: [],
+  networkType: 'custom',
+  mechanicConfigs: {},
 });
 
 const initialState: ExperimentBuilderState = getInitialState();

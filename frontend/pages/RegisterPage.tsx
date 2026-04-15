@@ -4,6 +4,18 @@ import { Link, useNavigate } from "react-router-dom";
 import { apiClient } from "../services/client";
 import { useTranslation } from "react-i18next";
 
+const COUNTRY_CODES = [
+  { value: "+86", label: "+86 中国" },
+  { value: "+852", label: "+852 中国香港" },
+  { value: "+853", label: "+853 中国澳门" },
+  { value: "+886", label: "+886 中国台湾" },
+  { value: "+1", label: "+1 US/CA" },
+  { value: "+44", label: "+44 UK" },
+  { value: "+81", label: "+81 日本" },
+  { value: "+82", label: "+82 한국" },
+  { value: "+65", label: "+65 Singapore" },
+];
+
 export function RegisterPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -12,6 +24,7 @@ export function RegisterPage() {
     email: "",
     username: "",
     full_name: "",
+    country_code: "+86",
     phone_number: "",
     password: "",
   });
@@ -28,9 +41,9 @@ export function RegisterPage() {
     setLoading(true);
     setError(null);
     try {
-      // simple client-side validation for phone (E.164-like)
-      const phone = String(form.phone_number || '').trim();
-      const phoneOk = /^\+?[1-9]\d{7,14}$/.test(phone);
+      const localPhone = String(form.phone_number || "").replace(/\D/g, "").replace(/^0+/, "");
+      const phone = `${form.country_code}${localPhone}`;
+      const phoneOk = /^\+[1-9]\d{7,14}$/.test(phone);
       if (!phoneOk) {
         setLoading(false);
         setError('invalid_phone');
@@ -41,7 +54,7 @@ export function RegisterPage() {
         email: form.email,
         username: form.username,
         full_name: form.full_name,
-        phone_number: form.phone_number,
+        phone_number: phone,
         password: form.password,
       });
       setSuccess(true);
@@ -85,7 +98,34 @@ export function RegisterPage() {
         </label>
         <label>
           {t('auth.register.phone')}
-          <input className="input" value={form.phone_number} onChange={(e) => handleChange("phone_number", e.target.value)} required pattern="^\+?[1-9]\d{7,14}$" title={t('auth.register.invalidPhoneTitle') || '+123456789 (8-15 digits)'} />
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <select
+              className="input"
+              value={form.country_code}
+              onChange={(e) => handleChange("country_code", e.target.value)}
+              aria-label={t('auth.register.countryCode')}
+              style={{ width: 140, flex: "0 0 140px" }}
+            >
+              {COUNTRY_CODES.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <input
+              className="input"
+              value={form.phone_number}
+              onChange={(e) => handleChange("phone_number", e.target.value)}
+              required
+              inputMode="numeric"
+              placeholder={t('auth.register.phonePlaceholder')}
+              title={t('auth.register.invalidPhoneTitle') || 'Enter phone digits only'}
+              style={{ flex: 1 }}
+            />
+          </div>
+          <div style={{ color: "var(--muted)", fontSize: "0.875rem", marginTop: "0.35rem" }}>
+            {t('auth.register.phoneHint')}
+          </div>
         </label>
         <label>
           {t('auth.register.password')}

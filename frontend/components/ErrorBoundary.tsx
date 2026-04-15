@@ -29,7 +29,7 @@ export function ErrorBoundary({ children }: Props) {
   }, []);
 
   // Static method for class component compatibility
-  ErrorBoundary.getDerivedStateFromError = (error: any) => {
+  (ErrorBoundary as any).getDerivedStateFromError = (error: any) => {
     return { hasError: true, error };
   };
 

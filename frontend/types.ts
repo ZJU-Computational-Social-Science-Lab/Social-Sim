@@ -10,6 +10,7 @@ export interface SimNode {
   status: 'completed' | 'running' | 'failed' | 'pending';
   timestamp: string; // System timestamp of creation
   worldTime: string; // #9 Simulated world time (ISO string)
+  meta?: Record<string, any> | null;
 }
 
 export interface LLMConfig {
@@ -40,10 +41,10 @@ export interface EngineConfig {
 export interface KnowledgeItem {
   id: string;
   title: string;
-  type: 'text' | 'file' | 'url';
+  type?: 'text' | 'file' | 'url';
   content: string; // Text content or URL
-  enabled: boolean;
-  timestamp: string;
+  enabled?: boolean;
+  timestamp?: string;
 }
 
 export interface Agent {
@@ -53,6 +54,7 @@ export interface Agent {
   avatarUrl: string;
   profile: string; // 静态画像描述
   llmConfig: LLMConfig; // #10 LLM 配置
+  provider_id?: number;
   properties: Record<string, any>; // 动态属性 (如信任值, 压力值)
   // #14 新增历史数据用于趋势分析
   history: Record<string, number[]>; // key: property name, value: array of values per round
@@ -142,8 +144,11 @@ export interface SimulationTemplate {
   agents: Agent[]; // Pre-configured agents
   defaultTimeConfig: TimeConfig;
   defaultNetwork?: SocialNetwork; // #22
+  socialNetwork?: SocialNetwork;
   genericConfig?: GenericTemplateConfig; // For custom templates built with TemplateBuilder
 }
+
+export type Template = SimulationTemplate;
 
 export interface Simulation {
   id: string;
@@ -219,10 +224,11 @@ export interface Intervention {
 }
 
 export interface ExperimentVariant {
-  id: string;
+  id?: string;
   name: string;
   description?: string;
-  interventions: Intervention[];
+  interventions?: Intervention[];
+  ops?: any[];
 }
 
 export interface Notification {
@@ -283,6 +289,10 @@ export interface GenericTemplateConfig {
   version?: string;
   coreMechanics: CoreMechanicConfig[];
   availableActions: string[];  // Array of action IDs from ACTION_SPACE_MAP
+  actions?: Array<string | Record<string, any>>;
+  parameters?: Record<string, any>;
+  scenario_id?: string;
+  round_visibility?: 'simultaneous' | 'sequential';
   environment: {
     description: string;
     rules?: string[];

@@ -5,22 +5,24 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any
 
+from socialsim4.core.runtime_paths import get_runtime_debug_dir
+
 
 class DebugLogger:
     """Logs full prompts, LLM responses, and controller actions.
 
     Outputs to:
     - Console (stdout with timestamps)
-    - File: test_results/debug_logs/session_YYYYMMDD_HHMMSS.txt
+    - File: runtime debug directory/session_YYYYMMDD_HHMMSS.txt
     """
 
-    def __init__(self, log_dir: Path = Path("test_results/debug_logs")):
+    def __init__(self, log_dir: Path | None = None):
         """Initialize debug logger.
 
         Args:
             log_dir: Directory for log files (created if doesn't exist)
         """
-        self.log_dir = log_dir
+        self.log_dir = log_dir or get_runtime_debug_dir("debug_logs")
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
         # Console logger (stdout)

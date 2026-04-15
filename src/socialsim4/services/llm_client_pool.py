@@ -78,7 +78,7 @@ def make_clients(settings: LLMSettings) -> Dict[str, object]:
         "openai": "gpt-4o-mini",
         "gemini": "gemini-2.0-flash-exp",
         "mock": "mock",
-        "ollama": "llava:latest",
+        "ollama": "qwen3:4b-instruct-2507-q4_K_M",
     }
 
     config = LLMConfig(

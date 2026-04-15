@@ -427,6 +427,11 @@ async def update_agent_llm_config(
                 agent.get("id") == data.agent_id or agent.get("name") == data.agent_id
             ):
                 agent["llm_config"] = data.llm_config
+                if data.provider_id is not None:
+                    agent["provider_id"] = data.provider_id
+                    properties = agent.get("properties") or {}
+                    properties["provider_id"] = data.provider_id
+                    agent["properties"] = properties
                 agent_found = True
                 break
 
@@ -444,5 +449,6 @@ async def update_agent_llm_config(
         return {
             "message": "Agent LLM config updated successfully",
             "agent_id": data.agent_id,
-            "llm_config": data.llm_config
+            "llm_config": data.llm_config,
+            "provider_id": data.provider_id,
         }

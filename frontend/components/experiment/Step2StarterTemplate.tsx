@@ -146,7 +146,7 @@ export const Step2StarterTemplate: React.FC = () => {
     const category = selectedScenarioData.category || 'game_theory';
     // Try to get translated name from locale files using the actual category
     const translatedName = t(`scenario.${category}.${scenarioId}.name`, { defaultValue: selectedScenarioData.name });
-    return translatedName;
+    return String(translatedName);
   };
 
   const getScenarioDescription = () => {
@@ -154,7 +154,7 @@ export const Step2StarterTemplate: React.FC = () => {
     const scenarioId = selectedScenarioData.id;
     const category = selectedScenarioData.category || 'game_theory';
     // Try to get translated description from locale files using the actual category
-    return t(`scenario.${category}.${scenarioId}.description`, { defaultValue: selectedScenarioData.description });
+    return String(t(`scenario.${category}.${scenarioId}.description`, { defaultValue: selectedScenarioData.description }));
   };
 
   // Update local state when store changes
@@ -211,11 +211,11 @@ export const Step2StarterTemplate: React.FC = () => {
   };
 
   const getParamLabel = (param: { key: string; label: string }) => {
-    return t(`experimentBuilder.paramLabels.${param.key}`, { defaultValue: param.label });
+    return String(t(`experimentBuilder.paramLabels.${param.key}`, { defaultValue: param.label }));
   };
 
   const getParamDescription = (param: { key: string; description?: string }) => {
-    return t(`experimentBuilder.paramDescriptions.${param.key}`, { defaultValue: param.description || '' });
+    return String(t(`experimentBuilder.paramDescriptions.${param.key}`, { defaultValue: param.description || '' }));
   };
 
   // Determine which editor to show based on scenario
@@ -373,8 +373,8 @@ export const Step2StarterTemplate: React.FC = () => {
       {selectedScenarioData.display_type === 'payoff_matrix' ? (
         <PayoffInput
           value={scenarioParams as { cooperate_reward?: number; defect_penalty?: number }}
-          actionA={scenarioParams.action_1_name || selectedScenarioData.actions?.[0]?.name}
-          actionB={scenarioParams.action_2_name || selectedScenarioData.actions?.[1]?.name}
+          actionA={String(scenarioParams.action_1_name || selectedScenarioData.actions?.[0]?.name || 'Action 1')}
+          actionB={String(scenarioParams.action_2_name || selectedScenarioData.actions?.[1]?.name || 'Action 2')}
           onChange={handlePayoffChange}
         />
       ) : hasParameters ? (

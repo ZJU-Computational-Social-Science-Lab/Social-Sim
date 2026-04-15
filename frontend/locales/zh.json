@@ -701,12 +701,15 @@
       "username": "用户名",
       "fullName": "姓名",
       "phone": "手机号",
+      "countryCode": "区号",
+      "phonePlaceholder": "请输入手机号",
+      "phoneHint": "先选择区号（默认 +86），再输入手机号数字即可。开头的 0 会自动去掉。",
       "password": "密码",
       "submit": "创建账户",
       "success": "注册成功，请查收邮件。",
       "failed": "注册失败",
-      "invalidPhone": "手机号格式不正确，请使用国际格式，如 +8613712345678（8–15 位数字）",
-      "invalidPhoneTitle": "使用国际格式：+国家码+号码（8–15 位数字）",
+      "invalidPhone": "手机号格式不正确。请选择区号后输入 8–15 位手机号数字。",
+      "invalidPhoneTitle": "选择区号后输入手机号数字，系统会自动拼成国际格式。",
       "have": "已经注册？",
       "signin": "去登录"
     }

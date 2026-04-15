@@ -1,9 +1,9 @@
 // frontend/api/backendClient.ts
 import axios from "axios";
 import { useAuthStore } from "../store/auth";
+import { getApiBase } from "./base";
 
-// 本地开发: /api (通过 vite proxy 转发到后端)
-export const API_BASE_URL = "/api";
+export const API_BASE_URL = getApiBase().replace(/\/+$/, "");
 console.log("Api base url is :", API_BASE_URL);
 
 // 统一导出的 axios 客户端
@@ -16,7 +16,7 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
   if (token) {
-    config.headers = config.headers ?? {};
+    config.headers = (config.headers ?? {}) as any;
     (config.headers as any).Authorization = `Bearer ${token}`;
   }
   return config;

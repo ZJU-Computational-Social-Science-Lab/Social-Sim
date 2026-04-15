@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...core.database import get_session
 from ...dependencies import extract_bearer_token, resolve_current_user
 from ...models.user import ProviderConfig
+from ...services.default_providers import get_default_ollama_base_url
 
 # 👇 关键：这里需要上升 3 层到 socialsim4，然后再进入 core
 from ....core.llm import create_llm_client, generate_agents_with_archetypes
@@ -126,12 +127,13 @@ async def generate_agents(
         provider = await _select_provider(
             session, current_user.id, data.provider_id
         )
+        dialect = (provider.provider or "").lower()
 
         cfg = LLMConfig(
-            dialect=(provider.provider or "").lower(),
+            dialect=dialect,
             api_key=provider.api_key or "",
             model=provider.model,
-            base_url=provider.base_url or ("http://127.0.0.1:11434" if dialect == "ollama" else None),
+            base_url=provider.base_url or (get_default_ollama_base_url() if dialect == "ollama" else None),
             temperature=0.7,
             top_p=1.0,
             frequency_penalty=0.0,
@@ -345,7 +347,7 @@ async def generate_agents_demographics(
                 dialect=dialect,
                 api_key=provider.api_key or "",
                 model=provider.model,
-                base_url=provider.base_url or ("http://127.0.0.1:11434" if dialect == "ollama" else None),
+                base_url=provider.base_url or (get_default_ollama_base_url() if dialect == "ollama" else None),
                 temperature=0.7,
                 top_p=1.0,
                 frequency_penalty=0.0,
@@ -428,76 +430,34 @@ async def generate_agents_demographics(
                 # Unexpected error during generation
                 raise RuntimeError(f"Unexpected error during agent generation: {e}")
 
-            # 🎯 STRATIFIED PROVIDER DISTRIBUTION
-            # Query all available providers for the user to avoid confounding
-            all_providers_result = await session.execute(
-                select(ProviderConfig).where(ProviderConfig.user_id == current_user.id)
-            )
-            all_providers = all_providers_result.scalars().all()
-
-            if not all_providers:
-                raise ValueError("No LLM providers configured for user")
-
-            # Build provider ID list for stratified distribution
-            provider_ids = [p.id for p in all_providers if p.id is not None]
-            provider_map = {p.id: p for p in all_providers}
-            num_providers = len(provider_ids)
-
-            # Algorithm for confounding-free distribution:
-            # 1. Group agents by archetype
-            # 2. Within each archetype, assign models in round-robin
-            # 3. Track totals per model to ensure even distribution
-            # 4. Goal: each model gets exactly 50/num_providers agents
-
-            agents_per_model = data.total_agents // num_providers
-            model_counts = {pid: 0 for pid in provider_ids}
             provider_assignment = {}
+            assigned_provider = provider
 
-            # Group agents by archetype
-            from collections import defaultdict
-            agents_by_archetype = defaultdict(list)
-            for agent in agents_data:
-                archetype_id = agent.get("properties", {}).get("archetype_id", "unknown")
-                agents_by_archetype[archetype_id].append(agent)
+            if data.provider_id is not None and provider.id is not None:
+                provider_assignment = {
+                    agent.get("name", "Agent"): provider.id
+                    for agent in agents_data
+                }
+                provider_map = {provider.id: provider}
+                logger.info(f"🎯 SINGLE PROVIDER DISTRIBUTION: {len(agents_data)} agents -> provider {provider.id}")
+            else:
+                all_providers_result = await session.execute(
+                    select(ProviderConfig).where(ProviderConfig.user_id == current_user.id)
+                )
+                all_providers = all_providers_result.scalars().all()
+                active_providers = [p for p in all_providers if bool((p.config or {}).get("active"))]
+                selected_providers = active_providers or [provider]
+                provider_ids = [p.id for p in selected_providers if p.id is not None]
+                provider_map = {p.id: p for p in selected_providers if p.id is not None}
 
-            # DEBUG: Log stratified distribution start
-            logger.info(f"🎯 STRATIFIED DISTRIBUTION: {len(agents_data)} agents, {num_providers} providers, {len(agents_by_archetype)} archetypes")
-            logger.info(f"🎯 Provider IDs: {provider_ids}, agents_per_model: {agents_per_model}")
-
-            # Track global round-robin index across all archetypes
-            global_model_idx = 0
-
-            # Process each archetype and assign models in round-robin
-            for archetype_id, archetype_agents in sorted(agents_by_archetype.items()):
-                for agent in archetype_agents:
-                    agent_name = agent.get("name", "Agent")
-
-                    # Find next model that hasn't reached its quota
-                    attempts = 0
-                    while attempts < num_providers:
-                        model_id = provider_ids[global_model_idx % num_providers]
-                        global_model_idx += 1
-
-                        if model_counts[model_id] < agents_per_model:
-                            model_counts[model_id] += 1
-                            provider_assignment[agent_name] = model_id
-                            # DEBUG: Log each assignment
-                            logger.info(f"🎯 DEBUG: Assigned provider {model_id} to {agent_name} in archetype {archetype_id}")
-                            break
-                        attempts += 1
-                    else:
-                        # If all models at quota, assign to first available
-                        # (this handles remainder when 50 % num_providers != 0)
-                        for pid in provider_ids:
-                            if model_counts[pid] < agents_per_model + 1:
-                                model_counts[pid] += 1
-                                provider_assignment[agent_name] = pid
-                                logger.info(f"🎯 DEBUG: Assigned provider {pid} to {agent_name} (overflow) in archetype {archetype_id}")
-                                break
-
-            # DEBUG: Log final distribution
-            logger.info(f"🎯 FINAL MODEL COUNTS: {model_counts}")
-            logger.info(f"🎯 TOTAL ASSIGNMENTS: {len(provider_assignment)}")
+                if provider_ids:
+                    assignment = stratified_provider_assignment(
+                        agents_data,
+                        provider_ids,
+                        ["Age", "Income"],
+                    )
+                    provider_assignment = dict(assignment)
+                    logger.info(f"🎯 ACTIVE PROVIDER DISTRIBUTION: {len(agents_data)} agents, providers={provider_ids}")
 
             # Convert to GeneratedAgent response models with stratified provider assignment
             agents: List[GeneratedAgent] = []

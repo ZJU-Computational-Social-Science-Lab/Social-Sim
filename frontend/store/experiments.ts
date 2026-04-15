@@ -25,6 +25,15 @@ export interface ExperimentsSlice {
   selectedNodeId?: string | null;
   logs?: any[];
   rawEvents?: any[];
+  currentSimulation?: any;
+  engineConfig?: any;
+  agents?: any[];
+  timeConfig?: any;
+  currentProviderId?: number | null;
+  addNotification?: (type: string, message: string) => void;
+  isGenerating?: boolean;
+  isGeneratingReport?: boolean;
+  selectNode?: (id: string) => void;
 
   // Analysis config
   analysisConfig: {
@@ -67,6 +76,7 @@ export interface ExperimentsSlice {
 // Module-scope WebSocket handle to avoid duplicate connections
 let _treeSocket: WebSocket | null = null;
 let _treeSocketRefreshTimer: number | null = null;
+const pollInterval = 1000;
 
 const closeTreeSocket = () => {
   if (_treeSocket) {
@@ -356,28 +366,29 @@ export const createExperimentsSlice: StateCreator<
           const evType = ev.type || ev.event_type || 'unknown';
           const data = ev.data || {};
           const agent = data.agent || '';
+          const nodeId = String(ev.node ?? data.node ?? '');
 
           // For system_broadcast events, use text and sender as unique key
           if (evType === 'system_broadcast') {
             const text = data.text || data.message || '';
             const sender = data.sender || '';
             const eventType = data.type || '';
-            return `${evType}:${eventType}:${sender}:${text}`;
+            return `${nodeId}:${evType}:${eventType}:${sender}:${text}`;
           }
 
           // For experiment_action events, include round number to distinguish actions across rounds
-          // (data.action is a plain string like "cooperate", not an object)
+          // and include node id so sibling branches with the same agent/action are not collapsed.
           if (evType === 'experiment_action') {
             const round = data.round !== undefined ? String(data.round) : '';
             const agentAction = typeof data.action === 'string' ? data.action : '';
-            return `${evType}:${agent}:${agentAction}:round${round}`;
+            return `${nodeId}:${evType}:${agent}:${agentAction}:round${round}`;
           }
 
           // Use type, agent, content, time, and action to generate unique key
           const content = typeof data.content === 'string' ? data.content.substring(0, 100) : '';
           const time = data.time || '';
           const action = data.action?.action || data.action?.name || '';
-          return `${evType}:${agent}:${content}:${time}:${action}`;
+          return `${nodeId}:${evType}:${agent}:${content}:${time}:${action}`;
         };
 
         set((prev: any) => {
@@ -391,11 +402,17 @@ export const createExperimentsSlice: StateCreator<
             return true;
           });
 
+          const normalizedEvents = newEvents.map((ev: any) => (
+            ev && typeof ev === 'object' && ev.node == null
+              ? { ...ev, node: newSelectedId }
+              : ev
+          ));
+
           const selectedNode = (prev.nodes || []).find((n: any) => n.id === newSelectedId);
           const round = selectedNode?.depth ?? 0;
 
           const logsMapped = mapBackendEventsToLogs(
-            newEvents, // Only map new events
+            normalizedEvents, // Only map new events
             newSelectedId,
             round,
             agentsMapped,
@@ -404,7 +421,7 @@ export const createExperimentsSlice: StateCreator<
 
           return {
             logs: [...(prev.logs || []), ...logsMapped],
-            rawEvents: [...(prev.rawEvents || []), ...newEvents],
+            rawEvents: [...(prev.rawEvents || []), ...normalizedEvents],
             agents: agentsMapped,
             isGenerating: false
           };

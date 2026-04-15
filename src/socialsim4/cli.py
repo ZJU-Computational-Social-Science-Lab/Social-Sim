@@ -37,7 +37,7 @@ def build_llm_clients(args: argparse.Namespace) -> dict[str, object]:
         "openai": "gpt-4o-mini",
         "gemini": "gemini-2.0-flash-exp",
         "mock": "mock",
-        "ollama": "llava:latest",
+        "ollama": "qwen3:4b-instruct-2507-q4_K_M",
     }
     model = args.model or os.getenv("LLM_MODEL") or model_defaults[dialect]
 

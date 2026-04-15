@@ -77,13 +77,13 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
   // Build formatted scenario description for PUBLIC_GOODS
   const getFormattedScenario = () => {
     if (scenarioId === 'public_goods') {
-      const tokensPerRound = scenarioParams.tokens_per_round ?? 10;
-      const resourceName = scenarioParams.resource_name ?? 'tokens';
-      const multiplier = scenarioParams.multiplier ?? 1.3;
+      const tokensPerRound = Number(scenarioParams.tokens_per_round ?? 10);
+      const resourceName = String(scenarioParams.resource_name ?? 'tokens');
+      const multiplier = Number(scenarioParams.multiplier ?? 1.3);
       const numMembers = totalAgents || 4;
-      const deductionBudget = scenarioParams.deduction_budget_per_phase ?? 0;
-      const deductionCostRatio = scenarioParams.deduction_cost_ratio ?? 3;
-      const deductionAnonymous = scenarioParams.deduction_anonymous ?? false;
+      const deductionBudget = Number(scenarioParams.deduction_budget_per_phase ?? 0);
+      const deductionCostRatio = Number(scenarioParams.deduction_cost_ratio ?? 3);
+      const deductionAnonymous = Boolean(scenarioParams.deduction_anonymous ?? false);
 
       // Use the base description if provided, otherwise use default
       // Replace "agent" with "person/member" for more realistic LLM framing

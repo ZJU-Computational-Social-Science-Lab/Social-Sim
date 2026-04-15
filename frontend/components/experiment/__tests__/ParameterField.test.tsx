@@ -10,7 +10,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { I18nextProvider } from 'i18next';
+import { I18nextProvider } from 'react-i18next';
 import ParameterField, { ScenarioParam } from '../ParameterField';
 import { vi } from 'vitest';
 
@@ -47,13 +47,13 @@ describe('ParameterField', () => {
         step: 1,
       };
 
-      render(
+      const { container } = render(
         <ParameterField param={param} value={50} onChange={onChange} />,
         { wrapper }
       );
 
-      const slider = screen.container.querySelector('input[type="range"]');
-      const numberInput = screen.container.querySelector('input[type="number"]');
+      const slider = container.querySelector('input[type="range"]');
+      const numberInput = container.querySelector('input[type="number"]');
       expect(slider).toBeInTheDocument();
       expect(numberInput).toBeInTheDocument();
     });
@@ -65,12 +65,12 @@ describe('ParameterField', () => {
         ui_hint: 'percentage',
       };
 
-      render(
+      const { container } = render(
         <ParameterField param={param} value={0.5} onChange={onChange} />,
         { wrapper }
       );
 
-      const slider = screen.container.querySelector('input[type="range"]');
+      const slider = container.querySelector('input[type="range"]');
       expect(slider).toBeInTheDocument();
       expect(screen.getByText('50%')).toBeInTheDocument();
     });
@@ -83,12 +83,12 @@ describe('ParameterField', () => {
         placeholder: 'Enter text',
       };
 
-      render(
+      const { container } = render(
         <ParameterField param={param} value="" onChange={onChange} />,
         { wrapper }
       );
 
-      const textarea = screen.container.querySelector('textarea');
+      const textarea = container.querySelector('textarea');
       expect(textarea).toBeInTheDocument();
       expect(textarea).toHaveAttribute('placeholder', 'Enter text');
     });
@@ -100,12 +100,12 @@ describe('ParameterField', () => {
         ui_hint: 'toggle',
       };
 
-      render(
+      const { container } = render(
         <ParameterField param={param} value={false} onChange={onChange} />,
         { wrapper }
       );
 
-      const checkbox = screen.container.querySelector('input[type="checkbox"]');
+      const checkbox = container.querySelector('input[type="checkbox"]');
       expect(checkbox).toBeInTheDocument();
       expect(screen.getByText('Disabled')).toBeInTheDocument();
     });
@@ -126,12 +126,12 @@ describe('ParameterField', () => {
         step: 1,
       };
 
-      render(
+      const { container } = render(
         <ParameterField param={param} value={50} onChange={onChange} />,
         { wrapper }
       );
 
-      const numberInput = screen.container.querySelector('input[type="number"]') as HTMLInputElement;
+      const numberInput = container.querySelector('input[type="number"]') as HTMLInputElement;
       expect(numberInput).toBeInTheDocument();
 
       fireEvent.change(numberInput, { target: { value: '75' } });
@@ -146,12 +146,12 @@ describe('ParameterField', () => {
         ui_hint: 'toggle',
       };
 
-      render(
+      const { container } = render(
         <ParameterField param={param} value={false} onChange={onChange} />,
         { wrapper }
       );
 
-      const label = screen.container.querySelector('label') as HTMLLabelElement;
+      const label = container.querySelector('label') as HTMLLabelElement;
       fireEvent.click(label);
 
       expect(onChange).toHaveBeenCalledWith(true);

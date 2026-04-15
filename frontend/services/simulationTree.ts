@@ -30,7 +30,7 @@ let activeWsConnections = 0;
 
 function toWsUrl(base: string, path: string, token?: string): string {
   const b = base.replace(/\/$/, "");
-  const url = new URL(b);
+  const url = new URL(b, window.location.origin);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   const full = new URL(path.replace(/^\//, "/"), url);
   if (token) full.searchParams.set("token", token);

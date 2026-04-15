@@ -1,0 +1,146 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: socialsim-new-db
+    environment:
+      POSTGRES_DB: socialsim4
+      POSTGRES_USER: socialsim4
+      POSTGRES_PASSWORD: socialsim4
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    tmpfs:
+      - /var/run/postgresql
+    runtime: runc
+    networks:
+      - backend
+
+  app:
+    env_file:
+      - .env
+    build:
+      context: .
+      args:
+        FRONTEND_BASE_URL: "${FRONTEND_BASE_URL:-/css/socialsim/}"
+        VITE_API_BASE_URL: "${VITE_API_BASE_URL:-/css/socialsim/api}"
+        HTTP_PROXY: ""
+        HTTPS_PROXY: ""
+        http_proxy: ""
+        https_proxy: ""
+        NO_PROXY: "*"
+        no_proxy: "*"
+    environment:
+      SOCIALSIM4_DATABASE_URL: "${SOCIALSIM4_DATABASE_URL:-postgresql+psycopg://socialsim4:socialsim4@db:5432/socialsim4}"
+      SOCIALSIM4_BACKEND_HOST: "${SOCIALSIM4_BACKEND_HOST:-0.0.0.0}"
+      SOCIALSIM4_BACKEND_PORT: "${SOCIALSIM4_BACKEND_PORT:-8000}"
+      SOCIALSIM4_JWT_SIGNING_KEY: "${SOCIALSIM4_JWT_SIGNING_KEY:-please-change-me}"
+      SOCIALSIM4_BACKEND_ROOT_PATH: "${SOCIALSIM4_BACKEND_ROOT_PATH:-/css/socialsim}"
+      SOCIALSIM4_APP_BASE_URL: "${SOCIALSIM4_APP_BASE_URL:-http://0.0.0.0:8090/css/socialsim}"
+      SOCIALSIM4_FRONTEND_DIST_PATH: "${SOCIALSIM4_FRONTEND_DIST_PATH:-/app/frontend/dist}"
+      SOCIALSIM4_UPLOAD_DIR: "${SOCIALSIM4_UPLOAD_DIR:-/app/uploads}"
+      UPLOAD_DIR: "${UPLOAD_DIR:-/app/uploads}"
+      ADMIN_EMAIL: "${ADMIN_EMAIL:-zjucss@outlook.com}"
+      ADMIN_USERNAME: "${ADMIN_USERNAME:-zjucss}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-zjucss107}"
+      ADMIN_FULL_NAME: "${ADMIN_FULL_NAME:-}"
+      ADMIN_ORGANIZATION: "${ADMIN_ORGANIZATION:-}"
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+      SOCIALSIM4_EMBEDDING_DEVICE: cuda
+      SOCIALSIM4_EMBEDDING_BACKEND: ollama
+      SOCIALSIM4_OLLAMA_EMBED_MODEL: nomic-embed-text:latest
+      HOME: /tmp
+      HF_HOME: /tmp/huggingface
+      TORCH_HOME: /tmp/torch
+      TRANSFORMERS_CACHE: /tmp/huggingface/transformers
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8090:8000"
+    healthcheck:
+      test: [ "CMD-SHELL", "python -c 'import socket; s=socket.socket(); s.settimeout(2); s.connect((\"127.0.0.1\",8000)); s.close()'" ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    user: "1000:1000"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      # Writable runtime directories required by the current app branch.
+      - ./uploads:/app/uploads
+      - ./templates:/app/templates
+      - ./test_results:/app/test_results
+      - ./chroma_db:/app/chroma_db
+    networks:
+      - default
+      - backend
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    runtime: nvidia
+    gpus: all
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: socialsim-ollama
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - backend
+      - default
+    restart: unless-stopped
+    runtime: nvidia
+    gpus: all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    ports:
+      - "11434:11434"
+
+volumes:
+  postgres_data:
+    # Keep the existing database volume across redeploys.
+    external: true
+    name: socialsim4_postgres_data
+  ollama_data:
+    driver: local
+
+networks:
+  backend:
+    internal: true
+  default:

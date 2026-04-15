@@ -419,6 +419,17 @@ export const mapBackendEventsToLogs = (
       return { ...base, type: 'AGENT_METADATA', agentId, content: labels.reasoningDone };
     }
 
+    if (evType === 'agent_idle') {
+      const agentName: string = data.agent || '';
+      const agentId = agentName ? nameToId.get(agentName) : undefined;
+      const turn = data.turn ?? data.sequence ?? '?';
+      const reason = String(data.message || data.reason || '').trim();
+      const content = reason
+        ? `${i18n.t('log.skippedTurn', { round: turn, agent: agentName || i18n.t('log.unknown') })}\n${labels.reasonLabel}: ${reason}`
+        : i18n.t('log.skippedTurn', { round: turn, agent: agentName || i18n.t('log.unknown') });
+      return { ...base, type: 'AGENT_METADATA', agentId, content };
+    }
+
     // Action start (yield is special)
     if (evType === 'action_start') {
       const agentName: string = data.agent || '';

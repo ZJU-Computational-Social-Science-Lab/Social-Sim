@@ -216,7 +216,7 @@ export const NetworkEditorModal: React.FC = () => {
           if (!agentNames.has(sourceName)) return; // Skip if agent no longer exists
 
           const migratedTargets: string[] = [];
-          targets.forEach(targetId => {
+          (Array.isArray(targets) ? targets : []).forEach((targetId: string) => {
             const targetName = idToName[targetId] || targetId;
             if (agentNames.has(targetName)) {
               migratedTargets.push(targetName);

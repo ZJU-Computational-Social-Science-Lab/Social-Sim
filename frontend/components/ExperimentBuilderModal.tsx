@@ -177,7 +177,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
         id: 'experiment-template',
         name: name,
         description: resolvedDescription,
-        category: (scenarioData?.category || 'custom') as const,
+        category: scenarioData ? 'system' : 'custom',
         sceneType: isPolicyCascade ? 'policy_cascade_scene' : isNewArchitecture ? 'experiment' : 'generic',
         agents: customAgents,
         defaultTimeConfig: {

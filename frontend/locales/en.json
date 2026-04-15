@@ -701,12 +701,15 @@
       "username": "Username",
       "fullName": "Full name",
       "phone": "Phone number",
+      "countryCode": "Country code",
+      "phonePlaceholder": "Enter phone number",
+      "phoneHint": "Choose a country code first (default +86), then enter the remaining digits. Leading 0 will be removed automatically.",
       "password": "Password",
       "submit": "Create account",
       "success": "Registration successful. Check your email.",
       "failed": "Registration failed",
-      "invalidPhone": "Invalid phone number format. Use +123456789 (8–15 digits).",
-      "invalidPhoneTitle": "Use E.164 format: +123456789 (8–15 digits)",
+      "invalidPhone": "Invalid phone number. Select a country code and enter 8–15 digits.",
+      "invalidPhoneTitle": "Select a country code and enter the phone digits. The app will convert it to international format.",
       "have": "Already registered?",
       "signin": "Sign in"
     }

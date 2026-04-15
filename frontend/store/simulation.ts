@@ -23,7 +23,9 @@ import type {
   SocialNetwork
 } from '../types';
 import { SYSTEM_TEMPLATES, generateNodes, mapGraphToNodes, DEFAULT_TIME_CONFIG, mapBackendEventsToLogs } from './helpers';
+import { getApiBase } from '../services/base';
 import i18n from '../i18n';
+import type { Provider } from '../services/providers';
 
 export interface SimulationSlice {
   // State
@@ -40,6 +42,10 @@ export interface SimulationSlice {
   logs?: any[];
   rawEvents?: any[];
   isWizardOpen?: boolean;
+  llmProviders?: Provider[];
+  currentProviderId?: number | null;
+  selectedProviderId?: number | null;
+  addNotification?: (type: 'success' | 'error' | 'info', message: string) => void;
 
   // Actions
   setSimulation: (sim: Simulation) => void;
@@ -72,7 +78,7 @@ export const createSimulationSlice: StateCreator<
   timeConfig: DEFAULT_TIME_CONFIG,
   engineConfig: {
     mode: 'standalone',
-    endpoint: import.meta.env?.VITE_API_BASE || '/api',
+    endpoint: getApiBase(),
     status: 'disconnected',
     token: import.meta.env?.VITE_API_TOKEN || undefined
   },
@@ -88,8 +94,8 @@ export const createSimulationSlice: StateCreator<
 
   loadSimulations: async () => {
     try {
-      const { getSimulations } = await import('../services/simulations');
-      const simulations = await getSimulations();
+      const { listSimulations } = await import('../services/simulations');
+      const simulations = await listSimulations();
       set({ simulations });
     } catch (e) {
       console.error('Failed to load simulations', e);
@@ -218,14 +224,14 @@ export const createSimulationSlice: StateCreator<
         const re = await getRehydrate(base, id, token).catch(() => null);
         if (re && typeof re === 'object') {
           const nodesRaw2 = (re.nodes || []) as any[];
-          const nodes2 = nodesRaw2.map((n: any) => ({
+          const nodes2: SimNode[] = nodesRaw2.map((n: any) => ({
             id: String(n.id),
             display_id: String(n.id),
             parentId: n.parent == null ? null : String(n.parent),
-            name: i18n.t('simPage.nodeId', { id: n.id }),
-            depth: n.depth,
+            name: String(i18n.t('simPage.nodeId', { id: n.id })),
+            depth: Number(n.depth || 0),
             isLeaf: (n.depth || 0) === (Math.max(...(nodesRaw2.map((x: any) => x.depth || 0))) || 0),
-            status: 'completed',
+            status: 'completed' as const,
             timestamp: new Date().toLocaleTimeString(),
             worldTime: new Date().toISOString(),
             meta: n.meta || {}
@@ -291,14 +297,14 @@ export const createSimulationSlice: StateCreator<
         const latest = (sim as any).latest_state;
         if (latest && typeof latest === 'object') {
           const nodesRaw = (latest.nodes || []) as any[];
-          const nodes = nodesRaw.map((n: any) => ({
+          const nodes: SimNode[] = nodesRaw.map((n: any) => ({
             id: String(n.id),
             display_id: String(n.id),
             parentId: n.parent == null ? null : String(n.parent),
-            name: i18n.t('simPage.nodeId', { id: n.id }),
-            depth: n.depth,
+            name: String(i18n.t('simPage.nodeId', { id: n.id })),
+            depth: Number(n.depth || 0),
             isLeaf: (n.depth || 0) === (Math.max(...(nodesRaw.map((x: any) => x.depth || 0))) || 0),
-            status: 'completed',
+            status: 'completed' as const,
             timestamp: new Date().toLocaleTimeString(),
             worldTime: new Date().toISOString(),
             meta: n.meta || {}
@@ -388,12 +394,12 @@ export const createSimulationSlice: StateCreator<
     const state = get();
 
     // Translation helper using i18n instance
-    const t = (key: string, params?: Record<string, any>) => i18n.t(key, params);
+    const t = (key: string, params?: Record<string, any>) => String(i18n.t(key, params));
 
     // Helper function to generate default agents
     const generateDefaultAgents = (templateType: string): Agent[] => {
       if (templateType === 'council') {
-        return Array.from({ length: 5 }).map((_, i) => ({
+        return Array.from({ length: 5 }).map((_, i): Agent => ({
           id: `c${i + 1}`,
           name: i === 0 ? t('store.agents.chairman') : `${t('store.agents.councilor')} ${String.fromCharCode(65 + i - 1)}`,
           role: i === 0 ? 'Chairman' : 'Council Member',
@@ -423,7 +429,7 @@ export const createSimulationSlice: StateCreator<
           t('store.agents.villager'),
           t('store.agents.villager')
         ];
-        return roles.map((role, i) => ({
+        return roles.map((role, i): Agent => ({
           id: `w${i + 1}`,
           name: i === 0 ? 'God' : `${t('store.agents.player')} ${i}`,
           role,
@@ -454,7 +460,7 @@ export const createSimulationSlice: StateCreator<
           history: {},
           memory: [],
           knowledgeBase: []
-        },
+        } as Agent,
         {
           id: 'a2',
           name: t('store.agents.bob'),
@@ -470,7 +476,7 @@ export const createSimulationSlice: StateCreator<
           history: {},
           memory: [],
           knowledgeBase: []
-        }
+        } as Agent
       ];
     };
 

@@ -47,16 +47,25 @@ const UPDATE_LABELS: Record<string, string> = {
 
 export const ExperimentPreview: React.FC = () => {
   const {
-    interactionTypes,
-    scenario,
+    selectedScenarioData,
+    scenarioDescription,
     agentTypes,
-    mechanicConfigs,
     networkType,
-    successCondition,
     turnOrder,
     interRoundUpdate,
     metrics,
+    availableActions,
+    selectedActionIds,
   } = useExperimentBuilder();
+
+  const interactionTypes = selectedScenarioData ? [selectedScenarioData.category] : [];
+  const scenario = scenarioDescription || selectedScenarioData?.description || '';
+  const mechanicConfigs: Record<string, any> = {};
+  const successCondition = { type: 'fixed_rounds', maxRounds: undefined as number | undefined };
+  const turnOrderValue = { type: turnOrder };
+  const interRoundUpdateValue = interRoundUpdate || { type: 'none' };
+  const selectedMetrics = metrics || [];
+  const selectedActions = availableActions.filter((action) => selectedActionIds.includes(action.name));
 
   const totalAgents = agentTypes.reduce((sum, t) => sum + t.count, 0);
 
@@ -198,7 +207,7 @@ export const ExperimentPreview: React.FC = () => {
                 Turn Order
               </h4>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {TURN_ORDER_LABELS[turnOrder.type] || turnOrder.type}
+                {TURN_ORDER_LABELS[turnOrderValue.type] || turnOrderValue.type}
               </p>
             </div>
 
@@ -207,19 +216,37 @@ export const ExperimentPreview: React.FC = () => {
                 Inter-Round Update
               </h4>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {UPDATE_LABELS[interRoundUpdate.type] || interRoundUpdate.type}
+                {UPDATE_LABELS[interRoundUpdateValue.type] || interRoundUpdateValue.type}
               </p>
             </div>
           </div>
 
+          {selectedActions.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Available Actions
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {selectedActions.map((action) => (
+                  <span
+                    key={action.name}
+                    className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded text-sm"
+                  >
+                    {action.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Metrics */}
-          {metrics.length > 0 && (
+          {selectedMetrics.length > 0 && (
             <div>
               <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Metrics to Collect
               </h4>
               <div className="flex flex-wrap gap-2">
-                {metrics.map((metric) => (
+                {selectedMetrics.map((metric) => (
                   <span
                     key={metric}
                     className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded text-sm"

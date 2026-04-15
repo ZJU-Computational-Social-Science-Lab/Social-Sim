@@ -461,7 +461,9 @@ class Simulator:
                     "agent_idle",
                     {
                         "agent": agent.name,
+                        "turn": turns + 1,
                         "mode": getattr(self.scene, "state", {}).get("task_mode"),
+                        "message": skip_reason,
                         "reason": skip_reason,
                     },
                 )

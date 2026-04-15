@@ -188,7 +188,7 @@ const Header: React.FC = () => {
         <div className="h-4 w-px bg-slate-200 mx-2"></div>
         
         {/* 用户信息 */}
-        <span className="text-sm text-slate-600">{user?.email}</span>
+        <span className="text-sm text-slate-600">{String(user?.email ?? '')}</span>
         <button
           onClick={logout}
           className="flex items-center gap-1 px-2 py-1.5 text-xs text-slate-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
@@ -493,6 +493,7 @@ const Toolbar: React.FC = () => {
 // ---------------- 页面主组件：SimulationPage ----------------
 
 const SimulationPage: React.FC = () => {
+  const { t } = useTranslation();
   const isCompareMode = useSimulationStore((state) => state.isCompareMode);
   const params = useParams();
   const simIdParam = params['id'] || params['simulationId'] || null;

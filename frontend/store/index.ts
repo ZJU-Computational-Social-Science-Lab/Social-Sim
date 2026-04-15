@@ -20,27 +20,27 @@ import { createEnvironmentSlice, EnvironmentSlice } from './environment';
 import { createProvidersSlice, ProvidersSlice } from './providers';
 
 // Combined AppState interface
-export interface AppState extends
-  SimulationSlice,
-  AgentsSlice,
-  LogsSlice,
-  UISlice,
-  ExperimentsSlice,
-  EnvironmentSlice,
-  ProvidersSlice {}
+export type AppState =
+  SimulationSlice &
+  AgentsSlice &
+  LogsSlice &
+  UISlice &
+  ExperimentsSlice &
+  EnvironmentSlice &
+  ProvidersSlice;
 
 // Create the composed store
 export const useSimulationStore = create<AppState>()(
   devtools(
     (set, get, api) => {
       // Create each slice with full store access
-      const simulationState = createSimulationSlice(set, get as any, api);
-      const agentsState = createAgentsSlice(set, get as any, api);
-      const logsState = createLogsSlice(set, get as any, api);
-      const uiState = createUISlice(set, get as any, api);
-      const experimentsState = createExperimentsSlice(set, get as any, api);
-      const environmentState = createEnvironmentSlice(set, get as any, api);
-      const providersState = createProvidersSlice(set, get as any, api);
+      const simulationState = (createSimulationSlice as any)(set, get as any, api) as SimulationSlice;
+      const agentsState = (createAgentsSlice as any)(set, get as any, api) as AgentsSlice;
+      const logsState = (createLogsSlice as any)(set, get as any, api) as LogsSlice;
+      const uiState = (createUISlice as any)(set, get as any, api) as UISlice;
+      const experimentsState = (createExperimentsSlice as any)(set, get as any, api) as ExperimentsSlice;
+      const environmentState = (createEnvironmentSlice as any)(set, get as any, api) as EnvironmentSlice;
+      const providersState = (createProvidersSlice as any)(set, get as any, api) as ProvidersSlice;
 
       // Wire up cross-slice dependencies
       // Agents slice needs access to logs, notifications, selectedNodeId

@@ -10,21 +10,9 @@
 // Used by: SettingsPage, SimulationWizard, any component that needs LLM access
 
 import { StateCreator } from 'zustand';
-import type { Provider } from '../services/providers';
+import type { Provider as ServiceProvider } from '../services/providers';
 
-export interface Provider {
-  id: number;
-  name: string;
-  provider: string;
-  model: string;
-  base_url: string | null;
-  last_test_status?: string | null;
-  last_tested_at?: string | null;
-  has_api_key: boolean;
-  config?: Record<string, unknown> | null;
-  is_active?: boolean;
-  is_default?: boolean;
-}
+export type Provider = ServiceProvider;
 
 export interface ProvidersSlice {
   // State

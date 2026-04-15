@@ -1278,6 +1278,153 @@ def test_simtree_environment_branch_preserves_follow_up_mode():
     assert branch_scene.state["latest_notice"] == "公民在接收到此政策后发生抗议游行事件。"
 
 
+def test_environment_event_reopens_follow_up_with_top_first_and_clears_stale_threads():
+    scene = PolicyCascadeScene("policy", "", cascade_mode="strict_cascade")
+    scene.state["social_network"] = {
+        "Top A": ["Mid A"],
+        "Top B": ["Mid A"],
+        "Mid A": ["Low A"],
+        "Low A": [],
+    }
+    agents = [
+        _build_agent("Top A", "top"),
+        _build_agent("Top B", "top"),
+        _build_agent("Mid A", "mid"),
+        _build_agent("Low A", "low"),
+    ]
+    simulator = _build_simulator(scene, agents)
+
+    scene.state["latest_policy"] = "既有政策"
+    scene.state["source_policy"] = "既有政策"
+    scene.state["relayed_policy"] = "既有政策"
+    scene.state["task_mode"] = "follow_up"
+    scene.state["policy_version"] = 3
+    scene.state["processed_policy_version"] = 3
+    scene.state["conversation_threads"] = {
+        "thread-1": {
+            "id": "thread-1",
+            "kind": "peer_consult",
+            "sender": "Top A",
+            "root_sender": "Top A",
+            "root_recipient": "Mid A",
+            "last_sender": "Top A",
+            "last_recipient": "Mid A",
+            "last_message": "旧线程",
+            "status": "open",
+            "history": [{"sender": "Top A", "recipient": "Mid A", "message": "旧线程", "turn": 0}],
+            "metadata": {},
+        }
+    }
+    scene.state["thread_inboxes"] = {"Mid A": ["thread-1"]}
+    scene.state["private_events"] = {
+        "Mid A": {
+            "task_mode": "follow_up_thread",
+            "thread_id": "thread-1",
+            "thread_kind": "peer_consult",
+            "thread_sender": "Top A",
+            "reply_target": "Top A",
+            "thread_message": "旧线程",
+        }
+    }
+
+    scene.on_event(simulator, "environment", {"description": "群众抗议升级，要求先由高层回应。"})
+
+    assert scene.state["task_mode"] == "follow_up"
+    assert scene.state["follow_up_force_tier_order"] is True
+    assert scene.state["conversation_threads"] == {}
+    assert scene.state["thread_inboxes"] == {}
+    assert scene.state["private_events"] == {}
+    assert scene.should_skip_turn(agents[0], simulator) is False
+    assert scene.should_skip_turn(agents[1], simulator) is False
+    assert scene.should_skip_turn(agents[2], simulator) is True
+    assert scene.should_skip_turn(agents[3], simulator) is True
+
+
+def test_follow_up_top_first_round_extends_run_until_current_tier_finishes():
+    scene = PolicyCascadeScene("policy", "", cascade_mode="strict_cascade")
+    scene.state["social_network"] = {
+        "Top A": ["Mid A"],
+        "Top B": ["Mid A"],
+        "Mid A": ["Low A"],
+        "Low A": [],
+    }
+    agents = [
+        _build_agent("Top A", "top"),
+        _build_agent("Top B", "top"),
+        _build_agent("Mid A", "mid"),
+        _build_agent("Low A", "low"),
+    ]
+    simulator = _build_simulator(scene, agents)
+
+    scene.state["latest_policy"] = "既有政策"
+    scene.state["source_policy"] = "既有政策"
+    scene.state["relayed_policy"] = "既有政策"
+    scene.state["task_mode"] = "follow_up"
+    scene.state["policy_version"] = 2
+    scene.state["processed_policy_version"] = 2
+
+    scene.on_event(simulator, "environment", {"description": "新的环境冲击，需先由 top 层回应。"})
+    scene.reset_for_run()
+
+    assert scene.state["follow_up_force_tier_order"] is True
+    assert scene.should_extend_run(1, 1) is True
+
+    scene.post_turn(agents[0], simulator)
+
+    assert scene.state["current_tier_idx"] == 0
+    assert scene.should_extend_run(1, 1) is True
+
+    scene.post_turn(agents[1], simulator)
+
+    assert scene.state["current_tier_idx"] == 1
+    assert scene.should_skip_turn(agents[2], simulator) is False
+    assert scene.should_skip_turn(agents[3], simulator) is True
+
+
+def test_cascade_downstream_private_targets_do_not_block_current_tier_agents():
+    scene = PolicyCascadeScene("policy", "", cascade_mode="strict_cascade")
+    scene.state["social_network"] = {
+        "Top": ["Mid A", "Mid B"],
+        "Mid A": ["Low A"],
+        "Mid B": ["Low A"],
+        "Low A": [],
+    }
+    agents = [
+        _build_agent("Top", "top"),
+        _build_agent("Mid A", "mid"),
+        _build_agent("Mid B", "mid"),
+        _build_agent("Low A", "low"),
+    ]
+    simulator = _build_simulator(scene, agents)
+
+    scene.state["latest_policy"] = "原文：继续逐级传达。"
+    scene.state["source_policy"] = "原文：继续逐级传达。"
+    scene.state["relayed_policy"] = "原文：继续逐级传达。"
+    scene.state["task_mode"] = "cascade"
+    scene.state["policy_version"] = 1
+    scene.state["processed_policy_version"] = 0
+    scene.state["current_tier_idx"] = 1
+    scene.state["tier_seen"] = {t: [] for t in scene.tier_order}
+    scene.state["private_events"] = {
+        "Low A": {
+            "latest_notice": "原文：继续逐级传达。",
+            "latest_environment_notice": "",
+            "latest_policy": "原文：继续逐级传达。",
+            "source_policy": "原文：继续逐级传达。",
+            "relayed_policy": "原文：继续逐级传达。",
+            "task_mode": "cascade",
+            "notice_kind": "execution",
+            "upstream_messages": [{"sender": "Mid A", "message": "原文：继续逐级传达。"}],
+        }
+    }
+    scene.state["active_tier_targets"] = {"low": ["Low A"]}
+
+    assert scene.should_skip_turn(agents[1], simulator) is False
+    assert scene.should_skip_turn(agents[2], simulator) is False
+    assert scene.should_skip_turn(agents[3], simulator) is True
+    assert "等待 mid 层先处理" in scene.get_skip_reason(agents[3], simulator)
+
+
 def test_follow_up_status_prompt_prioritizes_latest_notice_over_old_policy():
     scene = PolicyCascadeScene("policy", "", cascade_mode="strict_cascade")
     agents = [
@@ -2043,6 +2190,8 @@ def test_follow_up_no_action_agent_waits_for_next_broadcast():
         if event_type == "agent_idle" and data.get("agent") == "Top"
     ]
     assert top_idle
+    assert top_idle[0]["message"]
+    assert "等待新的环境事件或下一轮政策广播" in top_idle[0]["message"]
 
 
 def test_follow_up_prompt_requires_reacting_to_new_environment_notice_even_without_private_thread():

@@ -2,10 +2,13 @@
  * Scenario service for fetching scenario definitions.
  */
 
+import { getApiBase } from './base';
+
 export interface ScenarioParam {
   key: string;
   label: string;
   description?: string;
+  category?: string;
   type: 'number' | 'text';
   default: unknown;
   ui_hint?: string;
@@ -41,7 +44,7 @@ export interface ScenarioData {
   default_action_ids?: string[];
 }
 
-const API_BASE = '/api';
+const API_BASE = getApiBase().replace(/\/+$/, '');
 
 /**
  * Fetch all scenarios.

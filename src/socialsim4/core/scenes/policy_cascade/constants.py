@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List
 
 from socialsim4.i18n import T
+from socialsim4.core.runtime_paths import get_runtime_debug_dir
 
 
 DEFAULT_TIER_ORDER = ["top", "mid", "low"]
@@ -45,8 +46,7 @@ def get_follow_up_no_action_message(locale: str | None = None) -> str:
 def get_scene_debug_file() -> Path:
     global _scene_debug_file
     if _scene_debug_file is None:
-        scene_debug_dir = Path("test_results")
-        scene_debug_dir.mkdir(exist_ok=True)
+        scene_debug_dir = get_runtime_debug_dir("policy_cascade")
         _scene_debug_file = scene_debug_dir / f"policy_cascade_final_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
     return _scene_debug_file
 

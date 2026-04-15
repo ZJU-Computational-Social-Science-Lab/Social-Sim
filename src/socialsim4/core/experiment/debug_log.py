@@ -5,13 +5,15 @@ Provides a single debug file that both runner and controller write to,
 making it easy to follow the full prompt/response flow.
 """
 
+import os
 from pathlib import Path
 from datetime import datetime
 import threading
 
+from socialsim4.core.runtime_paths import get_runtime_debug_dir
+
 # Shared debug file path - created once per session
-_debug_dir = Path("test_results")
-_debug_dir.mkdir(exist_ok=True)
+_debug_dir = get_runtime_debug_dir()
 
 # Use a lock for thread-safe writes
 _write_lock = threading.Lock()

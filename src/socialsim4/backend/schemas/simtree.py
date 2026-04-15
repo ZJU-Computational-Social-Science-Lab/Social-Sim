@@ -44,3 +44,4 @@ class UpdateAgentLLMConfigRequest(BaseModel):
     """Request payload for updating an agent's LLM configuration."""
     agent_id: str
     llm_config: dict[str, str]  # {"provider": "...", "model": "..."}
+    provider_id: int | None = None

@@ -19,11 +19,11 @@ from datetime import datetime
 from socialsim4.core.config import MAX_REPEAT
 from socialsim4.core.memory import ShortTermMemory
 from socialsim4.core.agent.parsing import parse_actions
+from socialsim4.core.runtime_paths import get_runtime_debug_dir
 from socialsim4.i18n import T
 
 # Debug file for agent prompts/responses
-_debug_dir = Path("test_results")
-_debug_dir.mkdir(exist_ok=True)
+_debug_dir = get_runtime_debug_dir()
 _debug_file = _debug_dir / f"agent_debug_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
 from .rag import (
     add_knowledge,
@@ -383,11 +383,19 @@ Recent Context Summary:
     # LLM Interaction
     # -------------------------------------------------------------------------
 
-    def call_llm(self, clients, messages, client_name="chat"):
-        """Call the LLM with the provided messages."""
+    def _resolve_llm_client(self, clients, client_name="chat"):
+        provider_id = self.properties.get("provider_id")
+        provider_clients = clients.get("providers") or {}
+        if provider_id is not None and provider_id in provider_clients:
+            return provider_clients[provider_id]
         client = clients.get(client_name)
         if not client:
             raise ValueError(f"LLM client '{client_name}' not found.")
+        return client
+
+    def call_llm(self, clients, messages, client_name="chat"):
+        """Call the LLM with the provided messages."""
+        client = self._resolve_llm_client(clients, client_name)
         return client.chat(messages)
 
     def summarize_history(self, client):
@@ -408,7 +416,7 @@ History:
 
         # Call LLM for summary
         messages = [{"role": "user", "content": summary_prompt}]
-        summary_output = self.call_llm(client, messages)
+        summary_output = client.chat(messages)
 
         # Extract summary
         summary_match = re.search(r"Summary: (.*)", summary_output, re.DOTALL)
@@ -447,7 +455,7 @@ History:
         # Auto-inject RAG context if enabled
         from socialsim4.core.config import RAG_AUTO_INJECT
         if RAG_AUTO_INJECT:
-            llm_client = clients.get("chat")
+            llm_client = self._resolve_llm_client(clients)
             if llm_client:
                 rag_context = _get_auto_rag_context(self, llm_client)
                 if rag_context:

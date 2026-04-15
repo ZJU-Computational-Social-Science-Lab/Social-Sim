@@ -6,104 +6,14 @@
  */
 
 import { describe, it, expect } from 'vitest';
-
-interface LLMAllocation {
-  providerId: number;
-  providerName: string;
-  modelName: string;
-  percentage: number;
-}
+import { applyLlmDistribution, type LLMAllocation } from './llmDistribution';
 
 interface Agent {
   id: string;
   name: string;
   llmConfig?: { provider: string; model: string };
-}
-
-/**
- * Apply LLM distribution to agents using largest-remainder method.
- * This is a copy of the function from SimulationWizardPage.tsx for testing.
- */
-function applyLlmDistribution(
-  agents: Agent[],
-  allocations: LLMAllocation[],
-  simulationId: string,
-  defaultConfig: { provider: string; model: string }
-): Agent[] {
-  // If no allocations configured, apply simulation default to all agents
-  if (allocations.length === 0) {
-    return agents.map(agent => ({
-      ...agent,
-      llmConfig: { ...defaultConfig }
-    }));
-  }
-
-  // Validate total is 100%
-  const total = allocations.reduce((sum, a) => sum + a.percentage, 0);
-  if (total !== 100) {
-    throw new Error('LLM allocations must sum to 100%');
-  }
-
-  const agentCount = agents.length;
-
-  // --- Largest-remainder method ---
-  // Step 1: Compute floor counts and remainders
-  const entries = allocations.map(allocation => {
-    const exact = (allocation.percentage / 100) * agentCount;
-    const floor = Math.floor(exact);
-    const remainder = exact - floor;
-    return { allocation, count: floor, remainder };
-  });
-
-  // Step 2: Distribute leftover slots to largest remainders
-  let assigned = entries.reduce((sum, e) => sum + e.count, 0);
-  let leftover = agentCount - assigned;
-
-  // Sort by remainder descending, break ties by original order
-  const sorted = entries
-    .map((e, i) => ({ ...e, originalIndex: i }))
-    .sort((a, b) => b.remainder - a.remainder || a.originalIndex - b.originalIndex);
-
-  for (let i = 0; i < leftover; i++) {
-    sorted[i].count += 1;
-  }
-
-  // Step 3: Build assignment list
-  const llmAssignments: LLMAllocation[] = [];
-  for (const entry of sorted) {
-    for (let i = 0; i < entry.count; i++) {
-      llmAssignments.push(entry.allocation);
-    }
-  }
-
-  // Step 4: Shuffle with seeded PRNG for reproducibility
-  // Simple seeded PRNG implementation for testing
-  const seedrandom = (seed: string) => {
-    let h = 0xdeadbeef;
-    for (let i = 0; i < seed.length; i++) {
-      h = Math.imul(h ^ seed.charCodeAt(i), 2654435761);
-    }
-    return () => {
-      h = Math.imul(h ^ (h >>> 16), 2654435761);
-      h = Math.imul(h ^ (h >>> 16), 2654435761);
-      return (h >>> 0) / 4294967296;
-    };
-  };
-
-  const rng = seedrandom(simulationId);
-  for (let i = llmAssignments.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [llmAssignments[i], llmAssignments[j]] = [llmAssignments[j], llmAssignments[i]];
-  }
-
-  // Step 5: Assign to agents
-  return agents.map((agent, index) => ({
-    ...agent,
-    llmConfig: {
-      provider: llmAssignments[index].providerName,
-      model: llmAssignments[index].modelName
-    }
-  }));
+  provider_id?: number;
+  properties?: Record<string, unknown>;
 }
 
 describe('LLM Distribution - Largest Remainder Algorithm', () => {

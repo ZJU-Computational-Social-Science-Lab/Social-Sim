@@ -49,6 +49,7 @@ class PolicyCascadeBaseMixin:
         self.state["follow_up_thread_seeds"] = []
         self.state["follow_up_no_action_agents"] = []
         self.state["follow_up_public_done_agents"] = []
+        self.state["follow_up_force_tier_order"] = False
         self.state["informal_network"] = {}
         self.state["branch_interpretations"] = {}
         self.state["force_complete_current_cascade"] = False
@@ -101,6 +102,7 @@ class PolicyCascadeBaseMixin:
         self.state.setdefault("follow_up_thread_seeds", [])
         self.state.setdefault("follow_up_no_action_agents", [])
         self.state.setdefault("follow_up_public_done_agents", [])
+        self.state.setdefault("follow_up_force_tier_order", False)
         self.state.setdefault("informal_network", {})
         self.state.setdefault("branch_interpretations", {})
         self.state.setdefault("force_complete_current_cascade", False)
@@ -141,7 +143,16 @@ class PolicyCascadeBaseMixin:
         self.state["force_complete_current_cascade"] = bool(enabled)
 
     def should_extend_run(self, turns_completed: int, max_turns: int) -> bool:
-        if str(self.state.get("task_mode") or "") != "cascade" or bool(self.state.get("complete")):
+        task_mode = str(self.state.get("task_mode") or "")
+        if task_mode == "follow_up" and self._follow_up_requires_tier_order():
+            active_tier = self._active_tier()
+            expected_agents = self._agents_by_tier.get(active_tier, [])
+            if not expected_agents:
+                return False
+            seen = list((self.state.get("tier_seen", {}) or {}).get(active_tier, []) or [])
+            return any(name not in seen for name in expected_agents)
+
+        if task_mode != "cascade" or bool(self.state.get("complete")):
             return False
         if bool(self.state.get("force_complete_current_cascade")):
             return True
@@ -166,7 +177,7 @@ class PolicyCascadeBaseMixin:
         self._rebuild_tiers()
         self._apply_pending_follow_up_conditions()
         self._materialize_seeded_threads()
-        if not self._private_recipient_names():
+        if not self._private_recipient_names() and not self._follow_up_requires_tier_order():
             self._auto_seed_follow_up_threads()
         self._clear_follow_up_public_done_agents()
         if self._follow_up_has_pending_threads():

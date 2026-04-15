@@ -14,6 +14,7 @@ from socialsim4.backend.services.simtree_runtime import SimTree
 from socialsim4.core.llm import create_llm_client
 from socialsim4.core.llm_config import LLMConfig, guess_supports_vision
 from socialsim4.backend.models.user import ProviderConfig, SearchProviderConfig
+from socialsim4.backend.services.default_providers import get_default_ollama_base_url
 from socialsim4.core.tools.web.search import create_search_client
 from socialsim4.core.search_config import SearchConfig
 
@@ -61,7 +62,7 @@ def run_experiment_task(self, simulation_id: str, exp_id: str, run_id: int, turn
                     dialect=dialect,
                     api_key=provider.api_key or "",
                     model=provider.model,
-                    base_url=provider.base_url or ("http://127.0.0.1:11434" if dialect == "ollama" else None),
+                    base_url=provider.base_url or (get_default_ollama_base_url() if dialect == "ollama" else None),
                     temperature=0.0,
                     top_p=1.0,
                     frequency_penalty=0.0,

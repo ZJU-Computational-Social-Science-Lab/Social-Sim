@@ -8,11 +8,16 @@ Uses sentence-transformers with MiniLM for fast local embeddings.
 """
 
 import logging
+import os
 import uuid
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
 from typing import Optional
+
+import httpx
+
+from .default_providers import get_default_ollama_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +27,64 @@ logger = logging.getLogger(__name__)
 _embedding_model = None
 
 
+def _resolve_embedding_backend() -> str:
+    backend = (os.getenv("SOCIALSIM4_EMBEDDING_BACKEND") or "sentence-transformers").strip().lower()
+    if backend not in {"sentence-transformers", "ollama"}:
+        raise RuntimeError(f"Unsupported embedding backend: {backend}")
+    return backend
+
+
+def _resolve_embedding_device() -> str:
+    import torch
+
+    requested = (os.getenv("SOCIALSIM4_EMBEDDING_DEVICE") or "cuda").strip().lower()
+    if requested == "cuda":
+        if not torch.cuda.is_available():
+            raise RuntimeError("SOCIALSIM4_EMBEDDING_DEVICE=cuda but CUDA is not available")
+        return "cuda"
+    if requested == "cpu":
+        return "cpu"
+    if requested == "auto":
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    raise RuntimeError(f"Unsupported embedding device: {requested}")
+
+
+def _resolve_embedding_model_source() -> str:
+    local_path = (os.getenv("SOCIALSIM4_EMBEDDING_MODEL_PATH") or "").strip()
+    if local_path:
+        return local_path
+    return 'all-MiniLM-L6-v2'
+
+
+def _resolve_ollama_embedding_model() -> str:
+    model = (os.getenv("SOCIALSIM4_OLLAMA_EMBED_MODEL") or "nomic-embed-text:latest").strip()
+    if not model:
+        raise RuntimeError("SOCIALSIM4_OLLAMA_EMBED_MODEL is required for Ollama embeddings")
+    return model
+
+
+def _ollama_embedding_request(texts: list[str]) -> list[list[float]]:
+    model = _resolve_ollama_embedding_model()
+    base_url = get_default_ollama_base_url()
+    embeddings: list[list[float]] = []
+
+    with httpx.Client(base_url=base_url, timeout=120.0) as client:
+        for text in texts:
+            response = client.post(
+                "/api/embeddings",
+                json={
+                    "model": model,
+                    "prompt": text,
+                },
+            )
+            response.raise_for_status()
+            payload = response.json()
+            embedding = payload["embedding"]
+            embeddings.append(embedding)
+
+    return embeddings
+
+
 def get_embedding_model():
     """
     Get the sentence-transformers embedding model (lazy loaded singleton).
@@ -29,15 +92,24 @@ def get_embedding_model():
     """
     global _embedding_model
     if _embedding_model is None:
-        logger.info("Loading sentence-transformers model: all-MiniLM-L6-v2")
+        backend = _resolve_embedding_backend()
+        if backend != "sentence-transformers":
+            raise RuntimeError(f"Embedding model object is only available for sentence-transformers backend, got {backend}")
+        device = _resolve_embedding_device()
+        model_source = _resolve_embedding_model_source()
+        logger.info(f"Loading sentence-transformers model: {model_source}")
         from sentence_transformers import SentenceTransformer
-        _embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-        logger.info("Embedding model loaded successfully")
+        _embedding_model = SentenceTransformer(model_source, device=device)
+        logger.info(f"Embedding model loaded successfully from {model_source} on device={device}")
     return _embedding_model
 
 
 def generate_embedding(text: str) -> list[float]:
     """Generate embedding for a single text using MiniLM."""
+    backend = _resolve_embedding_backend()
+    if backend == "ollama":
+        return _ollama_embedding_request([text])[0]
+
     model = get_embedding_model()
     embedding = model.encode(text, convert_to_numpy=True)
     return embedding.tolist()
@@ -45,6 +117,10 @@ def generate_embedding(text: str) -> list[float]:
 
 def generate_embeddings_batch(texts: list[str]) -> list[list[float]]:
     """Generate embeddings for multiple texts in batch (more efficient)."""
+    backend = _resolve_embedding_backend()
+    if backend == "ollama":
+        return _ollama_embedding_request(texts)
+
     model = get_embedding_model()
     embeddings = model.encode(texts, convert_to_numpy=True, show_progress_bar=False)
     return [emb.tolist() for emb in embeddings]

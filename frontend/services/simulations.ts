@@ -3,12 +3,15 @@
 // 这一部分：给「旧前端」页面用（Dashboard / SavedSimulations 等）
 // 使用 axios backendClient，走后端 /api/simulations 这些接口
 import { apiClient } from "./backendClient";
+export type { Simulation } from "../types";
 
 // 列表类型可以先用 any，后面你想再加类型也可以
 export async function listSimulations(): Promise<any[]> {
   const { data } = await apiClient.get("/simulations");
   return data;
 }
+
+export const getSimulations = listSimulations;
 
 export async function deleteSimulation(simulationId: string): Promise<void> {
   await apiClient.delete(`/simulations/${simulationId}`);
@@ -261,6 +264,7 @@ export interface UpdateAgentLLMConfigRequest {
     provider: string;
     model: string;
   };
+  provider_id?: number | null;
 }
 
 export interface UpdateAgentLLMConfigResponse {
@@ -270,19 +274,24 @@ export interface UpdateAgentLLMConfigResponse {
     provider: string;
     model: string;
   };
+  provider_id?: number | null;
 }
 
 // Update an agent's LLM configuration
 export async function updateAgentLLMConfig(
   simulationId: string,
   agentId: string,
-  llmConfig: { provider: string; model: string }
+  llmConfig: { provider: string; model: string; provider_id?: number | null }
 ): Promise<UpdateAgentLLMConfigResponse> {
   const { data } = await apiClient.patch(
     `/simulations/${encodeURIComponent(simulationId)}/agents/llm-config`,
     {
       agent_id: agentId,
-      llm_config: llmConfig
+      llm_config: {
+        provider: llmConfig.provider,
+        model: llmConfig.model,
+      },
+      provider_id: llmConfig.provider_id,
     }
   );
   return data;

@@ -64,6 +64,9 @@ class PolicyCascadeStateMixin:
         names = self.state.get("follow_up_public_done_agents") or []
         return [name for name in names if name in self.simulator.agents]
 
+    def _follow_up_requires_tier_order(self) -> bool:
+        return bool(self.state.get("follow_up_force_tier_order")) and str(self.state.get("task_mode") or "") == "follow_up"
+
     def _clear_follow_up_no_action_agents(self) -> None:
         self.state["follow_up_no_action_agents"] = []
 
@@ -139,10 +142,14 @@ class PolicyCascadeStateMixin:
     def _reopen_public_follow_up_after_environment(self) -> None:
         self.state["task_mode"] = "follow_up"
         self.state["private_events"] = {}
+        self.state["conversation_threads"] = {}
         self.state["thread_inboxes"] = {}
         self.state["active_tier_targets"] = {}
         self.state["follow_up_no_action_agents"] = []
         self.state["follow_up_public_done_agents"] = []
+        self.state["follow_up_force_tier_order"] = True
+        self.state["tier_seen"] = {t: [] for t in self.tier_order}
+        self.state["tier_transmitted"] = {t: False for t in self.tier_order}
         self.state["complete"] = False
         self.state["current_tier_idx"] = 0
         self._normalize_active_tier()

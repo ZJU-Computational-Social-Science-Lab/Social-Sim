@@ -22,6 +22,7 @@ async function persistOverrides(
     knowledge_base?: KnowledgeItem[];
     documents?: Record<string, unknown>;
     properties?: Record<string, unknown>;
+    provider_id?: number | null;
   }
 ) {
   const state = get();
@@ -53,7 +54,7 @@ export interface AgentsSlice {
   setAgents: (agents: Agent[]) => void;
   updateAgentProperty: (agentId: string, property: string, value: any) => void;
   updateAgentProfile: (agentId: string, profile: string) => void;
-  updateAgentLLM: (agentId: string, llmConfig: { provider: string; model: string }) => void;
+  updateAgentLLM: (agentId: string, llmConfig: { provider: string; model: string; provider_id: number }) => void;
 
   // Knowledge base actions
   addKnowledgeToAgent: (agentId: string, item: KnowledgeItem) => void;
@@ -124,7 +125,14 @@ export const createAgentsSlice: StateCreator<
     // Optimistically update local state (agentId is agent.name)
     set((state) => ({
       agents: state.agents.map((a) =>
-        (a.name === agentId || a.id === agentId) ? { ...a, llmConfig: { provider: llmConfig.provider, model: llmConfig.model } } : a
+        (a.name === agentId || a.id === agentId)
+          ? {
+              ...a,
+              llmConfig: { provider: llmConfig.provider, model: llmConfig.model },
+              provider_id: llmConfig.provider_id,
+              properties: { ...a.properties, provider_id: llmConfig.provider_id },
+            }
+          : a
       )
     }));
 
@@ -132,8 +140,18 @@ export const createAgentsSlice: StateCreator<
       const { updateAgentLLMConfig } = await import('../services/simulations');
       await updateAgentLLMConfig(simulationId, agentId, {
         provider: llmConfig.provider,
-        model: llmConfig.model
+        model: llmConfig.model,
+        provider_id: llmConfig.provider_id,
       });
+
+      const agent = get().agents.find((a) => a.name === agentId || a.id === agentId);
+      if (agent) {
+        await persistOverrides(get, agent.name, {
+          llm_config: { provider: llmConfig.provider, model: llmConfig.model },
+          provider_id: llmConfig.provider_id,
+          properties: { ...agent.properties, provider_id: llmConfig.provider_id },
+        });
+      }
 
       const agentName = get().agents.find((a) => a.name === agentId || a.id === agentId)?.name || agentId;
       const injectLog = (get() as any).injectLog;

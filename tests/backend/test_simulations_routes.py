@@ -21,6 +21,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from socialsim4.backend.api.routes.simulations import router
+from socialsim4.backend.api.routes.simulations import crud
 from socialsim4.backend.core.config import get_settings
 from socialsim4.backend.db.base import Base
 from socialsim4.backend.models.simulation import (
@@ -33,6 +34,7 @@ from socialsim4.backend.schemas.simulation import (
     SimulationCreate,
     SimulationUpdate,
 )
+from socialsim4.backend.schemas.simtree import UpdateAgentLLMConfigRequest
 
 
 TEST_DB_PATH = "test_simulations.db"
@@ -257,6 +259,55 @@ class TestSimulationCRUD:
                 assert result.scalar_one_or_none() is None
 
         asyncio.run(_read())
+
+    @pytest.mark.asyncio
+    async def test_update_agent_llm_config_persists_provider_id(self, monkeypatch, test_user, test_provider_config):
+        monkeypatch.setattr(crud, "extract_bearer_token", lambda request: "token")
+
+        async def _resolve_current_user(session, token):
+            return test_user
+
+        monkeypatch.setattr(crud, "resolve_current_user", _resolve_current_user)
+
+        async with TestSessionLocal() as session:
+            sim = Simulation(
+                id="LLM001",
+                owner_id=test_user.id,
+                name="LLM Config Test",
+                scene_type="generic",
+                scene_config={},
+                agent_config={
+                    "agents": [
+                        {
+                            "name": "Agent1",
+                            "llm_config": {"provider": "mock", "model": "old-model"},
+                            "properties": {},
+                        }
+                    ]
+                },
+                status="draft",
+            )
+            session.add(sim)
+            await session.commit()
+
+        result = await crud.update_agent_llm_config(
+            request=None,
+            simulation_id="LLM001",
+            data=UpdateAgentLLMConfigRequest(
+                agent_id="Agent1",
+                llm_config={"provider": "ollama", "model": "qwen3:4b-instruct-2507-q4_K_M"},
+                provider_id=7,
+            ),
+        )
+
+        assert result["provider_id"] == 7
+
+        async with TestSessionLocal() as session:
+            stored = await session.get(Simulation, "LLM001")
+            agent = stored.agent_config["agents"][0]
+            assert agent["llm_config"] == {"provider": "ollama", "model": "qwen3:4b-instruct-2507-q4_K_M"}
+            assert agent["provider_id"] == 7
+            assert agent["properties"]["provider_id"] == 7
 
     def test_update_simulation_name(self, test_user):
         """Test updating simulation name."""

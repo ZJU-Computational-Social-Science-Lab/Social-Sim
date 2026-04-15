@@ -31,6 +31,7 @@ from socialsim4.backend.dependencies import settings
 
 from socialsim4.backend.models.simulation import Simulation
 from socialsim4.backend.models.user import ProviderConfig, SearchProviderConfig, User
+from socialsim4.backend.services.default_providers import get_default_ollama_base_url
 from socialsim4.backend.services.simtree_runtime import SIM_TREE_REGISTRY, SimTreeRecord
 
 
@@ -107,7 +108,7 @@ async def get_tree_record(
             detail="LLM provider not configured"
         )
     dialect = (provider.provider or "").lower()
-    base_url = provider.base_url or ("http://127.0.0.1:11434" if dialect == "ollama" else None)
+    base_url = provider.base_url or (get_default_ollama_base_url() if dialect == "ollama" else None)
 
     # Heuristic: openai + localhost base_url without /v1 => append /v1 for OpenAI-compatible servers like Ollama
     if dialect == "openai" and base_url and "localhost" in base_url and "/v1" not in base_url:
@@ -166,7 +167,7 @@ async def get_tree_record(
         if not p.model:
             continue
         try:
-            p_base_url = p.base_url or ("http://127.0.0.1:11434" if p_dialect == "ollama" else None)
+            p_base_url = p.base_url or (get_default_ollama_base_url() if p_dialect == "ollama" else None)
             if p_dialect == "openai" and p_base_url and "localhost" in p_base_url and "/v1" not in p_base_url:
                 p_base_url = p_base_url.rstrip("/") + "/v1"
             p_cfg = LLMConfig(

@@ -258,14 +258,16 @@ class PolicyCascadeThreadMixin:
             return self._tr("prompts.policy_cascade.threads.skip_private_turn", agent, agent=agent.name)
         if mode == "follow_up" and agent.name in self._follow_up_no_action_agents() and not private_event:
             return self._tr("prompts.policy_cascade.threads.skip_no_action", agent, agent=agent.name)
-        if private_recipients:
-            private_tier = self.tier_order[self._private_active_tier_idx()]
-            if tier != private_tier:
-                return self._tr("prompts.policy_cascade.threads.skip_wait_private_tier", agent, agent=agent.name, tier=private_tier)
-            return self._tr("prompts.policy_cascade.threads.skip_not_private_turn", agent, agent=agent.name)
         active = self._active_tier()
         if tier != active:
             return self._tr("prompts.policy_cascade.threads.skip_wait_active_tier", agent, agent=agent.name, tier=active)
+        active_targets = self._active_targets_for_tier(active)
+        if active_targets and agent.name not in active_targets:
+            return self._tr("prompts.policy_cascade.threads.skip_not_private_turn", agent, agent=agent.name)
+        if private_recipients:
+            private_tier = self.tier_order[self._private_active_tier_idx()]
+            if private_tier == active and agent.name not in private_recipients:
+                return self._tr("prompts.policy_cascade.threads.skip_not_private_turn", agent, agent=agent.name)
         return self._tr("prompts.policy_cascade.threads.skip_hold_position", agent, agent=agent.name)
 
     def _auto_seed_follow_up_threads(self) -> None:

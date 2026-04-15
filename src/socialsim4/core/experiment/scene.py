@@ -71,6 +71,8 @@ class ExperimentScene:
                 llm_config=a.get("llm_config") or a.get("llmConfig") or {},
                 # Accept multiple field names for compatibility (camelCase from frontend, snake_case from backend)
                 role_prompt=a.get("role_prompt") or a.get("rolePrompt") or a.get("profile"),
+                action_history=list(a.get("action_history") or []),
+                score=int(a.get("score", 0) or 0),
                 knowledge_base=list(a.get("knowledgeBase") or a.get("knowledge_base") or []),
                 provider_id=a.get("provider_id") or a.get("providerId"),
             )
@@ -929,9 +931,36 @@ class ExperimentScene:
 
     def serialize_config(self) -> dict:
         """Serialize for SimTree persistence."""
+        agents = self.config.agents
+        if self.agents:
+            agents = []
+            for agent in self.agents:
+                llm = agent.llm_config
+                llm_config = llm if type(llm) is dict else {
+                    "dialect": llm.dialect,
+                    "api_key": llm.api_key,
+                    "model": llm.model,
+                    "base_url": llm.base_url,
+                    "temperature": llm.temperature,
+                    "top_p": llm.top_p,
+                    "frequency_penalty": llm.frequency_penalty,
+                    "presence_penalty": llm.presence_penalty,
+                    "max_tokens": llm.max_tokens,
+                    "supports_vision": llm.supports_vision,
+                }
+                agents.append({
+                    "name": agent.name,
+                    "properties": dict(agent.properties),
+                    "llm_config": llm_config,
+                    "role_prompt": agent.role_prompt,
+                    "provider_id": agent.provider_id,
+                    "action_history": list(agent.action_history),
+                    "score": agent.score,
+                    "knowledge_base": list(agent.knowledge_base),
+                })
         return {
             "config": {
-                "agents": self.config.agents,
+                "agents": agents,
                 "actions": self.config.actions,
                 "parameters": self.config.parameters,
                 "state_schema": self.config.state_schema,

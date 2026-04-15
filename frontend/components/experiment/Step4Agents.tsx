@@ -17,6 +17,7 @@ import { useExperimentBuilder, ManualAgentType, LLMProvider } from '../../store/
 import { generateAgentsWithDemographics, isZh } from '../../store/helpers';
 import { Step2DemographicsEditor, Demographic, Archetype, TraitConfig, LLMAllocation } from '../wizard/Step2DemographicsEditor';
 import type { Agent } from '../../types';
+import { applyLlmDistribution } from '../../utils/llmDistribution';
 import { Button } from '../ui/button';
 import { ChevronDown } from 'lucide-react';
 
@@ -683,6 +684,12 @@ export const Step4Agents: React.FC = () => {
       return;
     }
 
+    const totalAllocation = llmAllocations.reduce((sum, item) => sum + item.percentage, 0);
+    if (llmAllocations.length > 0 && totalAllocation !== 100) {
+      setImportError('LLM distribution must sum to 100%.');
+      return;
+    }
+
     setIsGenerating(true);
     setImportError(null);
 
@@ -709,7 +716,7 @@ export const Step4Agents: React.FC = () => {
       }));
 
       // Call the real backend API
-      const agents = await generateAgentsWithDemographics(
+      const generated = await generateAgentsWithDemographics(
         genCount,
         demographicsData,
         archetypeProbabilities,
@@ -718,16 +725,22 @@ export const Step4Agents: React.FC = () => {
         selectedProviderId ?? undefined
       );
 
-      setGeneratedAgents(agents);
-
-      // Use stratified provider_id from backend response if available
-      // The backend distributes providers across demographic groups to avoid confounding
-      const providerAssignments: (number | null)[] = agents.map(
-        (agent) => agent.provider_id ?? selectedProviderId ?? null
+      const defaultProvider = llmProviders.find((provider) => provider.id === selectedProviderId) || llmProviders[0];
+      const distributedAgents = applyLlmDistribution(
+        generated,
+        llmAllocations,
+        `${scenarioId || 'experiment'}:${selectedProviderId || 'default'}:${genCount}`,
+        {
+          provider: defaultProvider?.provider || generated[0]?.llmConfig?.provider || 'backend',
+          model: defaultProvider?.model || generated[0]?.llmConfig?.model || 'default',
+          provider_id: defaultProvider?.id ?? selectedProviderId ?? generated[0]?.provider_id ?? null,
+        },
       );
 
+      setGeneratedAgents(distributedAgents);
+
       // Convert generated agents to ManualAgentType format and add to store
-      agents.forEach((agent, agentIndex) => {
+      distributedAgents.forEach((agent) => {
         const inferredTier = inferOrderedTier({
           properties: {
             tier: agent.properties?.tier,
@@ -755,7 +768,7 @@ export const Step4Agents: React.FC = () => {
           rolePrompt: agent.profile,
           userProfile: agent.profile,
           properties: nextProperties,
-          providerId: providerAssignments[agentIndex] ?? undefined,
+          providerId: agent.provider_id ?? undefined,
         };
         addAgentType(agentType);
       });
@@ -1342,14 +1355,18 @@ export const Step4Agents: React.FC = () => {
             </div>
 
             <div className="flex gap-2">
-              <Button variant="outline" component="label">
+              <label className="inline-flex">
+                <Button variant="outline" type="button">
+                  {t('experimentBuilder.step4.uploadCSV')}
+                </Button>
                 <input type="file" accept=".csv,.json" className="hidden" />
-                {t('experimentBuilder.step4.uploadCSV')}
-              </Button>
-              <Button variant="outline" component="label">
+              </label>
+              <label className="inline-flex">
+                <Button variant="outline" type="button">
+                  {t('experimentBuilder.step4.uploadJSON')}
+                </Button>
                 <input type="file" accept=".csv,.json" className="hidden" />
-                {t('experimentBuilder.step4.uploadJSON')}
-              </Button>
+              </label>
             </div>
 
             <div className="bg-blue-50 p-3 rounded border border-blue-200">

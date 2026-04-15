@@ -22,7 +22,7 @@ let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (value?: any) => void;
   reject: (reason?: any) => void;
-}>[] = [];
+}> = [];
 
 const processQueue = (error: any | null, token: string | null = null) => {
   failedQueue.forEach((prom) => {
@@ -35,11 +35,90 @@ const processQueue = (error: any | null, token: string | null = null) => {
   failedQueue = [];
 };
 
+async function refreshAccessToken(): Promise<string> {
+  if (isRefreshing) {
+    return await new Promise<string>((resolve, reject) => {
+      failedQueue.push({ resolve, reject });
+    });
+  }
+
+  isRefreshing = true;
+  const refreshToken = useAuthStore.getState().refreshToken;
+
+  if (!refreshToken) {
+    processQueue(new Error("No refresh token available"), null);
+    useAuthStore.getState().clearSession();
+    isRefreshing = false;
+    throw new Error("No refresh token available");
+  }
+
+  try {
+    const refreshResponse = await axios.post(
+      `${API_BASE_URL}/auth/token/refresh`,
+      { refresh_token: refreshToken },
+    );
+    const data = refreshResponse.data as {
+      access_token: string;
+      refresh_token: string;
+    };
+
+    useAuthStore.getState().updateTokens(
+      data.access_token,
+      data.refresh_token,
+    );
+
+    processQueue(null, data.access_token);
+    return data.access_token;
+  } catch (refreshError) {
+    processQueue(refreshError, null);
+    const currentToken = useAuthStore.getState().accessToken;
+    if (!currentToken) {
+      useAuthStore.getState().clearSession();
+    }
+    throw refreshError;
+  } finally {
+    isRefreshing = false;
+  }
+}
+
+async function authFetch(
+  url: string,
+  init: RequestInit,
+  token?: string,
+  retry = true,
+): Promise<Response> {
+  const effectiveToken = token ?? useAuthStore.getState().accessToken ?? undefined;
+  const headers = new Headers(init.headers ?? {});
+  if (effectiveToken) {
+    headers.set("Authorization", `Bearer ${effectiveToken}`);
+  }
+
+  const response = await fetch(url, {
+    ...init,
+    headers,
+    credentials: "include",
+  });
+
+  if (response.status !== 401 || !retry) {
+    return response;
+  }
+
+  const refreshedToken = await refreshAccessToken();
+  const retryHeaders = new Headers(init.headers ?? {});
+  retryHeaders.set("Authorization", `Bearer ${refreshedToken}`);
+
+  return await fetch(url, {
+    ...init,
+    headers: retryHeaders,
+    credentials: "include",
+  });
+}
+
 // ---- 拦截器：自动带上 access token，并处理 401 刷新 ----
 apiClient.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
   if (token) {
-    config.headers = config.headers ?? {};
+    config.headers = (config.headers ?? {}) as any;
     (config.headers as any).Authorization = `Bearer ${token}`;
   }
   return config;
@@ -52,64 +131,14 @@ apiClient.interceptors.response.use(
     const originalRequest = config;
 
     if (response?.status === 401 && originalRequest && !(originalRequest as any).__isRetryRequest) {
-      // If refresh is already in progress, queue this request
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            if (originalRequest.headers) {
-              (originalRequest.headers as any).Authorization = `Bearer ${token}`;
-            }
-            return apiClient(originalRequest);
-          })
-          .catch((err) => {
-            return Promise.reject(err);
-          });
-        }
-
-      isRefreshing = true;
-      const refreshToken = useAuthStore.getState().refreshToken;
-
-      if (refreshToken) {
-        try {
-          const refreshResponse = await axios.post(
-            `${API_BASE_URL}/auth/token/refresh`,
-            { refresh_token: refreshToken },
-          );
-          const data = refreshResponse.data as {
-            access_token: string;
-            refresh_token: string;
-          };
-
-          useAuthStore.getState().updateTokens(
-            data.access_token,
-            data.refresh_token,
-          );
-
-          processQueue(null, data.access_token);
-
-          (originalRequest as any).__isRetryRequest = true;
-          if (originalRequest.headers) {
-            originalRequest.headers = originalRequest.headers ?? {};
-            (originalRequest.headers as any).Authorization = `Bearer ${data.access_token}`;
-          }
-          return apiClient(originalRequest);
-        } catch (refreshError) {
-          processQueue(refreshError, null);
-          // Check if another request already refreshed the token before clearing session
-          const currentToken = useAuthStore.getState().accessToken;
-          if (!currentToken) {
-            useAuthStore.getState().clearSession();
-          }
-          return Promise.reject(refreshError);
-        } finally {
-          isRefreshing = false;
-        }
-      } else {
-        // No refresh token available, clear session
-        processQueue(error, null);
-        useAuthStore.getState().clearSession();
+      try {
+        const refreshedToken = await refreshAccessToken();
+        (originalRequest as any).__isRetryRequest = true;
+        originalRequest.headers = (originalRequest.headers ?? {}) as any;
+        (originalRequest.headers as any).Authorization = `Bearer ${refreshedToken}`;
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        return Promise.reject(refreshError);
       }
     }
     return Promise.reject(error);
@@ -132,12 +161,9 @@ export async function httpGet<T>(
   token?: string,
 ): Promise<T> {
   const url = buildUrl(base, path);
-  const effectiveToken = token ?? useAuthStore.getState().accessToken ?? undefined;
-  const res = await fetch(url, {
+  const res = await authFetch(url, {
     method: "GET",
-    headers: effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : undefined,
-    credentials: "include",
-  });
+  }, token);
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return (await res.json()) as T;
 }
@@ -149,16 +175,13 @@ export async function httpPost<T>(
   token?: string,
 ): Promise<T> {
   const url = buildUrl(base, path);
-  const effectiveToken = token ?? useAuthStore.getState().accessToken ?? undefined;
-  const res = await fetch(url, {
+  const res = await authFetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : {}),
     },
     body: body != null ? JSON.stringify(body) : undefined,
-    credentials: "include",
-  });
+  }, token);
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return (await res.json()) as T;
 }
@@ -169,12 +192,9 @@ export async function httpDelete<T>(
   token?: string,
 ): Promise<T> {
   const url = buildUrl(base, path);
-  const effectiveToken = token ?? useAuthStore.getState().accessToken ?? undefined;
-  const res = await fetch(url, {
+  const res = await authFetch(url, {
     method: "DELETE",
-    headers: effectiveToken ? { Authorization: `Bearer ${effectiveToken}` } : undefined,
-    credentials: "include",
-  });
+  }, token);
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   const text = await res.text();
   return text ? (JSON.parse(text) as T) : (undefined as unknown as T);

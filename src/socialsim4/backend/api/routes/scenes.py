@@ -7,6 +7,7 @@ from litestar.response import Response
 from pydantic import ValidationError
 
 from socialsim4.core.agent import Agent
+from socialsim4.core.experiment.game_configs import create_council_config
 from socialsim4.core.registry import SCENE_ACTIONS, SCENE_DESCRIPTIONS, SCENE_MAP, get_scene_class
 from socialsim4.templates.loader import TemplateLoader
 from socialsim4.templates.schema import GenericTemplate, export_json_schema
@@ -49,6 +50,26 @@ def scene_config_template(scene_key: str, scene_cls) -> dict:
             },
             "allowed_actions": [],
             "basic_actions": [],
+        }
+
+    if scene_key == "council_experiment":
+        council_config = create_council_config(
+            proposal_text=DEFAULT_COUNCIL_DRAFT,
+            deliberation_rounds=3,
+            voting_threshold=0.5,
+        )
+        return {
+            "type": scene_key,
+            "name": "CouncilExperimentScene",
+            "description": SCENE_DESCRIPTIONS.get(scene_key, ""),
+            "config_schema": {
+                "deliberation_rounds": council_config.deliberation_rounds,
+                "voting_threshold": council_config.voting_threshold,
+                "proposal_text": council_config.proposal_text,
+                "initial_events": [],
+            },
+            "allowed_actions": [],
+            "basic_actions": list(council_config.actions),
         }
 
     scene = scene_cls("preview", "")

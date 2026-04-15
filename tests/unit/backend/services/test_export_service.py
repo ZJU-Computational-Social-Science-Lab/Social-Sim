@@ -253,3 +253,65 @@ def test_export_events_deduplication():
     # Verify amounts are correct (6, 5, 4)
     amounts = [e["follow_up"] for e in data]
     assert amounts == ["6", "5", "4"], f"Expected amounts ['6', '5', '4'], got {amounts}"
+
+
+def test_export_events_keeps_distinct_sibling_branch_logs():
+    """Sibling branch events with identical content should not be collapsed."""
+    from socialsim4.backend.services.export_service import export_events
+
+    events = [
+        {
+            "sequence": 0,
+            "tree_node_id": 1,
+            "event_type": "AGENT_ACTION",
+            "payload": {
+                "action": {"name": "allocate", "parameters": {"amount": 6}},
+                "agent": "Agent 1",
+                "round": 1,
+            },
+            "created_at": datetime(2026, 3, 30, 14, 30, 0),
+        },
+        {
+            "sequence": 1,
+            "tree_node_id": 2,
+            "event_type": "AGENT_ACTION",
+            "payload": {
+                "action": {"name": "allocate", "parameters": {"amount": 5}},
+                "agent": "Agent 1",
+                "round": 2,
+            },
+            "created_at": datetime(2026, 3, 30, 14, 31, 0),
+        },
+        {
+            "sequence": 0,
+            "tree_node_id": 1,
+            "event_type": "AGENT_ACTION",
+            "payload": {
+                "action": {"name": "allocate", "parameters": {"amount": 6}},
+                "agent": "Agent 1",
+                "round": 1,
+            },
+            "created_at": datetime(2026, 3, 30, 14, 30, 0),
+        },
+        {
+            "sequence": 1,
+            "tree_node_id": 3,
+            "event_type": "AGENT_ACTION",
+            "payload": {
+                "action": {"name": "allocate", "parameters": {"amount": 5}},
+                "agent": "Agent 1",
+                "round": 2,
+            },
+            "created_at": datetime(2026, 3, 30, 14, 31, 5),
+        },
+    ]
+
+    scenario_params = {"tokens_per_round": 10}
+
+    json_content = export_events(events, scenario_params, "json")
+    import json
+    data = json.loads(json_content)
+
+    assert len(data) == 3, f"Expected 3 exported events, got {len(data)}"
+    assert [item["node_id"] for item in data] == ["1", "2", "3"]
+    assert [item["follow_up"] for item in data] == ["6", "5", "5"]

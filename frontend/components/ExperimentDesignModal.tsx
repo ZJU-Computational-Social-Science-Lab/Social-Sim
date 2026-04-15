@@ -591,7 +591,7 @@ export const ExperimentDesignModal: React.FC = () => {
                           const nodeByName = nodes.find(n => n.name === `${experimentName}: ${variant.name}`);
                           const node = nodeByMeta || nodeByName;
                           const st = node ? node.status : 'pending';
-                          const color = st === 'running' ? 'text-amber-600' : st === 'completed' || st === 'completed' ? 'text-green-600' : 'text-slate-400';
+                          const color = st === 'running' ? 'text-amber-600' : st === 'completed' ? 'text-green-600' : 'text-slate-400';
                           return (
                             <span className={`text-xs font-medium ${color} bg-slate-100 px-2 py-0.5 rounded`}>{st}</span>
                           );
@@ -810,6 +810,7 @@ export const ExperimentDesignModal: React.FC = () => {
                                           deduction_budget_per_phase: (displayParams.deduction_budget_per_phase as number) ?? 0,
                                           deduction_cost_ratio: (displayParams.deduction_cost_ratio as number) ?? 3,
                                           deduction_anonymous: (displayParams.deduction_anonymous as boolean) ?? false,
+                                          show_average_contribution: (displayParams.show_average_contribution as boolean) ?? false,
                                         }}
                                         onChange={updateParam}
                                       />

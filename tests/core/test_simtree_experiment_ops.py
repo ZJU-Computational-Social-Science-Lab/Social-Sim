@@ -272,3 +272,37 @@ class TestConfigSettingsPatch:
         ])
 
         assert tree.nodes[root_id]["sim"].scene.config.round_visibility == "simultaneous"
+
+
+def test_experiment_adapter_serialize_preserves_agent_runtime_state():
+    clients = make_dummy_clients()
+    config = ExperimentConfig(
+        scenario_id="test",
+        agents=[
+            {"name": "Alice", "properties": {"group": "A"}, "provider_id": 17, "llm_config": {"provider": "ollama", "model": "qwen3"}},
+            {"name": "Bob", "properties": {"group": "B"}},
+        ],
+        actions=[{"name": "cooperate", "description": "Cooperate"}],
+        parameters={"n_rounds": 1},
+    )
+
+    scene = ExperimentScene(config)
+    adapter = ExperimentRunnerAdapter(scene, clients)
+    scene.agents[0].action_history.append({
+        "round": 1,
+        "action": "cooperate",
+        "content": "Round 1: chose cooperate",
+        "success": True,
+        "skipped": False,
+        "summary": "Alice chose cooperate",
+    })
+    scene.agents[0].score = 9
+    scene.agents[0].knowledge_base.append({"id": "kb-1", "title": "Note", "content": "Important", "enabled": True})
+
+    restored = ExperimentRunnerAdapter.deserialize(adapter.serialize(), clients)
+
+    assert len(restored.scene.agents) == 2
+    assert restored.scene.agents[0].action_history == scene.agents[0].action_history
+    assert restored.scene.agents[0].score == 9
+    assert restored.scene.agents[0].knowledge_base == scene.agents[0].knowledge_base
+    assert restored.scene.agents[0].provider_id == 17

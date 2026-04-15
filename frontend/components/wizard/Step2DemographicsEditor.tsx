@@ -73,6 +73,7 @@ export interface Step2DemographicsEditorProps {
   onAddLlmAllocation?: () => void;
   onRemoveLlmAllocation?: (index: number) => void;
   onUpdateLlmAllocation?: (index: number, field: keyof LLMAllocation, value: number | string) => void;
+  onApplyLlmDistribution?: () => void;
   availableProviders?: Provider[];  // Providers from parent
   providersLoading?: boolean;       // Loading state from parent
   useTranslation?: boolean; // If true, use t() function for labels

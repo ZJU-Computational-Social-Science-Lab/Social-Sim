@@ -14,7 +14,7 @@ interface ScenarioCardProps {
   scenario: ScenarioData;
   selected: boolean;
   onClick: () => void;
-  t: (key: string) => string;
+  t: any;
 }
 
 const CATEGORY_ORDER = [

@@ -46,9 +46,10 @@ export default defineConfig(({ mode }) => {
   const host = env.LISTEN_ADDRESS || "0.0.0.0";
   const port = Number(env.LISTEN_PORT || 5173);
   const backendPort = Number(env.BACKEND_PORT || 8000);
+  const base = env.FRONTEND_BASE_URL || "/";
 
   return {
-    base: "/",
+    base,
     plugins: [
       react(),
       virtualDocsPlugin(),

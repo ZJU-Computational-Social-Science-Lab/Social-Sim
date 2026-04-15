@@ -356,7 +356,6 @@ async def simulation_tree_advance_chain(
                 await asyncio.to_thread(simulator.run, max_turns=total_turns)
                 logger.debug(f"[ADVANCE_CHAIN] Simulator run complete for node {cid}")
 
-                # Log events collected
                 from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
                 if isinstance(simulator, ExperimentRunnerAdapter):
                     logger.debug(f"[ADVANCE_CHAIN] Adapter events count: {len(simulator.events)}")
