@@ -14,7 +14,7 @@ const renderProfileHtml = (text: string) => {
   const withImages = escaped.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_m, alt, url) => {
     const safeAlt = escape(alt || 'image');
     const safeUrl = url.replace(/"/g, '&quot;');
-    return `<img src="${safeUrl}" alt="${safeAlt}" class="inline-block max-h-32 rounded border border-slate-200 mr-2 mb-2" />`;
+    return `<img src="${safeUrl}" alt="${safeAlt}" class="inline-block max-h-32 rounded border mr-2 mb-2" style="border-color:var(--ss-workspace-border)" />`;
   });
   return withImages.replace(/\n/g, '<br />');
 };
@@ -203,12 +203,12 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   };
 
   // Helper to color code models
-  const getModelBadgeStyle = (provider: string) => {
+  const getModelBadgeStyle = (provider: string): { className: string; style?: React.CSSProperties } => {
     switch(provider.toLowerCase()) {
-      case 'openai': return 'bg-green-50 text-green-700 border-green-200';
-      case 'anthropic': return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'google': return 'bg-blue-50 text-blue-700 border-blue-200';
-      default: return 'bg-slate-100 text-slate-600 border-slate-200';
+      case 'openai': return { className: 'bg-green-50 text-green-700 border-green-200' };
+      case 'anthropic': return { className: 'bg-amber-50 text-amber-700 border-amber-200' };
+      case 'google': return { className: 'bg-blue-50 text-blue-700 border-blue-200' };
+      default: return { className: '', style: { color: 'var(--ss-workspace-text)', borderColor: 'var(--ss-workspace-border)' } };
     }
   };
 
@@ -254,28 +254,29 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   };
 
   return (
-    <div className="bg-white border-b last:border-b-0">
+    <div className="border-b last:border-b-0" style={{ background: 'var(--ss-workspace-surface)' }}>
       {/* Sticky Profile Header (#6) */}
-      <div className="sticky top-0 z-10 bg-white border-b shadow-sm p-4 flex gap-3 items-start">
-        <img 
-          src={agent.avatarUrl} 
-          alt={agent.name} 
-          className="w-12 h-12 rounded-full border border-slate-200 object-cover" 
+      <div className="sticky top-0 z-10 border-b shadow-sm p-4 flex gap-3 items-start" style={{ background: 'var(--ss-workspace-surface)' }}>
+        <img
+          src={agent.avatarUrl}
+          alt={agent.name}
+          className="w-12 h-12 rounded-full border object-cover"
+          style={{ borderColor: 'var(--ss-workspace-border)' }}
         />
         <div className="flex-1 min-w-0">
           {/* Name row with model badge */}
           <div className="flex items-center justify-between">
-            <h4 className="font-bold text-slate-800 truncate">{agent.name}</h4>
+            <h4 className="font-bold truncate" style={{ color: 'var(--ss-workspace-heading)' }}>{agent.name}</h4>
             {/* #10 Model Badge with Dropdown */}
             <div className="flex items-center gap-1">
               {providersLoading ? (
-                <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border ${getModelBadgeStyle(agent.llmConfig?.provider || 'default')}`}>
+                <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border ${getModelBadgeStyle(agent.llmConfig?.provider || 'default').className}`} style={getModelBadgeStyle(agent.llmConfig?.provider || 'default').style}>
                   <Loader2 size={10} className="animate-spin" />
                   <span className="font-mono">{agent.llmConfig?.model || t('components.agentPanel.auto')}</span>
                 </span>
               ) : providersError ? (
                 <div className="flex items-center gap-1">
-                  <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border ${getModelBadgeStyle(agent.llmConfig?.provider || 'default')}`}>
+                  <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border ${getModelBadgeStyle(agent.llmConfig?.provider || 'default').className}`} style={getModelBadgeStyle(agent.llmConfig?.provider || 'default').style}>
                     <Bot size={10} />
                     <span className="font-mono">{agent.llmConfig?.model || t('components.agentPanel.auto')}</span>
                   </span>
@@ -290,7 +291,8 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                         })
                         .finally(() => setProvidersLoading(false));
                     }}
-                    className="text-slate-400 hover:text-brand-500 p-1"
+                    className="hover:text-brand-500 p-1"
+                    style={{ color: 'var(--ss-workspace-muted)' }}
                     title={t('components.agentPanel.retry')}
                   >
                     <RefreshCw size={10} />
@@ -308,7 +310,8 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                     const providerId = Number(e.target.value);
                     if (!isNaN(providerId)) handleLLMChange(providerId);
                   }}
-                  className={`text-[10px] border rounded px-1.5 py-0.5 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 ${getModelBadgeStyle(agent.llmConfig?.provider || 'default')}`}
+                  className={`text-[10px] border rounded px-1.5 py-0.5 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 ${getModelBadgeStyle(agent.llmConfig?.provider || 'default').className}`}
+                  style={getModelBadgeStyle(agent.llmConfig?.provider || 'default').style}
                   title={t('components.agentPanel.changeLLM')}
                 >
                   <option value="" disabled>
@@ -348,7 +351,8 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                   <Save size={12} /> {t('components.agentPanel.saveProfile')}
                 </button>
                 <button
-                  className="flex-1 py-1.5 bg-slate-200 text-slate-600 rounded text-xs flex items-center justify-center gap-1"
+                  className="flex-1 py-1.5 text-xs flex items-center justify-center gap-1 rounded"
+                  style={{ background: 'var(--ss-surface-inset)', color: 'var(--ss-workspace-text)' }}
                   onClick={() => {
                     setProfileDraft(agent.profile);
                     setIsProfileEditing(false);
@@ -361,11 +365,13 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
           ) : (
             <div className="mt-2 flex items-start gap-2">
               <div
-                className="text-xs text-slate-500 leading-relaxed flex-1 markdown-body"
+                className="text-xs leading-relaxed flex-1 markdown-body"
+                style={{ color: 'var(--ss-workspace-muted)' }}
                 dangerouslySetInnerHTML={{ __html: renderProfileHtml(agent.profile || t('components.agentPanel.noProfile')) }}
               />
               <button
-                className="text-slate-400 hover:text-brand-600"
+                className="hover:text-brand-600"
+                style={{ color: 'var(--ss-workspace-muted)' }}
                 onClick={() => setIsProfileEditing(true)}
                 title={t('components.agentPanel.editProfile')}
               >
@@ -375,7 +381,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
           )}
 
           {/* Role badge below description */}
-          <span className="inline-block mt-2 px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full border border-slate-200">
+          <span className="inline-block mt-2 px-2 py-0.5 text-xs rounded-full border" style={{ background: 'var(--ss-surface-inset)', color: 'var(--ss-workspace-text)', borderColor: 'var(--ss-workspace-border)' }}>
             {agent.role}
           </span>
         </div>
@@ -383,31 +389,32 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
 
       {/* Attributes Comparison Section (#6 contrast view placeholder) */}
       <div className="p-0">
-        <button 
+        <button
           onClick={() => setIsPropsOpen(!isPropsOpen)}
-          className="w-full flex items-center justify-between px-4 py-2 bg-slate-50 hover:bg-slate-100 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-2 transition-colors"
+          style={{ background: 'var(--ss-surface-strong)' }}
         >
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+          <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--ss-workspace-heading)' }}>
             <Activity size={14} />
             <span>{t('components.agentPanel.currentAttributes')}</span>
           </div>
           {isPropsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>
-        
+
         {isPropsOpen && (
           <div className="p-4 grid grid-cols-2 gap-2">
             {Object.entries(agent.properties)
               .filter(([key]) => !['emotion_enabled', 'archetype_id', 'demographic_attributes', 'internal', '_internal', 'avatarUrl'].includes(key))
               .map(([key, value]) => (
-              <div key={key} className="flex flex-col p-2 bg-slate-50 rounded border">
-                <span className="text-[10px] uppercase text-slate-400 font-bold">{key}</span>
-                <span className="text-sm font-mono font-medium text-slate-700">{String(value)}</span>
+              <div key={key} className="flex flex-col p-2 rounded border" style={{ background: 'var(--ss-surface-strong)' }}>
+                <span className="text-[10px] uppercase font-bold" style={{ color: 'var(--ss-workspace-muted)' }}>{key}</span>
+                <span className="text-sm font-mono font-medium" style={{ color: 'var(--ss-workspace-heading)' }}>{String(value)}</span>
               </div>
             ))}
             {Object.entries(agent.properties).filter(([key]) =>
 !['emotion_enabled', 'archetype_id', 'demographic_attributes', 'internal', '_internal', 'avatarUrl'].includes(key)
             ).length === 0 && (
-              <div className="col-span-2 text-center text-xs text-slate-400 italic py-2">
+              <div className="col-span-2 text-center text-xs italic py-2" style={{ color: 'var(--ss-workspace-muted)' }}>
                 {t('components.agentPanel.noCustomAttributes')}
               </div>
             )}
@@ -417,27 +424,28 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
 
       {/* Knowledge Base (#23) */}
       <div className="p-0 border-t">
-        <button 
+        <button
           onClick={() => setIsKBOpen(!isKBOpen)}
-          className="w-full flex items-center justify-between px-4 py-2 bg-slate-50 hover:bg-slate-100 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-2 transition-colors"
+          style={{ background: 'var(--ss-surface-strong)' }}
         >
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+          <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--ss-workspace-heading)' }}>
             <BookOpen size={14} />
             <span>{t('components.agentPanel.knowledgeBase')} ({agent.knowledgeBase.length})</span>
           </div>
           {isKBOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>
-        
+
         {isKBOpen && (
-          <div className="p-4 bg-slate-50/50 space-y-3">
+          <div className="p-4 space-y-3" style={{ background: 'var(--ss-surface-strong)' }}>
              {agent.knowledgeBase.length === 0 && !isAddingKB && (
-               <div className="text-center py-2 text-slate-400 text-xs italic">{t('components.agentPanel.noKnowledgeDocs')}</div>
+               <div className="text-center py-2 text-xs italic" style={{ color: 'var(--ss-workspace-muted)' }}>{t('components.agentPanel.noKnowledgeDocs')}</div>
              )}
-             
+
              {agent.knowledgeBase.map(kb => {
                const isEditing = editingItemId === kb.id;
                return (
-                 <div key={kb.id} className="bg-white border rounded p-2 text-xs relative group">
+                 <div key={kb.id} className="border rounded p-2 text-xs relative group" style={{ background: 'var(--ss-workspace-surface)' }}>
                    {isEditing ? (
                      // Edit mode
                      <div className="space-y-2">
@@ -464,7 +472,8 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                          </button>
                          <button
                            onClick={handleCancelEdit}
-                           className="px-2 py-1 text-slate-500 hover:text-slate-600"
+                           className="px-2 py-1 hover:text-slate-600"
+                           style={{ color: 'var(--ss-workspace-muted)' }}
                          >
                            {t('common.cancel')}
                          </button>
@@ -473,22 +482,24 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                    ) : (
                      // View mode
                      <>
-                       <div className="flex items-center gap-2 font-bold text-slate-700 mb-1">
+                       <div className="flex items-center gap-2 font-bold mb-1" style={{ color: 'var(--ss-workspace-heading)' }}>
                          <FileText size={12} className="text-blue-500" />
                          {kb.title}
                        </div>
-                       <p className="text-slate-500 line-clamp-2">{kb.content}</p>
+                       <p style={{ color: 'var(--ss-workspace-muted)' }} className="line-clamp-2">{kb.content}</p>
                        <div className="flex gap-2 absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                          <button
                            onClick={() => handleStartEdit(kb)}
-                           className="text-slate-400 hover:text-blue-500"
+                           className="hover:text-blue-500"
+                           style={{ color: 'var(--ss-workspace-muted)' }}
                            title={t('components.agentPanel.edit')}
                          >
                            ✏️
                          </button>
                          <button
                            onClick={() => removeKnowledgeFromAgent(agent.id, kb.id)}
-                           className="text-slate-400 hover:text-red-500"
+                           className="hover:text-red-500"
+                           style={{ color: 'var(--ss-workspace-muted)' }}
                            title={t('components.agentPanel.delete')}
                          >
                            🗑️
@@ -501,7 +512,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
              })}
 
              {isAddingKB ? (
-                <div className="bg-white border border-brand-200 rounded p-2 text-xs space-y-2">
+                <div className="border border-brand-200 rounded p-2 text-xs space-y-2" style={{ background: 'var(--ss-workspace-surface)' }}>
                    <input
                      type="text"
                      placeholder={t('components.agentPanel.titlePlaceholder')}
@@ -517,13 +528,14 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                    />
                    <div className="flex gap-2">
                       <button onClick={handleAddKB} className="flex-1 py-1 bg-brand-600 text-white rounded hover:bg-brand-700">{t('components.agentPanel.save')}</button>
-                      <button onClick={() => setIsAddingKB(false)} className="flex-1 py-1 bg-slate-200 text-slate-600 rounded hover:bg-slate-300">{t('common.cancel')}</button>
+                      <button onClick={() => setIsAddingKB(false)} className="flex-1 py-1 rounded" style={{ background: 'var(--ss-surface-inset)', color: 'var(--ss-workspace-text)' }}>{t('common.cancel')}</button>
                    </div>
                 </div>
              ) : (
                 <button
                    onClick={() => setIsAddingKB(true)}
-                   className="w-full py-1.5 border border-dashed border-slate-300 text-slate-500 hover:border-brand-500 hover:text-brand-600 rounded text-xs flex items-center justify-center gap-1 transition-colors"
+                   className="w-full py-1.5 border border-dashed rounded text-xs flex items-center justify-center gap-1 transition-colors hover:border-brand-500 hover:text-brand-600"
+                   style={{ borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-muted)' }}
                 >
                    <Plus size={12} /> {t('components.agentPanel.addKnowledge')}
                 </button>
@@ -536,9 +548,10 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
       <div className="p-0 border-t">
         <button
           onClick={handleDocsToggle}
-          className="w-full flex items-center justify-between px-4 py-2 bg-slate-50 hover:bg-slate-100 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-2 transition-colors"
+          style={{ background: 'var(--ss-surface-strong)' }}
         >
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+          <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--ss-workspace-heading)' }}>
             <Upload size={14} />
             <span>{t('components.agentPanel.documentKnowledgeBase')} ({documents.length})</span>
           </div>
@@ -546,14 +559,15 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
         </button>
 
         {isDocsOpen && (
-          <div className="p-4 bg-slate-50/50 space-y-3">
+          <div className="p-4 space-y-3" style={{ background: 'var(--ss-surface-strong)' }}>
             {/* Upload area */}
             <div
               className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
                 isDragging
                   ? 'border-brand-500 bg-brand-50'
-                  : 'border-slate-300 hover:border-brand-400'
+                  : 'hover:border-brand-400'
               } ${isUploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              style={!isDragging ? { borderColor: 'var(--ss-workspace-border)' } : undefined}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
@@ -568,17 +582,17 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                 disabled={isUploading}
               />
               {isUploading ? (
-                <div className="flex items-center justify-center gap-2 text-slate-500">
+                <div className="flex items-center justify-center gap-2" style={{ color: 'var(--ss-workspace-muted)' }}>
                   <Loader2 size={16} className="animate-spin" />
                   <span className="text-xs">{t('components.agentPanel.uploading')}</span>
                 </div>
               ) : (
                 <>
-                  <Upload size={20} className="mx-auto text-slate-400 mb-2" />
-                  <p className="text-xs text-slate-500">
+                  <Upload size={20} className="mx-auto mb-2" style={{ color: 'var(--ss-workspace-muted)' }} />
+                  <p className="text-xs" style={{ color: 'var(--ss-workspace-muted)' }}>
                     {t('components.agentPanel.dragDropUpload')}
                   </p>
-                  <p className="text-[10px] text-slate-400 mt-1">
+                  <p className="text-[10px] mt-1" style={{ color: 'var(--ss-workspace-muted)' }}>
                     {t('components.agentPanel.supportedFormats')}
                   </p>
                 </>
@@ -594,26 +608,27 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
 
             {/* Uploaded documents list */}
             {documents.length === 0 && !isUploading && (
-              <div className="text-center py-2 text-slate-400 text-xs italic">
+              <div className="text-center py-2 text-xs italic" style={{ color: 'var(--ss-workspace-muted)' }}>
                 {t('components.agentPanel.noUploadedDocs')}
               </div>
             )}
 
             {documents.map(doc => (
-              <div key={doc.id} className="bg-white border rounded p-2 text-xs relative group">
-                <div className="flex items-center gap-2 font-bold text-slate-700 mb-1">
+              <div key={doc.id} className="border rounded p-2 text-xs relative group" style={{ background: 'var(--ss-workspace-surface)' }}>
+                <div className="flex items-center gap-2 font-bold mb-1" style={{ color: 'var(--ss-workspace-heading)' }}>
                   <File size={12} className="text-blue-500" />
                   <span className="truncate flex-1">{doc.filename}</span>
-                  <span className="text-slate-400 font-normal">{formatFileSize(doc.file_size)}</span>
+                  <span className="font-normal" style={{ color: 'var(--ss-workspace-muted)' }}>{formatFileSize(doc.file_size)}</span>
                 </div>
-                <div className="flex items-center gap-2 text-slate-400">
+                <div className="flex items-center gap-2" style={{ color: 'var(--ss-workspace-muted)' }}>
                   <span>{doc.chunks_count} {t('components.agentPanel.textChunks')}</span>
                   <span>·</span>
                   <span>{new Date(doc.uploaded_at).toLocaleDateString()}</span>
                 </div>
                 <button
                   onClick={() => handleDeleteDocument(doc.id)}
-                  className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-2 right-2 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ color: 'var(--ss-workspace-muted)' }}
                 >
                   <Trash2 size={12} />
                 </button>
@@ -625,11 +640,12 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
 
       {/* Collapsible Memory (#6) */}
       <div className="p-0 border-t">
-        <button 
+        <button
           onClick={() => setIsMemoryOpen(!isMemoryOpen)}
-          className="w-full flex items-center justify-between px-4 py-2 bg-slate-50 hover:bg-slate-100 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-2 transition-colors"
+          style={{ background: 'var(--ss-surface-strong)' }}
         >
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+          <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--ss-workspace-heading)' }}>
             <Brain size={14} />
             <span>{t('components.agentPanel.shortTermMemory')} ({agent.memory.length})</span>
           </div>
@@ -637,14 +653,14 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
         </button>
 
         {isMemoryOpen && (
-          <div className="max-h-64 overflow-y-auto p-4 space-y-3 bg-slate-50/50">
+          <div className="max-h-64 overflow-y-auto p-4 space-y-3" style={{ background: 'var(--ss-surface-strong)' }}>
             {agent.memory.map((mem) => (
-              <div key={mem.id} className="text-xs relative pl-3 border-l-2 border-slate-300">
-                <div className="flex justify-between text-slate-400 mb-0.5">
+              <div key={mem.id} className="text-xs relative pl-3 border-l-2" style={{ borderColor: 'var(--ss-workspace-border)' }}>
+                <div className="flex justify-between mb-0.5" style={{ color: 'var(--ss-workspace-muted)' }}>
                   <span className="uppercase text-[10px] font-bold tracking-wider">{mem.type}</span>
                   <span className="font-mono text-[10px]">{mem.timestamp}</span>
                 </div>
-                <p className={`leading-relaxed ${mem.type === 'thought' ? 'text-slate-500 italic' : 'text-slate-700'}`}>
+                <p className={`leading-relaxed ${mem.type === 'thought' ? 'italic' : ''}`} style={{ color: mem.type === 'thought' ? 'var(--ss-workspace-muted)' : 'var(--ss-workspace-heading)' }}>
                   {mem.content}
                 </p>
               </div>
@@ -660,7 +676,7 @@ export const AgentPanel: React.FC = () => {
   const agents = useSimulationStore(state => state.agents);
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col" style={{ background: 'var(--ss-workspace-surface)' }}>
       <div className="flex-1 overflow-y-auto">
         {agents.map(agent => (
           <AgentCard key={agent.id} agent={agent} />
