@@ -153,6 +153,7 @@
   --ss-link: #b08930;
   --ss-info: #7EA8D0;
   --ss-success: #5a9a6b;
+  --ss-status-positive: #5a9a6b;
   --ss-warning: #c49535;
   --ss-danger: #c4605a;
   --ss-danger-soft: rgba(196, 96, 90, 0.10);
@@ -253,6 +254,7 @@
   --ss-link: #7df4c6;
   --ss-info: #67b7ff;
   --ss-success: #6e8f68;
+  --ss-status-positive: #6e8f68;
   --ss-warning: #c9a268;
   --ss-danger: #ff7e7e;
   --ss-danger-soft: rgba(255, 126, 126, 0.12);
