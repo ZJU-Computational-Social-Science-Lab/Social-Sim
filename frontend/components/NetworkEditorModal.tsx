@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSimulationStore } from '../store';
-import { X, Network, Save, RefreshCw, Hexagon, Circle, Share2, Shuffle, ZoomIn, ZoomOut, Maximize, Move, Users, Waypoints, Target, GitBranch, MapPin, ChevronDown, ChevronRight, Play, Settings2, Loader2 } from 'lucide-react';
-import * as d3 from 'd3';
+import { X, Network, Save, RefreshCw, Circle, Share2, Shuffle, Move, Users, Waypoints, Target, GitBranch, MapPin, ChevronRight, Play, Settings2, Loader2 } from 'lucide-react';
 import { SocialNetwork } from '../types';
+import NetworkGraph from './NetworkGraph';
 
 // Type definitions for preset parameters
 type PresetType = 'full' | 'core-periphery' | 'holme-kim' | 'waxman' | 'random' | 'sbm' | 'newman-watts' | null;
@@ -133,7 +133,6 @@ export const NetworkEditorModal: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [linkFrom, setLinkFrom] = useState('');
   const [linkTo, setLinkTo] = useState('');
-  const [hoverInfo, setHoverInfo] = useState<{ name: string; profile?: string; x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (agents.length === 0) return;
@@ -181,12 +180,6 @@ export const NetworkEditorModal: React.FC = () => {
     },
   };
   
-  const containerRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
-  
-  // Refs for Zoom Control
-  const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
-  const d3SvgRef = useRef<d3.Selection<SVGSVGElement, unknown, null, undefined> | null>(null);
 
   // Initialize network from store on open
   useEffect(() => {
@@ -534,189 +527,6 @@ export const NetworkEditorModal: React.FC = () => {
     toggleConnection(a, b);
   };
 
-  // D3 Visualization
-  useEffect(() => {
-    if (!isOpen || !svgRef.current || !containerRef.current) return;
-
-    const width = containerRef.current.clientWidth;
-    const height = containerRef.current.clientHeight;
-
-    // Clear previous
-    d3.select(svgRef.current).selectAll('*').remove();
-
-    const svg = d3.select(svgRef.current)
-      .attr('width', width)
-      .attr('height', height)
-      .attr('class', 'cursor-grab active:cursor-grabbing'); // Visual cue for panning
-
-    d3SvgRef.current = svg;
-
-    // 1. Setup Zoom
-    const g = svg.append('g'); // Container for content
-
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.1, 4])
-      .on('zoom', (event) => {
-        g.attr('transform', event.transform);
-      });
-    
-    zoomBehaviorRef.current = zoom;
-    svg.call(zoom).on("dblclick.zoom", null);
-
-    // 2. Prepare Data
-    const nodes = agents.map(a => ({ id: a.name, name: a.name, img: a.avatarUrl, profile: a.profile })); // Use agent name as id
-    const links: {source: string, target: string}[] = [];
-    const dedup = new Set<string>();
-
-    Object.keys(network).forEach(source => {
-      (network[source] || []).forEach(target => {
-        // Only add link if target exists (match by name)
-        if (agents.find(a => a.name === target)) {
-          const key = source < target ? `${source}|${target}` : `${target}|${source}`;
-          if (dedup.has(key)) return;
-          dedup.add(key);
-          links.push({ source, target });
-        }
-      });
-    });
-
-    // 3. Force Simulation
-    const simulation = d3.forceSimulation(nodes as any)
-      .force('link', d3.forceLink(links).id((d: any) => d.id).distance(150))
-      .force('charge', d3.forceManyBody().strength(-400)) // Repel force
-      .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collide', d3.forceCollide(40)); // Prevent overlap
-
-    // 4. Definitions (Arrowhead)
-    svg.append('defs').append('marker')
-      .attr('id', 'arrowhead')
-      .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 28) // Adjusted for node radius
-      .attr('refY', 0)
-      .attr('orient', 'auto')
-      .attr('markerWidth', 6)
-      .attr('markerHeight', 6)
-      .append('path')
-      .attr('d', 'M0,-5L10,0L0,5')
-      .attr('fill', '#94a3b8');
-
-    // 5. Draw Links (inside g)
-    const link = g.append('g')
-      .selectAll('line')
-      .data(links)
-      .enter().append('line')
-      .attr('stroke', '#94a3b8')
-      .attr('stroke-width', 1.5)
-      .attr('marker-end', 'url(#arrowhead)');
-
-    // 6. Draw Nodes (inside g)
-    const node = g.append('g')
-      .selectAll('.node')
-      .data(nodes)
-      .enter().append('g')
-      .attr('class', 'cursor-pointer')
-      .call(d3.drag<any, any>()
-        .on('start', (event, d) => {
-          if (!event.active) simulation.alphaTarget(0.3).restart();
-          d.fx = d.x;
-          d.fy = d.y;
-        })
-        .on('drag', (event, d) => {
-          d.fx = event.x;
-          d.fy = event.y;
-        })
-        .on('end', (event, d) => {
-          if (!event.active) simulation.alphaTarget(0);
-          d.fx = null;
-          d.fy = null;
-        }));
-
-    node.append('circle')
-      .attr('r', 20)
-      .attr('fill', '#fff')
-      .attr('stroke', '#0ea5e9')
-      .attr('stroke-width', 2);
-
-    node.append('image')
-      .attr('xlink:href', d => d.img)
-      .attr('x', -16)
-      .attr('y', -16)
-      .attr('width', 32)
-      .attr('height', 32)
-      .attr('clip-path', 'circle(16px at 16px 16px)');
-
-    node.append('text')
-      .attr('dy', 35)
-      .attr('text-anchor', 'middle')
-      .text(d => d.name)
-      .attr('class', 'text-[10px] font-medium fill-slate-700 pointer-events-none select-none shadow-sm');
-
-    node
-      .on('mouseenter', (event, d: any) => {
-        const rect = containerRef.current?.getBoundingClientRect();
-        setHoverInfo({
-          name: d.name,
-          profile: d.profile,
-          x: (rect?.left || 0) + event.offsetX + 12,
-          y: (rect?.top || 0) + event.offsetY + 12,
-        });
-      })
-      .on('mousemove', (event) => {
-        const rect = containerRef.current?.getBoundingClientRect();
-        setHoverInfo((prev) => (
-          prev ? { ...prev, x: (rect?.left || 0) + event.offsetX + 12, y: (rect?.top || 0) + event.offsetY + 12 } : null
-        ));
-      })
-      .on('mouseleave', () => setHoverInfo(null));
-
-    // 7. Interaction Logic
-    let selectedSource: string | null = null;
-
-    node.on('click', (event, d) => {
-      if (!selectedSource) {
-        selectedSource = d.id;
-        d3.selectAll('circle').attr('stroke', '#0ea5e9').attr('stroke-width', 2);
-        d3.select(event.currentTarget).select('circle').attr('stroke', '#f59e0b').attr('stroke-width', 4); // Highlight source
-      } else {
-        toggleConnection(selectedSource, d.id);
-        selectedSource = null;
-        d3.selectAll('circle').attr('stroke', '#0ea5e9').attr('stroke-width', 2);
-      }
-    });
-
-    simulation.on('tick', () => {
-      link
-        .attr('x1', (d: any) => d.source.x)
-        .attr('y1', (d: any) => d.source.y)
-        .attr('x2', (d: any) => d.target.x)
-        .attr('y2', (d: any) => d.target.y);
-
-      node
-        .attr('transform', (d: any) => `translate(${d.x},${d.y})`);
-    });
-
-    return () => { simulation.stop(); };
-
-  }, [isOpen, network, agents]);
-
-  // Zoom Handlers
-  const handleZoomIn = () => {
-    if (d3SvgRef.current && zoomBehaviorRef.current) {
-      d3SvgRef.current.transition().duration(300).call(zoomBehaviorRef.current.scaleBy, 1.2);
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (d3SvgRef.current && zoomBehaviorRef.current) {
-      d3SvgRef.current.transition().duration(300).call(zoomBehaviorRef.current.scaleBy, 0.8);
-    }
-  };
-
-  const handleResetZoom = () => {
-    if (d3SvgRef.current && zoomBehaviorRef.current) {
-      d3SvgRef.current.transition().duration(500).call(zoomBehaviorRef.current.transform, d3.zoomIdentity);
-    }
-  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -1075,32 +885,8 @@ export const NetworkEditorModal: React.FC = () => {
           </div>
 
           {/* Canvas */}
-          <div ref={containerRef} className="flex-1 bg-slate-50 relative overflow-hidden group">
-            <svg ref={svgRef} className="block w-full h-full"></svg>
-            
-              {hoverInfo && (
-                <div
-                  className="absolute z-20 bg-white border border-slate-200 shadow-md rounded px-2 py-1 text-[11px] text-slate-700 max-w-xs"
-                  style={{ left: hoverInfo.x, top: hoverInfo.y }}
-                >
-                  <div className="font-semibold">{hoverInfo.name}</div>
-                  <div className="text-slate-500 whitespace-pre-wrap break-words">{hoverInfo.profile || t('components.networkEditorModal.noProfile')}</div>
-                </div>
-              )}
-
-            {/* Zoom Controls */}
-            <div className="absolute top-4 right-4 flex flex-col gap-1 bg-white border rounded shadow-sm p-1">
-              <button onClick={handleZoomIn} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('components.networkEditorModal.zoomIn')}>
-                <ZoomIn size={16} />
-              </button>
-              <button onClick={handleZoomOut} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('components.networkEditorModal.zoomOut')}>
-                <ZoomOut size={16} />
-              </button>
-              <div className="h-px bg-slate-200 my-0.5"></div>
-              <button onClick={handleResetZoom} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('components.networkEditorModal.resetView')}>
-                <Maximize size={16} />
-              </button>
-            </div>
+          <div className="flex-1 bg-slate-50 relative overflow-hidden group">
+            <NetworkGraph network={network} agents={agents} onEdgeToggle={(s, t) => toggleConnection(s, t)} className="w-full h-full" />
 
             {/* Network Stats */}
             <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm border rounded-lg px-3 py-2 text-[10px] text-slate-600">
