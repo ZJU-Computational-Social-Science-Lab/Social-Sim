@@ -96,9 +96,9 @@ const ParamSlider: React.FC<{
     <div className="space-y-1.5">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-medium text-slate-700">{t(`components.networkEditorModal.${labelKey}`)}</span>
+          <span className="text-xs font-medium" style={{ color: 'var(--ss-heading)' }}>{t(`components.networkEditorModal.${labelKey}`)}</span>
         </div>
-        <span className="text-xs font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
+        <span className="text-xs font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--ss-page-surface-inset)', color: 'var(--ss-text-muted)' }}>
           {displayValue}
         </span>
       </div>
@@ -109,9 +109,10 @@ const ParamSlider: React.FC<{
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
+        className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-brand-600"
+        style={{ background: 'var(--ss-border)' }}
       />
-      <div className="flex justify-between text-[10px] text-slate-400">
+      <div className="flex justify-between text-[10px]" style={{ color: 'var(--ss-text-subtle)' }}>
         <span>{min}</span>
         <span>{max}</span>
       </div>
@@ -546,9 +547,9 @@ export const NetworkEditorModal: React.FC = () => {
     const presetKey = selectedPreset as keyof PresetParams;
     
     return (
-      <div className="space-y-3 p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+      <div className="space-y-3 p-3 rounded-lg border shadow-sm" style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)' }}>
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+          <span className="text-xs font-semibold flex items-center gap-1.5" style={{ color: 'var(--ss-heading)' }}>
             <Settings2 size={12} />
             {t('components.networkEditorModal.parameterSettings')}
           </span>
@@ -722,28 +723,28 @@ export const NetworkEditorModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[750px] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+      <div className="rounded-xl shadow-2xl w-full max-w-5xl h-[750px] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={{ background: 'var(--ss-page-surface)', border: '1px solid var(--ss-border)' }}>
+        <div className="px-6 py-4 border-b flex justify-between items-center" style={{ background: 'var(--ss-page-surface-muted)', borderColor: 'var(--ss-border)' }}>
           <div>
-            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--ss-heading)' }}>
               <Network className="text-brand-600" size={20} />
               {t('components.networkEditorModal.title')}
             </h2>
-            <p className="text-xs text-slate-500 mt-1">{t('components.networkEditorModal.description')}</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--ss-text-muted)' }}>{t('components.networkEditorModal.description')}</p>
           </div>
-          <button onClick={() => toggle(false)} className="text-slate-400 hover:text-slate-600">
+          <button onClick={() => toggle(false)} className="hover:opacity-80" style={{ color: 'var(--ss-text-subtle)' }}>
             <X size={20} />
           </button>
         </div>
 
         <div className="flex-1 flex overflow-hidden">
           {/* Sidebar Tools */}
-          <div className="w-72 bg-slate-50 border-r p-4 space-y-4 flex flex-col overflow-y-auto">
+          <div className="w-72 border-r p-4 space-y-4 flex flex-col overflow-y-auto" style={{ background: 'var(--ss-page-surface-muted)', borderColor: 'var(--ss-border)' }}>
             <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+              <label className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--ss-text-muted)' }}>
                 {t('components.networkEditorModal.networkPresets')}
               </label>
-              <p className="text-[10px] text-slate-400 mt-0.5 mb-3">
+              <p className="text-[10px] mt-0.5 mb-3" style={{ color: 'var(--ss-text-subtle)' }}>
                 {t('components.networkEditorModal.selectPresetHint')}
               </p>
 
@@ -760,23 +761,26 @@ export const NetworkEditorModal: React.FC = () => {
                       className={`w-full p-2.5 rounded-lg border text-left transition-all ${
                         isSelected
                           ? 'bg-brand-50 border-brand-300 ring-1 ring-brand-200'
-                          : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                          : ''
                       }`}
+                      style={!isSelected ? { background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)' } : undefined}
                     >
                       <div className="flex items-center gap-2">
-                        <div className={`p-1.5 rounded ${isSelected ? 'bg-brand-100 text-brand-600' : 'bg-slate-100 text-slate-500'}`}>
+                        <div className={`p-1.5 rounded ${isSelected ? 'bg-brand-100 text-brand-600' : ''}`}
+                             style={!isSelected ? { background: 'var(--ss-page-surface-inset)', color: 'var(--ss-text-muted)' } : undefined}>
                           <Icon size={14} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <span className={`text-xs font-medium block ${isSelected ? 'text-brand-700' : 'text-slate-700'}`}>
+                          <span className={`text-xs font-medium block ${isSelected ? 'text-brand-700' : ''}`}
+                                style={!isSelected ? { color: 'var(--ss-heading)' } : undefined}>
                             {meta.name}
                           </span>
-                          <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                          <p className="text-[10px] truncate mt-0.5" style={{ color: 'var(--ss-text-subtle)' }}>
                             {meta.description}
                           </p>
                         </div>
                         <div className={`transition-transform ${isSelected ? 'rotate-90' : ''}`}>
-                          <ChevronRight size={14} className="text-slate-400" />
+                          <ChevronRight size={14} style={{ color: 'var(--ss-text-subtle)' }} />
                         </div>
                       </div>
                     </button>
@@ -791,14 +795,16 @@ export const NetworkEditorModal: React.FC = () => {
                     setSelectedPreset('full');
                     applyPreset('full');
                   }}
-                  className="flex-1 py-1.5 px-2 bg-white border border-slate-200 rounded text-[10px] text-slate-600 hover:bg-slate-50 flex items-center justify-center gap-1"
+                  className="flex-1 py-1.5 px-2 border rounded text-[10px] hover:opacity-90 flex items-center justify-center gap-1"
+                  style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)', color: 'var(--ss-text-muted)' }}
                 >
                   <Share2 size={10} />
                   {t('components.networkEditorModal.fullyConnected')}
                 </button>
                 <button
                   onClick={() => setNetwork({})}
-                  className="flex-1 py-1.5 px-2 bg-white border border-slate-200 rounded text-[10px] text-slate-500 hover:bg-slate-50 flex items-center justify-center gap-1"
+                  className="flex-1 py-1.5 px-2 border rounded text-[10px] hover:opacity-90 flex items-center justify-center gap-1"
+                  style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)', color: 'var(--ss-text-muted)' }}
                 >
                   <Circle size={10} />
                   {t('components.networkEditorModal.clear')}
@@ -806,27 +812,29 @@ export const NetworkEditorModal: React.FC = () => {
               </div>
 
               {/* Manual Links */}
-              <div className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm space-y-2 mt-3">
-                <div className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <div className="p-3 border rounded-lg shadow-sm space-y-2 mt-3" style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)' }}>
+                <div className="text-xs font-semibold flex items-center gap-1.5" style={{ color: 'var(--ss-heading)' }}>
                   <Settings2 size={12} />
                   {t('components.networkEditorModal.manualLinks')}
                 </div>
-                <div className="flex items-center gap-2 text-[11px] text-slate-600">
+                <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--ss-text-muted)' }}>
                   <select
                     value={linkFrom}
                     onChange={(e) => setLinkFrom(e.target.value)}
-                    className="flex-1 border border-slate-200 rounded px-2 py-1 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                    className="flex-1 border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                    style={{ background: 'var(--ss-page-surface-inset)', borderColor: 'var(--ss-border)', color: 'var(--ss-text)' }}
                   >
                     <option value="">{t('components.networkEditorModal.selectSource')}</option>
                     {agents.map((a) => (
                       <option key={a.id} value={a.name}>{a.name}</option>
                     ))}
                   </select>
-                  <span className="text-slate-400">↔</span>
+                  <span style={{ color: 'var(--ss-text-subtle)' }}>↔</span>
                   <select
                     value={linkTo}
                     onChange={(e) => setLinkTo(e.target.value)}
-                    className="flex-1 border border-slate-200 rounded px-2 py-1 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                    className="flex-1 border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                    style={{ background: 'var(--ss-page-surface-inset)', borderColor: 'var(--ss-border)', color: 'var(--ss-text)' }}
                   >
                     <option value="">{t('components.networkEditorModal.selectTarget')}</option>
                     {agents.map((a) => (
@@ -843,9 +851,10 @@ export const NetworkEditorModal: React.FC = () => {
                 </button>
 
                 {edges.length > 0 ? (
-                  <div className="max-h-32 overflow-y-auto border-t border-slate-100 pt-2 space-y-1 text-[11px] text-slate-600">
+                  <div className="max-h-32 overflow-y-auto border-t pt-2 space-y-1 text-[11px]"
+                       style={{ borderColor: 'var(--ss-border)', color: 'var(--ss-text-muted)' }}>
                     {edges.map(({ key, source, target }) => (
-                      <div key={key} className="flex items-center justify-between bg-slate-50 px-2 py-1 rounded">
+                      <div key={key} className="flex items-center justify-between px-2 py-1 rounded" style={{ background: 'var(--ss-page-surface-inset)' }}>
                         <span className="truncate">{source} ↔ {target}</span>
                         <button
                           className="text-red-500 text-[10px] hover:text-red-600"
@@ -857,7 +866,7 @@ export const NetworkEditorModal: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-[10px] text-slate-400 border-t border-slate-100 pt-2">
+                  <div className="text-[10px] border-t pt-2" style={{ color: 'var(--ss-text-subtle)', borderColor: 'var(--ss-border)' }}>
                     {t('components.networkEditorModal.noLinks')}
                   </div>
                 )}
@@ -868,8 +877,8 @@ export const NetworkEditorModal: React.FC = () => {
             {renderParamControls()}
 
             {/* Instructions */}
-            <div className="text-xs text-slate-400 leading-relaxed pt-3 border-t mt-auto">
-              <strong className="text-slate-500">{t('components.networkEditorModal.instructions')}:</strong>
+            <div className="text-xs leading-relaxed pt-3 border-t mt-auto" style={{ color: 'var(--ss-text-subtle)', borderColor: 'var(--ss-border)' }}>
+              <strong style={{ color: 'var(--ss-text-muted)' }}>{t('components.networkEditorModal.instructions')}:</strong>
               <ul className="list-decimal pl-4 space-y-0.5 mt-1 text-[10px]">
                 <li>{t('components.networkEditorModal.instruction1')}</li>
                 <li>{t('components.networkEditorModal.instruction2')}</li>
@@ -885,18 +894,19 @@ export const NetworkEditorModal: React.FC = () => {
           </div>
 
           {/* Canvas */}
-          <div className="flex-1 bg-slate-50 relative overflow-hidden group">
+          <div className="flex-1 relative overflow-hidden group" style={{ background: 'var(--ss-page-surface-inset)' }}>
             <NetworkGraph network={network} agents={agents} onEdgeToggle={(s, t) => toggleConnection(s, t)} className="w-full h-full" />
 
             {/* Network Stats */}
-            <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm border rounded-lg px-3 py-2 text-[10px] text-slate-600">
+            <div className="absolute bottom-4 left-4 backdrop-blur-sm rounded-lg px-3 py-2 text-[10px]"
+                 style={{ background: 'color-mix(in srgb, var(--ss-page-surface) 90%, transparent)', border: '1px solid var(--ss-border)', color: 'var(--ss-text-muted)' }}>
               <div className="flex items-center gap-3">
                 <span>
-                  <strong className="text-slate-700">{agents.length}</strong> {t('components.networkEditorModal.nodes')}
+                  <strong style={{ color: 'var(--ss-heading)' }}>{agents.length}</strong> {t('components.networkEditorModal.nodes')}
                 </span>
                 <span>
-                  <strong className="text-slate-700">
-                    {Object.values(network).reduce((sum, arr) => sum + arr.length, 0)}
+                  <strong style={{ color: 'var(--ss-heading)' }}>
+                    {edges.length}
                   </strong> {t('components.networkEditorModal.edges')}
                 </span>
               </div>
@@ -904,14 +914,17 @@ export const NetworkEditorModal: React.FC = () => {
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t bg-slate-50 flex justify-end gap-3">
-          <button onClick={() => toggle(false)} className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg">
+        <div className="px-6 py-4 border-t flex justify-end gap-3" style={{ background: 'var(--ss-page-surface-muted)', borderColor: 'var(--ss-border)' }}>
+          <button onClick={() => toggle(false)} className="px-4 py-2 text-sm font-medium rounded-lg" style={{ color: 'var(--ss-text-muted)' }}
+            onMouseOver={(e) => e.currentTarget.style.background = 'var(--ss-page-surface-inset)'}
+            onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
             {t('common.cancel')}
           </button>
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="px-6 py-2 text-sm bg-brand-600 text-white font-medium hover:bg-brand-700 rounded-lg shadow-sm flex items-center gap-2 disabled:bg-slate-400 disabled:cursor-not-allowed"
+            className="px-6 py-2 text-sm bg-brand-600 text-white font-medium hover:bg-brand-700 rounded-lg shadow-sm flex items-center gap-2 disabled:cursor-not-allowed"
+            style={isSaving ? { background: 'var(--ss-text-subtle)' } : undefined}
           >
             {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             {isSaving ? t('components.networkEditorModal.saving') : t('components.networkEditorModal.saveTopologySettings')}
