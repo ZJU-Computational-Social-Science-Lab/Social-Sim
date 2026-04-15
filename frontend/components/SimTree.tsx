@@ -99,7 +99,7 @@ const root = d3.stratify<SimNode>()
     // Use nodeSize for dynamic sizing instead of fixed box
     // [vertical_spacing, horizontal_spacing]
     const treeLayout = d3.tree<SimNode>()
-      .nodeSize([60, 120]);
+      .nodeSize([120, 60]);
 
     treeLayout(root);
 
@@ -112,9 +112,9 @@ const root = d3.stratify<SimNode>()
       .attr('fill', 'none')
       .attr('stroke', '#cbd5e1')
       .attr('stroke-width', 2)
-      .attr('d', d3.linkHorizontal<any, any>()
-        .x(d => d.y)
-        .y(d => d.x)
+      .attr('d', d3.linkVertical<any, any>()
+        .x(d => d.x)
+        .y(d => d.y)
       );
 
     // Nodes
@@ -123,7 +123,7 @@ const root = d3.stratify<SimNode>()
       .enter()
       .append('g')
       .attr('class', 'node')
-      .attr('transform', d => `translate(${d.y},${d.x})`)
+      .attr('transform', d => `translate(${d.x},${d.y})`)
       .on('click', (event, d) => {
         event.stopPropagation();
         if (isCompareMode) {
@@ -168,10 +168,14 @@ const root = d3.stratify<SimNode>()
     // Labels
     nodeGroup.append('text')
       .attr('dy', 4)
-      .attr('x', d => d.children ? -24 : 24)
-      .style('text-anchor', d => d.children ? 'end' : 'start')
+      .attr('x', 0)
+      .attr('y', d => d.children ? -28 : 20)
+      .style('text-anchor', 'middle')
       .text(d => d.data.display_id || d.data.id)
-      .attr('class', d => `text-xs font-medium pointer-events-none select-none drop-shadow-sm bg-white ${d.data.status === 'failed' ? 'fill-red-600' : 'fill-slate-600'}`);
+      .attr('class', d => `text-xs font-medium pointer-events-none select-none drop-shadow-sm ${d.data.status === 'failed' ? 'fill-red-600' : 'fill-slate-600'}`)
+      .style('stroke', 'var(--ss-workspace-surface)')
+      .style('stroke-width', '3px')
+      .style('paint-order', 'stroke fill');
 
     // Auto-advance highlight ring
     if (highlightedNodeId) {
@@ -190,7 +194,7 @@ const root = d3.stratify<SimNode>()
     }
 
     // Initial positioning
-    const initialTransform = d3.zoomIdentity.translate(80, height / 2).scale(1);
+    const initialTransform = d3.zoomIdentity.translate(width / 2, 50).scale(1);
     svg.call(zoom.transform, initialTransform);
 
   }, [nodes, selectedNodeId, compareTargetNodeId, selectNode, setCompareTarget, isCompareMode, i18n.language, highlightedNodeId]);
@@ -210,7 +214,8 @@ const root = d3.stratify<SimNode>()
   const handleReset = () => {
     if (svgRef.current && zoomRef.current && containerRef.current) {
       const height = containerRef.current.clientHeight;
-      const initialTransform = d3.zoomIdentity.translate(80, height / 2).scale(1);
+      const width = containerRef.current.clientWidth;
+      const initialTransform = d3.zoomIdentity.translate(width / 2, 50).scale(1);
       svgRef.current.transition().duration(500).call(zoomRef.current.transform, initialTransform);
     }
   };
@@ -218,10 +223,10 @@ const root = d3.stratify<SimNode>()
   return (
     <>
       <EnvironmentSuggestionDialogWrapper />
-      <div className={`flex flex-col h-full bg-white border rounded-lg shadow-sm overflow-hidden relative transition-colors ${isCompareMode ? 'ring-2 ring-amber-400 border-amber-300' : ''}`}>
-        <div className="flex items-center justify-between px-4 py-3 border-b bg-slate-50 z-10 relative">
-          <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-            {isCompareMode ? <MousePointer2 size={16} className="text-amber-500" /> : <Move size={16} className="text-slate-400" />}
+      <div className={`flex flex-col h-full border rounded-lg shadow-sm overflow-hidden relative transition-colors ${isCompareMode ? 'ring-2 ring-amber-400 border-amber-300' : ''}`} style={{ background: 'var(--ss-workspace-surface)' }}>
+        <div className="flex items-center justify-between px-4 py-3 border-b z-10 relative" style={{ background: 'var(--ss-surface-strong)' }}>
+          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--ss-workspace-heading)' }}>
+            {isCompareMode ? <MousePointer2 size={16} className="text-amber-500" /> : <Move size={16} style={{ color: 'var(--ss-workspace-muted)' }} />}
             {isCompareMode ? t('components.simTree.selectCompareNode') : t('components.simTree.title')}
         </h3>
         <div className="flex items-center gap-2">
@@ -237,18 +242,18 @@ const root = d3.stratify<SimNode>()
       </div>
       
       {/* Zoom Controls */}
-      <div className="absolute top-14 right-4 z-10 flex flex-col gap-1 bg-white border rounded shadow-sm p-1">
-        <button onClick={handleZoomIn} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('components.simTree.zoomIn')}>
+      <div className="absolute top-14 right-4 z-10 flex flex-col gap-1 border rounded shadow-sm p-1" style={{ background: 'var(--ss-workspace-surface)' }}>
+        <button onClick={handleZoomIn} className="p-1.5 rounded" style={{ color: 'var(--ss-workspace-text)' }} title={t('components.simTree.zoomIn')}>
           <ZoomIn size={16} />
         </button>
-        <button onClick={handleZoomOut} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('components.simTree.zoomOut')}>
+        <button onClick={handleZoomOut} className="p-1.5 rounded" style={{ color: 'var(--ss-workspace-text)' }} title={t('components.simTree.zoomOut')}>
           <ZoomOut size={16} />
         </button>
-        <div className="h-px bg-slate-200 my-0.5"></div>
-        <button onClick={handleReset} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('components.simTree.resetView')}>
+        <div className="h-px my-0.5" style={{ background: 'var(--ss-workspace-border)' }}></div>
+        <button onClick={handleReset} className="p-1.5 rounded" style={{ color: 'var(--ss-workspace-text)' }} title={t('components.simTree.resetView')}>
           <Maximize size={16} />
         </button>
-        <div className="h-px bg-slate-200 my-0.5"></div>
+        <div className="h-px my-0.5" style={{ background: 'var(--ss-workspace-border)' }}></div>
         <button
           onClick={() => {
             if (selectedNodeId && window.confirm(t('components.simTree.confirmDelete'))) {
@@ -256,17 +261,18 @@ const root = d3.stratify<SimNode>()
             }
           }}
           disabled={!selectedNodeId}
-          className="p-1.5 hover:bg-red-50 rounded text-slate-600 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="p-1.5 hover:bg-red-50 rounded hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
+          style={{ color: 'var(--ss-workspace-text)' }}
           title={t('components.simTree.deleteNode')}
         >
           <Trash2 size={16} />
         </button>
       </div>
 
-      <div ref={containerRef} className="flex-1 overflow-hidden relative bg-slate-50/30" />
+      <div ref={containerRef} className="flex-1 overflow-hidden relative" style={{ background: 'var(--ss-surface-strong)' }} />
       
       {/* Legend */}
-      <div className="px-4 py-2 border-t bg-slate-50 text-xs flex gap-4 text-slate-500 z-10 relative">
+      <div className="px-4 py-2 border-t text-xs flex gap-4 z-10 relative" style={{ background: 'var(--ss-surface-strong)', color: 'var(--ss-workspace-muted)' }}>
         {isCompareMode ? (
           <>
             <div className="flex items-center gap-2">
