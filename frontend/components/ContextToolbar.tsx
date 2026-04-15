@@ -3,7 +3,7 @@
  *
  * Renders different toolbar buttons depending on the active tab:
  *   - timeline: Advance, Branch, Auto-advance, Design Experiment,
- *               Compare toggle, Time Settings, Provider dropdown,
+ *               Compare toggle, Provider dropdown,
  *               Report, Export, Analytics
  *   - agents: Network Topology, Global Knowledge
  *
@@ -21,7 +21,6 @@ import {
   Loader2,
   Split,
   Beaker,
-  Clock,
   Network,
   FileText,
   Globe,
@@ -52,7 +51,6 @@ const ContextToolbar: React.FC = () => {
 
   // Panel toggles
   const toggleExperimentDesigner = useSimulationStore((s) => s.toggleExperimentDesigner);
-  const toggleTimeSettings = useSimulationStore((s) => s.toggleTimeSettings);
   const toggleAnalytics = useSimulationStore((s) => s.toggleAnalytics);
   const toggleExport = useSimulationStore((s) => s.toggleExport);
   const toggleReportModal = useSimulationStore((s) => s.toggleReportModal);
@@ -64,9 +62,6 @@ const ContextToolbar: React.FC = () => {
   const selectedProviderId = useSimulationStore((s) => s.selectedProviderId);
   const currentProviderId = useSimulationStore((s) => s.currentProviderId);
   const setSelectedProvider = useSimulationStore((s) => s.setSelectedProvider);
-
-  // Current simulation (for time display)
-  const currentSim = useSimulationStore((s) => s.currentSimulation);
 
   const [advanceSteps, setAdvanceSteps] = React.useState(1);
 
@@ -203,18 +198,8 @@ const ContextToolbar: React.FC = () => {
         {isCompareMode ? t('simPage.exitCompare') : t('simPage.compareMode')}
       </button>
 
-      {/* Time Settings */}
-      <button
-        onClick={() => toggleTimeSettings(true)}
-        className="flex items-center gap-2 px-3 py-1.5 border hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
-        style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-text)' }}
-        title={t('simPage.timeSettings')}
-      >
-        <Clock size={14} />
-        {currentSim && currentSim.timeConfig
-          ? t('simPage.timeLabel', { step: currentSim.timeConfig.step ?? '-', unit: currentSim.timeConfig.unit ?? '' })
-          : t('simPage.time')}
-      </button>
+      {/* Spacer pushes right-side tools over the logs area */}
+      <div className="flex-1" />
 
       {/* Provider Dropdown */}
       <div className="flex items-center gap-2 px-3 py-1.5 border text-xs rounded shadow-sm transition-all" style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-text)' }}>

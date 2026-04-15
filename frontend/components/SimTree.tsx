@@ -140,11 +140,11 @@ const root = d3.stratify<SimNode>()
     nodeGroup.append('circle')
       .attr('r', 16)
       .attr('fill', d => {
-        if (d.data.status === 'failed') return '#fee2e2'; // Failed Red
+        if (d.data.status === 'failed') return '#dc2626'; // Failed Red
         if (d.data.id === selectedNodeId) return '#0ea5e9'; // Selected (Primary)
         if (d.data.id === compareTargetNodeId && isCompareMode) return '#f59e0b'; // Compare Target
-        if (d.data.isLeaf) return '#e0f2fe'; // Leaf
-        return '#fff';
+        if (d.data.isLeaf) return '#0284c7'; // Leaf — deeper blue
+        return '#64748b'; // Default node — slate-500, readable with white text
       })
       .attr('stroke', d => {
         if (d.data.status === 'failed') return '#ef4444'; // Failed Red
@@ -165,16 +165,14 @@ const root = d3.stratify<SimNode>()
       })
       .style('cursor', isCompareMode ? 'crosshair' : 'pointer');
 
-    // Labels
+    // Labels — positioned inside the node circle for clean readability
     nodeGroup.append('text')
       .attr('dy', 4)
       .attr('x', 0)
-      .attr('y', d => d.children ? -28 : 20)
+      .attr('y', 0)
       .style('text-anchor', 'middle')
       .text(d => d.data.display_id || d.data.id)
-      .attr('class', d => `text-xs font-medium pointer-events-none select-none drop-shadow-sm ${d.data.status === 'failed' ? 'fill-red-600' : 'fill-slate-600'}`)
-      .style('stroke', 'var(--ss-workspace-surface)')
-      .style('stroke-width', '3px')
+      .attr('class', d => `text-xs font-bold pointer-events-none select-none ${d.data.status === 'failed' ? 'fill-red-100' : 'fill-white'}`)
       .style('paint-order', 'stroke fill');
 
     // Auto-advance highlight ring
