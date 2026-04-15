@@ -29,6 +29,7 @@ const renderProfileHtml = (text: string) => {
 
 export const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   const { t } = useTranslation();
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isMemoryOpen, setIsMemoryOpen] = useState(true);
   const [isPropsOpen, setIsPropsOpen] = useState(false);
   const [isKBOpen, setIsKBOpen] = useState(false); // #23
@@ -263,81 +264,42 @@ export const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
 
   return (
     <div className="border-b last:border-b-0" style={{ background: 'var(--ss-workspace-surface)' }}>
-      {/* Sticky Profile Header (#6) */}
-      <div className="sticky top-0 z-10 border-b shadow-sm p-4 flex gap-3 items-start" style={{ background: 'var(--ss-workspace-surface)' }}>
+      {/* Collapsible Header — always visible, click to expand/collapse */}
+      <div
+        className="flex items-center gap-3 p-3 cursor-pointer select-none"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
         <img
           src={agent.avatarUrl}
           alt={agent.name}
-          className="w-12 h-12 rounded-full border object-cover"
+          className="w-10 h-10 rounded-full border object-cover flex-shrink-0"
           style={{ borderColor: 'var(--ss-workspace-border)' }}
         />
         <div className="flex-1 min-w-0">
-          {/* Name row with model badge */}
-          <div className="flex items-center justify-between">
-            <h4 className="font-bold truncate" style={{ color: 'var(--ss-workspace-heading)' }}>{agent.name}</h4>
-            {/* #10 Model Badge with Dropdown */}
-            <div className="flex items-center gap-1">
-              {providersLoading ? (
-                <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border ${getModelBadgeStyle(agent.llmConfig?.provider || 'default').className}`} style={getModelBadgeStyle(agent.llmConfig?.provider || 'default').style}>
-                  <Loader2 size={10} className="animate-spin" />
-                  <span className="font-mono">{agent.llmConfig?.model || t('components.agentPanel.auto')}</span>
-                </span>
-              ) : providersError ? (
-                <div className="flex items-center gap-1">
-                  <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border ${getModelBadgeStyle(agent.llmConfig?.provider || 'default').className}`} style={getModelBadgeStyle(agent.llmConfig?.provider || 'default').style}>
-                    <Bot size={10} />
-                    <span className="font-mono">{agent.llmConfig?.model || t('components.agentPanel.auto')}</span>
-                  </span>
-                  <button
-                    onClick={() => {
-                      setProvidersError(null);
-                      setProvidersLoading(true);
-                      listProviders()
-                        .then(setAvailableProviders)
-                        .catch(() => {
-                          setProvidersError(t('components.agentPanel.providersLoadError'));
-                        })
-                        .finally(() => setProvidersLoading(false));
-                    }}
-                    className="hover:text-brand-500 p-1"
-                    style={{ color: 'var(--ss-workspace-muted)' }}
-                    title={t('components.agentPanel.retry')}
-                  >
-                    <RefreshCw size={10} />
-                  </button>
-                </div>
-              ) : (
-                <select
-                  value={(() => {
-                    const matched = availableProviders.find(p =>
-                      p.provider === agent.llmConfig?.provider && p.model === agent.llmConfig?.model
-                    );
-                    return matched ? String(matched.id) : '';
-                  })()}
-                  onChange={(e) => {
-                    const providerId = Number(e.target.value);
-                    if (!isNaN(providerId)) handleLLMChange(providerId);
-                  }}
-                  className={`text-[10px] border rounded px-1.5 py-0.5 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 ${getModelBadgeStyle(agent.llmConfig?.provider || 'default').className}`}
-                  style={getModelBadgeStyle(agent.llmConfig?.provider || 'default').style}
-                  title={t('components.agentPanel.changeLLM')}
-                >
-                  <option value="" disabled>
-                    {agent.llmConfig?.model || t('components.agentPanel.auto')}
-                  </option>
-                  {availableProviders.map(p => (
-                    <option key={p.id} value={String(p.id)}>
-                      {p.provider} - {p.model}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
+          <div className="flex items-center gap-2">
+            <h4 className="font-bold truncate text-sm" style={{ color: 'var(--ss-workspace-heading)' }}>{agent.name}</h4>
+            <span className="inline-block px-2 py-0.5 text-[10px] rounded-full border" style={{ background: 'var(--ss-surface-inset)', color: 'var(--ss-workspace-text)', borderColor: 'var(--ss-workspace-border)' }}>
+              {agent.role}
+            </span>
           </div>
+          <div className="flex items-center gap-1 mt-0.5">
+            <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border ${getModelBadgeStyle(agent.llmConfig?.provider || 'default').className}`} style={getModelBadgeStyle(agent.llmConfig?.provider || 'default').style}>
+              <Bot size={10} />
+              <span className="font-mono">{agent.llmConfig?.model || t('components.agentPanel.auto')}</span>
+            </span>
+          </div>
+        </div>
+        <div className="ml-auto flex-shrink-0">
+          {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </div>
+      </div>
 
-          {/* Profile description directly under name */}
+      {/* Expanded content — heavy sections only mounted when expanded */}
+      {isExpanded && (
+        <div className="px-3 pb-3 border-t" style={{ borderColor: 'var(--ss-workspace-border)' }}>
+          {/* Profile section */}
           {isProfileEditing ? (
-            <div className="space-y-2 mt-2">
+            <div className="space-y-2 mt-3">
               <textarea
                 value={profileDraft}
                 onChange={(e) => setProfileDraft(e.target.value)}
@@ -371,7 +333,7 @@ export const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
               </div>
             </div>
           ) : (
-            <div className="mt-2 flex items-start gap-2">
+            <div className="mt-3 flex items-start gap-2">
               <div
                 className="text-xs leading-relaxed flex-1 markdown-body"
                 style={{ color: 'var(--ss-workspace-muted)' }}
@@ -388,294 +350,341 @@ export const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
             </div>
           )}
 
-          {/* Role badge below description */}
-          <span className="inline-block mt-2 px-2 py-0.5 text-xs rounded-full border" style={{ background: 'var(--ss-surface-inset)', color: 'var(--ss-workspace-text)', borderColor: 'var(--ss-workspace-border)' }}>
-            {agent.role}
-          </span>
-        </div>
-      </div>
-
-      {/* Attributes Comparison Section (#6 contrast view placeholder) */}
-      <div className="p-0">
-        <button
-          onClick={() => setIsPropsOpen(!isPropsOpen)}
-          className="w-full flex items-center justify-between px-4 py-2 transition-colors"
-          style={{ background: 'var(--ss-surface-strong)' }}
-        >
-          <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--ss-workspace-heading)' }}>
-            <Activity size={14} />
-            <span>{t('components.agentPanel.currentAttributes')}</span>
-          </div>
-          {isPropsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        </button>
-
-        {isPropsOpen && (
-          <div className="p-4 grid grid-cols-2 gap-2">
-            {Object.entries(agent.properties)
-              .filter(([key]) => !['emotion_enabled', 'archetype_id', 'demographic_attributes', 'internal', '_internal', 'avatarUrl'].includes(key))
-              .map(([key, value]) => (
-              <div key={key} className="flex flex-col p-2 rounded border" style={{ background: 'var(--ss-surface-strong)' }}>
-                <span className="text-[10px] uppercase font-bold" style={{ color: 'var(--ss-workspace-muted)' }}>{key}</span>
-                <span className="text-sm font-mono font-medium" style={{ color: 'var(--ss-workspace-heading)' }}>{String(value)}</span>
+          {/* LLM Provider Dropdown (expanded only) */}
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-[10px] font-semibold uppercase" style={{ color: 'var(--ss-workspace-muted)' }}>
+              {t('components.agentPanel.changeLLM')}
+            </span>
+            {providersLoading ? (
+              <span className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--ss-workspace-muted)' }}>
+                <Loader2 size={10} className="animate-spin" />
+              </span>
+            ) : providersError ? (
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-red-500">{providersError}</span>
+                <button
+                  onClick={() => {
+                    setProvidersError(null);
+                    setProvidersLoading(true);
+                    listProviders()
+                      .then(setAvailableProviders)
+                      .catch(() => {
+                        setProvidersError(t('components.agentPanel.providersLoadError'));
+                      })
+                      .finally(() => setProvidersLoading(false));
+                  }}
+                  className="hover:text-brand-500 p-1"
+                  style={{ color: 'var(--ss-workspace-muted)' }}
+                  title={t('components.agentPanel.retry')}
+                >
+                  <RefreshCw size={10} />
+                </button>
               </div>
-            ))}
-            {Object.entries(agent.properties).filter(([key]) =>
+            ) : (
+              <select
+                value={(() => {
+                  const matched = availableProviders.find(p =>
+                    p.provider === agent.llmConfig?.provider && p.model === agent.llmConfig?.model
+                  );
+                  return matched ? String(matched.id) : '';
+                })()}
+                onChange={(e) => {
+                  const providerId = Number(e.target.value);
+                  if (!isNaN(providerId)) handleLLMChange(providerId);
+                }}
+                className={`text-[10px] border rounded px-1.5 py-0.5 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 ${getModelBadgeStyle(agent.llmConfig?.provider || 'default').className}`}
+                style={getModelBadgeStyle(agent.llmConfig?.provider || 'default').style}
+              >
+                <option value="" disabled>
+                  {agent.llmConfig?.model || t('components.agentPanel.auto')}
+                </option>
+                {availableProviders.map(p => (
+                  <option key={p.id} value={String(p.id)}>
+                    {p.provider} - {p.model}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {/* Attributes Comparison Section (#6 contrast view placeholder) */}
+          <div className="mt-2">
+            <button
+              onClick={() => setIsPropsOpen(!isPropsOpen)}
+              className="w-full flex items-center justify-between px-2 py-1.5 transition-colors rounded"
+              style={{ background: 'var(--ss-surface-strong)' }}
+            >
+              <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--ss-workspace-heading)' }}>
+                <Activity size={14} />
+                <span>{t('components.agentPanel.currentAttributes')}</span>
+              </div>
+              {isPropsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </button>
+
+            {isPropsOpen && (
+              <div className="p-3 grid grid-cols-2 gap-2">
+                {Object.entries(agent.properties)
+                  .filter(([key]) => !['emotion_enabled', 'archetype_id', 'demographic_attributes', 'internal', '_internal', 'avatarUrl'].includes(key))
+                  .map(([key, value]) => (
+                  <div key={key} className="flex flex-col p-2 rounded border" style={{ background: 'var(--ss-surface-strong)' }}>
+                    <span className="text-[10px] uppercase font-bold" style={{ color: 'var(--ss-workspace-muted)' }}>{key}</span>
+                    <span className="text-sm font-mono font-medium" style={{ color: 'var(--ss-workspace-heading)' }}>{String(value)}</span>
+                  </div>
+                ))}
+                {Object.entries(agent.properties).filter(([key]) =>
 !['emotion_enabled', 'archetype_id', 'demographic_attributes', 'internal', '_internal', 'avatarUrl'].includes(key)
-            ).length === 0 && (
-              <div className="col-span-2 text-center text-xs italic py-2" style={{ color: 'var(--ss-workspace-muted)' }}>
-                {t('components.agentPanel.noCustomAttributes')}
+                ).length === 0 && (
+                  <div className="col-span-2 text-center text-xs italic py-2" style={{ color: 'var(--ss-workspace-muted)' }}>
+                    {t('components.agentPanel.noCustomAttributes')}
+                  </div>
+                )}
               </div>
             )}
           </div>
-        )}
-      </div>
 
-      {/* Knowledge Base (#23) */}
-      <div className="p-0 border-t">
-        <button
-          onClick={() => setIsKBOpen(!isKBOpen)}
-          className="w-full flex items-center justify-between px-4 py-2 transition-colors"
-          style={{ background: 'var(--ss-surface-strong)' }}
-        >
-          <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--ss-workspace-heading)' }}>
-            <BookOpen size={14} />
-            <span>{t('components.agentPanel.knowledgeBase')} ({agent.knowledgeBase.length})</span>
-          </div>
-          {isKBOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        </button>
+          {/* Knowledge Base (#23) */}
+          <div className="mt-2 border-t" style={{ borderColor: 'var(--ss-workspace-border)' }}>
+            <button
+              onClick={() => setIsKBOpen(!isKBOpen)}
+              className="w-full flex items-center justify-between px-2 py-1.5 transition-colors rounded"
+              style={{ background: 'var(--ss-surface-strong)' }}
+            >
+              <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--ss-workspace-heading)' }}>
+                <BookOpen size={14} />
+                <span>{t('components.agentPanel.knowledgeBase')} ({agent.knowledgeBase.length})</span>
+              </div>
+              {isKBOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </button>
 
-        {isKBOpen && (
-          <div className="p-4 space-y-3" style={{ background: 'var(--ss-surface-strong)' }}>
-             {agent.knowledgeBase.length === 0 && !isAddingKB && (
-               <div className="text-center py-2 text-xs italic" style={{ color: 'var(--ss-workspace-muted)' }}>{t('components.agentPanel.noKnowledgeDocs')}</div>
-             )}
+            {isKBOpen && (
+              <div className="p-3 space-y-3" style={{ background: 'var(--ss-surface-strong)' }}>
+                 {agent.knowledgeBase.length === 0 && !isAddingKB && (
+                   <div className="text-center py-2 text-xs italic" style={{ color: 'var(--ss-workspace-muted)' }}>{t('components.agentPanel.noKnowledgeDocs')}</div>
+                 )}
 
-             {agent.knowledgeBase.map(kb => {
-               const isEditing = editingItemId === kb.id;
-               return (
-                 <div key={kb.id} className="border rounded p-2 text-xs relative group" style={{ background: 'var(--ss-workspace-surface)' }}>
-                   {isEditing ? (
-                     // Edit mode
-                     <div className="space-y-2">
+                 {agent.knowledgeBase.map(kb => {
+                   const isEditing = editingItemId === kb.id;
+                   return (
+                     <div key={kb.id} className="border rounded p-2 text-xs relative group" style={{ background: 'var(--ss-workspace-surface)' }}>
+                       {isEditing ? (
+                         <div className="space-y-2">
+                           <input
+                             type="text"
+                             value={editTitle}
+                             onChange={(e) => setEditTitle(e.target.value)}
+                             className="w-full p-1 border rounded text-xs outline-none focus:ring-1 focus:ring-brand-500"
+                             placeholder={t('components.agentPanel.title')}
+                           />
+                           <textarea
+                             value={editContent}
+                             onChange={(e) => setEditContent(e.target.value)}
+                             className="w-full p-1 border rounded text-xs h-20 resize-none outline-none focus:ring-1 focus:ring-brand-500"
+                             placeholder={t('components.agentPanel.knowledgeContent')}
+                           />
+                           <div className="flex gap-2 justify-end">
+                             <button
+                               onClick={handleSaveEdit}
+                               disabled={!editTitle.trim()}
+                               className="px-2 py-1 text-green-600 hover:text-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                             >
+                               {t('components.agentPanel.save')}
+                             </button>
+                             <button
+                               onClick={handleCancelEdit}
+                               className="px-2 py-1 hover:text-slate-600"
+                               style={{ color: 'var(--ss-workspace-muted)' }}
+                             >
+                               {t('common.cancel')}
+                             </button>
+                           </div>
+                         </div>
+                       ) : (
+                         <>
+                           <div className="flex items-center gap-2 font-bold mb-1" style={{ color: 'var(--ss-workspace-heading)' }}>
+                             <FileText size={12} className="text-blue-500" />
+                             {kb.title}
+                           </div>
+                           <p style={{ color: 'var(--ss-workspace-muted)' }} className="line-clamp-2">{kb.content}</p>
+                           <div className="flex gap-2 absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                             <button
+                               onClick={() => handleStartEdit(kb)}
+                               className="hover:text-blue-500"
+                               style={{ color: 'var(--ss-workspace-muted)' }}
+                               title={t('components.agentPanel.edit')}
+                             >
+                               ✏️
+                             </button>
+                             <button
+                               onClick={() => removeKnowledgeFromAgent(agent.id, kb.id)}
+                               className="hover:text-red-500"
+                               style={{ color: 'var(--ss-workspace-muted)' }}
+                               title={t('components.agentPanel.delete')}
+                             >
+                               🗑️
+                             </button>
+                           </div>
+                         </>
+                       )}
+                     </div>
+                   );
+                 })}
+
+                 {isAddingKB ? (
+                    <div className="border border-brand-200 rounded p-2 text-xs space-y-2" style={{ background: 'var(--ss-workspace-surface)' }}>
                        <input
                          type="text"
-                         value={editTitle}
-                         onChange={(e) => setEditTitle(e.target.value)}
-                         className="w-full p-1 border rounded text-xs outline-none focus:ring-1 focus:ring-brand-500"
-                         placeholder={t('components.agentPanel.title')}
+                         placeholder={t('components.agentPanel.titlePlaceholder')}
+                         value={newKbTitle}
+                         onChange={(e) => setNewKbTitle(e.target.value)}
+                         className="w-full p-1 border rounded outline-none focus:ring-1 focus:ring-brand-500"
                        />
                        <textarea
-                         value={editContent}
-                         onChange={(e) => setEditContent(e.target.value)}
-                         className="w-full p-1 border rounded text-xs h-20 resize-none outline-none focus:ring-1 focus:ring-brand-500"
                          placeholder={t('components.agentPanel.knowledgeContent')}
+                         value={newKbContent}
+                         onChange={(e) => setNewKbContent(e.target.value)}
+                         className="w-full p-1 border rounded outline-none focus:ring-1 focus:ring-brand-500 h-16 resize-none"
                        />
-                       <div className="flex gap-2 justify-end">
-                         <button
-                           onClick={handleSaveEdit}
-                           disabled={!editTitle.trim()}
-                           className="px-2 py-1 text-green-600 hover:text-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                         >
-                           {t('components.agentPanel.save')}
-                         </button>
-                         <button
-                           onClick={handleCancelEdit}
-                           className="px-2 py-1 hover:text-slate-600"
-                           style={{ color: 'var(--ss-workspace-muted)' }}
-                         >
-                           {t('common.cancel')}
-                         </button>
+                       <div className="flex gap-2">
+                          <button onClick={handleAddKB} className="flex-1 py-1 bg-brand-600 text-white rounded hover:bg-brand-700">{t('components.agentPanel.save')}</button>
+                          <button onClick={() => setIsAddingKB(false)} className="flex-1 py-1 rounded" style={{ background: 'var(--ss-surface-inset)', color: 'var(--ss-workspace-text)' }}>{t('common.cancel')}</button>
                        </div>
-                     </div>
-                   ) : (
-                     // View mode
-                     <>
-                       <div className="flex items-center gap-2 font-bold mb-1" style={{ color: 'var(--ss-workspace-heading)' }}>
-                         <FileText size={12} className="text-blue-500" />
-                         {kb.title}
-                       </div>
-                       <p style={{ color: 'var(--ss-workspace-muted)' }} className="line-clamp-2">{kb.content}</p>
-                       <div className="flex gap-2 absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                         <button
-                           onClick={() => handleStartEdit(kb)}
-                           className="hover:text-blue-500"
-                           style={{ color: 'var(--ss-workspace-muted)' }}
-                           title={t('components.agentPanel.edit')}
-                         >
-                           ✏️
-                         </button>
-                         <button
-                           onClick={() => removeKnowledgeFromAgent(agent.id, kb.id)}
-                           className="hover:text-red-500"
-                           style={{ color: 'var(--ss-workspace-muted)' }}
-                           title={t('components.agentPanel.delete')}
-                         >
-                           🗑️
-                         </button>
-                       </div>
-                     </>
-                   )}
-                 </div>
-               );
-             })}
-
-             {isAddingKB ? (
-                <div className="border border-brand-200 rounded p-2 text-xs space-y-2" style={{ background: 'var(--ss-workspace-surface)' }}>
-                   <input
-                     type="text"
-                     placeholder={t('components.agentPanel.titlePlaceholder')}
-                     value={newKbTitle}
-                     onChange={(e) => setNewKbTitle(e.target.value)}
-                     className="w-full p-1 border rounded outline-none focus:ring-1 focus:ring-brand-500"
-                   />
-                   <textarea
-                     placeholder={t('components.agentPanel.knowledgeContent')}
-                     value={newKbContent}
-                     onChange={(e) => setNewKbContent(e.target.value)}
-                     className="w-full p-1 border rounded outline-none focus:ring-1 focus:ring-brand-500 h-16 resize-none"
-                   />
-                   <div className="flex gap-2">
-                      <button onClick={handleAddKB} className="flex-1 py-1 bg-brand-600 text-white rounded hover:bg-brand-700">{t('components.agentPanel.save')}</button>
-                      <button onClick={() => setIsAddingKB(false)} className="flex-1 py-1 rounded" style={{ background: 'var(--ss-surface-inset)', color: 'var(--ss-workspace-text)' }}>{t('common.cancel')}</button>
-                   </div>
-                </div>
-             ) : (
-                <button
-                   onClick={() => setIsAddingKB(true)}
-                   className="w-full py-1.5 border border-dashed rounded text-xs flex items-center justify-center gap-1 transition-colors hover:border-brand-500 hover:text-brand-600"
-                   style={{ borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-muted)' }}
-                >
-                   <Plus size={12} /> {t('components.agentPanel.addKnowledge')}
-                </button>
-             )}
+                    </div>
+                 ) : (
+                    <button
+                       onClick={() => setIsAddingKB(true)}
+                       className="w-full py-1.5 border border-dashed rounded text-xs flex items-center justify-center gap-1 transition-colors hover:border-brand-500 hover:text-brand-600"
+                       style={{ borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-muted)' }}
+                    >
+                       <Plus size={12} /> {t('components.agentPanel.addKnowledge')}
+                    </button>
+                 )}
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Documents Section (Embedded RAG) */}
-      <div className="p-0 border-t">
-        <button
-          onClick={handleDocsToggle}
-          className="w-full flex items-center justify-between px-4 py-2 transition-colors"
-          style={{ background: 'var(--ss-surface-strong)' }}
-        >
-          <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--ss-workspace-heading)' }}>
-            <Upload size={14} />
-            <span>{t('components.agentPanel.documentKnowledgeBase')} ({documents.length})</span>
-          </div>
-          {isDocsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        </button>
-
-        {isDocsOpen && (
-          <div className="p-4 space-y-3" style={{ background: 'var(--ss-surface-strong)' }}>
-            {/* Upload area */}
-            <div
-              className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
-                isDragging
-                  ? 'border-brand-500 bg-brand-50'
-                  : 'hover:border-brand-400'
-              } ${isUploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-              style={!isDragging ? { borderColor: 'var(--ss-workspace-border)' } : undefined}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => !isUploading && fileInputRef.current?.click()}
+          {/* Documents Section (Embedded RAG) */}
+          <div className="mt-2 border-t" style={{ borderColor: 'var(--ss-workspace-border)' }}>
+            <button
+              onClick={handleDocsToggle}
+              className="w-full flex items-center justify-between px-2 py-1.5 transition-colors rounded"
+              style={{ background: 'var(--ss-surface-strong)' }}
             >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.txt,.docx,.md"
-                onChange={handleFileInput}
-                className="hidden"
-                disabled={isUploading}
-              />
-              {isUploading ? (
-                <div className="flex items-center justify-center gap-2" style={{ color: 'var(--ss-workspace-muted)' }}>
-                  <Loader2 size={16} className="animate-spin" />
-                  <span className="text-xs">{t('components.agentPanel.uploading')}</span>
-                </div>
-              ) : (
-                <>
-                  <Upload size={20} className="mx-auto mb-2" style={{ color: 'var(--ss-workspace-muted)' }} />
-                  <p className="text-xs" style={{ color: 'var(--ss-workspace-muted)' }}>
-                    {t('components.agentPanel.dragDropUpload')}
-                  </p>
-                  <p className="text-[10px] mt-1" style={{ color: 'var(--ss-workspace-muted)' }}>
-                    {t('components.agentPanel.supportedFormats')}
-                  </p>
-                </>
-              )}
-            </div>
-
-            {/* Error message */}
-            {uploadError && (
-              <div className="bg-red-50 border border-red-200 rounded p-2 text-xs text-red-600">
-                {uploadError}
+              <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--ss-workspace-heading)' }}>
+                <Upload size={14} />
+                <span>{t('components.agentPanel.documentKnowledgeBase')} ({documents.length})</span>
               </div>
-            )}
+              {isDocsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </button>
 
-            {/* Uploaded documents list */}
-            {documents.length === 0 && !isUploading && (
-              <div className="text-center py-2 text-xs italic" style={{ color: 'var(--ss-workspace-muted)' }}>
-                {t('components.agentPanel.noUploadedDocs')}
-              </div>
-            )}
-
-            {documents.map(doc => (
-              <div key={doc.id} className="border rounded p-2 text-xs relative group" style={{ background: 'var(--ss-workspace-surface)' }}>
-                <div className="flex items-center gap-2 font-bold mb-1" style={{ color: 'var(--ss-workspace-heading)' }}>
-                  <File size={12} className="text-blue-500" />
-                  <span className="truncate flex-1">{doc.filename}</span>
-                  <span className="font-normal" style={{ color: 'var(--ss-workspace-muted)' }}>{formatFileSize(doc.file_size)}</span>
-                </div>
-                <div className="flex items-center gap-2" style={{ color: 'var(--ss-workspace-muted)' }}>
-                  <span>{doc.chunks_count} {t('components.agentPanel.textChunks')}</span>
-                  <span>·</span>
-                  <span>{new Date(doc.uploaded_at).toLocaleDateString()}</span>
-                </div>
-                <button
-                  onClick={() => handleDeleteDocument(doc.id)}
-                  className="absolute top-2 right-2 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ color: 'var(--ss-workspace-muted)' }}
+            {isDocsOpen && (
+              <div className="p-3 space-y-3" style={{ background: 'var(--ss-surface-strong)' }}>
+                <div
+                  className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+                    isDragging
+                      ? 'border-brand-500 bg-brand-50'
+                      : 'hover:border-brand-400'
+                  } ${isUploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  style={!isDragging ? { borderColor: 'var(--ss-workspace-border)' } : undefined}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => !isUploading && fileInputRef.current?.click()}
                 >
-                  <Trash2 size={12} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Collapsible Memory (#6) */}
-      <div className="p-0 border-t">
-        <button
-          onClick={() => setIsMemoryOpen(!isMemoryOpen)}
-          className="w-full flex items-center justify-between px-4 py-2 transition-colors"
-          style={{ background: 'var(--ss-surface-strong)' }}
-        >
-          <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--ss-workspace-heading)' }}>
-            <Brain size={14} />
-            <span>{t('components.agentPanel.shortTermMemory')} ({agent.memory.length})</span>
-          </div>
-          {isMemoryOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        </button>
-
-        {isMemoryOpen && (
-          <div className="max-h-64 overflow-y-auto p-4 space-y-3" style={{ background: 'var(--ss-surface-strong)' }}>
-            {agent.memory.map((mem) => (
-              <div key={mem.id} className="text-xs relative pl-3 border-l-2" style={{ borderColor: 'var(--ss-workspace-border)' }}>
-                <div className="flex justify-between mb-0.5" style={{ color: 'var(--ss-workspace-muted)' }}>
-                  <span className="uppercase text-[10px] font-bold tracking-wider">{mem.type}</span>
-                  <span className="font-mono text-[10px]">{mem.timestamp}</span>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.txt,.docx,.md"
+                    onChange={handleFileInput}
+                    className="hidden"
+                    disabled={isUploading}
+                  />
+                  {isUploading ? (
+                    <div className="flex items-center justify-center gap-2" style={{ color: 'var(--ss-workspace-muted)' }}>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span className="text-xs">{t('components.agentPanel.uploading')}</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload size={20} className="mx-auto mb-2" style={{ color: 'var(--ss-workspace-muted)' }} />
+                      <p className="text-xs" style={{ color: 'var(--ss-workspace-muted)' }}>
+                        {t('components.agentPanel.dragDropUpload')}
+                      </p>
+                      <p className="text-[10px] mt-1" style={{ color: 'var(--ss-workspace-muted)' }}>
+                        {t('components.agentPanel.supportedFormats')}
+                      </p>
+                    </>
+                  )}
                 </div>
-                <p className={`leading-relaxed ${mem.type === 'thought' ? 'italic' : ''}`} style={{ color: mem.type === 'thought' ? 'var(--ss-workspace-muted)' : 'var(--ss-workspace-heading)' }}>
-                  {mem.content}
-                </p>
+
+                {uploadError && (
+                  <div className="bg-red-50 border border-red-200 rounded p-2 text-xs text-red-600">
+                    {uploadError}
+                  </div>
+                )}
+
+                {documents.length === 0 && !isUploading && (
+                  <div className="text-center py-2 text-xs italic" style={{ color: 'var(--ss-workspace-muted)' }}>
+                    {t('components.agentPanel.noUploadedDocs')}
+                  </div>
+                )}
+
+                {documents.map(doc => (
+                  <div key={doc.id} className="border rounded p-2 text-xs relative group" style={{ background: 'var(--ss-workspace-surface)' }}>
+                    <div className="flex items-center gap-2 font-bold mb-1" style={{ color: 'var(--ss-workspace-heading)' }}>
+                      <File size={12} className="text-blue-500" />
+                      <span className="truncate flex-1">{doc.filename}</span>
+                      <span className="font-normal" style={{ color: 'var(--ss-workspace-muted)' }}>{formatFileSize(doc.file_size)}</span>
+                    </div>
+                    <div className="flex items-center gap-2" style={{ color: 'var(--ss-workspace-muted)' }}>
+                      <span>{doc.chunks_count} {t('components.agentPanel.textChunks')}</span>
+                      <span>·</span>
+                      <span>{new Date(doc.uploaded_at).toLocaleDateString()}</span>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteDocument(doc.id)}
+                      className="absolute top-2 right-2 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ color: 'var(--ss-workspace-muted)' }}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        )}
-      </div>
+
+          {/* Collapsible Memory (#6) */}
+          <div className="mt-2 border-t" style={{ borderColor: 'var(--ss-workspace-border)' }}>
+            <button
+              onClick={() => setIsMemoryOpen(!isMemoryOpen)}
+              className="w-full flex items-center justify-between px-2 py-1.5 transition-colors rounded"
+              style={{ background: 'var(--ss-surface-strong)' }}
+            >
+              <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--ss-workspace-heading)' }}>
+                <Brain size={14} />
+                <span>{t('components.agentPanel.shortTermMemory')} ({agent.memory.length})</span>
+              </div>
+              {isMemoryOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </button>
+
+            {isMemoryOpen && (
+              <div className="max-h-64 overflow-y-auto p-3 space-y-3" style={{ background: 'var(--ss-surface-strong)' }}>
+                {agent.memory.map((mem) => (
+                  <div key={mem.id} className="text-xs relative pl-3 border-l-2" style={{ borderColor: 'var(--ss-workspace-border)' }}>
+                    <div className="flex justify-between mb-0.5" style={{ color: 'var(--ss-workspace-muted)' }}>
+                      <span className="uppercase text-[10px] font-bold tracking-wider">{mem.type}</span>
+                      <span className="font-mono text-[10px]">{mem.timestamp}</span>
+                    </div>
+                    <p className={`leading-relaxed ${mem.type === 'thought' ? 'italic' : ''}`} style={{ color: mem.type === 'thought' ? 'var(--ss-workspace-muted)' : 'var(--ss-workspace-heading)' }}>
+                      {mem.content}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
