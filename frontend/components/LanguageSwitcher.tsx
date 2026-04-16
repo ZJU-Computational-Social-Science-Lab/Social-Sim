@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Languages } from 'lucide-react';
 import { setLanguage } from '../i18n';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
-export function LanguageSwitcher() {
-  const { i18n: i18, t } = useTranslation();
+export type LanguageSwitcherVariant = 'default' | 'product';
+
+export function LanguageSwitcher({ variant = 'default' }: { variant?: LanguageSwitcherVariant }) {
+  const { i18n: i18 } = useTranslation();
   const current = i18.language.startsWith('zh') ? 'zh' : 'en';
   const [open, setOpen] = useState(false);
-  const label = current === 'zh' ? t('language.chinese') : t('language.english');
+  const label = current === 'zh' ? '中文' : 'EN';
 
   return (
     <div className="lang-switch">
@@ -15,11 +18,23 @@ export function LanguageSwitcher() {
         <DropdownMenu.Trigger asChild>
           <button
             type="button"
-            className="lang-button"
+            className={`lang-button ${variant === 'product' ? 'lang-button--product' : ''}`}
             aria-haspopup="menu"
             aria-expanded={open}
+            aria-label={label}
+            title={label}
           >
-            🌐 {label} <span style={{ marginLeft: 6, color: 'var(--muted)' }}>▾</span>
+            {variant === 'product' ? (
+              <>
+                <Languages size={15} strokeWidth={2} />
+                <span className="lang-button-label">{label}</span>
+                <span className="lang-button-caret">▾</span>
+              </>
+            ) : (
+              <>
+                🌐 {label} <span style={{ marginLeft: 6, color: 'var(--muted)' }}>▾</span>
+              </>
+            )}
           </button>
         </DropdownMenu.Trigger>
         <DropdownMenu.Portal>
@@ -30,10 +45,10 @@ export function LanguageSwitcher() {
             style={{ minWidth: 'var(--radix-popper-anchor-width)' }}
           >
             <DropdownMenu.Item className={`menu-item ${current === 'en' ? 'active' : ''}`} onSelect={() => setLanguage('en')}>
-              {t('language.english')}
+              EN
             </DropdownMenu.Item>
             <DropdownMenu.Item className={`menu-item ${current === 'zh' ? 'active' : ''}`} onSelect={() => setLanguage('zh')}>
-              {t('language.chinese')}
+              中文
             </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu.Portal>

@@ -21,9 +21,9 @@ export function AppSelect({
 
   return (
     <Select.Root value={value} onValueChange={onChange}>
-      <Select.Trigger className={triggerClass} aria-label={placeholder || "select"} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+      <Select.Trigger className={triggerClass} aria-label={placeholder || "select"} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--ss-space-2)' }}>
         <Select.Value placeholder={label} />
-        <span style={{ color: '#94a3b8' }}>▾</span>
+        <span style={{ color: 'var(--ss-text-muted)' }}>▾</span>
       </Select.Trigger>
       <Select.Portal>
         <Select.Content

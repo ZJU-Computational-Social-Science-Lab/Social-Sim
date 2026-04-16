@@ -19,7 +19,7 @@ export function TitleCard({
         marginBottom: "0.75rem",
         display: "grid",
         alignItems: "center",
-        gap: "0.5rem",
+        gap: "var(--ss-space-2)",
         gridTemplateColumns: hasCenter ? "1fr minmax(0, 2fr) auto" : "1fr auto",
       }}
     >
@@ -31,7 +31,7 @@ export function TitleCard({
         <div style={{ justifySelf: "center", width: "100%", maxWidth: 560 }}>{center}</div>
       )}
       {actions && (
-        <div style={{ justifySelf: "end", display: "flex", gap: "0.5rem" }}>{actions}</div>
+        <div style={{ justifySelf: "end", display: "flex", gap: "var(--ss-space-2)" }}>{actions}</div>
       )}
     </div>
   );

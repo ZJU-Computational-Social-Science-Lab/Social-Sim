@@ -66,6 +66,14 @@ export interface UISlice {
   // Guide actions
   toggleGuide: (isOpen: boolean) => void;
   sendGuideMessage: (content: string) => Promise<void>;
+
+  // Tab navigation
+  activeTab: 'timeline' | 'agents';
+  peekTab: 'timeline' | 'agents' | null;
+  peekOverlayActive: boolean;
+  setActiveTab: (tab: 'timeline' | 'agents') => void;
+  setPeekTab: (tab: 'timeline' | 'agents' | null) => void;
+  setPeekOverlayActive: (active: boolean) => void;
 }
 
 export const createUISlice: StateCreator<
@@ -95,6 +103,9 @@ export const createUISlice: StateCreator<
   isGuideOpen: false,
   guideMessages: [],
   isGuideLoading: false,
+  activeTab: 'timeline',
+  peekTab: null,
+  peekOverlayActive: false,
 
   // Modal toggle actions
   toggleWizard: (isOpen) => set({ isWizardOpen: isOpen }),
@@ -108,6 +119,9 @@ export const createUISlice: StateCreator<
   toggleReportModal: (isOpen) => set({ isReportModalOpen: isOpen }),
   setGlobalKnowledgeOpen: (isOpen) => set({ globalKnowledgeOpen: isOpen }),
   toggleInitialEvents: (isOpen) => set({ isInitialEventsOpen: isOpen }),
+  setActiveTab: (tab) => set({ activeTab: tab }),
+  setPeekTab: (tab) => set({ peekTab: tab }),
+  setPeekOverlayActive: (active) => set({ peekOverlayActive: active }),
 
   // Notification actions
   addNotification: (type, message) => {

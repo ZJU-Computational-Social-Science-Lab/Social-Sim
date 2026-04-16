@@ -476,14 +476,20 @@ class ExperimentScene:
             parameter_specs = action.get("parameters", [])
             if not parameter_specs:
                 continue
+            schema_params = {}
+            for param in parameter_specs:
+                desc = param.get("description", param["name"])
+                # Interpolate scenario params into description (e.g. "0 to {tokens_per_round}")
+                try:
+                    desc = desc.format(**params)
+                except (KeyError, ValueError, IndexError):
+                    pass
+                schema_params[param["name"]] = {
+                    "type": type_map.get(param.get("type", "string"), "string"),
+                    "description": desc,
+                }
             action_schemas[action["name"]] = {
-                "schema": {
-                    param["name"]: {
-                        "type": type_map.get(param.get("type", "string"), "string"),
-                        "description": param.get("description", param["name"]),
-                    }
-                    for param in parameter_specs
-                },
+                "schema": schema_params,
                 "mode": "json",
             }
 

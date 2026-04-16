@@ -512,11 +512,11 @@ export const ExperimentDesignModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" style={{ background: 'var(--ss-overlay)' }}>
+      <div className="rounded-xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200" style={{ background: 'var(--ss-surface)', border: '1px solid var(--ss-border)', boxShadow: 'var(--ss-shadow-3)', color: 'var(--ss-text)' }}>
+
         {/* Header */}
-        <div className="px-6 py-4 border-b flex justify-between items-center bg-indigo-50 shrink-0">
+        <div className="px-6 py-4 flex justify-between items-center shrink-0" style={{ borderBottom: '1px solid var(--ss-border)', background: 'var(--ss-brand-soft)' }}>
           <div>
             <h2 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
               <Beaker className="text-indigo-600" size={24} />
@@ -538,7 +538,7 @@ export const ExperimentDesignModal: React.FC = () => {
         <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
           
           {/* Sidebar: Global Settings & Control Group */}
-          <div className="w-full md:w-80 bg-slate-50 border-r p-6 overflow-y-auto shrink-0 space-y-6">
+          <div className="w-full md:w-80 p-6 overflow-y-auto shrink-0 space-y-6" style={{ background: 'var(--ss-surface-muted)', borderRight: '1px solid var(--ss-border)' }}>
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">{t('components.experimentDesignModal.experimentNameLabel')}</label>
               <input
@@ -570,7 +570,7 @@ export const ExperimentDesignModal: React.FC = () => {
           </div>
 
           {/* Main Area: Variants */}
-          <div className="flex-1 bg-slate-100/50 p-6 overflow-y-auto">
+          <div className="flex-1 p-6 overflow-y-auto" style={{ background: 'var(--ss-surface-inset)' }}>
              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 
                 {variants.map((variant, index) => (
@@ -1321,7 +1321,7 @@ export const ExperimentDesignModal: React.FC = () => {
                 ))}
               </div>
             </div>
-            <div className="px-6 py-4 border-t bg-white flex justify-end gap-3 shrink-0">
+            <div className="px-6 py-4 border-t flex justify-end gap-3 shrink-0">
               <button
                 onClick={() => setShowPreview(false)}
                 className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg"
@@ -1343,7 +1343,7 @@ export const ExperimentDesignModal: React.FC = () => {
         )}
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t bg-white flex justify-end gap-3 shrink-0">
+        <div className="px-6 py-4 border-t flex justify-end gap-3 shrink-0">
           <button onClick={() => toggle(false)} className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg">
             {t('components.experimentDesignModal.cancel')}
           </button>

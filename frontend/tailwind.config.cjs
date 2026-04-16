@@ -5,6 +5,7 @@
 const colors = require("tailwindcss/colors");
 
 module.exports = {
+  darkMode: ['selector', '.theme-dark'],
   content: [
     "./index.html",
     "./App.tsx",
@@ -19,6 +20,9 @@ module.exports = {
     extend: {
       colors: {
         brand: colors.sky,
+      },
+      transitionDuration: {
+        '250': '250ms',
       },
     },
   },

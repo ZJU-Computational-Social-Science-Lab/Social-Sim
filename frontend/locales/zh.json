@@ -9,61 +9,7 @@
     "cancel": "取消",
     "next": "下一步",
     "back": "返回",
-    "previous": "上一页",
-    "colon": "：",
-    "remove": "删除"
-  },
-  "language": {
-    "english": "EN",
-    "chinese": "中文"
-  },
-  "log": {
-    "reasoningStep": "开始第 {{step}} 步推理",
-    "reasoningStart": "开始推理",
-    "reasoningDone": "完成推理",
-    "actionPrefix": "动作",
-    "yieldTurn": "结束本轮发言",
-    "planUpdate": "更新计划",
-    "agentError": "智能体发生错误",
-    "llmCallError": "LLM 调用失败",
-    "llmParseError": "LLM 输出解析失败",
-    "agentOffline": "智能体已掉线",
-    "distortionBlocked": "政策传递被截留",
-    "distortionAdjusted": "政策传递发生失真",
-    "distortionUnchanged": "政策传递基本保持原样",
-    "distortedReason": "已发生失真，原因",
-    "pressureReason": "存在失真压力，但本次保持原样，原因",
-    "distortionInput": "本条公告被识别为：distortion cascade input",
-    "nonDistortionInput": "本条公告未进入 distortion cascade",
-    "privateCascadeInput": "这是一条私有级联输入，仅",
-    "waitingForTopTier": "可见，等待其作为 top tier 下传",
-    "privateBroadcast": "定向私有广播",
-    "globalBroadcast": "全局广播",
-    "recipientsLabel": "接收者",
-    "allAgents": "全体智能体",
-    "originalMessage": "收到的上级政策版本",
-    "draftMessage": "Agent 原始下传草稿",
-    "finalMessage": "实际对下发送内容",
-    "reasonLabel": "原因",
-    "metricsLabel": "参数/评分",
-    "actionStart": "开始执行动作",
-    "actionEnd": "执行了动作",
-    "systemEvent": "系统事件",
-    "agentResponse": "Agent responded",
-    "choseAction": "{{agent}} 选择了 {{action}}",
-    "skippedTurn": "第{{round}}轮: {{agent}} - 跳过回合",
-    "roundAction": "第{{round}}轮: {{agent}} 选择了 {{action}}",
-    "unknown": "未知",
-    "empty": "（空）",
-    "blockedNoDownstream": "（已截留 / 无下传内容）",
-    "noReasonProvided": "未提供原因",
-    "strength": "失真强度",
-    "conflict": "冲突敏感度",
-    "block": "阻断概率",
-    "pressure": "冲突压力",
-    "tendency": "截留倾向",
-    "performedAction": "执行了动作",
-    "punishmentAction": "{{punisher}} 惩罚了 {{target}} {{amount}} 代币（扣除：{{deduction}}）"
+    "previous": "上一页"
   },
   "brand": "SocialSim4",
   "nav": {
@@ -78,11 +24,75 @@
     "signout": "退出"
   },
   "landing": {
-    "headline": "设计、运行并探索由大语言模型驱动的社会模拟。",
-    "sub": "协调多个智能体、分叉时间线，并通过为实验团队打造的界面分享实时结果。",
-    "learn": "了解更多：{{name}}。",
-    "ctaNew": "开始你的第一次模拟",
-    "ctaResume": "继续你的工作"
+    "hero": {
+      "badge": "社会系统实验室 Social Systems Laboratory",
+      "line1": "以精密模拟架构",
+      "line2": "社会逻辑",
+      "accent": "构建社会逻辑",
+      "sub": "为研究者、政策制定者与社会科学家打造的跨领域模拟平台。通过分支、观测与干预，洞察复杂系统的深层演化规律。",
+      "primaryCta": "进入实验室",
+      "secondaryCta": "阅读方法论",
+      "tag1": "高保真模拟",
+      "tag2": "并行分支追踪",
+      "tag3": "归因分析"
+    },
+    "entry": {
+      "primaryBadge": "新实验矩阵",
+      "primaryTitle": "开启新实验",
+      "primarySubtitle": "从一个新的社会情境参数集开始构建实验。",
+      "dashboardTitle": "全局控制台",
+      "dashboardSubtitle": "研究总览",
+      "interfaceTitle": "实验主界面",
+      "interfaceSubtitle": "仿真控制台",
+      "savedTitle": "已存模拟",
+      "savedSubtitle": "实验归档",
+      "settingsTitle": "系统设置",
+      "settingsSubtitle": "工作空间配置"
+    },
+    "preview": {
+      "title": "实时模拟交互预览",
+      "accent": "仿真交互预览",
+      "sub": "沉浸式观测、分支与多维数据洞察。",
+      "cta": "查看实时引擎",
+      "overlayLabel": "节点活动",
+      "overlayBranch": "分支 A-12",
+      "overlayBody": "第 4 次干预后，系统逻辑稳定度维持在 89.4%。"
+    },
+    "capabilities": {
+      "title": "核心研究能力",
+      "designTitle": "实验设计",
+      "designSubtitle": "实验架构设计",
+      "designBody": "定义多维参数、建立因果链条，并在无风险的沙盒环境中构建庞大的社会矩阵。",
+      "observeTitle": "实时观测",
+      "observeSubtitle": "实验过程观测",
+      "branchTitle": "分支与对比",
+      "branchSubtitle": "分支比较",
+      "controlTitle": "干预与控制",
+      "controlBody": "通过精确的干预与控制工具，测试不同策略对系统演化的影响。"
+    },
+    "scenes": {
+      "title": "应用研究场景",
+      "kicker": "应用研究场景",
+      "policyTitle": "政策模拟",
+      "policySubtitle": "政策情境推演",
+      "policyBody": "测试宏观政策在局部群体中的涟漪效应。",
+      "behaviorTitle": "社会行为分析",
+      "behaviorSubtitle": "社会行为研究",
+      "behaviorBody": "观测个体选择如何汇聚成集体趋势。",
+      "institutionTitle": "组织环境测试",
+      "institutionSubtitle": "组织机制测试",
+      "institutionBody": "模拟不同激励机制下的组织效能演变。",
+      "interventionTitle": "干预方案比对",
+      "interventionSubtitle": "干预方案比较",
+      "interventionBody": "多维度权衡不同干预手段的成本与成效。"
+    },
+    "finalCta": {
+      "title": "开启研究进程",
+      "sub": "连接现有实验室数据，或从零构建您的首个模拟场景。",
+      "new": "新建实验",
+      "dashboard": "访问控制台",
+      "saved": "回顾实验归档"
+    }
   },
   "dashboard": {
     "title": "仪表盘",
@@ -107,6 +117,7 @@
   },
   "saved": {
     "title": "已保存的模拟",
+    "subtitle": "在统一实验室壳层中浏览归档实验，返回进行中的工作，或复制既有配置重新展开。",
     "resume": "继续",
     "copy": "复制",
     "delete": "删除",
@@ -120,6 +131,32 @@
     "selectAll": "全选",
     "selectedCount": "已选：{{count}}",
     "type": "类型",
+    "typeLabel": "场景类型",
+    "statusLabel": "状态",
+    "searchPlaceholder": "按标题、状态、场景或 ID 搜索…",
+    "sortLabel": "排序",
+    "sortRecent": "最新优先",
+    "sortOldest": "最早优先",
+    "sortName": "名称",
+    "allStatuses": "全部状态",
+    "allTypes": "全部场景类型",
+    "resultsLabel": "归档浏览器",
+    "emptyTitle": "当前视图下没有匹配的已保存模拟",
+    "emptyHint": "调整筛选条件，或先创建新的实验来逐步积累归档。",
+    "detailTitle": "当前归档",
+    "detailHint": "在右侧查看当前快照摘要，再决定继续、复制或删除。",
+    "selectedTitle": "归档上下文",
+    "detailBody": "「{{name}}」会以完整实验快照的形式保留在归档中。你可以继续沿当前路径推进，也可以复制一份作为新的工作副本。",
+    "createdAt": "创建时间",
+    "simulationId": "模拟 ID",
+    "statusValues": {
+      "active": "进行中",
+      "archived": "已归档",
+      "completed": "已完成",
+      "failed": "失败",
+      "draft": "草稿",
+      "unknown": "待检查"
+    },
     "confirmDelete": "删除该模拟？",
     "confirmBulkDelete": "确认删除已选中的 {{count}} 个模拟？",
     "bulkDeleteResult": "成功删除 {{success}} 个 / 失败 {{failed}} 个",
@@ -211,11 +248,14 @@
   },
   "settings": {
     "title": "设置",
+    "subtitle": "配置当前研究工作空间的身份、模型提供商、检索通道与文件治理。",
+    "workspaceTitle": "工作空间上下文",
+    "workspaceHint": "这些身份信息会复用于保存的实验、导出结果和面向操作者的界面。",
     "tabs": {
       "profile": "个人信息",
       "security": "安全",
       "providers": "提供商",
-      "llmProviders": "LLM提供商",
+      "llmProviders": "模型提供商",
       "searchProviders": "搜索提供商",
       "files": "文件管理"
     },
@@ -227,10 +267,15 @@
     },
     "security": {
       "signoutAll": "退出所有会话",
-      "placeholder": "这里将展示双因素认证和密码重置流程。"
+      "placeholder": "这里将展示双因素认证和密码重置流程。",
+      "sessionsTitle": "会话控制",
+      "controlTitle": "访问姿态",
+      "controlHint": "这里仍然连接 SocialSim4 真实的认证会话与 token 刷新链路。"
     },
     "providers": {
       "title": "提供商集成",
+      "workspaceTitle": "提供商工作区",
+      "workspaceHint": "保持一个可信的默认模型在线，再按总结、长上下文或基准测试需求补充其它端点。",
       "type": {
         "openai": "OpenAI 兼容",
         "gemini": "Gemini"
@@ -254,7 +299,7 @@
         "label": "名称",
         "provider": "提供商",
         "model": "模型",
-        "baseUrl": "Base URL",
+        "baseUrl": "基础地址",
         "apiKey": "API 密钥"
       },
       "save": "保存提供商",
@@ -296,6 +341,8 @@
     "files": {
       "title": "文件管理",
       "description": "管理仿真中使用的上传文件。",
+      "maintenanceTitle": "存储维护",
+      "maintenanceHint": "快速扫描当前上传资源，找出已经不再被有效工作区实体引用的孤立文件。",
       "loading": "正在加载文件…",
       "error": "无法加载文件。",
       "empty": "没有上传文件。",
@@ -384,8 +431,7 @@
     "templateDefaults": {
       "village": "创建一个多元化的乡村社区，包含务农者、商人和知识分子。",
       "council": "创建一个由5名成员组成的议会，每位成员具有不同政策立场与影响力。",
-      "werewolf": "创建一个狼人杀9人局的玩家群体画像：法官/上帝、预言家、女巫、猎人、2名狼人、3名平民，并描述性格与策略偏好。",
-      "policyDiffusion": "三层级政策扩散场景"
+      "werewolf": "创建一个狼人杀9人局的玩家群体画像：法官/上帝、预言家、女巫、猎人、2名狼人、3名平民，并描述性格与策略偏好。"
     },
     "defaultPrompts": {
       "village": "创建一个多元化的乡村社区，包含务农者、商人和知识分子。",
@@ -454,7 +500,7 @@
       "dimensionNamePlaceholder": "维度名称 (如: Age)",
       "categoriesLabel": "类别 (用逗号分隔):",
       "addCategory": "添加类别",
-      "archetypes": "生成的原型",
+      "archetypes": "生成的原型：{{count}}",
       "archetypesHint": "原型 × 人口维度 = 智能体组合",
       "totalProbability": "总概率",
       "shouldBeOne": "(应为 1.0)",
@@ -466,17 +512,6 @@
       "mean": "均值",
       "std": "标准差",
       "traitsHint": "属性将使用高斯分布 (均值 ± 标准差) 生成，范围限制在 0-100。",
-      "llmDistribution": "LLM 分布",
-      "addLlm": "添加 LLM",
-      "llmProvider": "提供商",
-      "llmPercentage": "百分比",
-      "llmTotal": "总计",
-      "llmTotalValid": "总计: {{current}}% ✓",
-      "llmMustEqual100": "总计必须等于 100% (当前 {{current}}%)",
-      "llmRemove": "删除",
-      "llmLoadingProviders": "正在加载提供商...",
-      "llmNoProviders": "没有可用的 LLM 提供商。请在设置中添加提供商。",
-      "llmDistributionHint": "将智能体分配到不同的 LLM 提供商（可选）",
       "generatedAgents": "已生成 {{count}} 个智能体",
       "clearReset": "清空重置",
       "name": "姓名",
@@ -502,33 +537,6 @@
       "people": "人",
       "timeFlow": "时间流速",
       "perTurn": "1 回合 ="
-    },
-    "demographics": {
-      "totalAgents": "智能体总数",
-      "title": "人口统计",
-      "namePlaceholder": "名称（例如：职业）",
-      "categoriesPlaceholder": "类别（用逗号分隔）",
-      "traitsTitle": "特征（正态分布）",
-      "traitNamePlaceholder": "特征名称",
-      "meanPlaceholder": "均值",
-      "stdPlaceholder": "标准差",
-      "generating": "生成中...",
-      "generateButton": "生成智能体"
-    },
-    "llmDistribution": {
-      "title": "LLM 分布配置",
-      "addLlm": "添加 LLM",
-      "provider": "提供商",
-      "model": "模型",
-      "percentage": "百分比",
-      "total": "总计",
-      "totalValid": "总计: 100% ✓",
-      "mustEqual100": "总计必须等于 100%（当前 {{current}}%）",
-      "remove": "移除",
-      "loadingProviders": "正在加载提供商...",
-      "loadProvidersError": "加载 LLM 提供商失败，请重试。",
-      "retry": "重试",
-      "distributionHint": "分布将在生成智能体时应用。"
     },
     "footer": {
       "previous": "上一步",
@@ -562,7 +570,6 @@
       "citizen": "公民",
       "customTemplate": "自定义模板",
       "provider": "提供商",
-      "tierLabel": "政治职位层级",
       "traits": {
         "trust": "信任度",
         "empathy": "同理心",
@@ -685,19 +692,51 @@
     "mechanicAutoEnabled": "所选动作需要"
   },
   "auth": {
+    "layout": {
+      "badge": "社会系统实验室 Social Systems Laboratory",
+      "line1": "继续进入",
+      "line2": "研究工作台",
+      "accent": "Branch, observe, and intervene",
+      "copy": "回到你的研究工作台，在既有场景与实验路径上继续配置、分支、观测与干预社会模拟。",
+      "tag1": "配置场景",
+      "tag2": "分支推演",
+      "tag3": "角色观测",
+      "surfaceLabel": "研究工作流",
+      "surface1Title": "配置",
+      "surface1Body": "继续调整场景、参数与研究边界。",
+      "surface2Title": "分支",
+      "surface2Body": "从已有节点延展新的推演路径。",
+      "surface3Title": "观测与干预",
+      "surface3Body": "返回工作台查看角色状态并执行干预。",
+      "note": "登录只会恢复你的研究工作区上下文，不会覆盖已有实验结果。"
+    },
     "login": {
+      "badge": "继续进入研究工作台",
       "welcome": "欢迎回来",
+      "subtitle": "输入你的凭据后，即可继续进入社会系统实验室，在当前研究工作区中继续分支、观测与干预。",
       "email": "邮箱",
+      "emailPlaceholder": "输入机构邮箱",
       "password": "密码",
+      "passwordPlaceholder": "输入访问密码",
       "signin": "登录",
       "noAccount": "还没有账号？",
       "create": "去注册",
-      "invalid": "账号或密码错误"
+      "invalid": "账号或密码错误",
+      "forgot": "忘记访问密钥？",
+      "sso": "单点登录",
+      "help": "实验室支持",
+      "credentialCheck": "延续当前研究工作区身份",
+      "workspaceBound": "继续进入已有实验路径与观测上下文",
+      "footerLeft": "社会系统实验室",
+      "footerRight": "分支 · 观测 · 干预"
     },
     "register": {
+      "badge": "创建研究工作区",
       "title": "创建你的工作空间",
+      "subtitle": "完成工作区身份与操作者信息配置后，即可进入社会系统实验室并开始新的研究路径。",
       "organization": "组织",
       "email": "邮箱",
+      "emailPlaceholder": "输入机构邮箱",
       "username": "用户名",
       "fullName": "姓名",
       "phone": "手机号",
@@ -705,13 +744,16 @@
       "phonePlaceholder": "请输入手机号",
       "phoneHint": "先选择区号（默认 +86），再输入手机号数字即可。开头的 0 会自动去掉。",
       "password": "密码",
+      "passwordPlaceholder": "设置访问密码",
       "submit": "创建账户",
       "success": "注册成功，请查收邮件。",
       "failed": "注册失败",
       "invalidPhone": "手机号格式不正确。请选择区号后输入 8–15 位手机号数字。",
       "invalidPhoneTitle": "选择区号后输入手机号数字，系统会自动拼成国际格式。",
       "have": "已经注册？",
-      "signin": "去登录"
+      "signin": "去登录",
+      "footerLeft": "社会系统实验室",
+      "footerRight": "配置 · 分支 · 观测"
     }
   },
   "sim": {
@@ -973,13 +1015,13 @@
     "deleteSuccess": "仿真已删除",
     "deleteFail": "删除仿真失败",
     "autoAdvance": "自动推进",
-    "steps": "步数",
     "stop": "停止",
-    "advancingProgress": "推进中 {{current}}/{{total}}...",
-    "autoAdvanceComplete": "自动推进完成！已创建 {{count}} 个节点。",
-    "autoAdvanceError": "自动推进出错：{{error}}",
-    "autoAdvanceStopped": "自动推进已在第 {{current}}/{{total}} 步停止。",
-    "enterSteps": "请输入步数 (1–100)"
+    "enterSteps": "输入步数",
+    "advancingProgress": "第 {{current}} 步，共 {{total}} 步",
+    "tabs": {
+      "timeline": "时间线",
+      "agents": "智能体"
+    }
   },
   "components": {
     "agentPanel": {
@@ -1003,6 +1045,7 @@
       "noCustomAttributes": "无自定义属性",
       "knowledgeBase": "知识库 (RAG)",
       "noKnowledgeDocs": "暂无知识库文档",
+      "searchPlaceholder": "搜索代理人...",
       "save": "保存",
       "addKnowledge": "添加知识条目",
       "documentKnowledgeBase": "文档知识库",
@@ -1011,11 +1054,7 @@
       "supportedFormats": "支持：PDF, TXT, DOCX, MD (最大 10MB)",
       "noUploadedDocs": "暂无上传文档",
       "textChunks": "个文本块",
-      "shortTermMemory": "短期记忆",
-      "changeLLM": "更换 LLM",
-      "providersLoadError": "加载提供商失败",
-      "llmUpdateSuccess": "LLM 已更新",
-      "llmUpdateError": "LLM 更新失败"
+      "shortTermMemory": "短期记忆"
     },
     "copyButton": {
       "copy": "复制",
@@ -1163,14 +1202,10 @@
       "instructionType": "全局指令",
       "propertyType": "修改属性",
       "environmentType": "环境事件",
-      "followUpConditionType": "后续干预条件",
-      "followUpThreadSeedType": "后续对话种子",
       "selectAgent": "选择智能体...",
       "imageLabel": "图片 (可选)",
       "imageHelper": "拖拽/点击上传后将图片以 markdown 链接插入",
       "propertyPlaceholder": "例如：将信任值降低至 10",
-      "followUpConditionPlaceholder": "例如: resource_shortage=0.8, public_opinion_pressure=0.6 或 {\"resource_shortage\": 0.8}",
-      "followUpThreadSeedPlaceholder": "例如: 智能体3想要给智能体4发消息，消息内容为执行困难，需要回应。也支持 JSON。",
       "descriptionPlaceholder": "描述具体的干预内容...",
       "addIntervention": "添加干预项",
       "addVariant": "添加新的实验组",
@@ -1178,61 +1213,7 @@
       "startBatch": "启动批量运行 ({{count}} 个分支)",
       "liveLogPreview": "实时日志预览（最近 {{count}} 条）",
       "noLogsYet": "暂无日志",
-      "imageUploaded": "图片已上传并插入",
-      "followUpConditionPlaceholder": "例如: resource_shortage=0.8, public_opinion_pressure=0.6 或 {\"resource_shortage\": 0.8}",
-      "followUpThreadSeedPlaceholder": "例如: 智能体3想要给智能体4发消息，消息内容为执行困难，需要回应。也支持 JSON。",
-      "followUpConditionType": "后续条件",
-      "followUpThreadSeedType": "后续线程种子",
-      "scenarioParamsType": "场景参数",
-      "scenarioParamsPlaceholder": "编辑场景参数。按回车或点击 + 添加新参数。",
-      "scenarioParamsHint": "编辑下方参数。修改后的值会高亮显示。",
-      "scenarioParamsKeyPlaceholder": "新参数名",
-      "scenarioParamsUnknownKey": "⚠ 未知参数键，请检查拼写",
-      "addParam": "添加",
-      "resetToDefault": "重置为默认值",
-      "networkTopologyType": "网络拓扑",
-      "networkPresetLabel": "拓扑预设",
-      "networkEdgeCountHint": "{{n}} 个智能体 → {{e}} 条边",
-      "networkLargeGraphWarning": "大型图：{{e}} 条边可能降低仿真速度",
-      "customEdgesLabel": "自定义边",
-      "customEdgesPlaceholder": "Alice, Bob\nBob, Charlie\n每行一条边",
-      "presetFull": "全连接",
-      "presetRing": "环形",
-      "presetStar": "星形",
-      "presetRandom": "随机",
-      "presetNewmanWatts": "小世界",
-      "presetCorePeriphery": "核心-边缘",
-      "presetHolmeKim": "无标度",
-      "presetWaxman": "地理网络",
-      "presetSbm": "社区结构",
-      "presetCustom": "自定义边",
-      "paramConnectionChance": "连接概率",
-      "paramNeighborsEachSide": "每侧邻居数",
-      "paramShortcutChance": "捷径概率",
-      "paramInfluencerPercent": "影响者比例",
-      "paramInfluencerConnectivity": "影响者连接度",
-      "paramInfluencerReach": "影响者覆盖",
-      "paramRegularConnectivity": "普通节点连接度",
-      "paramNewConnections": "每节点新连接数",
-      "paramClusteringChance": "聚类概率",
-      "paramMaxDistance": "最大距离",
-      "paramDistanceEffect": "距离衰减",
-      "paramGroupSize": "社区规模",
-      "paramWithinGroupConnectivity": "社区内连接度",
-      "paramBridgeConnections": "跨社区桥接数",
-      "previewTitle": "实验摘要",
-      "previewVariant": "实验组",
-      "previewIntervention": "干预",
-      "previewScenarioParams": "场景参数",
-      "previewNetworkTopology": "网络拓扑",
-      "previewUnknownKey": "⚠ 未知键",
-      "previewWas": "原值",
-      "previewNew": "新值",
-      "previewEdges": "条边",
-      "previewSeed": "种子",
-      "previewConfirm": "确认并开始实验",
-      "previewBack": "返回",
-      "previewNoChanges": "无变更"
+      "imageUploaded": "图片已上传并插入"
     },
     "hostPanel": {
       "godModeTitle": "主持模式",
@@ -1260,13 +1241,7 @@
       "enterNewValue": "输入新值",
       "updateProperty": "更新属性",
       "broadcastSent": "广播已发送给智能体",
-      "broadcastFailed": "广播发送失败",
-      "privateBroadcastLog": "定向私有广播",
-      "globalBroadcastLog": "全局广播",
-      "recipientsLog": "接收者",
-      "allAgentsLog": "全体智能体",
-      "recipientHint": "选择接收者（为空则全员）：",
-      "injectNoticeOnly": "注：注入环境事件为 notice-only（不触发系统广播），用于干预后续事件。"
+      "broadcastFailed": "广播发送失败"
     },
     "initialEventsModal": {
       "title": "初始事件编辑器",
@@ -1416,13 +1391,10 @@
       "zoomOut": "缩小",
       "resetView": "重置视角",
       "nodes": "节点",
-      "edges": "边",
-      "manualLinks": "手动连接",
-      "selectSource": "选择源",
-      "selectTarget": "选择目标",
-      "addLink": "添加连接",
-      "noLinks": "暂无连接",
-      "noProfile": "无简介"
+      "edges": "边"
+    },
+    "networkGraph": {
+      "emptyState": "暂无网络可显示"
     },
     "reportModal": {
       "title": "仿真实验分析报告",
@@ -1681,14 +1653,6 @@
     "guideConnectionTimeout": "连接 AI 服务超时，请稍后再试。",
     "loadProvidersFailed": "加载 LLM 提供商失败",
     "experimentSubmitted": "实验「{{name}}」已提交到后端运行（run_id={{runId}}）",
-    "experimentCreatedNoRun": "实验「{{name}}」已创建，已进入对照实验分支且尚未自动运行",
-    "experimentBranchCreated": "进入对照实验：{{experimentName}} / {{variantName}}",
-    "experimentBaseNode": "基于节点",
-    "experimentInterventionContent": "实验干预",
-    "experimentCurrentStatus": "当前状态",
-    "experimentStatusPending": "未运行",
-    "experimentEnvironmentEvent": "环境事件",
-    "experimentPublicBroadcast": "公共广播",
     "experimentCompleted": "实验 {{name}} 已完成（run {{status}}）",
     "failedToStartExperiment": "启动实验失败",
     "batchExperimentStarted": "批量实验「{{name}}」已启动",
@@ -1840,99 +1804,15 @@
       "conflict_sensitivity": "冲突敏感度",
       "block_probability": "阻断概率",
       "num_agents_per_tier": "每层智能体数量",
-      "policy_text": "初始背景设定",
-      "deliberation_rounds": "审议轮数",
-      "cooperate_reward": "双方合作收益",
-      "sucker_penalty": "单方合作惩罚",
-      "temptation_reward": "背叛诱惑收益",
-      "defect_penalty": "双方背叛惩罚",
-      "action_1_name": "动作1名称",
-      "action_2_name": "动作2名称",
-      "action_1_description": "动作1描述",
-      "action_2_description": "动作2描述",
-      "preferred_mispreferred": "偏好/非偏好收益",
-      "mispreferred_payoff": "非偏好单独收益",
-      "stag_reward": "猎鹿收益（全员选择时）",
-      "hare_reward": "猎兔收益（总是）",
-      "norm_strength": "规范强度",
-      "agent_status_distribution": "代理状态分布",
-      "connection_homogeneity": "连接同质性",
-      "opinion_distribution": "初始观点分布",
-      "total_resources": "总资源量",
-      "initial_distribution": "初始分布",
-      "topic": "讨论主题",
-      "proposal_text": "提案文本",
-      "voting_threshold": "投票阈值",
-      "max_rounds": "最大辩论轮数",
-      "grid_size": "网格大小",
-      "resource_count": "资源数量",
-      "num_werewolves": "狼人数量",
-      "num_villagers": "村民数量",
-      "resource_name": "资源名称",
-      "resource_name_custom": "自定义资源名称",
-      "initial_amount": "初始数量",
-      "multiplier": "池乘数",
-      "action_name": "动作名称",
-      "action_description": "动作描述",
-      "choices": "可用选择",
-      "goal": "协调目标",
-      "initial_infected": "初始感染代理数",
-      "proximity_probability": "邻近传播率",
-      "action_probability": "动作传播率",
-      "recovery_turns": "恢复回合数",
-      "punishment_budget_per_round": "每轮惩罚预算",
-      "punishment_cost_ratio": "成本比率（1代币 : N收益扣除）",
-      "punishment_anonymous": "匿名惩罚模式"
+      "policy_text": "初始背景设定"
     },
     "paramDescriptions": {
-      "cooperate_reward": "双方都选择第一个动作时的收益",
-      "sucker_penalty": "你选择第一个动作但对方选择第二个时的收益",
-      "temptation_reward": "你选择第二个动作但对方选择第一个时的收益",
-      "defect_penalty": "双方都选择第二个动作时的收益",
-      "action_1_name": "第一个动作的名称",
-      "action_2_name": "第二个动作的名称",
-      "action_1_description": "第一个动作的描述",
-      "action_2_description": "第二个动作的描述",
-      "preferred_mispreferred": "双方都得到首选选择时的收益",
-      "mispreferred_payoff": "独自处于非首选位置时的收益",
-      "stag_reward": "当所有玩家都选择猎鹿时的奖励",
-      "hare_reward": "猎兔的奖励（始终可获得）",
-      "norm_strength": "被破坏的社会规范的强度",
-      "agent_status_distribution": "群体中代理人地位的分布",
       "cascade_mode": "选择是严格逐层传达，还是允许在传递中出现改写、冲突和截留。",
       "distortion_strength": "只在失真模式下生效。数值越高，下层越可能明显改写原政策。",
       "conflict_sensitivity": "只在失真模式下生效。数值越高，角色利益冲突越容易转化为抵触或偏离。",
       "block_probability": "只在失真模式下生效。表示代理直接不往下传、选择截留政策的基础概率。",
       "num_agents_per_tier": "控制每一个层级自动生成多少个智能体。",
-      "policy_text": "仅用于设定第一轮的开场背景或情境，不会自动作为后续逐级传递时必须保留的原始政策。",
-      "deliberation_rounds": "自动投票开始前的讨论轮数。0 = 立即投票，1-10 = 固定轮数，留空 = 代理人控制投票",
-      "connection_homogeneity": "代理人连接相似观点的可能性",
-      "opinion_distribution": "群体中初始观点的分布",
-      "resource_amount": "可用资源的总量",
-      "initial_distribution": "资源在代理人之间的初始分配方式",
-      "topic": "自由讨论的主题",
-      "proposal_text": "需要辩论和表决的提案内容",
-      "voting_threshold": "提案通过所需的投票百分比",
-      "max_rounds": "投票前最大辩论轮数",
-      "grid_size": "网格的大小（N x N）",
-      "resource_count": "网格上放置的资源数量",
-      "num_werewolves": "游戏中的狼人角色数量",
-      "num_villagers": "游戏中的村民角色数量",
-      "resource_name": "游戏中的资源类型",
-      "resource_name_custom": "资源的自定义名称",
-      "initial_amount": "每个代理获得的初始数量",
-      "multiplier": "应用于贡献池的倍数",
-      "action_name": "贡献动作的名称",
-      "action_description": "贡献动作的描述",
-      "choices": "代理可选选项的逗号分隔列表",
-      "goal": "代理是否应该尝试与邻居匹配或不同",
-      "initial_infected": "初始感染的代理数量",
-      "proximity_probability": "代理相邻时的传播概率",
-      "action_probability": "感染代理与易感代理交谈时的传播概率",
-      "recovery_turns": "感染代理恢复所需的回合数",
-      "punishment_budget_per_round": "每个代理人每轮获得的惩罚代币数量。设为0则禁用惩罚。",
-      "punishment_cost_ratio": "每花费1个惩罚代币扣除目标多少收益。数值越高，惩罚效果越强。",
-      "punishment_anonymous": "启用后，被惩罚者看不到惩罚者（仅显示「匿名」）。"
+      "policy_text": "仅用于设定第一轮的开场背景或情境，不会自动作为后续逐级传递时必须保留的原始政策。"
     },
     "payoffMatrix": {
       "howToRead": {
@@ -2014,30 +1894,6 @@
         "yourPayoffs": "你的收益：",
         "instruction": "填写根据你的选择和对方的选择你将获得什么。",
         "youThey": "你：{{actionA}} / 对方：{{actionB}}"
-      },
-      "actionNames": {
-        "Cooperate": "合作",
-        "Defect": "背叛",
-        "Stag": "猎鹿",
-        "Hare": "猎兔",
-        "Heads": "正面",
-        "Tails": "反面",
-        "Soccer": "足球",
-        "Ballet": "芭蕾",
-        "Contribute": "贡献",
-        "Keep": "保留"
-      },
-      "actionDescriptions": {
-        "Cooperate": "与对方合作",
-        "Defect": "为自身利益行事",
-        "Stag": "猎捕大鹿（需要所有人合作）",
-        "Hare": "猎捕野兔（安全但奖励较低）",
-        "Heads": "选择正面",
-        "Tails": "选择反面",
-        "Soccer": "去足球比赛",
-        "Ballet": "去歌剧",
-        "Contribute": "贡献到共享池",
-        "Keep": "保留资源给自己"
       }
     },
     "step3": {
@@ -2056,36 +1912,8 @@
       "addAction": "添加动作",
       "actionsSelected": "已选择 {{selected}} / {{total}} 个动作",
       "removeAction": "删除动作",
-      "policyActions": {
-        "send_message": {
-          "label": "正式传达 / 回复",
-          "description": "用于正式传达当前政策内容，或在后续线程中私下回复当前会话。"
-        },
-        "yield": {
-          "label": "暂缓 / 回避",
-          "description": "用于暂不处理当前传递或私有会话，在严格级联中也可表示不继续传达。"
-        },
-        "report_upward": {
-          "label": "向上反馈",
-          "description": "向直属上级私下反馈执行困难、资源不足、目标冲突或时限压力。"
-        },
-        "escalate_complaint": {
-          "label": "升级反馈 / 越级反映",
-          "description": "当直属上级不处理或压制反馈时，向更高层私下升级报告风险。"
-        },
-        "consult_peer": {
-          "label": "同级对话 / 协商",
-          "description": "与同层连接对象私下协商口径、交换执行经验或共享非正式解释。"
-        },
-        "notify_subordinate": {
-          "label": "私下通知下级",
-          "description": "将 follow-up 中形成的新要求、解释或转办意见定向发送给下级。"
-        },
-        "announce_policy_adjustment": {
-          "label": "发布政策调整",
-          "description": "由上级重新发布新的政策调整，正式重启一轮新的政策级联。"
-        }
-      }
+      "selectionMode": "选择方式",
+      "manualSelection": "手动选择"
     },
     "step4": {
       "modeTitle": "您想如何创建代理？",
@@ -2147,15 +1975,15 @@
       "totalAgents": "代理总数：{{count}}",
       "agentsDefined": "已定义 {{count}} 个代理",
       "llmProvider": "LLM 提供商",
-      "generationLlmProvider": "代理生成模型",
-      "generationLlmProviderHint": "用于生成代理档案的AI。使用下方的LLM分配来控制代理在模拟过程中使用哪些提供商。",
       "defaultProvider": "默认提供商",
       "importTitle": "导入代理数据",
       "importDesc": "上传包含代理定义的 CSV 或 JSON 文件。",
       "csvFormat": "CSV 格式示例：",
       "uploadCSV": "上传 CSV",
       "uploadJSON": "上传 JSON",
-      "importInfo": "文件导入功能将在第7阶段实现。"
+      "importInfo": "文件导入功能将在第7阶段实现。",
+      "generationLlmProvider": "代理生成LLM提供商",
+      "generationLlmProviderHint": "选择用于生成具有人口统计特征的代理的LLM提供商"
     },
     "step5": {
       "networkPresets": "网络预设",
@@ -2181,11 +2009,7 @@
       "instructions": "说明",
       "instructionSelect": "选择预设以生成网络",
       "instructionDrag": "拖动节点重新排列",
-      "instructionZoom": "滚动缩放，拖动平移",
-      "manualLinks": "手动连接",
-      "addLink": "添加连接",
-      "noLinks": "暂无连接",
-      "noProfile": "无简介"
+      "instructionZoom": "滚动缩放，拖动平移"
     },
     "step6": {
       "noAgentsDefined": "未定义代理",
@@ -2202,6 +2026,23 @@
         "review": "预览"
       }
     },
+    "experimentBuilder": {
+      "step3": {
+        "title": "选择动作",
+        "subtitle": "选择代理可以采取的动作。至少需要选择一个动作。",
+        "categoryInfo": "显示{{category}}类别的所有可用动作。此场景以一组预选动作开始。",
+        "noActions": "没有可用动作。请先选择一个场景或添加自定义动作。",
+        "addCustomAction": "添加自定义动作",
+        "customActionTitle": "添加自定义动作",
+        "actionName": "动作名称",
+        "actionNamePlaceholder": "例如，协商",
+        "description": "描述",
+        "descriptionPlaceholder": "描述这个动作的作用...",
+        "addAction": "添加动作",
+        "actionsSelected": "已选择 {{selected}} / {{total}} 个动作",
+        "removeAction": "删除动作"
+      }
+    },
     "actionEditor": {
       "title": "行动",
       "actionNumber": "行动 {{number}}",
@@ -2212,22 +2053,34 @@
     },
     "resourceConfig": {
       "title": "资源设置",
-      "displaySettingsTitle": "显示设置",
       "resourceNameLabel": "资源名称",
-      "amountPerRoundLabel": "每轮数量",
-      "amountPerRoundHint": "每个代理人在每阶段获得的代币数量",
+      "customResourceLabel": "自定义资源名称",
+      "customResourcePlaceholder": "输入自定义资源名称",
+      "initialAmountLabel": "初始数量",
       "multiplierLabel": "资金池倍数",
-      "multiplierHint": "应用于总资金池贡献的倍数，分配前进行乘法",
-      "showAverageLabel": "仅显示平均贡献",
-      "showAverageHint": "启用后，智能体将只看到其网络邻居的平均贡献，而不是个人贡献。使用全连接网络可显示全局平均（如 Grujić et al. 2019）。适用于大规模群体。"
+      "actionLabelsTitle": "行动标签",
+      "actionNameLabel": "行动名称",
+      "actionDescriptionLabel": "行动描述",
+      "resourceOptions": {
+        "tokens": "代币",
+        "money": "金钱",
+        "effortPoints": "努力点数",
+        "timeHours": "时间（小时）",
+        "resources": "资源",
+        "custom": "自定义..."
+      },
+      "amountPerRoundLabel": "每轮数量",
+      "displaySettingsTitle": "显示设置",
+      "showAverageLabel": "向代理显示平均贡献",
+      "showAverageHint": "启用后，代理可以在做决定前看到群体的平均贡献"
     },
     "deductionSettings": {
-      "title": "扣除设置",
-      "budgetLabel": "每阶段扣除预算",
-      "budgetHint": "设为0则禁用。启用时，代理人可减少他人资源。",
-      "costRatioLabel": "成本比率 (1 : N)",
-      "costRatioHint": "每花费1点，目标损失N点。数值越高，惩罚效果越强。",
-      "anonymousLabel": "匿名扣除"
+      "title": "扣罚设置",
+      "budgetLabel": "每阶段扣罚预算",
+      "budgetHint": "每个代理每阶段可用于减少他人贡献的扣罚点数",
+      "costRatioLabel": "扣罚成本比率",
+      "costRatioHint": "从他人处扣除1单位的成本（例如：3.0 = 花费3来扣除1）",
+      "anonymousLabel": "匿名扣罚（隐藏谁从谁那里扣罚）"
     }
   },
   "simulation": {
@@ -2236,15 +2089,7 @@
       "action_generic": "{{agent}} 执行了：{{action}}",
       "public_goods_contribution": "{{agent}} 决定{{action}} {{amount}} {{resource}}",
       "round_summary": "第 {{round}} 轮完成",
-      "payoff_result": "{{agent}} 获得了 {{payoff}} 分",
-      "diff": {
-        "description": "左侧显示该层收到的上级政策版本，右侧显示最终真正发给下一级的内容；若下方出现附加框，则表示 agent 原始草稿。",
-        "debugExpand": "调试信息，点击展开",
-        "debugCollapse": "调试信息，点击折叠",
-        "added": "新增",
-        "removed": "删除",
-        "modified": "改写"
-      }
+      "payoff_result": "{{agent}} 获得了 {{payoff}} 分"
     },
     "results": {
       "round_title": "第 {{round}} 轮结果",

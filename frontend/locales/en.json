@@ -9,61 +9,7 @@
     "cancel": "Cancel",
     "next": "Next",
     "back": "Back",
-    "previous": "Previous",
-    "colon": ":",
-    "remove": "Remove"
-  },
-  "language": {
-    "english": "EN",
-    "chinese": "中文"
-  },
-  "log": {
-    "reasoningStep": "Starting step {{step}} reasoning",
-    "reasoningStart": "Starting reasoning",
-    "reasoningDone": "Reasoning complete",
-    "actionPrefix": "Action",
-    "yieldTurn": "Yielded the floor",
-    "planUpdate": "Plan updated",
-    "agentError": "Agent error",
-    "llmCallError": "LLM call failed",
-    "llmParseError": "LLM output parse failed",
-    "agentOffline": "Agent went offline",
-    "distortionBlocked": "Policy transmission blocked",
-    "distortionAdjusted": "Policy transmission distorted",
-    "distortionUnchanged": "Policy transmission stayed effectively unchanged",
-    "distortedReason": "Distortion reason",
-    "pressureReason": "Distortion pressure",
-    "distortionInput": "Announcement classified as distortion cascade input",
-    "nonDistortionInput": "Announcement did not enter distortion cascade",
-    "privateCascadeInput": "This is a private cascade input, visible only to",
-    "waitingForTopTier": "waiting for top-tier relay",
-    "privateBroadcast": "Targeted private broadcast",
-    "globalBroadcast": "Global broadcast",
-    "recipientsLabel": "Recipients",
-    "allAgents": "All agents",
-    "originalMessage": "Received upstream policy version",
-    "draftMessage": "Agent draft before scene rewrite",
-    "finalMessage": "Actual downstream message",
-    "reasonLabel": "Reason",
-    "metricsLabel": "Metrics",
-    "actionStart": "Started action",
-    "actionEnd": "performed action",
-    "systemEvent": "System event",
-    "agentResponse": "Agent response",
-    "choseAction": "{{agent}} chose {{action}}",
-    "skippedTurn": "Round {{round}}: {{agent}} - skipped turn",
-    "roundAction": "Round {{round}}: {{agent}} chose {{action}}",
-    "unknown": "Unknown",
-    "empty": "(empty)",
-    "blockedNoDownstream": "(blocked / no downstream message)",
-    "noReasonProvided": "No reason provided",
-    "strength": "strength",
-    "conflict": "conflict",
-    "block": "block",
-    "pressure": "pressure",
-    "tendency": "tendency",
-    "performedAction": "Performed action",
-    "punishmentAction": "{{punisher}} punished {{target}} for {{amount}} tokens (deduction: {{deduction}})"
+    "previous": "Previous"
   },
   "brand": "SocialSim4",
   "nav": {
@@ -78,11 +24,75 @@
     "signout": "Sign out"
   },
   "landing": {
-    "headline": "Design, run, and explore social simulations driven by large language models.",
-    "sub": "Coordinate agents, branch timelines, and share live results with an interface built for experimentation teams.",
-    "learn": "Learn more about {{name}}.",
-    "ctaNew": "Launch your first simulation",
-    "ctaResume": "Resume your work"
+    "hero": {
+      "badge": "Social Systems Laboratory",
+      "line1": "Architecting",
+      "line2": "social logic",
+      "accent": "for branching, observation, and intervention",
+      "sub": "A cross-disciplinary simulation platform for researchers, policy teams, and social scientists. Enter through branching, observation, and intervention to study how complex systems actually evolve.",
+      "primaryCta": "Enter Laboratory",
+      "secondaryCta": "Read Methodology",
+      "tag1": "High-fidelity simulation",
+      "tag2": "Parallel branch tracking",
+      "tag3": "Attribution analysis"
+    },
+    "entry": {
+      "primaryBadge": "New Matrix",
+      "primaryTitle": "Start New Experiment",
+      "primarySubtitle": "Create new social node parameters",
+      "dashboardTitle": "Dashboard",
+      "dashboardSubtitle": "Global Monitor",
+      "interfaceTitle": "Main Interface",
+      "interfaceSubtitle": "Experiment Control",
+      "savedTitle": "Saved Simulations",
+      "savedSubtitle": "Saved Sim",
+      "settingsTitle": "Settings",
+      "settingsSubtitle": "System Settings"
+    },
+    "preview": {
+      "title": "Simulation Interaction Preview",
+      "accent": "Live platform view",
+      "sub": "Immersive observation, branching, and multi-dimensional system insight.",
+      "cta": "View Live Engine",
+      "overlayLabel": "Node Activity",
+      "overlayBranch": "Branch A-12",
+      "overlayBody": "System logical stability at 89.4% after intervention 4."
+    },
+    "capabilities": {
+      "title": "Core Capabilities",
+      "designTitle": "Experiment Design",
+      "designSubtitle": "Scenario and parameter architecture",
+      "designBody": "Define multi-dimensional parameters, causal chains, and system constraints in a safe environment before the run begins.",
+      "observeTitle": "Live Observation",
+      "observeSubtitle": "Trace the system as it unfolds",
+      "branchTitle": "Branching & Comparison",
+      "branchSubtitle": "Fork timelines and evaluate divergence",
+      "controlTitle": "Intervention & Control",
+      "controlBody": "Precision tools for causal intervention, runtime steering, and comparative analysis."
+    },
+    "scenes": {
+      "title": "Applied Research Scenes",
+      "kicker": "Scenario-oriented platform use",
+      "policyTitle": "Policy Simulation",
+      "policySubtitle": "Macro-to-local response",
+      "policyBody": "Test how broad policy shifts ripple through local groups and system structures.",
+      "behaviorTitle": "Social Behavior Analysis",
+      "behaviorSubtitle": "Collective pattern formation",
+      "behaviorBody": "Observe how individual choices accumulate into crowd-level behavior and feedback loops.",
+      "institutionTitle": "Institutional Testing",
+      "institutionSubtitle": "Organizational environment shifts",
+      "institutionBody": "Model how incentives, roles, and organizational pressure reshape performance over time.",
+      "interventionTitle": "Intervention Comparison",
+      "interventionSubtitle": "Measure tradeoffs across actions",
+      "interventionBody": "Compare the cost, timing, and downstream effects of different intervention strategies."
+    },
+    "finalCta": {
+      "title": "Begin Your Research",
+      "sub": "Reconnect to current laboratory context or launch a new simulation path from scratch.",
+      "new": "New Experiment",
+      "dashboard": "Dashboard",
+      "saved": "Saved Simulations"
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -107,6 +117,7 @@
   },
   "saved": {
     "title": "Saved simulations",
+    "subtitle": "Browse archived experiment runs, return to active work, and duplicate earlier configurations without leaving the laboratory shell.",
     "resume": "Resume",
     "copy": "Copy",
     "delete": "Delete",
@@ -120,6 +131,32 @@
     "selectAll": "Select all",
     "selectedCount": "Selected: {{count}}",
     "type": "Type",
+    "typeLabel": "Scene type",
+    "statusLabel": "Status",
+    "searchPlaceholder": "Search by title, status, scene, or ID…",
+    "sortLabel": "Sort",
+    "sortRecent": "Newest first",
+    "sortOldest": "Oldest first",
+    "sortName": "Name",
+    "allStatuses": "All statuses",
+    "allTypes": "All scene types",
+    "resultsLabel": "Archive explorer",
+    "emptyTitle": "No saved simulations match this view",
+    "emptyHint": "Adjust the filters or create a new experiment to begin building your archive.",
+    "detailTitle": "Selected archive",
+    "detailHint": "Inspect the current snapshot, then resume or duplicate it from this detail rail.",
+    "selectedTitle": "Archive context",
+    "detailBody": "\"{{name}}\" is preserved as a full experiment snapshot. Resume it to continue the active line, or duplicate it to fork a fresh working copy.",
+    "createdAt": "Created",
+    "simulationId": "Simulation ID",
+    "statusValues": {
+      "active": "Active",
+      "archived": "Archived",
+      "completed": "Completed",
+      "failed": "Failed",
+      "draft": "Draft",
+      "unknown": "Review"
+    },
     "confirmDelete": "Delete this simulation?",
     "confirmBulkDelete": "Delete {{count}} selected simulations?",
     "bulkDeleteResult": "Deleted {{success}} simulations / Failed {{failed}} simulations",
@@ -211,6 +248,9 @@
   },
   "settings": {
     "title": "Settings",
+    "subtitle": "Configure identity, providers, search, and file handling for this research workspace.",
+    "workspaceTitle": "Workspace context",
+    "workspaceHint": "This identity is reused across saved simulations, exports, and operator-facing surfaces.",
     "tabs": {
       "profile": "Profile",
       "security": "Security",
@@ -227,10 +267,15 @@
     },
     "security": {
       "signoutAll": "Sign out of all sessions",
-      "placeholder": "Two-factor authentication and password reset flows will appear here."
+      "placeholder": "Two-factor authentication and password reset flows will appear here.",
+      "sessionsTitle": "Session control",
+      "controlTitle": "Access posture",
+      "controlHint": "This workspace still uses the real SocialSim4 auth session and token refresh behavior."
     },
     "providers": {
       "title": "Provider integrations",
+      "workspaceTitle": "Provider workspace",
+      "workspaceHint": "Keep one trusted default model online, then add alternates for synthesis, long context, or benchmarking.",
       "type": {
         "openai": "OpenAI-compatible",
         "gemini": "Gemini"
@@ -296,6 +341,8 @@
     "files": {
       "title": "File Management",
       "description": "Manage uploaded files used in simulations.",
+      "maintenanceTitle": "Storage maintenance",
+      "maintenanceHint": "Run a quick orphan scan to find uploads that are no longer connected to active workspace entities.",
       "loading": "Loading files…",
       "error": "Unable to load files.",
       "empty": "No uploaded files.",
@@ -384,8 +431,7 @@
     "templateDefaults": {
       "village": "Create a diverse village community including farmers, merchants, and intellectuals.",
       "council": "Create a 5-member council with different policy stances and influence.",
-      "werewolf": "Create 9 werewolf game players: judge/seer, witch, hunter, 2 wolves, 3 civilians with personalities.",
-      "policyDiffusion": "Three-level policy diffusion scenario"
+      "werewolf": "Create 9 werewolf game players: judge/seer, witch, hunter, 2 wolves, 3 civilians with personalities."
     },
     "defaultPrompts": {
       "village": "Create a diverse village community including farmers, merchants, and intellectuals.",
@@ -466,17 +512,6 @@
       "mean": "Mean",
       "std": "Std",
       "traitsHint": "Traits will use Gaussian distribution (mean ± std), limited to 0-100 range.",
-      "llmDistribution": "LLM Distribution",
-      "addLlm": "Add LLM",
-      "llmProvider": "Provider",
-      "llmPercentage": "Percentage",
-      "llmTotal": "Total",
-      "llmTotalValid": "Total: {{current}}% ✓",
-      "llmMustEqual100": "Total must equal 100% (currently {{current}}%)",
-      "llmRemove": "Remove",
-      "llmLoadingProviders": "Loading providers...",
-      "llmNoProviders": "No LLM providers available. Add providers in Settings.",
-      "llmDistributionHint": "Distribute agents across different LLM providers (optional)",
       "generatedAgents": "Generated {{count}} agents",
       "clearReset": "Clear & Reset",
       "name": "Name",
@@ -502,33 +537,6 @@
       "people": "people",
       "timeFlow": "Time Flow",
       "perTurn": "per turn"
-    },
-    "demographics": {
-      "totalAgents": "Total Agents",
-      "title": "Demographics",
-      "namePlaceholder": "Name (e.g., Occupation)",
-      "categoriesPlaceholder": "Categories (comma-separated)",
-      "traitsTitle": "Traits (Normal Distribution)",
-      "traitNamePlaceholder": "Trait name",
-      "meanPlaceholder": "Mean",
-      "stdPlaceholder": "Std",
-      "generating": "Generating...",
-      "generateButton": "Generate Agents"
-    },
-    "llmDistribution": {
-      "title": "LLM Distribution",
-      "addLlm": "Add LLM",
-      "provider": "Provider",
-      "model": "Model",
-      "percentage": "Percentage",
-      "total": "Total",
-      "totalValid": "Total: 100% ✓",
-      "mustEqual100": "Total must equal 100% (currently {{current}}%)",
-      "remove": "Remove",
-      "loadingProviders": "Loading providers...",
-      "loadProvidersError": "Failed to load LLM providers. Please try again.",
-      "retry": "Retry",
-      "distributionHint": "Distribution will be applied when agents are generated."
     },
     "footer": {
       "previous": "Previous",
@@ -562,7 +570,6 @@
       "citizen": "Citizen",
       "customTemplate": "Custom Template",
       "provider": "Provider",
-      "tierLabel": "Political Tier",
       "traits": {
         "trust": "Trust",
         "empathy": "Empathy",
@@ -685,19 +692,51 @@
     "mechanicAutoEnabled": "Required for selected actions"
   },
   "auth": {
+    "layout": {
+      "badge": "Social Systems Laboratory",
+      "line1": "Return to the",
+      "line2": "research workspace",
+      "accent": "for branching, observation, and intervention",
+      "copy": "Continue where your scenarios, branches, and role observation left off inside the SocialSim4 research shell.",
+      "tag1": "Configure scenarios",
+      "tag2": "Branch timelines",
+      "tag3": "Observe roles",
+      "surfaceLabel": "Research workflow",
+      "surface1Title": "Configure",
+      "surface1Body": "Adjust scenarios, parameters, and experiment scope.",
+      "surface2Title": "Branch",
+      "surface2Body": "Create new paths from existing simulation nodes.",
+      "surface3Title": "Observe & intervene",
+      "surface3Body": "Return to the workbench to inspect roles and steer the run.",
+      "note": "Signing in restores your workspace context and keeps existing experiment results intact."
+    },
     "login": {
+      "badge": "Return to research workspace",
       "welcome": "Welcome back",
+      "subtitle": "Enter your credentials to continue into the Social Systems Laboratory and resume branching, observation, and intervention.",
       "email": "Email",
+      "emailPlaceholder": "Enter institutional email",
       "password": "Password",
+      "passwordPlaceholder": "Enter access password",
       "signin": "Sign in",
       "noAccount": "No account yet?",
       "create": "Create one",
-      "invalid": "Invalid credentials"
+      "invalid": "Invalid credentials",
+      "forgot": "Forgot access key?",
+      "sso": "SSO Login",
+      "help": "Lab Support",
+      "credentialCheck": "Continue with your current workspace identity",
+      "workspaceBound": "Reconnect to saved branches and observation context",
+      "footerLeft": "Social Systems Laboratory",
+      "footerRight": "Branch · Observe · Intervene"
     },
     "register": {
+      "badge": "Create research workspace",
       "title": "Create your workspace",
+      "subtitle": "Set up your workspace identity and operator credentials before entering the Social Systems Laboratory.",
       "organization": "Organization",
       "email": "Email",
+      "emailPlaceholder": "Enter institutional email",
       "username": "Username",
       "fullName": "Full name",
       "phone": "Phone number",
@@ -705,13 +744,16 @@
       "phonePlaceholder": "Enter phone number",
       "phoneHint": "Choose a country code first (default +86), then enter the remaining digits. Leading 0 will be removed automatically.",
       "password": "Password",
+      "passwordPlaceholder": "Set access password",
       "submit": "Create account",
       "success": "Registration successful. Check your email.",
       "failed": "Registration failed",
       "invalidPhone": "Invalid phone number. Select a country code and enter 8–15 digits.",
       "invalidPhoneTitle": "Select a country code and enter the phone digits. The app will convert it to international format.",
       "have": "Already registered?",
-      "signin": "Sign in"
+      "signin": "Sign in",
+      "footerLeft": "Social Systems Laboratory",
+      "footerRight": "Configure · Branch · Observe"
     }
   },
   "sim": {
@@ -972,14 +1014,14 @@
     "resetFail": "Failed to reset simulation",
     "deleteSuccess": "Simulation deleted",
     "deleteFail": "Failed to delete simulation",
-    "autoAdvance": "Auto advance",
-    "steps": "Steps",
+    "autoAdvance": "Auto-advance",
     "stop": "Stop",
-    "advancingProgress": "Advancing {{current}}/{{total}}...",
-    "autoAdvanceComplete": "Auto-advance complete. Created {{count}} nodes.",
-    "autoAdvanceError": "Auto-advance stopped: {{error}}",
-    "autoAdvanceStopped": "Auto-advance stopped at step {{current}} of {{total}}.",
-    "enterSteps": "Enter number of steps (1–100)"
+    "enterSteps": "Enter number of steps",
+    "advancingProgress": "Step {{current}} of {{total}}",
+    "tabs": {
+      "timeline": "Timeline",
+      "agents": "Agents"
+    }
   },
   "components": {
     "agentPanel": {
@@ -1003,6 +1045,7 @@
       "noCustomAttributes": "No custom attributes",
       "knowledgeBase": "Knowledge Base (RAG)",
       "noKnowledgeDocs": "No knowledge base documents yet",
+      "searchPlaceholder": "Search agents...",
       "save": "Save",
       "addKnowledge": "Add knowledge item",
       "documentKnowledgeBase": "Document Knowledge Base",
@@ -1011,11 +1054,7 @@
       "supportedFormats": "Supports: PDF, TXT, DOCX, MD (max 10MB)",
       "noUploadedDocs": "No uploaded documents yet",
       "textChunks": "text chunks",
-      "shortTermMemory": "Short-term Memory",
-      "changeLLM": "Change LLM",
-      "providersLoadError": "Failed to load providers",
-      "llmUpdateSuccess": "LLM updated successfully",
-      "llmUpdateError": "Failed to update LLM"
+      "shortTermMemory": "Short-term Memory"
     },
     "copyButton": {
       "copy": "Copy",
@@ -1138,8 +1177,7 @@
       "hintAgentDataJson": "Includes complete agent memory, historical status curves, and all other data.",
       "cancel": "Cancel",
       "generating": "Generating...",
-      "confirmExport": "Confirm Export",
-      "exportFailed": "Export failed. Please try again."
+      "confirmExport": "Confirm Export"
     },
     "guidePrompt": {
       "systemPrompt": "You are the expert guide for \"SocialSim4 Next\", a social simulation platform.\n     Your goal is to help users design experiments and navigate the platform features.\n     \n     PLATFORM CAPABILITIES MAP:\n     1. **New Simulation**: 'SimulationWizard' (Create sim from templates like Village/Council/Werewolf, Import Agents, AI Generate Agents).\n     2. **Social Network**: 'NetworkEditor' (Define topology like Ring/Star/Small World to control information flow).\n     3. **Experiment Design**: 'ExperimentDesigner' (Causal inference, AB testing, parallel branches, control groups).\n     4. **Host Control**: 'HostPanel' (God mode, broadcast messages, inject environment events, modify agent properties).\n     5. **Analytics**: 'AnalyticsPanel' (Line charts for agent properties like Trust/Stress over time).\n     6. **Export**: 'ExportModal' (Download logs as JSON/CSV/Excel).\n     7. **Reports**: 'ReportModal' (AI-generated analysis reports).\n     8. **SimTree**: The main visualization. Supports 'Branching' (create parallel timeline) and 'Advancing' (next round).\n     9. **Comparison**: 'ComparisonView' (Diff two nodes/timelines).\n\n     INSTRUCTIONS:\n     - Analyze the user's intent.\n     - Provide a concise, step-by-step guide mapping their goal to specific Platform Tools.\n     - If the user needs to OPEN a specific tool, append a tag at the end of your response in the format: [[ACTION_NAME]].\n     - Supported Tags: [[OPEN_WIZARD]], [[OPEN_NETWORK]], [[OPEN_EXPERIMENT]], [[OPEN_EXPORT]], [[OPEN_ANALYTICS]], [[OPEN_HOST]].\n     - You can include multiple tags if relevant, but prioritize the most important one.\n     - Use Markdown for formatting.",
@@ -1164,14 +1202,10 @@
       "instructionType": "Global Instruction",
       "propertyType": "Modify Property",
       "environmentType": "Environment Event",
-      "followUpConditionType": "Follow-up Condition",
-      "followUpThreadSeedType": "Follow-up Thread Seed",
       "selectAgent": "Select agent...",
       "imageLabel": "Image (optional)",
       "imageHelper": "Drag/click to upload and insert image as markdown link",
       "propertyPlaceholder": "e.g., Reduce trust value to 10",
-      "followUpConditionPlaceholder": "e.g., resource_shortage=0.8, public_opinion_pressure=0.6 or {\"resource_shortage\": 0.8}",
-      "followUpThreadSeedPlaceholder": "e.g., Agent 3 wants to message Agent 4: execution is difficult and needs a response. JSON is also supported.",
       "descriptionPlaceholder": "Describe specific intervention content...",
       "addIntervention": "Add Intervention",
       "addVariant": "Add New Variant",
@@ -1179,61 +1213,7 @@
       "startBatch": "Start Batch Run ({{count}} branches)",
       "liveLogPreview": "Live log preview (last {{count}} entries)",
       "noLogsYet": "No logs yet",
-      "imageUploaded": "Image uploaded and inserted",
-      "followUpConditionPlaceholder": "e.g., resource_shortage=0.8, public_opinion_pressure=0.6 or {\"resource_shortage\": 0.8}",
-      "followUpThreadSeedPlaceholder": "e.g., Agent 3 wants to send a message to Agent 4 about execution difficulties, needs response. JSON also supported.",
-      "followUpConditionType": "Follow-up condition",
-      "followUpThreadSeedType": "Follow-up thread seed",
-      "scenarioParamsType": "Scenario Parameters",
-      "scenarioParamsPlaceholder": "Edit scenario parameters. Press Enter or click + to add a new parameter.",
-      "scenarioParamsHint": "Edit parameters below. Changed values will be highlighted.",
-      "scenarioParamsKeyPlaceholder": "new_parameter",
-      "scenarioParamsUnknownKey": "⚠ unknown key — check spelling",
-      "addParam": "Add",
-      "resetToDefault": "Reset to default",
-      "networkTopologyType": "Network Topology",
-      "networkPresetLabel": "Topology Preset",
-      "networkEdgeCountHint": "{{n}} agents → {{e}} edges",
-      "networkLargeGraphWarning": "Large graph: {{e}} edges may slow simulation",
-      "customEdgesLabel": "Custom Edges",
-      "customEdgesPlaceholder": "Alice, Bob\nBob, Charlie\none edge per line",
-      "presetFull": "Fully Connected",
-      "presetRing": "Ring",
-      "presetStar": "Star",
-      "presetRandom": "Random",
-      "presetNewmanWatts": "Small World",
-      "presetCorePeriphery": "Core-Periphery",
-      "presetHolmeKim": "Scale-Free",
-      "presetWaxman": "Spatial",
-      "presetSbm": "Communities",
-      "presetCustom": "Custom Edges",
-      "paramConnectionChance": "Connection chance",
-      "paramNeighborsEachSide": "Neighbors each side",
-      "paramShortcutChance": "Shortcut chance",
-      "paramInfluencerPercent": "Influencer %",
-      "paramInfluencerConnectivity": "Influencer connectivity",
-      "paramInfluencerReach": "Influencer reach",
-      "paramRegularConnectivity": "Regular connectivity",
-      "paramNewConnections": "New connections per node",
-      "paramClusteringChance": "Clustering chance",
-      "paramMaxDistance": "Max distance",
-      "paramDistanceEffect": "Distance effect",
-      "paramGroupSize": "Group size",
-      "paramWithinGroupConnectivity": "Within-group connectivity",
-      "paramBridgeConnections": "Bridge connections",
-      "previewTitle": "Experiment Summary",
-      "previewVariant": "Variant",
-      "previewIntervention": "Intervention",
-      "previewScenarioParams": "Scenario Parameters",
-      "previewNetworkTopology": "Network Topology",
-      "previewUnknownKey": "⚠ unknown key",
-      "previewWas": "was",
-      "previewNew": "new",
-      "previewEdges": "edges",
-      "previewSeed": "seed",
-      "previewConfirm": "Confirm & Start Experiment",
-      "previewBack": "Back",
-      "previewNoChanges": "No changes"
+      "imageUploaded": "Image uploaded and inserted"
     },
     "hostPanel": {
       "godModeTitle": "God Mode",
@@ -1261,13 +1241,7 @@
       "enterNewValue": "Enter new value",
       "updateProperty": "Update Property",
       "broadcastSent": "Broadcast sent to agents",
-      "broadcastFailed": "Failed to send broadcast",
-      "privateBroadcastLog": "Targeted private broadcast",
-      "globalBroadcastLog": "Global broadcast",
-      "recipientsLog": "Recipients",
-      "allAgentsLog": "All agents",
-      "recipientHint": "Select recipients (leave empty for all):",
-      "injectNoticeOnly": "Note: Injected environment events are notice-only (no system broadcast), used to intervene in subsequent events."
+      "broadcastFailed": "Failed to send broadcast"
     },
     "initialEventsModal": {
       "title": "Initial Event Editor",
@@ -1417,13 +1391,10 @@
       "zoomOut": "Zoom out",
       "resetView": "Reset view",
       "nodes": "nodes",
-      "edges": "edges",
-      "manualLinks": "Manual Links",
-      "selectSource": "Select source",
-      "selectTarget": "Select target",
-      "addLink": "Add Link",
-      "noLinks": "No links yet",
-      "noProfile": "No profile"
+      "edges": "edges"
+    },
+    "networkGraph": {
+      "emptyState": "No network to display"
     },
     "reportModal": {
       "title": "Simulation Experiment Analysis Report",
@@ -1682,14 +1653,6 @@
     "guideConnectionTimeout": "AI service connection timeout, please try again later.",
     "loadProvidersFailed": "Failed to load LLM providers",
     "experimentSubmitted": "Experiment \"{{name}}\" submitted to backend (run_id={{runId}})",
-    "experimentCreatedNoRun": "Experiment \"{{name}}\" created; comparison branches entered and have not been auto-run",
-    "experimentBranchCreated": "Entered comparison branch: {{experimentName}} / {{variantName}}",
-    "experimentBaseNode": "Base node",
-    "experimentInterventionContent": "Experiment intervention",
-    "experimentCurrentStatus": "Status",
-    "experimentStatusPending": "Not run yet",
-    "experimentEnvironmentEvent": "Environment event",
-    "experimentPublicBroadcast": "Public broadcast",
     "experimentCompleted": "Experiment {{name}} completed (run {{status}})",
     "failedToStartExperiment": "Failed to start experiment",
     "batchExperimentStarted": "Batch experiment \"{{name}}\" started",
@@ -1852,104 +1815,20 @@
       "message": "These actions are generated from the \"{{paramLabel}}\" parameter. Edit it in Step 2 to change the available choices."
     },
     "paramLabels": {
-      "cooperate_reward": "Both Cooperate",
-      "sucker_penalty": "You Cooperate, They Defect",
-      "temptation_reward": "You Defect, They Cooperate",
-      "defect_penalty": "Both Defect",
-      "action_1_name": "Action 1 Name",
-      "action_2_name": "Action 2 Name",
-      "action_1_description": "Action 1 Description",
-      "action_2_description": "Action 2 Description",
-      "preferred_mispreferred": "Preferred / Mispreferred Payoff",
-      "mispreferred_payoff": "Mispreferred Alone Payoff",
-      "stag_reward": "Stag Reward (if all choose)",
-      "hare_reward": "Hare Reward (always)",
-      "norm_strength": "Norm Strength",
-      "agent_status_distribution": "Agent Status Distribution",
       "cascade_mode": "Cascade Mode",
       "distortion_strength": "Distortion Strength",
       "conflict_sensitivity": "Conflict Sensitivity",
       "block_probability": "Block Probability",
       "num_agents_per_tier": "Agents per Tier",
-      "policy_text": "Initial Background Context",
-      "deliberation_rounds": "Deliberation Rounds",
-      "connection_homogeneity": "Connection Homogeneity",
-      "opinion_distribution": "Initial Opinion Distribution",
-      "resource_amount": "Total Resources",
-      "initial_distribution": "Initial Distribution",
-      "topic": "Discussion Topic",
-      "proposal_text": "Proposal Text",
-      "voting_threshold": "Voting Threshold",
-      "max_rounds": "Max Debate Rounds",
-      "grid_size": "Grid Size",
-      "resource_count": "Resource Count",
-      "num_werewolves": "Number of Werewolves",
-      "num_villagers": "Number of Villagers",
-      "resource_name": "Resource Name",
-      "resource_name_custom": "Custom Resource Name",
-      "initial_amount": "Initial Amount",
-      "multiplier": "Pool Multiplier",
-      "action_name": "Action Name",
-      "action_description": "Action Description",
-      "choices": "Available Choices",
-      "goal": "Coordination Goal",
-      "initial_infected": "Initial Infected Agents",
-      "proximity_probability": "Proximity Transmission Rate",
-      "action_probability": "Action Transmission Rate",
-      "recovery_turns": "Turns Until Recovery",
-      "punishment_budget_per_round": "Punishment Budget per Round",
-      "punishment_cost_ratio": "Cost Ratio (1 token : N payoff deduction)",
-      "punishment_anonymous": "Anonymous Punishment Mode"
+      "policy_text": "Initial Background Context"
     },
     "paramDescriptions": {
-      "cooperate_reward": "Payoff when both players choose the first action",
-      "sucker_penalty": "Your payoff when you choose the first action but they choose the second",
-      "temptation_reward": "Your payoff when you choose the second action and they choose the first",
-      "defect_penalty": "Payoff when both players choose the second action",
-      "action_1_name": "Name of the first action",
-      "action_2_name": "Name of the second action",
-      "action_1_description": "Description of the first action",
-      "action_2_description": "Description of the second action",
-      "preferred_mispreferred": "Payoff when both get their preferred choice",
-      "mispreferred_payoff": "Payoff when alone at mispreferred location",
-      "stag_reward": "Reward for hunting stag when all players choose stag",
-      "hare_reward": "Reward for hunting hare (always available)",
-      "norm_strength": "Strength of the social norm being disrupted",
-      "agent_status_distribution": "Distribution of agent statuses in the population",
       "cascade_mode": "Choose whether each level must relay the policy faithfully or may distort and block it during transmission.",
       "distortion_strength": "Only used in distortion mode. Higher values make downstream rewrites of the policy more severe.",
       "conflict_sensitivity": "Only used in distortion mode. Higher values make value conflicts more likely to become resistance or deviation.",
       "block_probability": "Only used in distortion mode. The base probability that an agent withholds the policy instead of forwarding it.",
       "num_agents_per_tier": "Controls how many agents are generated for each hierarchy level.",
-      "policy_text": "Used only to set the opening background or situation for round 1. It does not automatically become the protected source policy for later relay.",
-      "deliberation_rounds": "Number of discussion rounds before voting begins automatically. 0 = immediate voting, 1-10 = fixed rounds, empty = agent-controlled",
-      "connection_homogeneity": "How likely agents are to connect with similar-minded agents",
-      "opinion_distribution": "Initial distribution of opinions in the population",
-      "resource_amount": "Total amount of resources available",
-      "initial_distribution": "How resources are initially distributed among agents",
-      "topic": "Topic for open discussion",
-      "proposal_text": "The proposal to be debated and voted on",
-      "voting_threshold": "Percentage of votes needed to pass the proposal",
-      "max_rounds": "Maximum number of debate rounds before voting",
-      "grid_size": "Size of the grid (N x N)",
-      "resource_count": "Number of resources placed on the grid",
-      "num_werewolves": "Number of werewolf roles in the game",
-      "num_villagers": "Number of villager roles in the game",
-      "resource_name": "Type of resource in the game",
-      "resource_name_custom": "Custom name for the resource",
-      "initial_amount": "Starting amount each agent receives",
-      "multiplier": "Multiplier applied to the contribution pool",
-      "action_name": "Name of the contribution action",
-      "action_description": "Description of the contribution action",
-      "choices": "Comma-separated list of choices agents can pick from",
-      "goal": "Whether agents should try to match or differ from their neighbors",
-      "initial_infected": "Number of agents that start infected",
-      "proximity_probability": "Probability of transmission when agents are adjacent",
-      "action_probability": "Probability of transmission when infected agent speaks to susceptible",
-      "recovery_turns": "Number of turns before infected agents recover",
-      "punishment_budget_per_round": "Punishment tokens each agent receives per round. Set to 0 to disable punishment.",
-      "punishment_cost_ratio": "How much target payoff is reduced per punishment token spent. Higher values = stronger punishment.",
-      "punishment_anonymous": "When enabled, targets don't see who punished them (only see 'anonymous')."
+      "policy_text": "Used only to set the opening background or situation for round 1. It does not automatically become the protected source policy for later relay."
     },
     "payoffMatrix": {
       "howToRead": {
@@ -2031,30 +1910,6 @@
         "yourPayoffs": "Your Payoffs:",
         "instruction": "Fill in what YOU receive based on YOUR choice and THEIR choice.",
         "youThey": "You: {{actionA}} / They: {{actionB}}"
-      },
-      "actionNames": {
-        "Cooperate": "Cooperate",
-        "Defect": "Defect",
-        "Stag": "Stag",
-        "Hare": "Hare",
-        "Heads": "Heads",
-        "Tails": "Tails",
-        "Soccer": "Soccer",
-        "Ballet": "Ballet",
-        "Contribute": "Contribute",
-        "Keep": "Keep"
-      },
-      "actionDescriptions": {
-        "Cooperate": "Cooperate with the other player",
-        "Defect": "Act in your own self-interest",
-        "Stag": "Hunt the stag (requires all to cooperate)",
-        "Hare": "Hunt the hare (safe but lower reward)",
-        "Heads": "Choose heads",
-        "Tails": "Choose tails",
-        "Soccer": "Go to the football game",
-        "Ballet": "Go to the opera",
-        "Contribute": "Contribute to the shared pool",
-        "Keep": "Keep resources for yourself"
       }
     },
     "step3": {
@@ -2072,37 +1927,7 @@
       "descriptionPlaceholder": "Describe what this action does...",
       "addAction": "Add Action",
       "actionsSelected": "{{selected}} of {{total}} actions selected",
-      "removeAction": "Remove action",
-      "policyActions": {
-        "send_message": {
-          "label": "Formal relay / reply",
-          "description": "Formally relay the current policy content, or privately reply within the current follow-up thread."
-        },
-        "yield": {
-          "label": "Defer / avoid",
-          "description": "Temporarily avoid the current relay or private thread; in strict cascade it can also represent withholding."
-        },
-        "report_upward": {
-          "label": "Report upward",
-          "description": "Privately report execution difficulty, resource shortage, goal conflict, or deadline pressure to a direct superior."
-        },
-        "escalate_complaint": {
-          "label": "Escalate complaint",
-          "description": "Privately escalate a risk report to a higher-level superior when the direct superior suppresses or ignores feedback."
-        },
-        "consult_peer": {
-          "label": "Peer consultation",
-          "description": "Privately coordinate with a same-tier contact to align interpretation or share informal execution knowledge."
-        },
-        "notify_subordinate": {
-          "label": "Notify subordinate",
-          "description": "Privately send a follow-up instruction, clarification, or transfer notice to a subordinate."
-        },
-        "announce_policy_adjustment": {
-          "label": "Announce policy adjustment",
-          "description": "Issue a formal policy adjustment that reopens a new cascade round."
-        }
-      }
+      "removeAction": "Remove action"
     },
     "step4": {
       "modeTitle": "How would you like to create agents?",
@@ -2164,15 +1989,15 @@
       "totalAgents": "Total agents: {{count}}",
       "agentsDefined": "{{count}} agent(s) defined",
       "llmProvider": "LLM Provider",
-      "generationLlmProvider": "Agent Generation Model",
-      "generationLlmProviderHint": "Which AI generates the agent profiles. Use LLM Distribution below to control which providers agents use during the simulation.",
       "defaultProvider": "Default Provider",
       "importTitle": "Import Agent Data",
       "importDesc": "Upload a CSV or JSON file with agent definitions.",
       "csvFormat": "CSV Format Example:",
       "uploadCSV": "Upload CSV",
       "uploadJSON": "Upload JSON",
-      "importInfo": "File import will be implemented in Phase 7."
+      "importInfo": "File import will be implemented in Phase 7.",
+      "generationLlmProvider": "Agent Generation LLM Provider",
+      "generationLlmProviderHint": "Select the LLM provider to use for generating agents with demographic profiles"
     },
     "step5": {
       "networkPresets": "Network Presets",
@@ -2198,11 +2023,7 @@
       "instructions": "Instructions",
       "instructionSelect": "Select a preset to generate a network",
       "instructionDrag": "Drag nodes to rearrange",
-      "instructionZoom": "Scroll to zoom, drag to pan",
-      "manualLinks": "Manual links",
-      "addLink": "Add link",
-      "noLinks": "No links yet",
-      "noProfile": "No profile"
+      "instructionZoom": "Scroll to zoom, drag to pan"
     },
     "step6": {
       "noAgentsDefined": "No Agents Defined",
@@ -2219,6 +2040,23 @@
         "review": "Review"
       }
     },
+    "experimentBuilder": {
+      "step3": {
+        "title": "Select Actions",
+        "subtitle": "Choose what actions agents can take. At least one action must be selected.",
+        "categoryInfo": "Showing all available actions for the {{category}} category. This scenario starts with a pre-selected set of actions.",
+        "noActions": "No actions available. Please select a scenario first or add custom actions.",
+        "addCustomAction": "Add custom action",
+        "customActionTitle": "Add Custom Action",
+        "actionName": "Action name",
+        "actionNamePlaceholder": "e.g., Negotiate",
+        "description": "Description",
+        "descriptionPlaceholder": "Describe what this action does...",
+        "addAction": "Add Action",
+        "actionsSelected": "{{selected}} of {{total}} actions selected",
+        "removeAction": "Remove action"
+      }
+    },
     "actionEditor": {
       "title": "Actions",
       "actionNumber": "Action {{number}}",
@@ -2229,22 +2067,34 @@
     },
     "resourceConfig": {
       "title": "Resource Settings",
-      "displaySettingsTitle": "Display Settings",
       "resourceNameLabel": "Resource Name",
-      "amountPerRoundLabel": "Amount per Round",
-      "amountPerRoundHint": "The number of tokens each agent receives at the phase",
+      "customResourceLabel": "Custom Resource Name",
+      "customResourcePlaceholder": "Enter custom resource name",
+      "initialAmountLabel": "Initial Amount",
       "multiplierLabel": "Pool Multiplier",
-      "multiplierHint": "The multiplier applied to the total pool contribution before distribution",
-      "showAverageLabel": "Only show average contribution",
-      "showAverageHint": "When enabled, agents see only the average contribution from their network neighbors instead of individual contributions. Use a fully-connected network to show the global average (as in Grujić et al. 2019). Useful for large groups."
+      "actionLabelsTitle": "Action Labels",
+      "actionNameLabel": "Action Name",
+      "actionDescriptionLabel": "Action Description",
+      "resourceOptions": {
+        "tokens": "Tokens",
+        "money": "Money",
+        "effortPoints": "Effort Points",
+        "timeHours": "Time (hours)",
+        "resources": "Resources",
+        "custom": "Custom..."
+      },
+      "amountPerRoundLabel": "Amount per Round",
+      "displaySettingsTitle": "Display Settings",
+      "showAverageLabel": "Show average contribution to agents",
+      "showAverageHint": "When enabled, agents can see the group's average contribution before making their decision"
     },
     "deductionSettings": {
       "title": "Deduction Settings",
       "budgetLabel": "Deduction Budget per Phase",
-      "budgetHint": "Set to 0 to disable. When enabled, agents can reduce others' resources.",
-      "costRatioLabel": "Cost Ratio (1 : N)",
-      "costRatioHint": "For each 1 point spent, the target loses N points. Higher values mean stronger punishment effect.",
-      "anonymousLabel": "Anonymous Deductions"
+      "budgetHint": "Number of deduction points each agent can use per phase to reduce others' contributions",
+      "costRatioLabel": "Deduction Cost Ratio",
+      "costRatioHint": "Cost to deduct 1 unit from others (e.g., 3.0 = spend 3 to deduct 1)",
+      "anonymousLabel": "Anonymous deductions (hide who deducted from whom)"
     }
   },
   "simulation": {
@@ -2253,15 +2103,7 @@
       "action_generic": "{{agent}} performed: {{action}}",
       "public_goods_contribution": "{{agent}} decided to {{action}} {{amount}} {{resource}}",
       "round_summary": "Round {{round}} complete",
-      "payoff_result": "{{agent}} received {{payoff}} points",
-      "diff": {
-        "description": "Left side shows the upstream policy version received by this layer, right side shows the final content sent downstream; if an additional box appears below, it shows the agent's original draft.",
-        "debugExpand": "Debug info, click to expand",
-        "debugCollapse": "Debug info, click to collapse",
-        "added": "Added",
-        "removed": "Removed",
-        "modified": "Modified"
-      }
+      "payoff_result": "{{agent}} received {{payoff}} points"
     },
     "results": {
       "round_title": "Round {{round}} Results",

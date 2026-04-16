@@ -197,20 +197,20 @@ const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        {data.agentLabel && <span className="text-sm font-semibold text-slate-800">{data.agentLabel}</span>}
-        <span className="text-sm font-semibold text-slate-700">{data.title}</span>
+        {data.agentLabel && <span className="text-sm font-semibold" style={{ color: 'var(--ss-workspace-heading)' }}>{data.agentLabel}</span>}
+        <span className="text-sm font-semibold" style={{ color: 'var(--ss-workspace-heading)' }}>{data.title}</span>
       </div>
 
-      <div className="text-xs text-slate-500">
+      <div className="text-xs" style={{ color: 'var(--ss-workspace-muted)' }}>
         {t('simulation.log.diff.description')}
       </div>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <div className="rounded-lg border border-slate-200 bg-slate-50 overflow-hidden">
-          <div className="border-b border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">
+        <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--ss-workspace-border)', background: 'var(--ss-surface-strong)' }}>
+          <div className="border-b px-3 py-2 text-xs font-semibold uppercase tracking-wide" style={{ borderColor: 'var(--ss-workspace-border)', background: 'var(--ss-surface-inset)', color: 'var(--ss-workspace-text)' }}>
             {data.leftTitle}
           </div>
-          <div className="max-h-80 overflow-auto px-3 py-3 text-sm leading-6 text-slate-700 space-y-1">
+          <div className="max-h-80 overflow-auto px-3 py-3 text-sm leading-6 space-y-1" style={{ color: 'var(--ss-workspace-heading)' }}>
             {rows.filter(row => row.left).map((row, idx) => {
               const segments = row.kind === 'modified'
                 ? buildInlineDiffSegments(row.left, row.right, 'left')
@@ -239,7 +239,7 @@ const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
           <div className="border-b border-blue-200 bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-700 uppercase tracking-wide">
             {data.rightTitle}
           </div>
-          <div className="max-h-80 overflow-auto px-3 py-3 text-sm leading-6 text-slate-700 space-y-1">
+          <div className="max-h-80 overflow-auto px-3 py-3 text-sm leading-6 space-y-1" style={{ color: 'var(--ss-workspace-heading)' }}>
             {rows.filter(row => row.right).map((row, idx) => {
               const segments = row.kind === 'modified'
                 ? buildInlineDiffSegments(row.left, row.right, 'right')
@@ -268,24 +268,25 @@ const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
       {data.draftContent && (
         <details
           open={showDraftExpanded}
-          className="rounded-lg border border-slate-200 bg-white overflow-hidden group"
+          className="rounded-lg border overflow-hidden group"
+          style={{ borderColor: 'var(--ss-workspace-border)', background: 'var(--ss-workspace-surface)' }}
         >
-          <summary className="flex cursor-pointer list-none items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">
+          <summary className="flex cursor-pointer list-none items-center justify-between border-b px-3 py-2 text-xs font-semibold uppercase tracking-wide" style={{ borderColor: 'var(--ss-workspace-border)', background: 'var(--ss-surface-strong)', color: 'var(--ss-workspace-text)' }}>
             <span>{data.draftTitle}</span>
-            <span className="text-[11px] font-medium normal-case tracking-normal text-slate-400 group-open:hidden">
+            <span className="text-[11px] font-medium normal-case tracking-normal group-open:hidden" style={{ color: 'var(--ss-workspace-muted)' }}>
               {t('simulation.log.diff.debugExpand')}
             </span>
-            <span className="hidden text-[11px] font-medium normal-case tracking-normal text-slate-400 group-open:inline">
+            <span className="hidden text-[11px] font-medium normal-case tracking-normal group-open:inline" style={{ color: 'var(--ss-workspace-muted)' }}>
               {t('simulation.log.diff.debugCollapse')}
             </span>
           </summary>
-          <div className="max-h-64 overflow-auto px-3 py-3 text-sm leading-6 text-slate-700 whitespace-pre-wrap break-words">
+          <div className="max-h-64 overflow-auto px-3 py-3 text-sm leading-6 whitespace-pre-wrap break-words" style={{ color: 'var(--ss-workspace-heading)' }}>
             {data.draftContent}
           </div>
         </details>
       )}
 
-      <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+      <div className="flex flex-wrap gap-2 text-xs" style={{ color: 'var(--ss-workspace-muted)' }}>
         <span className="rounded-full bg-emerald-100 px-2 py-1 text-emerald-700">{t('simulation.log.diff.added')}</span>
         <span className="rounded-full bg-rose-100 px-2 py-1 text-rose-700">{t('simulation.log.diff.removed')}</span>
         <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-700">{t('simulation.log.diff.modified')}</span>
@@ -296,7 +297,7 @@ const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
         <div className="mt-1 whitespace-pre-wrap break-words">{data.reason}</div>
       </div>
 
-      <div className="text-xs text-slate-500 whitespace-pre-wrap break-words">
+      <div className="text-xs whitespace-pre-wrap break-words" style={{ color: 'var(--ss-workspace-muted)' }}>
         <span className="font-medium">{data.metricsLabel}{t('common.colon')}</span>
         {data.metrics}
       </div>
@@ -309,7 +310,7 @@ const formatLogTime = (dateStr: string) => {
   if (!dateStr || dateStr.length < 10) return dateStr;
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return dateStr;
-  
+
   // E.g. "Mar 10, 14:00"
   return date.toLocaleString('zh-CN', {
     month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -377,23 +378,34 @@ const LogItem: React.FC<{
 
   const getBorderColor = () => {
     switch (entry.type) {
-      case 'SYSTEM': return 'border-l-slate-400';
       case 'AGENT_SAY': return 'border-l-blue-500';
       case 'AGENT_ACTION': return 'border-l-amber-500';
       case 'AGENT_METADATA': return 'border-l-purple-400';
       case 'ENVIRONMENT': return 'border-l-emerald-500';
-      default: return 'border-l-slate-200';
+      default: return '';
     }
   };
 
-  const getBadgeColor = () => {
+  const getBorderStyle = (): React.CSSProperties | undefined => {
     switch (entry.type) {
-      case 'SYSTEM': return 'bg-slate-100 text-slate-600';
-      case 'AGENT_SAY': return 'bg-blue-50 text-blue-600';
-      case 'AGENT_ACTION': return 'bg-amber-50 text-amber-600';
-      case 'AGENT_METADATA': return 'bg-purple-50 text-purple-600';
-      case 'ENVIRONMENT': return 'bg-emerald-50 text-emerald-600';
-      default: return 'bg-slate-100 text-slate-500';
+      case 'AGENT_SAY':
+      case 'AGENT_ACTION':
+      case 'AGENT_METADATA':
+      case 'ENVIRONMENT':
+        return undefined;
+      default:
+        return { borderLeftColor: 'var(--ss-workspace-border)' };
+    }
+  };
+
+  const getBadgeColor = (): { className: string; style?: React.CSSProperties } => {
+    switch (entry.type) {
+      case 'SYSTEM': return { className: '', style: { background: 'var(--ss-surface-inset)', color: 'var(--ss-workspace-text)' } };
+      case 'AGENT_SAY': return { className: 'bg-blue-50 text-blue-600' };
+      case 'AGENT_ACTION': return { className: 'bg-amber-50 text-amber-600' };
+      case 'AGENT_METADATA': return { className: 'bg-purple-50 text-purple-600' };
+      case 'ENVIRONMENT': return { className: 'bg-emerald-50 text-emerald-600' };
+      default: return { className: '', style: { background: 'var(--ss-surface-inset)', color: 'var(--ss-workspace-muted)' } };
     }
   };
 
@@ -458,20 +470,21 @@ const LogItem: React.FC<{
   const ImageComponent = () => (
     entry.imageUrl ? (
       <div className="mt-2">
-        <div 
+        <div
           className="relative group cursor-pointer w-fit"
           onClick={() => setIsImageExpanded(true)}
         >
           <img
             src={entry.imageUrl}
             alt={t('components.logViewer.logAttachment')}
-            className="max-h-48 rounded border border-slate-200 object-cover"
+            className="max-h-48 rounded border object-cover"
+            style={{ borderColor: 'var(--ss-workspace-border)' }}
           />
           <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors rounded flex items-center justify-center opacity-0 group-hover:opacity-100">
              <ImageIcon className="text-white drop-shadow-md" size={24} />
           </div>
         </div>
-        
+
         {/* Simple Lightbox */}
         {isImageExpanded && (
           <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4" onClick={(e) => {
@@ -489,14 +502,14 @@ const LogItem: React.FC<{
   );
 
   const MediaBadges = () => (
-    <div className="flex flex-wrap gap-2 mt-2 text-[11px] text-slate-500">
+    <div className="flex flex-wrap gap-2 mt-2 text-[11px]" style={{ color: 'var(--ss-workspace-muted)' }}>
       {entry.audioUrl && (
-        <a href={entry.audioUrl} target="_blank" rel="noreferrer" className="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200">
+        <a href={entry.audioUrl} target="_blank" rel="noreferrer" className="px-2 py-1 rounded" style={{ background: 'var(--ss-surface-inset)' }}>
           {t('components.logViewer.audioLink')}
         </a>
       )}
       {entry.videoUrl && (
-        <a href={entry.videoUrl} target="_blank" rel="noreferrer" className="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200">
+        <a href={entry.videoUrl} target="_blank" rel="noreferrer" className="px-2 py-1 rounded" style={{ background: 'var(--ss-surface-inset)' }}>
           {t('components.logViewer.videoLink')}
         </a>
       )}
@@ -505,20 +518,20 @@ const LogItem: React.FC<{
 
   if (mode === ViewMode.LIST) {
     return (
-      <div className={`py-2 px-4 border-b hover:bg-slate-50 text-sm flex gap-4 ${entry.type === 'SYSTEM' ? 'bg-slate-50/50' : ''}`}>
-        <span className="font-mono text-slate-400 text-xs w-24 shrink-0 whitespace-nowrap">{displayTime}</span>
-        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase self-start whitespace-nowrap ${getBadgeColor()}`}>
+      <div className={`py-2 px-4 border-b text-sm flex gap-4 ${entry.type === 'SYSTEM' ? '' : ''}`} style={entry.type === 'SYSTEM' ? { background: 'var(--ss-surface-strong)' } : undefined}>
+        <span className="font-mono text-xs w-24 shrink-0 whitespace-nowrap" style={{ color: 'var(--ss-workspace-muted)' }}>{displayTime}</span>
+        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase self-start whitespace-nowrap ${getBadgeColor().className}`} style={getBadgeColor().style}>
           {translateType(entry.type, entry.agentId)}
         </span>
         <div className="flex-1">
           {/* For AGENT_METADATA, don't repeat agentId since it's already shown in the badge */}
           {entry.agentId && entry.type !== 'AGENT_METADATA' && (
-            <span className="font-bold text-slate-700 mr-2">{entry.agentId}:</span>
+            <span className="font-bold mr-2" style={{ color: 'var(--ss-workspace-heading)' }}>{entry.agentId}:</span>
           )}
           {hasPolicyDiff ? (
             <PolicyDiffCard entry={entry} />
           ) : (
-            <span className="text-slate-600">{displayContent}</span>
+            <span style={{ color: 'var(--ss-workspace-text)' }}>{displayContent}</span>
           )}
           <ImageComponent />
           <MediaBadges />
@@ -529,26 +542,26 @@ const LogItem: React.FC<{
 
   // Card & Timeline Views
   return (
-    <div className={`mb-3 p-3 bg-white border rounded shadow-sm relative ${getBorderColor()} border-l-4 hover:shadow-md transition-shadow`}>
+    <div className={`mb-3 p-3 border rounded shadow-sm relative ${getBorderColor()} border-l-4 hover:shadow-md transition-shadow`} style={{ background: 'var(--ss-workspace-surface)', ...getBorderStyle() }}>
        {mode === ViewMode.TIMELINE && (
-         <div className="absolute -left-[29px] top-4 w-3 h-3 rounded-full bg-slate-300 border-2 border-slate-50 z-10"></div>
+         <div className="absolute -left-[29px] top-4 w-3 h-3 rounded-full border-2 z-10" style={{ background: 'var(--ss-surface-inset)', borderColor: 'var(--ss-surface-strong)' }}></div>
        )}
       <div className="flex justify-between items-start mb-2">
         <div className="flex items-center gap-2">
-           <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${getBadgeColor()}`}>
+           <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${getBadgeColor().className}`} style={getBadgeColor().style}>
             {translateType(entry.type, entry.agentId)}
           </span>
           {/* For AGENT_METADATA, don't repeat agentId since it's already shown in the badge */}
           {entry.agentId && entry.type !== 'AGENT_METADATA' && (
-            <span className="text-xs font-bold text-slate-800">{entry.agentId}</span>
+            <span className="text-xs font-bold" style={{ color: 'var(--ss-workspace-heading)' }}>{entry.agentId}</span>
           )}
         </div>
-        <span className="text-[10px] font-mono text-slate-400">{displayTime}</span>
+        <span className="text-[10px] font-mono" style={{ color: 'var(--ss-workspace-muted)' }}>{displayTime}</span>
       </div>
       {hasPolicyDiff ? (
         <PolicyDiffCard entry={entry} />
       ) : (
-        <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{displayContent}</p>
+        <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: 'var(--ss-workspace-heading)' }}>{displayContent}</p>
       )}
       <ImageComponent />
       <MediaBadges />
@@ -576,7 +589,7 @@ export const LogViewer: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
-  
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Compute Ancestry Path for current selection
@@ -653,13 +666,13 @@ export const LogViewer: React.FC = () => {
   }, [filteredLogs.length, selectedNodeId]);
 
   const toggleType = (type: string) => {
-    setSelectedTypes(prev => 
+    setSelectedTypes(prev =>
       prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
     );
   };
 
   const toggleAgent = (agentId: string) => {
-    setSelectedAgents(prev => 
+    setSelectedAgents(prev =>
       prev.includes(agentId) ? prev.filter(id => id !== agentId) : [...prev, agentId]
     );
   };
@@ -673,36 +686,39 @@ export const LogViewer: React.FC = () => {
   const hasActiveFilters = searchQuery || selectedTypes.length > 0 || selectedAgents.length > 0;
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 border rounded-lg overflow-hidden relative">
+    <div className="flex flex-col h-full border rounded-lg overflow-hidden relative" style={{ background: 'var(--ss-surface-strong)' }}>
       {/* Toolbar */}
-      <div className="bg-white border-b px-4 py-2 flex flex-col gap-2 shrink-0 z-20">
+      <div className="border-b px-4 py-2 flex flex-col gap-2 shrink-0 z-20" style={{ background: 'var(--ss-workspace-surface)' }}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border">
+          <div className="flex items-center gap-1 p-0.5 rounded-lg border" style={{ background: 'var(--ss-surface-inset)' }}>
             <button
               onClick={() => setViewMode(ViewMode.LIST)}
-              className={`p-1.5 rounded-md transition-all ${viewMode === ViewMode.LIST ? 'bg-white shadow text-brand-600' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`p-1.5 rounded-md transition-all ${viewMode === ViewMode.LIST ? 'shadow text-brand-600' : ''}`}
+              style={viewMode === ViewMode.LIST ? { background: 'var(--ss-workspace-surface)' } : { color: 'var(--ss-workspace-muted)' }}
               title={t('components.logViewer.listView')}
             >
               <List size={16} />
             </button>
             <button
                onClick={() => setViewMode(ViewMode.CARD)}
-               className={`p-1.5 rounded-md transition-all ${viewMode === ViewMode.CARD ? 'bg-white shadow text-brand-600' : 'text-slate-500 hover:text-slate-700'}`}
+               className={`p-1.5 rounded-md transition-all ${viewMode === ViewMode.CARD ? 'shadow text-brand-600' : ''}`}
+               style={viewMode === ViewMode.CARD ? { background: 'var(--ss-workspace-surface)' } : { color: 'var(--ss-workspace-muted)' }}
                title={t('components.logViewer.cardView')}
             >
               <CreditCard size={16} />
             </button>
              <button
                onClick={() => setViewMode(ViewMode.TIMELINE)}
-               className={`p-1.5 rounded-md transition-all ${viewMode === ViewMode.TIMELINE ? 'bg-white shadow text-brand-600' : 'text-slate-500 hover:text-slate-700'}`}
+               className={`p-1.5 rounded-md transition-all ${viewMode === ViewMode.TIMELINE ? 'shadow text-brand-600' : ''}`}
+               style={viewMode === ViewMode.TIMELINE ? { background: 'var(--ss-workspace-surface)' } : { color: 'var(--ss-workspace-muted)' }}
                title={t('components.logViewer.timelineView')}
             >
-              <Clock size={16} />
+               <Clock size={16} />
             </button>
           </div>
 
           <div className="flex items-center gap-2 flex-1 justify-end">
-            <div className="flex items-center gap-1 text-[10px] text-slate-400 bg-slate-50 border px-2 py-1 rounded">
+            <div className="flex items-center gap-1 text-[10px] border px-2 py-1 rounded" style={{ color: 'var(--ss-workspace-muted)', background: 'var(--ss-surface-strong)' }}>
                <GitCommit size={12} />
                <span>{t('components.logViewer.currentBranchFilter')}</span>
             </div>
@@ -713,11 +729,12 @@ export const LogViewer: React.FC = () => {
                 placeholder={t('components.logViewer.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs border rounded bg-slate-50 focus:bg-white focus:ring-1 focus:ring-brand-500 outline-none transition-all"
+                className="w-full pl-8 pr-3 py-1.5 text-xs border rounded focus:ring-1 focus:ring-brand-500 outline-none transition-all"
+                style={{ background: 'var(--ss-surface-strong)' }}
               />
-              <Search size={12} className="absolute left-2.5 top-2 text-slate-400" />
+              <Search size={12} className="absolute left-2.5 top-2" style={{ color: 'var(--ss-workspace-muted)' }} />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-2 top-2 text-slate-400 hover:text-slate-600">
+                <button onClick={() => setSearchQuery('')} className="absolute right-2 top-2 hover:text-slate-600" style={{ color: 'var(--ss-workspace-muted)' }}>
                   <X size={12} />
                 </button>
               )}
@@ -725,7 +742,8 @@ export const LogViewer: React.FC = () => {
 
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium border rounded transition-colors ${isFilterOpen || (hasActiveFilters && !searchQuery) ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium border rounded transition-colors ${isFilterOpen || (hasActiveFilters && !searchQuery) ? 'bg-brand-50 text-brand-700 border-brand-200' : ''}`}
+              style={!isFilterOpen && !(hasActiveFilters && !searchQuery) ? { background: 'var(--ss-workspace-surface)', color: 'var(--ss-workspace-text)' } : undefined}
             >
               <Filter size={14} />
               <span className="hidden sm:inline">{t('components.logViewer.filter')}</span>
@@ -737,12 +755,12 @@ export const LogViewer: React.FC = () => {
             </button>
           </div>
         </div>
-        
+
         {/* Filter Panel */}
         {isFilterOpen && (
           <div className="pt-2 pb-3 border-t mt-1 space-y-3 animate-in slide-in-from-top-2 duration-200">
              <div>
-              <div className="text-[10px] uppercase font-bold text-slate-400 mb-1.5 tracking-wider">{t('components.logViewer.eventTypes')}</div>
+              <div className="text-[10px] uppercase font-bold mb-1.5 tracking-wider" style={{ color: 'var(--ss-workspace-muted)' }}>{t('components.logViewer.eventTypes')}</div>
               <div className="flex flex-wrap gap-2">
                 {[
                   { id: 'SYSTEM', label: t('components.logViewer.system') },
@@ -757,8 +775,9 @@ export const LogViewer: React.FC = () => {
                     className={`px-2 py-1 rounded text-xs border flex items-center gap-1.5 transition-all ${
                       selectedTypes.includes(type.id)
                         ? 'bg-brand-600 text-white border-brand-600 shadow-sm'
-                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                        : ''
                     }`}
+                    style={!selectedTypes.includes(type.id) ? { background: 'var(--ss-workspace-surface)', color: 'var(--ss-workspace-text)', borderColor: 'var(--ss-workspace-border)' } : undefined}
                   >
                     {selectedTypes.includes(type.id) && <Check size={10} />}
                     {type.label}
@@ -770,7 +789,7 @@ export const LogViewer: React.FC = () => {
             {/* Agents */}
             {agents.length > 0 && (
               <div>
-                <div className="text-[10px] uppercase font-bold text-slate-400 mb-1.5 tracking-wider">{t('components.logViewer.relatedAgents')}</div>
+                <div className="text-[10px] uppercase font-bold mb-1.5 tracking-wider" style={{ color: 'var(--ss-workspace-muted)' }}>{t('components.logViewer.relatedAgents')}</div>
                 <div className="flex flex-wrap gap-2">
                   {agents.map(agent => (
                     <button
@@ -779,10 +798,11 @@ export const LogViewer: React.FC = () => {
                       className={`px-2 py-1 rounded-full text-xs border flex items-center gap-1.5 transition-all pl-1 ${
                         selectedAgents.includes(agent.id)
                           ? 'bg-brand-600 text-white border-brand-600 shadow-sm'
-                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                          : ''
                       }`}
+                      style={!selectedAgents.includes(agent.id) ? { background: 'var(--ss-workspace-surface)', color: 'var(--ss-workspace-text)', borderColor: 'var(--ss-workspace-border)' } : undefined}
                     >
-                      <img src={agent.avatarUrl} alt="" className="w-4 h-4 rounded-full bg-slate-100" />
+                      <img src={agent.avatarUrl} alt="" className="w-4 h-4 rounded-full" style={{ background: 'var(--ss-surface-inset)' }} />
                       {agent.name}
                       {selectedAgents.includes(agent.id) && <Check size={10} />}
                     </button>
@@ -794,7 +814,8 @@ export const LogViewer: React.FC = () => {
             <div className="flex justify-end pt-2">
               <button
                 onClick={clearFilters}
-                className="text-xs text-slate-400 hover:text-slate-600 underline decoration-slate-300 underline-offset-2"
+                className="text-xs hover:text-slate-600 underline underline-offset-2"
+                style={{ color: 'var(--ss-workspace-muted)' }}
               >
                 {t('components.logViewer.clearAllFilters')}
               </button>
@@ -806,9 +827,9 @@ export const LogViewer: React.FC = () => {
       {/* Content */}
       <div ref={scrollRef} className={`flex-1 overflow-y-auto p-4 scroll-smooth ${viewMode === ViewMode.TIMELINE ? 'pl-10' : ''}`}>
         {viewMode === ViewMode.TIMELINE && filteredLogs.length > 0 && (
-           <div className="absolute left-[36px] top-0 bottom-0 w-0.5 bg-slate-200 -z-0"></div>
+           <div className="absolute left-[36px] top-0 bottom-0 w-0.5 -z-0" style={{ background: 'var(--ss-workspace-border)' }}></div>
         )}
-        
+
         {filteredLogs.length > 0 ? (
           filteredLogs.map(log => {
              // Find corresponding node worldTime if available (optional enhancement)
@@ -825,7 +846,7 @@ export const LogViewer: React.FC = () => {
              );
           })
         ) : (
-          <div className="flex flex-col items-center justify-center h-40 text-slate-400">
+          <div className="flex flex-col items-center justify-center h-40" style={{ color: 'var(--ss-workspace-muted)' }}>
             <Search size={32} className="mb-2 opacity-20" />
             <p className="text-sm">{t('components.logViewer.noMatchingLogs')}</p>
             {hasActiveFilters && (
@@ -834,14 +855,14 @@ export const LogViewer: React.FC = () => {
               </button>
             )}
             {!hasActiveFilters && (
-               <p className="text-xs mt-1 text-slate-300">{t('components.logViewer.noActivityYet')}</p>
+               <p className="text-xs mt-1" style={{ color: 'var(--ss-workspace-muted)', opacity: 0.5 }}>{t('components.logViewer.noActivityYet')}</p>
             )}
           </div>
         )}
       </div>
-      
+
       {/* Footer Info */}
-      <div className="bg-slate-50 border-t px-3 py-1 text-[10px] text-slate-400 flex justify-between">
+      <div className="border-t px-3 py-1 text-[10px] flex justify-between" style={{ background: 'var(--ss-surface-strong)', color: 'var(--ss-workspace-muted)' }}>
         <span>{t('components.logViewer.showingRecords', { count: filteredLogs.length })}</span>
         {hasActiveFilters && <span>{t('components.logViewer.filterActive')}</span>}
       </div>

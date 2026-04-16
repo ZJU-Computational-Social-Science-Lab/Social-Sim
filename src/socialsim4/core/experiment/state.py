@@ -7,6 +7,7 @@ and scenario-specific extensions.
 
 Contains: ExperimentState, AgentState
 """
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -121,6 +122,6 @@ class ExperimentState:
         return cls(
             round=data.get("round", 0),
             agents=agents,
-            history=data.get("history", []),
-            extensions=data.get("extensions", {}),
+            history=deepcopy(data.get("history", [])),
+            extensions=deepcopy(data.get("extensions", {})),
         )

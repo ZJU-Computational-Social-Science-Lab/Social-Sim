@@ -5,27 +5,22 @@
  * Reuses the network visualization from NetworkEditorModal but embedded in the wizard.
  */
 
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useExperimentBuilder } from '../../store/experiment-builder';
 import { Button } from '../ui/button';
-import * as d3 from 'd3';
-import * as d3Force from 'd3-force';
+import NetworkGraph from '../NetworkGraph';
 import {
-  Network,
-  Circle,
   RefreshCw,
   Share2,
   Grid3X3,
   Users,
   Shuffle,
   Layers,
-  ZoomIn,
-  ZoomOut,
-  Maximize,
   Settings2,
   ChevronRight,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { Agent } from '../../types';
 
 // =============================================================================
 // Types
@@ -47,12 +42,6 @@ interface PresetParams {
   'holme-kim': { newConnections: number; clusteringChance: number };
   waxman: { maxDistance: number; distanceEffect: number };
   sbm: { groupSize: number; withinGroupConnectivity: number; bridgeConnections: number };
-}
-
-interface PresetMeta {
-  name: string;
-  description: string;
-  icon: React.ElementType;
 }
 
 // =============================================================================
@@ -145,7 +134,7 @@ const ParamSlider: React.FC<ParamSliderProps> = ({
   const { t } = useTranslation();
   return (
     <div className="flex items-center justify-between">
-      <label className="text-[11px] text-slate-600 flex-1">
+      <label className="text-[11px] flex-1" style={{ color: 'var(--ss-text-muted)' }}>
         {t(`components.networkEditorModal.${labelKey}`)}
       </label>
       <div className="flex items-center gap-2">
@@ -158,7 +147,7 @@ const ParamSlider: React.FC<ParamSliderProps> = ({
           onChange={(e) => onChange(isInteger ? parseInt(e.target.value) : parseFloat(e.target.value))}
           className="w-20 h-1 accent-brand-500"
         />
-        <span className="text-[10px] text-slate-500 w-8 text-right">
+        <span className="text-[10px] w-8 text-right" style={{ color: 'var(--ss-text-subtle)' }}>
           {isInteger ? value : value.toFixed(2)}
         </span>
       </div>
@@ -179,13 +168,6 @@ export const Step5Network: React.FC = () => {
   // Local state
   const [selectedPreset, setSelectedPreset] = useState<PresetType | null>(null);
   const [params, setParams] = useState<PresetParams>(JSON.parse(JSON.stringify(defaultParams)));
-  const [hoverInfo, setHoverInfo] = useState<{ name: string; profile?: string; x: number; y: number } | null>(null);
-
-  // D3 refs
-  const containerRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
-  const d3SvgRef = useRef<d3.Selection<SVGSVGElement, unknown, null, undefined> | null>(null);
-  const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
 
   // Get agent IDs from agent types
   const { agentIds, profileMap } = useMemo(() => {
@@ -203,6 +185,25 @@ export const Step5Network: React.FC = () => {
     }
     return { agentIds: ids, profileMap: profiles };
   }, [agentTypes]);
+
+  // Map experiment agent data to Agent objects for NetworkGraph.
+  // NetworkGraph uses agent.name for node labels and lookup.
+  const agents: Agent[] = useMemo(
+    () =>
+      agentIds.map((name, idx) => ({
+        id: String(idx),
+        name,
+        role: '',
+        avatarUrl: '',
+        profile: profileMap[name] ?? '',
+        llmConfig: { provider: '', model: '' },
+        properties: {},
+        history: {},
+        memory: [],
+        knowledgeBase: [],
+      })),
+    [agentIds, profileMap],
+  );
 
   // Keep manual link selectors in sync with current agents
   useEffect(() => {
@@ -359,187 +360,6 @@ export const Step5Network: React.FC = () => {
     }
   }, [agentIds.length, socialNetwork, applyPreset]);
 
-  // Initialize D3 visualization
-  useEffect(() => {
-    if (!svgRef.current || !containerRef.current) return;
-
-    const svg = d3.select(svgRef.current);
-    d3SvgRef.current = svg;
-
-    const width = containerRef.current.clientWidth;
-    const height = containerRef.current.clientHeight;
-
-    // Set up zoom behavior
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0, 8])
-      .on('zoom', (event) => {
-        svg.select('g.main').attr('transform', event.transform);
-      });
-
-    zoomBehaviorRef.current = zoom;
-
-    // Create main group
-    svg.append('g').attr('class', 'main');
-
-    // Handle zoom
-    svg.call(zoom.transform, d3.zoomIdentity.translate(width / 2, height / 2));
-
-  }, []);
-
-  // Update network visualization with D3 force simulation
-  useEffect(() => {
-    if (!d3SvgRef.current || !containerRef.current || Object.keys(socialNetwork).length === 0) return;
-
-    const svg = d3SvgRef.current;
-    const main = svg.select('g.main');
-    const width = containerRef.current.clientWidth;
-    const height = containerRef.current.clientHeight;
-
-    const tooltipCoords = (evt: MouseEvent | PointerEvent) => {
-      const rect = containerRef.current?.getBoundingClientRect();
-      const w = rect?.width || containerRef.current?.clientWidth || 0;
-      const h = rect?.height || containerRef.current?.clientHeight || 0;
-      const x = Math.max(8, Math.min(w - 220, evt.clientX - (rect?.left || 0) + 12));
-      const y = Math.max(8, Math.min(h - 160, evt.clientY - (rect?.top || 0) + 12));
-      return { x, y };
-    };
-
-    // Clear existing
-    main.selectAll('*').remove();
-
-    // Build nodes and links
-    const nodeIds = Object.keys(socialNetwork);
-    const nodes: { id: string; name: string; x?: number; y?: number; fx?: number | null; fy?: number | null; profile?: string }[] =
-      nodeIds.map((id) => ({ id, name: id, profile: profileMap[id] }));
-    const links: { source: string; target: string }[] = [];
-
-    // Create links (avoid duplicates)
-    const addedLinks = new Set<string>();
-    for (const [source, targets] of Object.entries(socialNetwork)) {
-      for (const target of targets) {
-        if (nodeIds.includes(target)) {
-          // Normalize link key to avoid duplicates
-          const key = source < target ? `${source}-${target}` : `${target}-${source}`;
-          if (!addedLinks.has(key)) {
-            links.push({ source, target });
-            addedLinks.add(key);
-          }
-        }
-      }
-    }
-
-    // Create force simulation
-    const simulation = d3Force.forceSimulation(nodes as any)
-      .force('link', d3Force.forceLink(links).id((d: any) => d.id).distance(120))
-      .force('charge', d3Force.forceManyBody().strength(-300))
-      .force('center', d3Force.forceCenter(0, 0))
-      .force('collide', d3Force.forceCollide(35));
-
-    // Draw links
-    const link = main.append('g')
-      .attr('class', 'links')
-      .selectAll('line')
-      .data(links)
-      .join('line')
-      .attr('stroke', '#94a3b8')
-      .attr('stroke-width', 1.5)
-      .attr('stroke-opacity', 0.6);
-
-    // Draw nodes as groups (circle + text label)
-    const node = main.append('g')
-      .attr('class', 'nodes')
-      .selectAll('.node')
-      .data(nodes)
-      .join('g')
-      .attr('class', 'node cursor-pointer')
-      .call(
-        d3.drag<SVGGElement, any>()
-          .on('start', (event, d) => {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
-          })
-          .on('drag', (event, d) => {
-            d.fx = event.x;
-            d.fy = event.y;
-          })
-          .on('end', (event, d) => {
-            if (!event.active) simulation.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
-          })
-      );
-
-    // Node circle
-    node.append('circle')
-      .attr('r', 16)
-      .attr('fill', '#3b82f6')
-      .attr('stroke', '#fff')
-      .attr('stroke-width', 2);
-
-    // Node text label (visible below circle)
-    node.append('text')
-      .attr('dy', 28)
-      .attr('text-anchor', 'middle')
-      .text((d) => d.name)
-      .attr('class', 'text-[10px] font-medium fill-slate-700 pointer-events-none select-none');
-
-    node.append('title').text((d) => (d.profile ? `${d.name}\n${d.profile}` : t('experimentBuilder.step5.noProfile')));
-
-    // Hover tooltip using React state for reliability
-    node
-      .on('mouseenter', (event, d: any) => {
-        const pos = tooltipCoords(event);
-        setHoverInfo({ name: d.name, profile: d.profile, ...pos });
-      })
-      .on('mousemove', (event) => {
-        const pos = tooltipCoords(event);
-        setHoverInfo((prev) => (prev ? { ...prev, ...pos } : null));
-      })
-      .on('mouseleave', () => setHoverInfo(null));
-
-    // Update positions on tick
-    simulation.on('tick', () => {
-      link
-        .attr('x1', (d: any) => d.source.x)
-        .attr('y1', (d: any) => d.source.y)
-        .attr('x2', (d: any) => d.target.x)
-        .attr('y2', (d: any) => d.target.y);
-
-      node.attr('transform', (d: any) => `translate(${d.x},${d.y})`);
-    });
-
-    // Cleanup
-    return () => {
-      simulation.stop();
-    };
-
-  }, [socialNetwork, profileMap, t]);
-
-  // Zoom controls
-  const handleZoomIn = () => {
-    if (d3SvgRef.current && zoomBehaviorRef.current) {
-      d3SvgRef.current.transition().duration(300).call(zoomBehaviorRef.current.scaleBy, 1.5);
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (d3SvgRef.current && zoomBehaviorRef.current) {
-      d3SvgRef.current.transition().duration(300).call(zoomBehaviorRef.current.scaleBy, 0.67);
-    }
-  };
-
-  const handleResetZoom = () => {
-    if (d3SvgRef.current && zoomBehaviorRef.current && containerRef.current) {
-      const width = containerRef.current.clientWidth;
-      const height = containerRef.current.clientHeight;
-      // Center the viewport on origin where nodes are positioned
-      d3SvgRef.current.transition().duration(500).call(
-        zoomBehaviorRef.current.transform,
-        d3.zoomIdentity.translate(width / 2, height / 2)
-      );
-    }
-  };
 
   // Render parameter controls
   const renderParamControls = () => {
@@ -548,9 +368,9 @@ export const Step5Network: React.FC = () => {
     const presetKey = selectedPreset as keyof PresetParams;
 
     return (
-      <div className="space-y-3 p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+      <div className="space-y-3 p-3 rounded-lg border shadow-sm" style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)' }}>
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+          <span className="text-xs font-semibold flex items-center gap-1.5" style={{ color: 'var(--ss-text)' }}>
             <Settings2 size={12} />
             {t('components.networkEditorModal.parameterSettings')}
           </span>
@@ -597,7 +417,7 @@ export const Step5Network: React.FC = () => {
         )}
 
         {/* Apply Changes Button */}
-        <div className="mt-3 pt-3 border-t border-slate-200">
+        <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--ss-border)' }}>
           <button
             onClick={() => {
               if (selectedPreset) {
@@ -619,13 +439,13 @@ export const Step5Network: React.FC = () => {
     return (
       <div className="flex items-center justify-center p-12">
         <div className="text-center max-w-md">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 rounded-full mb-4">
-            <Users className="w-8 h-8 text-amber-600" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style={{ background: 'var(--ss-brand-soft)' }}>
+            <Users className="w-8 h-8" style={{ color: 'var(--ss-warning)' }} />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--ss-heading)' }}>
             {t('experimentBuilder.step5.noAgentsConfigured')}
           </h3>
-          <p className="text-gray-600">
+          <p style={{ color: 'var(--ss-text-muted)' }}>
             {t('experimentBuilder.step5.goBackToStep4')}
           </p>
         </div>
@@ -636,12 +456,12 @@ export const Step5Network: React.FC = () => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-full">
       {/* Sidebar Tools */}
-      <div className="lg:col-span-1 bg-slate-50 border-r p-4 space-y-4 overflow-y-auto max-h-full">
+      <div className="lg:col-span-1 border-r p-4 space-y-4 overflow-y-auto max-h-full" style={{ background: 'var(--ss-page-surface-muted)' }}>
         <div>
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+          <label className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--ss-text-muted)' }}>
             {t('experimentBuilder.step5.networkPresets')}
           </label>
-          <p className="text-[10px] text-slate-400 mt-0.5 mb-3">
+          <p className="text-[10px] mt-0.5 mb-3" style={{ color: 'var(--ss-text-subtle)' }}>
             {t('experimentBuilder.step5.chooseTopology')}
           </p>
 
@@ -661,24 +481,28 @@ export const Step5Network: React.FC = () => {
                   }}
                   className={`w-full p-2 rounded-lg border text-left transition-all ${
                     isSelected
-                      ? 'bg-brand-50 border-brand-300 ring-1 ring-brand-200'
-                      : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      ? 'ring-1'
+                      : ''
                   }`}
+                  style={isSelected
+                    ? { background: 'var(--ss-accent-warm-soft)', borderColor: 'var(--ss-brand-primary)', boxShadow: '0 0 0 1px var(--ss-brand-soft)' }
+                    : { background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)' }
+                  }
                 >
                   <div className="flex items-center gap-2">
-                    <div className={`p-1.5 rounded ${isSelected ? 'bg-brand-100 text-brand-600' : 'bg-slate-100 text-slate-500'}`}>
+                    <div className={`p-1.5 rounded`} style={{ background: isSelected ? 'var(--ss-brand-soft)' : 'var(--ss-surface-strong)', color: isSelected ? 'var(--ss-brand-primary)' : 'var(--ss-text-subtle)' }}>
                       <Icon size={14} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className={`text-xs font-medium block ${isSelected ? 'text-brand-700' : 'text-slate-700'}`}>
+                      <span className={`text-xs font-medium block`} style={{ color: isSelected ? 'var(--ss-brand-primary)' : 'var(--ss-text)' }}>
                         {t(`experimentBuilder.step5.presets.${translationKey}.name`)}
                       </span>
-                      <p className="text-[10px] text-slate-400 truncate">
+                      <p className="text-[10px] truncate" style={{ color: 'var(--ss-text-subtle)' }}>
                         {t(`experimentBuilder.step5.presets.${translationKey}.description`)}
                       </p>
                     </div>
                     <div className={`transition-transform ${isSelected ? 'rotate-90' : ''}`}>
-                      <ChevronRight size={14} className="text-slate-400" />
+                      <ChevronRight size={14} style={{ color: 'var(--ss-text-subtle)' }} />
                     </div>
                   </div>
                 </button>
@@ -693,7 +517,8 @@ export const Step5Network: React.FC = () => {
                 setSelectedPreset('full');
                 applyPreset('full');
               }}
-              className="flex-1 py-1.5 px-2 bg-white border border-slate-200 rounded text-[10px] text-slate-600 hover:bg-slate-50 flex items-center justify-center gap-1"
+              className="flex-1 py-1.5 px-2 border rounded text-[10px] flex items-center justify-center gap-1"
+              style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)', color: 'var(--ss-text-muted)' }}
             >
               <Share2 size={10} />
               {t('experimentBuilder.step5.fullyConnected')}
@@ -705,7 +530,8 @@ export const Step5Network: React.FC = () => {
                   applyPreset('random');
                 }
               }}
-              className="flex-1 py-1.5 px-2 bg-white border border-slate-200 rounded text-[10px] text-slate-500 hover:bg-slate-50 flex items-center justify-center gap-1"
+              className="flex-1 py-1.5 px-2 border rounded text-[10px] flex items-center justify-center gap-1"
+              style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)', color: 'var(--ss-text-subtle)' }}
             >
               <RefreshCw size={10} />
               {t('experimentBuilder.step5.reset')}
@@ -714,26 +540,28 @@ export const Step5Network: React.FC = () => {
         </div>
 
         {/* Manual Links */}
-        <div className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm space-y-2">
-          <div className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+        <div className="p-3 border rounded-lg shadow-sm space-y-2" style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)' }}>
+          <div className="text-xs font-semibold flex items-center gap-1.5" style={{ color: 'var(--ss-text)' }}>
             <Settings2 size={12} />
             {t('experimentBuilder.step5.manualLinks', 'Manual links')}
           </div>
-          <div className="flex items-center gap-2 text-[11px] text-slate-600">
+          <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--ss-text-muted)' }}>
             <select
               value={linkFrom}
               onChange={(e) => setLinkFrom(e.target.value)}
-              className="flex-1 border border-slate-200 rounded px-2 py-1 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand-400"
+              className="flex-1 border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-400"
+              style={{ background: 'var(--ss-page-surface-muted)', borderColor: 'var(--ss-border)' }}
             >
               {agentIds.map((id) => (
                 <option key={id} value={id}>{id}</option>
               ))}
             </select>
-            <span className="text-slate-400">→</span>
+            <span style={{ color: 'var(--ss-text-subtle)' }}>→</span>
             <select
               value={linkTo}
               onChange={(e) => setLinkTo(e.target.value)}
-              className="flex-1 border border-slate-200 rounded px-2 py-1 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand-400"
+              className="flex-1 border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-400"
+              style={{ background: 'var(--ss-page-surface-muted)', borderColor: 'var(--ss-border)' }}
             >
               {agentIds.map((id) => (
                 <option key={id} value={id}>{id}</option>
@@ -750,14 +578,14 @@ export const Step5Network: React.FC = () => {
           </Button>
 
           {edges.length > 0 ? (
-            <div className="max-h-32 overflow-y-auto border-t border-slate-100 pt-2 space-y-1 text-[11px] text-slate-600">
+            <div className="max-h-32 overflow-y-auto pt-2 space-y-1 text-[11px]" style={{ borderTop: '1px solid var(--ss-border)', color: 'var(--ss-text-muted)' }}>
               {edges.map(({ key, source, target }) => (
-                <div key={key} className="flex items-center justify-between bg-slate-50 px-2 py-1 rounded">
+                <div key={key} className="flex items-center justify-between px-2 py-1 rounded" style={{ background: 'var(--ss-page-surface-muted)' }}>
                   <span className="truncate">
                     {source} ↔ {target}
                   </span>
                   <button
-                    className="text-red-500 text-[10px] hover:text-red-600"
+                    className="text-[10px]"
                     onClick={() => removeLink(key)}
                   >
                     {t('common.remove', 'Remove')}
@@ -766,7 +594,7 @@ export const Step5Network: React.FC = () => {
               ))}
             </div>
           ) : (
-            <div className="text-[10px] text-slate-400 border-t border-slate-100 pt-2">
+            <div className="text-[10px] pt-2" style={{ color: 'var(--ss-text-subtle)', borderTop: '1px solid var(--ss-border)' }}>
               {t('experimentBuilder.step5.noLinks', 'No links yet')}
             </div>
           )}
@@ -776,8 +604,8 @@ export const Step5Network: React.FC = () => {
         {renderParamControls()}
 
         {/* Instructions */}
-        <div className="text-xs text-slate-400 leading-relaxed pt-3 border-t mt-auto">
-          <strong className="text-slate-500">{t('experimentBuilder.step5.instructions')}:</strong>
+        <div className="text-xs leading-relaxed pt-3 border-t mt-auto" style={{ color: 'var(--ss-text-subtle)', borderColor: 'var(--ss-border)' }}>
+          <strong style={{ color: 'var(--ss-text-muted)' }}>{t('experimentBuilder.step5.instructions')}:</strong>
           <ul className="list-decimal pl-4 space-y-0.5 mt-1 text-[10px]">
             <li>{t('experimentBuilder.step5.instructionSelect')}</li>
             <li>{t('experimentBuilder.step5.instructionDrag')}</li>
@@ -787,41 +615,36 @@ export const Step5Network: React.FC = () => {
       </div>
 
       {/* Canvas */}
-      <div ref={containerRef} className="lg:col-span-3 bg-slate-50 relative overflow-hidden group">
-        <svg ref={svgRef} className="block w-full h-full"></svg>
-
-        {hoverInfo && (
-          <div
-            className="absolute z-20 pointer-events-none bg-white border border-slate-200 shadow-md rounded px-2 py-1 text-[11px] text-slate-700 max-w-xs"
-            style={{ left: hoverInfo.x, top: hoverInfo.y }}
-          >
-            <div className="font-semibold">{hoverInfo.name}</div>
-            <div className="text-slate-500 whitespace-pre-wrap break-words">{hoverInfo.profile || t('experimentBuilder.step5.noProfile')}</div>
-          </div>
-        )}
-
-        {/* Zoom Controls */}
-        <div className="absolute top-4 right-4 flex flex-col gap-1 bg-white border rounded shadow-sm p-1">
-          <button onClick={handleZoomIn} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('experimentBuilder.network.zoomIn')}>
-            <ZoomIn size={16} />
-          </button>
-          <button onClick={handleZoomOut} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('experimentBuilder.network.zoomOut')}>
-            <ZoomOut size={16} />
-          </button>
-          <div className="h-px bg-slate-200 my-0.5"></div>
-          <button onClick={handleResetZoom} className="p-1.5 hover:bg-slate-100 rounded text-slate-600" title={t('experimentBuilder.network.resetView')}>
-            <Maximize size={16} />
-          </button>
-        </div>
+      <div className="lg:col-span-3 relative overflow-hidden group" style={{ background: 'var(--ss-page-surface-muted)' }}>
+        <NetworkGraph
+          network={socialNetwork}
+          agents={agents}
+          onEdgeToggle={(source, target) => {
+            const key = source < target ? `${source}|${target}` : `${target}|${source}`;
+            const exists = edges.some((e) => e.key === key);
+            if (exists) {
+              removeLink(key);
+            } else {
+              const next: Record<string, string[]> = {};
+              for (const id of agentIds) {
+                next[id] = [...(socialNetwork[id] || [])];
+              }
+              if (!next[source].includes(target)) next[source].push(target);
+              if (!next[target].includes(source)) next[target].push(source);
+              setSocialNetwork(next);
+            }
+          }}
+          className="w-full h-full"
+        />
 
         {/* Network Stats */}
-        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm border rounded-lg px-3 py-2 text-[10px] text-slate-600">
+        <div className="absolute bottom-4 left-4 backdrop-blur-sm border rounded-lg px-3 py-2 text-[10px]" style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)', color: 'var(--ss-text-muted)' }}>
           <div className="flex items-center gap-3">
             <span>
-              <strong className="text-slate-700">{agentIds.length}</strong> {t('experimentBuilder.step5.nodes', { count: agentIds.length })}
+              <strong style={{ color: 'var(--ss-text)' }}>{agentIds.length}</strong> {t('experimentBuilder.step5.nodes', { count: agentIds.length })}
             </span>
             <span>
-              <strong className="text-slate-700">
+              <strong style={{ color: 'var(--ss-text)' }}>
                 {Object.values(socialNetwork).reduce((sum, arr) => sum + arr.length, 0)}
               </strong> {t('experimentBuilder.step5.edges', { count: Object.values(socialNetwork).reduce((sum, arr) => sum + arr.length, 0) })}
             </span>

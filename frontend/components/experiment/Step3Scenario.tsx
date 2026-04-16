@@ -62,26 +62,23 @@ const ActionToggleCard: React.FC<ActionToggleCardProps> = ({
 }) => {
   return (
     <div
-      className={`
-        p-4 border-2 rounded-lg transition-all
-        ${selected
-          ? 'border-blue-500 bg-blue-50'
-          : 'border-gray-200 bg-white hover:border-gray-300'
-        }
-      `}
+      className="p-4 border-2 rounded-lg transition-all"
+      style={selected
+        ? { background: 'var(--ss-accent-warm-soft)', borderColor: 'var(--ss-brand-primary)' }
+        : { background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)' }
+      }
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 flex-1 min-w-0">
           <Circle
-            className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
-              selected ? 'text-blue-500 fill-blue-500' : 'text-gray-400'
-            }`}
+            className={`w-5 h-5 flex-shrink-0 mt-0.5 ${selected ? 'fill-current' : ''}`}
+            style={{ color: selected ? 'var(--ss-brand-primary)' : 'var(--ss-text-subtle)' }}
           />
           <div className="flex-1 min-w-0">
-            <h4 className={`font-semibold text-sm ${selected ? 'text-blue-900' : 'text-gray-900'}`}>
+            <h4 className="font-semibold text-sm" style={{ color: 'var(--ss-heading)' }}>
               {name}
             </h4>
-            <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+            <p className="text-sm mt-1 line-clamp-2" style={{ color: 'var(--ss-text)' }}>
               {description}
             </p>
           </div>
@@ -90,7 +87,8 @@ const ActionToggleCard: React.FC<ActionToggleCardProps> = ({
           {isCustom && onRemove && (
             <button
               onClick={onRemove}
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+              className="p-1.5 rounded transition-colors"
+              style={{ color: 'var(--ss-text-subtle)' }}
               type="button"
               aria-label={removeLabel}
             >
@@ -99,18 +97,17 @@ const ActionToggleCard: React.FC<ActionToggleCardProps> = ({
           )}
           <button
             onClick={onToggle}
-            className={`
-              relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-              ${selected ? 'bg-blue-500' : 'bg-gray-300'}
-            `}
+            className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+            style={{ background: selected ? 'var(--ss-brand-primary)' : 'var(--ss-border-strong)' }}
             type="button"
             aria-pressed={selected}
           >
             <span
               className={`
-                inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                inline-block h-4 w-4 transform rounded-full transition-transform
                 ${selected ? 'translate-x-6' : 'translate-x-1'}
               `}
+              style={{ background: 'var(--ss-page-surface)' }}
             />
           </button>
         </div>
@@ -311,18 +308,18 @@ export const Step3Scenario: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900">
+        <h2 className="text-xl font-semibold" style={{ color: 'var(--ss-heading)' }}>
           {t('experimentBuilder.step3.title')}
         </h2>
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="text-sm mt-1" style={{ color: 'var(--ss-text)' }}>
           {t('experimentBuilder.step3.subtitle')}
         </p>
-        <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+        <div className="mt-3 rounded-lg border px-4 py-3 text-sm" style={{ background: 'var(--ss-accent-warm-soft)', borderColor: 'var(--ss-layer-outline-strong)', color: 'var(--ss-text)' }}>
           <div className="font-medium">{t('experimentBuilder.step3.linkedTitle')}</div>
           <div className="mt-1">{t('experimentBuilder.step3.linkedDesc')}</div>
         </div>
         {selectedScenarioData?.category_actions && (
-          <p className="text-xs text-gray-600 mt-2">
+          <p className="text-xs mt-2" style={{ color: 'var(--ss-text)' }}>
             {t('experimentBuilder.step3.categoryInfo', { category: selectedScenarioData.category })}
           </p>
         )}
@@ -330,8 +327,8 @@ export const Step3Scenario: React.FC = () => {
 
       {/* Dynamic actions info */}
       {generatorParam && (
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-700">
+        <div className="p-3 border rounded-lg" style={{ background: 'var(--ss-accent-warm-soft)', borderColor: 'var(--ss-layer-outline-strong)' }}>
+          <p className="text-sm" style={{ color: 'var(--ss-text)' }}>
             <strong>{t('experimentBuilder.dynamicActionsInfo.title')}</strong>{' '}
             {t('experimentBuilder.dynamicActionsInfo.message', { paramLabel: generatorParam.label })}
           </p>
@@ -340,16 +337,16 @@ export const Step3Scenario: React.FC = () => {
 
       {/* Validation Error */}
       {validationErrors.actions && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-600">{validationErrors.actions}</p>
+        <div className="p-3 border rounded-lg" style={{ background: 'var(--ss-danger-soft)', borderColor: 'var(--ss-danger)' }}>
+          <p className="text-sm" style={{ color: 'var(--ss-danger)' }}>{validationErrors.actions}</p>
         </div>
       )}
 
       {/* Action Toggle Cards */}
       <div className="space-y-3">
         {allActions.length === 0 ? (
-          <div className="p-8 text-center border border-dashed border-gray-300 rounded-lg">
-            <p className="text-sm text-gray-600">
+          <div className="p-8 text-center border border-dashed rounded-lg" style={{ borderColor: 'var(--ss-border-strong)' }}>
+            <p className="text-sm" style={{ color: 'var(--ss-text)' }}>
               {t('experimentBuilder.step3.noActions')}
             </p>
           </div>
@@ -375,17 +372,18 @@ export const Step3Scenario: React.FC = () => {
           {!showAddAction ? (
             <button
               onClick={() => setShowAddAction(true)}
-              className="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 border-2 border-dashed rounded-lg transition-colors"
+              style={{ borderColor: 'var(--ss-border-strong)', color: 'var(--ss-text)' }}
               type="button"
             >
               <Plus size={16} />
               <span className="text-sm font-medium">{t('experimentBuilder.step3.addCustomAction')}</span>
             </button>
           ) : (
-            <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 space-y-3">
-              <h4 className="text-sm font-medium text-gray-900">{t('experimentBuilder.step3.customActionTitle')}</h4>
+            <div className="p-4 border rounded-lg space-y-3" style={{ background: 'var(--ss-page-surface-muted)', borderColor: 'var(--ss-border)' }}>
+              <h4 className="text-sm font-medium" style={{ color: 'var(--ss-heading)' }}>{t('experimentBuilder.step3.customActionTitle')}</h4>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--ss-heading)' }}>
                   {t('experimentBuilder.step3.actionName')}
                 </label>
                 <input
@@ -393,11 +391,12 @@ export const Step3Scenario: React.FC = () => {
                   value={newActionName}
                   onChange={(e) => setNewActionName(e.target.value)}
                   placeholder={t('experimentBuilder.step3.actionNamePlaceholder')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  style={{ borderColor: 'var(--ss-border-strong)', background: 'var(--ss-page-surface)' }}
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--ss-heading)' }}>
                   {t('experimentBuilder.step3.description')}
                 </label>
                 <textarea
@@ -405,14 +404,16 @@ export const Step3Scenario: React.FC = () => {
                   onChange={(e) => setNewActionDescription(e.target.value)}
                   placeholder={t('experimentBuilder.step3.descriptionPlaceholder')}
                   rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+                  className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+                  style={{ borderColor: 'var(--ss-border-strong)', background: 'var(--ss-page-surface)' }}
                 />
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={handleAddCustomAction}
                   disabled={!newActionName.trim() || !newActionDescription.trim()}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 text-white rounded-md text-sm font-medium disabled:cursor-not-allowed transition-colors"
+                  style={{ background: 'var(--ss-brand-primary)', opacity: (!newActionName.trim() || !newActionDescription.trim()) ? 0.5 : 1 }}
                   type="button"
                 >
                   {t('experimentBuilder.step3.addAction')}
@@ -423,7 +424,8 @@ export const Step3Scenario: React.FC = () => {
                     setNewActionName('');
                     setNewActionDescription('');
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-100 transition-colors"
+                  className="px-4 py-2 border rounded-md text-sm font-medium transition-colors"
+                  style={{ borderColor: 'var(--ss-border-strong)', color: 'var(--ss-text)' }}
                   type="button"
                 >
                   {t('common.cancel')}
@@ -436,7 +438,7 @@ export const Step3Scenario: React.FC = () => {
 
       {/* Selected Count */}
       {allActions.length > 0 && (
-        <div className="text-sm text-gray-600">
+        <div className="text-sm" style={{ color: 'var(--ss-text)' }}>
           {t('experimentBuilder.step3.actionsSelected', { selected: selectedActionIds.length, total: allActions.length })}
         </div>
       )}

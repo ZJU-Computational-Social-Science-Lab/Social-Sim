@@ -269,7 +269,7 @@ class PayoffEngine:
 
         for action in actions:
             if not action.skipped:
-                if action.action_name == "contribute":
+                if action.action_name in ("contribute", "allocate"):
                     attempted_amount = action.parameters.get("amount", 0)
 
                     # Validate contribution against agent's token balance

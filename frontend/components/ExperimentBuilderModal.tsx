@@ -207,16 +207,19 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" style={{ background: 'var(--ss-overlay)' }}>
+      <div className="rounded-xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]" style={{ background: 'var(--ss-surface)', border: '1px solid var(--ss-border)', boxShadow: 'var(--ss-shadow-3)', color: 'var(--ss-text)' }}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
+        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--ss-border)' }}>
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--ss-heading)' }}>
             {t('experimentBuilder.modalTitle')}
           </h2>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="transition-colors"
+            style={{ color: 'var(--ss-text-subtle)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--ss-text)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--ss-text-subtle)'; }}
             aria-label={t('experimentBuilder.close')}
           >
             <X size={20} />

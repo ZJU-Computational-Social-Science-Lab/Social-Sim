@@ -64,57 +64,61 @@ function PayoffInput({ value, actionA = 'Action 1', actionB = 'Action 2', onChan
 
   return (
     <div className="space-y-4">
-      <div className="bg-blue-50 p-3 rounded-md text-sm mb-4">
-        <p className="font-medium text-blue-800 mb-2">{t('experimentBuilder.step2.payoffInput.yourPayoffs')}</p>
-        <p className="text-blue-700 text-xs">{t('experimentBuilder.step2.payoffInput.instruction')}</p>
+      <div className="p-3 rounded-md text-sm mb-4" style={{ background: 'var(--ss-accent-warm-soft)', borderColor: 'var(--ss-layer-outline-strong)', border: '1px solid var(--ss-layer-outline-strong)' }}>
+        <p className="font-medium mb-2" style={{ color: 'var(--ss-heading)' }}>{t('experimentBuilder.step2.payoffInput.yourPayoffs')}</p>
+        <p className="text-xs" style={{ color: 'var(--ss-text)' }}>{t('experimentBuilder.step2.payoffInput.instruction')}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ss-heading)' }}>
             {t('experimentBuilder.step2.payoffInput.youThey', { actionA: translatedActionA, actionB: translatedActionA })}
           </label>
           <input
             type="number"
             value={value.cooperate_reward ?? defaults.cooperate_reward}
             onChange={(e) => update('cooperate_reward', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="w-full px-3 py-2 border rounded-md"
+            style={{ borderColor: 'var(--ss-border-strong)' }}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ss-heading)' }}>
             {t('experimentBuilder.step2.payoffInput.youThey', { actionA: translatedActionA, actionB: translatedActionB })}
           </label>
           <input
             type="number"
             value={value.sucker_penalty ?? defaults.sucker_penalty}
             onChange={(e) => update('sucker_penalty', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="w-full px-3 py-2 border rounded-md"
+            style={{ borderColor: 'var(--ss-border-strong)' }}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ss-heading)' }}>
             {t('experimentBuilder.step2.payoffInput.youThey', { actionA: translatedActionB, actionB: translatedActionA })}
           </label>
           <input
             type="number"
             value={value.temptation_reward ?? defaults.temptation_reward}
             onChange={(e) => update('temptation_reward', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="w-full px-3 py-2 border rounded-md"
+            style={{ borderColor: 'var(--ss-border-strong)' }}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ss-heading)' }}>
             {t('experimentBuilder.step2.payoffInput.youThey', { actionA: translatedActionB, actionB: translatedActionB })}
           </label>
           <input
             type="number"
             value={value.defect_penalty ?? defaults.defect_penalty}
             onChange={(e) => update('defect_penalty', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="w-full px-3 py-2 border rounded-md"
+            style={{ borderColor: 'var(--ss-border-strong)' }}
           />
         </div>
       </div>
@@ -278,7 +282,7 @@ export const Step2StarterTemplate: React.FC = () => {
 
   if (!selectedScenarioData) {
     return (
-      <div className="p-4 text-center text-gray-500">
+      <div className="p-4 text-center" style={{ color: 'var(--ss-text-muted)' }}>
         {t('experimentBuilder.step2.selectScenarioFirst')}
       </div>
     );
@@ -305,9 +309,9 @@ export const Step2StarterTemplate: React.FC = () => {
     return cascadeMode === 'distortion_cascade';
   });
   const showCascadeModeCard = isCascadeScenario(selectedScenarioData.parameters.map((param) => param.key));
-  const cascadeCardTone = cascadeMode === 'distortion_cascade'
-    ? 'border-amber-200 bg-amber-50'
-    : 'border-blue-200 bg-blue-50';
+  const cascadeCardStyle = cascadeMode === 'distortion_cascade'
+    ? { background: 'var(--ss-brand-soft)', borderColor: 'var(--ss-brand-primary)' }
+    : { background: 'var(--ss-accent-warm-soft)', borderColor: 'var(--ss-layer-outline-strong)' };
   const cascadeBulletKeys = cascadeMode === 'distortion_cascade'
     ? ['point1', 'point2', 'point3']
     : ['point1', 'point2', 'point3'];
@@ -315,10 +319,10 @@ export const Step2StarterTemplate: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900">
+        <h2 className="text-xl font-semibold" style={{ color: 'var(--ss-heading)' }}>
           {t('experimentBuilder.step2.configureTitle', { name: getScenarioName() })}
         </h2>
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="text-sm mt-1" style={{ color: 'var(--ss-text)' }}>
           {t('experimentBuilder.step2.configureSubtitle')}
         </p>
       </div>
@@ -327,7 +331,8 @@ export const Step2StarterTemplate: React.FC = () => {
       <div>
         <label
           htmlFor="scenario-description"
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium mb-2"
+          style={{ color: 'var(--ss-heading)' }}
         >
           {t('experimentBuilder.step2.scenarioDescriptionLabel')}
         </label>
@@ -336,30 +341,34 @@ export const Step2StarterTemplate: React.FC = () => {
           value={scenarioDescription}
           onChange={handleDescriptionChange}
           rows={4}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y"
+          className="w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 resize-y"
+          style={{ borderColor: 'var(--ss-border-strong)' }}
           placeholder={t('experimentBuilder.step2.scenarioDescriptionPlaceholder')}
         />
       </div>
 
       {showCascadeModeCard && (
-        <div className={`rounded-lg border p-4 ${cascadeCardTone}`}>
+        <div className={`rounded-lg border p-4`} style={cascadeCardStyle}>
           <div className="flex items-center justify-between gap-3 mb-2">
             <div>
-              <h3 className="text-sm font-semibold text-gray-900">
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--ss-heading)' }}>
                 {t(`experimentBuilder.step2.cascadeCards.${cascadeMode}.title`)}
               </h3>
-              <p className="text-sm text-gray-700 mt-1">
+              <p className="text-sm mt-1" style={{ color: 'var(--ss-heading)' }}>
                 {t(`experimentBuilder.step2.cascadeCards.${cascadeMode}.summary`)}
               </p>
             </div>
-            <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-gray-700 border border-white/70">
+            <span
+              className="rounded-full border px-3 py-1 text-xs font-medium"
+              style={{ background: 'var(--ss-page-surface)', color: 'var(--ss-heading)', borderColor: 'var(--ss-border)' }}
+            >
               {t(`experimentBuilder.step2.cascadeCards.${cascadeMode}.badge`)}
             </span>
           </div>
-          <ul className="mt-3 space-y-2 text-sm text-gray-700">
+          <ul className="mt-3 space-y-2 text-sm" style={{ color: 'var(--ss-heading)' }}>
             {cascadeBulletKeys.map((key) => (
               <li key={key} className="flex items-start gap-2">
-                <span className="mt-0.5 text-gray-500">•</span>
+                <span className="mt-0.5" style={{ color: 'var(--ss-text-muted)' }}>•</span>
                 <span>{t(`experimentBuilder.step2.cascadeCards.${cascadeMode}.${key}`)}</span>
               </li>
             ))}
@@ -379,7 +388,7 @@ export const Step2StarterTemplate: React.FC = () => {
         />
       ) : hasParameters ? (
         <div className="space-y-4">
-          <h3 className="text-sm font-medium text-gray-700">
+          <h3 className="text-sm font-medium" style={{ color: 'var(--ss-heading)' }}>
             {t('experimentBuilder.step2.parametersTitle')}
           </h3>
           {visibleParameters.map((param) => {
@@ -388,11 +397,11 @@ export const Step2StarterTemplate: React.FC = () => {
 
             return (
               <div key={param.key} className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium" style={{ color: 'var(--ss-heading)' }}>
                   {getParamLabel(param)}
                 </label>
                 {description && (
-                  <p className="text-xs text-gray-500 leading-5">
+                  <p className="text-xs leading-5" style={{ color: 'var(--ss-text-muted)' }}>
                     {description}
                   </p>
                 )}
@@ -415,8 +424,8 @@ export const Step2StarterTemplate: React.FC = () => {
           })}
         </div>
       ) : (
-        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-sm text-gray-600">
+        <div className="p-3 rounded-lg border" style={{ background: 'var(--ss-page-surface-muted)', borderColor: 'var(--ss-border)' }}>
+          <p className="text-sm" style={{ color: 'var(--ss-text)' }}>
             {t('experimentBuilder.step2.noParameters')}
           </p>
         </div>
