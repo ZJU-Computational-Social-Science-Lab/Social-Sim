@@ -33,7 +33,7 @@
 
   .ss-archive-toolbar__field {
     display: grid;
-    gap: 0.35rem;
+    gap: var(--ss-gap-xs);
     min-width: 0;
   }
 
@@ -58,14 +58,14 @@
 
   .ss-archive-results {
     display: grid;
-    gap: 1rem;
+    gap: var(--ss-space-4);
   }
 
   .ss-archive-results__header {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    gap: 1rem;
+    gap: var(--ss-space-4);
   }
 
   .ss-archive-bulk,
@@ -97,7 +97,7 @@
 
   .ss-archive-grid {
     display: grid;
-    gap: 1rem;
+    gap: var(--ss-space-4);
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   }
 

@@ -436,12 +436,12 @@
   .ss-settings-section,
   .ss-settings-stack {
     display: grid;
-    gap: 1rem;
+    gap: var(--ss-space-4);
   }
 
   .ss-settings-grid {
     display: grid;
-    gap: 1rem;
+    gap: var(--ss-space-4);
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -451,7 +451,7 @@
 
   .ss-settings-hero {
     display: grid;
-    gap: 1rem;
+    gap: var(--ss-space-4);
     padding: 1.15rem;
   }
 
