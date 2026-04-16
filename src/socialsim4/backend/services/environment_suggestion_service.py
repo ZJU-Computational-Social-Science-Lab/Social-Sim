@@ -65,15 +65,11 @@ async def get_simulation_state(simulation_id: str, db, user_id: int, node_id: in
     environment_enabled = bool(scene_config.get("environment_enabled", False))
 
     # Get current tree record from SimTree registry
-    record = SIM_TREE_REGISTRY.get(simulation_id)
+    registry_key = simulation_id.upper()
+    record = SIM_TREE_REGISTRY.get(registry_key)
     if not record:
         logger.warning(f"Simulation {simulation_id} not found in SIM_TREE_REGISTRY")
-        return {
-            "turns": 0,
-            "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
-            "_suggestions_viewed_intervals": set(),
-            "clients": None,
-        }
+        record = await SIM_TREE_REGISTRY.get_or_create_from_sim(sim)
 
     # Get current node simulator
     tree = record.tree
@@ -84,12 +80,23 @@ async def get_simulation_state(simulation_id: str, db, user_id: int, node_id: in
         current_node = tree.nodes.get(current_node_id)
         if not current_node:
             logger.warning(f"Requested node {current_node_id} not found for simulation {simulation_id}")
-            return {
-                "turns": 0,
-                "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
-                "_suggestions_viewed_intervals": set(),
-                "clients": None,
-            }
+            leaves = tree.leaves()
+            if not leaves:
+                return {
+                    "turns": 0,
+                    "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
+                    "_suggestions_viewed_intervals": set(),
+                    "clients": None,
+                }
+            current_node_id = leaves[0]
+            current_node = tree.nodes.get(current_node_id)
+            if not current_node:
+                return {
+                    "turns": 0,
+                    "config": EnvironmentConfig(enabled=environment_enabled).serialize(),
+                    "_suggestions_viewed_intervals": set(),
+                    "clients": None,
+                }
         simulator = current_node.get("sim")
         if not simulator:
             logger.warning(f"No simulator found in requested node {current_node_id}")
@@ -273,15 +280,27 @@ async def broadcast_environment_event(
                 if agent:
                     agent.add_env_feedback(description, images=images)
             # inform scene about private notice (no cascade)
-            if is_policy_scene:
+            if hasattr(simulator.scene, "inject_host_message"):
+                scoped_prefix = f"[Private notice to {', '.join(receivers)}]\n" if receivers else ""
+                simulator.scene.inject_host_message(f"{scoped_prefix}{description}")
+                if hasattr(simulator, "_emit_event"):
+                    simulator._emit_event("public_event", {"message": description, "scoped": True, "recipients": receivers})
+            elif is_policy_scene:
                 simulator.scene.on_private_event(simulator, "environment", {"description": description, "event_type": mode, "notice_only": True}, receivers)
             else:
                 simulator.scene.on_private_event(simulator, "environment", {"description": description, "event_type": mode}, receivers)
         else:
-            for agent in simulator.agents.values():
-                agent.add_env_feedback(description, images=images)
+            if hasattr(simulator.scene, "inject_host_message"):
+                simulator.scene.inject_host_message(description)
+                if hasattr(simulator, "_emit_event"):
+                    simulator._emit_event("public_event", {"message": description, "scoped": False, "recipients": []})
+            else:
+                for agent in simulator.agents.values():
+                    agent.add_env_feedback(description, images=images)
             # inform scene about global notice (no cascade)
-            if is_policy_scene:
+            if hasattr(simulator.scene, "inject_host_message"):
+                pass
+            elif is_policy_scene:
                 simulator.scene.on_event(simulator, "environment", {"description": description, "event_type": mode, "notice_only": True})
             else:
                 simulator.scene.on_event(simulator, "environment", {"description": description, "event_type": mode})
@@ -292,8 +311,13 @@ async def broadcast_environment_event(
     # Mark suggestions as viewed at the tree level
     record = SIM_TREE_REGISTRY.get(simulation_id)
     if record:
-        interval = simulator.environment_config.turn_interval
-        current_interval_milestone = (simulator.turns // interval) * interval
+        config = getattr(simulator, "environment_config", None)
+        interval = getattr(config, "turn_interval", 5)
+        turns = getattr(simulator, "turns", None)
+        if turns is None and hasattr(simulator, "scene"):
+            turns = getattr(simulator.scene, "current_round", 0)
+        turns = turns or 0
+        current_interval_milestone = (turns // interval) * interval
         record._suggestions_viewed_intervals.add(current_interval_milestone)
         logger.info(f"Marked interval {current_interval_milestone} as viewed for simulation {simulation_id}")
 

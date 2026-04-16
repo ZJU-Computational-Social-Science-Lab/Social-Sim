@@ -140,3 +140,98 @@ def test_broadcast_environment_event_uses_requested_branch_node(monkeypatch):
         "environment",
         {"description": "分支公告", "event_type": "environment", "notice_only": True},
     )]
+
+
+def test_broadcast_environment_event_rehydrates_registry_and_injects_experiment_host_message(monkeypatch):
+    class DummyScene:
+        def __init__(self):
+            self.messages = []
+            self.current_round = 3
+
+        def inject_host_message(self, message):
+            self.messages.append(message)
+
+    class DummySimulator:
+        def __init__(self):
+            self.scene = DummyScene()
+            self.events = []
+            self.turns = 0
+            self.environment_config = None
+
+        def _emit_event(self, event_type, data):
+            self.events.append((event_type, data))
+
+    simulator = DummySimulator()
+    tree = SimpleNamespace(nodes={7: {"sim": simulator}}, serialize=lambda: {"ok": True})
+    record = SimpleNamespace(tree=tree, _suggestions_viewed_intervals=set())
+    sim_record = SimpleNamespace(latest_state=None)
+
+    class DummyResult:
+        def __init__(self, value):
+            self.value = value
+
+        def scalar_one_or_none(self):
+            return self.value
+
+    class DummyDB:
+        def __init__(self):
+            self.committed = False
+
+        async def execute(self, *_args, **_kwargs):
+            return DummyResult(sim_record)
+
+        async def commit(self):
+            self.committed = True
+
+    async def fake_get_or_create_from_sim(sim):
+        assert sim is sim_record
+        return record
+
+    monkeypatch.setattr(environment_suggestion_service.SIM_TREE_REGISTRY, "get_or_create_from_sim", fake_get_or_create_from_sim)
+    monkeypatch.setattr(environment_suggestion_service.SIM_TREE_REGISTRY, "get", lambda _sid: None)
+
+    db = DummyDB()
+    ok = asyncio.run(
+        environment_suggestion_service.broadcast_environment_event(
+            "SIM2",
+            {"description": "实验环境事件", "event_type": "environment", "node_id": 7},
+            db,
+            1,
+        )
+    )
+
+    assert ok is True
+    assert simulator.scene.messages == ["实验环境事件"]
+    assert simulator.events == [("public_event", {"message": "实验环境事件", "scoped": False, "recipients": []})]
+    assert db.committed is True
+
+
+def test_get_simulation_state_falls_back_to_leaf_when_requested_node_missing(monkeypatch):
+    class DummyConfig:
+        def serialize(self):
+            return {"enabled": False}
+
+    simulator = SimpleNamespace(environment_config=DummyConfig(), clients={}, turns=2)
+    tree = SimpleNamespace(nodes={1: {"sim": simulator}}, leaves=lambda: [1])
+    record = SimpleNamespace(tree=tree, _suggestions_viewed_intervals=set())
+    sim = SimpleNamespace(id="SIM3", owner_id=1, scene_config={}, latest_state=None)
+
+    class DummyResult:
+        def scalar_one_or_none(self):
+            return sim
+
+    class DummyDB:
+        async def execute(self, *_args, **_kwargs):
+            return DummyResult()
+
+    async def fake_get_or_create_from_sim(sim_record):
+        assert sim_record is sim
+        return record
+
+    monkeypatch.setattr(environment_suggestion_service.SIM_TREE_REGISTRY, "get", lambda _sid: None)
+    monkeypatch.setattr(environment_suggestion_service.SIM_TREE_REGISTRY, "get_or_create_from_sim", fake_get_or_create_from_sim)
+
+    state = asyncio.run(environment_suggestion_service.get_simulation_state("SIM3", DummyDB(), 1, node_id=99))
+
+    assert state["node_id"] == 1
+    assert state["tree"] is tree
