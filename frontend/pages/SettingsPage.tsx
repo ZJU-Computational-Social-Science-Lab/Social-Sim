@@ -222,7 +222,7 @@ export function SettingsPage() {
   const tabContent = useMemo(() => {
     if (activeTab === "profile") {
       return (
-        <div className="panel" style={{ gap: "0.5rem" }}>
+        <div className="panel" style={{ gap: "var(--ss-space-2)" }}>
           <div className="panel-title">{t('settings.tabs.profile')}</div>
           <div className="card">
             <div><strong>{t('settings.profile.email')}:</strong> {String(user?.email ?? "")}</div>
@@ -236,7 +236,7 @@ export function SettingsPage() {
 
     if (activeTab === "security") {
       return (
-        <div className="panel" style={{ gap: "0.5rem" }}>
+        <div className="panel" style={{ gap: "var(--ss-space-2)" }}>
           <div className="panel-title">{t('settings.tabs.security')}</div>
           <div className="card">
             <p>{t('settings.security.placeholder')}</p>
@@ -249,7 +249,7 @@ export function SettingsPage() {
     }
 
     return (
-      <div className="panel" style={{ gap: "0.75rem" }}>
+      <div className="panel" style={{ gap: "var(--ss-space-3)" }}>
         <div className="panel-header" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
           <div className="panel-title">{t('settings.providers.title')}</div>
           {activeTab === 'providers_llm' && (
@@ -257,7 +257,7 @@ export function SettingsPage() {
               const activeProv = (providersQuery.data || []).find((p) => p.is_active);
               const name = activeProv ? activeProv.name : '-';
               return (
-                <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>
+                <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-md)' }}>
                   {t('settings.providers.current', { name })}
                 </div>
               );
@@ -269,22 +269,22 @@ export function SettingsPage() {
         {activeTab === 'providers_llm' && (
           <>
             {/* List (no outer card) */}
-            <div className="card" style={{ display: 'grid', gap: 0, padding: '0.2rem 0.6rem' }}>
+            <div className="card" style={{ display: 'grid', gap: 0, padding: 'var(--ss-space-0-5) var(--ss-gap-lg)' }}>
               {providersQuery.isLoading && <div>{t('settings.providers.loading')}</div>}
-              {providersQuery.error && <div style={{ color: "#f87171" }}>{t('settings.providers.error')}</div>}
+              {providersQuery.error && <div style={{ color: "var(--ss-error-400)" }}>{t('settings.providers.error')}</div>}
               {(providersQuery.data ?? []).map((provider, idx) => {
                 const active = provider.is_active;
                 return (
-                  <div key={provider.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', padding: '0.5rem 0' }}>
+                  <div key={provider.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', padding: 'var(--ss-space-2) 0' }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>{provider.name}</div>
-                      <div style={{ color: 'var(--muted)', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-sm)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {provider.provider} · {provider.model} · {provider.base_url || '-'}
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: 'var(--ss-gap-xs)', alignItems: 'center' }}>
                       {testHints[provider.id] && (
-                        <span style={{ fontSize: '0.8rem', color: testHints[provider.id].ok ? '#22c55e' : '#f87171' }}>
+                        <span style={{ fontSize: 'var(--ss-type-xs)', color: testHints[provider.id].ok ? 'var(--ss-success-400)' : 'var(--ss-error-400)' }}>
                           {testHints[provider.id].ok ? '✓' : '✕'} {testHints[provider.id].msg}
                         </span>
                       )}
@@ -295,7 +295,7 @@ export function SettingsPage() {
                         aria-label={t('settings.providers.test')}
                         onClick={() => testProvider.mutate(provider.id)}
                         disabled={testingId !== null}
-                        style={{ borderColor: 'var(--border)', color: '#2563eb' }}
+                        style={{ borderColor: 'var(--border)', color: 'var(--ss-info-600)' }}
                       >
                         {testingId === provider.id ? <span className="spinner" aria-hidden /> : <Link2Icon />}
                       </button>
@@ -306,7 +306,7 @@ export function SettingsPage() {
                         aria-label={active ? (t('settings.providers.activeTag') || 'Active') : (t('settings.providers.makeActive') || 'Use')}
                         onClick={() => !active && activateProvider.mutate(provider.id)}
                         disabled={active || activateProvider.isPending}
-                        style={{ borderColor: 'var(--border)', color: '#f59e0b' }}
+                        style={{ borderColor: 'var(--border)', color: 'var(--ss-warning-600)' }}
                       >
                         {active ? <StarFilledIcon /> : <StarIcon />}
                       </button>
@@ -323,7 +323,7 @@ export function SettingsPage() {
                           deleteProvider.mutate(provider.id);
                         }}
                         disabled={deleteProvider.isPending}
-                        style={{ borderColor: 'var(--border)', color: '#ef4444' }}
+                        style={{ borderColor: 'var(--border)', color: 'var(--ss-error-500)' }}
                       >
                         <TrashIcon />
                       </button>
@@ -332,12 +332,12 @@ export function SettingsPage() {
                   </div>
                 );
               })}
-              {(providersQuery.data ?? []).length === 0 && <div style={{ color: "#94a3b8" }}>{t('settings.providers.none')}</div>}
+              {(providersQuery.data ?? []).length === 0 && <div style={{ color: "var(--ss-text-muted)" }}>{t('settings.providers.none')}</div>}
             </div>
 
             {/* Add form */}
-            <form onSubmit={handleCreateProvider} className="card" style={{ gap: "0.25rem", padding: '0.45rem 0.55rem', marginTop: '0.6rem', fontSize: '0.85rem' }}>
-              <h2 style={{ margin: 0, fontSize: "0.9rem" }}>{t('settings.providers.add')}</h2>
+            <form onSubmit={handleCreateProvider} className="card" style={{ gap: "var(--ss-space-1)", padding: '0.45rem 0.55rem', marginTop: 'var(--ss-gap-lg)', fontSize: 'var(--ss-type-sm)' }}>
+              <h2 style={{ margin: 0, fontSize: "var(--ss-type-md)" }}>{t('settings.providers.add')}</h2>
               <label>
                 {t('settings.providers.fields.label')}
                 <input className="input small"
@@ -376,7 +376,7 @@ export function SettingsPage() {
               </label>
               <label>
                 {t('settings.providers.fields.apiKey')}
-                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginTop: "0.5rem" }}>
+                <div style={{ display: "flex", gap: "var(--ss-space-2)", alignItems: "center", marginTop: "0.5rem" }}>
                   <input
                     required
                     type={keyVisible ? "text" : "password"}
@@ -396,49 +396,49 @@ export function SettingsPage() {
                   </button>
                 </div>
               </label>
-              {createProvider.error && <div style={{ color: "#f87171" }}>{t('settings.providers.createFailed') || 'Failed to add provider.'}</div>}
+              {createProvider.error && <div style={{ color: "var(--ss-error-400)" }}>{t('settings.providers.createFailed') || 'Failed to add provider.'}</div>}
               <button
                 type="submit"
                 className="icon-button square"
                 title={t('settings.providers.save')}
                 aria-label={t('settings.providers.save')}
                 disabled={createProvider.isPending}
-                style={{ color: '#16a34a' }}
+                style={{ color: 'var(--ss-success-500)' }}
               >
                 {createProvider.isPending ? <span className="spinner" aria-hidden /> : <FilePlusIcon />}
               </button>
             </form>
 
-            <div className="card" style={{ padding: '0.6rem 0.7rem', display: 'grid', gap: '0.4rem' }}>
+            <div className="card" style={{ padding: 'var(--ss-gap-lg) var(--ss-gap-xl)', display: 'grid', gap: 'var(--ss-gap-sm)' }}>
               <div className="panel-subtitle" style={{ margin: 0 }}>{t('settings.providers.capabilities.title')}</div>
-              <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>{t('settings.providers.capabilities.hint')}</div>
-              <div style={{ display: 'grid', gap: '0.5rem' }}>
+              <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-md)' }}>{t('settings.providers.capabilities.hint')}</div>
+              <div style={{ display: 'grid', gap: 'var(--ss-space-2)' }}>
                 {getCapabilityRows(t).map((row) => (
-                  <div key={row.model} style={{ border: '1px solid var(--border)', borderRadius: '10px', padding: '0.6rem 0.7rem', background: 'rgba(255,255,255,0.02)', display: 'grid', gap: '0.35rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '0.6rem', flexWrap: 'wrap' }}>
+                  <div key={row.model} style={{ border: '1px solid var(--border)', borderRadius: 'var(--ss-radius-md)', padding: 'var(--ss-gap-lg) var(--ss-gap-xl)', background: 'rgba(255,255,255,0.02)', display: 'grid', gap: 'var(--ss-gap-xs)' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 'var(--ss-gap-lg)', flexWrap: 'wrap' }}>
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: '1rem' }}>{row.model}</div>
-                        <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>{t('settings.providers.capabilities.modalities')}: {row.modalities}</div>
+                        <div style={{ fontWeight: 700, fontSize: 'var(--ss-type-input)' }}>{row.model}</div>
+                        <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-md)' }}>{t('settings.providers.capabilities.modalities')}: {row.modalities}</div>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                        <span className="pill" style={{ background: 'rgba(37, 99, 235, 0.12)', color: '#1d4ed8', padding: '0.2rem 0.45rem', borderRadius: '999px', fontSize: '0.85rem' }}>
+                      <div style={{ display: 'flex', gap: 'var(--ss-gap-xs)', flexWrap: 'wrap' }}>
+                        <span className="pill" style={{ background: 'var(--ss-info-soft)', color: 'var(--ss-info-600)', padding: '0.2rem 0.45rem', borderRadius: 'var(--ss-radius-pill)', fontSize: 'var(--ss-type-sm)' }}>
                           {t('settings.providers.capabilities.context')}: {row.context}
                         </span>
-                        <span className="pill" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#059669', padding: '0.2rem 0.45rem', borderRadius: '999px', fontSize: '0.85rem' }}>
+                        <span className="pill" style={{ background: 'var(--ss-success-soft)', color: 'var(--ss-success-600)', padding: '0.2rem 0.45rem', borderRadius: 'var(--ss-radius-pill)', fontSize: 'var(--ss-type-sm)' }}>
                           {t('settings.providers.capabilities.input')}: {row.input}
                         </span>
-                        <span className="pill" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#b45309', padding: '0.2rem 0.45rem', borderRadius: '999px', fontSize: '0.85rem' }}>
+                        <span className="pill" style={{ background: 'var(--ss-warning-soft)', color: 'var(--ss-warning-600)', padding: '0.2rem 0.45rem', borderRadius: 'var(--ss-radius-pill)', fontSize: 'var(--ss-type-sm)' }}>
                           {t('settings.providers.capabilities.output')}: {row.output}
                         </span>
                       </div>
                     </div>
-                    <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>
+                    <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-md)' }}>
                       {t('settings.providers.capabilities.note')}: {t(row.note)}
                     </div>
                   </div>
                 ))}
               </div>
-              <div style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{t('settings.providers.capabilities.disclaimer')}</div>
+              <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-sm)' }}>{t('settings.providers.capabilities.disclaimer')}</div>
             </div>
           </>
         )}
@@ -446,18 +446,18 @@ export function SettingsPage() {
         {/* Search Providers */}
         {activeTab === 'providers_search' && (
           <>
-            <div className="card" style={{ padding: '0.6rem 0.7rem', display: 'grid', gap: '0.25rem' }}>
+            <div className="card" style={{ padding: 'var(--ss-gap-lg) var(--ss-gap-xl)', display: 'grid', gap: 'var(--ss-space-1)' }}>
               <div className="panel-subtitle" style={{ margin: 0 }}>{t('settings.providers.searchTab') || 'Search providers'}</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: '0.5rem', rowGap: '0.2rem', alignItems: 'baseline', fontSize: '0.9rem', lineHeight: 1.25 }}>
-                <div style={{ color: 'var(--muted)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{t('settings.providers.fields.provider')}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: 'var(--ss-space-2)', rowGap: '0.2rem', alignItems: 'baseline', fontSize: 'var(--ss-type-md)', lineHeight: 1.25 }}>
+                <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-xs)', whiteSpace: 'nowrap' }}>{t('settings.providers.fields.provider')}</div>
                 <div>{searchProvider ? (searchProvider.provider || '-') : '-'}</div>
-                <div style={{ color: 'var(--muted)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{t('settings.providers.fields.baseUrl')}</div>
+                <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-xs)', whiteSpace: 'nowrap' }}>{t('settings.providers.fields.baseUrl')}</div>
                 <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{searchProvider ? (searchProvider.base_url || '-') : '-'}</div>
               </div>
             </div>
-            <div className="card" style={{ gap: "0.3rem", padding: '0.5rem 0.6rem', fontSize: '0.85rem' }}>
-              <h2 style={{ margin: 0, fontSize: "0.9rem" }}>{t('settings.providers.setSearchProvider')}</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+            <div className="card" style={{ gap: "0.3rem", padding: 'var(--ss-space-2) var(--ss-gap-lg)', fontSize: 'var(--ss-type-sm)' }}>
+              <h2 style={{ margin: 0, fontSize: "var(--ss-type-md)" }}>{t('settings.providers.setSearchProvider')}</h2>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--ss-space-2)" }}>
                 <label>
                   {t('settings.providers.fields.provider')}
                   <AppSelect
@@ -562,7 +562,7 @@ export function SettingsPage() {
                   </>
                 )}
               </div>
-              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: "var(--ss-space-2)", alignItems: "center" }}>
                 <button
                   type="button"
                   className="icon-button square"
@@ -570,12 +570,12 @@ export function SettingsPage() {
                   aria-label={t('settings.providers.save')}
                   onClick={() => upsertSearch.mutate()}
                   disabled={upsertSearch.isPending}
-                  style={{ color: '#16a34a' }}
+                  style={{ color: 'var(--ss-success-500)' }}
                 >
                   {upsertSearch.isPending ? <span className="spinner" aria-hidden /> : <FilePlusIcon />}
                 </button>
                 {searchProvider && (
-                  <div style={{ color: "#94a3b8", lineHeight: 1 }}>
+                  <div style={{ color: "var(--ss-text-muted)", lineHeight: 1 }}>
                     {t('settings.providers.search.active')}: {searchProvider.provider}
                   </div>
 
@@ -587,37 +587,37 @@ export function SettingsPage() {
 
         {/* File Management Tab */}
         {activeTab === 'files' && (
-          <div className="card" style={{ padding: '0.6rem 0.7rem', display: 'grid', gap: '0.4rem' }}>
+          <div className="card" style={{ padding: 'var(--ss-gap-lg) var(--ss-gap-xl)', display: 'grid', gap: 'var(--ss-gap-sm)' }}>
             <div className="panel-subtitle" style={{ margin: 0 }}>{t('settings.files.title')}</div>
-            <div style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>{t('settings.files.description')}</div>
+            <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-md)' }}>{t('settings.files.description')}</div>
 
             {filesQuery.isLoading && <div>{t('settings.files.loading')}</div>}
-            {filesQuery.error && <div style={{ color: "#f87171" }}>{t('settings.files.error')}</div>}
+            {filesQuery.error && <div style={{ color: "var(--ss-error-400)" }}>{t('settings.files.error')}</div>}
 
             {filesQuery.data && filesQuery.data.length > 0 && (
-              <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '8px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--ss-radius-sm)' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--ss-type-sm)' }}>
                   <thead style={{ background: 'rgba(0,0,0,0.02)' }}>
                     <tr>
-                      <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.filename')}</th>
-                      <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.type')}</th>
-                      <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.size')}</th>
-                      <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.created')}</th>
-                      <th style={{ padding: '0.5rem', textAlign: 'right', fontWeight: 600 }}>{t('settings.files.table.actions')}</th>
+                      <th style={{ padding: 'var(--ss-space-2)', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.filename')}</th>
+                      <th style={{ padding: 'var(--ss-space-2)', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.type')}</th>
+                      <th style={{ padding: 'var(--ss-space-2)', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.size')}</th>
+                      <th style={{ padding: 'var(--ss-space-2)', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.created')}</th>
+                      <th style={{ padding: 'var(--ss-space-2)', textAlign: 'right', fontWeight: 600 }}>{t('settings.files.table.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filesQuery.data.map((file) => (
                       <tr key={file.id} style={{ borderTop: '1px solid var(--border)' }}>
-                        <td style={{ padding: '0.5rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: 'var(--ss-space-2)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           <span title={file.filename}>{file.filename}</span>
                         </td>
-                        <td style={{ padding: '0.5rem' }}>
-                          <span style={{ textTransform: 'uppercase', fontSize: '0.75rem' }}>{file.type || '-'}</span>
+                        <td style={{ padding: 'var(--ss-space-2)' }}>
+                          <span style={{ textTransform: 'uppercase', fontSize: 'var(--ss-type-label)' }}>{file.type || '-'}</span>
                         </td>
-                        <td style={{ padding: '0.5rem' }}>{formatSize(file.size)}</td>
-                        <td style={{ padding: '0.5rem', color: 'var(--muted)' }}>{formatDate(file.created)}</td>
-                        <td style={{ padding: '0.5rem', textAlign: 'right' }}>
+                        <td style={{ padding: 'var(--ss-space-2)' }}>{formatSize(file.size)}</td>
+                        <td style={{ padding: 'var(--ss-space-2)', color: 'var(--muted)' }}>{formatDate(file.created)}</td>
+                        <td style={{ padding: 'var(--ss-space-2)', textAlign: 'right' }}>
                           <button
                             type="button"
                             className="icon-button square"
@@ -629,7 +629,7 @@ export function SettingsPage() {
                               }
                             }}
                             disabled={deleteFile.isPending}
-                            style={{ borderColor: 'var(--border)', color: '#ef4444' }}
+                            style={{ borderColor: 'var(--border)', color: 'var(--ss-error-500)' }}
                           >
                             <TrashIcon />
                           </button>
@@ -642,10 +642,10 @@ export function SettingsPage() {
             )}
 
             {filesQuery.data && filesQuery.data.length === 0 && (
-              <div style={{ color: "#94a3b8" }}>{t('settings.files.empty')}</div>
+              <div style={{ color: "var(--ss-text-muted)" }}>{t('settings.files.empty')}</div>
             )}
 
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 'var(--ss-space-2)', alignItems: 'center' }}>
               <button
                 type="button"
                 className="button"
@@ -666,7 +666,7 @@ export function SettingsPage() {
               </button>
 
               {orphanResult && (
-                <span style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
+                <span style={{ fontSize: 'var(--ss-type-sm)', color: 'var(--muted)' }}>
                   {orphanResult.orphaned.length > 0
                     ? t('settings.files.orphansFound', { count: orphanResult.orphaned.length })
                     : t('settings.files.noOrphans')}
