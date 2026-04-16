@@ -47,6 +47,19 @@
   --ss-neutral-700: #5f6258;
   --ss-neutral-900: #2f312b;
 
+  /* ── Semantic extended ── */
+  --ss-error-400: #f87171;
+  --ss-error-500: #ef4444;
+  --ss-error-700: #b91c1c;
+  --ss-success-400: #22c55e;
+  --ss-success-500: #16a34a;
+  --ss-success-600: #059669;
+  --ss-warning-600: #b45309;
+  --ss-info-600: #1d4ed8;
+  --ss-info-soft: rgba(37, 99, 235, 0.12);
+  --ss-success-soft: rgba(16, 185, 129, 0.12);
+  --ss-warning-soft: rgba(245, 158, 11, 0.12);
+
   --ss-space-1: 0.25rem;
   --ss-space-2: 0.5rem;
   --ss-space-3: 0.75rem;
@@ -56,6 +69,11 @@
   --ss-space-7: 2rem;
   --ss-space-8: 2.5rem;
   --ss-space-9: 3rem;
+  --ss-space-0-5: 0.125rem;
+  --ss-gap-xs: 0.35rem;
+  --ss-gap-sm: 0.4rem;
+  --ss-gap-lg: 0.6rem;
+  --ss-gap-xl: 0.7rem;
   --ss-page-width: 108rem;
 
   --ss-type-page-title: 3.25rem;
@@ -65,6 +83,11 @@
   --ss-type-caption: 0.8125rem;
   --ss-type-label: 0.75rem;
   --ss-type-button: 0.875rem;
+  --ss-type-xs: 0.8rem;
+  --ss-type-sm: 0.85rem;
+  --ss-type-md: 0.9rem;
+  --ss-type-subtitle: 1.2rem;
+  --ss-type-input: 1rem;
 
   --ss-radius-sm: 0.625rem;
   --ss-radius-2xl: 1.875rem;
