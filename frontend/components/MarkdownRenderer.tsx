@@ -20,15 +20,15 @@ export interface MarkdownRendererProps {
 
 const markdownStyles: React.CSSProperties = {
   lineHeight: "1.7",
-  fontSize: "0.95rem",
-  color: "#334155",
+  fontSize: "var(--ss-type-body)",
+  color: "var(--ss-text)",
 };
 
 const headingStyles: React.CSSProperties = {
   marginTop: "1.5rem",
   marginBottom: "0.75rem",
   fontWeight: "600",
-  color: "#1e293b",
+  color: "var(--ss-heading)",
 };
 
 const paragraphStyles: React.CSSProperties = {
@@ -48,12 +48,12 @@ const listItemStyles: React.CSSProperties = {
 };
 
 const linkStyles: React.CSSProperties = {
-  color: "#3b82f6",
+  color: "var(--ss-link)",
   textDecoration: "underline",
 };
 
 const codeStyles: React.CSSProperties = {
-  backgroundColor: "#f1f5f9",
+  backgroundColor: "var(--ss-surface-muted)",
   padding: "0.125rem 0.375rem",
   borderRadius: "0.25rem",
   fontFamily: "monospace",
@@ -61,8 +61,8 @@ const codeStyles: React.CSSProperties = {
 };
 
 const preStyles: React.CSSProperties = {
-  backgroundColor: "#1e293b",
-  color: "#e2e8f0",
+  backgroundColor: "var(--ss-neutral-900)",
+  color: "var(--ss-border)",
   padding: "1rem",
   borderRadius: "0.5rem",
   overflowX: "auto",
@@ -71,10 +71,10 @@ const preStyles: React.CSSProperties = {
 };
 
 const blockquoteStyles: React.CSSProperties = {
-  borderLeft: "4px solid #cbd5e1",
+  borderLeft: "4px solid var(--ss-border)",
   paddingLeft: "1rem",
   fontStyle: "italic",
-  color: "#64748b",
+  color: "var(--ss-text-muted)",
   marginTop: "1rem",
   marginBottom: "1rem",
 };
@@ -85,7 +85,7 @@ const imageStyles: React.CSSProperties = {
   borderRadius: "0.5rem",
   marginTop: "1rem",
   marginBottom: "1rem",
-  border: "1px solid #e2e8f0",
+  border: "1px solid var(--ss-border)",
 };
 
 const tableStyles: React.CSSProperties = {
@@ -96,7 +96,7 @@ const tableStyles: React.CSSProperties = {
 };
 
 const tableCellStyles: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
+  border: "1px solid var(--ss-border)",
   padding: "0.5rem 0.75rem",
   textAlign: "left",
 };
@@ -110,22 +110,22 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
       <ReactMarkdown
         components={{
           h1: ({ children }) => (
-            <h1 style={{ ...headingStyles, fontSize: "1.875rem" }}>{children}</h1>
+            <h1 style={{ ...headingStyles, fontSize: "var(--ss-type-section-title)" }}>{children}</h1>
           ),
           h2: ({ children }) => (
             <h2 style={{ ...headingStyles, fontSize: "1.5rem" }}>{children}</h2>
           ),
           h3: ({ children }) => (
-            <h3 style={{ ...headingStyles, fontSize: "1.25rem" }}>{children}</h3>
+            <h3 style={{ ...headingStyles, fontSize: "var(--ss-type-card-title)" }}>{children}</h3>
           ),
           h4: ({ children }) => (
             <h4 style={{ ...headingStyles, fontSize: "1.125rem" }}>{children}</h4>
           ),
           h5: ({ children }) => (
-            <h5 style={{ ...headingStyles, fontSize: "1rem" }}>{children}</h5>
+            <h5 style={{ ...headingStyles, fontSize: "var(--ss-type-input)" }}>{children}</h5>
           ),
           h6: ({ children }) => (
-            <h6 style={{ ...headingStyles, fontSize: "0.875rem" }}>{children}</h6>
+            <h6 style={{ ...headingStyles, fontSize: "var(--ss-type-button)" }}>{children}</h6>
           ),
           p: ({ children }) => (
             <p style={paragraphStyles}>{children}</p>
@@ -163,7 +163,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
             <table style={tableStyles}>{children}</table>
           ),
           thead: ({ children }) => (
-            <thead style={{ backgroundColor: "#f8fafc" }}>{children}</thead>
+            <thead style={{ backgroundColor: "var(--ss-surface)" }}>{children}</thead>
           ),
           th: ({ children }) => (
             <th style={{ ...tableCellStyles, fontWeight: "600" }}>{children}</th>
@@ -172,7 +172,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
             <td style={tableCellStyles}>{children}</td>
           ),
           hr: () => (
-            <hr style={{ border: "none", borderTop: "1px solid #e2e8f0", margin: "1.5rem 0" }} />
+            <hr style={{ border: "none", borderTop: "1px solid var(--ss-border)", margin: "1.5rem 0" }} />
           ),
         }}
       >

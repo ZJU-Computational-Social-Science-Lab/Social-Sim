@@ -217,7 +217,7 @@ export const HostPanel: React.FC = () => {
             onClick={handleBroadcast}
             disabled={!broadcastMsg}
             className="w-full py-1.5 text-xs text-white rounded disabled:opacity-50"
-            style={{ background: '#1e293b' }}
+            style={{ background: 'var(--ss-neutral-900)' }}
           >
             {t('components.hostPanel.sendBroadcast')}
           </button>

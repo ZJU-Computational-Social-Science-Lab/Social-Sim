@@ -166,7 +166,7 @@ const Header: React.FC = () => {
               }
             }}
             className="flex items-center gap-2 px-3 py-1.5 border hover:text-red-700 hover:border-red-300 text-xs font-medium rounded shadow-sm transition-all"
-            style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'rgb(220 38 38)' }}
+            style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-error-500)' }}
             title={t('simPage.deleteSimulation')}
             disabled={isGenerating}
           >

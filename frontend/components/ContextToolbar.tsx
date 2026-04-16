@@ -92,7 +92,7 @@ const ContextToolbar: React.FC = () => {
           }`}
           style={
             isGenerating
-              ? { background: '#94a3b8', color: '#fff' }
+              ? { background: 'var(--ss-text-muted)', color: 'var(--ss-neutral-0)' }
               : isCompareMode
                 ? { background: 'var(--ss-workspace-surface)', color: 'var(--ss-workspace-muted)' }
                 : { background: 'var(--ss-brand-primary)', color: 'var(--ss-brand-on)' }
@@ -153,7 +153,7 @@ const ContextToolbar: React.FC = () => {
             style={
               isGenerating || isCompareMode
                 ? { background: 'var(--ss-workspace-surface)', color: 'var(--ss-workspace-muted)' }
-                : { background: '#059669', color: '#fff' }
+                : { background: 'var(--ss-success-600)', color: 'var(--ss-neutral-0)' }
             }
           >
             <SkipForward size={14} />

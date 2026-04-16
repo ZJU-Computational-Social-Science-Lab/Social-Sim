@@ -26,17 +26,17 @@ export interface DocsSidebarProps {
 }
 
 const sidebarStyles: React.CSSProperties = {
-  backgroundColor: "#f8fafc",
-  border: "1px solid #e2e8f0",
+  backgroundColor: "var(--ss-surface)",
+  border: "1px solid var(--ss-border)",
   borderRadius: "0.5rem",
   padding: "1rem",
   minWidth: "200px",
 };
 
 const titleStyles: React.CSSProperties = {
-  fontSize: "0.875rem",
+  fontSize: "var(--ss-type-button)",
   fontWeight: "600",
-  color: "#64748b",
+  color: "var(--ss-text-muted)",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
   marginBottom: "0.75rem",
@@ -54,9 +54,9 @@ const getItemStyles = (isActive: boolean): React.CSSProperties => ({
   borderRadius: "0.375rem",
   cursor: "pointer",
   transition: "all 0.15s ease",
-  fontSize: "0.9375rem",
-  backgroundColor: isActive ? "#3b82f6" : "transparent",
-  color: isActive ? "#ffffff" : "#475569",
+  fontSize: "var(--ss-type-body)",
+  backgroundColor: isActive ? "var(--ss-info-600)" : "transparent",
+  color: isActive ? "var(--ss-neutral-0)" : "var(--ss-text-muted)",
   fontWeight: isActive ? "500" : "400",
 });
 
@@ -83,7 +83,7 @@ export function DocsSidebar({ currentDoc, onDocChange, className = "" }: DocsSid
               style={getItemStyles(isActive)}
               onMouseEnter={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.backgroundColor = "#e2e8f0";
+                  e.currentTarget.style.backgroundColor = "var(--ss-border)";
                 }
               }}
               onMouseLeave={(e) => {
