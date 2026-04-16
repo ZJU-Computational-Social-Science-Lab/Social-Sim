@@ -94,10 +94,10 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
     <div className="max-w-4xl mx-auto p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--ss-heading)' }}>
           {t('experimentBuilder.title')}
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="mt-1" style={{ color: 'var(--ss-text-muted)' }}>
           {t('experimentBuilder.subtitle')}
         </p>
       </div>

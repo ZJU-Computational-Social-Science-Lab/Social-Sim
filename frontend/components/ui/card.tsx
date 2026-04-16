@@ -13,7 +13,7 @@ export interface CardProps {
 
 export const Card: React.FC<CardProps> = ({ children, className = '' }) => {
   return (
-    <div className={`bg-white rounded-lg border border-gray-200 shadow-sm ${className}`.trim()}>
+    <div className={`rounded-lg shadow-sm ${className}`.trim()} style={{ background: 'var(--ss-surface)', border: '1px solid var(--ss-border)' }}>
       {children}
     </div>
   );
@@ -26,7 +26,7 @@ export interface CardHeaderProps {
 
 export const CardHeader: React.FC<CardHeaderProps> = ({ children, className = '' }) => {
   return (
-    <div className={`px-6 py-4 border-b border-gray-200 ${className}`.trim()}>
+    <div className={`px-6 py-4 ${className}`.trim()} style={{ borderBottom: '1px solid var(--ss-border)' }}>
       {children}
     </div>
   );
@@ -52,7 +52,7 @@ export interface CardTitleProps {
 
 export const CardTitle: React.FC<CardTitleProps> = ({ children, className = '' }) => {
   return (
-    <h3 className={`text-lg font-semibold text-gray-900 ${className}`.trim()}>
+    <h3 className={`text-lg font-semibold ${className}`.trim()} style={{ color: 'var(--ss-heading)' }}>
       {children}
     </h3>
   );
