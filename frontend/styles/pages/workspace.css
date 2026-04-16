@@ -603,7 +603,7 @@
     padding: 1rem;
     border: 1px solid var(--ss-workspace-border);
     border-radius: var(--ss-radius-2xl);
-    background: color-mix(in srgb, var(--ss-workspace-surface) 90%, white 10%);
+    background: color-mix(in srgb, var(--ss-workspace-surface) 90%, var(--ss-neutral-0) 10%);
     box-shadow: var(--ss-shadow-soft);
   }
 
@@ -1185,7 +1185,7 @@
     border-radius: calc(var(--ss-radius-2xl) - 4px);
     border: 1px solid var(--ss-border);
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--ss-workspace-surface-strong) 92%, white 8%), var(--ss-workspace-surface-strong));
+      linear-gradient(180deg, color-mix(in srgb, var(--ss-workspace-surface-strong) 92%, var(--ss-neutral-0) 8%), var(--ss-workspace-surface-strong));
     box-shadow:
       var(--ss-shadow-card),
       0 0 0 1px rgba(47, 230, 166, 0.08);
@@ -2008,7 +2008,7 @@
   }
 
   .ss-stage__focus-card--identity {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--ss-workspace-surface-strong) 88%, white 12%), var(--ss-workspace-surface-strong));
+    background: linear-gradient(180deg, color-mix(in srgb, var(--ss-workspace-surface-strong) 88%, var(--ss-neutral-0) 12%), var(--ss-workspace-surface-strong));
   }
 
   .theme-dark .ss-stage__focus-card--identity {
@@ -2136,7 +2136,7 @@
       radial-gradient(circle at top right, rgba(135, 189, 255, 0.08), transparent 34%),
       linear-gradient(
         180deg,
-        color-mix(in srgb, var(--ss-workspace-surface-strong) 92%, white 8%),
+        color-mix(in srgb, var(--ss-workspace-surface-strong) 92%, var(--ss-neutral-0) 8%),
         var(--ss-workspace-surface-strong)
       );
     box-shadow:
@@ -2309,7 +2309,7 @@
   .ss-branch-studio__observation {
     background:
       radial-gradient(circle at top right, color-mix(in srgb, var(--ss-brand-soft) 28%, transparent), transparent 34%),
-      linear-gradient(180deg, color-mix(in srgb, var(--ss-workspace-surface) 94%, white 6%), var(--ss-workspace-surface));
+      linear-gradient(180deg, color-mix(in srgb, var(--ss-workspace-surface) 94%, var(--ss-neutral-0) 6%), var(--ss-workspace-surface));
   }
 
   .theme-dark .ss-pathbar__header,
@@ -2654,7 +2654,7 @@
 
   .ss-config-panel__action.is-primary {
     border-color: color-mix(in srgb, var(--ss-brand-primary) 32%, transparent);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--ss-brand-primary) 88%, white 12%), var(--ss-brand-primary));
+    background: linear-gradient(180deg, color-mix(in srgb, var(--ss-brand-primary) 88%, var(--ss-neutral-0) 12%), var(--ss-brand-primary));
     color: var(--ss-brand-on);
     box-shadow: var(--ss-shadow-soft);
   }
@@ -3134,7 +3134,7 @@
     padding: 0 0.9rem;
     border-radius: var(--ss-radius-pill);
     border: 1px solid color-mix(in srgb, var(--ss-brand-primary) 28%, transparent);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--ss-brand-primary) 86%, white 14%), color-mix(in srgb, var(--ss-brand-primary) 90%, black 10%));
+    background: linear-gradient(180deg, color-mix(in srgb, var(--ss-brand-primary) 86%, var(--ss-neutral-0) 14%), color-mix(in srgb, var(--ss-brand-primary) 90%, black 10%));
     color: #04231a;
     font-size: 0.76rem;
     font-weight: 800;
@@ -3564,7 +3564,7 @@
     padding: 0.82rem 1.15rem;
     border-radius: var(--ss-radius-pill);
     border: 1px solid color-mix(in srgb, var(--ss-brand-primary) 24%, var(--ss-workspace-border));
-    background: linear-gradient(180deg, color-mix(in srgb, var(--ss-brand-primary) 82%, white 18%), var(--ss-brand-primary));
+    background: linear-gradient(180deg, color-mix(in srgb, var(--ss-brand-primary) 82%, var(--ss-neutral-0) 18%), var(--ss-brand-primary));
     color: #06261e;
     font-size: 0.92rem;
     font-weight: 800;
@@ -4215,7 +4215,7 @@
     width: 2rem;
     height: 2rem;
     border-radius: var(--ss-radius-pill);
-    background: color-mix(in srgb, var(--ss-brand-primary) 88%, white 12%);
+    background: color-mix(in srgb, var(--ss-brand-primary) 88%, var(--ss-neutral-0) 12%);
     color: #06261e;
     font-size: 0.82rem;
     font-weight: 800;
@@ -4623,7 +4623,7 @@
 
   .ss-sim-hero__summary {
     flex: 1;
-    color: color-mix(in srgb, var(--ss-workspace-text) 92%, white 8%);
+    color: color-mix(in srgb, var(--ss-workspace-text) 92%, var(--ss-neutral-0) 8%);
     font-size: 0.72rem;
     line-height: 1.35;
     white-space: nowrap;
@@ -4692,7 +4692,7 @@
     padding: 0 0.95rem;
     border-radius: var(--ss-radius-pill);
     border: 1px solid color-mix(in srgb, var(--ss-brand-primary) 32%, transparent);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--ss-brand-primary) 86%, white 14%), color-mix(in srgb, var(--ss-brand-primary) 90%, black 10%));
+    background: linear-gradient(180deg, color-mix(in srgb, var(--ss-brand-primary) 86%, var(--ss-neutral-0) 14%), color-mix(in srgb, var(--ss-brand-primary) 90%, black 10%));
     box-shadow: 0 10px 24px rgba(72, 239, 181, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.12);
     color: #04231a;
     font-size: 0.78rem;
@@ -4963,7 +4963,7 @@
 
   .ss-flow-node p {
     max-width: 74ch;
-    color: color-mix(in srgb, var(--ss-workspace-text) 92%, white 8%);
+    color: color-mix(in srgb, var(--ss-workspace-text) 92%, var(--ss-neutral-0) 8%);
     font-size: 0.82rem;
     line-height: 1.65;
   }
@@ -5575,7 +5575,7 @@
     padding: 0 0.95rem;
     border-radius: 16px;
     border: 1px solid color-mix(in srgb, var(--ss-brand-primary) 28%, transparent);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--ss-brand-primary) 86%, white 14%), color-mix(in srgb, var(--ss-brand-primary) 90%, black 10%));
+    background: linear-gradient(180deg, color-mix(in srgb, var(--ss-brand-primary) 86%, var(--ss-neutral-0) 14%), color-mix(in srgb, var(--ss-brand-primary) 90%, black 10%));
     color: #04231a;
     font-size: var(--ss-type-xs);
     font-weight: 800;
@@ -5619,7 +5619,7 @@
 
   .theme-light .ss-top-control-bar__nav,
   .theme-light .ss-top-control-bar__mode-switch {
-    background: color-mix(in srgb, var(--ss-workspace-surface) 98%, white 2%);
+    background: color-mix(in srgb, var(--ss-workspace-surface) 98%, var(--ss-neutral-0) 2%);
     border-color: color-mix(in srgb, var(--ss-workspace-border) 94%, transparent);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
   }
@@ -5634,7 +5634,7 @@
   .theme-light .ss-top-control-bar__meta-item,
   .theme-light .ss-top-control-bar__user,
   .theme-light .ss-top-control-bar__menu-trigger {
-    background: color-mix(in srgb, var(--ss-workspace-surface) 97%, white 3%);
+    background: color-mix(in srgb, var(--ss-workspace-surface) 97%, var(--ss-neutral-0) 3%);
     border-color: color-mix(in srgb, var(--ss-workspace-border) 94%, transparent);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
   }
@@ -5647,7 +5647,7 @@
   }
 
   .theme-light .ss-top-control-bar__menu-panel {
-    background: color-mix(in srgb, var(--ss-workspace-surface) 98%, white 2%);
+    background: color-mix(in srgb, var(--ss-workspace-surface) 98%, var(--ss-neutral-0) 2%);
     border-color: color-mix(in srgb, var(--ss-workspace-border) 94%, transparent);
     box-shadow: 0 18px 36px rgba(40, 32, 20, 0.06);
   }
@@ -5655,7 +5655,7 @@
   .theme-light .ss-cockpit-rail,
   .theme-light .ss-agent-observation,
   .theme-light .ss-summary-rail {
-    background: color-mix(in srgb, var(--ss-workspace-surface) 98%, white 2%);
+    background: color-mix(in srgb, var(--ss-workspace-surface) 98%, var(--ss-neutral-0) 2%);
     box-shadow: 0 12px 26px rgba(40, 32, 20, 0.03);
   }
 
@@ -5706,7 +5706,7 @@
   }
 
   .theme-light .ss-agent-drawer__panel {
-    background: color-mix(in srgb, var(--ss-workspace-surface) 98%, white 2%);
+    background: color-mix(in srgb, var(--ss-workspace-surface) 98%, var(--ss-neutral-0) 2%);
     box-shadow: 24px 0 44px rgba(47, 49, 43, 0.1);
   }
 
@@ -5725,7 +5725,7 @@
   .theme-light .ss-button-secondary,
   .theme-light .ss-sim-hero__fact,
   .theme-light .ss-sim-hero__menu-trigger {
-    background: color-mix(in srgb, var(--ss-workspace-surface) 97%, white 3%);
+    background: color-mix(in srgb, var(--ss-workspace-surface) 97%, var(--ss-neutral-0) 3%);
     border-color: color-mix(in srgb, var(--ss-workspace-border) 94%, transparent);
     color: var(--ss-workspace-muted);
   }
@@ -5748,7 +5748,7 @@
   }
 
   .theme-light .ss-flow-canvas__dot.is-current {
-    background: color-mix(in srgb, var(--ss-brand-soft) 68%, white 32%);
+    background: color-mix(in srgb, var(--ss-brand-soft) 68%, var(--ss-neutral-0) 32%);
     box-shadow: 0 0 0 3px rgba(111, 138, 109, 0.08);
   }
 
@@ -5794,7 +5794,7 @@
   }
 
   .theme-light .ss-summary-rail__reveal {
-    background: color-mix(in srgb, var(--ss-workspace-surface) 98%, white 2%);
+    background: color-mix(in srgb, var(--ss-workspace-surface) 98%, var(--ss-neutral-0) 2%);
     box-shadow: 0 10px 24px rgba(47, 49, 43, 0.08);
   }
 
@@ -5804,7 +5804,7 @@
   }
 
   .theme-light .ss-topology-modal__panel {
-    background: color-mix(in srgb, var(--ss-workspace-surface) 99%, white 1%);
+    background: color-mix(in srgb, var(--ss-workspace-surface) 99%, var(--ss-neutral-0) 1%);
     border-color: color-mix(in srgb, var(--ss-workspace-border) 94%, transparent);
     box-shadow: 0 28px 64px rgba(47, 49, 43, 0.14);
   }

@@ -1492,7 +1492,7 @@
 }
 
 .ss-workflow-step.is-complete .ss-workflow-step__index {
-  background: color-mix(in srgb, var(--ss-brand-soft) 72%, white 28%);
+  background: color-mix(in srgb, var(--ss-brand-soft) 72%, var(--ss-neutral-0) 28%);
   border-color: color-mix(in srgb, var(--ss-brand-primary) 24%, var(--ss-border));
   color: var(--ss-brand-primary);
 }
@@ -1558,7 +1558,7 @@
 }
 
 .ss-workflow-button--primary {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--ss-brand-hover) 92%, white 8%), var(--ss-brand-primary));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ss-brand-hover) 92%, var(--ss-neutral-0) 8%), var(--ss-brand-primary));
   color: #04100d;
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
 }
@@ -1765,7 +1765,7 @@
 
 .ss-research-notebook__task.is-done {
   border-color: color-mix(in srgb, var(--ss-brand-primary) 26%, var(--ss-border));
-  background: color-mix(in srgb, var(--ss-brand-soft) 68%, white 32%);
+  background: color-mix(in srgb, var(--ss-brand-soft) 68%, var(--ss-neutral-0) 32%);
 }
 
 .ss-research-notebook__task-check {
@@ -1784,7 +1784,7 @@
 
 .ss-research-notebook__task.is-done .ss-research-notebook__task-check {
   border-color: color-mix(in srgb, var(--ss-brand-primary) 30%, var(--ss-border));
-  background: color-mix(in srgb, var(--ss-brand-soft) 72%, white 28%);
+  background: color-mix(in srgb, var(--ss-brand-soft) 72%, var(--ss-neutral-0) 28%);
 }
 
 .ss-research-notebook__task-copy {
@@ -1964,7 +1964,7 @@
   min-height: 1.55rem;
   padding: 0.15rem 0.55rem;
   border-radius: var(--ss-radius-pill);
-  background: color-mix(in srgb, var(--ss-accent-warm-soft) 72%, white 28%);
+  background: color-mix(in srgb, var(--ss-accent-warm-soft) 72%, var(--ss-neutral-0) 28%);
   color: var(--ss-accent-warm);
   font-size: 0.72rem;
   font-weight: 700;
@@ -1983,7 +1983,7 @@
   min-height: 1.45rem;
   padding: 0.1rem 0.5rem;
   border-radius: var(--ss-radius-pill);
-  background: color-mix(in srgb, var(--ss-brand-soft) 72%, white 28%);
+  background: color-mix(in srgb, var(--ss-brand-soft) 72%, var(--ss-neutral-0) 28%);
   color: var(--ss-brand-primary);
   font-size: 0.72rem;
   font-weight: 700;
@@ -2060,14 +2060,14 @@
   min-height: 2.2rem;
   padding: 0.35rem 0.8rem;
   border-radius: var(--ss-radius-pill);
-  background: color-mix(in srgb, var(--ss-brand-soft) 72%, white 28%);
+  background: color-mix(in srgb, var(--ss-brand-soft) 72%, var(--ss-neutral-0) 28%);
   color: var(--ss-brand-primary);
   font-size: 0.82rem;
   font-weight: 700;
 }
 
 .ss-workflow-inline-status.is-preview {
-  background: color-mix(in srgb, var(--ss-accent-warm-soft) 68%, white 32%);
+  background: color-mix(in srgb, var(--ss-accent-warm-soft) 68%, var(--ss-neutral-0) 32%);
   color: var(--ss-accent-warm);
 }
 
@@ -2129,7 +2129,7 @@
   padding: 0.3rem 0.72rem;
   border: 1px solid var(--ss-border);
   border-radius: var(--ss-radius-pill);
-  background: color-mix(in srgb, var(--ss-page-surface-muted) 82%, white 18%);
+  background: color-mix(in srgb, var(--ss-page-surface-muted) 82%, var(--ss-neutral-0) 18%);
   color: var(--ss-text);
   font-size: 0.76rem;
   font-weight: 700;
@@ -2150,7 +2150,7 @@
   padding: 0.3rem 0.72rem;
   border: 1px solid color-mix(in srgb, var(--ss-brand-primary) 18%, var(--ss-border));
   border-radius: var(--ss-radius-pill);
-  background: color-mix(in srgb, var(--ss-brand-soft) 68%, white 32%);
+  background: color-mix(in srgb, var(--ss-brand-soft) 68%, var(--ss-neutral-0) 32%);
   color: var(--ss-brand-primary);
   font-size: 0.78rem;
   font-weight: 700;
@@ -2215,7 +2215,7 @@
   justify-content: center;
   padding: 0.45rem 0.75rem;
   border-radius: var(--ss-radius-xl);
-  background: color-mix(in srgb, var(--ss-accent-warm-soft) 68%, white 32%);
+  background: color-mix(in srgb, var(--ss-accent-warm-soft) 68%, var(--ss-neutral-0) 32%);
   color: var(--ss-accent-warm);
   font-size: var(--ss-type-input);
   font-weight: 800;
@@ -2257,7 +2257,7 @@
   padding: 0.95rem 1rem;
   border: 1px solid color-mix(in srgb, var(--ss-brand-primary) 18%, var(--ss-border));
   border-radius: var(--ss-radius-xl);
-  background: color-mix(in srgb, var(--ss-brand-soft) 68%, white 32%);
+  background: color-mix(in srgb, var(--ss-brand-soft) 68%, var(--ss-neutral-0) 32%);
 }
 
 .ss-variable-map__analysis-inline div {
@@ -2299,7 +2299,7 @@
   padding: 1rem;
   border: 1px solid color-mix(in srgb, var(--ss-border) 88%, transparent);
   border-radius: var(--ss-radius-2xl);
-  background: color-mix(in srgb, var(--ss-page-surface-muted) 88%, white 12%);
+  background: color-mix(in srgb, var(--ss-page-surface-muted) 88%, var(--ss-neutral-0) 12%);
 }
 
 .ss-variable-map__advanced-head {
@@ -2337,7 +2337,7 @@
   padding: 0.95rem 1rem;
   border: 1px dashed color-mix(in srgb, var(--ss-border) 88%, transparent);
   border-radius: var(--ss-radius-xl);
-  background: color-mix(in srgb, var(--ss-page-surface-muted) 76%, white 24%);
+  background: color-mix(in srgb, var(--ss-page-surface-muted) 76%, var(--ss-neutral-0) 24%);
 }
 
 .ss-variable-map__advanced-summary strong {
@@ -2367,7 +2367,7 @@
 
 .ss-heuristic-card.is-selected {
   border-color: color-mix(in srgb, var(--ss-brand-primary) 28%, var(--ss-border));
-  background: linear-gradient(180deg, color-mix(in srgb, var(--ss-brand-soft) 66%, white 34%), color-mix(in srgb, var(--ss-page-surface) 96%, transparent));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ss-brand-soft) 66%, var(--ss-neutral-0) 34%), color-mix(in srgb, var(--ss-page-surface) 96%, transparent));
   color: var(--ss-brand-hover);
 }
 
@@ -2411,12 +2411,12 @@
 }
 
 .ss-heuristic-card__status {
-  background: color-mix(in srgb, var(--ss-page-surface-muted) 74%, white 26%);
+  background: color-mix(in srgb, var(--ss-page-surface-muted) 74%, var(--ss-neutral-0) 26%);
   color: var(--ss-text-subtle);
 }
 
 .ss-heuristic-card__status.is-selected {
-  background: color-mix(in srgb, var(--ss-brand-soft) 72%, white 28%);
+  background: color-mix(in srgb, var(--ss-brand-soft) 72%, var(--ss-neutral-0) 28%);
   color: var(--ss-brand-hover);
 }
 
@@ -2437,7 +2437,7 @@
 }
 
 .ss-heuristic-card__remove:hover {
-  background: color-mix(in srgb, var(--ss-danger-soft) 80%, white 20%);
+  background: color-mix(in srgb, var(--ss-danger-soft) 80%, var(--ss-neutral-0) 20%);
   color: var(--ss-danger);
 }
 
@@ -2448,13 +2448,13 @@
   width: 2.75rem;
   height: 1.5rem;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--ss-border-strong) 74%, white 26%);
+  background: color-mix(in srgb, var(--ss-border-strong) 74%, var(--ss-neutral-0) 26%);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ss-border) 80%, transparent);
   transition: background 0.18s ease;
 }
 
 .ss-heuristic-card__switch.is-on {
-  background: color-mix(in srgb, var(--ss-brand-primary) 38%, white 62%);
+  background: color-mix(in srgb, var(--ss-brand-primary) 38%, var(--ss-neutral-0) 62%);
 }
 
 .ss-heuristic-card__switch-thumb {
@@ -2463,7 +2463,7 @@
   height: 1rem;
   margin-left: 0.25rem;
   border-radius: 999px;
-  background: white;
+  background: var(--ss-neutral-0);
   box-shadow: 0 3px 8px rgba(49, 51, 44, 0.18);
   transition: transform 0.18s ease;
 }
@@ -2516,7 +2516,7 @@
   padding: 1rem;
   border: 1px solid color-mix(in srgb, var(--ss-brand-primary) 18%, var(--ss-border));
   border-radius: var(--ss-radius-2xl);
-  background: color-mix(in srgb, var(--ss-brand-soft) 64%, white 36%);
+  background: color-mix(in srgb, var(--ss-brand-soft) 64%, var(--ss-neutral-0) 36%);
 }
 
 .ss-behavior-space__summary {
@@ -2572,7 +2572,7 @@
   padding: 1.1rem 1.2rem;
   border: 1px solid color-mix(in srgb, var(--ss-border) 85%, transparent);
   border-radius: var(--ss-radius-2xl);
-  background: color-mix(in srgb, var(--ss-page-surface-muted) 76%, white 24%);
+  background: color-mix(in srgb, var(--ss-page-surface-muted) 76%, var(--ss-neutral-0) 24%);
 }
 
 .ss-research-question__guide-copy {
@@ -2605,7 +2605,7 @@
   min-height: 2rem;
   padding: 0.32rem 0.72rem;
   border-radius: var(--ss-radius-pill);
-  background: color-mix(in srgb, var(--ss-brand-soft) 68%, white 32%);
+  background: color-mix(in srgb, var(--ss-brand-soft) 68%, var(--ss-neutral-0) 32%);
   color: var(--ss-brand-primary);
   font-size: 0.82rem;
   font-weight: 700;
@@ -2643,7 +2643,7 @@
 
 .ss-research-question__guide-task.is-done {
   border-color: color-mix(in srgb, var(--ss-brand-primary) 24%, var(--ss-border));
-  background: color-mix(in srgb, var(--ss-brand-soft) 70%, white 30%);
+  background: color-mix(in srgb, var(--ss-brand-soft) 70%, var(--ss-neutral-0) 30%);
 }
 
 .ss-research-question__guide-check {
@@ -2732,7 +2732,7 @@
 
 .ss-research-question__category-tab.is-active {
   border-color: color-mix(in srgb, var(--ss-brand-primary) 24%, var(--ss-border));
-  background: color-mix(in srgb, var(--ss-brand-soft) 70%, white 30%);
+  background: color-mix(in srgb, var(--ss-brand-soft) 70%, var(--ss-neutral-0) 30%);
   color: var(--ss-brand-primary);
 }
 
@@ -2829,7 +2829,7 @@
   padding: 0.95rem 1rem;
   border: 1px solid var(--ss-border);
   border-radius: var(--ss-radius-xl);
-  background: color-mix(in srgb, var(--ss-page-surface-muted) 78%, white 22%);
+  background: color-mix(in srgb, var(--ss-page-surface-muted) 78%, var(--ss-neutral-0) 22%);
 }
 
 .ss-research-question__selection-copy {
@@ -2992,14 +2992,14 @@
 }
 
 .ss-launch-review__status-pill.is-ready {
-  background: color-mix(in srgb, var(--ss-success) 14%, white 86%);
+  background: color-mix(in srgb, var(--ss-success) 14%, var(--ss-neutral-0) 86%);
   color: var(--ss-success);
 }
 
 .ss-launch-review__status-pill.is-pending,
 .ss-launch-review__status-pill.is-blocked,
 .ss-launch-review__panel-meta {
-  background: color-mix(in srgb, var(--ss-accent-warm-soft) 72%, white 28%);
+  background: color-mix(in srgb, var(--ss-accent-warm-soft) 72%, var(--ss-neutral-0) 28%);
   color: var(--ss-text);
 }
 
@@ -3312,7 +3312,7 @@
 
 .ss-participant-workflow__mode-card.is-active {
   border-color: color-mix(in srgb, var(--ss-brand-primary) 26%, var(--ss-border));
-  background: linear-gradient(180deg, color-mix(in srgb, var(--ss-brand-soft) 62%, white 38%), color-mix(in srgb, var(--ss-page-surface) 94%, transparent));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ss-brand-soft) 62%, var(--ss-neutral-0) 38%), color-mix(in srgb, var(--ss-page-surface) 94%, transparent));
 }
 
 .ss-participant-workflow__mode-icon {
@@ -3867,10 +3867,10 @@
 
 .theme-dark .ss-variable-map :is(.bg-slate-50, .bg-sky-50, .bg-rose-50),
 .theme-dark .ss-heuristic-workflow :is(.bg-slate-50, .bg-sky-50, .bg-rose-50),
-.theme-dark .ss-participant-workflow :is(.bg-white, .bg-white\/80, .bg-gray-50, .bg-slate-50, .bg-slate-100, .bg-slate-200, .bg-slate-300, .bg-blue-50, .bg-green-50, .bg-amber-50, .bg-red-50),
+.theme-dark .ss-participant-workflow :is(.bg-var(--ss-neutral-0), .bg-var(--ss-neutral-0)\/80, .bg-gray-50, .bg-slate-50, .bg-slate-100, .bg-slate-200, .bg-slate-300, .bg-blue-50, .bg-green-50, .bg-amber-50, .bg-red-50),
 .ss-setup-page.is-dark .ss-variable-map :is(.bg-slate-50, .bg-sky-50, .bg-rose-50),
 .ss-setup-page.is-dark .ss-heuristic-workflow :is(.bg-slate-50, .bg-sky-50, .bg-rose-50),
-.ss-setup-page.is-dark .ss-participant-workflow :is(.bg-white, .bg-white\/80, .bg-gray-50, .bg-slate-50, .bg-slate-100, .bg-slate-200, .bg-slate-300, .bg-blue-50, .bg-green-50, .bg-amber-50, .bg-red-50) {
+.ss-setup-page.is-dark .ss-participant-workflow :is(.bg-var(--ss-neutral-0), .bg-var(--ss-neutral-0)\/80, .bg-gray-50, .bg-slate-50, .bg-slate-100, .bg-slate-200, .bg-slate-300, .bg-blue-50, .bg-green-50, .bg-amber-50, .bg-red-50) {
   background: rgba(12, 21, 20, 0.96) !important;
 }
 
@@ -4112,7 +4112,7 @@
   height: 3.35rem;
   border: 1px solid color-mix(in srgb, var(--ss-border) 90%, transparent);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--ss-page-surface-strong) 92%, white 8%);
+  background: color-mix(in srgb, var(--ss-page-surface-strong) 92%, var(--ss-neutral-0) 8%);
   color: var(--ss-brand-primary);
   box-shadow: var(--ss-shadow-sm);
   transition:
@@ -4131,7 +4131,7 @@
 .ss-guide-trigger:hover {
   transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--ss-accent-warm) 28%, var(--ss-border));
-  background: color-mix(in srgb, var(--ss-brand-soft) 72%, white 28%);
+  background: color-mix(in srgb, var(--ss-brand-soft) 72%, var(--ss-neutral-0) 28%);
 }
 
 .theme-dark .ss-guide-trigger,
@@ -4142,7 +4142,7 @@
 
 .ss-guide-trigger.is-open {
   border-color: color-mix(in srgb, var(--ss-brand-primary) 28%, var(--ss-border));
-  background: color-mix(in srgb, var(--ss-brand-soft) 78%, white 22%);
+  background: color-mix(in srgb, var(--ss-brand-soft) 78%, var(--ss-neutral-0) 22%);
 }
 
 .theme-dark .ss-guide-trigger.is-open,
@@ -4168,7 +4168,7 @@
   height: 0.55rem;
   border-radius: 999px;
   background: var(--ss-accent-warm);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ss-page-surface) 84%, white 16%);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ss-page-surface) 84%, var(--ss-neutral-0) 16%);
 }
 
 .ss-guide-hint,
@@ -4176,7 +4176,7 @@
   width: min(20rem, calc(100vw - 2rem));
   border: 1px solid color-mix(in srgb, var(--ss-border) 90%, transparent);
   border-radius: var(--ss-radius-2xl);
-  background: color-mix(in srgb, var(--ss-page-surface-strong) 96%, white 4%);
+  background: color-mix(in srgb, var(--ss-page-surface-strong) 96%, var(--ss-neutral-0) 4%);
   box-shadow: var(--ss-shadow-md);
 }
 
@@ -4347,7 +4347,7 @@
 
 .ss-guide-popover__tasks li.is-done .ss-guide-popover__task-check {
   border-color: color-mix(in srgb, var(--ss-brand-primary) 32%, var(--ss-border));
-  background: color-mix(in srgb, var(--ss-brand-soft) 72%, white 28%);
+  background: color-mix(in srgb, var(--ss-brand-soft) 72%, var(--ss-neutral-0) 28%);
 }
 
 .theme-dark .ss-guide-popover,
