@@ -2,21 +2,21 @@
 
 @layer components {
   .ss-landing {
-    --landing-bg: #FFFDF8;
+    --landing-bg: var(--ss-page-bg-color);
     --landing-surface: #F8F4EC;
     --landing-surface-strong: #FFFEF9;
-    --landing-surface-plain: #ffffff;
-    --landing-surface-dark: #d4a24e;
-    --landing-surface-deep: #c4922e;
+    --landing-surface-plain: var(--ss-neutral-0);
+    --landing-surface-dark: var(--ss-brand-primary);
+    --landing-surface-deep: var(--ss-brand-hover);
     --landing-board: rgba(255, 253, 248, 0.98);
     --landing-board-muted: rgba(248, 244, 236, 0.96);
     --landing-board-line: rgba(60, 50, 40, 0.10);
     --landing-board-card: rgba(255, 255, 255, 0.7);
-    --landing-text: #1E1A17;
-    --landing-muted: #726D68;
-    --landing-subtle: #9B98A1;
-    --landing-accent: #87BDFF;
-    --landing-line: rgba(60, 50, 40, 0.08);
+    --landing-text: var(--ss-heading);
+    --landing-muted: var(--ss-text-muted);
+    --landing-subtle: var(--ss-text-subtle);
+    --landing-accent: var(--ss-accent-warm);
+    --landing-line: var(--ss-border);
     --landing-shadow: 0 18px 42px rgba(40, 32, 20, 0.05);
     --landing-shadow-strong: 0 26px 64px rgba(40, 32, 20, 0.07);
     --landing-on-dark: #1E1A17;
@@ -38,24 +38,24 @@
   .dark .ss-landing,
   .theme-dark .ss-landing,
   .ss-landing.is-dark {
-    --landing-bg: #07110f;
+    --landing-bg: var(--ss-page-bg-color);
     --landing-surface: rgba(10, 17, 16, 0.84);
     --landing-surface-strong: rgba(13, 23, 22, 0.94);
     --landing-surface-plain: rgba(13, 23, 22, 0.98);
-    --landing-surface-dark: #2fe6a6;
+    --landing-surface-dark: var(--ss-brand-primary);
     --landing-surface-deep: #08120f;
     --landing-board: rgba(10, 17, 16, 0.78);
     --landing-board-muted: rgba(12, 21, 20, 0.88);
     --landing-board-line: rgba(139, 170, 157, 0.12);
     --landing-board-card: rgba(18, 28, 27, 0.56);
-    --landing-text: #eaf7f2;
+    --landing-text: var(--ss-heading);
     --landing-muted: #a8c2b8;
     --landing-subtle: #6f8a81;
     --landing-accent: #8db8ab;
     --landing-line: rgba(130, 175, 160, 0.14);
     --landing-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
     --landing-shadow-strong: 0 24px 68px rgba(0, 0, 0, 0.34);
-    --landing-on-dark: #05120f;
+    --landing-on-dark: var(--ss-brand-on);
     --landing-on-dark-muted: rgba(5, 18, 15, 0.76);
     --landing-preview-shadow: 0 28px 72px rgba(0, 0, 0, 0.36);
     background:
@@ -433,7 +433,7 @@
   .ss-landing__matrix-copy {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: var(--ss-gap-xs);
   }
 
   .ss-landing__matrix-title,
@@ -902,7 +902,7 @@
   .ss-landing__scene-head {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: var(--ss-gap-xs);
     margin-bottom: 2rem;
   }
 
@@ -1135,7 +1135,7 @@
   .ss-landing__decision-copy {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--ss-space-2);
   }
 
   .ss-landing__decision-label {
