@@ -18,7 +18,7 @@ export function AdminPage() {
     return (
       <div className="panel">
         <div className="panel-title">{t('admin.title')}</div>
-        <div className="card" style={{ color: '#f87171' }}>{t('admin.noAccess')}</div>
+        <div className="card" style={{ color: 'var(--ss-error-400)' }}>{t('admin.noAccess')}</div>
       </div>
     );
   }
@@ -38,7 +38,7 @@ export function AdminPage() {
             {t('admin.sims.title')}
           </button>
         </nav>
-        <section style={{ display: 'grid', gap: '0.75rem' }}>
+        <section style={{ display: 'grid', gap: 'var(--ss-space-3)' }}>
           {tab === 'overview' && <StatsCard />}
           {tab === 'users' && <UsersCard />}
           {tab === 'sims' && <SimulationsCard />}
@@ -62,9 +62,9 @@ function UsersCard() {
   });
 
   return (
-    <div className="card" style={{ display: 'grid', gap: '0.5rem' }}>
+    <div className="card" style={{ display: 'grid', gap: 'var(--ss-space-2)' }}>
       <div className="panel-subtitle">{t('admin.users.title')}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--ss-space-2)' }}>
         <label style={{ display: 'grid', gap: 4 }}>
           {t('admin.users.name')}
           <input className="input small" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -83,7 +83,7 @@ function UsersCard() {
         </label>
       </div>
       <div className="card" style={{ padding: 0 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr 0.8fr 0.8fr', gap: '0.35rem', padding: '0.5rem 0.6rem', color: 'var(--muted)', fontSize: '0.85rem', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr 0.8fr 0.8fr', gap: 'var(--ss-gap-xs)', padding: 'var(--ss-space-2) var(--ss-gap-lg)', color: 'var(--muted)', fontSize: 'var(--ss-type-sm)', borderBottom: '1px solid var(--border)' }}>
           <div style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={() => setSort(sort === 'name_asc' ? 'name_desc' : 'name_asc')}>
             {t('admin.users.columns.name')} {sort.startsWith('name_') ? (sort.endsWith('asc') ? <CaretUpIcon /> : <CaretDownIcon />) : null}
           </div>
@@ -99,7 +99,7 @@ function UsersCard() {
         </div>
         <div>
           {(query.data || []).map((u, idx, arr) => (
-            <div key={u.id} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr 0.8fr 0.8fr', gap: '0.35rem', padding: '0.5rem 0.6rem', borderBottom: idx === arr.length - 1 ? 'none' : '1px solid var(--border)' }}>
+            <div key={u.id} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr 0.8fr 0.8fr', gap: 'var(--ss-gap-xs)', padding: 'var(--ss-space-2) var(--ss-gap-lg)', borderBottom: idx === arr.length - 1 ? 'none' : '1px solid var(--border)' }}>
               <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.full_name || u.username}</div>
               <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.email}</div>
               <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.organization || '-'}</div>
@@ -118,8 +118,8 @@ function UsersCard() {
               </div>
             </div>
           ))}
-          {query.isLoading && <div style={{ padding: '0.5rem 0.6rem', color: 'var(--muted)' }}>{t('common.loading')}</div>}
-          {query.error && <div style={{ padding: '0.5rem 0.6rem', color: '#f87171' }}>{t('admin.common.fetchError')}</div>}
+          {query.isLoading && <div style={{ padding: 'var(--ss-space-2) var(--ss-gap-lg)', color: 'var(--muted)' }}>{t('common.loading')}</div>}
+          {query.error && <div style={{ padding: 'var(--ss-space-2) var(--ss-gap-lg)', color: 'var(--ss-error-400)' }}>{t('admin.common.fetchError')}</div>}
         </div>
       </div>
     </div>
@@ -139,9 +139,9 @@ function SimulationsCard() {
   });
 
   return (
-    <div className="card" style={{ display: 'grid', gap: '0.5rem' }}>
+    <div className="card" style={{ display: 'grid', gap: 'var(--ss-space-2)' }}>
       <div className="panel-subtitle">{t('admin.sims.title')}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--ss-space-2)' }}>
         <label style={{ display: 'grid', gap: 4 }}>
           {t('admin.sims.username')}
           <input className="input small" value={userQ} onChange={(e) => setUserQ(e.target.value)} />
@@ -160,7 +160,7 @@ function SimulationsCard() {
         </label>
       </div>
       <div className="card" style={{ padding: 0 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.35rem', padding: '0.5rem 0.6rem', color: 'var(--muted)', fontSize: '0.85rem', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 'var(--ss-gap-xs)', padding: 'var(--ss-space-2) var(--ss-gap-lg)', color: 'var(--muted)', fontSize: 'var(--ss-type-sm)', borderBottom: '1px solid var(--border)' }}>
           <div style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={() => setSort(sort === 'username_asc' ? 'username_desc' : 'username_asc')}>
             {t('admin.sims.columns.user')} {sort.startsWith('username_') ? (sort.endsWith('asc') ? <CaretUpIcon /> : <CaretDownIcon />) : null}
           </div>
@@ -174,15 +174,15 @@ function SimulationsCard() {
         </div>
         <div>
           {(query.data || []).map((s, idx, arr) => (
-            <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.35rem', padding: '0.5rem 0.6rem', borderBottom: idx === arr.length - 1 ? 'none' : '1px solid var(--border)' }}>
+            <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 'var(--ss-gap-xs)', padding: 'var(--ss-space-2) var(--ss-gap-lg)', borderBottom: idx === arr.length - 1 ? 'none' : '1px solid var(--border)' }}>
               <div>{s.owner_username || s.owner_id}</div>
               <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</div>
               <div>{s.scene_type}</div>
               <div>{new Date(s.created_at).toLocaleString()}</div>
             </div>
           ))}
-          {query.isLoading && <div style={{ padding: '0.5rem 0.6rem', color: 'var(--muted)' }}>{t('common.loading')}</div>}
-          {query.error && <div style={{ padding: '0.5rem 0.6rem', color: '#f87171' }}>{t('admin.common.fetchError')}</div>}
+          {query.isLoading && <div style={{ padding: 'var(--ss-space-2) var(--ss-gap-lg)', color: 'var(--muted)' }}>{t('common.loading')}</div>}
+          {query.error && <div style={{ padding: 'var(--ss-space-2) var(--ss-gap-lg)', color: 'var(--ss-error-400)' }}>{t('admin.common.fetchError')}</div>}
         </div>
       </div>
     </div>
@@ -197,12 +197,12 @@ function StatsCard() {
   const toTotal = (arr?: { date: string; count: number }[]) => (arr || []).reduce((a, b) => a + Number(b.count || 0), 0);
 
   return (
-    <div className="card" style={{ display: 'grid', gap: '0.5rem' }}>
-      <div className="panel-subtitle" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+    <div className="card" style={{ display: 'grid', gap: 'var(--ss-space-2)' }}>
+      <div className="panel-subtitle" style={{ display: 'flex', alignItems: 'center', gap: 'var(--ss-gap-sm)' }}>
         <BarChartIcon /> {t('admin.stats.title')}
       </div>
-      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'nowrap' }}>
-        <span style={{ color: 'var(--muted)', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>{t('admin.stats.period')}</span>
+      <div style={{ display: 'flex', gap: 'var(--ss-space-2)', alignItems: 'center', flexWrap: 'nowrap' }}>
+        <span style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-md)', whiteSpace: 'nowrap' }}>{t('admin.stats.period')}</span>
         <AppSelect
           value={period}
           onChange={(v) => setPeriod(v as any)}
@@ -214,25 +214,25 @@ function StatsCard() {
           ]}
         />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-        <div className="card" style={{ padding: '0.6rem', gap: '0.35rem' }}>
-          <div style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{t('admin.stats.simRuns')}</div>
-          <div style={{ fontSize: '1.2rem', fontWeight: 700 }}>{toTotal(stats?.sim_runs)}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--ss-space-2)' }}>
+        <div className="card" style={{ padding: 'var(--ss-gap-lg)', gap: 'var(--ss-gap-xs)' }}>
+          <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-sm)' }}>{t('admin.stats.simRuns')}</div>
+          <div style={{ fontSize: 'var(--ss-type-subtitle)', fontWeight: 700 }}>{toTotal(stats?.sim_runs)}</div>
           <LineChart series={stats?.sim_runs || []} color="var(--accent-b)" />
         </div>
-        <div className="card" style={{ padding: '0.6rem', gap: '0.35rem' }}>
-          <div style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{t('admin.stats.userVisits')}</div>
-          <div style={{ fontSize: '1.2rem', fontWeight: 700 }}>{toTotal(stats?.user_visits)}</div>
-          <LineChart series={stats?.user_visits || []} color="#22c55e" />
+        <div className="card" style={{ padding: 'var(--ss-gap-lg)', gap: 'var(--ss-gap-xs)' }}>
+          <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-sm)' }}>{t('admin.stats.userVisits')}</div>
+          <div style={{ fontSize: 'var(--ss-type-subtitle)', fontWeight: 700 }}>{toTotal(stats?.user_visits)}</div>
+          <LineChart series={stats?.user_visits || []} color="var(--ss-success-400)" />
         </div>
-        <div className="card" style={{ padding: '0.6rem', gap: '0.35rem' }}>
-          <div style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{t('admin.stats.userSignups')}</div>
-          <div style={{ fontSize: '1.2rem', fontWeight: 700 }}>{toTotal(stats?.user_signups)}</div>
-          <LineChart series={stats?.user_signups || []} color="#f59e0b" />
+        <div className="card" style={{ padding: 'var(--ss-gap-lg)', gap: 'var(--ss-gap-xs)' }}>
+          <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-sm)' }}>{t('admin.stats.userSignups')}</div>
+          <div style={{ fontSize: 'var(--ss-type-subtitle)', fontWeight: 700 }}>{toTotal(stats?.user_signups)}</div>
+          <LineChart series={stats?.user_signups || []} color="var(--ss-warning-600)" />
         </div>
       </div>
       {query.isLoading && <div style={{ color: 'var(--muted)' }}>{t('common.loading')}</div>}
-      {query.error && <div style={{ color: '#f87171' }}>{t('admin.common.fetchError')}</div>}
+      {query.error && <div style={{ color: 'var(--ss-error-400)' }}>{t('admin.common.fetchError')}</div>}
     </div>
   );
 }
