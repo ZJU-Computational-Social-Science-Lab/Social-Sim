@@ -25,7 +25,7 @@ import type { SocialNetwork, Agent } from '../types';
 const NODE_COLOR = '#d4a24e';
 const NODE_HIGHLIGHT_COLOR = '#ff9500';
 const NODE_FIRST_CLICK_COLOR = '#4ecdc4';
-const EDGE_COLOR = 'rgba(135, 189, 255, 0.4)';
+const EDGE_COLOR = 'rgba(135, 189, 255, 0.85)';
 
 /**
  * Convert a SocialNetwork adjacency list into a Graphology Graph.
@@ -74,7 +74,7 @@ export function networkToGraph(
         source < target ? `${source}::${target}` : `${target}::${source}`;
       if (!edgeSet.has(key) && graph.hasNode(source) && graph.hasNode(target)) {
         edgeSet.add(key);
-        graph.addEdge(source, target, { color: EDGE_COLOR });
+        graph.addEdge(source, target, { color: EDGE_COLOR, size: 2 });
       }
     }
   }

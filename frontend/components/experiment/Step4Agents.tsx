@@ -819,7 +819,7 @@ export const Step4Agents: React.FC = () => {
     <div className="space-y-6">
       {/* Mode Selection */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-3">
+        <h3 className="text-lg font-semibold mb-3" style={{ color: 'var(--ss-heading)' }}>
           {t('experimentBuilder.step4.modeTitle')}
         </h3>
         <div className="grid grid-cols-3 gap-4">
@@ -827,17 +827,14 @@ export const Step4Agents: React.FC = () => {
             <button
               key={mode.id}
               onClick={() => setAgentMode(mode.id as 'manual' | 'demographic' | 'import')}
-              className={`
-                p-4 border-2 rounded-lg text-left transition-all bg-white
-                ${agentMode === mode.id
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300'
-                }
-              `}
+              className="p-4 border-2 rounded-lg text-left transition-all"
+              style={agentMode === mode.id
+                ? { background: 'var(--ss-brand-soft)', borderColor: 'var(--ss-brand-primary)' }
+                : { background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)' }}
             >
               <span className="text-2xl mb-2 block">{mode.icon}</span>
-              <h4 className="font-semibold text-gray-900">{mode.title}</h4>
-              <p className="text-sm text-gray-600 mt-1">{mode.description}</p>
+              <h4 className="font-semibold" style={{ color: 'var(--ss-heading)' }}>{mode.title}</h4>
+              <p className="text-sm mt-1" style={{ color: 'var(--ss-text-muted)' }}>{mode.description}</p>
             </button>
           ))}
         </div>
@@ -845,44 +842,46 @@ export const Step4Agents: React.FC = () => {
 
       {showTierControls && (
         <div className="space-y-4">
-          <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
-            <h4 className="font-semibold text-gray-900 mb-2">{t('experimentBuilder.step4.tierConfigTitle')}</h4>
-            <p className="text-sm text-gray-700 mb-3">
+          <div className="p-4 border rounded-lg" style={{ background: 'var(--ss-accent-warm-soft)', borderColor: 'var(--ss-layer-outline-strong)' }}>
+            <h4 className="font-semibold mb-2" style={{ color: 'var(--ss-heading)' }}>{t('experimentBuilder.step4.tierConfigTitle')}</h4>
+            <p className="text-sm mb-3" style={{ color: 'var(--ss-text)' }}>
               {t('experimentBuilder.step4.tierConfigDesc')}
             </p>
             <div className="mb-3 grid grid-cols-1 md:grid-cols-[160px_1fr] gap-3 items-end">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.tierCountLabel')}</label>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--ss-text)' }}>{t('experimentBuilder.step4.tierCountLabel')}</label>
                 <input
                   type="number"
                   min="2"
                   value={tierOrderDraft.length}
                   onChange={(e) => handleTierCountChange(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                  className="w-full px-3 py-2 text-sm border rounded"
+                  style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border-strong)' }}
                 />
               </div>
-              <div className="text-xs text-gray-600">
+              <div className="text-xs" style={{ color: 'var(--ss-text-muted)' }}>
                 {t('experimentBuilder.step4.tierConfigHint')}
               </div>
             </div>
             <div className="space-y-2">
               {tierOrderDraft.map((tierName, index) => (
                 <div key={index} className="grid grid-cols-[96px_1fr] gap-3 items-center">
-                  <div className="text-sm font-medium text-gray-700">
+                  <div className="text-sm font-medium" style={{ color: 'var(--ss-text)' }}>
                     {t('experimentBuilder.step4.tierLevelLabel', { index: index + 1 })}
                   </div>
                   <input
                     type="text"
                     value={tierName}
                     onChange={(e) => handleTierNameChange(index, e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                    className="w-full px-3 py-2 text-sm border rounded"
+                    style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border-strong)' }}
                     placeholder={t('experimentBuilder.step4.tierNamePlaceholder', { name: defaultTierName(index) })}
                   />
                 </div>
               ))}
             </div>
             {!tierOrderDraftValid && (
-              <div className="mt-3 text-xs text-red-600">{t('experimentBuilder.step4.tierDraftInvalid')}</div>
+              <div className="mt-3 text-xs" style={{ color: 'var(--ss-danger)' }}>{t('experimentBuilder.step4.tierDraftInvalid')}</div>
             )}
             <div className="mt-3">
               <Button size="sm" onClick={handleApplyTierOrder} disabled={!tierOrderDraftValid}>
@@ -891,15 +890,22 @@ export const Step4Agents: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-4 border border-indigo-200 rounded-lg bg-indigo-50">
+          <div className="p-4 border rounded-lg" style={{ background: 'var(--ss-secondary-soft)', borderColor: 'var(--ss-secondary)' }}>
             <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
               <div>
-                <h4 className="font-semibold text-gray-900">{t('experimentBuilder.step4.tierPreviewTitle')}</h4>
-                <p className="text-sm text-gray-700 mt-1">
+                <h4 className="font-semibold" style={{ color: 'var(--ss-heading)' }}>{t('experimentBuilder.step4.tierPreviewTitle')}</h4>
+                <p className="text-sm mt-1" style={{ color: 'var(--ss-text)' }}>
                   {t('experimentBuilder.step4.tierPreviewDesc', { count: tierOrder.length })}
                 </p>
               </div>
-              <span className="rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs font-medium text-gray-700">
+              <span
+                className="rounded-full px-3 py-1 text-xs font-medium"
+                style={{
+                  background: 'var(--ss-page-surface)',
+                  color: 'var(--ss-text)',
+                  border: '1px solid var(--ss-border)',
+                }}
+              >
                 {t(`experimentBuilder.step4.cascadeModeLabels.${cascadeMode}`)}
               </span>
             </div>
@@ -907,14 +913,14 @@ export const Step4Agents: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2 mb-4">
               {tierOrder.map((tier, index) => (
                 <React.Fragment key={tier}>
-                  <div className="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm text-gray-800 shadow-sm">
-                    <div className="text-[11px] font-medium text-indigo-600 uppercase tracking-wide">
+                  <div className="rounded-lg border px-3 py-2 text-sm shadow-sm" style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-secondary)', color: 'var(--ss-text)' }}>
+                    <div className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--ss-info)' }}>
                       {t('experimentBuilder.step4.tierLevelLabel', { index: index + 1 })}
                     </div>
                     <div className="font-medium">{tier}</div>
                   </div>
                   {index < tierOrder.length - 1 && (
-                    <span className="text-indigo-400 text-lg leading-none">→</span>
+                    <span className="text-lg leading-none" style={{ color: 'var(--ss-info)' }}>→</span>
                   )}
                 </React.Fragment>
               ))}
@@ -922,31 +928,34 @@ export const Step4Agents: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
               {tierOrder.map((tier, index) => (
-                <div key={`${tier}-count`} className="rounded-lg border border-indigo-100 bg-white px-3 py-3">
-                  <div className="text-xs font-medium text-indigo-600 mb-1">
+                <div key={`${tier}-count`} className="rounded-lg border px-3 py-3" style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)' }}>
+                  <div className="text-xs font-medium mb-1" style={{ color: 'var(--ss-info)' }}>
                     {t('experimentBuilder.step4.tierLevelLabel', { index: index + 1 })}
                   </div>
-                  <div className="text-sm font-semibold text-gray-900">{tier}</div>
-                  <div className="text-xs text-gray-600 mt-1">
+                  <div className="text-sm font-semibold" style={{ color: 'var(--ss-heading)' }}>{tier}</div>
+                  <div className="text-xs mt-1" style={{ color: 'var(--ss-text-muted)' }}>
                     {t('experimentBuilder.step4.tierAssignedCount', { count: tierPreviewStats.counts[tier] || 0 })}
                   </div>
                 </div>
               ))}
-              <div className="rounded-lg border border-dashed border-indigo-200 bg-white/80 px-3 py-3">
-                <div className="text-xs font-medium text-indigo-600 mb-1">
+              <div className="rounded-lg border border-dashed px-3 py-3" style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border-strong)' }}>
+                <div className="text-xs font-medium mb-1" style={{ color: 'var(--ss-info)' }}>
                   {t('experimentBuilder.step4.unassignedTitle')}
                 </div>
-                <div className="text-sm font-semibold text-gray-900">
+                <div className="text-sm font-semibold" style={{ color: 'var(--ss-heading)' }}>
                   {t('experimentBuilder.step4.unassignedCount', { count: tierPreviewStats.unassigned })}
                 </div>
-                <div className="text-xs text-gray-600 mt-1">
+                <div className="text-xs mt-1" style={{ color: 'var(--ss-text-muted)' }}>
                   {t('experimentBuilder.step4.unassignedHint')}
                 </div>
               </div>
             </div>
 
             {hasPendingTierDraft && (
-              <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <div
+                className="mt-3 rounded-md border px-3 py-2 text-xs"
+                style={{ background: 'var(--ss-brand-soft)', borderColor: 'var(--ss-brand-primary)', color: 'var(--ss-brand-on)' }}
+              >
                 {t('experimentBuilder.step4.tierDraftPending')}
               </div>
             )}
@@ -956,27 +965,28 @@ export const Step4Agents: React.FC = () => {
 
       {/* Manual Agent Types */}
       {agentMode === 'manual' && (
-        <div className="p-4 border border-gray-200 rounded-lg bg-white">
-          <h4 className="font-semibold text-gray-900 mb-3">{t('experimentBuilder.step4.defineTypes')}</h4>
-          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="p-4 border rounded-lg" style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)' }}>
+          <h4 className="font-semibold mb-3" style={{ color: 'var(--ss-heading)' }}>{t('experimentBuilder.step4.defineTypes')}</h4>
+          <div className="mb-4 rounded-lg border px-4 py-3 text-sm" style={{ background: 'var(--ss-brand-soft)', borderColor: 'var(--ss-brand-primary)', color: 'var(--ss-brand-on)' }}>
             {t('experimentBuilder.step4.manualHint')}
           </div>
 
           {/* Add New Agent Type */}
-          <div className="mb-4 p-3 bg-gray-50 rounded-md">
+          <div className="mb-4 p-3 rounded-md" style={{ background: 'var(--ss-page-surface-muted)' }}>
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.typeLabel')}</label>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--ss-text)' }}>{t('experimentBuilder.step4.typeLabel')}</label>
                 <input
                   type="text"
                   value={newAgentType.label}
                   onChange={(e) => setNewAgentType({ ...newAgentType, label: e.target.value })}
                   placeholder={t('experimentBuilder.step4.typeLabelPlaceholder')}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
+                  className="w-full px-2 py-1.5 text-sm border rounded"
+                  style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border-strong)' }}
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.count')}</label>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--ss-text)' }}>{t('experimentBuilder.step4.count')}</label>
                 <input
                   type="number"
                   min="1"
@@ -984,21 +994,23 @@ export const Step4Agents: React.FC = () => {
                   onChange={(e) =>
                     setNewAgentType({ ...newAgentType, count: parseInt(e.target.value) || 1 })
                   }
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
+                  className="w-full px-2 py-1.5 text-sm border rounded"
+                  style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border-strong)' }}
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 mb-3">
               {showTierControls && (
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.tier')}</label>
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--ss-text)' }}>{t('experimentBuilder.step4.tier')}</label>
                   <select
                     value={String(newAgentType.properties?.tier || '')}
                     onChange={(e) => setNewAgentType({
                       ...newAgentType,
                       properties: { ...newAgentType.properties, tier: e.target.value },
                     })}
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
+                    className="w-full px-2 py-1.5 text-sm border rounded"
+                    style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border-strong)' }}
                   >
                     <option value="">{t('experimentBuilder.step4.autoDetectTier')}</option>
                       {tierOrder.map((tier) => (
@@ -1008,25 +1020,27 @@ export const Step4Agents: React.FC = () => {
                 </div>
               )}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.userProfile')}</label>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--ss-text)' }}>{t('experimentBuilder.step4.userProfile')}</label>
                 <input
                   type="text"
                   value={newAgentType.userProfile}
                   onChange={(e) => setNewAgentType({ ...newAgentType, userProfile: e.target.value })}
                   placeholder={t('experimentBuilder.step4.userProfilePlaceholder')}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
+                  className="w-full px-2 py-1.5 text-sm border rounded"
+                  style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border-strong)' }}
                 />
               </div>
             </div>
             <div className="mb-3">
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--ss-text)' }}>
                 {t('experimentBuilder.step4.rolePrompt')}
               </label>
               <textarea
                 value={newAgentType.rolePrompt}
                 onChange={(e) => setNewAgentType({ ...newAgentType, rolePrompt: e.target.value })}
                 placeholder={t('experimentBuilder.step4.rolePromptPlaceholder')}
-                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
+                className="w-full px-2 py-1.5 text-sm border rounded"
+                style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border-strong)' }}
                 rows={2}
               />
             </div>
@@ -1039,23 +1053,24 @@ export const Step4Agents: React.FC = () => {
 
       {/* Demographic Generation */}
       {agentMode === 'demographic' && (
-        <div className="p-4 border border-gray-200 rounded-lg bg-white">
+        <div className="p-4 border rounded-lg" style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)' }}>
           {/* Agent Generation LLM Selector */}
           {llmProviders.length > 0 && (
-            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.generationLlmProvider')}</label>
-              <p className="text-xs text-gray-500 mb-2">{t('experimentBuilder.step4.generationLlmProviderHint')}</p>
+            <div className="mb-4 p-3 rounded-lg" style={{ background: 'var(--ss-page-surface-muted)' }}>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ss-text)' }}>{t('experimentBuilder.step4.generationLlmProvider')}</label>
+              <p className="text-xs mb-2" style={{ color: 'var(--ss-text-subtle)' }}>{t('experimentBuilder.step4.generationLlmProviderHint')}</p>
               <select
                 value={selectedProviderId || ''}
                 onChange={(e) => setSelectedProviderId(e.target.value ? Number(e.target.value) : null)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                className="w-full px-3 py-2 border rounded-lg"
+                style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border-strong)' }}
               >
                 <option value="">{t('experimentBuilder.step4.defaultProvider')}</option>
                 {llmProviders.map((p: LLMProvider) => (
                   <option key={p.id} value={p.id}>
                     {p.name} {p.model ? ` (${p.model})` : ''}
-                    {p.is_active && <span className="text-green-600 ml-1">● Active</span>}
-                    {p.is_default && <span className="text-blue-500 ml-1">● Default</span>}
+                    {p.is_active && <span className="ml-1" style={{ color: 'var(--ss-success)' }}>● Active</span>}
+                    {p.is_default && <span className="ml-1" style={{ color: 'var(--ss-info)' }}>● Default</span>}
                   </option>
                 ))}
               </select>
@@ -1098,29 +1113,31 @@ export const Step4Agents: React.FC = () => {
       )}
 
       {/* Editable Agent List */}
-      <div className="border border-gray-200 rounded-lg bg-white overflow-hidden">
+      <div className="border rounded-lg overflow-hidden" style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)' }}>
         {/* Collapsible header */}
         <button
           type="button"
           onClick={() => setIsAgentListOpen((o) => !o)}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+          className="w-full flex items-center justify-between px-4 py-3 transition-colors text-left"
+          style={{ color: 'var(--ss-heading)' }}
         >
           <div className="flex items-center gap-2">
-            <h4 className="font-semibold text-gray-900">{t('experimentBuilder.step4.agentListTitle')}</h4>
-            <span className="text-sm text-gray-500">
+            <h4 className="font-semibold">{t('experimentBuilder.step4.agentListTitle')}</h4>
+            <span className="text-sm" style={{ color: 'var(--ss-text-subtle)' }}>
               ({t('experimentBuilder.step4.totalAgents', { count: totalAgents })})
             </span>
           </div>
           <ChevronDown
             size={18}
-            className={`text-gray-400 transition-transform duration-200 ${isAgentListOpen ? 'rotate-180' : ''}`}
+            className={`transition-transform duration-200 ${isAgentListOpen ? 'rotate-180' : ''}`}
+            style={{ color: 'var(--ss-text-subtle)' }}
           />
         </button>
 
         {isAgentListOpen && (
-          <div className="border-t border-gray-100">
+          <div style={{ borderTop: '1px solid var(--ss-border)' }}>
             {agentTypes.length === 0 ? (
-              <p className="text-sm text-gray-600 text-center py-4">{t('experimentBuilder.step4.noTypes')}</p>
+              <p className="text-sm text-center py-4" style={{ color: 'var(--ss-text-muted)' }}>{t('experimentBuilder.step4.noTypes')}</p>
             ) : (
               /* Scroll container — fixed height so the virtualizer knows its viewport */
               <div
@@ -1160,37 +1177,41 @@ export const Step4Agents: React.FC = () => {
                         padding: '2px 8px',
                       }}
                     >
-                      <div className="rounded-lg border border-gray-200 overflow-hidden">
+                      <div className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--ss-border)' }}>
                       {/* Compact row — always visible */}
                       <div
-                        className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors"
+                        className="flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors"
+                        style={{ background: 'var(--ss-page-surface)' }}
                         onClick={() => setExpandedAgentId(isExpanded ? null : type.id)}
                       >
                         <img
                           src={avatarUrl}
                           alt={type.label}
-                          className="w-8 h-8 rounded-full border border-gray-200 bg-gray-50 flex-shrink-0"
+                          className="w-8 h-8 rounded-full border flex-shrink-0"
+                          style={{ borderColor: 'var(--ss-border)', background: 'var(--ss-page-surface-muted)' }}
                         />
-                        <span className="flex-1 text-sm font-medium text-gray-900 truncate">{type.label}</span>
+                        <span className="flex-1 text-sm font-medium truncate" style={{ color: 'var(--ss-heading)' }}>{type.label}</span>
                         {assignedProvider && (
-                          <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full flex-shrink-0">
+                          <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: 'var(--ss-accent-warm-soft)', color: 'var(--ss-text)' }}>
                             {assignedProvider.name}
                           </span>
                         )}
                         {showTierControls && tier && (
-                          <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full flex-shrink-0">
+                          <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: 'var(--ss-surface-strong)', color: 'var(--ss-text-muted)' }}>
                             {tier}
                           </span>
                         )}
                         <ChevronDown
                           size={14}
-                          className={`text-gray-400 flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                          className={`flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                          style={{ color: 'var(--ss-text-subtle)' }}
                         />
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={(e) => { e.stopPropagation(); removeAgentType(type.id); }}
-                          className="text-red-500 hover:text-red-700 flex-shrink-0 px-2"
+                          className="flex-shrink-0 px-2"
+                          style={{ color: 'var(--ss-danger)' }}
                         >
                           {t('experimentBuilder.step4.remove')}
                         </Button>
@@ -1198,30 +1219,33 @@ export const Step4Agents: React.FC = () => {
 
                       {/* Expanded edit form */}
                       {isExpanded && (
-                        <div className="border-t border-gray-100 p-4">
+                        <div className="p-4" style={{ borderTop: '1px solid var(--ss-border)' }}>
                           <div className="mb-4 flex items-start gap-3">
                             <img
                               src={avatarUrl}
                               alt={type.label}
-                              className="w-12 h-12 rounded-full border border-gray-200 bg-gray-50"
+                              className="w-12 h-12 rounded-full border"
+                              style={{ borderColor: 'var(--ss-border)', background: 'var(--ss-page-surface-muted)' }}
                             />
                             <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
                               <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.agentName')}</label>
+                                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--ss-text)' }}>{t('experimentBuilder.step4.agentName')}</label>
                                 <input
                                   type="text"
                                   value={type.label}
                                   onChange={(e) => updateAgentType(type.id, { label: e.target.value })}
-                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                                  className="w-full px-3 py-2 text-sm border rounded"
+                                  style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border-strong)' }}
                                 />
                               </div>
                               {showTierControls && (
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.tier')}</label>
+                                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--ss-text)' }}>{t('experimentBuilder.step4.tier')}</label>
                                   <select
                                     value={tier}
                                     onChange={(e) => handleUpdateTier(type.id, e.target.value as TierValue)}
-                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                                    className="w-full px-3 py-2 text-sm border rounded"
+                                    style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border-strong)' }}
                                   >
                                     <option value="">{t('experimentBuilder.step4.autoDetectTier')}</option>
                                     {tierOrder.map((tierOption) => (
@@ -1231,29 +1255,32 @@ export const Step4Agents: React.FC = () => {
                                 </div>
                               )}
                               <div className="md:col-span-2">
-                                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.userProfile')}</label>
+                                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--ss-text)' }}>{t('experimentBuilder.step4.userProfile')}</label>
                                 <input
                                   type="text"
                                   value={type.userProfile || ''}
                                   onChange={(e) => updateAgentType(type.id, { userProfile: e.target.value })}
-                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                                  className="w-full px-3 py-2 text-sm border rounded"
+                                  style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border-strong)' }}
                                 />
                               </div>
                               <div className="md:col-span-2">
-                                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.rolePrompt')}</label>
+                                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--ss-text)' }}>{t('experimentBuilder.step4.rolePrompt')}</label>
                                 <textarea
                                   value={type.rolePrompt || ''}
                                   onChange={(e) => updateAgentType(type.id, { rolePrompt: e.target.value })}
                                   rows={3}
-                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                                  className="w-full px-3 py-2 text-sm border rounded"
+                                  style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border-strong)' }}
                                 />
                               </div>
                               <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.llmProvider')}</label>
+                                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--ss-text)' }}>{t('experimentBuilder.step4.llmProvider')}</label>
                                 <select
                                   value={type.providerId ?? ''}
                                   onChange={(e) => updateAgentType(type.id, { providerId: e.target.value ? Number(e.target.value) : null })}
-                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                                  className="w-full px-3 py-2 text-sm border rounded"
+                                  style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border-strong)' }}
                                 >
                                   <option value="">{t('experimentBuilder.step4.defaultProvider')}</option>
                                   {llmProviders.map((p) => (
@@ -1264,9 +1291,9 @@ export const Step4Agents: React.FC = () => {
                             </div>
                           </div>
 
-                          <div className="rounded-md bg-gray-50 p-3">
+                          <div className="rounded-md p-3" style={{ background: 'var(--ss-page-surface-muted)' }}>
                             <div className="mb-3 flex items-center justify-between">
-                              <div className="text-xs font-medium text-gray-700">{t('experimentBuilder.step4.properties')}</div>
+                              <div className="text-xs font-medium" style={{ color: 'var(--ss-text)' }}>{t('experimentBuilder.step4.properties')}</div>
                               <Button size="sm" variant="outline" onClick={() => handleAddProperty(type.id)}>
                                 {t('experimentBuilder.step4.addProperty')}
                               </Button>
@@ -1274,7 +1301,7 @@ export const Step4Agents: React.FC = () => {
 
                             <div className="space-y-2">
                               {editableProperties.length === 0 && (
-                                <div className="text-xs text-gray-500">{t('experimentBuilder.step4.noProperties')}</div>
+                                <div className="text-xs" style={{ color: 'var(--ss-text-subtle)' }}>{t('experimentBuilder.step4.noProperties')}</div>
                               )}
                               {editableProperties.map((item) => (
                                 <div key={item.id} className="grid grid-cols-[1fr_1fr_auto] gap-2">
@@ -1284,7 +1311,8 @@ export const Step4Agents: React.FC = () => {
                                       value={item.key}
                                       onChange={(e) => handleDraftPropertyChange(type.id, item.id, 'key', e.target.value)}
                                       onBlur={() => handleCommitPropertyKey(type.id, item.id)}
-                                      className="w-full px-2 py-1.5 pr-14 text-sm border border-gray-300 rounded bg-white"
+                                      className="w-full px-2 py-1.5 pr-14 text-sm border rounded"
+                                      style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border-strong)' }}
                                     />
                                         {(sharedPropertyOwners[item.originalKey] || []).length > 1 && (
                                           <span
@@ -1292,7 +1320,8 @@ export const Step4Agents: React.FC = () => {
                                               key: item.originalKey,
                                               agents: sharedPropertyOwners[item.originalKey].join('、'),
                                             })}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 cursor-help"
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-1.5 py-0.5 text-[10px] font-medium cursor-help"
+                                            style={{ background: 'var(--ss-brand-soft)', color: 'var(--ss-brand-on)' }}
                                           >
                                             {t('experimentBuilder.step4.sharedPropertyBadge')}
                                           </span>
@@ -1303,9 +1332,10 @@ export const Step4Agents: React.FC = () => {
                                         value={item.value}
                                         onChange={(e) => handleDraftPropertyChange(type.id, item.id, 'value', e.target.value)}
                                         onBlur={() => handleCommitPropertyValue(type.id, item.id)}
-                                        className="px-2 py-1.5 text-sm border border-gray-300 rounded bg-white"
+                                        className="px-2 py-1.5 text-sm border rounded"
+                                        style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border-strong)' }}
                                       />
-                                      <Button variant="ghost" size="sm" onClick={() => handleRemoveProperty(type.id, item.originalKey)} className="text-red-600 hover:text-red-700">
+                                      <Button variant="ghost" size="sm" onClick={() => handleRemoveProperty(type.id, item.originalKey)} style={{ color: 'var(--ss-danger)' }}>
                                         {t('experimentBuilder.step4.remove')}
                                       </Button>
                                     </div>
@@ -1327,16 +1357,16 @@ export const Step4Agents: React.FC = () => {
 
       {/* File Import */}
       {agentMode === 'import' && (
-        <div className="p-4 border border-gray-200 rounded-lg bg-white">
-          <h4 className="font-semibold text-gray-900 mb-3">{t('experimentBuilder.step4.importTitle')}</h4>
-          <p className="text-sm text-gray-600 mb-3">
+        <div className="p-4 border rounded-lg" style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)' }}>
+          <h4 className="font-semibold mb-3" style={{ color: 'var(--ss-heading)' }}>{t('experimentBuilder.step4.importTitle')}</h4>
+          <p className="text-sm mb-3" style={{ color: 'var(--ss-text-muted)' }}>
             {t('experimentBuilder.step4.importDesc')}
           </p>
 
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.csvFormat')}</label>
-              <pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto">
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ss-text)' }}>{t('experimentBuilder.step4.csvFormat')}</label>
+              <pre className="text-xs p-2 rounded overflow-x-auto" style={{ background: 'var(--ss-surface-strong)' }}>
                 <code>name,role_prompt,user_profile,opinion</code>
               </pre>
             </div>
@@ -1352,8 +1382,8 @@ export const Step4Agents: React.FC = () => {
               </Button>
             </div>
 
-            <div className="bg-blue-50 p-3 rounded border border-blue-200">
-              <p className="text-sm text-blue-800">ℹ️ {t('experimentBuilder.step4.importInfo')}</p>
+            <div className="p-3 rounded border" style={{ background: 'var(--ss-accent-warm-soft)', borderColor: 'var(--ss-layer-outline-strong)' }}>
+              <p className="text-sm" style={{ color: 'var(--ss-text)' }}>ℹ️ {t('experimentBuilder.step4.importInfo')}</p>
             </div>
           </div>
         </div>
@@ -1361,10 +1391,10 @@ export const Step4Agents: React.FC = () => {
 
       {/* Total Agents Summary (shown for all modes) */}
       {totalAgents > 0 && (
-        <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+        <div className="mt-4 p-3 rounded-lg border" style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-success)' }}>
           <div className="flex items-center gap-2">
-            <span className="text-green-800">✓</span>
-            <span className="text-sm text-green-700">
+            <span style={{ color: 'var(--ss-success)' }}>✓</span>
+            <span className="text-sm" style={{ color: 'var(--ss-success)' }}>
               {t('experimentBuilder.step4.agentsDefined', { count: totalAgents })}
             </span>
           </div>

@@ -93,32 +93,34 @@ const Step2AgentsPreview: React.FC<Step2AgentsPreviewProps> = ({ agents, onClear
   const getText = (key: string, fallback: string) => t?.(key) || fallback;
 
   return (
-    <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+    <div className="rounded-lg p-4" style={{ border: '1px solid var(--ss-border)', background: 'var(--ss-page-surface-muted)' }}>
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-sm font-bold text-slate-800">
+        <h4 className="text-sm font-bold" style={{ color: 'var(--ss-heading)' }}>
           {getText('wizard.step2.generatedAgents', 'Generated Agents')} ({agents.length})
         </h4>
         <button
           onClick={onClear}
-          className="text-xs px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded"
+          className="text-xs px-2 py-1 rounded"
+          style={{ background: 'var(--ss-danger-soft)', color: 'var(--ss-danger)' }}
         >
           {getText('wizard.step2.clear', 'Clear')}
         </button>
       </div>
       <div className="max-h-48 overflow-y-auto space-y-2">
         {agents.map((agent) => (
-          <div key={agent.id} className="flex items-center gap-3 p-2 bg-white border border-slate-200 rounded text-sm">
+          <div key={agent.id} className="flex items-center gap-3 p-2 rounded text-sm" style={{ background: 'var(--ss-page-surface)', border: '1px solid var(--ss-border)' }}>
             <img
               src={agent.avatarUrl}
               alt={agent.name}
-              className="w-8 h-8 rounded-full bg-slate-200"
+              className="w-8 h-8 rounded-full"
+              style={{ background: 'var(--ss-page-surface-muted)' }}
             />
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-slate-800 truncate">{agent.name}</div>
-              <div className="text-xs text-slate-500 truncate">{agent.profile}</div>
+              <div className="font-medium truncate" style={{ color: 'var(--ss-heading)' }}>{agent.name}</div>
+              <div className="text-xs truncate" style={{ color: 'var(--ss-text-muted)' }}>{agent.profile}</div>
             </div>
             {agent.llmConfig && (
-              <div className="text-xs text-slate-400">
+              <div className="text-xs" style={{ color: 'var(--ss-text-subtle)' }}>
                 {agent.llmConfig.model || agent.llmConfig.provider || 'AI'}
               </div>
             )}
@@ -176,43 +178,52 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
   const totalPercentage = llmAllocations.reduce((sum, a) => sum + a.percentage, 0);
   const isLlmDistributionValid = llmAllocations.length === 0 || totalPercentage === 100;
 
+  const inputStyle: React.CSSProperties = {
+    background: 'var(--ss-page-surface)',
+    border: '1px solid var(--ss-border-strong)',
+    color: 'var(--ss-text)',
+  };
+
   return (
     <div className="flex-1 flex flex-col gap-4 overflow-y-auto">
       {/* Demographics Configuration */}
-      <div className="border border-slate-200 rounded-lg p-4">
+      <div className="rounded-lg p-4" style={{ border: '1px solid var(--ss-border)' }}>
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-bold text-slate-800">
+          <h4 className="text-sm font-bold" style={{ color: 'var(--ss-heading)' }}>
             {getText('wizard.step2.demographics', 'Demographics')}
           </h4>
           <button
             onClick={onAddDemographic}
-            className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded flex items-center gap-1"
+            className="text-xs px-2 py-1 rounded flex items-center gap-1"
+            style={{ background: 'var(--ss-page-surface-muted)', color: 'var(--ss-text)' }}
           >
             <Plus size={14} /> {getText('wizard.step2.addDimension', 'Add Dimension')}
           </button>
         </div>
         <div className="space-y-3">
           {demographics.map((demo) => (
-            <div key={demo.id} className="border border-slate-200 rounded p-3 bg-slate-50">
+            <div key={demo.id} className="rounded p-3" style={{ border: '1px solid var(--ss-border)', background: 'var(--ss-page-surface-muted)' }}>
               <div className="flex items-center gap-2 mb-2">
                 <input
                   type="text"
                   value={demo.name}
                   onChange={(e) => onUpdateDemographicName(demo.id, e.target.value)}
                   placeholder={getText('wizard.step2.dimensionNamePlaceholder', 'Dimension name (e.g., Age)')}
-                  className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm"
+                  className="flex-1 px-2 py-1 rounded text-sm"
+                  style={inputStyle}
                 />
                 {demographics.length > 1 && (
                   <button
                     onClick={() => onRemoveDemographic(demo.id)}
-                    className="p-1 text-red-500 hover:bg-red-50 rounded"
+                    className="p-1 rounded"
+                    style={{ color: 'var(--ss-danger)' }}
                   >
                     <Minus size={16} />
                   </button>
                 )}
               </div>
               <div className="space-y-1">
-                <div className="text-xs text-slate-500">
+                <div className="text-xs" style={{ color: 'var(--ss-text-muted)' }}>
                   {getText('wizard.step2.categoriesLabel', 'Categories (comma separated):')}
                 </div>
                 {demo.categories.map((cat, catIdx) => (
@@ -221,12 +232,14 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
                       type="text"
                       value={cat}
                       onChange={(e) => onUpdateCategoryName(demo.id, catIdx, e.target.value)}
-                      className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm"
+                      className="flex-1 px-2 py-1 rounded text-sm"
+                      style={inputStyle}
                     />
                     {demo.categories.length > 1 && (
                       <button
                         onClick={() => onRemoveCategory(demo.id, catIdx)}
-                        className="p-1 text-red-400 hover:text-red-600"
+                        className="p-1"
+                        style={{ color: 'var(--ss-danger)' }}
                       >
                         <Minus size={14} />
                       </button>
@@ -235,7 +248,8 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
                 ))}
                 <button
                   onClick={() => onAddCategory(demo.id)}
-                  className="text-xs px-2 py-1 bg-slate-200 hover:bg-slate-300 rounded flex items-center gap-1"
+                  className="text-xs px-2 py-1 rounded flex items-center gap-1"
+                  style={{ background: 'var(--ss-page-surface)', color: 'var(--ss-text-muted)' }}
                 >
                   <Plus size={12} /> {getText('wizard.step2.addCategory', 'Add Category')}
                 </button>
@@ -247,26 +261,27 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
 
       {/* Generated Archetypes Preview */}
       {archetypes.length > 0 && (
-        <div className="border border-slate-200 rounded-lg p-4">
+        <div className="rounded-lg p-4" style={{ border: '1px solid var(--ss-border)' }}>
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h4 className="text-sm font-bold text-slate-800">
+              <h4 className="text-sm font-bold" style={{ color: 'var(--ss-heading)' }}>
                 {getText('wizard.step2.archetypes', 'Archetypes: {{count}}').replace('{{count}}', String(archetypes.length))}
               </h4>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs" style={{ color: 'var(--ss-text-muted)' }}>
                 {getText('wizard.step2.archetypesHint', 'Archetypes × Demographic Dimensions = Agent Combinations')}
               </span>
             </div>
             <div className="text-right">
-              <div className="text-xs text-slate-500">
+              <div className="text-xs" style={{ color: 'var(--ss-text-muted)' }}>
                 {getText('wizard.step2.totalProbability', 'Total Probability')}: {' '}
-                <span className={Math.abs(archetypes.reduce((sum, a) => sum + a.probability, 0) - 1.0) < 0.01 ? 'text-green-600 font-bold' : 'text-amber-600 font-bold'}>
+                <span className="font-bold" style={{ color: Math.abs(archetypes.reduce((sum, a) => sum + a.probability, 0) - 1.0) < 0.01 ? 'var(--ss-success)' : 'var(--ss-warning)' }}>
                   {archetypes.reduce((sum, a) => sum + a.probability, 0).toFixed(2)}
                 </span> {getText('wizard.step2.shouldBeOne', '(should be 1.0)')}
               </div>
               <button
                 onClick={onNormalizeProbabilities}
-                className="text-[10px] px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded mt-1"
+                className="text-[10px] px-2 py-1 rounded mt-1"
+                style={{ background: 'var(--ss-page-surface-muted)', color: 'var(--ss-text-muted)' }}
               >
                 {getText('wizard.step2.normalizeAll', 'Normalize All')}
               </button>
@@ -274,12 +289,12 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
             {archetypes.map((arch) => (
-              <div key={arch.id} className="p-2 bg-slate-50 rounded border border-slate-200 text-xs">
-                <div className="font-medium text-slate-700 truncate mb-1" title={arch.label}>
+              <div key={arch.id} className="p-2 rounded text-xs" style={{ background: 'var(--ss-page-surface-muted)', border: '1px solid var(--ss-border)' }}>
+                <div className="font-medium truncate mb-1" style={{ color: 'var(--ss-heading)' }} title={arch.label}>
                   {arch.label}
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-slate-500">{getText('wizard.step2.probability', 'Probability')}:</label>
+                  <label style={{ color: 'var(--ss-text-muted)' }}>{getText('wizard.step2.probability', 'Probability')}:</label>
                   <input
                     type="number"
                     min="0"
@@ -287,46 +302,50 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
                     step="0.01"
                     value={arch.probability.toFixed(2)}
                     onChange={(e) => onUpdateArchetypeProbability(arch.id, parseFloat(e.target.value) || 0)}
-                    className="flex-1 px-1 py-0.5 border border-slate-300 rounded text-xs text-right"
+                    className="flex-1 px-1 py-0.5 rounded text-xs text-right"
+                    style={inputStyle}
                   />
-                  <span className="text-slate-500">({(arch.probability * 100).toFixed(0)}%)</span>
+                  <span style={{ color: 'var(--ss-text-muted)' }}>({(arch.probability * 100).toFixed(0)}%)</span>
                 </div>
               </div>
             ))}
           </div>
-          <p className="text-xs text-slate-500 mt-2">
+          <p className="text-xs mt-2" style={{ color: 'var(--ss-text-muted)' }}>
             {getText('wizard.step2.modifyProbabilityHint', 'After modifying any probability, others will auto-adjust proportionally to maintain sum = 1.0')}
           </p>
         </div>
       )}
 
       {/* Traits Configuration */}
-      <div className="border border-slate-200 rounded-lg p-4">
+      <div className="rounded-lg p-4" style={{ border: '1px solid var(--ss-border)' }}>
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-bold text-slate-800">
+          <h4 className="text-sm font-bold" style={{ color: 'var(--ss-heading)' }}>
             {getText('wizard.step2.traits', 'Traits')}
           </h4>
           <button
             onClick={onAddTrait}
-            className="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded flex items-center gap-1"
+            className="text-xs px-2 py-1 rounded flex items-center gap-1"
+            style={{ background: 'var(--ss-page-surface-muted)', color: 'var(--ss-text)' }}
           >
             <Plus size={14} /> {getText('wizard.step2.addTrait', 'Add Trait')}
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {traits.map((trait) => (
-            <div key={trait.id} className="border border-slate-200 rounded p-2 bg-slate-50">
+            <div key={trait.id} className="rounded p-2" style={{ border: '1px solid var(--ss-border)', background: 'var(--ss-page-surface-muted)' }}>
               <div className="flex items-center gap-2 mb-2">
                 <input
                   type="text"
                   value={trait.name}
                   onChange={(e) => onUpdateTrait(trait.id, 'name', e.target.value)}
-                  className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm font-medium"
+                  className="flex-1 px-2 py-1 rounded text-sm font-medium"
+                  style={inputStyle}
                 />
                 {traits.length > 1 && (
                   <button
                     onClick={() => onRemoveTrait(trait.id)}
-                    className="p-1 text-red-500 hover:bg-red-50 rounded"
+                    className="p-1 rounded"
+                    style={{ color: 'var(--ss-danger)' }}
                   >
                     <Minus size={16} />
                   </button>
@@ -334,51 +353,53 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] text-slate-500">{getText('wizard.step2.mean', 'Mean')}</label>
+                  <label className="text-[10px]" style={{ color: 'var(--ss-text-muted)' }}>{getText('wizard.step2.mean', 'Mean')}</label>
                   <input
                     type="number"
                     min="0"
                     max="100"
                     value={trait.mean}
                     onChange={(e) => onUpdateTrait(trait.id, 'mean', parseInt(e.target.value) || 0)}
-                    className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
+                    className="w-full px-2 py-1 rounded text-sm"
+                    style={inputStyle}
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-500">{getText('wizard.step2.std', 'Std')}</label>
+                  <label className="text-[10px]" style={{ color: 'var(--ss-text-muted)' }}>{getText('wizard.step2.std', 'Std')}</label>
                   <input
                     type="number"
                     min="0"
                     max="50"
                     value={trait.std}
                     onChange={(e) => onUpdateTrait(trait.id, 'std', parseInt(e.target.value) || 0)}
-                    className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
+                    className="w-full px-2 py-1 rounded text-sm"
+                    style={inputStyle}
                   />
                 </div>
               </div>
             </div>
           ))}
         </div>
-        <p className="text-xs text-slate-500 mt-2">
+        <p className="text-xs mt-2" style={{ color: 'var(--ss-text-muted)' }}>
           {getText('wizard.step2.traitsHint', 'Traits will use Gaussian distribution (mean ± std), limited to 0-100 range.')}
         </p>
       </div>
 
       {/* LLM Distribution Section - Configure before generating */}
-      <div className="border border-slate-200 rounded-lg p-4">
+      <div className="rounded-lg p-4" style={{ border: '1px solid var(--ss-border)' }}>
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-bold text-slate-800">
+          <h4 className="text-sm font-bold" style={{ color: 'var(--ss-heading)' }}>
             {getText('wizard.llmDistribution.title', 'LLM Distribution')}
           </h4>
         </div>
 
         {providersLoading ? (
-          <div className="flex items-center justify-center py-4 text-slate-500">
+          <div className="flex items-center justify-center py-4" style={{ color: 'var(--ss-text-muted)' }}>
             <Loader2 size={18} className="animate-spin mr-2" />
             {getText('wizard.llmDistribution.loadingProviders', 'Loading providers...')}
           </div>
         ) : availableProviders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-4 text-slate-500">
+          <div className="flex flex-col items-center justify-center py-4" style={{ color: 'var(--ss-text-muted)' }}>
             <p className="text-sm">{getText('wizard.llmDistribution.noProviders', 'No LLM providers configured.')}</p>
             <p className="text-xs mt-1">{getText('wizard.llmDistribution.configureInSettings', 'Please configure providers in Settings.')}</p>
           </div>
@@ -386,11 +407,12 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
           <>
             <div className="space-y-2 mb-3">
               {llmAllocations && llmAllocations.map((allocation, index) => (
-                <div key={index} className="flex items-center gap-2 p-2 bg-slate-50 rounded">
+                <div key={index} className="flex items-center gap-2 p-2 rounded" style={{ background: 'var(--ss-page-surface-muted)' }}>
                   <select
                     value={allocation.providerId}
                     onChange={(e) => onUpdateLlmAllocation && onUpdateLlmAllocation(index, 'providerId', Number(e.target.value))}
-                    className="flex-1 min-w-[200px] px-2 py-1 border border-slate-300 rounded text-sm"
+                    className="flex-1 min-w-[200px] px-2 py-1 rounded text-sm"
+                    style={inputStyle}
                   >
                     {availableProviders && availableProviders.map(p => (
                       <option key={p.id} value={p.id}>
@@ -404,14 +426,15 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
                     max={100}
                     value={allocation.percentage || ''}
                     onChange={(e) => onUpdateLlmAllocation && onUpdateLlmAllocation(index, 'percentage', Math.min(100, Math.max(0, parseInt(e.target.value) || 1)))}
-                    className="w-20 px-2 py-1 border border-slate-300 rounded text-sm text-center"
+                    className="w-20 px-2 py-1 rounded text-sm text-center"
+                    style={inputStyle}
                     placeholder="%"
                   />
-                  <span className="text-sm text-slate-500">%</span>
+                  <span className="text-sm" style={{ color: 'var(--ss-text-muted)' }}>%</span>
                   {onRemoveLlmAllocation && (
                     <button
                       onClick={() => onRemoveLlmAllocation(index)}
-                      className="text-red-500 hover:text-red-700"
+                      style={{ color: 'var(--ss-danger)' }}
                     >
                       <Trash2 size={16} />
                     </button>
@@ -424,7 +447,12 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
                 <button
                   onClick={onAddLlmAllocation}
                   disabled={availableProviders.length === 0}
-                  className="flex items-center gap-1 px-3 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-sm"
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm"
+                  style={{
+                    background: 'var(--ss-brand-primary)',
+                    color: '#fff',
+                    opacity: availableProviders.length === 0 ? 0.5 : 1,
+                  }}
                 >
                   <Plus size={14} />
                   {getText('wizard.llmDistribution.addLlm', 'Add LLM')}
@@ -432,7 +460,7 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
               )}
               {llmAllocations && llmAllocations.length > 0 && (
                 <div className="space-y-2">
-                  <div className={`text-sm ${isLlmDistributionValid ? 'text-green-600' : 'text-red-600'}`}>
+                  <div className="text-sm font-medium" style={{ color: isLlmDistributionValid ? 'var(--ss-success)' : 'var(--ss-danger)' }}>
                     {isLlmDistributionValid ? (
                       <span>{getText('wizard.llmDistribution.totalValid', 'Total: 100% ✓')}</span>
                     ) : (
@@ -440,7 +468,7 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
                     )}
                   </div>
                   {llmAllocations && llmAllocations.length > 0 && (
-                    <p className="text-xs text-slate-500 mt-2">
+                    <p className="text-xs mt-2" style={{ color: 'var(--ss-text-muted)' }}>
                       {getText('wizard.llmDistribution.distributionHint',
                         'Distribution will be applied when agents are generated.')}
                     </p>
@@ -453,9 +481,9 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
       </div>
 
       {/* Generation Settings */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50 border border-blue-200 p-4 rounded-lg">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-lg" style={{ background: 'var(--ss-brand-soft)', border: '1px solid var(--ss-brand-primary)' }}>
         <div>
-          <label className="block text-xs font-bold text-blue-800 mb-2">
+          <label className="block text-xs font-bold mb-2" style={{ color: 'var(--ss-brand-on)' }}>
             {getText('wizard.step2.generateCount', 'Generate Count')}
           </label>
           <input
@@ -463,14 +491,16 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
             min="1"
             value={genCount}
             onChange={(e) => onSetGenCount(Math.max(1, parseInt(e.target.value) || 1))}
-            className="w-full px-3 py-2 border border-blue-200 rounded text-sm focus:ring-blue-500"
+            className="w-full px-3 py-2 rounded text-sm"
+            style={inputStyle}
           />
         </div>
         <div className="flex items-end">
           <button
             onClick={onGenerateAgents}
             disabled={isGenerating}
-            className="px-6 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
+            className="px-6 py-2 text-white text-sm font-bold rounded-lg flex items-center gap-2 disabled:opacity-50"
+            style={{ background: 'var(--ss-brand-primary)' }}
           >
             {isGenerating ? (
               <Loader2 size={16} className="animate-spin" />
@@ -483,7 +513,7 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
       </div>
 
       {importError && (
-        <div className="p-3 bg-red-50 text-red-700 text-xs rounded border border-red-200">
+        <div className="p-3 text-xs rounded" style={{ background: 'var(--ss-danger-soft)', color: 'var(--ss-danger)', border: '1px solid var(--ss-danger)' }}>
           {importError}
         </div>
       )}
@@ -496,7 +526,7 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
           t={t}
         />
       ) : (
-        <div className="text-xs text-slate-500 text-center py-2">
+        <div className="text-xs text-center py-2" style={{ color: 'var(--ss-text-muted)' }}>
           {getText('wizard.step2.noAgentsGenerated', 'No agents generated yet.')}
         </div>
       )}

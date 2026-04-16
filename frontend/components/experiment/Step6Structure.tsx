@@ -5,14 +5,18 @@
  * at the start of the simulation. This matches the backend's
  * prompt_builder.py build_prompt() function template.
  *
- * Shows only the first agent type as full preview panel,
- * with remaining types shown as compact list.
+ * Uses a split-panel layout with a virtualized agent type list
+ * on the left and a scrollable preview panel on the right,
+ * preventing layout issues with large numbers of agents.
+ *
+ * Exports: Step6Structure
  */
 
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useExperimentBuilder } from '../../store/experiment-builder';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ChevronRight, User } from 'lucide-react';
 
 interface PromptPreviewPanelProps {
   agentTypeLabel: string;
@@ -85,18 +89,14 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
       const deductionCostRatio = scenarioParams.deduction_cost_ratio ?? 3;
       const deductionAnonymous = scenarioParams.deduction_anonymous ?? false;
 
-      // Use the base description if provided, otherwise use default
-      // Replace "agent" with "person/member" for more realistic LLM framing
       const rawDescription = scenarioDescription ||
         'Each person has resources and decides how much to contribute to a shared pool. The pool is multiplied and distributed equally among all members, regardless of contribution.';
       const baseDescription = rawDescription.replace(/\bagent(s)?\b/gi, (match) =>
         match.toLowerCase() === 'agents' ? 'members' : 'person'
       );
 
-      // Build the scenario with contribution mechanics
       let formattedScenario = `In this experiment, you receive ${tokensPerRound} ${resourceName} each round. ${baseDescription}\n\nThe total group contribution is multiplied by ${multiplier} and distributed equally among all ${numMembers} members. You keep any ${resourceName} you do not allocate.`;
 
-      // Add deduction mechanics if enabled
       if (deductionBudget > 0) {
         const anonymityText = deductionAnonymous
           ? 'Your reductions are anonymous - targets will not know who reduced their resources.'
@@ -109,10 +109,9 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
     return scenarioDescription;
   };
 
-  // Determine which parameters to show (exclude PGG params that are already in scenario)
+  // Determine which parameters to show
   const getDisplayParams = () => {
     if (scenarioId === 'public_goods') {
-      // Don't show resource_name, tokens_per_round, multiplier, deduction params - they're in the scenario
       const excludedKeys = [
         'resource_name',
         'tokens_per_round',
@@ -131,24 +130,37 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
   const formattedScenario = getFormattedScenario();
 
   return (
-    <div className="border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+    <div
+      className="rounded-lg overflow-hidden"
+      style={{
+        border: `1px solid var(--ss-border-strong)`,
+        background: 'var(--ss-page-surface-muted)',
+      }}
+    >
       {/* Header */}
-      <div className="bg-gray-200 px-4 py-2 border-b border-gray-300">
-        <span className="text-sm font-semibold text-gray-700">
-          Agent Type: "{agentTypeLabel}"
+      <div
+        className="px-4 py-2 border-b"
+        style={{
+          background: 'var(--ss-surface-strong)',
+          borderColor: 'var(--ss-border-strong)',
+        }}
+      >
+        <span className="text-sm font-semibold" style={{ color: 'var(--ss-heading)' }}>
+          Agent Type: &quot;{agentTypeLabel}&quot;
         </span>
       </div>
 
       {/* Prompt Content */}
-      <div className="p-4 font-mono text-sm text-gray-800 whitespace-pre-wrap bg-white">
+      <div
+        className="p-4 font-mono text-sm whitespace-pre-wrap"
+        style={{
+          background: 'var(--ss-page-surface)',
+          color: 'var(--ss-text)',
+        }}
+      >
         {/* Section 1: Agent Description */}
         <div className="mb-4">
-          <span className="text-blue-600">You are</span> {agentTypeLabel}.
-          {/*
-            Display agent description - prefer rolePrompt if available,
-            fall back to profile. Don't show both if they contain the same content
-            (demographic generator sets both to the same value).
-          */}
+          <span style={{ color: 'var(--ss-brand-primary)' }}>You are</span> {agentTypeLabel}.
           {agentTypeRolePrompt ? (
             <>
               {' '}
@@ -162,18 +174,18 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
           ) : null}
         </div>
 
-        {/* Section 2: Scenario (with intertwined parameters for PGG) */}
+        {/* Section 2: Scenario */}
         <div className="mb-4">
-          <div className="font-semibold text-gray-900 mb-1">Scenario:</div>
+          <div className="font-semibold mb-1" style={{ color: 'var(--ss-heading)' }}>Scenario:</div>
           {formattedScenario || (
-            <span className="text-gray-400 italic">No scenario description provided</span>
+            <span className="italic" style={{ color: 'var(--ss-text-subtle)' }}>No scenario description provided</span>
           )}
         </div>
 
-        {/* Section 2b: Additional Game Parameters (only non-PGG or non-intertwined params) */}
+        {/* Section 2b: Additional Parameters */}
         {displayParams.length > 0 && (
           <div className="mb-4">
-            <div className="font-semibold text-gray-900 mb-1">Additional Parameters:</div>
+            <div className="font-semibold mb-1" style={{ color: 'var(--ss-heading)' }}>Additional Parameters:</div>
             <div className="pl-2">
               {displayParams.map(([key, value]) => (
                 <div key={key}>- {formatParamKey(key)}: {String(value)}</div>
@@ -182,31 +194,34 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
           </div>
         )}
 
-        {/* Section 3: Available Actions (phase-filtered for PGG) */}
+        {/* Section 3: Available Actions */}
         <div className="mb-4">
-          <div className="font-semibold text-gray-900 mb-1">Available actions:</div>
+          <div className="font-semibold mb-1" style={{ color: 'var(--ss-heading)' }}>Available actions:</div>
           {displayActions.length > 0 ? (
             <div className="pl-2">{actionsList}</div>
           ) : (
-            <span className="text-gray-400 italic">No actions selected</span>
+            <span className="italic" style={{ color: 'var(--ss-text-subtle)' }}>No actions selected</span>
           )}
         </div>
 
         {/* Section 4: Context */}
         <div className="mb-4">
-          <div className="font-semibold text-gray-900 mb-1">Context:</div>
+          <div className="font-semibold mb-1" style={{ color: 'var(--ss-heading)' }}>Context:</div>
           <div className="pl-2">This is the first round.</div>
         </div>
 
         {/* Section 5: Output Format */}
-        <div className="border-t border-gray-200 pt-3 mt-3">
-          <div className="font-semibold text-gray-900 mb-1">Your Response:</div>
+        <div
+          className="pt-3 mt-3"
+          style={{ borderTop: '1px solid var(--ss-border)' }}
+        >
+          <div className="font-semibold mb-1" style={{ color: 'var(--ss-heading)' }}>Your Response:</div>
           {displayActions.length > 0 ? (
             <div className="pl-2">
               Respond with only JSON: {`{{"action": <${actionsForResponse}>}}`}
             </div>
           ) : (
-            <div className="pl-2 text-gray-400 italic">
+            <div className="pl-2 italic" style={{ color: 'var(--ss-text-subtle)' }}>
               Add actions in Step 3 to see the response format
             </div>
           )}
@@ -227,20 +242,38 @@ export const Step6Structure: React.FC = () => {
     selectedActionIds,
   } = useExperimentBuilder();
 
+  const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
   const totalAgents = agentTypes.reduce((sum, t) => sum + t.count, 0);
+
+  // Select first agent type by default
+  const effectiveSelectedId = selectedTypeId || (agentTypes.length > 0 ? agentTypes[0].id : null);
+  const selectedType = agentTypes.find(at => at.id === effectiveSelectedId) || agentTypes[0] || null;
+
+  // Virtualize the agent type list
+  const virtualizer = useVirtualizer({
+    count: agentTypes.length,
+    getScrollElement: () => listRef.current,
+    estimateSize: () => 56,
+    overscan: 8,
+  });
 
   // If no agents defined, show warning
   if (agentTypes.length === 0) {
     return (
       <div className="flex items-center justify-center p-12">
         <div className="text-center max-w-md">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 rounded-full mb-4">
-            <AlertCircle className="w-8 h-8 text-amber-600" />
+          <div
+            className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4"
+            style={{ background: 'var(--ss-brand-soft)' }}
+          >
+            <AlertCircle size={32} style={{ color: 'var(--ss-warning)' }} />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--ss-heading)' }}>
             {t('experimentBuilder.step6.noAgentsDefined')}
           </h3>
-          <p className="text-gray-600">
+          <p style={{ color: 'var(--ss-text-muted)' }}>
             {t('experimentBuilder.step6.goBackToStep4')}
           </p>
         </div>
@@ -248,72 +281,134 @@ export const Step6Structure: React.FC = () => {
     );
   }
 
-  const firstAgentType = agentTypes[0];
-  const remainingAgentTypes = agentTypes.slice(1);
-
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full" style={{ minHeight: 0 }}>
       {/* Header */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-blue-900">
-          {t('experimentBuilder.promptPreview.title')} (Agent Type: {firstAgentType.label})
+      <div
+        className="rounded-lg p-4 mb-4"
+        style={{
+          background: 'var(--ss-brand-soft)',
+          border: '1px solid var(--ss-layer-outline-strong)',
+        }}
+      >
+        <h3 className="text-lg font-semibold" style={{ color: 'var(--ss-heading)' }}>
+          {t('experimentBuilder.promptPreview.title')}
+          {selectedType && ` (Agent Type: ${selectedType.label})`}
         </h3>
-        <p className="text-sm text-blue-700 mt-1">
+        <p className="text-sm mt-1" style={{ color: 'var(--ss-text-muted)' }}>
           {t('experimentBuilder.promptPreview.note', { n: agentTypes.length })}
         </p>
       </div>
 
-      {/* Full preview for first agent type */}
-      <PromptPreviewPanel
-        agentTypeLabel={firstAgentType.label}
-        agentTypeProfile={firstAgentType.userProfile || ''}
-        agentTypeRolePrompt={firstAgentType.rolePrompt || ''}
-        agentTypeProperties={firstAgentType.properties || {}}
-        scenarioId={selectedScenarioId || ''}
-        scenarioDescription={scenarioDescription}
-        scenarioParams={scenarioParams}
-        availableActions={availableActions}
-        selectedActionIds={selectedActionIds}
-        totalAgents={totalAgents}
-      />
+      {/* Split layout: agent list + preview */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4" style={{ minHeight: 0 }}>
+        {/* Agent type list (virtualized) */}
+        <div
+          className="rounded-lg overflow-hidden flex flex-col"
+          style={{
+            border: '1px solid var(--ss-border)',
+            background: 'var(--ss-page-surface)',
+          }}
+        >
+          <div
+            className="px-3 py-2 border-b text-xs font-semibold uppercase tracking-wide"
+            style={{
+              borderColor: 'var(--ss-border)',
+              color: 'var(--ss-text-muted)',
+              background: 'var(--ss-surface-strong)',
+            }}
+          >
+            {t('experimentBuilder.promptPreview.otherTypes')} ({agentTypes.length})
+          </div>
+          <div ref={listRef} className="flex-1 overflow-y-auto" style={{ maxHeight: '500px' }}>
+            <div
+              style={{
+                height: `${virtualizer.getTotalSize()}px`,
+                width: '100%',
+                position: 'relative',
+              }}
+            >
+              {virtualizer.getVirtualItems().map((virtualRow) => {
+                const type = agentTypes[virtualRow.index];
+                const isSelected = type.id === effectiveSelectedId;
 
-      {/* Compact list for remaining agent types */}
-      {remainingAgentTypes.length > 0 && (
-        <div className="border-t pt-4">
-          <h4 className="font-medium text-gray-700 mb-3">
-            {t('experimentBuilder.promptPreview.otherTypes')}
-          </h4>
-          <div className="space-y-2">
-            {remainingAgentTypes.map(type => (
-              <div key={type.id} className="bg-gray-50 rounded p-3">
-                <div className="font-medium">{type.label}</div>
-                {type.rolePrompt && (
-                  <div className="text-sm text-gray-600 mt-1">
-                    Role: {type.rolePrompt}
+                return (
+                  <div
+                    key={type.id}
+                    data-index={virtualRow.index}
+                    ref={virtualizer.measureElement}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      transform: `translateY(${virtualRow.start}px)`,
+                      padding: '2px 6px',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTypeId(type.id)}
+                      className="w-full text-left p-2 rounded-md transition-colors flex items-center gap-2"
+                      style={{
+                        background: isSelected ? 'var(--ss-layer-active)' : 'transparent',
+                        border: isSelected ? '1px solid var(--ss-layer-outline-strong)' : '1px solid transparent',
+                      }}
+                    >
+                      <User size={14} style={{ color: 'var(--ss-text-subtle)', flexShrink: 0 }} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate" style={{ color: 'var(--ss-heading)' }}>
+                          {type.label}
+                        </div>
+                        {type.rolePrompt && (
+                          <div className="text-xs truncate" style={{ color: 'var(--ss-text-muted)' }}>
+                            {type.rolePrompt.substring(0, 60)}{type.rolePrompt.length > 60 ? '...' : ''}
+                          </div>
+                        )}
+                      </div>
+                      <ChevronRight
+                        size={12}
+                        style={{
+                          color: isSelected ? 'var(--ss-brand-primary)' : 'var(--ss-text-subtle)',
+                          flexShrink: 0,
+                        }}
+                      />
+                    </button>
                   </div>
-                )}
-                {type.userProfile && (
-                  <div className="text-sm text-gray-600 mt-1">
-                    Profile: {type.userProfile}
-                  </div>
-                )}
-                {Object.entries(type.properties || {}).filter(([key]) => !['avatarUrl', 'llm_config', 'provider_id'].includes(key)).length > 0 && (
-                  <div className="text-sm text-gray-600 mt-1">
-                    Properties:{' '}
-                    {Object.entries(type.properties || {})
-                      .filter(([key]) => !['avatarUrl', 'llm_config', 'provider_id'].includes(key))
-                      .map(([key, value]) => `${key}=${String(value)}`)
-                      .join(', ')}
-                  </div>
-                )}
-              </div>
-            ))}
+                );
+              })}
+            </div>
           </div>
         </div>
-      )}
+
+        {/* Preview panel */}
+        <div className="overflow-y-auto rounded-lg" style={{ maxHeight: '600px' }}>
+          {selectedType ? (
+            <PromptPreviewPanel
+              agentTypeLabel={selectedType.label}
+              agentTypeProfile={selectedType.userProfile || ''}
+              agentTypeRolePrompt={selectedType.rolePrompt || ''}
+              agentTypeProperties={selectedType.properties || {}}
+              scenarioId={selectedScenarioId || ''}
+              scenarioDescription={scenarioDescription}
+              scenarioParams={scenarioParams}
+              availableActions={availableActions}
+              selectedActionIds={selectedActionIds}
+              totalAgents={totalAgents}
+            />
+          ) : (
+            <div
+              className="flex items-center justify-center h-full rounded-lg"
+              style={{ background: 'var(--ss-page-surface)', color: 'var(--ss-text-subtle)' }}
+            >
+              Select an agent type to preview
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Summary */}
-      <div className="text-sm text-gray-600">
+      <div className="text-sm mt-4" style={{ color: 'var(--ss-text-muted)' }}>
         {t('experimentBuilder.step6.totalAgentsTypes', { agents: totalAgents, types: agentTypes.length })}
       </div>
     </div>

@@ -134,7 +134,7 @@ const ParamSlider: React.FC<ParamSliderProps> = ({
   const { t } = useTranslation();
   return (
     <div className="flex items-center justify-between">
-      <label className="text-[11px] text-slate-600 flex-1">
+      <label className="text-[11px] flex-1" style={{ color: 'var(--ss-text-muted)' }}>
         {t(`components.networkEditorModal.${labelKey}`)}
       </label>
       <div className="flex items-center gap-2">
@@ -147,7 +147,7 @@ const ParamSlider: React.FC<ParamSliderProps> = ({
           onChange={(e) => onChange(isInteger ? parseInt(e.target.value) : parseFloat(e.target.value))}
           className="w-20 h-1 accent-brand-500"
         />
-        <span className="text-[10px] text-slate-500 w-8 text-right">
+        <span className="text-[10px] w-8 text-right" style={{ color: 'var(--ss-text-subtle)' }}>
           {isInteger ? value : value.toFixed(2)}
         </span>
       </div>
@@ -368,9 +368,9 @@ export const Step5Network: React.FC = () => {
     const presetKey = selectedPreset as keyof PresetParams;
 
     return (
-      <div className="space-y-3 p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+      <div className="space-y-3 p-3 rounded-lg border shadow-sm" style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)' }}>
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+          <span className="text-xs font-semibold flex items-center gap-1.5" style={{ color: 'var(--ss-text)' }}>
             <Settings2 size={12} />
             {t('components.networkEditorModal.parameterSettings')}
           </span>
@@ -417,7 +417,7 @@ export const Step5Network: React.FC = () => {
         )}
 
         {/* Apply Changes Button */}
-        <div className="mt-3 pt-3 border-t border-slate-200">
+        <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--ss-border)' }}>
           <button
             onClick={() => {
               if (selectedPreset) {
@@ -439,13 +439,13 @@ export const Step5Network: React.FC = () => {
     return (
       <div className="flex items-center justify-center p-12">
         <div className="text-center max-w-md">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 rounded-full mb-4">
-            <Users className="w-8 h-8 text-amber-600" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style={{ background: 'var(--ss-brand-soft)' }}>
+            <Users className="w-8 h-8" style={{ color: 'var(--ss-warning)' }} />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--ss-heading)' }}>
             {t('experimentBuilder.step5.noAgentsConfigured')}
           </h3>
-          <p className="text-gray-600">
+          <p style={{ color: 'var(--ss-text-muted)' }}>
             {t('experimentBuilder.step5.goBackToStep4')}
           </p>
         </div>
@@ -456,12 +456,12 @@ export const Step5Network: React.FC = () => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-full">
       {/* Sidebar Tools */}
-      <div className="lg:col-span-1 bg-slate-50 border-r p-4 space-y-4 overflow-y-auto max-h-full">
+      <div className="lg:col-span-1 border-r p-4 space-y-4 overflow-y-auto max-h-full" style={{ background: 'var(--ss-page-surface-muted)' }}>
         <div>
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+          <label className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--ss-text-muted)' }}>
             {t('experimentBuilder.step5.networkPresets')}
           </label>
-          <p className="text-[10px] text-slate-400 mt-0.5 mb-3">
+          <p className="text-[10px] mt-0.5 mb-3" style={{ color: 'var(--ss-text-subtle)' }}>
             {t('experimentBuilder.step5.chooseTopology')}
           </p>
 
@@ -481,24 +481,28 @@ export const Step5Network: React.FC = () => {
                   }}
                   className={`w-full p-2 rounded-lg border text-left transition-all ${
                     isSelected
-                      ? 'bg-brand-50 border-brand-300 ring-1 ring-brand-200'
-                      : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      ? 'ring-1'
+                      : ''
                   }`}
+                  style={isSelected
+                    ? { background: 'var(--ss-accent-warm-soft)', borderColor: 'var(--ss-brand-primary)', boxShadow: '0 0 0 1px var(--ss-brand-soft)' }
+                    : { background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)' }
+                  }
                 >
                   <div className="flex items-center gap-2">
-                    <div className={`p-1.5 rounded ${isSelected ? 'bg-brand-100 text-brand-600' : 'bg-slate-100 text-slate-500'}`}>
+                    <div className={`p-1.5 rounded`} style={{ background: isSelected ? 'var(--ss-brand-soft)' : 'var(--ss-surface-strong)', color: isSelected ? 'var(--ss-brand-primary)' : 'var(--ss-text-subtle)' }}>
                       <Icon size={14} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className={`text-xs font-medium block ${isSelected ? 'text-brand-700' : 'text-slate-700'}`}>
+                      <span className={`text-xs font-medium block`} style={{ color: isSelected ? 'var(--ss-brand-primary)' : 'var(--ss-text)' }}>
                         {t(`experimentBuilder.step5.presets.${translationKey}.name`)}
                       </span>
-                      <p className="text-[10px] text-slate-400 truncate">
+                      <p className="text-[10px] truncate" style={{ color: 'var(--ss-text-subtle)' }}>
                         {t(`experimentBuilder.step5.presets.${translationKey}.description`)}
                       </p>
                     </div>
                     <div className={`transition-transform ${isSelected ? 'rotate-90' : ''}`}>
-                      <ChevronRight size={14} className="text-slate-400" />
+                      <ChevronRight size={14} style={{ color: 'var(--ss-text-subtle)' }} />
                     </div>
                   </div>
                 </button>
@@ -513,7 +517,8 @@ export const Step5Network: React.FC = () => {
                 setSelectedPreset('full');
                 applyPreset('full');
               }}
-              className="flex-1 py-1.5 px-2 bg-white border border-slate-200 rounded text-[10px] text-slate-600 hover:bg-slate-50 flex items-center justify-center gap-1"
+              className="flex-1 py-1.5 px-2 border rounded text-[10px] flex items-center justify-center gap-1"
+              style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)', color: 'var(--ss-text-muted)' }}
             >
               <Share2 size={10} />
               {t('experimentBuilder.step5.fullyConnected')}
@@ -525,7 +530,8 @@ export const Step5Network: React.FC = () => {
                   applyPreset('random');
                 }
               }}
-              className="flex-1 py-1.5 px-2 bg-white border border-slate-200 rounded text-[10px] text-slate-500 hover:bg-slate-50 flex items-center justify-center gap-1"
+              className="flex-1 py-1.5 px-2 border rounded text-[10px] flex items-center justify-center gap-1"
+              style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)', color: 'var(--ss-text-subtle)' }}
             >
               <RefreshCw size={10} />
               {t('experimentBuilder.step5.reset')}
@@ -534,26 +540,28 @@ export const Step5Network: React.FC = () => {
         </div>
 
         {/* Manual Links */}
-        <div className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm space-y-2">
-          <div className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+        <div className="p-3 border rounded-lg shadow-sm space-y-2" style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)' }}>
+          <div className="text-xs font-semibold flex items-center gap-1.5" style={{ color: 'var(--ss-text)' }}>
             <Settings2 size={12} />
             {t('experimentBuilder.step5.manualLinks', 'Manual links')}
           </div>
-          <div className="flex items-center gap-2 text-[11px] text-slate-600">
+          <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--ss-text-muted)' }}>
             <select
               value={linkFrom}
               onChange={(e) => setLinkFrom(e.target.value)}
-              className="flex-1 border border-slate-200 rounded px-2 py-1 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand-400"
+              className="flex-1 border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-400"
+              style={{ background: 'var(--ss-page-surface-muted)', borderColor: 'var(--ss-border)' }}
             >
               {agentIds.map((id) => (
                 <option key={id} value={id}>{id}</option>
               ))}
             </select>
-            <span className="text-slate-400">→</span>
+            <span style={{ color: 'var(--ss-text-subtle)' }}>→</span>
             <select
               value={linkTo}
               onChange={(e) => setLinkTo(e.target.value)}
-              className="flex-1 border border-slate-200 rounded px-2 py-1 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand-400"
+              className="flex-1 border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-400"
+              style={{ background: 'var(--ss-page-surface-muted)', borderColor: 'var(--ss-border)' }}
             >
               {agentIds.map((id) => (
                 <option key={id} value={id}>{id}</option>
@@ -570,14 +578,14 @@ export const Step5Network: React.FC = () => {
           </Button>
 
           {edges.length > 0 ? (
-            <div className="max-h-32 overflow-y-auto border-t border-slate-100 pt-2 space-y-1 text-[11px] text-slate-600">
+            <div className="max-h-32 overflow-y-auto pt-2 space-y-1 text-[11px]" style={{ borderTop: '1px solid var(--ss-border)', color: 'var(--ss-text-muted)' }}>
               {edges.map(({ key, source, target }) => (
-                <div key={key} className="flex items-center justify-between bg-slate-50 px-2 py-1 rounded">
+                <div key={key} className="flex items-center justify-between px-2 py-1 rounded" style={{ background: 'var(--ss-page-surface-muted)' }}>
                   <span className="truncate">
                     {source} ↔ {target}
                   </span>
                   <button
-                    className="text-red-500 text-[10px] hover:text-red-600"
+                    className="text-[10px]"
                     onClick={() => removeLink(key)}
                   >
                     {t('common.remove', 'Remove')}
@@ -586,7 +594,7 @@ export const Step5Network: React.FC = () => {
               ))}
             </div>
           ) : (
-            <div className="text-[10px] text-slate-400 border-t border-slate-100 pt-2">
+            <div className="text-[10px] pt-2" style={{ color: 'var(--ss-text-subtle)', borderTop: '1px solid var(--ss-border)' }}>
               {t('experimentBuilder.step5.noLinks', 'No links yet')}
             </div>
           )}
@@ -596,8 +604,8 @@ export const Step5Network: React.FC = () => {
         {renderParamControls()}
 
         {/* Instructions */}
-        <div className="text-xs text-slate-400 leading-relaxed pt-3 border-t mt-auto">
-          <strong className="text-slate-500">{t('experimentBuilder.step5.instructions')}:</strong>
+        <div className="text-xs leading-relaxed pt-3 border-t mt-auto" style={{ color: 'var(--ss-text-subtle)', borderColor: 'var(--ss-border)' }}>
+          <strong style={{ color: 'var(--ss-text-muted)' }}>{t('experimentBuilder.step5.instructions')}:</strong>
           <ul className="list-decimal pl-4 space-y-0.5 mt-1 text-[10px]">
             <li>{t('experimentBuilder.step5.instructionSelect')}</li>
             <li>{t('experimentBuilder.step5.instructionDrag')}</li>
@@ -607,7 +615,7 @@ export const Step5Network: React.FC = () => {
       </div>
 
       {/* Canvas */}
-      <div className="lg:col-span-3 bg-slate-50 relative overflow-hidden group">
+      <div className="lg:col-span-3 relative overflow-hidden group" style={{ background: 'var(--ss-page-surface-muted)' }}>
         <NetworkGraph
           network={socialNetwork}
           agents={agents}
@@ -630,13 +638,13 @@ export const Step5Network: React.FC = () => {
         />
 
         {/* Network Stats */}
-        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm border rounded-lg px-3 py-2 text-[10px] text-slate-600">
+        <div className="absolute bottom-4 left-4 backdrop-blur-sm border rounded-lg px-3 py-2 text-[10px]" style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)', color: 'var(--ss-text-muted)' }}>
           <div className="flex items-center gap-3">
             <span>
-              <strong className="text-slate-700">{agentIds.length}</strong> {t('experimentBuilder.step5.nodes', { count: agentIds.length })}
+              <strong style={{ color: 'var(--ss-text)' }}>{agentIds.length}</strong> {t('experimentBuilder.step5.nodes', { count: agentIds.length })}
             </span>
             <span>
-              <strong className="text-slate-700">
+              <strong style={{ color: 'var(--ss-text)' }}>
                 {Object.values(socialNetwork).reduce((sum, arr) => sum + arr.length, 0)}
               </strong> {t('experimentBuilder.step5.edges', { count: Object.values(socialNetwork).reduce((sum, arr) => sum + arr.length, 0) })}
             </span>

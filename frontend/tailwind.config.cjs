@@ -5,6 +5,7 @@
 const colors = require("tailwindcss/colors");
 
 module.exports = {
+  darkMode: ['selector', '.theme-dark'],
   content: [
     "./index.html",
     "./App.tsx",

@@ -12,7 +12,7 @@ export const Sidebar: React.FC = () => {
   const agents = useSimulationStore(state => state.agents);
 
   return (
-    <div className="h-full flex flex-col bg-white shadow-sm">
+    <div className="h-full flex flex-col shadow-sm" style={{ background: 'var(--ss-workspace-surface)' }}>
       {/* Tab Header */}
       <div className="flex border-b">
         <button
@@ -20,8 +20,9 @@ export const Sidebar: React.FC = () => {
           className={`flex-1 py-3 text-xs font-bold flex items-center justify-center gap-2 transition-colors border-b-2 ${
             activeTab === 'agents'
               ? 'text-brand-600 border-brand-600 bg-brand-50/50'
-              : 'text-slate-500 border-transparent hover:bg-slate-50'
+              : 'border-transparent'
           }`}
+          style={activeTab !== 'agents' ? { color: 'var(--ss-workspace-muted)' } : undefined}
         >
           <Users size={14} /> {t('components.sidebar.agents')} ({agents.length})
         </button>
@@ -30,8 +31,9 @@ export const Sidebar: React.FC = () => {
           className={`flex-1 py-3 text-xs font-bold flex items-center justify-center gap-2 transition-colors border-b-2 ${
             activeTab === 'host'
               ? 'text-amber-600 border-amber-600 bg-amber-50/50'
-              : 'text-slate-500 border-transparent hover:bg-slate-50'
+              : 'border-transparent'
           }`}
+          style={activeTab !== 'host' ? { color: 'var(--ss-workspace-muted)' } : undefined}
         >
           <Zap size={14} /> {t('components.sidebar.hostControl')}
         </button>

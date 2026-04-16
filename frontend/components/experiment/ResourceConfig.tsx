@@ -34,12 +34,12 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({
     <div className="space-y-6">
       {/* Resource Settings */}
       <div className="space-y-4">
-        <h3 className="text-sm font-medium text-gray-700">
+        <h3 className="text-sm font-medium" style={{ color: 'var(--ss-heading)' }}>
           {t('experimentBuilder.resourceConfig.title')}
         </h3>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ss-heading)' }}>
             {t('experimentBuilder.resourceConfig.resourceNameLabel')}
           </label>
           <input
@@ -47,12 +47,13 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({
             value={values.resource_name}
             onChange={(e) => onChange('resource_name', e.target.value)}
             placeholder="tokens"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+            style={{ borderColor: 'var(--ss-border-strong)' }}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ss-heading)' }}>
             {t('experimentBuilder.resourceConfig.amountPerRoundLabel')}
           </label>
           <NumberField
@@ -65,7 +66,7 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ss-heading)' }}>
             {t('experimentBuilder.resourceConfig.multiplierLabel')}
           </label>
           <NumberField
@@ -79,13 +80,13 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({
       </div>
 
       {/* Deduction Settings */}
-      <div className="space-y-4 border-t border-gray-200 pt-4">
-        <h3 className="text-sm font-medium text-gray-700">
+      <div className="space-y-4 border-t pt-4" style={{ borderColor: 'var(--ss-border)' }}>
+        <h3 className="text-sm font-medium" style={{ color: 'var(--ss-heading)' }}>
           {t('experimentBuilder.deductionSettings.title')}
         </h3>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ss-heading)' }}>
             {t('experimentBuilder.deductionSettings.budgetLabel')}
           </label>
           <NumberField
@@ -95,13 +96,13 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({
             max={100}
             step={1}
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs mt-1" style={{ color: 'var(--ss-text-muted)' }}>
             {t('experimentBuilder.deductionSettings.budgetHint')}
           </p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ss-heading)' }}>
             {t('experimentBuilder.deductionSettings.costRatioLabel')}
           </label>
           <NumberField
@@ -111,7 +112,7 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({
             max={10.0}
             step={0.1}
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs mt-1" style={{ color: 'var(--ss-text-muted)' }}>
             {t('experimentBuilder.deductionSettings.costRatioHint')}
           </p>
         </div>
@@ -122,17 +123,18 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({
             id="deduction_anonymous"
             checked={values.deduction_anonymous}
             onChange={(e) => onChange('deduction_anonymous', e.target.checked)}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            className="h-4 w-4 rounded" style={{ accentColor: 'var(--ss-brand-primary)' }}
+            style={{ borderColor: 'var(--ss-border-strong)' }}
           />
-          <label htmlFor="deduction_anonymous" className="ml-2 block text-sm text-gray-700">
+          <label htmlFor="deduction_anonymous" className="ml-2 block text-sm" style={{ color: 'var(--ss-heading)' }}>
             {t('experimentBuilder.deductionSettings.anonymousLabel')}
           </label>
         </div>
       </div>
 
       {/* Average Contribution Display */}
-      <div className="space-y-4 border-t border-gray-200 pt-4">
-        <h3 className="text-sm font-medium text-gray-700">
+      <div className="space-y-4 border-t pt-4" style={{ borderColor: 'var(--ss-border)' }}>
+        <h3 className="text-sm font-medium" style={{ color: 'var(--ss-heading)' }}>
           {t('experimentBuilder.resourceConfig.displaySettingsTitle')}
         </h3>
 
@@ -142,13 +144,13 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({
             id="show_average_contribution"
             checked={values.show_average_contribution}
             onChange={(e) => onChange('show_average_contribution', e.target.checked)}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-0.5"
+            className="h-4 w-4 rounded mt-0.5" style={{ accentColor: 'var(--ss-brand-primary)' }}
           />
           <div className="ml-2">
-            <label htmlFor="show_average_contribution" className="block text-sm text-gray-700">
+            <label htmlFor="show_average_contribution" className="block text-sm" style={{ color: 'var(--ss-text)' }}>
               {t('experimentBuilder.resourceConfig.showAverageLabel')}
             </label>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs mt-1" style={{ color: 'var(--ss-text-subtle)' }}>
               {t('experimentBuilder.resourceConfig.showAverageHint')}
             </p>
           </div>

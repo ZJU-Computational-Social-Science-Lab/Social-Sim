@@ -55,33 +55,37 @@ const ScenarioCard: React.FC<ScenarioCardProps> = ({
     <button
       onClick={onClick}
       className={`
-        p-4 text-left border-2 rounded-lg transition-all w-full bg-white
+        p-4 text-left border-2 rounded-lg transition-all w-full
         ${selected
-          ? 'border-blue-500 bg-blue-50 shadow-sm ring-2 ring-blue-100'
-          : 'border-gray-200 hover:border-blue-300 hover:shadow-sm'
+          ? 'shadow-sm'
+          : 'hover:shadow-sm'
         }
       `}
+      style={selected
+        ? { background: 'var(--ss-accent-warm-soft)', borderColor: 'var(--ss-brand-primary)', boxShadow: '0 0 0 2px var(--ss-brand-soft)' }
+        : { background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)' }
+      }
     >
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-semibold text-gray-900 truncate">
+            <h3 className="font-semibold truncate" style={{ color: 'var(--ss-heading)' }}>
               {translatedName}
             </h3>
           </div>
-          <p className="text-sm text-gray-600 line-clamp-2">
+          <p className="text-sm line-clamp-2" style={{ color: 'var(--ss-text)' }}>
             {translatedDesc}
           </p>
         </div>
         <div className="ml-2 flex-shrink-0">
           {selected ? (
-            <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'var(--ss-brand-primary)' }}>
               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
               </svg>
             </div>
           ) : (
-            <div className="w-6 h-6 rounded-full border-2 border-gray-300" />
+            <div className="w-6 h-6 rounded-full border-2" style={{ borderColor: 'var(--ss-border-strong)' }} />
           )}
         </div>
       </div>
@@ -168,10 +172,10 @@ export const Step1InteractionType: React.FC = () => {
   return (
     <div>
       <div className="mb-4">
-        <h2 className="text-xl font-semibold text-gray-900">
+        <h2 className="text-xl font-semibold" style={{ color: 'var(--ss-heading)' }}>
           {t('experimentBuilder.step1.chooseScenario')}
         </h2>
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="text-sm mt-1" style={{ color: 'var(--ss-text)' }}>
           {t('experimentBuilder.step1.selectTemplate')}
         </p>
       </div>
@@ -179,8 +183,8 @@ export const Step1InteractionType: React.FC = () => {
       {loading && (
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-2" />
-            <p className="text-sm text-gray-600">{t('common.loading')}</p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 mb-2" style={{ borderColor: 'var(--ss-brand-primary)' }} />
+            <p className="text-sm" style={{ color: 'var(--ss-text)' }}>{t('common.loading')}</p>
           </div>
         </div>
       )}
@@ -188,14 +192,15 @@ export const Step1InteractionType: React.FC = () => {
       {error && (
         <div className="flex flex-col items-center justify-center py-12">
           <div className="text-center mb-4">
-            <svg className="w-12 h-12 text-red-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-12 h-12 mx-auto mb-2" style={{ color: 'var(--ss-danger)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="text-sm text-gray-600">{error}</p>
+            <p className="text-sm" style={{ color: 'var(--ss-text)' }}>{error}</p>
           </div>
           <button
             onClick={handleRetry}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            className="px-4 py-2 text-white rounded-lg transition-colors"
+            style={{ background: 'var(--ss-brand-primary)' }}
           >
             {t('experimentBuilder.step1.retry')}
           </button>
@@ -204,7 +209,7 @@ export const Step1InteractionType: React.FC = () => {
 
       {!loading && !error && scenarios.length === 0 && (
         <div className="flex items-center justify-center py-12">
-          <p className="text-sm text-gray-600">{t('experimentBuilder.step1.noScenariosAvailable')}</p>
+          <p className="text-sm" style={{ color: 'var(--ss-text)' }}>{t('experimentBuilder.step1.noScenariosAvailable')}</p>
         </div>
       )}
 
@@ -221,7 +226,8 @@ export const Step1InteractionType: React.FC = () => {
               <div key={category} className="border rounded-lg">
                 <button
                   onClick={() => toggleCategory(category)}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
+                  className="w-full px-4 py-3 flex items-center justify-between"
+                  style={{ background: 'var(--ss-page-surface)' }}
                 >
                   <div className="flex items-center gap-3">
                     <span
@@ -233,7 +239,7 @@ export const Step1InteractionType: React.FC = () => {
                     <span className="font-medium">
                       {t(`scenario.category.${category}`)}
                     </span>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm" style={{ color: 'var(--ss-text)' }}>
                       {t('experimentBuilder.step1.scenariosCount', { count: categoryScenarios.length })}
                     </span>
                   </div>

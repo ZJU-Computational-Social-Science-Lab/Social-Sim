@@ -1,7 +1,7 @@
 /**
  * Tab bar for the simulation page workspace.
  *
- * Renders three tabs (Sim Tree, Logs, Agents) with active state styling
+ * Renders two tabs (Timeline, Agents) with active state styling
  * and hover-to-peek behavior. Active tab shows a highlighted indicator.
  *
  * Exports: TabBar
@@ -10,11 +10,10 @@
 import React, { useRef, useCallback } from 'react';
 import { useSimulationStore } from '../store';
 import { useTranslation } from 'react-i18next';
-import { GitBranch, ScrollText, Users } from 'lucide-react';
+import { Clock, Users } from 'lucide-react';
 
 const TABS = [
-  { key: 'simTree', icon: GitBranch },
-  { key: 'logs', icon: ScrollText },
+  { key: 'timeline', icon: Clock },
   { key: 'agents', icon: Users },
 ] as const;
 
@@ -33,7 +32,7 @@ export const TabBar: React.FC = () => {
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleMouseEnter = useCallback(
-    (tab: 'simTree' | 'logs' | 'agents') => {
+    (tab: 'timeline' | 'agents') => {
       // Cancel any in-flight dismiss so re-entering a tab doesn't close the overlay
       if (dismissTimerRef.current) {
         clearTimeout(dismissTimerRef.current);
@@ -62,7 +61,7 @@ export const TabBar: React.FC = () => {
   }, [setPeekTab]);
 
   const handleClick = useCallback(
-    (tab: 'simTree' | 'logs' | 'agents') => {
+    (tab: 'timeline' | 'agents') => {
       if (hoverTimerRef.current) {
         clearTimeout(hoverTimerRef.current);
         hoverTimerRef.current = null;
