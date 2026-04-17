@@ -226,39 +226,26 @@ export const createExperimentsSlice: StateCreator<
     const state = get() as any;
     if (!state.currentSimulation || !state.selectedNodeId || !state.compareTargetNodeId) return;
 
-    // connected: call backend compare
-    if (state.engineConfig?.mode === 'connected') {
-      try {
-        set({ isGenerating: true } as any);
-        const simId = state.currentSimulation.id;
-        const nodeA = Number(state.selectedNodeId);
-        const nodeB = Number(state.compareTargetNodeId);
-        if (!Number.isFinite(nodeA) || !Number.isFinite(nodeB)) {
-          state.addNotification?.('error', i18n.t('store.selectedNodeNotBackend') || 'Selected node is not a backend node');
-          set({ isGenerating: false } as any);
-          return;
-        }
-
-        const useLLM = Boolean(state.comparisonUseLLM);
-        const res = await experimentsApi.compareNodes(simId, nodeA, nodeB, useLLM);
-        const summary = res?.summary || (res?.message || '') || i18n.t('store.failedToGenerateSummary') || 'Failed to generate summary';
-        set({ comparisonSummary: summary, isGenerating: false } as any);
-      } catch (e) {
-        console.error(e);
+    try {
+      set({ isGenerating: true } as any);
+      const simId = state.currentSimulation.id;
+      const nodeA = Number(state.selectedNodeId);
+      const nodeB = Number(state.compareTargetNodeId);
+      if (!Number.isFinite(nodeA) || !Number.isFinite(nodeB)) {
+        state.addNotification?.('error', i18n.t('store.selectedNodeNotBackend') || 'Selected node is not a backend node');
         set({ isGenerating: false } as any);
-        state.addNotification?.('error', i18n.t('store.comparisonAnalysisFailed') || 'Comparison analysis failed');
+        return;
       }
-      return;
-    }
 
-    // standalone/demo fallback: generate a lightweight mock summary
-    set({ isGenerating: true } as any);
-    setTimeout(() => {
-      set({
-        comparisonSummary: i18n.t('store.localDemoComparison') || 'Local demo: two timelines differ in events and agent attributes (demo only).',
-        isGenerating: false
-      } as any);
-    }, 700);
+      const useLLM = Boolean(state.comparisonUseLLM);
+      const res = await experimentsApi.compareNodes(simId, nodeA, nodeB, useLLM);
+      const summary = res?.summary || (res?.message || '') || i18n.t('store.failedToGenerateSummary') || 'Failed to generate summary';
+      set({ comparisonSummary: summary, isGenerating: false } as any);
+    } catch (e) {
+      console.error(e);
+      set({ isGenerating: false } as any);
+      state.addNotification?.('error', i18n.t('store.comparisonAnalysisFailed') || 'Comparison analysis failed');
+    }
   },
 
   advanceSimulation: async () => {
@@ -275,10 +262,8 @@ export const createExperimentsSlice: StateCreator<
     set({ isGenerating: true } as any);
 
     try {
-      // Connected mode: call backend advance and parse events
-      if (state.engineConfig?.mode === 'connected') {
-        const { treeAdvanceChain, getTreeGraph, getSimEvents, getSimState } = await import('../services/simulationTree');
-        const { mapBackendEventsToLogs, mapGraphToNodes, addTime, formatWorldTime } = await import('./helpers');
+      const { treeAdvanceChain, getTreeGraph, getSimEvents, getSimState } = await import('../services/simulationTree');
+      const { mapBackendEventsToLogs, mapGraphToNodes, addTime, formatWorldTime } = await import('./helpers');
 
         const base = state.engineConfig.endpoint;
         const token = state.engineConfig.token;
@@ -427,59 +412,6 @@ export const createExperimentsSlice: StateCreator<
           };
         });
         return;
-      }
-
-      // Standalone mode - local time advancement
-      const existingChildren = (state.nodes || []).filter((n: any) => n.parentId === parentNode.id);
-      const nextIndex = existingChildren.length + 1;
-      const newNodeId = `n-${Date.now()}`;
-      const newDepth = parentNode.depth + 1;
-
-      const { generateNodes, addTime, formatWorldTime } = await import('./helpers');
-
-      const tc = state.currentSimulation.timeConfig || { baseTime: new Date().toISOString(), step: 1, unit: 'hour' as const };
-      const nextWorldTime = addTime(parentNode.worldTime, tc.step, tc.unit);
-
-      const newNode: any = {
-        id: newNodeId,
-        display_id: `${parentNode.display_id}.${nextIndex}`,
-        parentId: parentNode.id,
-        name: `Round ${newDepth}`,
-        depth: newDepth,
-        isLeaf: true,
-        status: 'running',
-        timestamp: new Date().toLocaleTimeString(),
-        worldTime: nextWorldTime
-      };
-
-      // Standalone mode: only record time advancement
-      const newLogs: any[] = [
-        {
-          id: `sys-${Date.now()}`,
-          nodeId: newNodeId,
-          round: newDepth,
-          type: 'SYSTEM',
-          content: `${i18n.t('store.timeAdvancedTo') || 'Time advanced to'}: ${formatWorldTime(nextWorldTime)} (Round ${newDepth})` + ` (${i18n.t('store.offlineModeNoAction') || 'offline mode, no actual action performed'})`,
-          timestamp: newNode.timestamp
-        }
-      ];
-
-      const updatedAgents = (state.agents || []).map((agent: any) => {
-        const newHistory = { ...agent.history };
-        Object.keys(newHistory).forEach(key => {
-          const prevValues = newHistory[key] || [50];
-          newHistory[key] = [...prevValues, Math.max(0, Math.min(100, prevValues[prevValues.length - 1] + (Math.floor(Math.random() * 10) - 5)))];
-        });
-        return { ...agent, history: newHistory };
-      });
-
-      set((s: any) => ({
-        nodes: [...(s.nodes || []).map((n: any) => n.id === parentNode.id ? { ...n, isLeaf: false } : n), newNode],
-        selectedNodeId: newNodeId,
-        logs: [...(s.logs || []), ...newLogs],
-        agents: updatedAgents,
-        isGenerating: false
-      }));
     } catch (e) {
       console.error('advanceSimulation failed', e);
       set({ isGenerating: false } as any);
@@ -492,83 +424,30 @@ export const createExperimentsSlice: StateCreator<
     if (!state.currentSimulation || !state.selectedNodeId) return;
 
     try {
-      if (state.engineConfig?.mode === 'connected') {
-        const { treeBranchPublic, getTreeGraph } = await import('../services/simulationTree');
-        const { mapGraphToNodes } = await import('./helpers');
+      const { treeBranchPublic, getTreeGraph } = await import('../services/simulationTree');
+      const { mapGraphToNodes } = await import('./helpers');
 
-        const base = state.engineConfig.endpoint;
-        const token = state.engineConfig.token;
-        const parentNumeric = Number(state.selectedNodeId);
+      const base = state.engineConfig.endpoint;
+      const token = state.engineConfig.token;
+      const parentNumeric = Number(state.selectedNodeId);
 
-        if (!Number.isFinite(parentNumeric)) {
-          console.error('[branchSimulation] Invalid node ID:', state.selectedNodeId, 'Type:', typeof state.selectedNodeId);
-          state.addNotification?.('error', i18n.t('store.selectedNodeNotBackend') || 'Selected node is not a backend node');
-          return;
+      if (!Number.isFinite(parentNumeric)) {
+        console.error('[branchSimulation] Invalid node ID:', state.selectedNodeId, 'Type:', typeof state.selectedNodeId);
+        state.addNotification?.('error', i18n.t('store.selectedNodeNotBackend') || 'Selected node is not a backend node');
+        return;
+      }
+
+      // treeBranchPublic expects: (base, id, parent, text, token)
+      const result = await treeBranchPublic(base, state.currentSimulation.id, parentNumeric, i18n.t('store.branch') || 'Branch', token);
+
+      if (result?.child !== undefined) {
+        // Refresh tree
+        const graph = await getTreeGraph(base, state.currentSimulation.id, token);
+        if (graph) {
+          const nodesMapped = mapGraphToNodes(graph);
+          set({ nodes: nodesMapped } as any);
         }
-
-        // treeBranchPublic expects: (base, id, parent, text, token)
-        const result = await treeBranchPublic(base, state.currentSimulation.id, parentNumeric, i18n.t('store.branch') || 'Branch', token);
-
-        if (result?.child !== undefined) {
-          // Refresh tree
-          const graph = await getTreeGraph(base, state.currentSimulation.id, token);
-          if (graph) {
-            const nodesMapped = mapGraphToNodes(graph);
-            set({ nodes: nodesMapped } as any);
-          }
-          state.addNotification?.('success', i18n.t('store.branchCreated') || 'Branch created');
-        }
-      } else {
-        // Standalone mode - create mock branch
-        // A branch creates a SIBLING node (same parent, same depth) for what-if scenarios
-        const baseNode = state.nodes?.find((n: any) => n.id === state.selectedNodeId);
-        if (!baseNode || !baseNode.parentId) {
-          // Can't branch from root (no parent)
-          state.addNotification?.('error', i18n.t('store.cannotBranchFromRoot') || 'Cannot create branch from root node');
-          return;
-        }
-
-        // Find the parent to create a sibling relationship
-        const parentNode = state.nodes?.find((n: any) => n.id === baseNode.parentId);
-        if (!parentNode) {
-          state.addNotification?.('error', i18n.t('store.cannotFindParentNode') || 'Cannot find parent node');
-          return;
-        }
-
-        // Count existing siblings to determine display_id
-        const existingSiblings = (state.nodes || []).filter((n: any) => n.parentId === parentNode.id);
-        const nextIndex = existingSiblings.length + 1;
-
-        const newNode = {
-          id: `branch-${Date.now()}`,
-          display_id: `${parentNode.display_id}.${nextIndex}`,
-          parentId: parentNode.id,  // Same parent as baseNode (sibling relationship)
-          name: `${i18n.t('store.branch') || 'Branch'}: ${i18n.t('store.parallelRun') || 'Parallel Run'}`,
-          depth: baseNode.depth,  // Same depth as baseNode (sibling relationship)
-          isLeaf: true,
-          status: 'pending' as const,
-          timestamp: new Date().toLocaleTimeString(),
-          worldTime: parentNode.worldTime || baseNode.worldTime
-        };
-
-        // Add a log entry for the branch
-        const newLogs: any[] = [
-          {
-            id: `sys-${Date.now()}`,
-            nodeId: newNode.id,
-            round: newNode.depth,
-            type: 'SYSTEM',
-            content: `${i18n.t('store.createdBranch') || 'Created branch'}: ${newNode.display_id} (${i18n.t('store.parallelScenario') || 'parallel scenario'})`,
-            timestamp: newNode.timestamp
-          }
-        ];
-
-        set((s: any) => ({
-          nodes: [...(s.nodes || []), newNode],
-          selectedNodeId: newNode.id,
-          logs: [...(s.logs || []), ...newLogs]
-        }));
-        state.addNotification?.('success', i18n.t('store.branchCreatedLocalMode') || 'Branch created (local mode)');
+        state.addNotification?.('success', i18n.t('store.branchCreated') || 'Branch created');
       }
     } catch (e) {
       console.error('branchSimulation failed', e);
@@ -586,41 +465,26 @@ export const createExperimentsSlice: StateCreator<
     }
 
     try {
-      if (state.engineConfig?.mode === 'connected') {
-        const { treeDeleteSubtree } = await import('../services/simulationTree');
-        await treeDeleteSubtree(
-          state.engineConfig.endpoint,
-          state.currentSimulation.id,
-          Number(state.selectedNodeId),
-          state.engineConfig.token
-        );
+      const { treeDeleteSubtree } = await import('../services/simulationTree');
+      await treeDeleteSubtree(
+        state.engineConfig.endpoint,
+        state.currentSimulation.id,
+        Number(state.selectedNodeId),
+        state.engineConfig.token
+      );
 
-        // Refresh tree
-        const { getTreeGraph } = await import('../services/simulationTree');
-        const { mapGraphToNodes } = await import('./helpers');
-        const graph = await getTreeGraph(
-          state.engineConfig.endpoint,
-          state.currentSimulation.id,
-          state.engineConfig.token
-        );
-        if (graph) {
-          const mapped = mapGraphToNodes(graph);
-          const rootId = mapped.find((n: any) => n.parentId == null)?.id || 'root';
-          set({ nodes: mapped, selectedNodeId: rootId });
-        }
-      } else {
-        // Standalone mode - remove node and children
-        const nodeIdsToDelete = new Set<string>();
-        const nodes = state.nodes || [];
-        const collectDescendants = (nodeId: string) => {
-          nodeIdsToDelete.add(nodeId);
-          nodes.filter((n: any) => n.parentId === nodeId).forEach((child: any) => collectDescendants(child.id));
-        };
-        collectDescendants(state.selectedNodeId);
-        set((s: any) => ({
-          nodes: (s.nodes || []).filter((n: any) => !nodeIdsToDelete.has(n.id)),
-          selectedNodeId: 'root'
-        }));
+      // Refresh tree
+      const { getTreeGraph } = await import('../services/simulationTree');
+      const { mapGraphToNodes } = await import('./helpers');
+      const graph = await getTreeGraph(
+        state.engineConfig.endpoint,
+        state.currentSimulation.id,
+        state.engineConfig.token
+      );
+      if (graph) {
+        const mapped = mapGraphToNodes(graph);
+        const rootId = mapped.find((n: any) => n.parentId == null)?.id || 'root';
+        set({ nodes: mapped, selectedNodeId: rootId });
       }
       state.addNotification?.('success', i18n.t('store.nodeDeleted') || 'Node deleted');
     } catch (e) {
@@ -648,9 +512,8 @@ export const createExperimentsSlice: StateCreator<
       })
       .map((n: any) => String(n.id));
 
-    // connected mode -> call backend create + run; standalone -> keep existing mock behavior
-    if (state.engineConfig?.mode === 'connected') {
-      (async () => {
+    // Call backend create + run
+    (async () => {
         try {
           const simId = state.currentSimulation!.id;
           const token = (state.engineConfig as any).token as string | undefined;
@@ -887,37 +750,6 @@ export const createExperimentsSlice: StateCreator<
           state.addNotification?.('error', (i18n.t('store.failedToStartExperiment') || 'Failed to start experiment') + ': ' + (e as any).message);
         }
       })();
-      return;
-    }
-
-    // fallback: standalone/local mock behaviour
-    const timeConfig = state.timeConfig || { baseTime: new Date().toISOString(), unit: 'hour' as const, step: 1 };
-    const nextWorldTime = addTime(baseNode.worldTime || timeConfig.baseTime, timeConfig.step, timeConfig.unit);
-
-    const newNodes: any[] = [];
-    const updatedNodes = (state.nodes || []).map((n: any) => n.id === baseNodeId ? { ...n, isLeaf: false } : n);
-
-    variants.forEach((variant, index) => {
-      const newNodeId = `exp-${Date.now()}-${index}`;
-      const newNode = {
-        id: newNodeId,
-        display_id: `${baseNode.display_id}.${index + 1}`,
-        parentId: baseNode.id,
-        name: `${experimentName}: ${variant.name}`,
-        depth: baseNode.depth + 1,
-        isLeaf: true,
-        status: 'pending' as const,
-        timestamp: new Date().toLocaleTimeString(),
-        worldTime: nextWorldTime
-      };
-      newNodes.push(newNode);
-    });
-
-    set({
-      nodes: [...updatedNodes, ...newNodes],
-      selectedNodeId: newNodes[0].id
-    });
-    state.addNotification?.('success', i18n.t('store.batchExperimentStarted', { name: experimentName }) || `Batch experiment "${experimentName}" started (local mode)`);
   },
 
   generateReport: async () => {
