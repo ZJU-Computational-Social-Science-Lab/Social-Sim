@@ -13,7 +13,6 @@ export const HostPanel: React.FC = () => {
   const logs = useSimulationStore(state => state.logs);
   const currentSimulation = useSimulationStore(state => state.currentSimulation);
   const selectedNodeId = useSimulationStore(state => state.selectedNodeId);
-  const engineMode = useSimulationStore(state => state.engineConfig.mode);
   const injectLog = useSimulationStore(state => state.injectLog);
   const updateAgentProperty = useSimulationStore(state => state.updateAgentProperty);
   const addNotification = useSimulationStore(state => state.addNotification);
@@ -50,7 +49,7 @@ export const HostPanel: React.FC = () => {
       ? broadcastRecipients
       : undefined;
 
-    const shouldCallBackend = engineMode === 'connected' && currentSimulation?.id;
+    const shouldCallBackend = !!currentSimulation?.id;
     if (shouldCallBackend) {
       const isPolicyScene = currentSimulation?.scene_type === 'policy_cascade_scene';
       const payload: any = {

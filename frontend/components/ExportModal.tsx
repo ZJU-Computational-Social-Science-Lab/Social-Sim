@@ -30,8 +30,8 @@ export const ExportModal: React.FC = () => {
     setIsExporting(true);
 
     try {
-      // In connected mode with all_logs scope, use backend export endpoint
-      if (engineConfig.mode === 'connected' && scope === 'all_logs' && currentSim?.id) {
+      // With all_logs scope, use backend export endpoint
+      if (scope === 'all_logs' && currentSim?.id) {
         // Use token with fallback to auth store (same pattern as httpGet in client.ts)
         const token = (engineConfig as any).token ?? useAuthStore.getState().accessToken ?? undefined;
         const baseUrl = engineConfig.endpoint;
@@ -66,7 +66,7 @@ export const ExportModal: React.FC = () => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
       } else {
-        // Standalone mode or agent_data scope: use local export
+        // agent_data scope: use local export
         await handleLocalExport();
       }
     } catch (error) {
@@ -106,7 +106,7 @@ export const ExportModal: React.FC = () => {
         );
         dataToExport = allLogs.map(l => ({ ...l, image_preview: l.imageUrl ? `![img](${l.imageUrl})` : '' }));
       } else {
-        // If no raw events (standalone mode), use current filtered logs
+        // If no raw events, use current filtered logs
         dataToExport = logs.map(l => ({ ...l, image_preview: l.imageUrl ? `![img](${l.imageUrl})` : '' }));
       }
     } else {
