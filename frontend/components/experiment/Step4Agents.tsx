@@ -980,7 +980,7 @@ export const Step4Agents: React.FC = () => {
       {agentMode === 'manual' && (
         <div className="p-4 border rounded-lg" style={{ background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)' }}>
           <h4 className="font-semibold mb-3" style={{ color: 'var(--ss-heading)' }}>{t('experimentBuilder.step4.defineTypes')}</h4>
-          <div className="mb-4 rounded-lg border px-4 py-3 text-sm" style={{ background: 'var(--ss-brand-soft)', borderColor: 'var(--ss-brand-primary)', color: 'var(--ss-brand-on)' }}>
+          <div className="mb-4 rounded-lg border px-4 py-3 text-sm" style={{ background: 'var(--ss-brand-soft)', borderColor: 'var(--ss-brand-primary)', color: 'var(--ss-text)' }}>
             {t('experimentBuilder.step4.manualHint')}
           </div>
 

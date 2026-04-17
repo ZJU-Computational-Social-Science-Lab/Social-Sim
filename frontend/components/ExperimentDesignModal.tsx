@@ -518,18 +518,18 @@ export const ExperimentDesignModal: React.FC = () => {
         {/* Header */}
         <div className="px-6 py-4 flex justify-between items-center shrink-0" style={{ borderBottom: '1px solid var(--ss-border)', background: 'var(--ss-brand-soft)' }}>
           <div>
-            <h2 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
-              <Beaker className="text-indigo-600" size={24} />
+            <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--ss-heading)' }}>
+              <Beaker style={{ color: 'var(--ss-brand-primary)' }} size={24} />
               {t('components.experimentDesignModal.title')}
             </h2>
-            <p className="text-xs text-indigo-600 mt-1" dangerouslySetInnerHTML={{
+            <p className="text-xs mt-1" style={{ color: 'var(--ss-brand-primary)' }} dangerouslySetInnerHTML={{
               __html: t('components.experimentDesignModal.subtitle', {
                 displayId: baseNode.display_id,
                 name: baseNode.name
               })
             }} />
           </div>
-          <button onClick={() => toggle(false)} className="text-slate-400 hover:text-slate-600">
+          <button onClick={() => toggle(false)} style={{ color: 'var(--ss-text-subtle)' }}>
             <X size={24} />
           </button>
         </div>
@@ -540,26 +540,27 @@ export const ExperimentDesignModal: React.FC = () => {
           {/* Sidebar: Global Settings & Control Group */}
           <div className="w-full md:w-80 p-6 overflow-y-auto shrink-0 space-y-6" style={{ background: 'var(--ss-surface-muted)', borderRight: '1px solid var(--ss-border)' }}>
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">{t('components.experimentDesignModal.experimentNameLabel')}</label>
+              <label className="block text-sm font-bold mb-2" style={{ color: 'var(--ss-heading)' }}>{t('components.experimentDesignModal.experimentNameLabel')}</label>
               <input
                 type="text"
                 value={experimentName}
                 onChange={(e) => setExperimentName(e.target.value)}
                 placeholder={t('components.experimentDesignModal.experimentNamePlaceholder')}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                className="w-full px-3 py-2 border rounded-lg outline-none text-sm"
+                style={{ background: 'var(--ss-input-bg)', borderColor: 'var(--ss-border)', color: 'var(--ss-text)' }}
               />
             </div>
 
-            <div className="bg-white border rounded-lg p-4 shadow-sm relative overflow-hidden">
-               <div className="absolute top-0 left-0 w-1 h-full bg-slate-300"></div>
-               <h3 className="text-sm font-bold text-slate-800 mb-1">{t('components.experimentDesignModal.controlGroup')}</h3>
-               <p className="text-xs text-slate-500 mb-3">{t('components.experimentDesignModal.controlGroupDescription')}</p>
-               <div className="text-xs bg-slate-100 p-2 rounded text-slate-600">
+            <div className="border rounded-lg p-4 relative overflow-hidden" style={{ background: 'var(--ss-layer-card)', borderColor: 'var(--ss-border)', boxShadow: 'var(--ss-shadow-1)' }}>
+               <div className="absolute top-0 left-0 w-1 h-full" style={{ background: 'var(--ss-border-strong)' }}></div>
+               <h3 className="text-sm font-bold mb-1" style={{ color: 'var(--ss-heading)' }}>{t('components.experimentDesignModal.controlGroup')}</h3>
+               <p className="text-xs mb-3" style={{ color: 'var(--ss-text-muted)' }}>{t('components.experimentDesignModal.controlGroupDescription')}</p>
+               <div className="text-xs p-2 rounded" style={{ background: 'var(--ss-surface-inset)', color: 'var(--ss-text)' }}>
                   {t('components.experimentDesignModal.controlGroupState')}
                </div>
             </div>
 
-            <div className="text-xs text-slate-400 leading-relaxed">
+            <div className="text-xs leading-relaxed" style={{ color: 'var(--ss-text-subtle)' }}>
               <p>{t('components.experimentDesignModal.hintTitle')}</p>
               <ul className="list-disc pl-4 space-y-1 mt-1">
                 <li>{t('components.experimentDesignModal.hintAddVariant')}</li>
@@ -574,14 +575,15 @@ export const ExperimentDesignModal: React.FC = () => {
              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 
                 {variants.map((variant, index) => (
-                  <div key={variant.id} className="bg-white border rounded-xl shadow-sm overflow-hidden group hover:shadow-md transition-shadow">
-                    <div className="px-4 py-3 border-b bg-white flex justify-between items-center">
+                  <div key={variant.id} className="border rounded-xl overflow-hidden group transition-shadow" style={{ background: 'var(--ss-layer-card)', borderColor: 'var(--ss-border)', boxShadow: 'var(--ss-shadow-1)' }}>
+                    <div className="px-4 py-3 border-b flex justify-between items-center" style={{ background: 'var(--ss-surface)', borderColor: 'var(--ss-border)' }}>
                       <div className="flex items-center gap-3">
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={variant.name}
                           onChange={(e) => handleUpdateVariant(variant.id, 'name', e.target.value)}
-                          className="font-bold text-slate-800 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-500 outline-none px-1"
+                          className="font-bold bg-transparent border-b border-transparent outline-none px-1"
+                          style={{ color: 'var(--ss-heading)' }}
                         />
                         {/* Status badge: try to find corresponding node in tree by name */}
                         {(() => {
@@ -591,9 +593,9 @@ export const ExperimentDesignModal: React.FC = () => {
                           const nodeByName = nodes.find(n => n.name === `${experimentName}: ${variant.name}`);
                           const node = nodeByMeta || nodeByName;
                           const st = node ? node.status : 'pending';
-                          const color = st === 'running' ? 'text-amber-600' : st === 'completed' ? 'text-green-600' : 'text-slate-400';
+                          const badgeColor = st === 'running' ? 'var(--ss-warning)' : st === 'completed' ? 'var(--ss-status-positive)' : 'var(--ss-text-subtle)';
                           return (
-                            <span className={`text-xs font-medium ${color} bg-slate-100 px-2 py-0.5 rounded`}>{st}</span>
+                            <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ color: badgeColor, background: 'var(--ss-surface-inset)' }}>{st}</span>
                           );
                         })()}
 
@@ -606,42 +608,43 @@ export const ExperimentDesignModal: React.FC = () => {
                           if (!nid) return null;
                           const logs = nodeLogs[String(nid)] || [];
                           return (
-                            <div className="mt-2 text-xs text-slate-500">
+                            <div className="mt-2 text-xs" style={{ color: 'var(--ss-text-muted)' }}>
                               <div className="flex items-center gap-2">
-                                <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
+                                <span className="inline-block w-2 h-2 rounded-full" style={{ background: 'var(--ss-success-400)' }} />
                                 <span>{t('components.experimentDesignModal.liveLogPreview', { count: Math.min(5, logs.length) })}</span>
                               </div>
-                              <div className="mt-2 bg-slate-50 border rounded p-2 text-[11px] h-20 overflow-auto">
+                              <div className="mt-2 border rounded p-2 text-[11px] h-20 overflow-auto" style={{ background: 'var(--ss-surface-inset)', borderColor: 'var(--ss-border)' }}>
                                 {logs.slice(-5).map((l: any, i: number) => (
-                                  <div key={i} className="py-0.5 border-b border-slate-100">
-                                    <div className="font-mono text-[11px] text-slate-600">{String(l.type || l.event_type || 'evt')}</div>
-                                    <div className="text-slate-700">{String((l.data && (l.data.action || l.data.message || JSON.stringify(l.data))) || l.data || '')}</div>
+                                  <div key={i} className="py-0.5 border-b" style={{ borderColor: 'var(--ss-border)' }}>
+                                    <div className="font-mono text-[11px]" style={{ color: 'var(--ss-text-muted)' }}>{String(l.type || l.event_type || 'evt')}</div>
+                                    <div style={{ color: 'var(--ss-text)' }}>{String((l.data && (l.data.action || l.data.message || JSON.stringify(l.data))) || l.data || '')}</div>
                                   </div>
                                 ))}
-                                {logs.length === 0 && <div className="text-slate-400">{t('components.experimentDesignModal.noLogsYet')}</div>}
+                                {logs.length === 0 && <div style={{ color: 'var(--ss-text-subtle)' }}>{t('components.experimentDesignModal.noLogsYet')}</div>}
                               </div>
                             </div>
                           );
                         })()}
                       </div>
-                      <button onClick={() => handleRemoveVariant(variant.id)} className="text-slate-300 hover:text-red-500 transition-colors">
+                      <button onClick={() => handleRemoveVariant(variant.id)} className="transition-colors" style={{ color: 'var(--ss-text-subtle)' }}>
                         <Trash2 size={16} />
                       </button>
                     </div>
 
                     <div className="p-4 space-y-3 min-h-[200px]">
                        {variant.interventions.length === 0 ? (
-                         <div className="text-center py-8 text-slate-400 text-sm border-2 border-dashed border-slate-100 rounded-lg">
+                         <div className="text-center py-8 text-sm border-2 border-dashed rounded-lg" style={{ color: 'var(--ss-text-subtle)', borderColor: 'var(--ss-border)' }}>
                            {t('components.experimentDesignModal.noInterventions')}
                          </div>
                        ) : (
                          variant.interventions.map((iv, i) => (
-                           <div key={iv.id} className="bg-slate-50 rounded-lg border p-3 text-sm relative">
+                           <div key={iv.id} className="rounded-lg border p-3 text-sm relative" style={{ background: 'var(--ss-surface-inset)', borderColor: 'var(--ss-border)' }}>
                               <div className="flex gap-2 mb-2">
                                 <select
                                   value={iv.type}
                                   onChange={(e) => updateIntervention(variant.id, iv.id, 'type', e.target.value)}
-                                  className="text-[10px] font-bold uppercase bg-white border rounded px-1 py-0.5 text-slate-600 outline-none"
+                                  className="text-[10px] font-bold uppercase border rounded px-1 py-0.5 outline-none"
+                                  style={{ background: 'var(--ss-input-bg)', borderColor: 'var(--ss-border)', color: 'var(--ss-text)' }}
                                 >
                                   <option value="SCENARIO_PARAMS">{t('components.experimentDesignModal.scenarioParamsType', { defaultValue: 'Scenario Parameters' })}</option>
                                   <option value="NETWORK_TOPOLOGY">{t('components.experimentDesignModal.networkTopologyType', { defaultValue: 'Network Topology' })}</option>
@@ -656,7 +659,8 @@ export const ExperimentDesignModal: React.FC = () => {
                                   <select
                                     value={iv.targetId || ''}
                                     onChange={(e) => updateIntervention(variant.id, iv.id, 'targetId', e.target.value)}
-                                    className="text-[10px] bg-white border rounded px-1 py-0.5 text-slate-600 outline-none max-w-[100px]"
+                                    className="text-[10px] border rounded px-1 py-0.5 outline-none max-w-[100px]"
+                                    style={{ background: 'var(--ss-input-bg)', borderColor: 'var(--ss-border)', color: 'var(--ss-text)' }}
                                   >
                                     <option value="">{t('components.experimentDesignModal.selectAgent')}</option>
                                     {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
@@ -711,7 +715,7 @@ export const ExperimentDesignModal: React.FC = () => {
                                 if (Object.keys(sceneConfig).length === 0) {
                                   return (
                                     <div className="space-y-4">
-                                      <div className="bg-amber-50 border border-amber-200 p-3 rounded text-sm text-amber-700">
+                                      <div className="border p-3 rounded text-sm" style={{ background: 'var(--ss-warning-soft)', borderColor: 'var(--ss-warning)', color: 'var(--ss-warning)' }}>
                                         <strong>Note:</strong> This simulation was created before the scenario parameters feature was added.
                                         <br /><br />
                                         Please create a <strong>new simulation</strong> to use the Scenario Parameters intervention type with full parameter editing.
@@ -783,20 +787,21 @@ export const ExperimentDesignModal: React.FC = () => {
 
                                 return (
                                   <div className="space-y-4">
-                                    <div className="bg-blue-50 p-2 rounded text-xs text-blue-700 mb-2">
+                                    <div className="p-2 rounded text-xs mb-2" style={{ background: 'var(--ss-info-soft)', color: 'var(--ss-info)' }}>
                                       {t('components.experimentDesignModal.scenarioParamsHint', { defaultValue: 'Edit parameters below to change the scenario configuration for this diverging timeline.' })}
                                     </div>
 
                                     {/* Scenario Description */}
                                     <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ss-text)' }}>
                                         {t('experimentBuilder.step2.scenarioDescriptionLabel', { defaultValue: 'Scenario description (agents will see this)' })}
                                       </label>
                                       <textarea
                                         value={displayDescription}
                                         onChange={(e) => updateDescription(e.target.value)}
                                         rows={3}
-                                        className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        className="w-full px-2 py-1 border rounded text-xs focus:outline-none"
+                                        style={{ background: 'var(--ss-input-bg)', borderColor: 'var(--ss-border)', color: 'var(--ss-text)' }}
                                       />
                                     </div>
 
@@ -826,17 +831,17 @@ export const ExperimentDesignModal: React.FC = () => {
                                           const description = t(`experimentBuilder.paramDescriptions.${param.key}`, { defaultValue: param.description || '' });
 
                                           return (
-                                            <div key={param.key} className={`space-y-1 ${modified ? 'bg-amber-50 p-2 rounded' : ''}`}>
-                                              <label className="block text-sm font-medium text-gray-700">
+                                            <div key={param.key} className={`space-y-1 ${modified ? 'p-2 rounded' : ''}`} style={modified ? { background: 'var(--ss-warning-soft)' } : undefined}>
+                                              <label className="block text-sm font-medium" style={{ color: 'var(--ss-text)' }}>
                                                 {label}
                                                 {modified && (
-                                                  <span className="ml-2 text-[10px] text-amber-500">
+                                                  <span className="ml-2 text-[10px]" style={{ color: 'var(--ss-warning)' }}>
                                                     ({t('components.experimentDesignModal.previewWas')}: {String(baseParams[param.key])})
                                                   </span>
                                                 )}
                                               </label>
                                               {description && (
-                                                <p className="text-xs text-gray-500">{description}</p>
+                                                <p className="text-xs" style={{ color: 'var(--ss-text-muted)' }}>{description}</p>
                                               )}
                                               <ParameterField
                                                 param={{
@@ -859,18 +864,19 @@ export const ExperimentDesignModal: React.FC = () => {
                                     )}
 
                                     {/* Round Settings */}
-                                    <div className="border-t pt-3 mt-3">
-                                      <h4 className="text-sm font-medium text-gray-700 mb-2">
+                                    <div className="pt-3 mt-3" style={{ borderTop: '1px solid var(--ss-border)' }}>
+                                      <h4 className="text-sm font-medium mb-2" style={{ color: 'var(--ss-text)' }}>
                                         {t('experimentBuilder.roundSettings.title', { defaultValue: 'Round Settings' })}
                                       </h4>
                                       <div>
-                                        <label className="block text-sm font-medium mb-1">
+                                        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ss-text)' }}>
                                           {t('experimentBuilder.roundSettings.roundVisibility.label', { defaultValue: 'Round Visibility' })}
                                         </label>
                                         <select
                                           value={displayRoundVisibility}
                                           onChange={(e) => updateRoundVisibility(e.target.value as 'simultaneous' | 'sequential')}
                                           className="w-full px-2 py-1 border rounded text-xs"
+                                          style={{ background: 'var(--ss-input-bg)', borderColor: 'var(--ss-border)', color: 'var(--ss-text)' }}
                                         >
                                           <option value="simultaneous">
                                             {t('experimentBuilder.roundSettings.roundVisibility.simultaneous', { defaultValue: 'Simultaneous' })}
@@ -889,11 +895,12 @@ export const ExperimentDesignModal: React.FC = () => {
                               {iv.type === 'NETWORK_TOPOLOGY' && (
                                 <div className="space-y-2">
                                   <div className="flex items-center gap-2">
-                                    <Network size={14} className="text-indigo-500" />
+                                    <Network size={14} style={{ color: 'var(--ss-brand-primary)' }} />
                                     <select
                                       value={iv.networkPreset || 'full'}
                                       onChange={(e) => updateIntervention(variant.id, iv.id, 'networkPreset', e.target.value)}
-                                      className="text-xs bg-white border rounded px-2 py-1 text-slate-600 outline-none"
+                                      className="text-xs border rounded px-2 py-1 outline-none"
+                                      style={{ background: 'var(--ss-input-bg)', borderColor: 'var(--ss-border)', color: 'var(--ss-text)' }}
                                     >
                                       <option value="full">{t('components.experimentDesignModal.presetFull')}</option>
                                       <option value="ring">{t('components.experimentDesignModal.presetRing')}</option>
@@ -1177,12 +1184,13 @@ export const ExperimentDesignModal: React.FC = () => {
                                         updateIntervention(variant.id, iv.id, 'customEdges', edges);
                                       }}
                                       placeholder={t('components.experimentDesignModal.customEdgesPlaceholder')}
-                                      className="w-full text-xs bg-white border rounded p-2 font-mono h-16"
+                                      className="w-full text-xs border rounded p-2 font-mono h-16"
+                                      style={{ background: 'var(--ss-input-bg)', borderColor: 'var(--ss-border)', color: 'var(--ss-text)' }}
                                     />
                                   )}
 
                                   {iv.networkPreset && iv.networkPreset !== 'custom' && agents.length > 0 && (
-                                    <div className="text-xs text-slate-500">
+                                    <div className="text-xs" style={{ color: 'var(--ss-text-muted)' }}>
                                       {t('components.experimentDesignModal.networkEdgeCountHint', {
                                         n: agents.length,
                                         e: generateNetwork(iv.networkPreset as any, agents.map(a => a.name), iv.networkParams as any, 1).edges.length
@@ -1205,22 +1213,24 @@ export const ExperimentDesignModal: React.FC = () => {
                                         ? t('components.experimentDesignModal.followUpThreadSeedPlaceholder', { defaultValue: '例如: 智能体3想要给智能体4发消息，消息内容为执行困难，需要回应。也支持 JSON。' })
                                     : t('components.experimentDesignModal.descriptionPlaceholder')
                                 }
-                                className="w-full text-xs bg-white border rounded p-2 focus:ring-1 focus:ring-indigo-500 outline-none resize-none h-16"
+                                className="w-full text-xs border rounded p-2 focus:outline-none resize-none h-16"
+                                style={{ background: 'var(--ss-input-bg)', borderColor: 'var(--ss-border)', color: 'var(--ss-text)' }}
                               />
                               )}
                               {extractMarkdownImages(iv.description || '').length > 0 && (
                                 <div className="mt-2 flex flex-wrap gap-2">
                                   {extractMarkdownImages(iv.description || '').map((url) => (
-                                    <div key={url} className="w-16 h-16 border rounded overflow-hidden bg-slate-50">
+                                    <div key={url} className="w-16 h-16 border rounded overflow-hidden" style={{ background: 'var(--ss-surface-inset)', borderColor: 'var(--ss-border)' }}>
                                       <img src={url} alt="preview" className="w-full h-full object-cover" />
                                     </div>
                                   ))}
                                 </div>
                               )}
 
-                              <button 
+                              <button
                                 onClick={() => removeIntervention(variant.id, iv.id)}
-                                className="absolute top-2 right-2 text-slate-300 hover:text-slate-500"
+                                className="absolute top-2 right-2"
+                                style={{ color: 'var(--ss-text-subtle)' }}
                               >
                                 <X size={14} />
                               </button>
@@ -1230,7 +1240,8 @@ export const ExperimentDesignModal: React.FC = () => {
                        
                        <button
                          onClick={() => addIntervention(variant.id)}
-                         className="w-full py-2 border-2 border-dashed border-indigo-100 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors"
+                         className="w-full py-2 border-2 border-dashed rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors"
+                         style={{ borderColor: 'var(--ss-brand-soft)', color: 'var(--ss-brand-primary)' }}
                        >
                          <Plus size={14} /> {t('components.experimentDesignModal.addIntervention')}
                        </button>
@@ -1241,9 +1252,10 @@ export const ExperimentDesignModal: React.FC = () => {
                 {/* Add Variant Button */}
                 <button
                   onClick={handleAddVariant}
-                  className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl min-h-[200px] flex flex-col items-center justify-center text-slate-400 hover:text-indigo-500 hover:border-indigo-300 hover:bg-indigo-50/30 transition-all gap-2"
+                  className="border-2 border-dashed rounded-xl min-h-[200px] flex flex-col items-center justify-center transition-all gap-2"
+                  style={{ background: 'var(--ss-surface-inset)', borderColor: 'var(--ss-border)', color: 'var(--ss-text-subtle)' }}
                 >
-                  <div className="w-12 h-12 rounded-full bg-white border-2 border-current flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full border-2 border-current flex items-center justify-center" style={{ background: 'var(--ss-layer-card)' }}>
                     <Plus size={24} />
                   </div>
                   <span className="font-bold text-sm">{t('components.experimentDesignModal.addVariant')}</span>
@@ -1254,9 +1266,9 @@ export const ExperimentDesignModal: React.FC = () => {
 
         {/* Preview Panel */}
         {showPreview && (
-          <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-10 flex flex-col">
-            <div className="px-6 py-4 border-b bg-indigo-50 shrink-0">
-              <h3 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
+          <div className="absolute inset-0 backdrop-blur-sm z-10 flex flex-col" style={{ background: 'var(--ss-surface)' }}>
+            <div className="px-6 py-4 border-b shrink-0" style={{ background: 'var(--ss-brand-soft)', borderColor: 'var(--ss-border)' }}>
+              <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--ss-heading)' }}>
                 <Sliders size={20} />
                 {t('components.experimentDesignModal.previewTitle')}
               </h3>
@@ -1264,28 +1276,28 @@ export const ExperimentDesignModal: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-6">
                 {buildPreviewData().map((preview) => (
-                  <div key={preview.variantId} className="bg-slate-50 rounded-lg p-4">
-                    <h4 className="font-bold text-sm text-slate-800 mb-3">
+                  <div key={preview.variantId} className="rounded-lg p-4" style={{ background: 'var(--ss-surface-inset)' }}>
+                    <h4 className="font-bold text-sm mb-3" style={{ color: 'var(--ss-heading)' }}>
                       {t('components.experimentDesignModal.previewVariant')}: {preview.variantName}
                     </h4>
 
                     {/* Scenario Parameter Changes */}
                     {preview.paramChanges.length > 0 && (
                       <div className="mb-3">
-                        <h5 className="text-xs font-semibold text-slate-600 mb-2">
+                        <h5 className="text-xs font-semibold mb-2" style={{ color: 'var(--ss-text-muted)' }}>
                           {t('components.experimentDesignModal.previewScenarioParams')}:
                         </h5>
                         <div className="space-y-1">
                           {preview.paramChanges.map((change, idx) => (
                             <div key={idx} className="text-xs flex items-center gap-2">
-                              <span className={`font-mono ${change.unknown ? 'text-amber-600' : 'text-slate-700'}`}>
+                              <span className="font-mono" style={{ color: change.unknown ? 'var(--ss-warning)' : 'var(--ss-text)' }}>
                                 {change.key}
                                 {change.unknown && <span className="ml-1">{t('components.experimentDesignModal.previewUnknownKey')}</span>}
                               </span>
-                              <span className="text-slate-400">→</span>
-                              <span className="font-mono text-indigo-600">{String(change.new)}</span>
+                              <span style={{ color: 'var(--ss-text-subtle)' }}>→</span>
+                              <span className="font-mono" style={{ color: 'var(--ss-brand-primary)' }}>{String(change.new)}</span>
                               {change.was !== undefined && (
-                                <span className="text-slate-400 text-[10px]">
+                                <span className="text-[10px]" style={{ color: 'var(--ss-text-subtle)' }}>
                                   ({t('components.experimentDesignModal.previewWas')}: {String(change.was)})
                                 </span>
                               )}
@@ -1298,14 +1310,14 @@ export const ExperimentDesignModal: React.FC = () => {
                     {/* Other Interventions */}
                     {preview.otherInterventions.length > 0 && (
                       <div>
-                        <h5 className="text-xs font-semibold text-slate-600 mb-2">
+                        <h5 className="text-xs font-semibold mb-2" style={{ color: 'var(--ss-text-muted)' }}>
                           {t('components.experimentDesignModal.previewIntervention')}s:
                         </h5>
                         <div className="space-y-1">
                           {preview.otherInterventions.map((iv, idx) => (
-                            <div key={idx} className="text-xs bg-white rounded px-2 py-1">
-                              <span className="font-semibold text-slate-600">{iv.type}:</span>{' '}
-                              <span className="text-slate-700">{iv.description}</span>
+                            <div key={idx} className="text-xs rounded px-2 py-1" style={{ background: 'var(--ss-layer-card)' }}>
+                              <span className="font-semibold" style={{ color: 'var(--ss-text-muted)' }}>{iv.type}:</span>{' '}
+                              <span style={{ color: 'var(--ss-text)' }}>{iv.description}</span>
                             </div>
                           ))}
                         </div>
@@ -1313,7 +1325,7 @@ export const ExperimentDesignModal: React.FC = () => {
                     )}
 
                     {preview.paramChanges.length === 0 && preview.otherInterventions.length === 0 && (
-                      <div className="text-xs text-slate-400 italic">
+                      <div className="text-xs italic" style={{ color: 'var(--ss-text-subtle)' }}>
                         {t('components.experimentDesignModal.previewNoChanges')}
                       </div>
                     )}
@@ -1321,10 +1333,11 @@ export const ExperimentDesignModal: React.FC = () => {
                 ))}
               </div>
             </div>
-            <div className="px-6 py-4 border-t flex justify-end gap-3 shrink-0">
+            <div className="px-6 py-4 border-t flex justify-end gap-3 shrink-0" style={{ borderColor: 'var(--ss-border)' }}>
               <button
                 onClick={() => setShowPreview(false)}
-                className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg"
+                className="px-4 py-2 text-sm font-medium rounded-lg"
+                style={{ color: 'var(--ss-text-muted)' }}
               >
                 {t('components.experimentDesignModal.previewBack')}
               </button>
@@ -1333,7 +1346,8 @@ export const ExperimentDesignModal: React.FC = () => {
                   setShowPreview(false);
                   handleSubmit();
                 }}
-                className="px-6 py-2 text-sm bg-indigo-600 text-white font-medium hover:bg-indigo-700 rounded-lg shadow-sm flex items-center gap-2"
+                className="px-6 py-2 text-sm font-medium rounded-lg flex items-center gap-2"
+                style={{ background: 'var(--ss-brand-primary)', color: 'var(--ss-brand-on)' }}
               >
                 <Zap size={16} />
                 {t('components.experimentDesignModal.previewConfirm')}
@@ -1343,13 +1357,14 @@ export const ExperimentDesignModal: React.FC = () => {
         )}
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t flex justify-end gap-3 shrink-0">
-          <button onClick={() => toggle(false)} className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg">
+        <div className="px-6 py-4 border-t flex justify-end gap-3 shrink-0" style={{ borderColor: 'var(--ss-border)' }}>
+          <button onClick={() => toggle(false)} className="px-4 py-2 text-sm font-medium rounded-lg" style={{ color: 'var(--ss-text-muted)' }}>
             {t('components.experimentDesignModal.cancel')}
           </button>
           <button
             onClick={() => setShowPreview(true)}
-            className="px-6 py-2 text-sm bg-indigo-600 text-white font-medium hover:bg-indigo-700 rounded-lg shadow-sm flex items-center gap-2"
+            className="px-6 py-2 text-sm font-medium rounded-lg flex items-center gap-2"
+            style={{ background: 'var(--ss-brand-primary)', color: 'var(--ss-brand-on)' }}
           >
             <Sliders size={16} />
             {t('components.experimentDesignModal.startBatch', { count: variants.length })}
