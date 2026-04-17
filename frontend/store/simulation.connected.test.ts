@@ -28,7 +28,6 @@ describe('Simulation Slice - Connected Experiment Payload', () => {
       rawEvents: [],
       notifications: [],
       engineConfig: {
-        mode: 'connected',
         endpoint: '/api',
         status: 'disconnected',
         token: undefined,

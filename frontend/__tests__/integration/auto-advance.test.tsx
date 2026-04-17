@@ -51,7 +51,7 @@ describe('Auto-advance — full integration flow', () => {
       highlightedNodeId: null,
       advanceSimulation: mockAdvance,
       addNotification: mockNotify,
-      engineConfig: { mode: 'standalone', endpoint: '' },
+      engineConfig: { endpoint: '' },
     } as any);
   });
 
