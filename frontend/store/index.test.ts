@@ -199,8 +199,6 @@ describe('Store - Simulation Slice', () => {
       ).toBeUndefined();
     });
   });
-
-  });
 });
 
 describe('Store - Agents Slice', () => {

@@ -969,9 +969,7 @@
     "engineStandalone": "独立模式",
     "newSimulation": "新建仿真",
     "connectedTo": "已连接到 {{endpoint}}",
-    "runningBrowserStandalone": "在浏览器中运行 (Gemini 独立模式)",
     "socialSim4Engine": "SocialSim4 引擎",
-    "standaloneMode": "独立模式",
     "networkTopology": "社交网络拓扑",
     "globalKnowledge": "全局知识库",
     "timeSettings": "调整时间流速",
@@ -1520,8 +1518,7 @@
       "error": "文档加载失败"
     },
     "simulationPage": {
-      "manualSyncBackend": "手动同步到后端",
-      "runningBrowserStandalone": "在浏览器中运行 (Gemini 独立模式)"
+      "manualSyncBackend": "手动同步到后端"
     },
     "simulationWizardPage": {
       "noDescription": "暂无描述"

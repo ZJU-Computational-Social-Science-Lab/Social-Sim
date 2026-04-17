@@ -969,9 +969,7 @@
     "engineStandalone": "Standalone mode",
     "newSimulation": "New simulation",
     "connectedTo": "Connected to {{endpoint}}",
-    "runningBrowserStandalone": "Running in Browser (Gemini Standalone)",
     "socialSim4Engine": "SocialSim4 Engine",
-    "standaloneMode": "Standalone Mode",
     "networkTopology": "Social Network Topology",
     "globalKnowledge": "Global Knowledge Base",
     "timeSettings": "Adjust Time Flow",
@@ -1520,8 +1518,7 @@
       "error": "Failed to load documentation"
     },
     "simulationPage": {
-      "manualSyncBackend": "Manually sync to backend",
-      "runningBrowserStandalone": "Running in Browser (Gemini Standalone)"
+      "manualSyncBackend": "Manually sync to backend"
     },
     "simulationWizardPage": {
       "noDescription": "No description yet"
