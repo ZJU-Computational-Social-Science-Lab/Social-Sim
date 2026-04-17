@@ -198,6 +198,8 @@ export const useExperimentBuilder = create<ExperimentBuilderState & ExperimentBu
     selectedScenarioData: data,
     roundVisibility: data?.interaction_mode === 'sequential' ? 'sequential' : 'simultaneous',
     turnOrder: data?.interaction_mode === 'sequential' ? state.turnOrder : 'fixed',
+    scenarioDescription: '',
+    scenarioParams: {},
   })),
 
   // Step 2: Scenario configuration

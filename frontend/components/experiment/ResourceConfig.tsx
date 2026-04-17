@@ -123,8 +123,7 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({
             id="deduction_anonymous"
             checked={values.deduction_anonymous}
             onChange={(e) => onChange('deduction_anonymous', e.target.checked)}
-            className="h-4 w-4 rounded" style={{ accentColor: 'var(--ss-brand-primary)' }}
-            style={{ borderColor: 'var(--ss-border-strong)' }}
+            className="h-4 w-4 rounded" style={{ accentColor: 'var(--ss-brand-primary)', borderColor: 'var(--ss-border-strong)' }}
           />
           <label htmlFor="deduction_anonymous" className="ml-2 block text-sm" style={{ color: 'var(--ss-heading)' }}>
             {t('experimentBuilder.deductionSettings.anonymousLabel')}

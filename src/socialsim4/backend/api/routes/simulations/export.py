@@ -69,7 +69,34 @@ async def export_simulation(
             elif "default" in param_def:
                 scenario_params[key] = param_def["default"]
 
-        logger.info(f"Scenario params: {scenario_params}")
+        logger.info(f"Base scenario params: {scenario_params}")
+
+        # Build per-node scenario params by walking the tree and applying
+        # config_params_patch operations. This ensures experiment variants
+        # with different parameters (e.g., multiplier=1.6) export correctly.
+        node_params_cache: dict[int, dict] = {}
+
+        def get_node_params(nid: int) -> dict:
+            """Build scenario params for a node, inheriting from parent and applying own patches."""
+            if nid in node_params_cache:
+                return node_params_cache[nid]
+
+            node = record.tree.nodes.get(nid)
+            if not node:
+                return scenario_params
+
+            parent_id = node.get("parent")
+            if parent_id is not None and parent_id in record.tree.nodes:
+                base = dict(get_node_params(parent_id))
+            else:
+                base = dict(scenario_params)
+
+            for op in (node.get("ops") or []):
+                if op.get("op") == "config_params_patch":
+                    base.update(op.get("updates", {}))
+
+            node_params_cache[nid] = base
+            return base
 
         # Collect logs from tree nodes (logs are stored in memory, not database)
         all_logs = []
@@ -112,12 +139,14 @@ async def export_simulation(
         events = []
         for seq_num, log in enumerate(all_logs):
             log_data = log.get("data", {})
+            nid = log.get("node")
             events.append({
                 "sequence": seq_num,
-                "tree_node_id": log.get("node"),
+                "tree_node_id": nid,
                 "event_type": log.get("type"),
                 "payload": log_data,
                 "created_at": log.get("timestamp") or log_data.get("created_at") or log_data.get("timestamp"),
+                "_node_scenario_params": get_node_params(nid) if nid is not None else scenario_params,
             })
 
         # Export

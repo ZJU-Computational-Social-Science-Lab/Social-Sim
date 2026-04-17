@@ -27,7 +27,7 @@ def get_default_ollama_base_url() -> str:
     return (
         os.getenv("SOCIALSIM4_OLLAMA_BASE_URL")
         or os.getenv("OLLAMA_BASE_URL")
-        or "http://socialsim-ollama:11434"
+        or "http://localhost:11434"
     ).rstrip("/")
 
 
@@ -58,7 +58,7 @@ def _ordered_unique(items: Iterable[str]) -> list[str]:
 async def get_default_ollama_models() -> list[str]:
     installed = await _list_installed_ollama_models()
     if not installed:
-        return list(DEFAULT_OLLAMA_MODELS)
+        return []
 
     preferred = [model for model in DEFAULT_OLLAMA_MODELS if model in installed]
     extras = [model for model in installed if model not in preferred]

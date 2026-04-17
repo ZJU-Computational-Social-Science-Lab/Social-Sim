@@ -114,8 +114,9 @@ def transform_event_for_export(event: dict, scenario_params: dict) -> dict:
     result["action"] = action
     result["follow_up"] = follow_up
 
-    # Add scenario parameters
-    result.update(scenario_params)
+    # Add scenario parameters (prefer per-node params if attached)
+    params = event.get("_node_scenario_params") or scenario_params
+    result.update(params)
 
     return result
 
