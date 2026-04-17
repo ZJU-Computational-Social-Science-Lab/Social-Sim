@@ -26,8 +26,6 @@ async function persistOverrides(
   }
 ) {
   const state = get();
-  const mode = state.engineConfig?.mode;
-  if (mode !== 'connected') return;
 
   const sim = state.currentSimulation;
   const nodeId = state.selectedNodeId;
@@ -248,8 +246,7 @@ export const createAgentsSlice: StateCreator<
 
     // If connected to backend, also broadcast as an environment event so agents receive it
     const currentSimulation = (get() as any).currentSimulation;
-    const mode = (get() as any).engineConfig?.mode;
-    if (mode === 'connected' && currentSimulation?.id) {
+    if (currentSimulation?.id) {
       (async () => {
         try {
           const { applyEnvironmentEvent } = await import('../services/environmentSuggestions');
