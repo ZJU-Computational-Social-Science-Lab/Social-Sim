@@ -2,7 +2,7 @@
  * Main simulation workspace page.
  *
  * Orchestrates the tab-based layout (Sim Tree, Logs, Agents) with a peek overlay
- * for cross-panel awareness. Loads simulation state from backend or standalone mode.
+ * for cross-panel awareness. Loads simulation state from backend.
  *
  * Exports: SimulationPage (default), SimulationPage (named), Header
  */
@@ -40,8 +40,6 @@ import {
   Plus,
   Settings,
   Save,
-  Plug,
-  Zap,
   LogOut,
   RotateCcw,
   Trash2,
@@ -52,11 +50,9 @@ import {
 const Header: React.FC = () => {
   const currentSim = useSimulationStore((state) => state.currentSimulation);
   const toggleWizard = useSimulationStore((state) => state.toggleWizard);
-  const engineConfig = useSimulationStore((state) => state.engineConfig);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasRestored = useAuthStore((s) => s.hasRestored);
   const loadProviders = useSimulationStore((state) => state.loadProviders);
-  const setEngineMode = useSimulationStore((state) => state.setEngineMode);
   const resetSimulation = useSimulationStore((state) => state.resetSimulation);
   const deleteSimulation = useSimulationStore((state) => state.deleteSimulation);
   const toggleSaveTemplate = useSimulationStore((state) => state.toggleSaveTemplate);
@@ -64,12 +60,6 @@ const Header: React.FC = () => {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.clearSession);
   const { t } = useTranslation();
-
-  const toggleEngine = () => {
-    setEngineMode(
-      engineConfig.mode === "standalone" ? "connected" : "standalone"
-    );
-  };
 
   return (
     <header className="h-14 border-b flex items-center justify-between px-4 shrink-0 z-20" style={{ background: 'var(--ss-nav-bg)', borderColor: 'var(--ss-nav-border)' }}>
@@ -109,33 +99,6 @@ const Header: React.FC = () => {
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Integration Mode Switcher */}
-        <button
-          onClick={toggleEngine}
-          className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-full transition-all border ${
-            engineConfig.mode === "connected"
-              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-              : "hover:bg-slate-200"
-          }`}
-          style={engineConfig.mode !== "connected" ? { background: 'var(--ss-workspace-surface)', color: 'var(--ss-workspace-muted)', borderColor: 'var(--ss-workspace-border)' } : undefined}
-          title={
-            engineConfig.mode === "connected"
-              ? t('simPage.connectedTo', { endpoint: engineConfig.endpoint })
-              : t('simPage.runningBrowserStandalone')
-          }
-        >
-          {engineConfig.mode === "connected" ? (
-            <Zap size={14} className="fill-emerald-500 text-emerald-500" />
-          ) : (
-            <Plug size={14} />
-          )}
-          {engineConfig.mode === "connected"
-            ? t('simPage.socialSim4Engine')
-            : t('simPage.standaloneMode')}
-        </button>
-
-        <div className="h-4 w-px mx-2" style={{ background: 'var(--ss-workspace-border)' }}></div>
-
         <button
           onClick={() => toggleWizard(true)}
           className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium hover:bg-slate-200 rounded-md transition-colors"
@@ -228,21 +191,11 @@ const SimulationPage: React.FC = () => {
     (async () => {
       if (!simIdParam) return;
 
-      // Connected mode: load from backend and exit early
-      if (engineConfig.mode === 'connected') {
-        if (!hasRestored || !isAuthenticated) return;
-        await useSimulationStore.getState().loadSimulationById(String(simIdParam));
-        return;
-      }
-      // read engineConfig from hook above so effect re-runs when mode changes
-      // If we're in connected mode, wait until auth restoration has completed
-      if (engineConfig.mode === 'connected' && !hasRestored) {
-        return;
-      }
-      // If connected mode requires an authenticated user, don't attempt load when not authenticated
-      if (engineConfig.mode === 'connected' && !isAuthenticated) {
-        return;
-      }
+      // Wait until auth restoration has completed
+      if (!hasRestored || !isAuthenticated) return;
+
+      await useSimulationStore.getState().loadSimulationById(String(simIdParam));
+      return;
       try {
           const token = (engineConfig as any).token as string | undefined;
           let sim: any | null = null;
@@ -641,14 +594,14 @@ const SimulationPage: React.FC = () => {
         console.warn('Failed to load simulation on mount', e);
       }
     })();
-  }, [simIdParam, engineConfig.mode, hasRestored, isAuthenticated]);
+  }, [simIdParam, hasRestored, isAuthenticated]);
 
-  // Load providers when in connected mode and authenticated
+  // Load providers when authenticated
   React.useEffect(() => {
-    if (engineConfig.mode === 'connected' && hasRestored && isAuthenticated) {
+    if (hasRestored && isAuthenticated) {
       useSimulationStore.getState().loadProviders();
     }
-  }, [engineConfig.mode, hasRestored, isAuthenticated]);
+  }, [hasRestored, isAuthenticated]);
 
   const activeTab = useSimulationStore((s) => s.activeTab);
 
