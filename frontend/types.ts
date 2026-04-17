@@ -27,10 +27,7 @@ export interface UploadedAsset {
 }
 
 // # Integration: Platform Connection Status
-export type EngineMode = 'standalone' | 'connected';
-
 export interface EngineConfig {
-  mode: EngineMode;
   endpoint: string; // e.g., "http://localhost:8000/api"
   status: 'disconnected' | 'connecting' | 'connected' | 'error';
   latency?: number;
