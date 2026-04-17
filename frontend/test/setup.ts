@@ -11,6 +11,10 @@ afterEach(() => {
   cleanup();
 });
 
+// Minimal WebGL mocks for sigma.js (used by SimTree component)
+(globalThis as any).WebGLRenderingContext = class WebGLRenderingContext {};
+(globalThis as any).WebGL2RenderingContext = class WebGL2RenderingContext {};
+
 // Make i18n available globally for stores BEFORE importing modules
 (globalThis as any).i18n = {
   t: (key: string, params?: Record<string, any>) => {

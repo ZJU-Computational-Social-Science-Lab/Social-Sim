@@ -603,6 +603,16 @@ const SimulationPage: React.FC = () => {
     }
   }, [hasRestored, isAuthenticated]);
 
+  // Auto-open experiment builder when creating a new simulation
+  React.useEffect(() => {
+    if (!simIdParam && hasRestored && isAuthenticated) {
+      const { isWizardOpen, toggleWizard } = useSimulationStore.getState();
+      if (!isWizardOpen) {
+        toggleWizard(true);
+      }
+    }
+  }, [simIdParam, hasRestored, isAuthenticated]);
+
   const activeTab = useSimulationStore((s) => s.activeTab);
 
   return (
