@@ -7,7 +7,7 @@
 //   - Tree/node management
 //   - Template management
 //   - Time configuration
-//   - Engine mode (standalone/connected)
+//   - Engine connection status
 //
 // Used by: All simulation-related components, Dashboard, SimulationPage
 
@@ -19,7 +19,6 @@ import type {
   SimulationTemplate,
   Agent,
   EngineConfig,
-  EngineMode,
   SocialNetwork
 } from '../types';
 import { SYSTEM_TEMPLATES, generateNodes, mapGraphToNodes, DEFAULT_TIME_CONFIG, mapBackendEventsToLogs } from './helpers';
@@ -58,7 +57,6 @@ export interface SimulationSlice {
   deleteSimulation: () => Promise<void>;
   selectNode: (id: string) => void;
   updateSocialNetwork: (network: SocialNetwork) => Promise<void>;
-  setEngineMode: (mode: EngineMode) => void;
   loadSimulations: () => Promise<void>;
   loadSimulationById: (id: string) => Promise<void>;
 }
@@ -77,7 +75,6 @@ export const createSimulationSlice: StateCreator<
   savedTemplates: [...SYSTEM_TEMPLATES],
   timeConfig: DEFAULT_TIME_CONFIG,
   engineConfig: {
-    mode: 'standalone',
     endpoint: getApiBase(),
     status: 'disconnected',
     token: import.meta.env?.VITE_API_TOKEN || undefined
@@ -85,12 +82,6 @@ export const createSimulationSlice: StateCreator<
 
   // Actions
   setSimulation: (sim) => set({ currentSimulation: sim }),
-
-  setEngineMode: (mode) => {
-    set((state) => ({
-      engineConfig: { ...state.engineConfig, mode }
-    }));
-  },
 
   loadSimulations: async () => {
     try {
@@ -502,15 +493,13 @@ export const createSimulationSlice: StateCreator<
 
     const finalTimeConfig = timeConfig || template.defaultTimeConfig || DEFAULT_TIME_CONFIG;
 
-    // Check if connected mode
-    if (state.engineConfig.mode === 'connected') {
-      (async () => {
-        try {
-          const { createSimulation, startSimulation } = await import('../services/simulations');
-          const { getTreeGraph } = await import('../services/simulationTree');
+    (async () => {
+      try {
+        const { createSimulation, startSimulation } = await import('../services/simulations');
+        const { getTreeGraph } = await import('../services/simulationTree');
 
-          const base = state.engineConfig.endpoint;
-          const token = (state.engineConfig as any).token;
+        const base = state.engineConfig.endpoint;
+        const token = (state.engineConfig as any).token;
 
           const mapSceneType: Record<string, string> = {
             village: 'village_scene',
@@ -677,32 +666,6 @@ export const createSimulationSlice: StateCreator<
           (get() as any).addNotification?.('error', t('store.failedToCreateSimulation'));
         }
       })();
-      return;
-    }
-
-    // Standalone mode
-    const newSim: Simulation = {
-      id: `sim${Date.now()}`,
-      name: name || `Simulation_${Date.now()}`,
-      templateId: template.id,
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      timeConfig: finalTimeConfig,
-      socialNetwork: template.defaultNetwork || {},
-      scene_config: template.genericConfig ? { generic_config: template.genericConfig } : undefined
-    };
-
-    set({
-      simulations: [...state.simulations, newSim],
-      currentSimulation: newSim,
-      agents: finalAgents || [],
-      logs: [],
-      rawEvents: [],
-      nodes: generateNodes(),
-      selectedNodeId: 'root',
-      timeConfig: finalTimeConfig,
-      isWizardOpen: false
-    });
   },
 
   updateTimeConfig: (config) => {
@@ -784,28 +747,21 @@ export const createSimulationSlice: StateCreator<
     if (!state.currentSimulation) return;
 
     try {
-      if (state.engineConfig.mode === 'connected') {
-        const { resetSimulation: resetSimApi } = await import('../services/simulations');
-        await resetSimApi(state.currentSimulation.id);
+      const { resetSimulation: resetSimApi } = await import('../services/simulations');
+      await resetSimApi(state.currentSimulation.id);
 
-        const { getTreeGraph } = await import('../services/simulationTree');
-        const graph = await getTreeGraph(
-          state.engineConfig.endpoint,
-          state.currentSimulation.id,
-          state.engineConfig.token
-        );
+      const { getTreeGraph } = await import('../services/simulationTree');
+      const graph = await getTreeGraph(
+        state.engineConfig.endpoint,
+        state.currentSimulation.id,
+        state.engineConfig.token
+      );
 
-        if (graph) {
-          const nodesMapped = mapGraphToNodes(graph);
-          set({
-            nodes: nodesMapped,
-            selectedNodeId: graph.root != null ? String(graph.root) : null
-          });
-        }
-      } else {
+      if (graph) {
+        const nodesMapped = mapGraphToNodes(graph);
         set({
-          nodes: generateNodes(),
-          selectedNodeId: 'root'
+          nodes: nodesMapped,
+          selectedNodeId: graph.root != null ? String(graph.root) : null
         });
       }
 
@@ -827,10 +783,8 @@ export const createSimulationSlice: StateCreator<
     if (!state.currentSimulation) return;
 
     try {
-      if (state.engineConfig.mode === 'connected') {
-        const { deleteSimulation: deleteSimApi } = await import('../services/simulations');
-        await deleteSimApi(state.currentSimulation.id);
-      }
+      const { deleteSimulation: deleteSimApi } = await import('../services/simulations');
+      await deleteSimApi(state.currentSimulation.id);
 
       set({
         currentSimulation: null,
