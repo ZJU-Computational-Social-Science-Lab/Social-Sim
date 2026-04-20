@@ -291,15 +291,21 @@ export const createExperimentsSlice: StateCreator<
           // Poll the tree graph to find the newly created child.
           console.warn('[advanceSimulation] advance_chain failed, polling graph for new child...', advanceError?.message || advanceError);
           let found: number | null = null;
-          for (let attempt = 0; attempt < 60; attempt++) {
+          // Phase 1: find the new child. Phase 2: wait for its simulation to finish.
+          // Both handled in one loop — breaks only when child is found AND no longer running.
+          // 1800 attempts × 2 s = up to 1 hour, covering very long LLM runs.
+          for (let attempt = 0; attempt < 1800; attempt++) {
             await new Promise((r) => setTimeout(r, 2000));
             const polledGraph = await getTreeGraph(base, simId, token);
             if (!polledGraph) continue;
-            const newChild = polledGraph.edges.find(
-              (e: any) => e.from === parentNumeric && !existingChildIds.has(e.to)
-            );
-            if (newChild) {
-              found = newChild.to;
+            if (found == null) {
+              const newChild = polledGraph.edges.find(
+                (e: any) => e.from === parentNumeric && !existingChildIds.has(e.to)
+              );
+              if (newChild) found = newChild.to;
+            }
+            // Break only when found AND simulation complete (not in running set)
+            if (found != null && !(polledGraph.running || []).includes(found)) {
               break;
             }
           }
@@ -307,7 +313,7 @@ export const createExperimentsSlice: StateCreator<
             throw advanceError;
           }
           res = { child: found };
-          console.log('[advanceSimulation] Recovered from 504 — found child node', found);
+          console.log('[advanceSimulation] Recovered from 504 — found and awaited child node', found);
         }
 
         // Refresh tree graph
