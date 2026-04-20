@@ -536,12 +536,13 @@ export const createExperimentsSlice: StateCreator<
       state.addNotification?.('error', i18n.t('store.selectedNodeNotBackend') || 'Selected node is not a backend node');
       return;
     }
-    const expectedVariantParentId = baseNode.parentId == null ? String(baseNode.id) : String(baseNode.parentId);
-    const existingSiblingIds = (state.nodes || [])
-      .filter((n: any) => {
-        return String(n.parentId) === expectedVariantParentId;
-      })
-      .map((n: any) => String(n.id));
+    // Variant nodes branch FROM the base node (not alongside it)
+    const expectedVariantParentId = String(baseNode.id);
+    const existingChildIds = new Set(
+      (state.nodes || [])
+        .filter((n: any) => String(n.parentId) === expectedVariantParentId)
+        .map((n: any) => String(n.id))
+    );
 
     // Call backend create + run
     (async () => {
@@ -769,7 +770,7 @@ export const createExperimentsSlice: StateCreator<
                 const isUnderParent = String(n.parentId) === expectedVariantParentId;
                 if (!isUnderParent) return false;
                 // Only consider new siblings (exclude the baseline node and pre-existing siblings)
-                const isExisting = existingSiblingIds.includes(String(n.id)) || String(n.id) === String(baseNode.id);
+                const isExisting = existingChildIds.has(String(n.id)) || String(n.id) === String(baseNode.id);
                 return !isExisting;
               })
               .sort((a: any, b: any) => Number(a.id) - Number(b.id));
