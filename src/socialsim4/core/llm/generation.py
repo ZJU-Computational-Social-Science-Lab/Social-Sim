@@ -192,9 +192,7 @@ def generate_archetype_template(
 
     response = result_queue.get()
 
-    # Debug logging
-    print(f"[DEBUG] Archetype: {attrs_str}")
-    print(f"[DEBUG] LLM Response: {response[:500] if response else 'EMPTY'}...")
+    # Debug logging removed — output captured in test_results files
 
     # Check for empty response - use fallback
     if not response or not response.strip():

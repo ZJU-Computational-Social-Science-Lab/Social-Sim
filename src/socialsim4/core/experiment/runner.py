@@ -31,7 +31,6 @@ from socialsim4.core.experiment.debug_log import get_debug_file, write_debug, re
 from socialsim4.core.llm.client import LLMClient
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 @dataclass

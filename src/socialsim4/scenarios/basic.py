@@ -24,21 +24,8 @@ from socialsim4.core.contagion.states import ContagionState
 
 
 def console_logger(event_type: str, data: dict) -> None:
-    if event_type == "system_broadcast":
-        sender = data.get("sender")
-        if not sender:
-            print(f"[Public Event] {data.get('text')}")
-    elif event_type == "action_end":
-        action_data = data.get("action") or {}
-        action_name = action_data.get("action")
-        if action_name and action_name != "yield":
-            print(f"[{action_name}] {data.get('summary')}")
-    elif event_type == "landlord_deal":
-        players = data.get("players", {})
-        bottom = data.get("bottom", [])
-        print("[Deal] Bottom:", " ".join(bottom))
-        for name, toks in players.items():
-            print(f"[Deal] {name}:", " ".join(toks))
+    """Event logger — output silenced to avoid terminal clutter. Debug info goes to test_results/."""
+    pass
 
 
 @dataclass(slots=True)

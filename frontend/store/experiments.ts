@@ -277,7 +277,38 @@ export const createExperimentsSlice: StateCreator<
           return;
         }
 
-        const res = await treeAdvanceChain(base, simId, parentNumeric, 1, token);
+        // Track existing children before advance to detect new ones after 504
+        const graphBefore = await getTreeGraph(base, simId, token);
+        const existingChildIds = new Set(
+          (graphBefore?.edges || []).filter((e: any) => e.from === parentNumeric).map((e: any) => e.to)
+        );
+
+        let res: { child: number };
+        try {
+          res = await treeAdvanceChain(base, simId, parentNumeric, 1, token);
+        } catch (advanceError: any) {
+          // Proxy timeout (504) — backend likely already created the child node.
+          // Poll the tree graph to find the newly created child.
+          console.warn('[advanceSimulation] advance_chain failed, polling graph for new child...', advanceError?.message || advanceError);
+          let found: number | null = null;
+          for (let attempt = 0; attempt < 60; attempt++) {
+            await new Promise((r) => setTimeout(r, 2000));
+            const polledGraph = await getTreeGraph(base, simId, token);
+            if (!polledGraph) continue;
+            const newChild = polledGraph.edges.find(
+              (e: any) => e.from === parentNumeric && !existingChildIds.has(e.to)
+            );
+            if (newChild) {
+              found = newChild.to;
+              break;
+            }
+          }
+          if (found == null) {
+            throw advanceError;
+          }
+          res = { child: found };
+          console.log('[advanceSimulation] Recovered from 504 — found child node', found);
+        }
 
         // Refresh tree graph
         const graph = await getTreeGraph(base, simId, token);
@@ -521,8 +552,33 @@ export const createExperimentsSlice: StateCreator<
           // prepare variant specs for backend (ops expected by backend)
           const variantSpecs = variants.map((v) => ({ name: v.name, ops: v.ops || [] }));
 
-          // Step 1: create experiment
-          const createRes = await experimentsApi.createExperiment(simId, experimentName, parentNumeric, variantSpecs);
+          // Step 1: create experiment (with 504 recovery)
+          let createRes: any;
+          try {
+            createRes = await experimentsApi.createExperiment(simId, experimentName, parentNumeric, variantSpecs);
+          } catch (createError: any) {
+            // Proxy timeout (504) — backend likely created the experiment already.
+            // Poll experiments list to find it by name.
+            console.warn('[runExperiment] createExperiment failed, polling for experiment...', createError?.message || createError);
+            for (let attempt = 0; attempt < 15; attempt++) {
+              await new Promise((r) => setTimeout(r, 2000));
+              try {
+                const list = await experimentsApi.listExperiments(simId);
+                const found = (list?.experiments || []).find(
+                  (e: any) => e.name === experimentName
+                );
+                if (found) {
+                  createRes = { experiment_id: found.id, node_mapping: [] };
+                  console.log('[runExperiment] Recovered from 504 — found experiment', found.id);
+                  break;
+                }
+              } catch { /* continue polling */ }
+            }
+            if (!createRes) {
+              state.addNotification?.('error', i18n.t('store.failedToStartExperiment') || 'Failed to start experiment');
+              return;
+            }
+          }
           const expId = (createRes as any).experiment_id || (createRes as any).id || (createRes as any).experiment?.id;
           if (!expId) {
             state.addNotification?.('error', i18n.t('store.failedToStartExperiment') || 'Failed to start experiment');

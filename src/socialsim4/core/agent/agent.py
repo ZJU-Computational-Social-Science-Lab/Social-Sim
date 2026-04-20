@@ -492,9 +492,10 @@ Use the above context to inform your responses when relevant.
                 for msg in ctx:
                     f.write(f"[{msg.get('role')}]: {msg.get('content', '')[:500]}\n")
                 f.write(f"--- END CONTEXT ---\n\n")
-            print(f"[AGENT DEBUG] Wrote prompt for {self.name} to {_debug_file.name}")
+            # Debug info written to test_results file instead of terminal
         except Exception as e:
-            print(f"[AGENT DEBUG] Failed to write debug file: {e}")
+            # Debug file write failed — non-critical
+            pass
 
         # Retry loop
         attempts = int(getattr(self, "max_repeat", 0) or 0) + 1
@@ -516,7 +517,7 @@ Use the above context to inform your responses when relevant.
                 except Exception:
                     pass
 
-                print(f"[AGENT DEBUG] {self.name} got LLM response: {len(llm_output)} chars")
+                # LLM response captured in debug file
 
             except Exception as e:
                 self._record_llm_error("llm_call", e, i + 1, i == attempts - 1)
@@ -543,7 +544,7 @@ Use the above context to inform your responses when relevant.
                 except Exception:
                     pass
 
-                print(f"[AGENT DEBUG] {self.name} parsed actions: {action_data}")
+                # Parsed actions captured in debug file
 
                 success = True
                 self.consecutive_llm_errors = 0  # Reset on success
@@ -555,10 +556,9 @@ Use the above context to inform your responses when relevant.
                     break
                 if i < attempts - 1:
                     ctx.append({"role": "user", "content": self._json_retry_feedback(e)})
-                    print(f"{self.name} action parse error: {e}; retry {i + 1}/{attempts - 1}...")
+                    # Action parse error — retrying (details in debug file)
                     continue
-                print(f"{self.name} action parse error after {attempts} attempts: {e}")
-                print(f"LLM output (last):\n{llm_output}\n{'-' * 40}")
+                # Action parse error after all attempts (details in debug file)
                 break
 
         # If failed, return empty

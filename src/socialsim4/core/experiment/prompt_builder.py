@@ -16,7 +16,6 @@ from socialsim4.core.experiment.agent import ExperimentAgent
 from socialsim4.core.experiment.game_configs import GameConfig
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 def _interpret_score(value: int) -> str:
