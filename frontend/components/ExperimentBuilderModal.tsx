@@ -11,17 +11,21 @@ import { useExperimentBuilder } from '../store/experiment-builder';
 import { ExperimentBuilder } from './experiment/ExperimentBuilder';
 import { X } from 'lucide-react';
 import { useSimulationStore } from '../store';
+import { NavBar } from './NavBar';
+import { useThemeStore } from '../store/theme';
 
 interface ExperimentBuilderModalProps {
   isOpen?: boolean;
   onClose?: () => void;
   onComplete?: (config: unknown) => void;
+  presentation?: 'modal' | 'page';
 }
 
 export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
   isOpen,
   onClose,
   onComplete,
+  presentation = 'modal',
 }) => {
   const { t } = useTranslation();
 
@@ -30,6 +34,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
   const toggleWizard = useSimulationStore((state) => state.toggleWizard);
   const addSimulation = useSimulationStore((state) => state.addSimulation);
   const addNotification = useSimulationStore((state) => state.addNotification);
+  const themeMode = useThemeStore((state) => state.mode);
 
   // Use prop if explicitly provided, otherwise use store state
   const useExplicitState = isOpen !== undefined;
@@ -109,7 +114,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
           profile: userProfile || rolePrompt || '',  // backend expects 'profile' or 'user_profile'
           user_profile: userProfile || '',  // snake_case for backend
           avatarUrl: avatarUrl,
-          llmConfig: llmConfig,
+          llm_config: llmConfig,
           provider_id: providerId,  // Track which provider this agent uses
           properties: {
             ...props,
@@ -160,7 +165,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
       scenarioData?.id === 'policy_diffusion' ||
       scenarioData?.id === 'policyDiffusion' ||
       (scenarioData?.name || '').toLowerCase().includes('policy') ||
-      (scenarioData?.name || '').toLowerCase().includes('cascade');
+      (scenarioData?.name || '').includes('政策');
 
     // Determine if this uses the new Three-Layer Architecture
     // (strategic_decisions or any scenario with structured actions)
@@ -177,7 +182,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
         id: 'experiment-template',
         name: name,
         description: resolvedDescription,
-        category: scenarioData ? 'system' : 'custom',
+        category: (scenarioData?.category || 'custom') as const,
         sceneType: isPolicyCascade ? 'policy_cascade_scene' : isNewArchitecture ? 'experiment' : 'generic',
         agents: customAgents,
         defaultTimeConfig: {
@@ -196,7 +201,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
 
     if (onComplete) {
       onComplete({});
-    } else {
+    } else if (presentation === 'modal') {
       handleClose();
     }
   };
@@ -206,28 +211,31 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
     return null;
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" style={{ background: 'var(--ss-overlay)' }}>
-      <div className="rounded-xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]" style={{ background: 'var(--ss-surface)', border: '1px solid var(--ss-border)', boxShadow: 'var(--ss-shadow-3)', color: 'var(--ss-text)' }}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--ss-border)' }}>
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--ss-heading)' }}>
-            {t('experimentBuilder.modalTitle')}
-          </h2>
-          <button
-            onClick={handleClose}
-            className="transition-colors"
-            style={{ color: 'var(--ss-text-subtle)' }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--ss-text)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--ss-text-subtle)'; }}
-            aria-label={t('experimentBuilder.close')}
-          >
-            <X size={20} />
-          </button>
+  if (presentation === 'page') {
+    return (
+      <div className={`ss-setup-page ${themeMode === 'dark' ? 'is-dark' : 'is-light'}`}>
+        <NavBar variant="product" />
+        <div className="ss-setup-page__viewport">
+          <ExperimentBuilder
+            onComplete={handleComplete}
+            onCancel={handleClose}
+          />
         </div>
+      </div>
+    );
+  }
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto">
+  return (
+    <div className="ss-setup-modal">
+      <div className="ss-setup-modal__dialog">
+        <button
+          onClick={handleClose}
+          className="ss-setup-modal__close"
+          aria-label={t('experimentBuilder.close')}
+        >
+          <X size={18} />
+        </button>
+        <div className="ss-setup-modal__body">
           <ExperimentBuilder
             onComplete={handleComplete}
             onCancel={handleClose}

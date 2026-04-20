@@ -285,6 +285,21 @@
     padding: 1.25rem 1.5rem 1.5rem;
   }
 
+  /* Two-panel split: SimTree left + detail right */
+  .ss-sim-split {
+    display: grid;
+    height: 100%;
+    min-height: 0;
+    gap: var(--ss-space-4);
+    grid-template-columns: minmax(280px, 40%) minmax(0, 1fr);
+  }
+
+  .ss-sim-split__tree,
+  .ss-sim-split__detail {
+    min-height: 0;
+    overflow: auto;
+  }
+
   .ss-workspace__grid {
     display: grid;
     height: 100%;

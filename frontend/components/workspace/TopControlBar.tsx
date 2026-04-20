@@ -84,7 +84,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
               <Orbit size={18} />
             </div>
             <div>
-              <div className="ss-top-control-bar__brand-title">SocialSim4</div>
+              <div className="ss-top-control-bar__brand-title">{t("brand")}</div>
               <div className="ss-top-control-bar__brand-subtitle">
                 {isZh ? "实验控制台" : "Simulation Control Room"}
               </div>
