@@ -183,6 +183,8 @@ artifacts/**/*.mp4
 # Local generated/process artifacts
 /artifacts/
 /tmp/
+/output/
+/.playwright-cli/
 /data/xihu_packages/
 /auth_history.txt
 /log*.txt
@@ -198,3 +200,9 @@ artifacts/**/*.mp4
 /Social-Sim1/
 /stitch/
 /frontend/public/test-modal.html
+
+# Local-only xihu report scripts (do not upload)
+/scripts/run_xihu_yilianbao_case_report.py
+/scripts/export_xihu_agent_text_logs.py
+/scripts/build_xihu_yilianbao_pdf.py
+/scripts/xihu_empirical_analysis.py

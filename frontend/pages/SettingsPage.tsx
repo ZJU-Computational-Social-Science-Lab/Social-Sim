@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -9,28 +9,16 @@ import {
   Search,
   Shield,
   UserCircle2,
-  WandSparkles,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
-  EyeClosedIcon,
-  EyeOpenIcon,
   FilePlusIcon,
-  Link2Icon,
-  StarFilledIcon,
-  StarIcon,
   TrashIcon,
 } from "@radix-ui/react-icons";
 
 import { AppSelect } from "../components/AppSelect";
 import { TitleCard } from "../components/TitleCard";
-import {
-  activateProvider as apiActivateProvider,
-  createProvider as apiCreateProvider,
-  deleteProvider as apiDeleteProvider,
-  listProviders,
-  testProvider as apiTestProvider,
-} from "../services/providers";
+import { ProviderManagementPage } from "../components/provider-management/ProviderManagementPage";
 import {
   createSearchProvider,
   listSearchProviders,
@@ -114,29 +102,13 @@ export function SettingsPage() {
   const clearSession = useAuthStore((state) => state.clearSession);
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>("profile");
-  const [testHints, setTestHints] = useState<Record<number, { ok: boolean; msg: string }>>({});
-  const [testingId, setTestingId] = useState<number | null>(null);
   const [orphanResult, setOrphanResult] = useState<{ orphaned: string[]; total: number } | null>(null);
   const [findingOrphans, setFindingOrphans] = useState(false);
-  const [keyVisible, setKeyVisible] = useState(false);
-  const [providerDraft, setProviderDraft] = useState({
-    name: "",
-    provider: "openai",
-    model: "gpt-4",
-    base_url: "https://api.openai.com/v1",
-    api_key: "",
-  });
   const [searchDraft, setSearchDraft] = useState({
     provider: "ddg",
     base_url: "",
     api_key: "",
     config: { region: "", safesearch: "moderate" } as Record<string, any>,
-  });
-
-  const providersQuery = useQuery({
-    queryKey: ["providers"],
-    enabled: activeTab === "providers_llm",
-    queryFn: () => listProviders(),
   });
 
   const searchProvidersQuery = useQuery({
@@ -155,28 +127,6 @@ export function SettingsPage() {
     mutationFn: async (fileId: string) => deleteUpload(fileId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["uploads"] });
-    },
-  });
-
-  const createProvider = useMutation({
-    mutationFn: async () =>
-      apiCreateProvider({
-        name: providerDraft.name,
-        provider: providerDraft.provider,
-        model: providerDraft.model,
-        base_url: providerDraft.base_url,
-        api_key: providerDraft.api_key,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["providers"] });
-      setProviderDraft({
-        name: "",
-        provider: "openai",
-        model: "gpt-4",
-        base_url: "https://api.openai.com/v1",
-        api_key: "",
-      });
-      setKeyVisible(false);
     },
   });
 
@@ -203,62 +153,9 @@ export function SettingsPage() {
     },
   });
 
-  const testProvider = useMutation({
-    mutationFn: async (providerId: number) => apiTestProvider(providerId),
-    onMutate: (providerId: number) => {
-      setTestingId(providerId);
-    },
-    onSuccess: (_data, providerId) => {
-      setTestHints((prev) => ({
-        ...prev,
-        [providerId]: { ok: true, msg: t("settings.providers.testOk") || "OK" },
-      }));
-      setTimeout(() => {
-        setTestHints((prev) => {
-          const next = { ...prev };
-          delete next[providerId];
-          return next;
-        });
-      }, 3000);
-      queryClient.invalidateQueries({ queryKey: ["providers"] });
-    },
-    onError: (_err, providerId) => {
-      setTestHints((prev) => ({
-        ...prev,
-        [providerId]: { ok: false, msg: t("settings.providers.testFail") || "Failed" },
-      }));
-      setTimeout(() => {
-        setTestHints((prev) => {
-          const next = { ...prev };
-          delete next[providerId];
-          return next;
-        });
-      }, 3000);
-    },
-    onSettled: () => {
-      setTestingId(null);
-    },
-  });
-
-  const activateProvider = useMutation({
-    mutationFn: async (providerId: number) => apiActivateProvider(providerId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["providers"] });
-    },
-  });
-
-  const deleteProvider = useMutation({
-    mutationFn: async (providerId: number) => apiDeleteProvider(providerId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["providers"] });
-    },
-  });
-
-  const providers = providersQuery.data ?? [];
   const searchProviders = searchProvidersQuery.data ?? [];
   const uploads = filesQuery.data ?? [];
   const searchProvider = searchProviders[0] || null;
-  const activeProvider = providers.find((provider) => provider.is_active);
 
   useEffect(() => {
     if (!searchProvider) return;
@@ -293,8 +190,8 @@ export function SettingsPage() {
     },
     {
       id: "providers_llm" as const,
-      title: t("settings.tabs.llmProviders") || t("settings.providers.llmTab"),
-      hint: isZh ? "语言模型连接" : "Language model connections",
+      title: "LLM 配置",
+      hint: isZh ? "模型与接口配置" : "Model and interface configuration",
       icon: <Bot size={15} />,
     },
     {
@@ -330,11 +227,6 @@ export function SettingsPage() {
     const params = new URLSearchParams(location.search);
     params.set("tab", tab);
     navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
-  };
-
-  const handleCreateProvider = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    createProvider.mutate();
   };
 
   const renderProfile = () => (
@@ -406,232 +298,16 @@ export function SettingsPage() {
         <div className="panel-title">{t("settings.security.controlTitle")}</div>
         <div className="panel-subtitle">{t("settings.security.controlHint")}</div>
         <div className="ss-settings-note">
-          {isZh
-            ? "认证流程仍然连接到 SocialSim4 真实后端与 token 刷新链路。"
-            : "Authentication flows remain connected to the real SocialSim4 backend and token refresh chain."}
-        </div>
-      </section>
+            {isZh
+            ? "认证流程仍然连接到 Future of Society 当前后端与 token 刷新链路。"
+            : "Authentication flows remain connected to the current Future of Society backend and token refresh chain."}
+          </div>
+        </section>
     </div>
   );
 
   const renderProviders = () => (
-    <div className="ss-settings-section">
-      <div className="ss-settings-grid ss-settings-grid--split">
-        <section className="card">
-          <div className="panel-header">
-            <div>
-              <div className="panel-title">{t("settings.providers.title")}</div>
-              <div className="panel-subtitle">
-                {t("settings.providers.current", { name: activeProvider?.name || "—" })}
-              </div>
-            </div>
-          </div>
-
-          {providersQuery.isLoading ? <div>{t("settings.providers.loading")}</div> : null}
-          {providersQuery.error ? <div>{t("settings.providers.error")}</div> : null}
-
-          <div className="ss-provider-list">
-            {providers.map((provider) => {
-              const active = provider.is_active;
-              return (
-                <article key={provider.id} className="ss-provider-row ss-inset">
-                  <div className="ss-provider-row__meta">
-                    <div className="ss-provider-row__title">
-                      <strong>{provider.name}</strong>
-                      <span className={`ss-status-chip ${active ? "is-active" : ""}`}>
-                        {active ? t("settings.providers.activeTag") : provider.provider}
-                      </span>
-                    </div>
-                    <div className="panel-subtitle">
-                      {provider.provider} · {provider.model} · {provider.base_url || "-"}
-                    </div>
-                  </div>
-
-                  <div className="ss-provider-row__actions">
-                    {testHints[provider.id] ? (
-                      <span className={`ss-provider-row__hint ${testHints[provider.id].ok ? "is-ok" : "is-error"}`}>
-                        {testHints[provider.id].msg}
-                      </span>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="icon-button square"
-                      title={t("settings.providers.test")}
-                      aria-label={t("settings.providers.test")}
-                      onClick={() => testProvider.mutate(provider.id)}
-                      disabled={testingId !== null}
-                    >
-                      {testingId === provider.id ? <span className="spinner" aria-hidden /> : <Link2Icon />}
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-button square"
-                      title={active ? t("settings.providers.activeTag") : t("settings.providers.makeActive")}
-                      aria-label={active ? t("settings.providers.activeTag") : t("settings.providers.makeActive")}
-                      onClick={() => !active && activateProvider.mutate(provider.id)}
-                      disabled={active || activateProvider.isPending}
-                    >
-                      {active ? <StarFilledIcon /> : <StarIcon />}
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-button square"
-                      title={t("saved.delete")}
-                      aria-label={t("saved.delete")}
-                      onClick={() => {
-                        if (active) {
-                          const message =
-                            t("settings.providers.deleteActiveConfirm") ||
-                            "This provider is active. Delete anyway?";
-                          if (!window.confirm(message)) {
-                            return;
-                          }
-                        }
-                        deleteProvider.mutate(provider.id);
-                      }}
-                      disabled={deleteProvider.isPending}
-                    >
-                      <TrashIcon />
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-
-            {!providers.length && !providersQuery.isLoading ? (
-              <div className="ss-empty-state ss-inset">
-                <div className="panel-title">{t("settings.providers.none")}</div>
-                <div className="panel-subtitle">
-                  {isZh
-                    ? "先添加一个可用模型端点，让当前研究工作空间进入可运行状态。"
-                    : "Add your first model endpoint to make this workspace operational."}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </section>
-
-        <section className="card">
-          <div className="panel-title">{t("settings.providers.capabilities.title")}</div>
-          <div className="panel-subtitle">{t("settings.providers.capabilities.hint")}</div>
-          <div className="ss-settings-stack">
-            {getCapabilityRows(t).map((row) => (
-              <div key={row.model} className="ss-capability-row ss-inset">
-                <div className="ss-capability-row__head">
-                  <strong>{row.model}</strong>
-                  <span className="ss-pill ss-pill--quiet">
-                    {t("settings.providers.capabilities.context")}: {row.context}
-                  </span>
-                </div>
-                <div className="panel-subtitle">
-                  {t("settings.providers.capabilities.modalities")}: {row.modalities}
-                </div>
-                <div className="ss-capability-row__metrics">
-                  <span>{t("settings.providers.capabilities.input")}: {row.input}</span>
-                  <span>{t("settings.providers.capabilities.output")}: {row.output}</span>
-                </div>
-                <div className="panel-subtitle">
-                  {t("settings.providers.capabilities.note")}: {t(row.note)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
-
-      <div className="ss-settings-grid ss-settings-grid--split">
-        <form onSubmit={handleCreateProvider} className="card">
-          <div className="panel-title">{t("settings.providers.add")}</div>
-          <div className="ss-settings-form-grid">
-            <label>
-              <span className="ss-form-label">{t("settings.providers.fields.label")}</span>
-              <input
-                required
-                value={providerDraft.name}
-                onChange={(event) => setProviderDraft((prev) => ({ ...prev, name: event.target.value }))}
-              />
-            </label>
-            <label>
-              <span className="ss-form-label">{t("settings.providers.fields.provider")}</span>
-              <AppSelect
-                value={providerDraft.provider}
-                options={[
-                  { value: "openai", label: t("settings.providers.type.openai") },
-                  { value: "gemini", label: t("settings.providers.type.gemini") },
-                ]}
-                onChange={(value) =>
-                  setProviderDraft((prev) => ({
-                    ...prev,
-                    provider: value,
-                    base_url: value === "openai" ? "https://api.openai.com/v1" : "",
-                  }))
-                }
-              />
-            </label>
-            <label>
-              <span className="ss-form-label">{t("settings.providers.fields.model")}</span>
-              <input
-                required
-                value={providerDraft.model}
-                onChange={(event) => setProviderDraft((prev) => ({ ...prev, model: event.target.value }))}
-              />
-            </label>
-            <label>
-              <span className="ss-form-label">{t("settings.providers.fields.baseUrl")}</span>
-              <input
-                required
-                value={providerDraft.base_url}
-                onChange={(event) => setProviderDraft((prev) => ({ ...prev, base_url: event.target.value }))}
-              />
-            </label>
-            <label className="ss-settings-form-grid__full">
-              <span className="ss-form-label">{t("settings.providers.fields.apiKey")}</span>
-              <div className="ss-settings-secret-field">
-                <input
-                  required
-                  type={keyVisible ? "text" : "password"}
-                  value={providerDraft.api_key}
-                  onChange={(event) => setProviderDraft((prev) => ({ ...prev, api_key: event.target.value }))}
-                />
-                <button
-                  type="button"
-                  className="icon-button square"
-                  title={keyVisible ? t("common.hide") : t("common.show")}
-                  aria-label={keyVisible ? t("common.hide") : t("common.show")}
-                  onClick={() => setKeyVisible((prev) => !prev)}
-                >
-                  {keyVisible ? <EyeClosedIcon /> : <EyeOpenIcon />}
-                </button>
-              </div>
-            </label>
-          </div>
-          {createProvider.error ? (
-            <div className="ss-settings-error">{t("settings.providers.createFailed")}</div>
-          ) : null}
-          <button type="submit" className="ss-button" disabled={createProvider.isPending}>
-            {createProvider.isPending ? <span className="spinner" aria-hidden /> : <FilePlusIcon />}
-            <span>{t("settings.providers.save")}</span>
-          </button>
-        </form>
-
-        <section className="card">
-          <div className="panel-title">{t("settings.providers.workspaceTitle")}</div>
-          <div className="panel-subtitle">{t("settings.providers.workspaceHint")}</div>
-          <div className="ss-settings-stack">
-            <SettingsMetric
-              label={isZh ? "已配置提供商" : "Configured providers"}
-              value={String(providers.length)}
-              icon={<Bot size={16} />}
-            />
-            <SettingsMetric
-              label={isZh ? "当前活动端点" : "Active endpoint"}
-              value={activeProvider?.name || "—"}
-              icon={<WandSparkles size={16} />}
-            />
-          </div>
-        </section>
-      </div>
-    </div>
+    <ProviderManagementPage />
   );
 
   const renderSearchProviders = () => (
@@ -909,30 +585,7 @@ export function SettingsPage() {
 
   return (
     <div className="ss-product-page ss-product-page--settings scroll-panel">
-      <TitleCard title={t("settings.title")} subtitle={t("settings.subtitle")} />
-
-      <section className="ss-settings-overview ss-surface-muted">
-        <SettingsMetric
-          label={t("settings.tabs.profile")}
-          value={String(user?.organization ?? "—")}
-          icon={<UserCircle2 size={16} />}
-        />
-        <SettingsMetric
-          label={t("settings.tabs.llmProviders")}
-          value={String(providers.length)}
-          icon={<Bot size={16} />}
-        />
-        <SettingsMetric
-          label={t("settings.tabs.searchProviders")}
-          value={searchProvider?.provider || "—"}
-          icon={<Search size={16} />}
-        />
-        <SettingsMetric
-          label={t("settings.tabs.files")}
-          value={String(uploads.length)}
-          icon={<FileStack size={16} />}
-        />
-      </section>
+      <TitleCard title={t("settings.title")} />
 
       <div className="tab-layout ss-settings-page__layout">
         <nav className="tab-nav ss-settings-page__nav">
