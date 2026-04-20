@@ -1,18 +1,5 @@
-/**
- * Main simulation workspace page.
- *
- * Orchestrates the tab-based layout (Sim Tree, Logs, Agents) with a peek overlay
- * for cross-panel awareness. Loads simulation state from backend.
- *
- * Exports: SimulationPage (default), SimulationPage (named), Header
- */
-
 import React from "react";
-import { Link } from "react-router-dom";
-import { SimTree } from "../components/SimTree";
-import { Sidebar } from "../components/Sidebar";
-import { LogViewer } from "../components/LogViewer";
-import { ComparisonView } from "../components/ComparisonView";
+import { ChevronLeft } from "lucide-react";
 import { ExperimentBuilderModal } from "../components/ExperimentBuilderModal";
 import SyncModal from "../components/SyncModal";
 import { HelpModal } from "../components/HelpModal";
@@ -26,176 +13,97 @@ import { ReportModal } from "../components/ReportModal";
 import { GlobalKnowledgePanel } from "../components/GlobalKnowledgePanel";
 import { GuideAssistant } from "../components/GuideAssistant";
 import { ToastContainer } from "../components/Toast";
-import { useSimulationStore } from "../store";
-import { useParams } from "react-router-dom";
+import { generateNodes, useSimulationStore } from "../store";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { getSimulation as apiGetSimulation } from "../services/simulations";
 import { getTreeGraph, getSimEvents, getSimState, getRehydrate } from "../services/simulationTree";
 import { useAuthStore } from "../store/auth";
-import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { useTranslation } from "react-i18next";
-import { TabBar } from "../components/TabBar";
-import ContextToolbar from "../components/ContextToolbar";
-import { PeekOverlay } from "../components/PeekOverlay";
-import {
-  Plus,
-  Settings,
-  Save,
-  LogOut,
-  RotateCcw,
-  Trash2,
-} from "lucide-react";
-
-// ---------------- Header ----------------
-
-const Header: React.FC = () => {
-  const currentSim = useSimulationStore((state) => state.currentSimulation);
-  const toggleWizard = useSimulationStore((state) => state.toggleWizard);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const hasRestored = useAuthStore((s) => s.hasRestored);
-  const loadProviders = useSimulationStore((state) => state.loadProviders);
-  const resetSimulation = useSimulationStore((state) => state.resetSimulation);
-  const deleteSimulation = useSimulationStore((state) => state.deleteSimulation);
-  const toggleSaveTemplate = useSimulationStore((state) => state.toggleSaveTemplate);
-  const isGenerating = useSimulationStore((state) => state.isGenerating);
-  const user = useAuthStore((state) => state.user);
-  const logout = useAuthStore((state) => state.clearSession);
-  const { t } = useTranslation();
-
-  return (
-    <header className="h-14 border-b flex items-center justify-between px-4 shrink-0 z-20" style={{ background: 'var(--ss-nav-bg)', borderColor: 'var(--ss-nav-border)' }}>
-      <div className="flex items-center gap-4">
-        <Link to="/dashboard" className="flex items-center gap-2 text-brand-600 font-bold text-lg tracking-tight hover:opacity-80">
-          <div className="w-8 h-8 bg-brand-600 text-white rounded-lg flex items-center justify-center">
-            S4
-          </div>
-          <span>
-            SocialSim
-            <span className="font-light" style={{ color: 'var(--ss-workspace-muted)' }}>Next</span>
-          </span>
-        </Link>
-        
-        {/* 导航链接 */}
-        <nav className="flex items-center gap-1 ml-4">
-          <Link to="/dashboard" className="px-3 py-1.5 text-sm rounded hover:text-brand-600 hover:bg-slate-100" style={{ color: 'var(--ss-workspace-muted)' }}>
-            {t('nav.dashboard')}
-          </Link>
-          <Link to="/simulations/saved" className="px-3 py-1.5 text-sm rounded hover:text-brand-600 hover:bg-slate-100" style={{ color: 'var(--ss-workspace-muted)' }}>
-            {t('nav.saved')}
-          </Link>
-          <Link to="/settings" className="px-3 py-1.5 text-sm rounded hover:text-brand-600 hover:bg-slate-100" style={{ color: 'var(--ss-workspace-muted)' }}>
-            {t('nav.settings')}
-          </Link>
-        </nav>
-        
-        <div className="h-6 w-px mx-2" style={{ background: 'var(--ss-workspace-border)' }}></div>
-        <div>
-          <h1 className="text-sm font-bold" style={{ color: 'var(--ss-workspace-heading)' }}>
-            {currentSim?.name || t('simPage.noSimulation')}
-          </h1>
-          <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color: 'var(--ss-workspace-muted)' }}>
-            {currentSim?.id}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => toggleWizard(true)}
-          className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium hover:bg-slate-200 rounded-md transition-colors"
-          style={{ background: 'var(--ss-workspace-surface)', color: 'var(--ss-workspace-text)' }}
-        >
-          <Plus size={14} /> {t('simPage.newSimulation')}
-        </button>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              if (window.confirm(t('simPage.confirmReset'))) {
-                resetSimulation();
-              }
-            }}
-            className="flex items-center gap-2 px-3 py-1.5 border hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
-            style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-text)' }}
-            title={t('simPage.resetSimulation')}
-            disabled={isGenerating}
-          >
-            <RotateCcw size={14} />
-          </button>
-
-          <button
-            onClick={() => {
-              if (window.confirm(t('simPage.confirmDelete'))) {
-                deleteSimulation();
-              }
-            }}
-            className="flex items-center gap-2 px-3 py-1.5 border hover:text-red-700 hover:border-red-300 text-xs font-medium rounded shadow-sm transition-all"
-            style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-error-500)' }}
-            title={t('simPage.deleteSimulation')}
-            disabled={isGenerating}
-          >
-            <Trash2 size={14} />
-          </button>
-
-          <button
-            onClick={() => toggleSaveTemplate(true)}
-            className="flex items-center gap-2 px-3 py-1.5 border hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
-            style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-text)' }}
-            title={t('simPage.saveAsTemplate')}
-          >
-            <Save size={14} />
-          </button>
-          <button
-            onClick={() => useSimulationStore.getState().openSyncModal()}
-            className="flex items-center gap-2 px-3 py-1.5 border hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
-            style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-text)' }}
-            title={t('simPage.syncBackend')}
-          >
-            {t('simPage.syncBackend')}
-          </button>
-        </div>
-        <Link to="/settings" className="p-2 hover:text-slate-600 hover:bg-slate-100 rounded-md" style={{ color: 'var(--ss-workspace-muted)' }}>
-          <Settings size={18} />
-        </Link>
-
-        <div className="h-4 w-px mx-2" style={{ background: 'var(--ss-workspace-border)' }}></div>
-        <LanguageSwitcher />
-        <div className="h-4 w-px mx-2" style={{ background: 'var(--ss-workspace-border)' }}></div>
-
-        {/* 用户信息 */}
-        <span className="text-sm" style={{ color: 'var(--ss-workspace-muted)' }}>{String(user?.email ?? '')}</span>
-        <button
-          onClick={logout}
-          className="flex items-center gap-1 px-2 py-1.5 text-xs hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-          style={{ color: 'var(--ss-workspace-muted)' }}
-          title={t('nav.signout')}
-        >
-          <LogOut size={14} />
-        </button>
-      </div>
-    </header>
-  );
-};
+import { BranchComposerDialog } from "../components/workspace/BranchComposerDialog";
+import { readBranchContext } from "../utils/branchContext";
+import { TopControlBar } from "../components/workspace/TopControlBar";
+import { LeftExperimentRail, type RailSection } from "../components/workspace/LeftExperimentRail";
+import { AgentObservationPanel } from "../components/workspace/AgentObservationPanel";
+import { FlowCanvas } from "../components/workspace/FlowCanvas";
+import { NodeDetailPanel, type NodeDetailTab } from "../components/workspace/NodeDetailPanel";
+import { SimulationSummaryRail } from "../components/workspace/SimulationSummaryRail";
+import { TopologyStructureModal } from "../components/workspace/TopologyStructureModal";
 
 // ---------------- 页面主组件：SimulationPage ----------------
 
 const SimulationPage: React.FC = () => {
-  const { t } = useTranslation();
   const isCompareMode = useSimulationStore((state) => state.isCompareMode);
+  const currentSimulation = useSimulationStore((state) => state.currentSimulation);
+  const nodes = useSimulationStore((state) => state.nodes);
+  const selectedNodeId = useSimulationStore((state) => state.selectedNodeId);
+  const compareTargetNodeId = useSimulationStore((state) => state.compareTargetNodeId);
+  const isGenerating = useSimulationStore((state) => state.isGenerating);
+  const selectNode = useSimulationStore((state) => state.selectNode);
+  const setCompareTarget = useSimulationStore((state) => state.setCompareTarget);
+  const toggleCompareMode = useSimulationStore((state) => state.toggleCompareMode);
+  const agents = useSimulationStore((state) => state.agents);
+  const advanceSimulation = useSimulationStore((state) => state.advanceSimulation);
+  const toggleReportModal = useSimulationStore((state) => state.toggleReportModal);
   const params = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const simIdParam = params['id'] || params['simulationId'] || null;
+  const isNewExperimentRoute = !simIdParam;
   const engineConfig = useSimulationStore((state) => state.engineConfig);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasRestored = useAuthStore((s) => s.hasRestored);
+  const { t } = useTranslation();
+  const [hasSubmittedSetup, setHasSubmittedSetup] = React.useState(false);
+  const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null);
+  const [isAgentPanelVisible, setIsAgentPanelVisible] = React.useState(true);
+  const [isSummaryRailVisible, setIsSummaryRailVisible] = React.useState(true);
+  const [isBranchComposerOpen, setIsBranchComposerOpen] = React.useState(false);
+  const [isTopologyModalOpen, setIsTopologyModalOpen] = React.useState(false);
+  const [activeRailSection, setActiveRailSection] = React.useState<RailSection>("overview");
+  const [detailTab, setDetailTab] = React.useState<NodeDetailTab>("events");
+  const flowSectionRef = React.useRef<HTMLDivElement | null>(null);
+  const detailSectionRef = React.useRef<HTMLDivElement | null>(null);
+
+  const selectedNode = React.useMemo(
+    () => nodes.find((node) => node.id === selectedNodeId) || nodes[0] || null,
+    [nodes, selectedNodeId],
+  );
+
+  React.useEffect(() => {
+    if (!isNewExperimentRoute) return;
+
+    useSimulationStore.setState({
+      currentSimulation: null,
+      nodes: generateNodes(),
+      selectedNodeId: 'root',
+      agents: [],
+      logs: [],
+      rawEvents: []
+    } as any);
+    setHasSubmittedSetup(false);
+    setSelectedAgentId(null);
+  }, [isNewExperimentRoute]);
+
+  React.useEffect(() => {
+    if (!isNewExperimentRoute) return;
+    if (!hasSubmittedSetup) return;
+    if (!currentSimulation?.id) return;
+
+    navigate(`/simulations/${currentSimulation.id}`, { replace: true });
+  }, [currentSimulation?.id, hasSubmittedSetup, isNewExperimentRoute, navigate]);
 
   React.useEffect(() => {
     (async () => {
       if (!simIdParam) return;
-
-      // Wait until auth restoration has completed
-      if (!hasRestored || !isAuthenticated) return;
-
-      await useSimulationStore.getState().loadSimulationById(String(simIdParam));
-      return;
+      // read engineConfig from hook above so effect re-runs when mode changes
+      // If we're in connected mode, wait until auth restoration has completed
+      if (engineConfig.mode === 'connected' && !hasRestored) {
+        return;
+      }
+      // If connected mode requires an authenticated user, don't attempt load when not authenticated
+      if (engineConfig.mode === 'connected' && !isAuthenticated) {
+        return;
+      }
       try {
           const token = (engineConfig as any).token as string | undefined;
           let sim: any | null = null;
@@ -594,50 +502,308 @@ const SimulationPage: React.FC = () => {
         console.warn('Failed to load simulation on mount', e);
       }
     })();
-  }, [simIdParam, hasRestored, isAuthenticated]);
+  }, [simIdParam, engineConfig.mode, hasRestored, isAuthenticated]);
 
-  // Load providers when authenticated
+  // Load providers for any authenticated workspace session so users can
+  // choose a provider before enabling the connected / LLM-backed engine.
   React.useEffect(() => {
-    if (hasRestored && isAuthenticated) {
-      useSimulationStore.getState().loadProviders();
-    }
+    if (!hasRestored || !isAuthenticated) return;
+    void useSimulationStore.getState().loadProviders();
   }, [hasRestored, isAuthenticated]);
 
-  // Auto-open experiment builder when creating a new simulation
   React.useEffect(() => {
-    if (!simIdParam && hasRestored && isAuthenticated) {
-      const { isWizardOpen, toggleWizard } = useSimulationStore.getState();
-      if (!isWizardOpen) {
-        toggleWizard(true);
-      }
-    }
-  }, [simIdParam, hasRestored, isAuthenticated]);
+    if (!selectedAgentId) return;
+    if (agents.some((agent) => agent.id === selectedAgentId)) return;
+    setSelectedAgentId(null);
+  }, [agents, selectedAgentId]);
 
-  const activeTab = useSimulationStore((s) => s.activeTab);
+  React.useEffect(() => {
+    if (!isCompareMode) return;
+    setSelectedAgentId(null);
+  }, [isCompareMode]);
+
+  React.useEffect(() => {
+    if (!selectedAgentId) return;
+    setActiveRailSection("agents");
+  }, [selectedAgentId]);
+
+  const scrollToSection = React.useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  React.useEffect(() => {
+    if (isNewExperimentRoute) return;
+    if (!nodes.length) return;
+
+    const currentParams = new URLSearchParams(location.search);
+    const { nodeId, compareId } = readBranchContext(currentParams);
+    const hasNode = nodeId && nodes.some((node) => node.id === nodeId);
+    const hasCompare = compareId && nodes.some((node) => node.id === compareId) && compareId !== nodeId;
+
+    if (hasNode && nodeId !== selectedNodeId) {
+      selectNode(nodeId);
+    }
+
+    if (hasCompare && compareId !== compareTargetNodeId) {
+      setCompareTarget(compareId);
+    }
+
+    if (!hasCompare && compareTargetNodeId) {
+      setCompareTarget(null);
+    }
+
+    if (isCompareMode !== Boolean(hasCompare)) {
+      toggleCompareMode(Boolean(hasCompare));
+    }
+  }, [
+    isNewExperimentRoute,
+    location.search,
+    nodes,
+    selectNode,
+    setCompareTarget,
+    toggleCompareMode,
+  ]);
+
+  React.useEffect(() => {
+    if (isNewExperimentRoute) return;
+    if (!simIdParam) return;
+    if (!currentSimulation || String(currentSimulation.id) !== String(simIdParam)) return;
+    if (!selectedNodeId) return;
+
+    const currentParams = new URLSearchParams(window.location.search);
+    const { nodeId, compareId } = readBranchContext(currentParams);
+    const nextCompare = isCompareMode && compareTargetNodeId ? compareTargetNodeId : null;
+
+    if (nodeId === selectedNodeId && compareId === nextCompare) {
+      return;
+    }
+
+    const nextParams = new URLSearchParams(currentParams);
+    nextParams.set("node", selectedNodeId);
+    if (nextCompare) {
+      nextParams.set("compare", nextCompare);
+    } else {
+      nextParams.delete("compare");
+    }
+
+    const nextQuery = nextParams.toString();
+    const nextUrl = nextQuery ? `${window.location.pathname}?${nextQuery}` : window.location.pathname;
+    window.history.replaceState(window.history.state, "", nextUrl);
+  }, [
+    currentSimulation,
+    isCompareMode,
+    isNewExperimentRoute,
+    selectedNodeId,
+    simIdParam,
+    compareTargetNodeId,
+  ]);
+
+  const showSetupStudio = isNewExperimentRoute;
+  const showLoadingState = Boolean(simIdParam) && !currentSimulation;
+
+  if (showSetupStudio) {
+    return (
+      <>
+        <ExperimentBuilderModal
+          isOpen
+          presentation="page"
+          onComplete={() => setHasSubmittedSetup(true)}
+          onClose={() => navigate("/dashboard")}
+        />
+        <ToastContainer />
+      </>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-screen" style={{ background: 'var(--ss-workspace-bg)' }}>
-      <Header />
-      <TabBar />
-      <ContextToolbar />
+    <div className="ss-workspace">
+      <TopControlBar
+        isGenerating={isGenerating}
+        isCompareMode={isCompareMode}
+        canReturnToParent={Boolean(selectedNode?.parentId)}
+        onContinue={() => void advanceSimulation()}
+        onCreateBranch={() => setIsBranchComposerOpen(true)}
+        onViewDetails={() => {
+          setDetailTab("events");
+          setActiveRailSection("overview");
+          scrollToSection(detailSectionRef);
+        }}
+        onToggleCompare={() => {
+          if (isCompareMode) {
+            setCompareTarget(null);
+            toggleCompareMode(false);
+            return;
+          }
+          toggleCompareMode(true);
+        }}
+        onOpenNode={() => {
+          setActiveRailSection("branches");
+          scrollToSection(flowSectionRef);
+        }}
+        onReturnToParent={() => {
+          if (selectedNode?.parentId) {
+            selectNode(selectedNode.parentId);
+          }
+        }}
+      />
 
-      <div className="flex-1 overflow-hidden relative p-3">
-        {activeTab === 'timeline' && (
-          <div className="flex gap-3 h-full">
-            <div className="w-[40%] flex flex-col">
-              <SimTree />
+      <div className="ss-workspace__main">
+        {showLoadingState ? (
+          <div className="ss-workspace__panel ss-workspace__panel--stage flex h-full items-center justify-center px-6">
+            <div className="max-w-lg text-center">
+              <div className="ss-kicker">{t("simulationWorkspace.deskLabel")}</div>
+              <h2 className="mt-3 font-[var(--font-display)] text-3xl font-semibold tracking-[-0.05em] text-[var(--ss-workspace-heading)]">
+                {t("simulationWorkspace.loadingTitle")}
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-[var(--ss-workspace-muted)]">
+                {t("simulationWorkspace.loadingBody")}
+              </p>
             </div>
-            <div className="flex-1 flex flex-col">
-              {isCompareMode ? <ComparisonView /> : <LogViewer />}
+          </div>
+        ) : (
+          <div
+            className={`ss-cockpit-grid${isAgentPanelVisible ? "" : " is-agent-panel-hidden"}${isSummaryRailVisible ? "" : " is-summary-rail-hidden"}`}
+          >
+            <div className="ss-cockpit-grid__left">
+              <div className={`ss-cockpit-grid__left-shell${isAgentPanelVisible ? "" : " is-agent-panel-hidden"}`}>
+                <LeftExperimentRail
+                  activeSection={activeRailSection}
+                  onOpenOverview={() => {
+                    setActiveRailSection("overview");
+                    scrollToSection(flowSectionRef);
+                  }}
+                  onOpenFlow={() => {
+                    setActiveRailSection("flow");
+                    scrollToSection(flowSectionRef);
+                  }}
+                  onOpenBranches={() => {
+                    setActiveRailSection("branches");
+                    setDetailTab("branches");
+                    scrollToSection(flowSectionRef);
+                  }}
+                  onOpenAgents={() => {
+                    setIsAgentPanelVisible(true);
+                    setActiveRailSection("agents");
+                    if (!selectedAgentId && agents[0]) {
+                      setSelectedAgentId(agents[0].id);
+                    }
+                  }}
+                  onOpenLogs={() => {
+                    setActiveRailSection("logs");
+                    setDetailTab("logs");
+                    scrollToSection(detailSectionRef);
+                  }}
+                  onOpenReports={() => {
+                    setActiveRailSection("reports");
+                    toggleReportModal(true);
+                  }}
+                  onOpenSettings={() => {
+                    setActiveRailSection("settings");
+                    navigate("/settings");
+                  }}
+                />
+
+                {isAgentPanelVisible ? (
+                  <div className="ss-cockpit-grid__agent-panel">
+                    <AgentObservationPanel
+                      selectedAgentId={selectedAgentId}
+                      onSelectAgent={(agentId) => {
+                        setSelectedAgentId(agentId);
+                        if (agentId) {
+                          setActiveRailSection("agents");
+                        }
+                      }}
+                      onHide={() => {
+                        setIsAgentPanelVisible(false);
+                        if (activeRailSection === "agents") {
+                          setActiveRailSection("overview");
+                        }
+                      }}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="ss-cockpit-grid__main">
+              <div ref={flowSectionRef} className="ss-cockpit-grid__section">
+                <FlowCanvas
+                  onOpenDetails={() => {
+                    setDetailTab("branches");
+                    setActiveRailSection("branches");
+                    scrollToSection(detailSectionRef);
+                  }}
+                  onOpenTopology={() => setIsTopologyModalOpen(true)}
+                />
+              </div>
+
+              <div ref={detailSectionRef} className="ss-cockpit-grid__section">
+                <NodeDetailPanel
+                  activeTab={detailTab}
+                  onChangeTab={(tab) => {
+                    setDetailTab(tab);
+                    if (tab === "logs") {
+                      setActiveRailSection("logs");
+                      return;
+                    }
+                    if (tab === "branches") {
+                      setActiveRailSection("branches");
+                      return;
+                    }
+                    setActiveRailSection("overview");
+                  }}
+                  selectedAgentId={selectedAgentId}
+                  onClearSelectedAgent={() => setSelectedAgentId(null)}
+                />
+              </div>
+            </div>
+
+            <div className={`ss-cockpit-grid__right${isSummaryRailVisible ? "" : " is-hidden"}`}>
+              {isSummaryRailVisible ? (
+                <SimulationSummaryRail
+                  onOpenLogs={() => {
+                    setDetailTab("logs");
+                    setActiveRailSection("logs");
+                    scrollToSection(detailSectionRef);
+                  }}
+                  onHide={() => setIsSummaryRailVisible(false)}
+                />
+              ) : null}
             </div>
           </div>
         )}
-        {activeTab === 'agents' && <Sidebar />}
 
-        <PeekOverlay />
+        {!showLoadingState && !isSummaryRailVisible ? (
+          <button
+            type="button"
+            className="ss-summary-rail__reveal"
+            onClick={() => setIsSummaryRailVisible(true)}
+            title="展开右侧摘要"
+            aria-label="展开右侧摘要"
+          >
+            <ChevronLeft size={16} />
+          </button>
+        ) : null}
       </div>
 
-      {/* Modals */}
+      <BranchComposerDialog
+        isOpen={isBranchComposerOpen}
+        onClose={() => setIsBranchComposerOpen(false)}
+      />
+
+      <TopologyStructureModal
+        isOpen={isTopologyModalOpen}
+        onClose={() => setIsTopologyModalOpen(false)}
+        onOpenNodeDetails={() => {
+          setIsTopologyModalOpen(false);
+          setDetailTab("branches");
+          setActiveRailSection("branches");
+          window.setTimeout(() => {
+            scrollToSection(detailSectionRef);
+          }, 40);
+        }}
+      />
+
       <ExperimentBuilderModal />
       <HelpModal />
       <AnalyticsPanel />
