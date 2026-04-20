@@ -352,14 +352,17 @@ async def simulation_tree_advance_chain(
 
                 simulator = tree.nodes[cid]["sim"]
                 total_turns = 1 * max(1, len(simulator.agents))
-                logger.debug(f"[ADVANCE_CHAIN] Running simulator for node {cid}, max_turns={total_turns}")
+                logger.info(f"[ADVANCE_CHAIN] Running simulator for node {cid}, max_turns={total_turns}")
                 await asyncio.to_thread(simulator.run, max_turns=total_turns)
-                logger.debug(f"[ADVANCE_CHAIN] Simulator run complete for node {cid}")
+                logger.info(f"[ADVANCE_CHAIN] Simulator run complete for node {cid}")
 
                 from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
                 if isinstance(simulator, ExperimentRunnerAdapter):
-                    logger.debug(f"[ADVANCE_CHAIN] Adapter events count: {len(simulator.events)}")
-                    logger.debug(f"[ADVANCE_CHAIN] Node logs count: {len(node.get('logs', []))}")
+                    new_events = len(simulator.events)
+                    node_logs = len(node.get('logs', []))
+                    logger.info(f"[ADVANCE_CHAIN] Adapter events count: {new_events}, node logs count: {node_logs}")
+                    if new_events == 0:
+                        logger.warning(f"[ADVANCE_CHAIN] Node {cid} produced ZERO events — simulation may have failed silently")
 
                 if cid in record.running:
                     record.running.remove(cid)
