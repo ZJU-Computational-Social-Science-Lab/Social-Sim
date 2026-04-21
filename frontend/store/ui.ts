@@ -11,8 +11,30 @@
 
 import { StateCreator } from 'zustand';
 import { apiClient } from '../services/client';
-import type { Notification, GuideMessage } from '../types';
+import type { GuideActionType, Notification, GuideMessage } from '../types';
 import type { StoreState } from './storeState';
+
+const GUIDE_ACTION_PATTERN = /\[\[(OPEN_[A-Z_]+)\]\]/g;
+const SUPPORTED_GUIDE_ACTIONS = new Set<string>([
+  'OPEN_WIZARD',
+  'OPEN_NETWORK',
+  'OPEN_EXPERIMENT',
+  'OPEN_EXPORT',
+  'OPEN_ANALYTICS',
+  'OPEN_HOST',
+  'OPEN_REPORT',
+  'OPEN_KNOWLEDGE',
+  'OPEN_MULTIMODAL',
+  'OPEN_ENVIRONMENT',
+]);
+
+const parseGuideActions = (content: string): GuideActionType[] =>
+  Array.from(content.matchAll(GUIDE_ACTION_PATTERN))
+    .map((match) => match[1] as GuideActionType)
+    .filter((action) => SUPPORTED_GUIDE_ACTIONS.has(action));
+
+const stripGuideActions = (content: string): string =>
+  content.replace(GUIDE_ACTION_PATTERN, '').trim();
 
 export interface UISlice {
   // Modal states
@@ -215,8 +237,10 @@ export const createUISlice: StateCreator<
 
     try {
       // Call backend guide API
+      const state = get();
       const response = await apiClient.post<{ message: string }>('llm/guide', {
-        history: get().guideMessages.map((m) => ({
+        provider_id: state.selectedProviderId ?? state.currentProviderId ?? undefined,
+        history: state.guideMessages.map((m) => ({
           role: m.role,
           content: m.content
         }))
@@ -225,7 +249,8 @@ export const createUISlice: StateCreator<
       const assistantMessage: GuideMessage = {
         id: `guide-${Date.now()}`,
         role: 'assistant',
-        content: response.data.message || ''
+        content: stripGuideActions(response.data.message || ''),
+        suggestedActions: parseGuideActions(response.data.message || '')
       };
       set((state) => ({
         guideMessages: [...state.guideMessages, assistantMessage],

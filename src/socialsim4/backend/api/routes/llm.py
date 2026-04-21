@@ -71,6 +71,16 @@ class RefineReportRequest(BaseModel):
     provider_id: Optional[int] = None
 
 
+class GuideHistoryMessage(BaseModel):
+    role: str
+    content: str
+
+
+class GuideRequest(BaseModel):
+    history: list[GuideHistoryMessage]
+    provider_id: Optional[int] = None
+
+
 async def _select_provider(
     session: AsyncSession,
     user_id: int,
@@ -313,6 +323,46 @@ async def refine_report(request: Request, data: RefineReportRequest) -> dict:
         return {"text": text}
 
 
+@post("/guide")
+async def guide(request: Request, data: GuideRequest) -> dict:
+    token = extract_bearer_token(request)
+
+    async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
+        provider = await _select_provider(session, current_user.id, data.provider_id)
+        dialect = (provider.provider or "").lower()
+        cfg = LLMConfig(
+            dialect=dialect,
+            api_key=provider.api_key or "",
+            model=provider.model,
+            base_url=provider.base_url or ("http://127.0.0.1:11434" if dialect == "ollama" else None),
+            temperature=0.3,
+            top_p=1.0,
+            frequency_penalty=0.0,
+            presence_penalty=0.0,
+            max_tokens=700,
+            supports_vision=guess_supports_vision(provider.model),
+        )
+        llm = create_llm_client(cfg)
+
+        system_prompt = (
+            "你是 SocialSim4 Next 社会模拟平台的专家指引助手。"
+            "按用户使用的语言回复，回答要短、具体、可执行。"
+            "平台能力包括：新建仿真、社交网络拓扑、实验设计、主持控制、统计分析、导出、"
+            "分析报告、全局知识库、多模态导入、环境事件建议、仿真树分支推进、节点对比。"
+            "如果用户需要打开工具，在回复末尾追加一个或多个标签："
+            "[[OPEN_WIZARD]], [[OPEN_NETWORK]], [[OPEN_EXPERIMENT]], [[OPEN_EXPORT]], "
+            "[[OPEN_ANALYTICS]], [[OPEN_HOST]], [[OPEN_REPORT]], [[OPEN_KNOWLEDGE]], "
+            "[[OPEN_MULTIMODAL]], [[OPEN_ENVIRONMENT]]。"
+            "报告用于总结实验过程、关键转折点、智能体行为模式和下一步调整建议；"
+            "高级配置用于设置拓扑、知识库、多模态输入和环境扰动。"
+        )
+        messages: list[dict[str, str]] = [{"role": "system", "content": system_prompt}]
+        messages.extend({"role": item.role, "content": item.content} for item in data.history)
+        text = llm.chat(messages)
+        return {"message": text}
+
+
 @post("/generate_agents_demographics")
 async def generate_agents_demographics(
     request: Request,
@@ -547,5 +597,5 @@ async def generate_agents_demographics(
 # 暴露 /llm 前缀的 Router
 router = Router(
     path="/llm",
-    route_handlers=[generate_agents, refine_report, generate_agents_demographics],
+    route_handlers=[generate_agents, refine_report, guide, generate_agents_demographics],
 )

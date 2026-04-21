@@ -10,6 +10,7 @@ import { TemplateSaveModal } from "../components/TemplateSaveModal";
 import { NetworkEditorModal } from "../components/NetworkEditorModal";
 import { ReportModal } from "../components/ReportModal";
 import { GlobalKnowledgePanel } from "../components/GlobalKnowledgePanel";
+import { InitialEventsModal } from "../components/InitialEventsModal";
 import { GuideAssistant } from "../components/GuideAssistant";
 import { ToastContainer } from "../components/Toast";
 import { generateNodes, mapGraphToNodes, useSimulationStore } from "../store";
@@ -44,6 +45,10 @@ const SimulationPage: React.FC = () => {
   const advanceSimulation = useSimulationStore((state) => state.advanceSimulation);
   const resetSimulation = useSimulationStore((state) => state.resetSimulation);
   const toggleExport = useSimulationStore((state) => state.toggleExport);
+  const toggleReportModal = useSimulationStore((state) => state.toggleReportModal);
+  const toggleNetworkEditor = useSimulationStore((state) => state.toggleNetworkEditor);
+  const setGlobalKnowledgeOpen = useSimulationStore((state) => state.setGlobalKnowledgeOpen);
+  const toggleInitialEvents = useSimulationStore((state) => state.toggleInitialEvents);
   const openSnapshotModal = useSimulationStore((state) => state.openSnapshotModal);
   const openTreeOpsModal = useSimulationStore((state) => state.openTreeOpsModal);
   const params = useParams();
@@ -384,6 +389,10 @@ const SimulationPage: React.FC = () => {
           scrollToSection(flowSectionRef);
         }}
         onOpenSnapshots={() => openSnapshotModal()}
+        onOpenReport={() => toggleReportModal(true)}
+        onOpenNetwork={() => toggleNetworkEditor(true)}
+        onOpenKnowledge={() => setGlobalKnowledgeOpen(true)}
+        onOpenMultimodal={() => toggleInitialEvents(true)}
         onOpenExport={() => toggleExport(true)}
         onOpenTreeOps={() => openTreeOpsModal()}
         onResetSimulation={() => {
@@ -481,6 +490,7 @@ const SimulationPage: React.FC = () => {
       <NetworkEditorModal />
       <ReportModal />
       <GlobalKnowledgePanel />
+      <InitialEventsModal />
       <GuideAssistant />
       <SyncModal />
       <ToastContainer />

@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useSimulationStore } from '../store';
 import { useTranslation } from 'react-i18next';
-import { MessageSquare, X, Send, Sparkles, Loader2, ArrowRight } from 'lucide-react';
+import { ArrowRight, Cloud, Database, FileText, Image, Loader2, MessageSquare, Network, Send, Sparkles, X } from 'lucide-react';
 import { GuideActionType } from '../types';
 import { uploadImage } from '../services/uploads';
 
@@ -25,7 +25,13 @@ export const GuideAssistant: React.FC = () => {
   const toggleExperimentDesigner = useSimulationStore(state => state.toggleExperimentDesigner);
   const toggleExport = useSimulationStore(state => state.toggleExport);
   const toggleAnalytics = useSimulationStore(state => state.toggleAnalytics);
-   const addNotification = useSimulationStore(state => state.addNotification);
+  const toggleReportModal = useSimulationStore(state => state.toggleReportModal);
+  const setGlobalKnowledgeOpen = useSimulationStore(state => state.setGlobalKnowledgeOpen);
+  const toggleInitialEvents = useSimulationStore(state => state.toggleInitialEvents);
+  const environmentEnabled = useSimulationStore(state => state.environmentEnabled);
+  const toggleEnvironmentEnabled = useSimulationStore(state => state.toggleEnvironmentEnabled);
+  const generateEnvironmentSuggestions = useSimulationStore(state => state.generateEnvironmentSuggestions);
+  const addNotification = useSimulationStore(state => state.addNotification);
   // Host Panel logic is part of Sidebar, we can't toggle it directly from store easily without a dedicated state, 
   // but we can assume user knows where it is or add a notification/hint. 
   // *Correction*: We can just highlight or guide user. 
@@ -37,6 +43,43 @@ export const GuideAssistant: React.FC = () => {
    const fileInputRef = useRef<HTMLInputElement>(null);
 
    const imageUrls = useMemo(() => extractMarkdownImages(input), [input]);
+  const quickGuideCards: {
+    title: string;
+    body: string;
+    action: GuideActionType;
+    icon: React.ReactNode;
+  }[] = [
+    {
+      title: t('components.guideAssistant.reportGuideTitle'),
+      body: t('components.guideAssistant.reportGuideBody'),
+      action: 'OPEN_REPORT',
+      icon: <FileText size={16} />,
+    },
+    {
+      title: t('components.guideAssistant.networkGuideTitle'),
+      body: t('components.guideAssistant.networkGuideBody'),
+      action: 'OPEN_NETWORK',
+      icon: <Network size={16} />,
+    },
+    {
+      title: t('components.guideAssistant.knowledgeGuideTitle'),
+      body: t('components.guideAssistant.knowledgeGuideBody'),
+      action: 'OPEN_KNOWLEDGE',
+      icon: <Database size={16} />,
+    },
+    {
+      title: t('components.guideAssistant.multimodalGuideTitle'),
+      body: t('components.guideAssistant.multimodalGuideBody'),
+      action: 'OPEN_MULTIMODAL',
+      icon: <Image size={16} />,
+    },
+    {
+      title: t('components.guideAssistant.environmentGuideTitle'),
+      body: t('components.guideAssistant.environmentGuideBody'),
+      action: 'OPEN_ENVIRONMENT',
+      icon: <Cloud size={16} />,
+    },
+  ];
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -80,6 +123,13 @@ export const GuideAssistant: React.FC = () => {
         case 'OPEN_EXPERIMENT': toggleExperimentDesigner(true); break;
         case 'OPEN_EXPORT': toggleExport(true); break;
         case 'OPEN_ANALYTICS': toggleAnalytics(true); break;
+        case 'OPEN_REPORT': toggleReportModal(true); break;
+        case 'OPEN_KNOWLEDGE': setGlobalKnowledgeOpen(true); break;
+        case 'OPEN_MULTIMODAL': toggleInitialEvents(true); break;
+        case 'OPEN_ENVIRONMENT':
+           if (!environmentEnabled) void toggleEnvironmentEnabled();
+           void generateEnvironmentSuggestions();
+           break;
         case 'OPEN_HOST':
            // Sidebar tab switching is local state in Sidebar.tsx.
            // In a full app, we would move activeTab to global store.
@@ -97,6 +147,10 @@ export const GuideAssistant: React.FC = () => {
         case 'OPEN_EXPORT': return t('components.guideAssistant.openExport');
         case 'OPEN_ANALYTICS': return t('components.guideAssistant.openAnalytics');
         case 'OPEN_HOST': return t('components.guideAssistant.openHost');
+        case 'OPEN_REPORT': return t('components.guideAssistant.openReport');
+        case 'OPEN_KNOWLEDGE': return t('components.guideAssistant.openKnowledge');
+        case 'OPEN_MULTIMODAL': return t('components.guideAssistant.openMultimodal');
+        case 'OPEN_ENVIRONMENT': return t('components.guideAssistant.openEnvironment');
         default: return t('components.guideAssistant.executeAction');
      }
   };
@@ -128,6 +182,43 @@ export const GuideAssistant: React.FC = () => {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50" ref={scrollRef}>
+        {messages.length === 0 && (
+          <div className="space-y-3">
+            <div className="rounded-lg border border-indigo-100 bg-white p-3 shadow-sm">
+              <div className="text-xs font-bold uppercase tracking-wide text-indigo-600">
+                {t('components.guideAssistant.starterKicker')}
+              </div>
+              <div className="mt-2 text-sm font-bold text-slate-800">
+                {t('components.guideAssistant.starterTitle')}
+              </div>
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                {t('components.guideAssistant.starterBody')}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              {quickGuideCards.map((card) => (
+                <button
+                  key={card.action}
+                  type="button"
+                  onClick={() => executeAction(card.action)}
+                  className="w-full rounded-lg border border-slate-200 bg-white p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 rounded-md bg-indigo-50 p-1.5 text-indigo-600">
+                      {card.icon}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-bold text-slate-800">{card.title}</div>
+                      <div className="mt-1 text-xs leading-5 text-slate-500">{card.body}</div>
+                    </div>
+                    <ArrowRight size={14} className="mt-1 text-slate-300" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {messages.map(msg => (
           <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
             <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm ${

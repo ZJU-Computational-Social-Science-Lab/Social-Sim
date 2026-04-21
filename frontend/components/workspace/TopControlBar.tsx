@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowUpLeft, Beaker, Cloud, Download, Eye, GitBranchPlus, GitCompareArrows, GitFork, LogOut, Moon, MoreHorizontal, Orbit, Play, RotateCcw, Save, Settings, Sun, ToggleLeft, ToggleRight } from "lucide-react";
+import { ArrowUpLeft, Beaker, Cloud, Database, Download, Eye, FileText, GitBranchPlus, GitCompareArrows, GitFork, Image, LogOut, Moon, MoreHorizontal, Network, Orbit, Play, RotateCcw, Save, Settings, Sun, ToggleLeft, ToggleRight } from "lucide-react";
 
 import { useSimulationStore } from "../../store";
 import { useAuthStore } from "../../store/auth";
@@ -20,6 +20,10 @@ interface TopControlBarProps {
   onOpenNode: () => void;
   onReturnToParent: () => void;
   onOpenSnapshots: () => void;
+  onOpenReport: () => void;
+  onOpenNetwork: () => void;
+  onOpenKnowledge: () => void;
+  onOpenMultimodal: () => void;
   onOpenExport: () => void;
   onResetSimulation: () => void;
   onOpenTreeOps: () => void;
@@ -43,6 +47,10 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   onOpenNode,
   onReturnToParent,
   onOpenSnapshots,
+  onOpenReport,
+  onOpenNetwork,
+  onOpenKnowledge,
+  onOpenMultimodal,
   onOpenExport,
   onResetSimulation,
   onOpenTreeOps,
@@ -178,6 +186,17 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
                 <Beaker size={15} />
                 <span>{isZh ? "仿真干预" : "Intervention"}</span>
               </button>
+
+              <button
+                type="button"
+                className="ss-top-control-bar__quick-chip"
+                onClick={onOpenReport}
+                disabled={!currentSimulation}
+                title={isZh ? "生成实验分析报告" : "Generate experiment analysis report"}
+              >
+                <FileText size={15} />
+                <span>{isZh ? "分析报告" : "Report"}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -236,6 +255,22 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
                 <button type="button" className="ss-button-secondary" onClick={onOpenSnapshots}>
                   <Save size={15} />
                   {isZh ? "快照管理" : "Snapshots"}
+                </button>
+                <button type="button" className="ss-button-secondary" onClick={onOpenReport}>
+                  <FileText size={15} />
+                  {isZh ? "生成分析报告" : "Analysis report"}
+                </button>
+                <button type="button" className="ss-button-secondary" onClick={onOpenNetwork}>
+                  <Network size={15} />
+                  {isZh ? "社交网络拓扑" : "Social topology"}
+                </button>
+                <button type="button" className="ss-button-secondary" onClick={onOpenKnowledge}>
+                  <Database size={15} />
+                  {isZh ? "全局知识库" : "Global knowledge"}
+                </button>
+                <button type="button" className="ss-button-secondary" onClick={onOpenMultimodal}>
+                  <Image size={15} />
+                  {isZh ? "多模态导入" : "Multimodal input"}
                 </button>
                 <button type="button" className="ss-button-secondary" onClick={onOpenExport}>
                   <Download size={15} />
