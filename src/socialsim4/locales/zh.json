@@ -122,8 +122,8 @@
       "llm_quota_exhausted": "（注意：用户 LLM 配额已耗尽，已禁用 LLM 摘要）"
     },
     "compare": {
-      "node_unique_events": "节点 {{node}} 有 {{count}} 条独有事件。",
-      "agent_property_diffs": "{{count}} 个代理的属性存在差异。",
+      "node_unique_events": "节点 {node} 有 {count} 条独有事件。",
+      "agent_property_diffs": "{count} 个代理的属性存在差异。",
       "no_obvious_diff": "未发现明显差异（基于事件内容与属性的快速比对）。"
     },
     "auth": {

@@ -122,8 +122,8 @@
       "llm_quota_exhausted": " (Note: User LLM quota exhausted, LLM summary disabled)"
     },
     "compare": {
-      "node_unique_events": "Node {{node}} has {{count}} unique events.",
-      "agent_property_diffs": "{{count}} agents have property differences.",
+      "node_unique_events": "Node {node} has {count} unique events.",
+      "agent_property_diffs": "{count} agents have property differences.",
       "no_obvious_diff": "No obvious differences found (based on quick comparison of events and properties)."
     },
     "auth": {

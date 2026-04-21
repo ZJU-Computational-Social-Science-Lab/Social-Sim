@@ -186,6 +186,7 @@ async def compare_nodes(request: Request, simulation_id: str, data: dict) -> dic
     node_a_raw = data.get("node_a")
     node_b_raw = data.get("node_b")
     use_llm = bool(data.get("use_llm", False))
+    locale = data.get("locale") if data.get("locale") in {"zh", "en"} else None
 
     if node_a_raw is None or node_b_raw is None:
         raise HTTPException(status_code=400, detail=T('api.errors.missing_nodes'))
@@ -235,15 +236,15 @@ async def compare_nodes(request: Request, simulation_id: str, data: dict) -> dic
     # construct a conservative natural-language summary from diffs (no external LLM by default)
     parts: List[str] = []
     if only_a:
-        parts.append(T('api.compare.node_unique_events', node=node_a, count=len(only_a)))
+        parts.append(T('api.compare.node_unique_events', locale=locale, node=node_a, count=len(only_a)))
     if only_b:
-        parts.append(T('api.compare.node_unique_events', node=node_b, count=len(only_b)))
+        parts.append(T('api.compare.node_unique_events', locale=locale, node=node_b, count=len(only_b)))
     if agent_diffs:
-        parts.append(T('api.compare.agent_property_diffs', count=len(agent_diffs)))
+        parts.append(T('api.compare.agent_property_diffs', locale=locale, count=len(agent_diffs)))
     if not parts:
-        parts.append(T('api.compare.no_obvious_diff'))
+        parts.append(T('api.compare.no_obvious_diff', locale=locale))
 
-    summary = "；".join(parts)
+    summary = "；".join(parts) if locale == "zh" else "; ".join(parts)
 
     # Optional: use LLM to produce a short, conservative summary if requested and safe
     if use_llm:

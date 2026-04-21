@@ -24,6 +24,6 @@ export async function getExperiment(simulationId: string, expId: string) {
   return apiGet<any>(`/simulations/${simulationId}/experiments/${expId}`);
 }
 
-export async function compareNodes(simulationId: string, nodeA: number, nodeB: number, use_llm = false) {
-  return apiPost<any>(`/simulations/${simulationId}/compare`, { node_a: nodeA, node_b: nodeB, use_llm });
+export async function compareNodes(simulationId: string, nodeA: number, nodeB: number, use_llm = false, locale?: string) {
+  return apiPost<any>(`/simulations/${simulationId}/compare`, { node_a: nodeA, node_b: nodeB, use_llm, locale });
 }
