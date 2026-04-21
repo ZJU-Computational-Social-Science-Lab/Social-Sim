@@ -63,6 +63,9 @@ services:
       SOCIALSIM4_EMBEDDING_BACKEND: ollama
       SOCIALSIM4_OLLAMA_EMBED_MODEL: nomic-embed-text:latest
       OLLAMA_BASE_URL: http://socialsim-ollama:11434
+      LLM_TIMEOUT_S: "${LLM_TIMEOUT_S:-120}"
+      LLM_MAX_CONCURRENT_PER_CLIENT: "${LLM_MAX_CONCURRENT_PER_CLIENT:-3}"
+      SOCIALSIM_LLM_CONCURRENCY: "${SOCIALSIM_LLM_CONCURRENCY:-3}"
       HOME: /tmp
       HF_HOME: /tmp/huggingface
       TORCH_HOME: /tmp/torch
@@ -112,6 +115,7 @@ services:
     environment:
       NVIDIA_VISIBLE_DEVICES: all
       NVIDIA_DRIVER_CAPABILITIES: compute,utility
+      OLLAMA_NUM_PARALLEL: "3"
     volumes:
       - ollama_data:/root/.ollama
     networks:
