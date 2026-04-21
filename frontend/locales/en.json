@@ -2072,9 +2072,11 @@
       "importTitle": "Import Agent Data",
       "importDesc": "Upload a CSV or JSON file with agent definitions.",
       "csvFormat": "CSV Format Example:",
+      "jsonFormat": "JSON Format Example:",
       "uploadCSV": "Upload CSV",
       "uploadJSON": "Upload JSON",
-      "importInfo": "File import will be implemented in Phase 7."
+      "importInfo": "Imports are appended to the current agent registry. Extra columns become editable agent properties.",
+      "importSuccess": "Imported {{count}} agents from {{file}}."
     },
     "step5": {
       "networkPresets": "Network Presets",

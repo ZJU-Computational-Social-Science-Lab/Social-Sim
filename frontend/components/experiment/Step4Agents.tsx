@@ -69,6 +69,105 @@ const buildDefaultDemographics = (language: string): Demographic[] => (
   }))
 );
 
+const IMPORT_CORE_FIELDS = new Set(['name', 'role_prompt', 'user_profile', 'count', 'properties']);
+
+const parseCsvRows = (text: string) => {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const nextChar = text[index + 1];
+
+    if (char === '"' && inQuotes && nextChar === '"') {
+      cell += '"';
+      index += 1;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      row.push(cell.trim());
+      cell = '';
+    } else if (char === '\n' && !inQuotes) {
+      row.push(cell.trim());
+      if (row.some((item) => item.length > 0)) {
+        rows.push(row);
+      }
+      row = [];
+      cell = '';
+    } else if (char !== '\r') {
+      cell += char;
+    }
+  }
+
+  row.push(cell.trim());
+  if (row.some((item) => item.length > 0)) {
+    rows.push(row);
+  }
+
+  return rows;
+};
+
+const parseCsvAgentRows = (text: string) => {
+  const rows = parseCsvRows(text);
+  if (rows.length < 2) {
+    throw new Error('CSV must include a header row and at least one agent row.');
+  }
+
+  const headers = rows[0].map((header, index) => (index === 0 ? header.replace(/^\uFEFF/, '') : header).trim());
+  const nameIndex = headers.indexOf('name');
+  if (nameIndex === -1) {
+    throw new Error('CSV header must include name.');
+  }
+
+  return rows.slice(1).map((row) => {
+    const record: Record<string, unknown> = {};
+    headers.forEach((header, index) => {
+      record[header] = row[index] ?? '';
+    });
+    return record;
+  });
+};
+
+const parseJsonAgentRows = (text: string) => {
+  return JSON.parse(text) as Array<Record<string, unknown>>;
+};
+
+const buildImportedAgentTypes = (
+  rows: Array<Record<string, unknown>>,
+  selectedProviderId: number | null,
+): ManualAgentType[] => {
+  const timestamp = Date.now();
+  return rows.map((row, index) => {
+    const label = String(row.name ?? '').trim();
+    if (!label) {
+      throw new Error(`Imported agent row ${index + 1} is missing name.`);
+    }
+
+    const properties = { ...((row.properties ?? {}) as Record<string, unknown>) };
+
+    Object.entries(row).forEach(([key, value]) => {
+      if (!IMPORT_CORE_FIELDS.has(key) && value !== '') {
+        properties[key] = value;
+      }
+    });
+
+    const count = Math.max(1, Math.floor(Number(row.count ?? 1)));
+    const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'agent';
+
+    return {
+      id: `import-${timestamp}-${index + 1}-${slug}`,
+      label,
+      count,
+      rolePrompt: String(row.role_prompt ?? '').trim(),
+      userProfile: String(row.user_profile ?? '').trim(),
+      properties,
+      providerId: selectedProviderId,
+    };
+  });
+};
+
 // =============================================================================
 // Component
 // =============================================================================
@@ -126,6 +225,7 @@ export const Step4Agents: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedAgents, setGeneratedAgents] = useState<Agent[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
+  const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const [tierOrderDraft, setTierOrderDraft] = useState<string[]>(['top', 'mid', 'low']);
   const [agentDirectoryQuery, setAgentDirectoryQuery] = useState('');
   const [selectedEditorAgentId, setSelectedEditorAgentId] = useState<string | null>(null);
@@ -301,6 +401,32 @@ export const Step4Agents: React.FC = () => {
       properties: showTierControls ? { tier: '' } : {},
       providerId: selectedProviderId,
     });
+  };
+
+  const handleImportAgentFile = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    format: 'csv' | 'json',
+  ) => {
+    const file = event.currentTarget.files?.[0];
+    if (!file) return;
+
+    event.currentTarget.value = '';
+    setImportSuccess(null);
+
+    const text = await file.text();
+    const rows = format === 'csv' ? parseCsvAgentRows(text) : parseJsonAgentRows(text);
+    const importedAgents = buildImportedAgentTypes(rows, selectedProviderId);
+    if (importedAgents.length === 0) {
+      throw new Error('File did not contain any agent rows.');
+    }
+
+    importedAgents.forEach(addAgentType);
+    setSelectedEditorAgentId(importedAgents[0].id);
+    setImportError(null);
+    setImportSuccess(t('experimentBuilder.step4.importSuccess', {
+      count: importedAgents.reduce((sum, agent) => sum + agent.count, 0),
+      file: file.name,
+    }));
   };
 
   const handleUpdateTier = (id: string, tier: TierValue) => {
@@ -1102,24 +1228,53 @@ export const Step4Agents: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('experimentBuilder.step4.csvFormat')}</label>
               <pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto">
-                <code>name,role_prompt,user_profile,opinion</code>
+                <code>name,role_prompt,user_profile,opinion,count</code>
               </pre>
             </div>
 
-            <div className="flex gap-2">
-              <Button variant="outline" component="label">
-                <input type="file" accept=".csv,.json" className="hidden" />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('experimentBuilder.step4.jsonFormat')}
+              </label>
+              <pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto">
+                <code>{'[{"name":"Alice","role_prompt":"Policy supporter","user_profile":"Urban resident","opinion":"support"}]'}</code>
+              </pre>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-[var(--ss-border)] bg-[var(--ss-surface)] px-3.5 py-2 text-sm font-medium text-[var(--ss-text)] transition-all hover:-translate-y-0.5 hover:border-[var(--ss-border-strong)]">
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="hidden"
+                  onChange={(event) => handleImportAgentFile(event, 'csv')}
+                />
                 {t('experimentBuilder.step4.uploadCSV')}
-              </Button>
-              <Button variant="outline" component="label">
-                <input type="file" accept=".csv,.json" className="hidden" />
+              </label>
+              <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-[var(--ss-border)] bg-[var(--ss-surface)] px-3.5 py-2 text-sm font-medium text-[var(--ss-text)] transition-all hover:-translate-y-0.5 hover:border-[var(--ss-border-strong)]">
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  className="hidden"
+                  onChange={(event) => handleImportAgentFile(event, 'json')}
+                />
                 {t('experimentBuilder.step4.uploadJSON')}
-              </Button>
+              </label>
             </div>
 
             <div className="bg-blue-50 p-3 rounded border border-blue-200">
               <p className="text-sm text-blue-800">ℹ️ {t('experimentBuilder.step4.importInfo')}</p>
             </div>
+            {importSuccess && (
+              <div className="bg-green-50 p-3 rounded border border-green-200">
+                <p className="text-sm text-green-800">{importSuccess}</p>
+              </div>
+            )}
+            {importError && (
+              <div className="bg-red-50 p-3 rounded border border-red-200">
+                <p className="text-sm text-red-800">{importError}</p>
+              </div>
+            )}
           </div>
         </ResearchInputPanel>
       )}

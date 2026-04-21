@@ -2058,9 +2058,11 @@
       "importTitle": "导入智能体数据",
       "importDesc": "上传包含智能体定义的 CSV 或 JSON 文件。",
       "csvFormat": "CSV 格式示例：",
+      "jsonFormat": "JSON 格式示例：",
       "uploadCSV": "上传 CSV",
       "uploadJSON": "上传 JSON",
-      "importInfo": "文件导入功能将在第7阶段实现。"
+      "importInfo": "导入内容会追加到当前智能体列表，额外列会成为可编辑的智能体属性。",
+      "importSuccess": "已从 {{file}} 导入 {{count}} 个智能体。"
     },
     "step5": {
       "networkPresets": "网络预设",
