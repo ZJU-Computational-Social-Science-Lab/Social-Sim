@@ -404,18 +404,11 @@ class ExperimentRunner:
             async with semaphore:
                 return await self._prompt_agent(agent, round_num)
 
-        # For follow-up actions, keep prompt/follow-up pairs isolated so one
-        # agent's second call cannot interleave with another agent's first call.
-        if self._scene_has_followup_actions():
-            action_results = []
-            for agent in self.agents:
-                try:
-                    action_results.append(await _prompt_with_limit(agent))
-                except Exception as result:
-                    action_results.append(result)
-        else:
-            tasks = [_prompt_with_limit(agent) for agent in self.agents]
-            action_results = await asyncio.gather(*tasks, return_exceptions=True)
+        # Run all agents concurrently up to max_concurrent. The semaphore holds
+        # the lock for the entire _prompt_agent call (including any followup
+        # prompt), so per-agent first/second calls are already isolated.
+        tasks = [_prompt_with_limit(agent) for agent in self.agents]
+        action_results = await asyncio.gather(*tasks, return_exceptions=True)
 
         for result in action_results:
             if isinstance(result, Exception):
