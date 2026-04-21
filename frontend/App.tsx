@@ -12,9 +12,15 @@ import { useThemeStore } from "./store/theme";
 const DashboardPage = lazy(() =>
   import("./pages/DashboardPage").then((m) => ({ default: m.DashboardPage }))
 );
-import { LandingPage } from "./pages/LandingPage";
-import { LoginPage } from "./pages/LoginPage";
-import { RegisterPage } from "./pages/RegisterPage";
+const LandingPage = lazy(() =>
+  import("./pages/LandingPage").then((m) => ({ default: m.LandingPage }))
+);
+const LoginPage = lazy(() =>
+  import("./pages/LoginPage").then((m) => ({ default: m.LoginPage }))
+);
+const RegisterPage = lazy(() =>
+  import("./pages/RegisterPage").then((m) => ({ default: m.RegisterPage }))
+);
 const SavedSimulationsPage = lazy(() =>
   import("./pages/SavedSimulationsPage").then((m) => ({
     default: m.SavedSimulationsPage,
@@ -30,10 +36,15 @@ const DocsPage = lazy(() =>
   import("./pages/DocsPage").then((m) => ({ default: m.DocsPage }))
 );
 
-// 新前端的仿真主界面（你已经把原来的 App 改名为 SimulationPage.tsx，并 default export）
-import SimulationPage from "./pages/SimulationPage";
-import TopologyExplorerPage from "./pages/TopologyExplorerPage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+
+// 新前端的仿真主界面（你已经把原来的 App 改名为 SimulationPage.tsx，并 default export）
+const SimulationPage = lazy(() => import("./pages/SimulationPage"));
+const TopologyExplorerPage = lazy(() =>
+  import("./pages/TopologyExplorerPage").then((m) => ({
+    default: m.default,
+  }))
+);
 
 const App: React.FC = () => {
   const applyTheme = useThemeStore((state) => state.apply);

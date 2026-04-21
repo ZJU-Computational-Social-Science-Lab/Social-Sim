@@ -3325,7 +3325,7 @@
     font-weight: 800;
     box-shadow: 0 8px 18px rgba(72, 239, 181, 0.14);
   }
-    border-color: color-mix(in srgb, var(--ss-brand-primary) 58%, var(--ss-workspace-border));
+
   .ss-top-control-bar__menu {
     background: color-mix(in srgb, var(--ss-brand-primary) 24%, var(--ss-brand-soft));
     box-shadow:
