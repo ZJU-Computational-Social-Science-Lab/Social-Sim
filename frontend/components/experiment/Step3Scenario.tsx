@@ -14,6 +14,10 @@ import { Circle, Plus, X } from 'lucide-react';
 import { ActionDef } from '../../services/scenarios';
 import { ResearchInputPanel } from './workflow/ResearchInputPanel';
 import { SummaryInfoCard } from './workflow/SummaryInfoCard';
+import {
+  getLocalizedActionDescription,
+  getLocalizedActionName,
+} from '../../utils/scenarioLocalization';
 
 interface ActionToggleCardProps {
   name: string;
@@ -173,8 +177,8 @@ const summarizeBehaviorSpace = (
   return {
     title: isZh ? `已选择 ${selectedActions.length} 个动作` : `${selectedActions.length} actions selected`,
     description: isZh
-      ? '当前行为空间已经具备比较基础，可以继续绑定参与者策略。'
-      : 'The action space already supports a useful comparison and can move on to participant strategy mapping.',
+      ? '当前行为空间已经具备比较基础，可以继续绑定智能体策略。'
+      : 'The action space already supports a useful comparison and can move on to agent strategy mapping.',
     helper: isZh
       ? totalActions > selectedActions.length
         ? '如需扩展，可以稍后再启用更多动作。'
@@ -222,7 +226,9 @@ export const Step3Scenario: React.FC = () => {
 
     return choices.map((choice) => ({
       name: choice,
-      description: t('experimentBuilder.actions.chooseAction', { action: choice }),
+      description: t('experimentBuilder.actions.chooseAction', {
+        action: getLocalizedActionName(choice, isZh),
+      }),
     }));
   };
 
@@ -335,8 +341,8 @@ export const Step3Scenario: React.FC = () => {
         {actions.map((action) => (
           <ActionToggleCard
             key={action.name}
-            name={action.name}
-            description={action.description}
+            name={getLocalizedActionName(action.name, isZh)}
+            description={getLocalizedActionDescription(action.description, isZh)}
             tag={classifyActionTag(action.name, action.description, isZh)}
             statusLabel={
               selectedActionIds.includes(action.name)
@@ -404,8 +410,8 @@ export const Step3Scenario: React.FC = () => {
         title={t('experimentBuilder.step3.title')}
         description={
           isZh
-            ? '先确定参与者在这个场景里到底可以做什么，再决定保留哪些动作进入实验。'
-            : 'Define what participants can actually do in this scenario before deciding which actions belong in the experiment.'
+            ? '先确定智能体在这个场景里到底可以做什么，再决定保留哪些动作进入实验。'
+            : 'Define what agents can actually do in this scenario before deciding which actions belong in the experiment.'
         }
       >
         <div className="ss-workflow-summary-grid">
@@ -452,7 +458,9 @@ export const Step3Scenario: React.FC = () => {
 
       {/* Action Toggle Cards */}
       <ResearchInputPanel
-        eyebrow={t('experimentBuilder.step3.ruleLibrary', { defaultValue: 'Heuristic set' })}
+        eyebrow={t('experimentBuilder.step3.ruleLibrary', {
+          defaultValue: isZh ? '行为规则' : 'Heuristic set',
+        })}
         title={t('experimentBuilder.step3.ruleLibraryTitle', { defaultValue: '行为规则' })}
         description={t('experimentBuilder.step3.ruleLibraryDescription', {
           defaultValue: '先保留一组最基础、最可比较的动作，高级动作可以稍后再展开。',
@@ -523,7 +531,7 @@ export const Step3Scenario: React.FC = () => {
 
       <ResearchInputPanel
         eyebrow={isZh ? '当前已选动作' : 'Selected actions'}
-        title={isZh ? '当前已选动作与行为空间' : 'Selected actions and behavior space'}
+        title={isZh ? '当前已选动作' : 'Selected actions and behavior space'}
         description={
           isZh
             ? '已选动作会直接决定后续模拟中的策略比较。先形成一组基础对比，再决定是否扩展。'
@@ -538,7 +546,7 @@ export const Step3Scenario: React.FC = () => {
           <div className="ss-behavior-space__chips">
             {selectedActions.map((action) => (
               <span key={action.name} className="ss-behavior-space__chip">
-                {action.name}
+                {getLocalizedActionName(action.name, isZh)}
               </span>
             ))}
           </div>

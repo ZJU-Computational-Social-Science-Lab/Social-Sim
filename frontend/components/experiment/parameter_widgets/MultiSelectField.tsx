@@ -6,10 +6,12 @@
 
 import React from 'react';
 
+type MultiSelectOption = string | { value: string; label: string };
+
 interface MultiSelectFieldProps {
   value: string[];
   onChange: (value: string[]) => void;
-  options: string[];
+  options: MultiSelectOption[];
   disabled?: boolean;
 }
 
@@ -29,18 +31,23 @@ export default function MultiSelectField({
 
   return (
     <div className="space-y-2">
-      {options.map(option => (
-        <label key={option} className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={value.includes(option)}
-            onChange={() => toggleOption(option)}
-            disabled={disabled}
-            className="w-4 h-4 rounded"
-          />
-          <span>{option}</span>
-        </label>
-      ))}
+      {options.map((option) => {
+        const normalizedOption =
+          typeof option === 'string' ? { value: option, label: option } : option;
+
+        return (
+          <label key={normalizedOption.value} className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={value.includes(normalizedOption.value)}
+              onChange={() => toggleOption(normalizedOption.value)}
+              disabled={disabled}
+              className="w-4 h-4 rounded"
+            />
+            <span>{normalizedOption.label}</span>
+          </label>
+        );
+      })}
     </div>
   );
 }

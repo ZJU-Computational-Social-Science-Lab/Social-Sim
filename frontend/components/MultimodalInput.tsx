@@ -77,7 +77,6 @@ export const MultimodalInput: React.FC<Props> = ({
     try {
       const asset = await uploadImage(file, { onProgress: setProgress });
       const isImage = file.type.startsWith('image/');
-      console.log('Uploaded asset:', asset); // Debug
       setPreviewUrl(isImage ? asset.url : null);
       setLastUploadedName(file.name);
       onInsert(asset.url, altText || undefined);
@@ -176,7 +175,7 @@ export const MultimodalInput: React.FC<Props> = ({
               className="w-full rounded"
               style={{ maxHeight: '400px', objectFit: 'contain' }}
               onError={() => { console.error('Image load error:', previewUrl); setImageError(true); }}
-              onLoad={() => { console.log('Image loaded:', previewUrl); setImageError(false); }}
+              onLoad={() => { setImageError(false); }}
             />
           )}
           {enableCrop && (

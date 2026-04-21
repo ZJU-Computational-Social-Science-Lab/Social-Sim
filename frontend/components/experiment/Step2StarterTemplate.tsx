@@ -10,6 +10,10 @@ import { FieldBlock } from "./workflow/FieldBlock";
 import { ResearchInputPanel } from "./workflow/ResearchInputPanel";
 import { SecondaryGhostButton } from "./workflow/SecondaryGhostButton";
 import { SummaryInfoCard } from "./workflow/SummaryInfoCard";
+import {
+  getLocalizedActionName,
+  getLocalizedScenarioDescription,
+} from "../../utils/scenarioLocalization";
 
 const DISTORTION_ONLY_PARAM_KEYS = new Set([
   "distortion_strength",
@@ -79,7 +83,7 @@ export const analyzeScenarioStructure = (
         : "This scenario is a coordination game. Both sides want to align, but they prefer different coordinated outcomes.",
       inference: isZh
         ? "当前实验重点在于观察个体如何在达成一致与坚持偏好之间做选择。"
-        : "The key question is how participants trade off reaching agreement against holding onto their preferred option.",
+        : "The key question is how agents trade off reaching agreement against holding onto their preferred option.",
     };
   }
 
@@ -88,7 +92,7 @@ export const analyzeScenarioStructure = (
       ordering: isZh ? "高回报协作结构" : "High-trust coordination structure",
       explanation: isZh
         ? "该场景更接近鹿猎型协作。共同合作时回报最高，但一旦对彼此缺乏信任，就会退回更保守的选择。"
-        : "This scenario is closer to a stag hunt. Joint cooperation pays most, but low trust pushes participants toward the safer option.",
+        : "This scenario is closer to a stag hunt. Joint cooperation pays most, but low trust pushes agents toward the safer option.",
       inference: isZh
         ? "实验重点在于观察信任是否足以支撑群体从保守策略转向高收益合作。"
         : "Focus on whether trust is strong enough to move the group from cautious play toward higher-yield cooperation.",
@@ -107,12 +111,40 @@ export const analyzeScenarioStructure = (
     };
   }
 
+  if (
+    scenarioId === "policy_erosion" ||
+    scenarioId === "policy_diffusion" ||
+    scenarioId === "policyDiffusion"
+  ) {
+    return {
+      ordering: isZh ? "层级政策传递结构" : "Hierarchical policy-transmission structure",
+      explanation: isZh
+        ? "该场景不是收益矩阵博弈，而是观察政策在多层级组织中被传达、改写、弱化或截留的过程。"
+        : "This scenario is not a payoff-matrix game. It tracks how a policy is relayed, rewritten, weakened, or blocked across organizational tiers.",
+      inference: isZh
+        ? "实验重点在于观察传递模式、层级压力和执行语境如何共同造成政策意义磨损。"
+        : "Focus on how transmission mode, tier pressure, and implementation context combine to erode policy meaning.",
+    };
+  }
+
+  if (scenarioId === "xihu_yilianbao") {
+    return {
+      ordering: isZh ? "信息干预扩散结构" : "Insurance-information diffusion structure",
+      explanation: isZh
+        ? "该场景把西湖益联保的 A0-A8 信息干预转成社会网络中的投保扩散过程。个体会在官方背书、框架表达、家庭负担和邻里讨论之间反复权衡。"
+        : "This scenario turns the Xihu Yilianbao A0-A8 information treatments into an enrollment diffusion process on a social network. Agents weigh official endorsement, framing, household burden, and peer discussion at the same time.",
+      inference: isZh
+        ? "实验重点在于观察哪类信息更容易把观望者推向投保，哪些家庭角色会把决策继续传递给家人或邻居。"
+        : "Focus on which messages move hesitant agents toward enrollment, and which household roles carry that decision onward to family members or neighbors.",
+    };
+  }
+
   if (scenarioId === "echo_chamber" || scenarioId === "opinion_dynamics") {
     return {
       ordering: isZh ? "观点扩散结构" : "Opinion-dynamics structure",
       explanation: isZh
         ? "该场景关注观点扩散与回声室形成。个体会根据周围关系与信息环境不断调整表达。"
-        : "This scenario focuses on opinion diffusion and echo-chamber formation. Participants adapt what they express based on local ties and information exposure.",
+        : "This scenario focuses on opinion diffusion and echo-chamber formation. Agents adapt what they express based on local ties and information exposure.",
       inference: isZh
         ? "实验重点在于观察网络结构和接触范围如何影响观点收敛、分化或极化。"
         : "Focus on how network structure and exposure shape convergence, fragmentation, or polarization.",
@@ -195,48 +227,29 @@ function PayoffInput({
     defect_penalty: 1,
   };
 
+  const localizedActionA = getLocalizedActionName(actionA, isZh);
+  const localizedActionB = getLocalizedActionName(actionB, isZh);
+
   const cards = [
     {
       key: "cooperate_reward" as const,
-      left: actionA,
-      right: actionA,
-      helper:
-        actionA === actionB
-          ? isZh
-            ? `双方选择 ${actionA} 时的收益`
-            : `The payoff when both sides choose ${actionA}`
-          : isZh
-            ? `双方都选择 ${actionA} 时的收益`
-            : `The payoff when both sides choose ${actionA}`,
+      left: localizedActionA,
+      right: localizedActionA,
     },
     {
       key: "sucker_penalty" as const,
-      left: actionA,
-      right: actionB,
-      helper: isZh
-        ? `当你选择 ${actionA}，对方选择 ${actionB} 时的收益`
-        : `The payoff when you choose ${actionA} and the other side chooses ${actionB}`,
+      left: localizedActionA,
+      right: localizedActionB,
     },
     {
       key: "temptation_reward" as const,
-      left: actionB,
-      right: actionA,
-      helper: isZh
-        ? `当你选择 ${actionB}，对方选择 ${actionA} 时的收益`
-        : `The payoff when you choose ${actionB} and the other side chooses ${actionA}`,
+      left: localizedActionB,
+      right: localizedActionA,
     },
     {
       key: "defect_penalty" as const,
-      left: actionB,
-      right: actionB,
-      helper:
-        actionA === actionB
-          ? isZh
-            ? `双方继续 ${actionB} 时的收益`
-            : `The payoff when both sides continue with ${actionB}`
-          : isZh
-            ? `双方都选择 ${actionB} 时的收益`
-            : `The payoff when both sides choose ${actionB}`,
+      left: localizedActionB,
+      right: localizedActionB,
     },
   ];
 
@@ -260,7 +273,6 @@ function PayoffInput({
             className={`ss-variable-map__param-card${
               highlightFirstCard && card.key === "cooperate_reward" ? " is-guided" : ""
             }`.trim()}
-            title={card.helper}
           >
             <div className="ss-variable-map__param-head">
               <div className="ss-variable-map__param-copy">
@@ -269,9 +281,6 @@ function PayoffInput({
                     ? `当你选择${card.left}，对方选择${card.right}时`
                     : `When you choose ${card.left} and the other side chooses ${card.right}`}
                 </h3>
-                <p className="ss-variable-map__param-note">
-                  {card.helper}
-                </p>
               </div>
               <div className="ss-variable-map__param-current">{currentValue}</div>
             </div>
@@ -419,13 +428,42 @@ export const Step2StarterTemplate: React.FC = () => {
   const getParamValue = (param: { key: string; default: unknown }) =>
     scenarioParams[param.key] !== undefined ? scenarioParams[param.key] : param.default;
 
-  const getParamLabel = (param: { key: string; label: string }) =>
-    t(`experimentBuilder.paramLabels.${param.key}`, { defaultValue: param.label });
+  const rawActionA = String(
+    scenarioParams.action_1_name || selectedScenarioData.actions?.[0]?.name || "Action 1"
+  );
+  const rawActionB = String(
+    scenarioParams.action_2_name || selectedScenarioData.actions?.[1]?.name || "Action 2"
+  );
+  const localizedActionA = getLocalizedActionName(rawActionA, isZh);
+  const localizedActionB = getLocalizedActionName(rawActionB, isZh);
 
-  const getParamDescription = (param: { key: string; description?: string }) =>
-    t(`experimentBuilder.paramDescriptions.${param.key}`, {
-      defaultValue: param.description || "",
-    });
+  const getParamLabel = (param: { key: string; label: string }) => {
+    if (param.key === "cooperate_reward") {
+      return isZh ? `双方都选择${localizedActionA}` : `Both ${rawActionA}`;
+    }
+    if (param.key === "sucker_penalty") {
+      return isZh
+        ? `你选择${localizedActionA}，对方选择${localizedActionB}`
+        : `You ${rawActionA}, They ${rawActionB}`;
+    }
+    if (param.key === "temptation_reward") {
+      return isZh
+        ? `你选择${localizedActionB}，对方选择${localizedActionA}`
+        : `You ${rawActionB}, They ${rawActionA}`;
+    }
+    if (param.key === "defect_penalty") {
+      return isZh ? `双方都选择${localizedActionB}` : `Both ${rawActionB}`;
+    }
+    return t(`experimentBuilder.paramLabels.${param.key}`, { defaultValue: param.label });
+  };
+
+  const getParamDisplayValue = (param: { key: string; default: unknown }) => {
+    const value = getParamValue(param);
+    if (param.key === "action_1_name" || param.key === "action_2_name") {
+      return getLocalizedActionName(String(value), isZh);
+    }
+    return value;
+  };
 
   const getActionEditor = () => {
     const scenarioId = selectedScenarioData.id;
@@ -482,6 +520,7 @@ export const Step2StarterTemplate: React.FC = () => {
     `scenario.${selectedScenarioData.category}.${selectedScenarioData.id}.name`,
     { defaultValue: selectedScenarioData.name }
   );
+  const translatedDescription = getLocalizedScenarioDescription(t, selectedScenarioData);
   const scheduleLabel =
     localRoundVisibility === "simultaneous"
       ? t("experimentDesk.summary.simultaneous")
@@ -570,13 +609,8 @@ export const Step2StarterTemplate: React.FC = () => {
   return (
     <div className="ss-variable-map">
       <ResearchInputPanel
-        eyebrow={isZh ? "当前场景 / Configuration" : "Current scenario / Configuration"}
+        eyebrow={isZh ? "当前场景" : "Current scenario"}
         title={translatedName}
-        description={
-          isZh
-            ? "先确认当前场景框架，再调整最关键的参数；更细的规则与推进设置可以稍后展开。"
-            : "Confirm the scenario frame first, then tune the key parameters. Leave finer rules and schedules for later."
-        }
       >
         <div
           id="ss-step2-scenario-summary"
@@ -592,7 +626,7 @@ export const Step2StarterTemplate: React.FC = () => {
                 </span>
               ))}
             </div>
-            <p className="ss-workflow-panel__copy">{selectedScenarioData.description}</p>
+            <p className="ss-workflow-panel__copy">{translatedDescription}</p>
           </div>
 
           <div className="ss-variable-map__summary-cards">
@@ -617,13 +651,8 @@ export const Step2StarterTemplate: React.FC = () => {
       </ResearchInputPanel>
 
       <ResearchInputPanel
-        eyebrow={isZh ? "核心参数 / Key variables" : "Key variables"}
+        eyebrow={isZh ? "核心参数" : "Key variables"}
         title={isZh ? "先调整这几个关键参数" : "Start with these key parameters"}
-        description={
-          isZh
-            ? "只先调整最影响实验结果的变量，完成首轮配置后再决定是否展开更细设置。"
-            : "Tune the variables that shape the experiment most, then open advanced settings only if needed."
-        }
         actions={
           <div className="ss-variable-map__focus-chip">
             <SlidersHorizontal size={16} />
@@ -639,36 +668,25 @@ export const Step2StarterTemplate: React.FC = () => {
           {selectedScenarioData.display_type === "payoff_matrix" ? (
             <PayoffInput
               value={scenarioParams as { cooperate_reward?: number; defect_penalty?: number }}
-              actionA={String(
-                scenarioParams.action_1_name || selectedScenarioData.actions?.[0]?.name
-              )}
-              actionB={String(
-                scenarioParams.action_2_name || selectedScenarioData.actions?.[1]?.name
-              )}
+              actionA={rawActionA}
+              actionB={rawActionB}
               highlightFirstCard={guidedTarget === "params"}
               onChange={handlePayoffChange}
             />
           ) : coreParameters.length > 0 ? (
             <div className="ss-variable-map__core-grid">
               {coreParameters.map((param, index) => {
-                const value = getParamValue(param);
+                const value = getParamDisplayValue(param);
                 return (
                   <article
                     key={param.key}
                     className={`ss-variable-map__param-card${
                       guidedTarget === "params" && index === 0 ? " is-guided" : ""
                     }`.trim()}
-                    title={getParamDescription(param)}
                   >
                     <div className="ss-variable-map__param-head">
                       <div className="ss-variable-map__param-copy">
                         <h3 className="ss-variable-map__param-name">{getParamLabel(param)}</h3>
-                        <p className="ss-variable-map__param-note">
-                          {getParamDescription(param) ||
-                            (isZh
-                              ? "这是影响当前场景运行方式的关键参数。"
-                              : "This parameter strongly shapes how the scenario runs.")}
-                        </p>
                       </div>
                       <div className="ss-variable-map__param-current">
                         {String(value)}
@@ -742,13 +760,8 @@ export const Step2StarterTemplate: React.FC = () => {
 
       {hasAdvancedSection ? (
         <ResearchInputPanel
-          eyebrow={isZh ? "进阶设置 / Advanced" : "Advanced settings"}
+          eyebrow={isZh ? "进阶设置" : "Advanced settings"}
           title={isZh ? "进阶设置" : "Advanced settings"}
-          description={
-            isZh
-              ? "当你需要补充规则细节、资源配置或回合机制时，再展开这一部分。"
-              : "Open this section only when you need finer rule, resource, or schedule adjustments."
-          }
           actions={
             <SecondaryGhostButton onClick={() => setShowAdvanced((value) => !value)}>
               {showAdvanced ? (
@@ -771,11 +784,6 @@ export const Step2StarterTemplate: React.FC = () => {
                 <section className="ss-variable-map__advanced-section">
                   <div className="ss-variable-map__advanced-head">
                     <h3>{isZh ? "补充规则与变量" : "Additional rules and variables"}</h3>
-                    <p>
-                      {isZh
-                        ? "按当前场景需要补充动作命名、资源设置或矩阵含义。"
-                        : "Refine action naming, resource settings, or matrix semantics when needed."}
-                    </p>
                   </div>
                   {actionEditor}
                 </section>
@@ -785,11 +793,6 @@ export const Step2StarterTemplate: React.FC = () => {
                 <section className="ss-variable-map__advanced-section">
                   <div className="ss-variable-map__advanced-head">
                     <h3>{isZh ? "更多参数" : "More parameters"}</h3>
-                    <p>
-                      {isZh
-                        ? "这些设置会影响实验细节，但不必在第一轮配置中全部调整。"
-                        : "These settings shape details, but you do not need to change all of them right away."}
-                    </p>
                   </div>
                   <div className="ss-variable-map__advanced-grid">
                     {advancedParameters.map((param) => (
@@ -797,11 +800,6 @@ export const Step2StarterTemplate: React.FC = () => {
                         <label className="block text-sm font-medium text-slate-800">
                           {getParamLabel(param)}
                         </label>
-                        {getParamDescription(param) ? (
-                          <p className="mt-2 text-xs leading-5 text-slate-500">
-                            {getParamDescription(param)}
-                          </p>
-                        ) : null}
                         <div className="mt-3">
                           <ParameterField
                             param={{
@@ -814,7 +812,7 @@ export const Step2StarterTemplate: React.FC = () => {
                               options: param.options,
                               placeholder: param.placeholder,
                             }}
-                            value={getParamValue(param)}
+                            value={getParamDisplayValue(param)}
                             onChange={(value) => handleParamChange(param.key, value)}
                           />
                         </div>
@@ -833,12 +831,6 @@ export const Step2StarterTemplate: React.FC = () => {
                 >
                   <div className="ss-variable-map__advanced-head">
                     <h3>{t("experimentBuilder.roundSettings.title")}</h3>
-                    <p>
-                      {t("experimentBuilder.roundSettings.subtitle", {
-                        defaultValue:
-                          "确定回合推进方式与观察顺序，让实验运行方式保持可解释。",
-                      })}
-                    </p>
                   </div>
                   <div className="ss-variable-map__advanced-grid">
                     <FieldBlock label={t("experimentBuilder.roundSettings.roundVisibility.label")}>

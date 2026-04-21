@@ -120,10 +120,13 @@ export const ExperimentDesignModal: React.FC = () => {
 
   const baseNode = nodes.find(n => n.id === selectedNodeId);
 
-  const [experimentName, setExperimentName] = useState('');
-  const [variants, setVariants] = useState<ExperimentVariant[]>([
-    { id: 'v1', name: `${t('components.experimentDesignModal.variantPrefix')} A`, description: '', interventions: [] }
+  const createDefaultVariants = (): ExperimentVariant[] => ([
+    { id: 'v1', name: `${t('components.experimentDesignModal.variantPrefix')} A`, description: '', interventions: [] },
+    { id: 'v2', name: `${t('components.experimentDesignModal.variantPrefix')} B`, description: '', interventions: [] },
   ]);
+
+  const [experimentName, setExperimentName] = useState('');
+  const [variants, setVariants] = useState<ExperimentVariant[]>(createDefaultVariants());
 
   // live per-node logs: nodeId (string) -> array of log entries
   const [nodeLogs, setNodeLogs] = useState<Record<string, any[]>>({});
@@ -183,7 +186,7 @@ export const ExperimentDesignModal: React.FC = () => {
   // Handle case where modal is open but no valid base node is selected
   useEffect(() => {
     if (isOpen && !baseNode) {
-      addNotification('error', t('store.selectNodeFirst') || 'Please select a simulation node first');
+      addNotification('error', t('components.experimentDesignModal.selectNodeFirst'));
       toggle(false);
     }
   }, [isOpen, baseNode, addNotification, t, toggle]);
@@ -327,7 +330,7 @@ export const ExperimentDesignModal: React.FC = () => {
     toggle(false);
     // Reset state
     setExperimentName('');
-    setVariants([{ id: 'v1', name: `${t('components.experimentDesignModal.variantPrefix')} A`, description: '', interventions: [] }]);
+    setVariants(createDefaultVariants());
   };
 
   const totalInterventions = variants.reduce((sum, variant) => sum + variant.interventions.length, 0);
@@ -351,12 +354,19 @@ export const ExperimentDesignModal: React.FC = () => {
     return 'border-white/10 bg-white/5 text-slate-300';
   };
 
+  const getVariantStatusLabel = (status?: string) => {
+    if (status === 'running') return t('components.experimentDesignModal.statusRunning');
+    if (status === 'completed') return t('components.experimentDesignModal.statusCompleted');
+    if (status === 'failed') return t('components.experimentDesignModal.statusFailed');
+    return t('components.experimentDesignModal.statusPending');
+  };
+
   return (
     <div className="ss-intervention-modal">
       <div className="ss-intervention-modal__dialog animate-in fade-in zoom-in-95 duration-200">
         <div className="ss-intervention-modal__header">
           <div className="space-y-3">
-            <div className="ss-kicker text-[rgba(191,219,254,0.78)]">
+            <div className="ss-kicker ss-intervention-kicker">
               {t('components.experimentDesignModal.title')}
             </div>
             <div className="flex items-start gap-4">
@@ -396,21 +406,9 @@ export const ExperimentDesignModal: React.FC = () => {
         <div className="ss-intervention-modal__body">
           <aside className="ss-intervention-modal__rail overflow-y-auto">
             <section className="ss-intervention-card space-y-4 p-5">
-              <div>
-                <div className="ss-kicker text-[rgba(191,219,254,0.78)]">
-                  {t('components.experimentDesignModal.experimentNameLabel')}
-                </div>
-                <p className="mt-2 text-sm leading-6 text-slate-400">
-                  {t('components.experimentDesignModal.hintTitle')}
-                </p>
+              <div className="ss-kicker ss-intervention-kicker">
+                {t('components.experimentDesignModal.hintTitle')}
               </div>
-              <input
-                type="text"
-                value={experimentName}
-                onChange={(e) => setExperimentName(e.target.value)}
-                placeholder={t('components.experimentDesignModal.experimentNamePlaceholder')}
-                className="ss-input border-white/10 bg-white/6 text-slate-50 placeholder:text-slate-500"
-              />
               <div className="grid gap-3">
                 <div className="ss-inset border-white/10 bg-white/5 px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
@@ -423,15 +421,13 @@ export const ExperimentDesignModal: React.FC = () => {
                 </div>
                 <div className="ss-inset border-white/10 bg-white/5 px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
-                    {t('components.experimentDesignModal.baselineReference', { defaultValue: 'Baseline Reference' })}
+                    {t('components.experimentDesignModal.baselineReference')}
                   </div>
                   <div className="mt-2 text-sm font-medium text-slate-100">
                     {t('components.experimentDesignModal.controlGroupState')}
                   </div>
                   <div className="mt-2 text-xs leading-6 text-slate-400">
-                    {t('components.experimentDesignModal.baselineHint', {
-                      defaultValue: 'All variants branch from the selected node and inherit its current world, memory, and public state.',
-                    })}
+                    {t('components.experimentDesignModal.baselineHint')}
                   </div>
                 </div>
               </div>
@@ -439,7 +435,7 @@ export const ExperimentDesignModal: React.FC = () => {
 
             <section className="ss-intervention-card space-y-4 p-5">
               <div className="ss-kicker text-[rgba(191,219,254,0.78)]">
-                {t('components.experimentDesignModal.designerGuide', { defaultValue: 'Design Guide' })}
+                {t('components.experimentDesignModal.designerGuide')}
               </div>
               <ul className="space-y-3 text-sm leading-6 text-slate-300">
                 <li className="ss-inset border-white/10 bg-white/5 px-4 py-3">
@@ -458,24 +454,22 @@ export const ExperimentDesignModal: React.FC = () => {
           <main className="ss-intervention-modal__main">
             <div className="flex flex-wrap items-end justify-between gap-4 pb-5">
               <div>
-                <div className="ss-kicker text-[rgba(191,219,254,0.78)]">
-                  {t('components.experimentDesignModal.variantWorkspace', { defaultValue: 'Variant Workspace' })}
+                <div className="ss-kicker ss-intervention-kicker">
+                  {t('components.experimentDesignModal.variantWorkspace')}
                 </div>
                 <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-slate-50">
-                  {t('components.experimentDesignModal.variantTitle', { defaultValue: 'Configure experimental branches' })}
+                  {t('components.experimentDesignModal.variantTitle')}
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">
-                  {t('components.experimentDesignModal.variantCopy', {
-                    defaultValue: 'Each branch inherits the selected baseline and applies a controlled set of interventions before launch.',
-                  })}
+                  {t('components.experimentDesignModal.variantCopy')}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <span className="ss-pill border-white/10 bg-white/6 text-slate-200">
-                  {t('components.experimentDesignModal.variantCount', { defaultValue: 'Variants' })}: {variants.length}
+                  {t('components.experimentDesignModal.variantCount')}: {variants.length}
                 </span>
                 <span className="ss-pill border-white/10 bg-white/6 text-slate-200">
-                  {t('components.experimentDesignModal.interventionCount', { defaultValue: 'Interventions' })}: {totalInterventions}
+                  {t('components.experimentDesignModal.interventionCount')}: {totalInterventions}
                 </span>
               </div>
             </div>
@@ -492,11 +486,11 @@ export const ExperimentDesignModal: React.FC = () => {
                     <div className="flex items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
                       <div className="space-y-3">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="ss-kicker text-[rgba(191,219,254,0.72)]">
+                          <span className="ss-kicker ss-intervention-kicker">
                             {t('components.experimentDesignModal.variantPrefix')} {String.fromCharCode(65 + index)}
                           </span>
                           <span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] ${getVariantStatusClass(status)}`}>
-                            {status}
+                            {getVariantStatusLabel(status)}
                           </span>
                         </div>
                         <input
@@ -509,9 +503,7 @@ export const ExperimentDesignModal: React.FC = () => {
                           value={variant.description || ''}
                           onChange={(e) => handleUpdateVariant(variant.id, 'description', e.target.value)}
                           rows={2}
-                          placeholder={t('components.experimentDesignModal.variantDescriptionPlaceholder', {
-                            defaultValue: 'Describe the intended branch logic, observation focus, or treatment goal.',
-                          })}
+                          placeholder={t('components.experimentDesignModal.variantDescriptionPlaceholder')}
                           className="ss-input min-h-[86px] border-white/10 bg-white/6 text-slate-100 placeholder:text-slate-500"
                         />
                       </div>
@@ -529,7 +521,7 @@ export const ExperimentDesignModal: React.FC = () => {
                           <div className="flex items-center justify-between gap-3">
                             <div>
                               <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
-                                {t('components.experimentDesignModal.liveVariantChannel', { defaultValue: 'Live Variant Channel' })}
+                                {t('components.experimentDesignModal.liveVariantChannel')}
                               </div>
                               <div className="mt-2 text-sm font-medium text-slate-100">
                                 {variantNode.display_id || variantNode.id}
@@ -562,11 +554,11 @@ export const ExperimentDesignModal: React.FC = () => {
                       ) : null}
 
                       <div>
-                        <div className="ss-kicker text-[rgba(191,219,254,0.72)]">
-                          {t('components.experimentDesignModal.interventionWorkbench', { defaultValue: 'Intervention Workbench' })}
+                        <div className="ss-kicker ss-intervention-kicker">
+                          {t('components.experimentDesignModal.interventionWorkbench')}
                         </div>
                         <p className="mt-2 text-sm leading-6 text-slate-400">
-                          {t('components.experimentDesignModal.interventionCount', { defaultValue: 'Interventions' })}: {variant.interventions.length}
+                          {t('components.experimentDesignModal.interventionCount')}: {variant.interventions.length}
                         </p>
                       </div>
 
@@ -585,7 +577,7 @@ export const ExperimentDesignModal: React.FC = () => {
                                   {iv.type === 'FOLLOW_UP_CONDITION' ? <ArrowRight size={16} className="text-amber-200" /> : null}
                                   {iv.type === 'FOLLOW_UP_THREAD_SEED' ? <ArrowRight size={16} className="text-[#D6C9F8]" /> : null}
                                   {iv.type === 'INSTRUCTION' ? <Zap size={16} className="text-amber-200" /> : null}
-                                  <span>{t('components.experimentDesignModal.interventionCardTitle', { defaultValue: 'Intervention' })}</span>
+                                  <span>{t('components.experimentDesignModal.interventionCardTitle')}</span>
                                 </div>
                                 <button
                                   onClick={() => removeIntervention(variant.id, iv.id)}
@@ -604,8 +596,8 @@ export const ExperimentDesignModal: React.FC = () => {
                                   <option value="INSTRUCTION">{t('components.experimentDesignModal.instructionType')}</option>
                                   <option value="AGENT_PROPERTY">{t('components.experimentDesignModal.propertyType')}</option>
                                   <option value="ENVIRONMENT">{t('components.experimentDesignModal.environmentType')}</option>
-                                  <option value="FOLLOW_UP_CONDITION">{t('components.experimentDesignModal.followUpConditionType', { defaultValue: 'Follow-up condition' })}</option>
-                                  <option value="FOLLOW_UP_THREAD_SEED">{t('components.experimentDesignModal.followUpThreadSeedType', { defaultValue: 'Follow-up thread seed' })}</option>
+                                  <option value="FOLLOW_UP_CONDITION">{t('components.experimentDesignModal.followUpConditionType')}</option>
+                                  <option value="FOLLOW_UP_THREAD_SEED">{t('components.experimentDesignModal.followUpThreadSeedType')}</option>
                                 </select>
 
                                 {(iv.type === 'AGENT_PROPERTY' || iv.type === 'FOLLOW_UP_THREAD_SEED') && (
@@ -639,9 +631,9 @@ export const ExperimentDesignModal: React.FC = () => {
                                   iv.type === 'AGENT_PROPERTY'
                                     ? t('components.experimentDesignModal.propertyPlaceholder')
                                     : iv.type === 'FOLLOW_UP_CONDITION'
-                                      ? t('components.experimentDesignModal.followUpConditionPlaceholder', { defaultValue: '例如: resource_shortage=0.8, public_opinion_pressure=0.6 或 {"resource_shortage": 0.8}' })
+                                      ? t('components.experimentDesignModal.followUpConditionPlaceholder')
                                       : iv.type === 'FOLLOW_UP_THREAD_SEED'
-                                        ? t('components.experimentDesignModal.followUpThreadSeedPlaceholder', { defaultValue: '例如: 智能体3想要给智能体4发消息，消息内容为执行困难，需要回应。也支持 JSON。' })
+                                        ? t('components.experimentDesignModal.followUpThreadSeedPlaceholder')
                                         : t('components.experimentDesignModal.descriptionPlaceholder')
                                 }
                                 className="ss-input min-h-[112px] resize-y border-white/10 bg-white/6 text-slate-100 placeholder:text-slate-500"
@@ -675,19 +667,32 @@ export const ExperimentDesignModal: React.FC = () => {
           </main>
 
           <aside className="ss-intervention-modal__summary overflow-y-auto">
+            <section className="ss-intervention-card p-4">
+              <div className="ss-intervention-name-row">
+                <span className="ss-form-label !mb-0">{t('components.experimentDesignModal.experimentNameLabel')}</span>
+                <input
+                  type="text"
+                  value={experimentName}
+                  onChange={(e) => setExperimentName(e.target.value)}
+                  placeholder={t('components.experimentDesignModal.experimentNamePlaceholder')}
+                  className="ss-input ss-intervention-name-row__input border-white/10 bg-white/6 text-slate-50 placeholder:text-slate-500"
+                />
+              </div>
+            </section>
+
             <button onClick={handleAddVariant} className="ss-button">
               <Plus size={16} />
               {t('components.experimentDesignModal.addVariant')}
             </button>
 
             <section className="ss-intervention-card space-y-4 p-5">
-              <div className="ss-kicker text-[rgba(191,219,254,0.78)]">
-                {t('components.experimentDesignModal.launchQueue', { defaultValue: 'Launch Queue' })}
+              <div className="ss-kicker ss-intervention-kicker">
+                {t('components.experimentDesignModal.launchQueue')}
               </div>
               <div className="grid gap-3">
                 <div className="ss-inset border-white/10 bg-white/5 px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
-                    {t('components.experimentDesignModal.variantCount', { defaultValue: 'Variants' })}
+                    {t('components.experimentDesignModal.variantCount')}
                   </div>
                   <div className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-50">
                     {variants.length}
@@ -695,7 +700,7 @@ export const ExperimentDesignModal: React.FC = () => {
                 </div>
                 <div className="ss-inset border-white/10 bg-white/5 px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
-                    {t('components.experimentDesignModal.interventionCount', { defaultValue: 'Interventions' })}
+                    {t('components.experimentDesignModal.interventionCount')}
                   </div>
                   <div className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-50">
                     {totalInterventions}
@@ -705,8 +710,8 @@ export const ExperimentDesignModal: React.FC = () => {
             </section>
 
             <section className="ss-intervention-card space-y-4 p-5">
-              <div className="ss-kicker text-[rgba(191,219,254,0.78)]">
-                {t('components.experimentDesignModal.summaryTitle', { defaultValue: 'Summary' })}
+              <div className="ss-kicker ss-intervention-kicker">
+                {t('components.experimentDesignModal.summaryTitle')}
               </div>
               <div className="space-y-3">
                 {variants.map((variant, index) => (
@@ -715,7 +720,7 @@ export const ExperimentDesignModal: React.FC = () => {
                       <div>
                         <div className="text-sm font-medium text-slate-100">{variant.name}</div>
                         <div className="mt-1 text-xs text-slate-400">
-                          {t('components.experimentDesignModal.interventionCount', { defaultValue: 'Interventions' })}: {variant.interventions.length}
+                          {t('components.experimentDesignModal.interventionCount')}: {variant.interventions.length}
                         </div>
                       </div>
                       <span className="text-xs uppercase tracking-[0.16em] text-slate-500">
@@ -728,13 +733,11 @@ export const ExperimentDesignModal: React.FC = () => {
             </section>
 
             <section className="ss-intervention-card mt-auto space-y-4 p-5">
-              <div className="ss-kicker text-[rgba(191,219,254,0.78)]">
-                {t('components.experimentDesignModal.launchDecision', { defaultValue: 'Launch Decision' })}
+              <div className="ss-kicker ss-intervention-kicker">
+                {t('components.experimentDesignModal.launchDecision')}
               </div>
               <p className="text-sm leading-7 text-slate-300">
-                {t('components.experimentDesignModal.launchCopy', {
-                  defaultValue: 'Launching creates a parallel set of branches from the selected control node while preserving the current simulation state as the baseline.',
-                })}
+                {t('components.experimentDesignModal.launchCopy')}
               </p>
               <div className="grid gap-3">
                 <button onClick={() => toggle(false)} className="ss-button-secondary w-full border-white/10 bg-white/6 text-slate-100">

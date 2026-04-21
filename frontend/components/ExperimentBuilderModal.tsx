@@ -13,6 +13,11 @@ import { X } from 'lucide-react';
 import { useSimulationStore } from '../store';
 import { NavBar } from './NavBar';
 import { useThemeStore } from '../store/theme';
+import {
+  buildScenarioTitle,
+  getLocalizedScenarioDescription,
+  getLocalizedScenarioName,
+} from '../utils/scenarioLocalization';
 
 interface ExperimentBuilderModalProps {
   isOpen?: boolean;
@@ -58,21 +63,15 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
   const handleComplete = () => {
     // Get experiment builder state
     const state = useExperimentBuilder.getState();
+    const localizedScenarioName = getLocalizedScenarioName(t, state.selectedScenarioData);
+    const localizedScenarioDescription = getLocalizedScenarioDescription(
+      t,
+      state.selectedScenarioData,
+    );
 
     // Create simulation name from scenario
-    const scenarioName = state.selectedScenarioData?.name || t('experimentBuilder.newExperiment');
+    const scenarioName = localizedScenarioName || t('experimentBuilder.newExperiment');
     const scenarioDescription = state.scenarioDescription || '';
-
-    // Build a descriptive name
-    let name = scenarioName;
-    if (scenarioDescription) {
-      // Truncate description if too long
-      const maxDescLength = 30;
-      const description = scenarioDescription.length > maxDescLength
-        ? scenarioDescription.substring(0, maxDescLength) + '...'
-        : scenarioDescription;
-      name = `${scenarioName} - ${description}`;
-    }
 
     // Convert agent types to simulation agent format
     const convertAgentToSimulationAgent = (agentType: any, index: number) => {
@@ -146,7 +145,9 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
     const resolvedDescription =
       scenarioDescription && scenarioDescription.trim().length > 0
         ? scenarioDescription
-        : scenarioData?.description || t('experimentBuilder.customExperiment');
+        : localizedScenarioDescription || t('experimentBuilder.customExperiment');
+
+    const name = buildScenarioTitle(scenarioName, resolvedDescription);
 
     // Build generic config with full action objects and parameters
     const genericConfig: any = {

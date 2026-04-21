@@ -463,7 +463,18 @@ export const AgentPanel: React.FC = () => {
             {focusActive ? t("components.agentPanel.showAllAgents") : t("components.agentPanel.focusActive")}
           </button>
         </div>
-        {focusActive && !activeAgentId && <div className="mt-3 rounded-2xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">{t("components.agentPanel.activeFocusEmpty")}</div>}
+        {focusActive && !activeAgentId && (
+          <div
+            className="mt-3 rounded-2xl border px-3 py-2 text-sm"
+            style={{
+              borderColor: 'color-mix(in srgb, var(--ss-warning) 28%, var(--ss-workspace-border) 72%)',
+              background: 'color-mix(in srgb, var(--ss-warning) 10%, var(--ss-workspace-surface-strong) 90%)',
+              color: 'color-mix(in srgb, var(--ss-warning) 78%, var(--ss-workspace-heading) 22%)',
+            }}
+          >
+            {t("components.agentPanel.activeFocusEmpty")}
+          </div>
+        )}
       </div>
 
       <div className="ss-agent-panel__body lab-scroll flex-1 space-y-3">

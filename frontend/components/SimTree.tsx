@@ -10,9 +10,14 @@ import { EnvironmentSuggestionDialogWrapper, EnvironmentToggleButton } from './E
 interface SimTreeProps {
   nodesOverride?: SimNode[];
   alwaysSelectOnClick?: boolean;
+  layoutDirection?: 'horizontal' | 'vertical';
 }
 
-export const SimTree: React.FC<SimTreeProps> = ({ nodesOverride, alwaysSelectOnClick = false }) => {
+export const SimTree: React.FC<SimTreeProps> = ({
+  nodesOverride,
+  alwaysSelectOnClick = false,
+  layoutDirection = 'horizontal',
+}) => {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const nodes = useSimulationStore(state => state.nodes);
@@ -90,10 +95,11 @@ const root = d3.stratify<SimNode>()
   .parentId(d => d.parentId)
   (validNodes);
 
-    // Use nodeSize for dynamic sizing instead of fixed box
-    // [vertical_spacing, horizontal_spacing]
+    const isVertical = layoutDirection === 'vertical';
+
+    // nodeSize: [x spacing, y spacing]
     const treeLayout = d3.tree<SimNode>()
-      .nodeSize([60, 120]);
+      .nodeSize(isVertical ? [130, 92] : [60, 120]);
 
     treeLayout(root);
 
@@ -106,9 +112,13 @@ const root = d3.stratify<SimNode>()
       .attr('fill', 'none')
       .attr('stroke', 'var(--ss-workspace-topology-link)')
       .attr('stroke-width', 2)
-      .attr('d', d3.linkHorizontal<any, any>()
-        .x(d => d.y)
-        .y(d => d.x)
+      .attr('d', isVertical
+        ? d3.linkVertical<any, any>()
+            .x(d => d.x)
+            .y(d => d.y)
+        : d3.linkHorizontal<any, any>()
+            .x(d => d.y)
+            .y(d => d.x)
       );
 
     // Nodes
@@ -118,21 +128,19 @@ const root = d3.stratify<SimNode>()
       .append('g')
       .attr('class', 'node')
       .attr('data-node-id', d => d.data.id)
-      .attr('transform', d => `translate(${d.y},${d.x})`)
+      .attr('transform', d => isVertical ? `translate(${d.x},${d.y})` : `translate(${d.y},${d.x})`)
       .on('click', (event, d) => {
         event.stopPropagation();
-        if (alwaysSelectOnClick) {
-          selectNode(d.data.id);
+        const nodeId = d.data.id;
+
+        if (isCompareModeRef.current) {
+          if (nodeId !== selectedNodeIdRef.current) {
+            setCompareTarget(nodeId);
+          }
           return;
         }
-        if (isCompareModeRef.current) {
-          // If we are already in comparison mode, clicking sets the TARGET, unless we click the primary selected
-          if (d.data.id !== selectedNodeIdRef.current) {
-             setCompareTarget(d.data.id);
-          }
-        } else {
-          selectNode(d.data.id);
-        }
+
+        selectNode(nodeId);
       });
 
     // Node Circle
@@ -167,17 +175,19 @@ const root = d3.stratify<SimNode>()
 
     // Labels
     nodeGroup.append('text')
-      .attr('dy', 4)
-      .attr('x', d => d.children ? -24 : 24)
-      .style('text-anchor', d => d.children ? 'end' : 'start')
+      .attr('dy', isVertical ? 34 : 4)
+      .attr('x', d => isVertical ? 0 : (d.children ? -24 : 24))
+      .style('text-anchor', d => isVertical ? 'middle' : (d.children ? 'end' : 'start'))
       .text(d => d.data.display_id || d.data.id)
       .attr('class', d => `text-xs font-medium pointer-events-none select-none ${d.data.status === 'failed' ? 'fill-red-300' : 'fill-current'}`);
 
     // Initial positioning
-    const initialTransform = d3.zoomIdentity.translate(80, height / 2).scale(1);
+    const initialTransform = isVertical
+      ? d3.zoomIdentity.translate(width / 2, 80).scale(1)
+      : d3.zoomIdentity.translate(80, height / 2).scale(1);
     svg.call(zoom.transform, initialTransform);
 
-  }, [resolvedNodes, selectNode, setCompareTarget, alwaysSelectOnClick]);
+  }, [resolvedNodes, selectNode, setCompareTarget, alwaysSelectOnClick, layoutDirection]);
 
   useEffect(() => {
     if (!svgRef.current) return;
@@ -229,8 +239,11 @@ const root = d3.stratify<SimNode>()
 
   const handleReset = () => {
     if (svgRef.current && zoomRef.current && containerRef.current) {
+      const width = containerRef.current.clientWidth;
       const height = containerRef.current.clientHeight;
-      const initialTransform = d3.zoomIdentity.translate(80, height / 2).scale(1);
+      const initialTransform = layoutDirection === 'vertical'
+        ? d3.zoomIdentity.translate(width / 2, 80).scale(1)
+        : d3.zoomIdentity.translate(80, height / 2).scale(1);
       svgRef.current.transition().duration(500).call(zoomRef.current.transform, initialTransform);
     }
   };

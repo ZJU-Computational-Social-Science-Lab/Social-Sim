@@ -1,5 +1,4 @@
 import React from "react";
-import { ChevronLeft } from "lucide-react";
 import { ExperimentBuilderModal } from "../components/ExperimentBuilderModal";
 import SyncModal from "../components/SyncModal";
 import { HelpModal } from "../components/HelpModal";
@@ -13,21 +12,22 @@ import { ReportModal } from "../components/ReportModal";
 import { GlobalKnowledgePanel } from "../components/GlobalKnowledgePanel";
 import { GuideAssistant } from "../components/GuideAssistant";
 import { ToastContainer } from "../components/Toast";
-import { generateNodes, useSimulationStore } from "../store";
+import { generateNodes, mapGraphToNodes, useSimulationStore } from "../store";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { getSimulation as apiGetSimulation } from "../services/simulations";
 import { getTreeGraph, getSimEvents, getSimState, getRehydrate } from "../services/simulationTree";
+import { buildSerializedSnapshot, mapBackendAgents, withSimulationSocialNetwork } from "../services/simulationSnapshots";
 import { useAuthStore } from "../store/auth";
 import { useTranslation } from "react-i18next";
 import { BranchComposerDialog } from "../components/workspace/BranchComposerDialog";
 import { readBranchContext } from "../utils/branchContext";
 import { TopControlBar } from "../components/workspace/TopControlBar";
-import { LeftExperimentRail, type RailSection } from "../components/workspace/LeftExperimentRail";
-import { AgentObservationPanel } from "../components/workspace/AgentObservationPanel";
-import { FlowCanvas } from "../components/workspace/FlowCanvas";
+import { SimTree } from "../components/SimTree";
 import { NodeDetailPanel, type NodeDetailTab } from "../components/workspace/NodeDetailPanel";
 import { SimulationSummaryRail } from "../components/workspace/SimulationSummaryRail";
 import { TopologyStructureModal } from "../components/workspace/TopologyStructureModal";
+import { SnapshotModal } from "../components/SnapshotModal";
+import { AdvancedTreeOpsModal } from "../components/AdvancedTreeOpsModal";
 
 // ---------------- 页面主组件：SimulationPage ----------------
 
@@ -41,9 +41,11 @@ const SimulationPage: React.FC = () => {
   const selectNode = useSimulationStore((state) => state.selectNode);
   const setCompareTarget = useSimulationStore((state) => state.setCompareTarget);
   const toggleCompareMode = useSimulationStore((state) => state.toggleCompareMode);
-  const agents = useSimulationStore((state) => state.agents);
   const advanceSimulation = useSimulationStore((state) => state.advanceSimulation);
-  const toggleReportModal = useSimulationStore((state) => state.toggleReportModal);
+  const resetSimulation = useSimulationStore((state) => state.resetSimulation);
+  const toggleExport = useSimulationStore((state) => state.toggleExport);
+  const openSnapshotModal = useSimulationStore((state) => state.openSnapshotModal);
+  const openTreeOpsModal = useSimulationStore((state) => state.openTreeOpsModal);
   const params = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -55,11 +57,9 @@ const SimulationPage: React.FC = () => {
   const { t } = useTranslation();
   const [hasSubmittedSetup, setHasSubmittedSetup] = React.useState(false);
   const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null);
-  const [isAgentPanelVisible, setIsAgentPanelVisible] = React.useState(true);
-  const [isSummaryRailVisible, setIsSummaryRailVisible] = React.useState(true);
+  const [isSummaryRailVisible, setIsSummaryRailVisible] = React.useState(false);
   const [isBranchComposerOpen, setIsBranchComposerOpen] = React.useState(false);
   const [isTopologyModalOpen, setIsTopologyModalOpen] = React.useState(false);
-  const [activeRailSection, setActiveRailSection] = React.useState<RailSection>("overview");
   const [detailTab, setDetailTab] = React.useState<NodeDetailTab>("events");
   const flowSectionRef = React.useRef<HTMLDivElement | null>(null);
   const detailSectionRef = React.useRef<HTMLDivElement | null>(null);
@@ -67,6 +67,10 @@ const SimulationPage: React.FC = () => {
   const selectedNode = React.useMemo(
     () => nodes.find((node) => node.id === selectedNodeId) || nodes[0] || null,
     [nodes, selectedNodeId],
+  );
+  const getNodeName = React.useCallback(
+    (nodeId: number | string) => t('simPage.nodeId', { id: nodeId }),
+    [t],
   );
 
   React.useEffect(() => {
@@ -108,77 +112,20 @@ const SimulationPage: React.FC = () => {
           const token = (engineConfig as any).token as string | undefined;
           let sim: any | null = null;
           try {
-            sim = await apiGetSimulation(String(simIdParam));
-            // Map scene_config.social_network to socialNetwork for frontend
-            if (sim?.scene_config?.social_network) {
-              sim.socialNetwork = sim.scene_config.social_network;
-            }
+            sim = withSimulationSocialNetwork(await apiGetSimulation(String(simIdParam)));
           } catch (err) {
             console.warn('apiGetSimulation failed, will attempt rehydrate fallback', err);
             // try rehydrate directly using simIdParam (may succeed even if primary endpoint requires auth)
             try {
               const re = await getRehydrate(engineConfig.endpoint, String(simIdParam), token).catch(() => null);
               if (re && typeof re === 'object') {
-                // construct nodes & agents from rehydrate response and set state
-                const nodesRaw2 = (re.nodes || []) as any[];
-                const nodes2 = nodesRaw2.map((n: any) => ({
-                  id: String(n.id),
-                  display_id: String(n.id),
-                  parentId: n.parent == null ? null : String(n.parent),
-                  name: t('simPage.nodeId', { id: n.id }),
-                  depth: n.depth,
-                  isLeaf: (n.depth || 0) === (Math.max(...(nodesRaw2.map((x: any) => x.depth || 0))) || 0),
-                  status: 'completed',
-                  timestamp: new Date().toLocaleTimeString(),
-                  worldTime: new Date().toISOString(),
-                  meta: n.meta || {}
-                }));
-
-                let agents2: any[] = [];
-                try {
-                  const firstNode = nodesRaw2.find((n: any) => Number(n.id) === Number(nodes2[0]?.id));
-                  const simSnap2 = firstNode?.sim || {};
-                  const latestAgents2 = simSnap2?.agents || re.agents || [];
-                  if (Array.isArray(latestAgents2)) {
-                    agents2 = latestAgents2.map((a: any, idx: number) => ({
-                      id: `a-${idx}-${a.name}`,
-                      name: a.name,
-                      role: a.role || (a.properties || {}).role || '',
-                      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
-                      profile: '',
-                      llmConfig: { provider: 'mock', model: 'default' },
-                      properties: a.properties || {},
-                      history: {},
-                      memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                      knowledgeBase: a.knowledgeBase || []
-                    }));
-                  } else if (latestAgents2 && typeof latestAgents2 === 'object') {
-                    agents2 = Object.keys(latestAgents2).map((k: string, idx: number) => {
-                      const a = (latestAgents2 as any)[k] || {};
-                      return {
-                        id: `a-${idx}-${a.name || k}`,
-                        name: a.name || k,
-                        role: a.role || (a.properties || {}).role || '',
-                        avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || k)}`,
-                        profile: '',
-                        llmConfig: { provider: 'mock', model: 'default' },
-                        properties: a.properties || {},
-                        history: {},
-                        memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                        knowledgeBase: a.knowledgeBase || []
-                      };
-                    });
-                  }
-                } catch (e) {
-                  console.warn('rehydrate parsing failed', e);
-                }
-
-                if (agents2 && agents2.length > 0) {
+                const snapshot = buildSerializedSnapshot(re, getNodeName);
+                if (snapshot.agents.length > 0) {
                   useSimulationStore.setState({
                     currentSimulation: { id: String(simIdParam) } as any,
-                    nodes: nodes2,
-                    selectedNodeId: nodes2[0]?.id ?? null,
-                    agents: agents2,
+                    nodes: snapshot.nodes,
+                    selectedNodeId: snapshot.selectedNodeId,
+                    agents: snapshot.agents,
                     rawEvents: []
                   } as any);
                   return;
@@ -205,54 +152,12 @@ const SimulationPage: React.FC = () => {
               : [];
 
             if (graph && simState) {
-              const mapGraphToNodes = (graph: any) => {
-                const parentMap = new Map<number, number | null>();
-                const childrenSet = new Set<number>();
-                for (const edge of (graph.edges || [])) {
-                  parentMap.set(edge.to, edge.from);
-                  childrenSet.add(edge.from);
-                }
-                const nowIso = new Date().toISOString();
-                return (graph.nodes || []).map((n: any) => {
-                  const pid = parentMap.has(n.id) ? parentMap.get(n.id)! : null;
-                  const isLeaf = !childrenSet.has(n.id);
-                  const running = new Set(graph.running || []);
-                  const meta = (n as any).meta || null;
-                  return {
-                    id: String(n.id),
-                    display_id: String(n.id),
-                    parentId: pid == null ? null : String(pid),
-                    name: t('simPage.nodeId', { id: n.id }),
-                    depth: n.depth,
-                    isLeaf,
-                    status: running.has(n.id) ? 'running' : 'completed',
-                    timestamp: new Date().toLocaleTimeString(),
-                    worldTime: nowIso,
-                    meta
-                  };
-                });
-              };
-
               const nodes = mapGraphToNodes(graph);
-
-              const agents = (simState.agents || []).map((a: any, idx: number) => ({
-                id: `a-${idx}-${a.name}`,
-                name: a.name,
-                role: a.role || '',
-                avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
-                profile: '',
-                llmConfig: { provider: 'mock', model: 'default' },
-                properties: {},
-                history: {},
-                memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simState.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                knowledgeBase: a.knowledgeBase || []
-              }));
-
-              // Map scene_config.social_network to socialNetwork for frontend
-              const socialNetwork = (sim as any).scene_config?.social_network || {};
+              const agents = mapBackendAgents(simState.agents || [], Number(simState.turns || 0) || 0);
+              const socialNetwork = simState?.scene_config?.social_network || sim.socialNetwork || {};
 
               useSimulationStore.setState({
-                currentSimulation: { ...sim, socialNetwork },
+                currentSimulation: withSimulationSocialNetwork(sim, socialNetwork),
                 nodes,
                 selectedNodeId: rootId != null ? String(rootId) : nodes[0]?.id ?? null,
                 agents: agents,
@@ -269,65 +174,13 @@ const SimulationPage: React.FC = () => {
           try {
             const re = await getRehydrate(engineConfig.endpoint, sim.id, token).catch(() => null);
             if (re && typeof re === 'object') {
-              const nodesRaw2 = (re.nodes || []) as any[];
-              const nodes2 = nodesRaw2.map((n: any) => ({
-                id: String(n.id),
-                display_id: String(n.id),
-                parentId: n.parent == null ? null : String(n.parent),
-                name: t('simPage.nodeId', { id: n.id }),
-                depth: n.depth,
-                isLeaf: (n.depth || 0) === (Math.max(...(nodesRaw2.map((x: any) => x.depth || 0))) || 0),
-                status: 'completed',
-                timestamp: new Date().toLocaleTimeString(),
-                worldTime: new Date().toISOString(),
-                meta: n.meta || {}
-              }));
-
-              let agents2: any[] = [];
-              try {
-                const firstNode = nodesRaw2.find((n: any) => Number(n.id) === Number(nodes2[0]?.id));
-                const simSnap2 = firstNode?.sim || {};
-                const latestAgents2 = simSnap2?.agents || re.agents || [];
-                if (Array.isArray(latestAgents2)) {
-                  agents2 = latestAgents2.map((a: any, idx: number) => ({
-                    id: `a-${idx}-${a.name}`,
-                    name: a.name,
-                    role: a.role || (a.properties || {}).role || '',
-                    avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
-                    profile: '',
-                    llmConfig: { provider: 'mock', model: 'default' },
-                    properties: a.properties || {},
-                    history: {},
-                    memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                    knowledgeBase: a.knowledgeBase || []
-                  }));
-                } else if (latestAgents2 && typeof latestAgents2 === 'object') {
-                  agents2 = Object.keys(latestAgents2).map((k: string, idx: number) => {
-                    const a = (latestAgents2 as any)[k] || {};
-                    return {
-                      id: `a-${idx}-${a.name || k}`,
-                      name: a.name || k,
-                      role: a.role || (a.properties || {}).role || '',
-                      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || k)}`,
-                      profile: '',
-                      llmConfig: { provider: 'mock', model: 'default' },
-                      properties: a.properties || {},
-                      history: {},
-                      memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                      knowledgeBase: a.knowledgeBase || []
-                    };
-                  });
-                }
-              } catch (e) {
-                console.warn('rehydrate parsing failed', e);
-              }
-
-              if (nodes2.length > 0) {
+              const snapshot = buildSerializedSnapshot(re, getNodeName);
+              if (snapshot.nodes.length > 0) {
                 useSimulationStore.setState({
                   currentSimulation: sim,
-                  nodes: nodes2,
-                  selectedNodeId: nodes2[0]?.id ?? null,
-                  agents: agents2,
+                  nodes: snapshot.nodes,
+                  selectedNodeId: snapshot.selectedNodeId,
+                  agents: snapshot.agents,
                   rawEvents: []
                 } as any);
                 return;
@@ -341,125 +194,20 @@ const SimulationPage: React.FC = () => {
           try {
             const latest = (sim as any).latest_state;
             if (latest && typeof latest === 'object') {
-              const nodesRaw = (latest.nodes || []) as any[];
-              const nodes = nodesRaw.map((n: any) => ({
-                id: String(n.id),
-                display_id: String(n.id),
-                parentId: n.parent == null ? null : String(n.parent),
-                name: t('simPage.nodeId', { id: n.id }),
-                depth: n.depth,
-                isLeaf: (n.depth || 0) === (Math.max(...(nodesRaw.map((x: any) => x.depth || 0))) || 0),
-                status: 'completed',
-                timestamp: new Date().toLocaleTimeString(),
-                worldTime: new Date().toISOString(),
-                meta: n.meta || {}
-              }));
-
-              // extract agents from the node sim snapshot if present
-              let agents: any[] = [];
-              if (Array.isArray(nodesRaw)) {
-                const matched = nodesRaw.find((n: any) => Number(n.id) === Number(nodes[0]?.id));
-                const simSnap = matched?.sim || {};
-                const latestAgents = simSnap?.agents || latest.agents || [];
-                if (latestAgents && typeof latestAgents === 'object') {
-                  if (Array.isArray(latestAgents)) {
-                    agents = latestAgents.map((a: any, idx: number) => ({
-                      id: `a-${idx}-${a.name}`,
-                      name: a.name,
-                      role: a.role || (a.properties || {}).role || '',
-                      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
-                      profile: '',
-                      llmConfig: { provider: 'mock', model: 'default' },
-                      properties: a.properties || {},
-                      history: {},
-                      memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                      knowledgeBase: a.knowledgeBase || []
-                    }));
-                  } else {
-                    // dict mapping
-                    agents = Object.keys(latestAgents).map((k: string, idx: number) => {
-                      const a = (latestAgents as any)[k] || {};
-                      return {
-                        id: `a-${idx}-${a.name || k}`,
-                        name: a.name || k,
-                        role: a.role || (a.properties || {}).role || '',
-                        avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || k)}`,
-                        profile: '',
-                        llmConfig: { provider: 'mock', model: 'default' },
-                        properties: a.properties || {},
-                        history: {},
-                        memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                        knowledgeBase: a.knowledgeBase || []
-                      };
-                    });
-                  }
-                }
-              }
+              const snapshot = buildSerializedSnapshot(latest, getNodeName);
 
               // If we have zero agents from persisted latest_state, try server-side rehydrate
-              if (!agents || agents.length === 0) {
+              if (!snapshot.agents.length) {
                 try {
                   const re = await getRehydrate(engineConfig.endpoint, sim.id, token).catch(() => null);
                   if (re && typeof re === 'object') {
-                    const nodesRaw2 = (re.nodes || []) as any[];
-                    const nodes2 = nodesRaw2.map((n: any) => ({
-                      id: String(n.id),
-                      display_id: String(n.id),
-                      parentId: n.parent == null ? null : String(n.parent),
-                      name: t('simPage.nodeId', { id: n.id }),
-                      depth: n.depth,
-                      isLeaf: (n.depth || 0) === (Math.max(...(nodesRaw2.map((x: any) => x.depth || 0))) || 0),
-                      status: 'completed',
-                      timestamp: new Date().toLocaleTimeString(),
-                      worldTime: new Date().toISOString(),
-                      meta: n.meta || {}
-                    }));
-
-                    let agents2: any[] = [];
-                    try {
-                      const firstNode = nodesRaw2.find((n: any) => Number(n.id) === Number(nodes2[0]?.id));
-                      const simSnap2 = firstNode?.sim || {};
-                      const latestAgents2 = simSnap2?.agents || re.agents || [];
-                      if (Array.isArray(latestAgents2)) {
-                        agents2 = latestAgents2.map((a: any, idx: number) => ({
-                          id: `a-${idx}-${a.name}`,
-                          name: a.name,
-                          role: a.role || (a.properties || {}).role || '',
-                          avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || String(idx))}`,
-                          profile: '',
-                          llmConfig: { provider: 'mock', model: 'default' },
-                          properties: a.properties || {},
-                          history: {},
-                          memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                          knowledgeBase: a.knowledgeBase || []
-                        }));
-                      } else if (latestAgents2 && typeof latestAgents2 === 'object') {
-                        agents2 = Object.keys(latestAgents2).map((k: string, idx: number) => {
-                          const a = (latestAgents2 as any)[k] || {};
-                          return {
-                            id: `a-${idx}-${a.name || k}`,
-                            name: a.name || k,
-                            role: a.role || (a.properties || {}).role || '',
-                            avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(a.name || k)}`,
-                            profile: '',
-                            llmConfig: { provider: 'mock', model: 'default' },
-                            properties: a.properties || {},
-                            history: {},
-                            memory: (a.short_memory || []).map((m: any, j: number) => ({ id: `m-${idx}-${j}`, round: Number(simSnap2?.turns || 0), content: String(m.content ?? ''), type: 'dialogue', timestamp: new Date().toISOString() })),
-                            knowledgeBase: a.knowledgeBase || []
-                          };
-                        });
-                      }
-                    } catch (e) {
-                      console.warn('rehydrate parsing failed', e);
-                    }
-
-                    if (agents2 && agents2.length > 0) {
+                    const rehydratedSnapshot = buildSerializedSnapshot(re, getNodeName);
+                    if (rehydratedSnapshot.agents.length > 0) {
                       useSimulationStore.setState({
                         currentSimulation: sim,
-                        nodes: nodes2,
-                        selectedNodeId: nodes2[0]?.id ?? null,
-                        agents: agents2,
+                        nodes: rehydratedSnapshot.nodes,
+                        selectedNodeId: rehydratedSnapshot.selectedNodeId,
+                        agents: rehydratedSnapshot.agents,
                         rawEvents: []
                       } as any);
                       return;
@@ -470,17 +218,18 @@ const SimulationPage: React.FC = () => {
                 }
               }
 
+              const socialNetwork = latest.social_network || sim.socialNetwork || {};
               useSimulationStore.setState({
-                currentSimulation: sim,
-                nodes,
-                selectedNodeId: nodes[0]?.id ?? null,
-                agents: agents,
+                currentSimulation: withSimulationSocialNetwork(sim, socialNetwork),
+                nodes: snapshot.nodes,
+                selectedNodeId: snapshot.selectedNodeId,
+                agents: snapshot.agents,
                 rawEvents: []
               } as any);
 
               // Attempt to restore events/logs for the selected node when backend is reachable
               const base = engineConfig.endpoint;
-              const selectedNodeNumeric = nodes[0]?.id ? Number(nodes[0].id) : null;
+              const selectedNodeNumeric = snapshot.selectedNodeId ? Number(snapshot.selectedNodeId) : null;
               if (selectedNodeNumeric != null && Number.isFinite(selectedNodeNumeric)) {
                 try {
                   const events = await getSimEvents(base, sim.id, selectedNodeNumeric, token).catch(() => []);
@@ -512,12 +261,6 @@ const SimulationPage: React.FC = () => {
   }, [hasRestored, isAuthenticated]);
 
   React.useEffect(() => {
-    if (!selectedAgentId) return;
-    if (agents.some((agent) => agent.id === selectedAgentId)) return;
-    setSelectedAgentId(null);
-  }, [agents, selectedAgentId]);
-
-  React.useEffect(() => {
     if (!simIdParam) return;
     if (!hasRestored || !isAuthenticated) return;
     if (engineConfig.mode === "connected") return;
@@ -528,11 +271,6 @@ const SimulationPage: React.FC = () => {
     if (!isCompareMode) return;
     setSelectedAgentId(null);
   }, [isCompareMode]);
-
-  React.useEffect(() => {
-    if (!selectedAgentId) return;
-    setActiveRailSection("agents");
-  }, [selectedAgentId]);
 
   const scrollToSection = React.useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -632,7 +370,6 @@ const SimulationPage: React.FC = () => {
         onCreateBranch={() => setIsBranchComposerOpen(true)}
         onViewDetails={() => {
           setDetailTab("events");
-          setActiveRailSection("overview");
           scrollToSection(detailSectionRef);
         }}
         onToggleCompare={() => {
@@ -644,8 +381,15 @@ const SimulationPage: React.FC = () => {
           toggleCompareMode(true);
         }}
         onOpenNode={() => {
-          setActiveRailSection("branches");
           scrollToSection(flowSectionRef);
+        }}
+        onOpenSnapshots={() => openSnapshotModal()}
+        onOpenExport={() => toggleExport(true)}
+        onOpenTreeOps={() => openTreeOpsModal()}
+        onResetSimulation={() => {
+          const ok = window.confirm(t("simPage.confirmReset"));
+          if (!ok) return;
+          void resetSimulation();
         }}
         onReturnToParent={() => {
           if (selectedNode?.parentId) {
@@ -669,99 +413,26 @@ const SimulationPage: React.FC = () => {
           </div>
         ) : (
           <div
-            className={`ss-cockpit-grid${isAgentPanelVisible ? "" : " is-agent-panel-hidden"}${isSummaryRailVisible ? "" : " is-summary-rail-hidden"}`}
+            className={`ss-cockpit-grid is-left-rail-hidden${isSummaryRailVisible ? "" : " is-summary-rail-hidden"}`}
           >
-            <div className="ss-cockpit-grid__left">
-              <div className={`ss-cockpit-grid__left-shell${isAgentPanelVisible ? "" : " is-agent-panel-hidden"}`}>
-                <LeftExperimentRail
-                  activeSection={activeRailSection}
-                  onOpenOverview={() => {
-                    setActiveRailSection("overview");
-                    scrollToSection(flowSectionRef);
-                  }}
-                  onOpenFlow={() => {
-                    setActiveRailSection("flow");
-                    scrollToSection(flowSectionRef);
-                  }}
-                  onOpenBranches={() => {
-                    setActiveRailSection("branches");
-                    setDetailTab("branches");
-                    scrollToSection(flowSectionRef);
-                  }}
-                  onOpenAgents={() => {
-                    setIsAgentPanelVisible(true);
-                    setActiveRailSection("agents");
-                    if (!selectedAgentId && agents[0]) {
-                      setSelectedAgentId(agents[0].id);
-                    }
-                  }}
-                  onOpenLogs={() => {
-                    setActiveRailSection("logs");
-                    setDetailTab("logs");
-                    scrollToSection(detailSectionRef);
-                  }}
-                  onOpenReports={() => {
-                    setActiveRailSection("reports");
-                    toggleReportModal(true);
-                  }}
-                  onOpenSettings={() => {
-                    setActiveRailSection("settings");
-                    navigate("/settings");
-                  }}
-                />
-
-                {isAgentPanelVisible ? (
-                  <div className="ss-cockpit-grid__agent-panel">
-                    <AgentObservationPanel
-                      selectedAgentId={selectedAgentId}
-                      onSelectAgent={(agentId) => {
-                        setSelectedAgentId(agentId);
-                        if (agentId) {
-                          setActiveRailSection("agents");
-                        }
-                      }}
-                      onHide={() => {
-                        setIsAgentPanelVisible(false);
-                        if (activeRailSection === "agents") {
-                          setActiveRailSection("overview");
-                        }
-                      }}
-                    />
-                  </div>
-                ) : null}
-              </div>
-            </div>
-
             <div className="ss-cockpit-grid__main">
-              <div ref={flowSectionRef} className="ss-cockpit-grid__section">
-                <FlowCanvas
-                  onOpenDetails={() => {
-                    setDetailTab("branches");
-                    setActiveRailSection("branches");
-                    scrollToSection(detailSectionRef);
-                  }}
-                  onOpenTopology={() => setIsTopologyModalOpen(true)}
-                />
-              </div>
+              <div className="ss-cockpit-grid__split">
+                <div ref={flowSectionRef} className="ss-cockpit-grid__section">
+                  <div className="ss-cockpit-grid__tree-stage">
+                    <SimTree alwaysSelectOnClick layoutDirection="vertical" />
+                  </div>
+                </div>
 
-              <div ref={detailSectionRef} className="ss-cockpit-grid__section">
-                <NodeDetailPanel
-                  activeTab={detailTab}
-                  onChangeTab={(tab) => {
-                    setDetailTab(tab);
-                    if (tab === "logs") {
-                      setActiveRailSection("logs");
-                      return;
-                    }
-                    if (tab === "branches") {
-                      setActiveRailSection("branches");
-                      return;
-                    }
-                    setActiveRailSection("overview");
-                  }}
-                  selectedAgentId={selectedAgentId}
-                  onClearSelectedAgent={() => setSelectedAgentId(null)}
-                />
+                <div ref={detailSectionRef} className="ss-cockpit-grid__section">
+                  <NodeDetailPanel
+                    activeTab={detailTab}
+                    onChangeTab={(tab) => {
+                      setDetailTab(tab);
+                    }}
+                    selectedAgentId={selectedAgentId}
+                    onClearSelectedAgent={() => setSelectedAgentId(null)}
+                  />
+                </div>
               </div>
             </div>
 
@@ -770,7 +441,6 @@ const SimulationPage: React.FC = () => {
                 <SimulationSummaryRail
                   onOpenLogs={() => {
                     setDetailTab("logs");
-                    setActiveRailSection("logs");
                     scrollToSection(detailSectionRef);
                   }}
                   onHide={() => setIsSummaryRailVisible(false)}
@@ -779,18 +449,6 @@ const SimulationPage: React.FC = () => {
             </div>
           </div>
         )}
-
-        {!showLoadingState && !isSummaryRailVisible ? (
-          <button
-            type="button"
-            className="ss-summary-rail__reveal"
-            onClick={() => setIsSummaryRailVisible(true)}
-            title="展开右侧摘要"
-            aria-label="展开右侧摘要"
-          >
-            <ChevronLeft size={16} />
-          </button>
-        ) : null}
       </div>
 
       <BranchComposerDialog
@@ -804,12 +462,14 @@ const SimulationPage: React.FC = () => {
         onOpenNodeDetails={() => {
           setIsTopologyModalOpen(false);
           setDetailTab("branches");
-          setActiveRailSection("branches");
           window.setTimeout(() => {
             scrollToSection(detailSectionRef);
           }, 40);
         }}
       />
+
+      <SnapshotModal />
+      <AdvancedTreeOpsModal />
 
       <ExperimentBuilderModal />
       <HelpModal />

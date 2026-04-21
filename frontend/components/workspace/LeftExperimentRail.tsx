@@ -83,7 +83,7 @@ export const LeftExperimentRail: React.FC<LeftExperimentRailProps> = ({
         <div className="ss-cockpit-rail__brand-mark">
           <Orbit size={18} />
         </div>
-        <span>SocialSim4</span>
+        <span>FOS</span>
       </div>
 
       <div className="ss-cockpit-rail__nav">

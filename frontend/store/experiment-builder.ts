@@ -5,18 +5,13 @@
  * Provides actions for updating configuration and validation.
  */
 
-// MODULE LOAD CHECK
-console.log('[experiment-builder.ts] STORE MODULE LOADED');
-
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
+import { apiClient } from '../services/client';
+import type { SocialNetwork } from '../types';
 import {
   ScenarioData,
-  ScenarioParam,
   ActionDef,
-  getAllScenarios,
-  getScenario,
-  getScenarioActions,
 } from '../services/scenarios';
 
 export interface LLMProvider {
@@ -264,7 +259,6 @@ export const useExperimentBuilder = create<ExperimentBuilderState & ExperimentBu
   },
 
   loadProviders: async () => {
-    const { apiClient } = await import('../services/client');
     try {
       // apiClient.get returns { data: T } where T is the generic type
       const { data } = await apiClient.get<LLMProvider[]>('/providers');

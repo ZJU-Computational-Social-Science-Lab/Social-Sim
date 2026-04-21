@@ -164,7 +164,10 @@ export const HostPanel: React.FC = () => {
         {/* #12 Environment Advisor */}
         <div className="ss-host-panel__section">
           <div className="flex justify-between items-center mb-2">
-            <label className="flex items-center gap-1 text-xs font-bold text-[#DDD7F5]">
+            <label
+              className="flex items-center gap-1 text-xs font-bold"
+              style={{ color: 'color-mix(in srgb, var(--ss-secondary) 70%, var(--ss-workspace-heading) 30%)' }}
+            >
               <Sparkles size={14} /> {t('components.hostPanel.aiAdvisor')}
             </label>
             <button

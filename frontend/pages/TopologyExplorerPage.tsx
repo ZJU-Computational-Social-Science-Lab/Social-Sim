@@ -260,9 +260,7 @@ const TopologyExplorerPage: React.FC = () => {
                 <Orbit size={18} />
               </div>
               <div>
-                <div className="text-sm font-semibold tracking-tight text-[var(--ss-workspace-heading)]">
-                  SocialSim4
-                </div>
+                <div className="text-sm font-semibold tracking-tight text-[var(--ss-workspace-heading)]">FOS</div>
                 <div className="text-[11px] uppercase tracking-[0.16em] text-[var(--ss-workspace-muted)]">
                   {t("topologyExplorer.topologyExplorer")}
                 </div>

@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowUpLeft, Eye, GitCompareArrows, GitFork, LogOut, Moon, MoreHorizontal, Orbit, Play, Settings, Sun } from "lucide-react";
+import { ArrowUpLeft, Beaker, Cloud, Download, Eye, GitBranchPlus, GitCompareArrows, GitFork, LogOut, Moon, MoreHorizontal, Orbit, Play, RotateCcw, Save, Settings, Sun, ToggleLeft, ToggleRight } from "lucide-react";
 
 import { useSimulationStore } from "../../store";
 import { useAuthStore } from "../../store/auth";
@@ -19,6 +19,10 @@ interface TopControlBarProps {
   onToggleCompare: () => void;
   onOpenNode: () => void;
   onReturnToParent: () => void;
+  onOpenSnapshots: () => void;
+  onOpenExport: () => void;
+  onResetSimulation: () => void;
+  onOpenTreeOps: () => void;
 }
 
 const NAV_ITEMS = [
@@ -38,6 +42,10 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   onToggleCompare,
   onOpenNode,
   onReturnToParent,
+  onOpenSnapshots,
+  onOpenExport,
+  onResetSimulation,
+  onOpenTreeOps,
 }) => {
   const { t, i18n } = useTranslation();
   const isZh = i18n.language.startsWith("zh");
@@ -53,6 +61,11 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   const clearSession = useAuthStore((state) => state.clearSession);
   const themeMode = useThemeStore((state) => state.mode);
   const toggleTheme = useThemeStore((state) => state.toggle);
+  const environmentEnabled = useSimulationStore((state) => state.environmentEnabled);
+  const environmentSuggestionsLoading = useSimulationStore((state) => state.environmentSuggestionsLoading);
+  const toggleEnvironmentEnabled = useSimulationStore((state) => state.toggleEnvironmentEnabled);
+  const generateEnvironmentSuggestions = useSimulationStore((state) => state.generateEnvironmentSuggestions);
+  const toggleExperimentDesigner = useSimulationStore((state) => state.toggleExperimentDesigner);
 
   const selectedNode = React.useMemo(
     () => nodes.find((node) => node.id === selectedNodeId) || nodes[0] || null,
@@ -84,7 +97,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
               <Orbit size={18} />
             </div>
             <div>
-              <div className="ss-top-control-bar__brand-title">SocialSim4</div>
+              <div className="ss-top-control-bar__brand-title">FOS</div>
               <div className="ss-top-control-bar__brand-subtitle">
                 {isZh ? "实验控制台" : "Simulation Control Room"}
               </div>
@@ -105,6 +118,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
               );
             })}
           </nav>
+
         </div>
 
         <div className="ss-top-control-bar__system">
@@ -132,6 +146,39 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         <div className="ss-top-control-bar__headline">
           <div className="ss-top-control-bar__title-line">
             <h1 className="ss-top-control-bar__title">{workspaceTitle}</h1>
+            <div className="ss-top-control-bar__quick-actions" aria-label={isZh ? "核心功能" : "Core actions"}>
+              <button
+                type="button"
+                className={`ss-top-control-bar__quick-chip${environmentEnabled ? " is-active" : ""}`}
+                onClick={() => void toggleEnvironmentEnabled()}
+                title={environmentEnabled ? (isZh ? "环境变量已启用" : "Environment variables enabled") : (isZh ? "环境变量已禁用" : "Environment variables disabled")}
+              >
+                {environmentEnabled ? <ToggleRight size={15} /> : <ToggleLeft size={15} />}
+                <span>{isZh ? "环境变量" : "Environment"}</span>
+              </button>
+
+              <button
+                type="button"
+                className="ss-top-control-bar__quick-chip"
+                onClick={() => void generateEnvironmentSuggestions()}
+                disabled={!currentSimulation || environmentSuggestionsLoading}
+                title={isZh ? "生成环境建议" : "Generate environment suggestions"}
+              >
+                <Cloud size={15} />
+                <span>{environmentSuggestionsLoading ? (isZh ? "生成中" : "Generating") : (isZh ? "环境建议" : "Environment hints")}</span>
+              </button>
+
+              <button
+                type="button"
+                className="ss-top-control-bar__quick-chip"
+                onClick={() => toggleExperimentDesigner(true)}
+                disabled={!currentSimulation}
+                title={isZh ? "打开仿真干预" : "Open interventions"}
+              >
+                <Beaker size={15} />
+                <span>{isZh ? "仿真干预" : "Intervention"}</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -185,6 +232,22 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
                 <button type="button" className="ss-button-secondary" onClick={onOpenNode}>
                   <Eye size={15} />
                   {isZh ? "打开节点" : "Open node"}
+                </button>
+                <button type="button" className="ss-button-secondary" onClick={onOpenSnapshots}>
+                  <Save size={15} />
+                  {isZh ? "快照管理" : "Snapshots"}
+                </button>
+                <button type="button" className="ss-button-secondary" onClick={onOpenExport}>
+                  <Download size={15} />
+                  {isZh ? "导出结果" : "Export"}
+                </button>
+                <button type="button" className="ss-button-secondary" onClick={onOpenTreeOps}>
+                  <GitBranchPlus size={15} />
+                  {isZh ? "高级树推进" : "Tree ops"}
+                </button>
+                <button type="button" className="ss-button-secondary" onClick={onResetSimulation}>
+                  <RotateCcw size={15} />
+                  {isZh ? "重置仿真" : "Reset"}
                 </button>
                 <button type="button" className="ss-button-secondary" onClick={onReturnToParent} disabled={!canReturnToParent}>
                   <ArrowUpLeft size={15} />

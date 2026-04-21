@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { LogEntry, ViewMode } from '../types';
 import { Activity, BookOpen, Brain, CreditCard, Clock, Filter, GitCommit, Image as ImageIcon, List, Search, UserRound, X, Check } from 'lucide-react';
 import { getActionConfig, getResourceName } from '../utils/scenarioHelpers';
+import { resolveAgentDisplayName, translateActionName, getAgentDisplayName, getAgentDisplayRole } from '../store/helpers';
 
 type DiffOp<T> = {
   type: 'equal' | 'add' | 'remove';
@@ -29,6 +30,53 @@ type PolicyDiffRow = {
 type InlineDiffSegment = {
   kind: 'unchanged' | 'added' | 'removed';
   text: string;
+};
+
+type SemanticTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'metadata';
+
+const semanticToneColor = (tone: SemanticTone) => {
+  if (tone === 'info') return 'var(--ss-info)';
+  if (tone === 'success') return 'var(--ss-success)';
+  if (tone === 'warning') return 'var(--ss-warning)';
+  if (tone === 'danger') return 'var(--ss-danger)';
+  if (tone === 'metadata') return 'var(--ss-secondary)';
+  return 'var(--ss-workspace-muted)';
+};
+
+const buildSemanticTintStyle = (
+  tone: SemanticTone,
+  {
+    backgroundPct = 14,
+    borderPct = 26,
+    textPct = 76,
+    surface = 'var(--ss-workspace-surface-strong)',
+    textBase = 'var(--ss-workspace-heading)',
+    includeBorder = false,
+    includeText = true,
+  }: {
+    backgroundPct?: number;
+    borderPct?: number;
+    textPct?: number;
+    surface?: string;
+    textBase?: string;
+    includeBorder?: boolean;
+    includeText?: boolean;
+  } = {}
+): React.CSSProperties => {
+  const accent = semanticToneColor(tone);
+  return {
+    background: `color-mix(in srgb, ${accent} ${backgroundPct}%, ${surface} ${100 - backgroundPct}%)`,
+    ...(includeBorder
+      ? {
+          borderColor: `color-mix(in srgb, ${accent} ${borderPct}%, var(--ss-workspace-border) ${100 - borderPct}%)`,
+        }
+      : {}),
+    ...(includeText
+      ? {
+          color: `color-mix(in srgb, ${accent} ${textPct}%, ${textBase} ${100 - textPct}%)`,
+        }
+      : {}),
+  };
 };
 
 const splitDiffText = (text: string): string[] =>
@@ -159,26 +207,53 @@ const buildInlineDiffSegments = (leftText: string, rightText: string, side: 'lef
 };
 
 const inlineSegmentClassName = (kind: InlineDiffSegment['kind']) => {
-  if (kind === 'added') {
-    return 'rounded px-0.5 bg-emerald-500/18 text-emerald-100';
-  }
-  if (kind === 'removed') {
-    return 'rounded px-0.5 bg-rose-500/18 text-rose-100';
-  }
-  return '';
+  return kind === 'unchanged' ? '' : 'rounded px-0.5';
 };
 
-const diffCellClassName = (kind: PolicyDiffRow['kind'], side: 'left' | 'right') => {
+const inlineSegmentStyle = (kind: InlineDiffSegment['kind']) => {
+  if (kind === 'added') {
+    return buildSemanticTintStyle('success', {
+      backgroundPct: 20,
+      textPct: 80,
+      surface: 'var(--ss-workspace-surface)',
+    });
+  }
+  if (kind === 'removed') {
+    return buildSemanticTintStyle('danger', {
+      backgroundPct: 18,
+      textPct: 80,
+      surface: 'var(--ss-workspace-surface)',
+    });
+  }
+  return undefined;
+};
+
+const diffCellStyle = (kind: PolicyDiffRow['kind'], side: 'left' | 'right') => {
   if (kind === 'modified') {
-    return 'border-amber-400/30 bg-amber-500/10';
+    return buildSemanticTintStyle('warning', {
+      backgroundPct: 10,
+      borderPct: 28,
+      includeBorder: true,
+      includeText: false,
+    });
   }
   if (kind === 'removed' && side === 'left') {
-    return 'border-rose-400/30 bg-rose-500/10';
+    return buildSemanticTintStyle('danger', {
+      backgroundPct: 10,
+      borderPct: 24,
+      includeBorder: true,
+      includeText: false,
+    });
   }
   if (kind === 'added' && side === 'right') {
-    return 'border-emerald-400/30 bg-emerald-500/10';
+    return buildSemanticTintStyle('success', {
+      backgroundPct: 10,
+      borderPct: 24,
+      includeBorder: true,
+      includeText: false,
+    });
   }
-  return 'border-transparent bg-transparent';
+  return undefined;
 };
 
 const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
@@ -219,11 +294,16 @@ const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
               return (
                 <div
                   key={`left-${idx}`}
-                  className={`rounded px-2 py-1 whitespace-pre-wrap break-words border ${diffCellClassName(row.kind, 'left')}`}
+                  className="rounded border px-2 py-1 whitespace-pre-wrap break-words"
+                  style={diffCellStyle(row.kind, 'left')}
                 >
                   {row.kind === 'modified' ? (
                     segments.map((segment, segmentIdx) => (
-                      <span key={`left-${idx}-${segmentIdx}`} className={inlineSegmentClassName(segment.kind)}>
+                      <span
+                        key={`left-${idx}-${segmentIdx}`}
+                        className={inlineSegmentClassName(segment.kind)}
+                        style={inlineSegmentStyle(segment.kind)}
+                      >
                         {segment.text}
                       </span>
                     ))
@@ -248,11 +328,16 @@ const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
               return (
                 <div
                   key={`right-${idx}`}
-                  className={`rounded px-2 py-1 whitespace-pre-wrap break-words border ${diffCellClassName(row.kind, 'right')}`}
+                  className="rounded border px-2 py-1 whitespace-pre-wrap break-words"
+                  style={diffCellStyle(row.kind, 'right')}
                 >
                   {row.kind === 'modified' ? (
                     segments.map((segment, segmentIdx) => (
-                      <span key={`right-${idx}-${segmentIdx}`} className={inlineSegmentClassName(segment.kind)}>
+                      <span
+                        key={`right-${idx}-${segmentIdx}`}
+                        className={inlineSegmentClassName(segment.kind)}
+                        style={inlineSegmentStyle(segment.kind)}
+                      >
                         {segment.text}
                       </span>
                     ))
@@ -287,12 +372,30 @@ const PolicyDiffCard: React.FC<{ entry: LogEntry }> = ({ entry }) => {
       )}
 
       <div className="flex flex-wrap gap-2 text-xs text-[var(--ss-workspace-muted)]">
-        <span className="rounded-full bg-emerald-500/16 px-2 py-1 text-emerald-100">新增</span>
-        <span className="rounded-full bg-rose-500/16 px-2 py-1 text-rose-100">删除</span>
-        <span className="rounded-full bg-amber-500/16 px-2 py-1 text-amber-100">改写</span>
+        <span
+          className="rounded-full border px-2 py-1"
+          style={buildSemanticTintStyle('success', { backgroundPct: 16, borderPct: 24, textPct: 80, includeBorder: true })}
+        >
+          新增
+        </span>
+        <span
+          className="rounded-full border px-2 py-1"
+          style={buildSemanticTintStyle('danger', { backgroundPct: 14, borderPct: 24, textPct: 80, includeBorder: true })}
+        >
+          删除
+        </span>
+        <span
+          className="rounded-full border px-2 py-1"
+          style={buildSemanticTintStyle('warning', { backgroundPct: 16, borderPct: 28, textPct: 82, includeBorder: true })}
+        >
+          改写
+        </span>
       </div>
 
-      <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+      <div
+        className="rounded-lg border px-3 py-2 text-sm"
+        style={buildSemanticTintStyle('warning', { backgroundPct: 10, borderPct: 30, textPct: 84, includeBorder: true })}
+      >
         <div className="font-medium">{data.reasonLabel}：</div>
         <div className="mt-1 whitespace-pre-wrap break-words">{data.reason}</div>
       </div>
@@ -333,7 +436,7 @@ const getDisplayActionName = (
     return config.name;
   }
 
-  return action;
+  return translateActionName(action);
 };
 
 // Format public goods contribution event with custom resource/action names
@@ -376,6 +479,8 @@ const LogItem: React.FC<{
   const { t } = useTranslation();
   const [isImageExpanded, setIsImageExpanded] = useState(false);
 
+  const displayAgentName = entry.agentId ? resolveAgentDisplayName(entry.agentId, agents) : '';
+
   const getBorderColor = () => {
     switch (entry.type) {
       case 'SYSTEM': return 'border-l-slate-400';
@@ -387,14 +492,20 @@ const LogItem: React.FC<{
     }
   };
 
-  const getBadgeColor = () => {
+  const getBadgeStyle = (): React.CSSProperties => {
     switch (entry.type) {
-      case 'SYSTEM': return 'bg-slate-500/15 text-slate-200';
-      case 'AGENT_SAY': return 'bg-[#2F80ED]/15 text-[#B9D7FF]';
-      case 'AGENT_ACTION': return 'bg-amber-400/15 text-amber-200';
-      case 'AGENT_METADATA': return 'bg-[#7C6FA8]/18 text-[#DDD7F5]';
-      case 'ENVIRONMENT': return 'bg-emerald-400/15 text-emerald-200';
-      default: return 'bg-slate-500/15 text-slate-200';
+      case 'SYSTEM':
+        return buildSemanticTintStyle('neutral', { backgroundPct: 14, borderPct: 22, textPct: 70, includeBorder: true });
+      case 'AGENT_SAY':
+        return buildSemanticTintStyle('info', { backgroundPct: 16, borderPct: 24, textPct: 74, includeBorder: true });
+      case 'AGENT_ACTION':
+        return buildSemanticTintStyle('warning', { backgroundPct: 18, borderPct: 30, textPct: 84, includeBorder: true });
+      case 'AGENT_METADATA':
+        return buildSemanticTintStyle('metadata', { backgroundPct: 16, borderPct: 24, textPct: 72, includeBorder: true });
+      case 'ENVIRONMENT':
+        return buildSemanticTintStyle('success', { backgroundPct: 16, borderPct: 24, textPct: 78, includeBorder: true });
+      default:
+        return buildSemanticTintStyle('neutral', { backgroundPct: 14, borderPct: 22, textPct: 70, includeBorder: true });
     }
   };
 
@@ -407,7 +518,7 @@ const LogItem: React.FC<{
         // For AGENT_METADATA, show Agent name instead of "system"
         if (agentId && agents.length > 0) {
           const agent = agents.find(a => a.id === agentId);
-          return agent ? agent.name : t('components.logViewer.typeAgentMetadata');
+          return agent ? getAgentDisplayName(agent) : t('components.logViewer.typeAgentMetadata');
         }
         return t('components.logViewer.typeAgentMetadata');
       case 'ENVIRONMENT': return t('components.logViewer.typeEnvironment');
@@ -417,6 +528,13 @@ const LogItem: React.FC<{
 
   // Use entry timestamp if valid, otherwise fallback or node time
   const displayTime = entry.timestamp.includes('-') ? formatLogTime(entry.timestamp) : entry.timestamp;
+  const actionBadge = entry.type === 'AGENT_ACTION' && entry.actionLabel ? entry.actionLabel : '';
+  const actionBadgeStyle = buildSemanticTintStyle('warning', {
+    backgroundPct: 18,
+    borderPct: 30,
+    textPct: 86,
+    includeBorder: true,
+  });
 
   // Process content to replace action names with custom names
   const getProcessedContent = (content: string): string => {
@@ -432,6 +550,12 @@ const LogItem: React.FC<{
     processedContent = processedContent.replace(actionChoicePattern, (match, verb, action) => {
       const displayName = getDisplayActionName(action, scenarioParams);
       return `${verb} ${displayName}`;
+    });
+
+    const rawActionChoicePattern = /(chose|选择了)\s*([a-z_]+)/gi;
+    processedContent = processedContent.replace(rawActionChoicePattern, (match, verb, action) => {
+      const displayName = getDisplayActionName(action, scenarioParams);
+      return verb === '选择了' ? `${verb}${displayName}` : `${verb} ${displayName}`;
     });
 
     // Handle action names in patterns like "performed Opera action", "Opera action"
@@ -490,14 +614,26 @@ const LogItem: React.FC<{
   );
 
   const MediaBadges = () => (
-    <div className="flex flex-wrap gap-2 mt-2 text-[11px] text-slate-500">
+    <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-[var(--ss-workspace-muted)]">
       {entry.audioUrl && (
-        <a href={entry.audioUrl} target="_blank" rel="noreferrer" className="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200">
+        <a
+          href={entry.audioUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded border px-2 py-1 text-[var(--ss-workspace-muted)] transition-colors hover:text-[var(--ss-workspace-heading)]"
+          style={buildSemanticTintStyle('neutral', { backgroundPct: 12, borderPct: 18, textPct: 62, includeBorder: true })}
+        >
           {t('components.logViewer.audioLink')}
         </a>
       )}
       {entry.videoUrl && (
-        <a href={entry.videoUrl} target="_blank" rel="noreferrer" className="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200">
+        <a
+          href={entry.videoUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded border px-2 py-1 text-[var(--ss-workspace-muted)] transition-colors hover:text-[var(--ss-workspace-heading)]"
+          style={buildSemanticTintStyle('neutral', { backgroundPct: 12, borderPct: 18, textPct: 62, includeBorder: true })}
+        >
           {t('components.logViewer.videoLink')}
         </a>
       )}
@@ -508,18 +644,33 @@ const LogItem: React.FC<{
     return (
       <div className={`ss-logviewer__item flex gap-4 border-b px-4 py-3 text-[0.95rem] ${entry.type === 'SYSTEM' ? 'bg-white/[0.02]' : ''}`}>
         <span className="w-24 shrink-0 whitespace-nowrap font-mono text-[11px] text-[var(--ss-workspace-muted)]">{displayTime}</span>
-        <span className={`self-start whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${getBadgeColor()}`}>
+        <span
+          className="self-start whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase"
+          style={getBadgeStyle()}
+        >
           {translateType(entry.type, entry.agentId)}
         </span>
         <div className="flex-1">
           {/* For AGENT_METADATA, don't repeat agentId since it's already shown in the badge */}
           {entry.agentId && entry.type !== 'AGENT_METADATA' && (
-            <span className="mr-2 font-bold text-[var(--ss-workspace-heading)]">{entry.agentId}:</span>
+            <span className="mr-2 font-bold text-[var(--ss-workspace-heading)]">{displayAgentName}:</span>
           )}
           {hasPolicyDiff ? (
             <PolicyDiffCard entry={entry} />
           ) : (
-            <span className="leading-7 text-[var(--ss-workspace-text)]">{displayContent}</span>
+            <div className="space-y-2">
+              {actionBadge ? (
+                <div className="flex justify-end">
+                  <span
+                    className="rounded-full border px-2.5 py-0.5 text-[11px] font-semibold shadow-[0_1px_0_rgba(138,90,0,0.06)]"
+                    style={actionBadgeStyle}
+                  >
+                    {actionBadge}
+                  </span>
+                </div>
+              ) : null}
+              <span className="leading-7 text-[var(--ss-workspace-text)]">{displayContent}</span>
+            </div>
           )}
           <ImageComponent />
           <MediaBadges />
@@ -536,15 +687,28 @@ const LogItem: React.FC<{
        )}
       <div className="flex justify-between items-start mb-2">
         <div className="flex items-center gap-2">
-           <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${getBadgeColor()}`}>
+           <span
+             className="rounded border px-2 py-0.5 text-[10px] font-bold uppercase"
+             style={getBadgeStyle()}
+           >
             {translateType(entry.type, entry.agentId)}
           </span>
           {/* For AGENT_METADATA, don't repeat agentId since it's already shown in the badge */}
           {entry.agentId && entry.type !== 'AGENT_METADATA' && (
-            <span className="text-xs font-bold text-[var(--ss-workspace-heading)]">{entry.agentId}</span>
+            <span className="text-xs font-bold text-[var(--ss-workspace-heading)]">{displayAgentName}</span>
           )}
         </div>
-        <span className="text-[10px] font-mono text-[var(--ss-workspace-muted)]">{displayTime}</span>
+        <div className="flex flex-col items-end gap-1">
+          {actionBadge ? (
+            <span
+              className="rounded-full border px-2.5 py-0.5 text-[11px] font-semibold shadow-[0_1px_0_rgba(138,90,0,0.06)]"
+              style={actionBadgeStyle}
+            >
+              {actionBadge}
+            </span>
+          ) : null}
+          <span className="text-[10px] font-mono text-[var(--ss-workspace-muted)]">{displayTime}</span>
+        </div>
       </div>
       {hasPolicyDiff ? (
         <PolicyDiffCard entry={entry} />
@@ -622,13 +786,15 @@ export const LogViewer: React.FC<LogViewerProps> = ({
     return ids;
   }, [nodeLookup, selectedNodeId]);
 
+  const isGlobalBranchView = !selectedNodeId || selectedNodeId === '0' || selectedNodeId === 'root';
+
   // Filter Logic
   const filteredLogs = useMemo(() => {
     const forcedAgentIds = selectedAgent ? new Set([selectedAgent.id, selectedAgent.name]) : null;
 
     return logs.filter(log => {
       // 0. Ancestry Filter (Strict: only show logs from current path)
-      if (log.nodeId && !ancestorIds.has(log.nodeId)) {
+      if (!isGlobalBranchView && log.nodeId && !ancestorIds.has(log.nodeId)) {
         return false;
       }
 
@@ -661,7 +827,7 @@ export const LogViewer: React.FC<LogViewerProps> = ({
 
       return true;
     });
-  }, [logs, searchQuery, selectedTypes, selectedAgents, ancestorIds, selectedAgent]);
+  }, [logs, searchQuery, selectedTypes, selectedAgents, ancestorIds, selectedAgent, isGlobalBranchView]);
 
   useEffect(() => {
     setSelectedAgents([]);
@@ -723,7 +889,7 @@ export const LogViewer: React.FC<LogViewerProps> = ({
     : [];
   const pathLabel = currentPath.map((node) => node.display_id || node.id).join(" / ");
   const stageTitle = selectedAgent
-    ? t("controlRoom.focusedStageTitle", { name: selectedAgent.name })
+    ? t("controlRoom.focusedStageTitle", { name: getAgentDisplayName(selectedAgent) })
     : isZh
       ? "生成事件与内容"
       : "Generated events and content";
@@ -764,7 +930,7 @@ export const LogViewer: React.FC<LogViewerProps> = ({
           {selectedAgent ? (
             <div className="ss-stage__context-card is-focused">
               <span className="ss-stage__context-label">{t("controlRoom.focusedAgent")}</span>
-              <strong className="ss-stage__context-value">{selectedAgent.name}</strong>
+              <strong className="ss-stage__context-value">{getAgentDisplayName(selectedAgent)}</strong>
             </div>
           ) : null}
         </div>
@@ -773,11 +939,11 @@ export const LogViewer: React.FC<LogViewerProps> = ({
           <div className="ss-stage__focus-strip">
             <div className="ss-stage__focus-card ss-stage__focus-card--identity">
               <div className="flex items-start gap-3">
-                <img src={selectedAgent.avatarUrl} alt={selectedAgent.name} className="ss-stage__focus-avatar" />
+                <img src={selectedAgent.avatarUrl} alt={getAgentDisplayName(selectedAgent)} className="ss-stage__focus-avatar" />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="ss-stage__focus-name">{selectedAgent.name}</span>
-                    <span className="ss-stage__focus-role">{selectedAgent.role || t("common.none")}</span>
+                    <span className="ss-stage__focus-name">{getAgentDisplayName(selectedAgent)}</span>
+                    <span className="ss-stage__focus-role">{getAgentDisplayRole(selectedAgent)}</span>
                   </div>
                   <p className="ss-stage__focus-copy">
                     {latestFocusedLog?.content || latestMemory?.content || t("controlRoom.noRoleEvents")}
@@ -928,7 +1094,7 @@ export const LogViewer: React.FC<LogViewerProps> = ({
                       }`}
                     >
                       <img src={agent.avatarUrl} alt="" className="w-4 h-4 rounded-full bg-slate-100" />
-                      {agent.name}
+                      {getAgentDisplayName(agent)}
                       {selectedAgents.includes(agent.id) && <Check size={10} />}
                     </button>
                   ))}

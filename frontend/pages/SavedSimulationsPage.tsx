@@ -10,14 +10,20 @@ import {
   listSimulations,
   resumeSimulation as apiResumeSimulation,
 } from "../services/simulations";
+import { getAllScenarios } from "../services/scenarios";
 import { TitleCard } from "../components/TitleCard";
 import { useSimulationStore } from "../store";
+import {
+  getLocalizedSimulationName,
+  getLocalizedSimulationSceneLabel,
+} from "../utils/scenarioLocalization";
 
 type SavedSimulation = {
   id: string;
   name: string;
   status: string;
   scene_type: string;
+  scene_config?: Record<string, unknown>;
   created_at: string;
 };
 
@@ -33,6 +39,10 @@ export function SavedSimulationsPage() {
     queryKey: ["simulations"],
     queryFn: () => listSimulations(),
   });
+  const scenarioDefinitionsQuery = useQuery({
+    queryKey: ["scenario-definitions"],
+    queryFn: () => getAllScenarios(),
+  });
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkMode, setBulkMode] = useState(false);
@@ -43,6 +53,18 @@ export function SavedSimulationsPage() {
   const [sortMode, setSortMode] = useState<SortMode>("recent");
 
   const simulations = (simulationsQuery.data ?? []) as SavedSimulation[];
+  const scenarioDefinitions = scenarioDefinitionsQuery.data ?? [];
+
+  const formatSimulationName = (simulation: SavedSimulation) =>
+    getLocalizedSimulationName(t, simulation.name, simulation.scene_config, scenarioDefinitions);
+
+  const formatSceneLabel = (simulation: SavedSimulation) =>
+    getLocalizedSimulationSceneLabel(
+      t,
+      simulation.scene_config,
+      scenarioDefinitions,
+      simulation.scene_type,
+    );
 
   const copySimulation = useMutation({
     mutationFn: async (simulationSlug: string) => apiCopySimulation(simulationSlug),
@@ -112,30 +134,34 @@ export function SavedSimulationsPage() {
   );
 
   const sceneOptions = useMemo(
-    () => ["all", ...Array.from(new Set(simulations.map((simulation) => simulation.scene_type || "unknown")))],
-    [simulations],
+    () => [
+      "all",
+      ...Array.from(new Set(simulations.map((simulation) => formatSceneLabel(simulation) || "unknown"))),
+    ],
+    [simulations, scenarioDefinitions, t],
   );
 
   const filteredSimulations = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
     const items = simulations.filter((simulation) => {
-      const searchable = `${simulation.name} ${simulation.status} ${simulation.scene_type} ${simulation.id}`.toLowerCase();
+      const searchable =
+        `${formatSimulationName(simulation)} ${simulation.name} ${simulation.status} ${formatSceneLabel(simulation)} ${simulation.scene_type} ${simulation.id}`.toLowerCase();
       const matchesSearch = !normalizedSearch || searchable.includes(normalizedSearch);
       const matchesStatus = statusFilter === "all" || simulation.status === statusFilter;
-      const matchesScene = sceneFilter === "all" || simulation.scene_type === sceneFilter;
+      const matchesScene = sceneFilter === "all" || formatSceneLabel(simulation) === sceneFilter;
       return matchesSearch && matchesStatus && matchesScene;
     });
 
     return items.sort((left, right) => {
       if (sortMode === "name") {
-        return left.name.localeCompare(right.name);
+        return formatSimulationName(left).localeCompare(formatSimulationName(right));
       }
       if (sortMode === "oldest") {
         return new Date(left.created_at).getTime() - new Date(right.created_at).getTime();
       }
       return new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
     });
-  }, [sceneFilter, searchTerm, simulations, sortMode, statusFilter]);
+  }, [sceneFilter, searchTerm, simulations, sortMode, statusFilter, scenarioDefinitions, t]);
 
   const selectedSimulation =
     filteredSimulations.find((simulation) => simulation.id === selectedId) ??
@@ -332,10 +358,10 @@ export function SavedSimulationsPage() {
                         />
                       ) : null}
                       <div>
-                        <div className="ss-archive-card__title">{simulation.name}</div>
+                        <div className="ss-archive-card__title">{formatSimulationName(simulation)}</div>
                         <div className="ss-archive-card__meta-line">
                           <span className="ss-status-chip">{formatStatus(simulation.status)}</span>
-                          <span>{simulation.scene_type}</span>
+                          <span>{formatSceneLabel(simulation)}</span>
                         </div>
                       </div>
                     </div>
@@ -352,7 +378,7 @@ export function SavedSimulationsPage() {
                     </div>
                     <div>
                       <span className="ss-archive-card__meta-label">{t("saved.typeLabel")}</span>
-                      <strong>{simulation.scene_type}</strong>
+                      <strong>{formatSceneLabel(simulation)}</strong>
                     </div>
                   </div>
 
@@ -405,7 +431,7 @@ export function SavedSimulationsPage() {
             <>
               <div className="ss-archive-detail__header">
                 <div className="kicker">{t("saved.detailTitle")}</div>
-                <h2 className="section-title">{selectedSimulation.name}</h2>
+                <h2 className="section-title">{formatSimulationName(selectedSimulation)}</h2>
                 <p className="panel-subtitle">{t("saved.detailHint")}</p>
               </div>
 
@@ -416,7 +442,7 @@ export function SavedSimulationsPage() {
                 </div>
                 <div className="ss-inset ss-archive-detail__metric">
                   <span>{t("saved.typeLabel")}</span>
-                  <strong>{selectedSimulation.scene_type}</strong>
+                  <strong>{formatSceneLabel(selectedSimulation)}</strong>
                 </div>
                 <div className="ss-inset ss-archive-detail__metric">
                   <span>{t("saved.createdAt")}</span>
@@ -431,7 +457,7 @@ export function SavedSimulationsPage() {
               <div className="card">
                 <div className="panel-title">{t("saved.selectedTitle")}</div>
                 <div className="panel-subtitle">
-                  {t("saved.detailBody", { name: selectedSimulation.name })}
+                  {t("saved.detailBody", { name: formatSimulationName(selectedSimulation) })}
                 </div>
               </div>
 

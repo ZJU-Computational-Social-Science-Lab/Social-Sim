@@ -49,6 +49,12 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
     llmProviders.find((provider) => provider.id === providerSelection) || null;
   const sceneConfig = (currentSimulation?.scene_config ?? {}) as Record<string, any>;
   const selectedNodeLogCount = logs.filter((entry) => entry.nodeId === selectedNodeId).length;
+  const xihuMaterials = Array.isArray(sceneConfig.xihu_material_refs) ? sceneConfig.xihu_material_refs : [];
+  const xihuBenchmarks = (sceneConfig.xihu_benchmarks?.metrics ?? {}) as Record<
+    string,
+    { label: string; mean: number; count: number }
+  >;
+  const xihuBenchmarkEntries = Object.values(xihuBenchmarks).slice(0, 6);
 
   const summaryFacts = [
     {
@@ -133,7 +139,7 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
         <CollapsibleInsightSection
           title={isZh ? "实验配置摘要" : "Simulation configuration"}
           subtitle={currentPath.length ? currentPath.map((node) => getWorkspaceNodeLabel(node, t)).join(" / ") : "—"}
-          defaultOpen
+          defaultOpen={false}
           tone="details"
         >
           <div className="ss-summary-rail__fact-grid">
@@ -161,6 +167,59 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
             ))}
           </div>
         </CollapsibleInsightSection>
+
+        {sceneConfig.xihu_arm_id ? (
+          <CollapsibleInsightSection
+            title={isZh ? "西湖实验臂" : "Xihu intervention arm"}
+            subtitle={sceneConfig.xihu_arm_label || sceneConfig.xihu_arm_id}
+            defaultOpen={false}
+            tone="details"
+          >
+            <div className="ss-summary-rail__rule-list">
+              <div className="ss-summary-rail__rule">
+                <span>{isZh ? "材料框架" : "Arm framing"}</span>
+                <p>{sceneConfig.xihu_arm_summary || "—"}</p>
+              </div>
+              <div className="ss-summary-rail__rule">
+                <span>{isZh ? "导入包" : "Imported package"}</span>
+                <p>{sceneConfig.xihu_package_title || sceneConfig.xihu_package_id || "—"}</p>
+              </div>
+            </div>
+
+            {xihuMaterials.length ? (
+              <div className="ss-summary-rail__rule-list">
+                {xihuMaterials.map((material: any) => (
+                  <div key={material.id} className="ss-summary-rail__rule">
+                    <span>{material.kindLabel || material.kind}</span>
+                    <p>{material.displayTitle}</p>
+                    <p>{material.textSummary}</p>
+                    {material.downloadUrl ? (
+                      <a
+                        href={material.downloadUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                      >
+                        {isZh ? "打开原始材料" : "Open source file"}
+                      </a>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {xihuBenchmarkEntries.length ? (
+              <div className="ss-summary-rail__metric-grid">
+                {xihuBenchmarkEntries.map((metric) => (
+                  <div key={metric.label} className="ss-summary-rail__metric">
+                    <span>{metric.label}</span>
+                    <strong>{metric.mean}</strong>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </CollapsibleInsightSection>
+        ) : null}
 
         <CollapsibleInsightSection
           title={isZh ? "系统指标" : "System metrics"}

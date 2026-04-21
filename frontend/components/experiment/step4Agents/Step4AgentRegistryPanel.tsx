@@ -70,13 +70,13 @@ export function Step4AgentRegistryPanel({
 }: Step4AgentRegistryPanelProps) {
   return (
     <ResearchInputPanel
-      eyebrow={t('experimentBuilder.step4.agentListTitle', { defaultValue: 'Participant registry' })}
+      eyebrow={t('experimentBuilder.step4.agentListTitle', { defaultValue: 'Agent registry' })}
       title={t('experimentBuilder.step4.agentListTitle')}
       description={t('experimentBuilder.step4.totalAgents', { count: totalAgents })}
     >
       <div className="ss-workflow-summary-grid">
         <SummaryInfoCard
-          label={t('common.agents', { defaultValue: 'Agents' })}
+          label={t('experimentBuilder.step4.agentSummaryLabel', { defaultValue: 'Agents' })}
           value={totalAgents}
         />
         <SummaryInfoCard
@@ -84,11 +84,11 @@ export function Step4AgentRegistryPanel({
           value={agentCollections.length}
         />
         <SummaryInfoCard
-          label={t('simulationWorkspace.provider', { defaultValue: 'Providers' })}
+          label={t('experimentBuilder.step4.providerSummaryLabel', { defaultValue: 'Providers' })}
           value={providerCount}
         />
         <SummaryInfoCard
-          label={t('experimentBuilder.step4.sharedPropertyBadge', { defaultValue: 'Shared props' })}
+          label={t('experimentBuilder.step4.sharedPropertyCountLabel', { defaultValue: 'Shared props' })}
           value={sharedPropertyCount}
         />
       </div>
@@ -225,7 +225,7 @@ export function Step4AgentRegistryPanel({
                   <FieldBlock
                     label={t('experimentBuilder.step4.rolePrompt')}
                     helper={t('experimentBuilder.step4.rolePromptHelper', {
-                      defaultValue: '用一句话说明这个群体在实验中的角色、立场或行动倾向。',
+                      defaultValue: '用一句话说明这个智能体类型在实验中的角色、立场或行动倾向。',
                     })}
                     className="md:col-span-2"
                   >

@@ -203,7 +203,6 @@ export const NetworkEditorModal: React.FC = () => {
       );
 
       if (needsMigration) {
-        console.log('[NETWORK-DEBUG] Migrating old ID-based network to name-based');
         const migratedNetwork: SocialNetwork = {};
 
         // Create a mapping from old IDs to agent names
@@ -232,11 +231,9 @@ export const NetworkEditorModal: React.FC = () => {
         // Save the migrated network back to store
         updateSocialNetwork(migratedNetwork).catch(() => {
           // If save fails, just use the migrated network locally
-          console.log('[NETWORK-DEBUG] Failed to save migrated network, using locally');
         });
       }
 
-      console.log('[NETWORK-DEBUG] NetworkEditorModal: Initializing network from store:', networkFromStore);
       setNetwork(networkFromStore);
     }
   }, [isOpen, currentSim]);
@@ -728,7 +725,6 @@ export const NetworkEditorModal: React.FC = () => {
 
   const handleSave = async () => {
     setIsSaving(true);
-    console.log('[NETWORK-DEBUG] NetworkEditorModal: Saving network:', network);
     try {
       await updateSocialNetwork(network);
       toggle(false);

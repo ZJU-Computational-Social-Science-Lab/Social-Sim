@@ -298,6 +298,61 @@ export const ReportModal: React.FC = () => {
                     )}
                  </section>
 
+                 {report.benchmarkComparison && (
+                   <section className="bg-white rounded-xl shadow-sm border p-6">
+                      <div className="flex items-center gap-2 text-violet-600 mb-4 pb-2 border-b">
+                         <Target size={20} />
+                         <h3 className="font-bold text-lg">西湖益联保基准对照</h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="bg-violet-50 rounded-lg border border-violet-100 p-4">
+                          <div className="text-xs text-violet-500 mb-1">当前实验臂</div>
+                          <div className="text-base font-bold text-violet-900">{report.benchmarkComparison.armLabel}</div>
+                        </div>
+                        <div className="bg-violet-50 rounded-lg border border-violet-100 p-4">
+                          <div className="text-xs text-violet-500 mb-1">线下样本量</div>
+                          <div className="text-base font-bold text-violet-900">{report.benchmarkComparison.sampleSize}</div>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        {report.benchmarkComparison.items.map((item) => (
+                          <div key={item.key} className="rounded-lg border bg-slate-50 p-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <h4 className="font-semibold text-slate-800">{item.label}</h4>
+                              <span className="text-xs text-slate-500">{item.interpretation}</span>
+                            </div>
+                            <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+                              <div>
+                                <div className="text-xs text-slate-400">仿真</div>
+                                <div className="font-bold text-slate-900">{item.simulatedValue}</div>
+                              </div>
+                              <div>
+                                <div className="text-xs text-slate-400">线下</div>
+                                <div className="font-bold text-slate-900">{item.benchmarkMean}</div>
+                              </div>
+                              <div>
+                                <div className="text-xs text-slate-400">差值</div>
+                                <div className={`font-bold ${item.delta >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                  {item.delta}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {report.benchmarkComparison.possibleDrivers.length > 0 && (
+                        <div className="mt-4 rounded-lg border bg-violet-50 p-4">
+                          <div className="text-xs font-semibold text-violet-600 mb-2">可能驱动因素</div>
+                          <ul className="space-y-1 text-sm text-slate-700">
+                            {report.benchmarkComparison.possibleDrivers.map((driver) => (
+                              <li key={driver}>• {driver}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                   </section>
+                 )}
+
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Key Events */}
                     <section className="bg-white rounded-xl shadow-sm border p-6">

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useAuthStore } from "../store/auth";
 import { useThemeStore } from "../store/theme";
+import { FosBrand } from "./FosBrand";
 
 const DESKTOP_BREAKPOINT_QUERY = "(min-width: 961px)";
 
@@ -83,7 +84,7 @@ export function NavBar({ variant = "default" }: { variant?: NavBarVariant }) {
       <div className="nav-shell">
         <div className="nav-left">
           <Link to="/" className="nav-brand">
-            {t("brand")}
+            <FosBrand layout="stacked" />
           </Link>
 
           <div className="nav-links nav-links--desktop">

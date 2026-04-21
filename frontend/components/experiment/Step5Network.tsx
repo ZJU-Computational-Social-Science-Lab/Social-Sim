@@ -29,6 +29,14 @@ import {
   type StepFiveDetailSurface,
 } from "./step5Network/utils";
 
+const GRAPH_COLOR_VARS = {
+  edge: "var(--ss-network-graph-edge)",
+  nodeFill: "var(--ss-network-graph-node-fill)",
+  nodeFillHover: "var(--ss-network-graph-node-fill-hover)",
+  nodeStroke: "var(--ss-network-graph-node-stroke)",
+  label: "var(--ss-network-graph-label)",
+} as const;
+
 export const Step5Network: React.FC = () => {
   const { t, i18n } = useTranslation();
   const isZh = i18n.language.startsWith("zh");
@@ -156,7 +164,7 @@ export const Step5Network: React.FC = () => {
     () => ({
       full: {
         tags: isZh ? ["高密度", "充分接触"] : ["Dense", "High contact"],
-        summary: isZh ? "每个参与者都与其他人相连。" : "Each participant connects to every other participant.",
+        summary: isZh ? "每个智能体都与其他智能体相连。" : "Each agent connects to every other agent.",
       },
       random: {
         tags: isZh ? ["随机连接", "探索型"] : ["Random links", "Exploratory"],
@@ -164,7 +172,7 @@ export const Step5Network: React.FC = () => {
       },
       ring: {
         tags: isZh ? ["局部接触", "邻里结构"] : ["Local contact", "Neighborhood"],
-        summary: isZh ? "每个参与者只与邻近个体相连。" : "Each participant is connected to its local neighbors.",
+        summary: isZh ? "每个智能体只与邻近个体相连。" : "Each agent is connected to its local neighbors.",
       },
       star: {
         tags: isZh ? ["中心节点", "单枢纽"] : ["Hub-led", "Central node"],
@@ -176,17 +184,17 @@ export const Step5Network: React.FC = () => {
       },
       "core-periphery": {
         tags: isZh ? ["核心-边缘", "不对称接触"] : ["Core-periphery", "Asymmetric"],
-        summary: isZh ? "少量核心成员高频互联，外围成员连接较少。" : "A small core stays highly connected while the periphery remains sparse.",
+        summary: isZh ? "少量核心智能体高频互联，外围智能体连接较少。" : "A small core stays highly connected while the periphery remains sparse.",
       },
       sbm: {
         tags: isZh ? ["社区结构", "分组接触"] : ["Communities", "Clustered groups"],
-        summary: isZh ? "参与者先在群组内连接，再通过少量桥接互动。" : "Participants connect within groups first, with a few bridge ties between them.",
+        summary: isZh ? "智能体先在群组内连接，再通过少量桥接互动。" : "Agents connect within groups first, with a few bridge ties between them.",
       },
       custom: {
         tags: isZh ? ["自定义", "按需细调"] : ["Custom", "Manual tuning"],
         summary: isZh
-          ? "从空白结构开始，自行调整局部连接与成员关系。"
-          : "Start from a blank structure and tune the ties manually.",
+          ? "从空白结构开始，自行调整局部连接与智能体关系。"
+          : "Start from a blank structure and tune agent ties manually.",
       },
     }),
     [isZh]
@@ -551,7 +559,7 @@ export const Step5Network: React.FC = () => {
       .selectAll("line")
       .data(links)
       .join("line")
-      .attr("stroke", "rgba(143, 193, 177, 0.46)")
+      .style("stroke", GRAPH_COLOR_VARS.edge)
       .attr("stroke-width", 1.35)
       .attr("x1", (item: any) => item.source.x)
       .attr("y1", (item: any) => item.source.y)
@@ -570,18 +578,18 @@ export const Step5Network: React.FC = () => {
     node
       .append("circle")
       .attr("r", 18)
-      .attr("fill", "rgba(17, 55, 47, 0.96)")
-      .attr("stroke", "#5df2bf")
+      .style("fill", GRAPH_COLOR_VARS.nodeFill)
+      .style("stroke", GRAPH_COLOR_VARS.nodeStroke)
       .attr("stroke-width", 1.25)
       .on("mouseenter", function (event, current: any) {
-        d3.select(this).attr("fill", "rgba(24, 74, 62, 0.98)");
+        d3.select(this).style("fill", GRAPH_COLOR_VARS.nodeFillHover);
         setHoverInfo({ name: current.name, profile: current.profile, ...tooltipCoords(event) });
       })
       .on("mousemove", (event) => {
         setHoverInfo((prev) => (prev ? { ...prev, ...tooltipCoords(event) } : null));
       })
       .on("mouseleave", function () {
-        d3.select(this).attr("fill", "rgba(17, 55, 47, 0.96)");
+        d3.select(this).style("fill", GRAPH_COLOR_VARS.nodeFill);
         setHoverInfo(null);
       });
 
@@ -590,7 +598,7 @@ export const Step5Network: React.FC = () => {
       .attr("dy", 33)
       .attr("text-anchor", "middle")
       .text((current) => current.name)
-      .attr("fill", "#b8d1c7")
+      .style("fill", GRAPH_COLOR_VARS.label)
       .style("font-size", "10px")
       .style("font-weight", "600")
       .style("pointer-events", "none");
@@ -683,7 +691,7 @@ export const Step5Network: React.FC = () => {
   if (agentIds.length === 0) {
     return (
       <div className="ss-setup-scenarios__state">
-        <div className="section-title">{isZh ? "请先完成参与者设置" : t("experimentBuilder.step5.noAgentsConfigured")}</div>
+        <div className="section-title">{isZh ? "请先完成智能体设置" : t("experimentBuilder.step5.noAgentsConfigured")}</div>
         <p className="lab-meta mt-3">{t("experimentBuilder.step5.goBackToStep4")}</p>
       </div>
     );
@@ -707,8 +715,8 @@ export const Step5Network: React.FC = () => {
             <div className="ss-workflow-kicker">{isZh ? "当前任务" : "Current task"}</div>
             <p className="lab-meta">
               {isZh
-                ? "默认先选一个结构模板，再按需打开 graph、成员与高级连接。"
-                : "Choose a template first, then open the graph, roster, and advanced links only when you need them."}
+                ? "默认先选一个结构模板，再按需打开图谱、智能体与高级连接。"
+                : "Choose a template first, then open the graph, agent roster, and advanced links only when you need them."}
             </p>
           </div>
           <div className="ss-workflow-summary-grid">
@@ -762,8 +770,8 @@ export const Step5Network: React.FC = () => {
                         ? "网络概览"
                         : "Network overview"
                       : isZh
-                        ? "成员连接详情"
-                        : "Member connections"}
+                        ? "智能体连接详情"
+                        : "Agent connections"}
                   </div>
                   <h2
                     className="ss-workflow-panel__title"
@@ -774,8 +782,8 @@ export const Step5Network: React.FC = () => {
                         ? "先确认整体结构，再决定是否细调"
                         : "Confirm the structure before fine-tuning"
                       : isZh
-                        ? "查看成员、连接与局部微调"
-                        : "Inspect members, links, and local tuning"}
+                        ? "查看智能体、连接与局部微调"
+                        : "Inspect agents, links, and local tuning"}
                   </h2>
                   <p className="ss-workflow-panel__copy">
                     {detailSurface === "overview"
@@ -783,8 +791,8 @@ export const Step5Network: React.FC = () => {
                         ? "结构指标、预设参数与连接摘要集中放在这里，主页面只保留模板决策。"
                         : "Structure metrics, preset controls, and grouped links live here so the main page can stay focused."
                       : isZh
-                        ? "成员清单、边明细与局部微调集中放在这里，关闭后即可返回结构摘要。"
-                        : "Members, edge details, and local tuning live here, then you can return to the structure summary."}
+                        ? "智能体清单、边明细与局部微调集中放在这里，关闭后即可返回结构摘要。"
+                        : "Agents, edge details, and local tuning live here, then you can return to the structure summary."}
                   </p>
                 </div>
                 <Button type="button" variant="secondary" size="sm" onClick={closeDetailSurface}>
@@ -815,10 +823,10 @@ export const Step5Network: React.FC = () => {
                           ) : null}
                           {selectedPreset === "core-periphery" ? (
                             <>
-                              <ParamSlider label={isZh ? "核心成员比例" : "Core share"} value={params["core-periphery"].influencerPercent} min={0.1} max={0.5} step={0.05} onChange={(value) => updateParam("core-periphery", "influencerPercent", value)} />
-                              <ParamSlider label={isZh ? "核心成员互联强度" : "Core connectivity"} value={params["core-periphery"].influencerConnectivity} min={0.2} max={1} step={0.05} onChange={(value) => updateParam("core-periphery", "influencerConnectivity", value)} />
+                              <ParamSlider label={isZh ? "核心智能体比例" : "Core share"} value={params["core-periphery"].influencerPercent} min={0.1} max={0.5} step={0.05} onChange={(value) => updateParam("core-periphery", "influencerPercent", value)} />
+                              <ParamSlider label={isZh ? "核心智能体互联强度" : "Core connectivity"} value={params["core-periphery"].influencerConnectivity} min={0.2} max={1} step={0.05} onChange={(value) => updateParam("core-periphery", "influencerConnectivity", value)} />
                               <ParamSlider label={isZh ? "核心触达边缘概率" : "Core reach"} value={params["core-periphery"].influencerReach} min={0.1} max={1} step={0.05} onChange={(value) => updateParam("core-periphery", "influencerReach", value)} />
-                              <ParamSlider label={isZh ? "边缘成员互联强度" : "Peripheral connectivity"} value={params["core-periphery"].regularConnectivity} min={0} max={0.6} step={0.05} onChange={(value) => updateParam("core-periphery", "regularConnectivity", value)} />
+                              <ParamSlider label={isZh ? "边缘智能体互联强度" : "Peripheral connectivity"} value={params["core-periphery"].regularConnectivity} min={0} max={0.6} step={0.05} onChange={(value) => updateParam("core-periphery", "regularConnectivity", value)} />
                             </>
                           ) : null}
                           {selectedPreset === "sbm" ? (
@@ -898,7 +906,7 @@ export const Step5Network: React.FC = () => {
                       ))}
                     </div>
                     <div className="ss-workflow-kicker" id="ss-step5-member-roster">
-                      {isZh ? "完整成员清单" : "Full member roster"}
+                      {isZh ? "完整智能体清单" : "Full agent roster"}
                     </div>
                     <div className="ss-structure-workflow__roster-grid">
                       {agentIds.map((id) => <div key={id} className="ss-structure-workflow__roster-card">{id}</div>)}

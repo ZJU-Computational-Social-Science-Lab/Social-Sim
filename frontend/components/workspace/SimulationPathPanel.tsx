@@ -103,7 +103,7 @@ export const SimulationPathPanel: React.FC<SimulationPathPanelProps> = ({
       <div className="ss-path-strip__actions">
         <button
           type="button"
-          onClick={() => parentNode && selectNode(parentNode.id)}
+          onClick={() => parentNode && handleActivateNode(parentNode.id)}
           disabled={!parentNode}
           className="ss-button-secondary"
         >

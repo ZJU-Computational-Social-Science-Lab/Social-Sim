@@ -2,186 +2,172 @@
  * Tests for Step1InteractionType component.
  *
  * Tests for:
- * - Component rendering
- * - Category accordion functionality
- * - Scenario selection
- * - Scenario card interaction
+ * - Guided start options
+ * - Default recommended template preview
+ * - Category-to-template preview interaction
+ * - Scenario selection callbacks
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { I18nextProvider } from 'i18next';
-import { Step1InteractionType } from '../Step1InteractionType';
-import { useExperimentBuilder } from '../../store/experiment-builder';
 import { vi } from 'vitest';
 
-// Mock i18next
-const i18n = {
-  language: 'en',
-  changeLanguage: vi.fn(),
-  t: (key: string, params?: any) => {
-    const translations: Record<string, string> = {
-      'common.loading': 'Loading…',
-      'scenario.category.game_theory': 'Game Theory',
-      'scenario.category.sociology': 'Sociology',
-      'scenario.sociology.social_norm_disruption.name': 'Social Norm Disruption',
-    };
-    let result = translations[key] || key;
-    if (params) {
-      Object.keys(params).forEach(param => {
-        result = result.replace(`{${param}}`, String(params[param]));
-      });
-    }
-    return result;
-  },
-} as any;
+import { Step1InteractionType } from '../Step1InteractionType';
+import { useExperimentBuilder } from '../../../store/experiment-builder';
 
-// Mock the scenarios service
-vi.mock('../../services/scenarios', () => ({
-  getAllScenarios: vi.fn(() => Promise.resolve([
-    {
-      id: 'social-norm-disruption',
-      name: 'Social Norm Disruption',
-      category: 'sociology',
-      description: 'A new rule is suddenly imposed',
-      parameters: [],
-      actions: [],
-    },
-    {
-      id: 'prisoners-dilemma',
-      name: "Prisoner's Dilemma",
-      category: 'game_theory',
-      description: 'Classic game theory scenario',
-      parameters: [],
-      actions: [],
-    },
-  ])),
+vi.mock('../../../store/experiment-builder', () => ({
+  useExperimentBuilder: vi.fn(),
 }));
 
-const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <I18nextProvider i18n={i18n}>{children}</I18nextProvider>
-);
+vi.mock('../../../services/scenarios', () => ({
+  getAllScenarios: vi.fn(() =>
+    Promise.resolve([
+      {
+        id: 'prisoners_dilemma',
+        name: "Prisoner's Dilemma",
+        category: 'game_theory',
+        description: 'Classic cooperation versus defection scenario.',
+        parameters: [],
+        actions: [],
+      },
+      {
+        id: 'stag_hunt',
+        name: 'Stag Hunt',
+        category: 'game_theory',
+        description: 'A coordination problem with risk and trust.',
+        parameters: [],
+        actions: [],
+      },
+      {
+        id: 'social_norm_disruption',
+        name: 'Social Norm Disruption',
+        category: 'sociology',
+        description: 'A new rule is suddenly imposed on the group.',
+        parameters: [],
+        actions: [],
+      },
+    ])
+  ),
+}));
+
+vi.mock('react-i18next', () => {
+  const translate = (key: string, params?: Record<string, unknown>) => {
+    const translations: Record<string, string> = {
+      'common.loading': 'Loading...',
+      'dashboard.error': 'Error',
+      'scenario.category.game_theory': 'Game Theory',
+      'scenario.category.sociology': 'Sociology',
+    };
+
+    if (translations[key]) {
+      return translations[key];
+    }
+
+    return typeof params?.defaultValue === 'string' ? params.defaultValue : key;
+  };
+
+  return {
+    useTranslation: () => ({
+      t: translate,
+      i18n: { language: 'en' },
+    }),
+  };
+});
+
+const createMockStore = (overrides: Record<string, unknown> = {}) => ({
+  selectedScenarioId: null,
+  selectedScenarioData: null,
+  setSelectedScenarioId: vi.fn(),
+  setSelectedScenarioData: vi.fn(),
+  markStepComplete: vi.fn(),
+  ...overrides,
+});
 
 describe('Step1InteractionType', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Element.prototype.scrollIntoView = vi.fn();
+    window.requestAnimationFrame = ((callback: FrameRequestCallback) => {
+      callback(0);
+      return 0;
+    }) as typeof window.requestAnimationFrame;
   });
 
-  // =========================================================================
-  // Rendering Tests
-  // =========================================================================
+  test('renders guided start options with a default template preview', async () => {
+    const mockStore = createMockStore();
 
-  describe('Rendering', () => {
-    test('should render loading state initially', () => {
-      const mockStore = {
-        selectedScenarioId: null,
-        setSelectedScenarioId: vi.fn(),
-        setSelectedScenarioData: vi.fn(),
-        markStepComplete: vi.fn(),
-      };
+    vi.mocked(useExperimentBuilder).mockReturnValue(mockStore as any);
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore));
+    render(<Step1InteractionType />);
 
-      render(<Step1InteractionType />, { wrapper });
-
-      expect(screen.getByText('Loading…')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Choose experiment starting point')).toBeInTheDocument();
+      expect(screen.getByText('You can start this way')).toBeInTheDocument();
+      expect(screen.getByText('Game Theory')).toBeInTheDocument();
+      expect(screen.getByText('Sociology')).toBeInTheDocument();
     });
 
-    test('should render scenarios after loading', async () => {
-      const mockStore = {
-        selectedScenarioId: null,
-        setSelectedScenarioId: vi.fn(),
-        setSelectedScenarioData: vi.fn(),
-        markStepComplete: vi.fn(),
-      };
-
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore));
-
-      render(<Step1InteractionType />, { wrapper });
-
-      await waitFor(() => {
-        expect(screen.getByText('Social Norm Disruption')).toBeInTheDocument();
-        expect(screen.getByText("Prisoner's Dilemma")).toBeInTheDocument();
-      });
-    });
-
-    test('should render category accordions', async () => {
-      const mockStore = {
-        selectedScenarioId: null,
-        setSelectedScenarioId: vi.fn(),
-        setSelectedScenarioData: vi.fn(),
-        markStepComplete: vi.fn(),
-      };
-
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore));
-
-      render(<Step1InteractionType />, { wrapper });
-
-      await waitFor(() => {
-        expect(screen.getByText('Sociology')).toBeInTheDocument();
-        expect(screen.getByText('Game Theory')).toBeInTheDocument();
-      });
-    });
+    expect(await screen.findByText("Prisoner's Dilemma")).toBeInTheDocument();
+    expect(screen.getByText('Stag Hunt')).toBeInTheDocument();
   });
 
-  // =========================================================================
-  // Accordion Tests
-  // =========================================================================
+  test('updates the template preview when a category is chosen', async () => {
+    const mockStore = createMockStore();
 
-  describe('Category Accordions', () => {
-    test('should expand accordion on click', async () => {
-      const mockStore = {
-        selectedScenarioId: null,
-        setSelectedScenarioId: vi.fn(),
-        setSelectedScenarioData: vi.fn(),
-        markStepComplete: vi.fn(),
-      };
+    vi.mocked(useExperimentBuilder).mockReturnValue(mockStore as any);
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore));
+    render(<Step1InteractionType />);
 
-      render(<Step1InteractionType />, { wrapper });
+    await screen.findByText('Sociology');
 
-      await waitFor(() => {
-        const sociologyHeader = screen.getByText('Sociology');
-        expect(sociologyHeader).toBeInTheDocument();
-      });
+    const sociologyCard = screen.getByText('Sociology').closest('article');
+    expect(sociologyCard).not.toBeNull();
+
+    await act(async () => {
+      fireEvent.click(within(sociologyCard as HTMLElement).getByRole('button', { name: /View this category/i }));
     });
+
+    await waitFor(() => {
+      expect(screen.getByText('Social Norm Disruption')).toBeInTheDocument();
+      expect(screen.getAllByText('1 template').length).toBeGreaterThan(0);
+    });
+
+    expect(screen.queryByText("Prisoner's Dilemma")).not.toBeInTheDocument();
   });
 
-  // =========================================================================
-  // Scenario Selection Tests
-  // =========================================================================
-
-  describe('Scenario Selection', () => {
-    test('should call setSelectedScenarioId when scenario is clicked', async () => {
-      const setSelectedScenarioId = vi.fn();
-      const setSelectedScenarioData = vi.fn();
-      const markStepComplete = vi.fn();
-
-      const mockStore = {
-        selectedScenarioId: null,
-        setSelectedScenarioId,
-        setSelectedScenarioData,
-        markStepComplete,
-      };
-
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore));
-
-      render(<Step1InteractionType />, { wrapper });
-
-      await waitFor(() => {
-        const scenarioButton = screen.getByText('Social Norm Disruption');
-        expect(scenarioButton).toBeInTheDocument();
-      });
-
-      const scenarioButton = screen.getByText('Social Norm Disruption');
-      await act(async () => {
-        fireEvent.click(scenarioButton);
-      });
-
-      expect(setSelectedScenarioId).toHaveBeenCalledWith('social-norm-disruption');
-      expect(markStepComplete).toHaveBeenCalledWith(1);
+  test('selects a scenario from the template preview', async () => {
+    const setSelectedScenarioId = vi.fn();
+    const setSelectedScenarioData = vi.fn();
+    const markStepComplete = vi.fn();
+    const mockStore = createMockStore({
+      setSelectedScenarioId,
+      setSelectedScenarioData,
+      markStepComplete,
     });
+
+    vi.mocked(useExperimentBuilder).mockReturnValue(mockStore as any);
+
+    render(<Step1InteractionType />);
+
+    await screen.findByText('Sociology');
+
+    const sociologyCard = screen.getByText('Sociology').closest('article');
+
+    await act(async () => {
+      fireEvent.click(within(sociologyCard as HTMLElement).getByRole('button', { name: /View this category/i }));
+    });
+
+    const scenarioCard = (await screen.findByText('Social Norm Disruption')).closest('article');
+
+    await act(async () => {
+      fireEvent.click(within(scenarioCard as HTMLElement).getByRole('button', { name: /Select this template/i }));
+    });
+
+    expect(setSelectedScenarioId).toHaveBeenCalledWith('social_norm_disruption');
+    expect(setSelectedScenarioData).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'social_norm_disruption', category: 'sociology' })
+    );
+    expect(markStepComplete).toHaveBeenCalledWith(1);
   });
 });

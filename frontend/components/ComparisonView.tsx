@@ -76,14 +76,35 @@ export const ComparisonView: React.FC = () => {
    const leftEvents = compareData?.only_in_a || [];
    const rightEvents = compareData?.only_in_b || [];
    const agentDiffs = compareData?.agent_diffs || {};
+   const baselineCardStyle: React.CSSProperties = {
+      borderColor: 'color-mix(in srgb, var(--ss-info) 26%, var(--ss-workspace-border) 74%)',
+      background: 'color-mix(in srgb, var(--ss-info) 12%, var(--ss-workspace-surface-strong) 88%)',
+   };
+   const baselineLabelStyle: React.CSSProperties = {
+      color: 'color-mix(in srgb, var(--ss-info) 72%, var(--ss-workspace-heading) 28%)',
+   };
+   const compareCardStyle: React.CSSProperties = {
+      borderColor: 'color-mix(in srgb, var(--ss-secondary) 28%, var(--ss-workspace-border) 72%)',
+      background: 'color-mix(in srgb, var(--ss-secondary) 12%, var(--ss-workspace-surface-strong) 88%)',
+   };
+   const compareLabelStyle: React.CSSProperties = {
+      color: 'color-mix(in srgb, var(--ss-secondary) 72%, var(--ss-workspace-heading) 28%)',
+   };
+   const summaryHeadingStyle: React.CSSProperties = {
+      color: 'color-mix(in srgb, var(--ss-secondary) 68%, var(--ss-workspace-heading) 32%)',
+   };
+   const evidenceCardStyle: React.CSSProperties = {
+      borderColor: 'var(--ss-workspace-border)',
+      background: 'color-mix(in srgb, var(--ss-workspace-surface-alt) 78%, var(--ss-workspace-surface-strong) 22%)',
+   };
 
    return (
       <div className="ss-workspace__panel ss-workspace__panel--stage flex h-full flex-col overflow-hidden">
          {/* Header */}
          <div className="ss-logviewer__toolbar flex items-center justify-between px-6 py-4 shrink-0">
              <div className="flex items-center gap-6 w-full">
-                  <div className="flex-1 rounded-2xl border border-[rgba(47,128,237,0.24)] bg-[rgba(47,128,237,0.12)] p-3 relative">
-                      <div className="mb-1 text-[10px] font-bold uppercase text-[#B9D7FF]">{t('components.comparisonView.baseline')}</div>
+                  <div className="relative flex-1 rounded-2xl border p-3" style={baselineCardStyle}>
+                      <div className="mb-1 text-[10px] font-bold uppercase" style={baselineLabelStyle}>{t('components.comparisonView.baseline')}</div>
                       <div className="font-bold text-[var(--ss-workspace-heading)]">{nodeA.name}</div>
                       <div className="mt-1 font-mono text-xs text-[var(--ss-workspace-muted)]">{nodeA.display_id}</div>
                   </div>
@@ -92,8 +113,8 @@ export const ComparisonView: React.FC = () => {
                       <ArrowRight size={24} />
                   </div>
 
-                  <div className="flex-1 rounded-2xl border border-[rgba(124,111,168,0.3)] bg-[rgba(124,111,168,0.12)] p-3 relative">
-                      <div className="mb-1 text-[10px] font-bold uppercase text-[#DDD7F5]">{t('components.comparisonView.compare')}</div>
+                  <div className="relative flex-1 rounded-2xl border p-3" style={compareCardStyle}>
+                      <div className="mb-1 text-[10px] font-bold uppercase" style={compareLabelStyle}>{t('components.comparisonView.compare')}</div>
                       <div className="font-bold text-[var(--ss-workspace-heading)]">{nodeB.name}</div>
                       <div className="mt-1 font-mono text-xs text-[var(--ss-workspace-muted)]">{nodeB.display_id}</div>
                   </div>
@@ -104,39 +125,39 @@ export const ComparisonView: React.FC = () => {
          <div className="ss-logviewer__body space-y-6 p-6">
             {/* AI Analysis Card */}
             <div className="ss-logviewer__item relative overflow-hidden p-5">
-                <div className="mb-3 flex items-center gap-2 font-bold text-[#DDD7F5]">
+                <div className="mb-3 flex items-center gap-2 font-bold" style={summaryHeadingStyle}>
                      <Sparkles size={18} />
                      <h3>{t('components.comparisonView.smartSummary')}</h3>
                 </div>
                         <div className="rounded-2xl border border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface-strong)] p-4 text-sm leading-relaxed text-[var(--ss-workspace-text)] min-h-[80px]">
                                <div className="flex items-center justify-end gap-3 mb-3">
-                                    <label className="text-xs text-slate-500 flex items-center gap-2">
+                                    <label className="flex items-center gap-2 text-xs text-[var(--ss-workspace-muted)]">
                                         <input type="checkbox" checked={comparisonUseLLM} onChange={(e) => setComparisonUseLLM(e.target.checked)} />
                                         {t('components.comparisonView.useLLMForSummary')}
                                     </label>
                                </div>
                      {isGenerating ? (
-                        <div className="flex items-center gap-2 text-slate-500">
+                        <div className="flex items-center gap-2 text-[var(--ss-workspace-muted)]">
                             <Loader2 size={16} className="animate-spin" />
                             {t('components.comparisonView.analyzingDifferences')}
                         </div>
                      ) : compareData ? (
                         <div>
                            <p className="mb-2">{compareData?.summary}</p>
-                           <div className="text-xs text-slate-400">{t('components.comparisonView.diffEvidenceSamples')}:</div>
+                           <div className="text-xs text-[var(--ss-workspace-muted)]">{t('components.comparisonView.diffEvidenceSamples')}:</div>
                            <div className="grid grid-cols-2 gap-2 mt-2 text-[12px]">
-                              <div className="bg-slate-50 p-2 rounded">{t('components.comparisonView.exampleA')}: {(leftEvents || []).slice(0,3).map((e:any,i:number)=>(<div key={i}>{String(e.type)}: {String(JSON.stringify(e.data)).slice(0,80)}</div>))}</div>
-                              <div className="bg-slate-50 p-2 rounded">{t('components.comparisonView.exampleB')}: {(rightEvents || []).slice(0,3).map((e:any,i:number)=>(<div key={i}>{String(e.type)}: {String(JSON.stringify(e.data)).slice(0,80)}</div>))}</div>
+                              <div className="rounded border p-2 text-[var(--ss-workspace-text)]" style={evidenceCardStyle}>{t('components.comparisonView.exampleA')}: {(leftEvents || []).slice(0,3).map((e:any,i:number)=>(<div key={i}>{String(e.type)}: {String(JSON.stringify(e.data)).slice(0,80)}</div>))}</div>
+                              <div className="rounded border p-2 text-[var(--ss-workspace-text)]" style={evidenceCardStyle}>{t('components.comparisonView.exampleB')}: {(rightEvents || []).slice(0,3).map((e:any,i:number)=>(<div key={i}>{String(e.type)}: {String(JSON.stringify(e.data)).slice(0,80)}</div>))}</div>
                            </div>
                         </div>
                      ) : (
-                        <button onClick={() => generateComparisonAnalysis()} className="text-blue-600 hover:underline text-xs">
+                        <button onClick={() => generateComparisonAnalysis()} className="text-xs text-[var(--ss-workspace-link)] hover:underline">
                             {t('components.comparisonView.generateAnalysisReport')}
                         </button>
                      )}
                 </div>
                 {/* Decor */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full blur-3xl -z-0 opacity-50 pointer-events-none"></div>
+                <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -z-0 opacity-50 pointer-events-none bg-[var(--ss-accent-warm-soft)]"></div>
             </div>
 
             {/* Three-column diff area */}

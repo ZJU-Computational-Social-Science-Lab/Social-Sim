@@ -23,6 +23,7 @@ import { ResearchInputPanel } from './workflow/ResearchInputPanel';
 import {
   buildXihuYilianbaoDefaultAgents,
   buildXihuYilianbaoDefaultNetwork,
+  defaultTierName,
   focusStepFourElement,
   generateArchetypes,
   generateId,
@@ -36,12 +37,44 @@ import {
   XIHU_YILIANBAO_SCENARIO_ID,
 } from './step4Agents/utils';
 
+const DEFAULT_DEMOGRAPHIC_PRESETS = {
+  en: [
+    { name: 'Age', categories: ['18-30', '31-50', '51+'] },
+    { name: 'Location', categories: ['Urban', 'Suburban', 'Rural'] },
+  ],
+  zh: [
+    { name: '年龄', categories: ['18-30', '31-50', '51岁以上'] },
+    { name: '地区', categories: ['城市', '郊区', '农村'] },
+  ],
+};
+
+const demographicLocale = (language: string) => (language.toLowerCase().startsWith('zh') ? 'zh' : 'en');
+
+const matchesDefaultDemographicPreset = (items: Demographic[], language: string) => {
+  const preset = DEFAULT_DEMOGRAPHIC_PRESETS[demographicLocale(language)];
+  return items.length === preset.length && preset.every((demo, index) => (
+    items[index].name === demo.name && items[index].categories.join('|') === demo.categories.join('|')
+  ));
+};
+
+const matchesAnyDefaultDemographicPreset = (items: Demographic[]) => (
+  matchesDefaultDemographicPreset(items, 'en') || matchesDefaultDemographicPreset(items, 'zh')
+);
+
+const buildDefaultDemographics = (language: string): Demographic[] => (
+  DEFAULT_DEMOGRAPHIC_PRESETS[demographicLocale(language)].map((demo) => ({
+    id: generateId(),
+    name: demo.name,
+    categories: [...demo.categories],
+  }))
+);
+
 // =============================================================================
 // Component
 // =============================================================================
 
 export const Step4Agents: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     agentMode,
     setAgentMode,
@@ -153,21 +186,12 @@ export const Step4Agents: React.FC = () => {
     }
 
     const hasPolicyOnlyDemographics = demographics.length === 1 && demographics[0]?.name === '政治职位层级';
-    if (demographics.length === 0 || hasPolicyOnlyDemographics) {
-      setDemographics([
-        {
-          id: generateId(),
-          name: 'Age',
-          categories: ['18-30', '31-50', '51+'],
-        },
-        {
-          id: generateId(),
-          name: 'Location',
-          categories: ['Urban', 'Suburban', 'Rural'],
-        },
-      ]);
+    const hasDefaultDemographics = matchesAnyDefaultDemographicPreset(demographics);
+    const hasCurrentLanguageDefaults = matchesDefaultDemographicPreset(demographics, i18n.language);
+    if (demographics.length === 0 || hasPolicyOnlyDemographics || (hasDefaultDemographics && !hasCurrentLanguageDefaults)) {
+      setDemographics(buildDefaultDemographics(i18n.language));
     }
-  }, [showTierControls, demographics, genCount, tierOrder]);
+  }, [showTierControls, demographics, genCount, tierOrder, i18n.language]);
 
   useEffect(() => {
     if (showTierControls) return;
@@ -753,11 +777,11 @@ export const Step4Agents: React.FC = () => {
   return (
     <div className="ss-participant-workflow">
       <ResearchInputPanel
-        eyebrow={t('experimentBuilder.step4.title', { defaultValue: 'Social Dynamics' })}
+        eyebrow={t('experimentBuilder.step4.title', { defaultValue: isZh() ? '智能体配置' : 'Agent setup' })}
         title={t('experimentBuilder.step4.modeTitle')}
         description={t('experimentBuilder.step4.modeDescription', {
           defaultValue:
-            '先确定参与者的组织方式，再逐步补充代表成员与研究属性。',
+            '先确定智能体的组织方式，再逐步补充代表样本与研究属性。',
         })}
       >
         <div id="ss-step4-mode-grid" className="ss-participant-workflow__mode-grid">
@@ -890,12 +914,12 @@ export const Step4Agents: React.FC = () => {
       {/* Manual Agent Types */}
       {agentMode === 'manual' && (
         <ResearchInputPanel
-          eyebrow={t('experimentBuilder.step4.defineTypes', { defaultValue: 'Participant form' })}
+          eyebrow={t('experimentBuilder.step4.defineTypes', { defaultValue: 'Agent form' })}
           title={t('experimentBuilder.step4.defineTypes')}
           description={t('experimentBuilder.step4.manualHint')}
         >
         <div className="ss-participant-workflow__manual-note mb-4 px-4 py-3 text-sm">
-            {isZh() ? '先创建一个基础 participant type 即可，后续仍可继续补充。' : t('experimentBuilder.step4.manualHint')}
+            {isZh() ? '先创建一个基础智能体类型即可，后续仍可继续补充。' : t('experimentBuilder.step4.manualHint')}
           </div>
 
           {/* Add New Agent Type */}
@@ -977,11 +1001,11 @@ export const Step4Agents: React.FC = () => {
       {/* Demographic Generation */}
       {agentMode === 'demographic' && (
         <ResearchInputPanel
-          eyebrow={t('experimentBuilder.step4.demographicTitle', { defaultValue: 'Group generation' })}
+          eyebrow={t('experimentBuilder.step4.demographicEyebrow', { defaultValue: 'Group generation' })}
           title={t('experimentBuilder.step4.demographicTitle', { defaultValue: 'Demographic generation' })}
-          description={t('experimentBuilder.step4.demographicDescription', {
-            defaultValue: '先定义人口结构，再据此生成代表性的参与者集合。',
-          })}
+            description={t('experimentBuilder.step4.demographicDescription', {
+              defaultValue: '先定义人口结构，再据此生成代表性的智能体集合。',
+            })}
         >
           {/* LLM Provider Selector */}
           {llmProviders.length > 0 && (
@@ -996,8 +1020,8 @@ export const Step4Agents: React.FC = () => {
                 {llmProviders.map((p: LLMProvider) => (
                   <option key={p.id} value={p.id}>
                     {p.name} {p.model ? ` (${p.model})` : ''}
-                    {p.is_active && <span className="text-green-600 ml-1">● Active</span>}
-                    {p.is_default && <span className="text-blue-500 ml-1">● Default</span>}
+                    {p.is_active ? ` ● ${t('experimentBuilder.step4.providerActive', { defaultValue: 'Active' })}` : ''}
+                    {p.is_default ? ` ● ${t('experimentBuilder.step4.providerDefault', { defaultValue: 'Default' })}` : ''}
                   </option>
                 ))}
               </select>
@@ -1029,7 +1053,8 @@ export const Step4Agents: React.FC = () => {
               customAgents={generatedAgents}
               setCustomAgents={setGeneratedAgents}
               importError={importError}
-              useTranslation={false}
+              useTranslation
+              t={t}
             />
           </div>
         </ResearchInputPanel>

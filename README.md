@@ -14,7 +14,7 @@ A social simulation platform - LLM-based multi-agent social simulation system.
 socialsim4/
 ├── frontend/          # React + TypeScript frontend
 ├── src/socialsim4/    # Python backend
-│   ├── backend/       # FastAPI/Litestar web service
+│   ├── backend/       # Litestar web service
 │   ├── core/          # Simulation core engine
 │   ├── scenarios/     # Preset scenarios
 │   └── services/      # Service layer
@@ -24,30 +24,31 @@ socialsim4/
 
 ### Quick Start
 
-#### 1. Environment Setup
+This section is the verified startup path for this repository on Windows.
 
-```bash
-# Create conda environment
-conda create -n socialsim4 python=3.11 -y
-conda activate socialsim4
+#### 1. First-Time Setup (Windows PowerShell)
 
-# Install backend dependencies (Option A: pip)
-pip install -r requirements.txt
+```powershell
+cd C:\Users\Guo\Documents\GitHub\Social-Sim1
 
-# Install backend dependencies (Option B: Poetry)
-pip install poetry
-poetry install
+# If .venv does not exist, create it once
+py -3.11 -m venv .venv
+
+# Install backend dependencies into .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 
 # Install frontend dependencies
-cd frontend && npm install && cd ..
+cd frontend
+npm install
+cd ..
 ```
 
-#### 2. Configure Environment Variables
+#### 2. Configure Environment Variables (once)
 
 Copy `.env.example` to `.env` and modify as needed:
 
-```bash
-cp .env.example .env
+```powershell
+Copy-Item .env.example .env
 ```
 
 Key configuration options:
@@ -55,41 +56,34 @@ Key configuration options:
 - `SOCIALSIM4_JWT_SIGNING_KEY`: JWT signing key
 - `SOCIALSIM4_REQUIRE_EMAIL_VERIFICATION`: Email verification required (set to `false` for development)
 
-#### 3. Start Services
+#### 3. Daily Start (Windows PowerShell)
 
-**Start Backend** (port 8000):
+Open two PowerShell terminals.
 
-```bash
-conda activate socialsim4
-```
+Terminal 1 (Backend, port 8000):
 
-Set the Python path based on your operating system:
-
-**Linux / macOS:**
-```bash
-export PYTHONPATH="$(pwd)/src"
-uvicorn socialsim4.backend.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-**Windows PowerShell:**
 ```powershell
-$env:PYTHONPATH = "$(Get-Location)\src"
-uvicorn socialsim4.backend.main:app --host 0.0.0.0 --port 8000 --reload
+cd C:\Users\Guo\Documents\GitHub\Social-Sim1
+$env:PYTHONPATH = "$PWD\src"
+.\.venv\Scripts\python.exe -m uvicorn socialsim4.backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-**Windows Command Prompt:**
-```cmd
-set PYTHONPATH=%cd%\src
-uvicorn socialsim4.backend.main:app --host 0.0.0.0 --port 8000 --reload
-```
+Terminal 2 (Frontend, port 5173):
 
-**Start Frontend** (port 5173):
-```bash
-cd frontend
+```powershell
+cd C:\Users\Guo\Documents\GitHub\Social-Sim1\frontend
 npm run dev
 ```
 
-#### 4. Access
+Stop services: press `Ctrl + C` in each terminal.
+
+#### 4. Troubleshooting
+
+- If backend reports `ModuleNotFoundError: socialsim4`, make sure `PYTHONPATH` is set to `$PWD\src` in the same terminal before running uvicorn.
+- If frontend reports missing packages, run `cd frontend; npm install` once.
+- If port is occupied, change `--port 8000` (backend) or edit frontend dev port in `frontend/package.json`.
+
+#### 5. Access
 
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:8000/api
@@ -145,7 +139,7 @@ See [AGENTS.md](./AGENTS.md) for project architecture and coding conventions.
 socialsim4/
 ├── frontend/          # React + TypeScript 前端
 ├── src/socialsim4/    # Python 后端
-│   ├── backend/       # FastAPI/Litestar Web 服务
+│   ├── backend/       # Litestar Web 服务
 │   ├── core/          # 仿真核心引擎
 │   ├── scenarios/     # 预设场景
 │   └── services/      # 服务层
@@ -155,30 +149,31 @@ socialsim4/
 
 ### 快速启动
 
-#### 1. 环境准备
+本节是该仓库在 Windows 上实测可运行的启动路径。
 
-```bash
-# 创建 conda 环境
-conda create -n socialsim4 python=3.11 -y
-conda activate socialsim4
+#### 1. 首次准备（Windows PowerShell）
 
-# 安装后端依赖（方式 A：pip）
-pip install -r requirements.txt
+```powershell
+cd C:\Users\Guo\Documents\GitHub\Social-Sim1
 
-# 安装后端依赖（方式 B：Poetry）
-pip install poetry
-poetry install
+# 如果 .venv 不存在，首次创建
+py -3.11 -m venv .venv
+
+# 把后端依赖安装到 .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 
 # 安装前端依赖
-cd frontend && npm install && cd ..
+cd frontend
+npm install
+cd ..
 ```
 
-#### 2. 配置环境变量
+#### 2. 配置环境变量（首次一次）
 
 复制 `.env.example` 为 `.env`，按需修改：
 
-```bash
-cp .env.example .env
+```powershell
+Copy-Item .env.example .env
 ```
 
 主要配置项：
@@ -186,41 +181,36 @@ cp .env.example .env
 - `SOCIALSIM4_JWT_SIGNING_KEY`: JWT 签名密钥
 - `SOCIALSIM4_REQUIRE_EMAIL_VERIFICATION`: 是否需要邮箱验证（开发时设为 `false`）
 
-#### 3. 启动服务
+#### 3. 每次启动（Windows PowerShell）
 
-**启动后端**（端口 8000）：
+**Windows 每次启动（推荐）**
 
-```bash
-conda activate socialsim4
-```
+打开两个 PowerShell 终端。
 
-根据操作系统设置 Python 路径：
+终端 1（后端，8000 端口）：
 
-**Linux / macOS：**
-```bash
-export PYTHONPATH="$(pwd)/src"
-uvicorn socialsim4.backend.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-**Windows PowerShell：**
 ```powershell
-$env:PYTHONPATH = "$(Get-Location)\src"
-uvicorn socialsim4.backend.main:app --host 0.0.0.0 --port 8000 --reload
+cd C:\Users\Guo\Documents\GitHub\Social-Sim1
+$env:PYTHONPATH = "$PWD\src"
+.\.venv\Scripts\python.exe -m uvicorn socialsim4.backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-**Windows 命令提示符：**
-```cmd
-set PYTHONPATH=%cd%\src
-uvicorn socialsim4.backend.main:app --host 0.0.0.0 --port 8000 --reload
-```
+终端 2（前端，5173 端口）：
 
-**启动前端**（端口 5173）：
-```bash
-cd frontend
+```powershell
+cd C:\Users\Guo\Documents\GitHub\Social-Sim1\frontend
 npm run dev
 ```
 
-#### 4. 访问
+停止服务：分别在两个终端按 `Ctrl + C`。
+
+#### 4. 常见问题
+
+- 如果后端报 `ModuleNotFoundError: socialsim4`，确认在同一个终端先设置了 `$env:PYTHONPATH = "$PWD\src"` 再启动。
+- 如果前端报缺包，执行一次 `cd frontend; npm install`。
+- 如果端口冲突，后端改 `--port 8000`，前端改 `frontend/package.json` 里的 dev 端口。
+
+#### 5. 访问
 
 - 前端: http://localhost:5173
 - 后端 API: http://localhost:8000/api

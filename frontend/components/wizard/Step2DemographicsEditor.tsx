@@ -13,6 +13,9 @@ import React from 'react';
 import { Loader2, Sparkles, Plus, Minus } from 'lucide-react';
 import type { Agent } from '../../types';
 
+type TranslationParams = Record<string, string | number>;
+type TranslationFn = (key: string, params?: TranslationParams & { defaultValue?: string }) => string;
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -61,7 +64,7 @@ export interface Step2DemographicsEditorProps {
   setCustomAgents: (agents: Agent[]) => void;
   importError: string | null;
   useTranslation?: boolean; // If true, use t() function for labels
-  t?: (key: string) => string;
+  t?: TranslationFn;
 }
 
 // =============================================================================
@@ -71,23 +74,28 @@ export interface Step2DemographicsEditorProps {
 interface Step2AgentsPreviewProps {
   agents: Agent[];
   onClear: () => void;
-  t?: (key: string) => string;
+  t?: TranslationFn;
 }
 
 const Step2AgentsPreview: React.FC<Step2AgentsPreviewProps> = ({ agents, onClear, t }) => {
-  const getText = (key: string, fallback: string) => t?.(key) || fallback;
+  const generatedText = t
+    ? t('wizard.step2.generatedAgents', { count: agents.length, defaultValue: `Generated ${agents.length} agents` })
+    : `Generated ${agents.length} agents`;
+  const clearText = t
+    ? t('wizard.step2.clearReset', { defaultValue: 'Clear & Reset' })
+    : 'Clear & Reset';
 
   return (
     <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-sm font-bold text-slate-800">
-          {getText('wizard.step2.generatedAgents', 'Generated Agents')} ({agents.length})
+          {generatedText}
         </h4>
         <button
           onClick={onClear}
           className="text-xs px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded"
         >
-          {getText('wizard.step2.clear', 'Clear')}
+          {clearText}
         </button>
       </div>
       <div className="max-h-48 overflow-y-auto space-y-2">
@@ -144,7 +152,9 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
   useTranslation = false,
   t,
 }) => {
-  const getText = (key: string, fallback: string) => (useTranslation && t ? t(key) : fallback);
+  const getText = (key: string, fallback: string, params?: TranslationParams) => (
+    useTranslation && t ? t(key, { ...params, defaultValue: fallback }) : fallback
+  );
 
   return (
     <div className="ss-demographic-editor flex-1 flex flex-col gap-5 overflow-y-auto">
@@ -221,7 +231,7 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
           <div className="ss-demographic-editor__section-head mb-4 flex items-center justify-between gap-3">
             <div>
               <h4 className="text-base font-semibold text-slate-800">
-                {getText('wizard.step2.archetypes', 'Archetypes: {{count}}').replace('{{count}}', String(archetypes.length))}
+                {getText('wizard.step2.archetypes', `Archetypes: ${archetypes.length}`, { count: archetypes.length })}
               </h4>
               <span className="text-sm text-slate-500">
                 {getText('wizard.step2.archetypesHint', 'Archetypes × Demographic Dimensions = Agent Combinations')}

@@ -2,7 +2,8 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSimulationStore } from '../store';
 import { type EnvironmentSuggestion } from '../services/environmentSuggestions';
-import { Cloud, Loader2, X, CloudDrizzle, AlertTriangle, Megaphone, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Cloud, Loader2, X, CloudDrizzle, AlertTriangle, Megaphone, ToggleLeft, ToggleRight, Plus } from 'lucide-react';
+import { EnvironmentConfiguration } from './EnvironmentEventCreator';
 
 const severityColors = {
   mild: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -60,22 +61,44 @@ interface EnvironmentSuggestionDialogProps {
 
 export const EnvironmentSuggestionDialog: React.FC<EnvironmentSuggestionDialogProps> = ({ onClose }) => {
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = React.useState<'suggestions' | 'custom'>('suggestions');
   const environmentSuggestions = useSimulationStore((s) => s.environmentSuggestions);
   const environmentSuggestionsLoading = useSimulationStore((s) => s.environmentSuggestionsLoading);
   const applyEnvironmentSuggestion = useSimulationStore((s) => s.applyEnvironmentSuggestion);
   const dismissEnvironmentSuggestions = useSimulationStore((s) => s.dismissEnvironmentSuggestions);
+  const currentSimulation = useSimulationStore((s) => s.currentSimulation);
+  const nodes = useSimulationStore((s) => s.nodes);
+
+  // Get agents from current simulation snapshot
+  const agents = React.useMemo(() => {
+    if (!currentSimulation || nodes.length === 0) return [];
+    const currentNode = nodes.find((n) => n.id === currentSimulation.current_snapshot_node_id);
+    if (!currentNode?.snapshot?.agents) return [];
+    return Object.entries(currentNode.snapshot.agents)
+      .map(([key, agent]: [string, any]) => ({
+        id: key,
+        name: agent.name || key,
+        role: agent.role || 'agent',
+      }))
+      .slice(0, 20);
+  }, [currentSimulation, nodes]);
 
   const handleApply = async (suggestion: EnvironmentSuggestion) => {
     await applyEnvironmentSuggestion(suggestion);
     onClose?.();
   };
 
-  const handleDismiss = () => {
-    dismissEnvironmentSuggestions();
+  const handleDismiss = async () => {
+    await dismissEnvironmentSuggestions();
     onClose?.();
   };
 
-  if (environmentSuggestionsLoading) {
+  const handleEventCreated = async () => {
+    // Refresh suggestions or switch back to suggestions tab
+    setActiveTab('suggestions');
+  };
+
+  if (environmentSuggestionsLoading && activeTab === 'suggestions') {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
@@ -88,82 +111,131 @@ export const EnvironmentSuggestionDialog: React.FC<EnvironmentSuggestionDialogPr
     );
   }
 
-  if (environmentSuggestions.length === 0) {
+  if (environmentSuggestions.length === 0 && activeTab === 'suggestions') {
     return null;
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col">
         <div className="p-4 border-b flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">{t('components.environmentSuggestion.suggestionsTitle')}</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-500"
-          >
+          <h2 className="text-lg font-semibold text-gray-900">
+            {activeTab === 'suggestions'
+              ? t('components.environmentSuggestion.suggestionsTitle')
+              : t('components.environmentSuggestion.createConfiguration')}
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        <div className="p-4 overflow-y-auto flex-1">
-          <p className="text-sm text-gray-600 mb-4">
-            {t('components.environmentSuggestion.suggestionsDescription')}
-          </p>
-
-          <div className="space-y-3">
-            {environmentSuggestions.map((suggestion, index) => {
-              const IconComponent = eventTypeIcons[suggestion.event_type] || Cloud;
-              const SeverityIcon = severityIcon[suggestion.severity as keyof typeof severityIcon] || Cloud;
-
-              return (
-                <div
-                  key={index}
-                  className={`border rounded-lg p-4 ${severityColors[suggestion.severity as keyof typeof severityColors]}`}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <IconComponent className="w-4 h-4" />
-                      <span className="text-sm font-medium">
-                        {t(`components.environmentSuggestion.eventType.${suggestion.event_type}`) || suggestion.event_type}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <SeverityIcon className="w-3 h-3" />
-                      <span className="text-xs capitalize">
-                        {t(`components.environmentSuggestion.severity.${suggestion.severity}`)}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-gray-700">{suggestion.description}</p>
-
-                  <div className="mt-3 flex gap-2">
-                    <button
-                      onClick={() => handleApply(suggestion)}
-                      className="px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 transition-colors"
-                    >
-                      {t('components.environmentSuggestion.apply')}
-                    </button>
-                    <button
-                      onClick={handleDismiss}
-                      className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300 transition-colors"
-                    >
-                      {t('components.environmentSuggestion.skipAll')}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="p-4 border-t bg-gray-50">
+        {/* Tabs */}
+        <div className="border-b bg-gray-50 flex">
           <button
-            onClick={handleDismiss}
-            className="w-full px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
+            onClick={() => setActiveTab('suggestions')}
+            className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'suggestions'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-gray-700 hover:text-gray-900'
+            }`}
           >
-            {t('components.environmentSuggestion.dismissAll')}
+            {t('components.environmentSuggestion.suggestionsTab')}
+          </button>
+          <button
+            onClick={() => setActiveTab('custom')}
+            className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2 ${
+              activeTab === 'custom'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-gray-700 hover:text-gray-900'
+            }`}
+          >
+            <Plus className="w-4 h-4" />
+            {t('components.environmentSuggestion.customTab')}
           </button>
         </div>
+
+        <div className="p-4 overflow-y-auto flex-1">
+          {activeTab === 'suggestions' ? (
+            <>
+              <p className="text-sm text-gray-600 mb-4">
+                {t('components.environmentSuggestion.suggestionsDescription')}
+              </p>
+
+              <div className="space-y-3">
+                {environmentSuggestions.map((suggestion, index) => {
+                  const IconComponent = eventTypeIcons[suggestion.event_type] || Cloud;
+                  const SeverityIcon = severityIcon[suggestion.severity as keyof typeof severityIcon] || Cloud;
+
+                  return (
+                    <div
+                      key={index}
+                      className={`border rounded-lg p-4 ${severityColors[suggestion.severity as keyof typeof severityColors]}`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <IconComponent className="w-4 h-4" />
+                          <span className="text-sm font-medium">
+                            {t(`components.environmentSuggestion.eventType.${suggestion.event_type}`) ||
+                              suggestion.event_type}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <SeverityIcon className="w-3 h-3" />
+                          <span className="text-xs capitalize">
+                            {t(`components.environmentSuggestion.severity.${suggestion.severity}`)}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-gray-700">{suggestion.description}</p>
+
+                      {suggestion.multimodal?.image_url && (
+                        <div className="mt-2 rounded overflow-hidden max-h-32">
+                          <img
+                            src={suggestion.multimodal.image_url}
+                            alt="Event"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          onClick={() => handleApply(suggestion)}
+                          className="px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 transition-colors"
+                        >
+                          {t('components.environmentSuggestion.apply')}
+                        </button>
+                        <button
+                          onClick={() => {
+                            void handleDismiss();
+                          }}
+                          className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300 transition-colors"
+                        >
+                          {t('components.environmentSuggestion.skipAll')}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <EnvironmentConfiguration agents={agents} onEventCreated={handleEventCreated} />
+          )}
+        </div>
+
+        {activeTab === 'suggestions' && (
+          <div className="p-4 border-t bg-gray-50">
+            <button
+              onClick={() => {
+                void handleDismiss();
+              }}
+              className="w-full px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
+            >
+              {t('components.environmentSuggestion.dismissAll')}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

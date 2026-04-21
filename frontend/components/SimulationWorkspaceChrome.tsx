@@ -70,11 +70,9 @@ export const SimulationWorkspaceChrome: React.FC<SimulationWorkspaceChromeProps>
               <Orbit size={18} />
             </div>
             <div>
-              <div className="text-sm font-semibold tracking-tight text-[var(--ss-workspace-heading)]">
-                SocialSim4
-              </div>
+              <div className="text-sm font-semibold tracking-tight text-[var(--ss-workspace-heading)]">FOS</div>
               <div className="text-[11px] tracking-[0.08em] text-[var(--ss-workspace-muted)]">
-                {isZh ? "仿真控制台" : "Simulation Control Room"}
+                {isZh ? "Future of Society 仿真控制台" : "Future of Society Control Room"}
               </div>
             </div>
           </div>

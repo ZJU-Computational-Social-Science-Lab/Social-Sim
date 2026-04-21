@@ -7,8 +7,6 @@ import App from "./App";
 import "./styles.css";
 import "./i18n";
 
-console.log(">>> index.tsx loaded, starting React...");
-
 const rawBaseUrl = import.meta.env.BASE_URL;
 const basename =
   rawBaseUrl === "/"

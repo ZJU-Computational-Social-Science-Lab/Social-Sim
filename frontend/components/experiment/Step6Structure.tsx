@@ -8,8 +8,14 @@ import { Button } from "../ui/button";
 import { ResearchInputPanel } from "./workflow/ResearchInputPanel";
 import { SecondaryGhostButton } from "./workflow/SecondaryGhostButton";
 import { SummaryInfoCard } from "./workflow/SummaryInfoCard";
+import {
+  formatScenarioParamValue,
+  getLocalizedScenarioName,
+  getScenarioParamDefinition,
+} from "../../utils/scenarioLocalization";
 
 interface PromptPreviewPanelProps {
+  scenarioData: ReturnType<typeof useExperimentBuilder.getState>["selectedScenarioData"];
   agentTypeLabel: string;
   agentTypeProfile: string;
   agentTypeRolePrompt: string;
@@ -64,8 +70,14 @@ const focusLaunchReviewElement = (elementId: string) => {
 const getStructureLabel = (
   scenarioData: ReturnType<typeof useExperimentBuilder.getState>["selectedScenarioData"],
   edgeCount: number,
+  nodeCount: number,
+  totalAgents: number,
   isZh: boolean
 ) => {
+  if (nodeCount === 0) {
+    return isZh ? "尚未确认" : "Not confirmed";
+  }
+
   const topology = scenarioData?.topology_type;
   if (topology === "full") {
     return isZh ? "全连接" : "Fully connected";
@@ -94,7 +106,10 @@ const getStructureLabel = (
   if (edgeCount > 0) {
     return isZh ? "已建立连接" : "Connections configured";
   }
-  return isZh ? "尚未确认" : "Not confirmed";
+  if (totalAgents <= 1) {
+    return isZh ? "单智能体，无需连接" : "Single agent, no links needed";
+  }
+  return isZh ? "已选择结构，待补充连接" : "Structure selected, links still needed";
 };
 
 const getLaunchMissingStep = (
@@ -120,6 +135,7 @@ const getLaunchMissingStep = (
 };
 
 const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
+  scenarioData,
   agentTypeLabel,
   agentTypeProfile,
   agentTypeRolePrompt,
@@ -148,18 +164,18 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
           <h3>{agentTypeLabel}</h3>
           <p>
             {isZh
-              ? "以下内容展示该参与者在实验启动前会收到的代表性说明。"
-              : "This shows the representative instruction summary the participant will receive before launch."}
+              ? "以下内容展示该智能体在实验启动前会收到的代表性说明。"
+              : "This shows the representative instruction summary the agent will receive before launch."}
           </p>
         </div>
       </div>
 
       <div className="ss-launch-preview__prompt-body">
         <section>
-          <h4>{isZh ? "参与者定位" : "Participant framing"}</h4>
+          <h4>{isZh ? "智能体定位" : "Agent framing"}</h4>
           <p>
             {[agentTypeRolePrompt, agentTypeProfile].filter(Boolean).join(" ") ||
-              (isZh ? "尚未补充具体定位。" : "No participant framing has been added yet.")}
+              (isZh ? "尚未补充具体定位。" : "No agent framing has been added yet.")}
           </p>
         </section>
 
@@ -177,8 +193,8 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
             <ul>
               {Object.entries(scenarioParams).map(([key, value]) => (
                 <li key={key}>
-                  <strong>{key}</strong>
-                  <span>{formatValue(value)}</span>
+                  <strong>{getScenarioParamDefinition(scenarioData, key)?.label || key}</strong>
+                  <span>{formatScenarioParamValue(scenarioData, key, value)}</span>
                 </li>
               ))}
             </ul>
@@ -205,7 +221,7 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
 
         {previewProperties.length > 0 ? (
           <section>
-            <h4>{isZh ? "参与者属性" : "Participant properties"}</h4>
+            <h4>{isZh ? "智能体属性" : "Agent properties"}</h4>
             <ul>
               {previewProperties.map(([key, value]) => (
                 <li key={key}>
@@ -222,7 +238,7 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
 };
 
 export const Step6Structure: React.FC = () => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const isZh = i18n.language.startsWith("zh");
   const {
@@ -244,6 +260,7 @@ export const Step6Structure: React.FC = () => {
 
   const totalAgents = agentTypes.reduce((sum, type) => sum + type.count, 0);
   const networkEdges = React.useMemo(() => getEdgeCount(socialNetwork), [socialNetwork]);
+  const networkNodeCount = Object.keys(socialNetwork).length;
   const fallbackProviderId =
     agentTypes.find((agent) => agent.providerId !== null)?.providerId ?? null;
   const effectiveProviderId =
@@ -270,14 +287,15 @@ export const Step6Structure: React.FC = () => {
           ? "固定顺序"
           : "Fixed order";
   const scenarioName =
-    selectedScenarioData?.name || (isZh ? "尚未命名实验" : "Untitled study");
-  const structureLabel = getStructureLabel(selectedScenarioData, networkEdges, isZh);
+    getLocalizedScenarioName(t, selectedScenarioData) ||
+    (isZh ? "尚未命名实验" : "Untitled study");
+  const structureLabel = getStructureLabel(selectedScenarioData, networkEdges, networkNodeCount, totalAgents, isZh);
   const actionCount = selectedActionIds.length;
   const minimumActionCount = availableActions.length <= 1 ? 1 : 2;
   const scenarioReady = Boolean(selectedScenarioId);
   const actionReady = selectedActionIds.length >= minimumActionCount;
   const participantReady = totalAgents > 0;
-  const structureReady = Object.keys(socialNetwork).length > 0;
+  const structureReady = networkNodeCount > 0 && (totalAgents <= 1 || networkEdges > 0);
   const agentCollections = React.useMemo(
     () => buildAgentCollections(agentTypes, () => ""),
     [agentTypes]
@@ -296,8 +314,8 @@ export const Step6Structure: React.FC = () => {
         label: isZh ? "已选择研究场景" : "Scenario selected",
         value: scenarioReady ? scenarioName : isZh ? "尚未选择" : "Not selected",
         helper: isZh
-          ? "实验会从这个社会情境开始运行。"
-          : "The run will start from this social situation.",
+          ? "实验会从这个模板和当前配置开始运行。"
+          : "The run will start from this template and the current setup.",
         complete: scenarioReady,
       },
       {
@@ -315,13 +333,13 @@ export const Step6Structure: React.FC = () => {
       },
       {
         key: "participants",
-        label: isZh ? "已录入参与者群体" : "Participant groups defined",
+        label: isZh ? "已录入智能体" : "Agents defined",
         value: isZh
-          ? `${agentTypes.length} 组 / ${totalAgents} 名成员`
-          : `${agentTypes.length} groups / ${totalAgents} participants`,
+          ? `${agentTypes.length} 类 / ${totalAgents} 个智能体`
+          : `${agentTypes.length} types / ${totalAgents} agents`,
         helper: isZh
-          ? "至少需要一个参与者群体。"
-          : "At least one participant group is required.",
+          ? "至少需要一个智能体。"
+          : "At least one agent is required.",
         complete: participantReady,
       },
       {
@@ -339,8 +357,8 @@ export const Step6Structure: React.FC = () => {
         label: isZh ? "已确认关系结构" : "Relationship structure confirmed",
         value: structureLabel,
         helper: isZh
-          ? "这会决定参与者如何彼此连接。"
-          : "This decides how participants connect with one another.",
+          ? "这会决定智能体如何彼此连接。"
+          : "This decides how agents connect with one another.",
         complete: structureReady,
       },
       {
@@ -389,11 +407,11 @@ export const Step6Structure: React.FC = () => {
         : "A few required items are still missing. Complete them before launch.";
   const launchStatusBody = providerMissing
     ? isZh
-      ? "请先在参与者配置中确认一个可用的模型提供商，再启动实验。"
-      : "Confirm an active model provider in participant setup before launching the run."
+      ? "请先在智能体配置中确认一个可用的模型提供商，再启动实验。"
+      : "Confirm an active model provider in agent setup before launching the run."
     : launchReady
       ? isZh
-        ? "启动后将进入仿真运行页，生成首轮状态，并开始记录参与者行为结果。"
+        ? "启动后将进入仿真运行页，生成首轮状态，并开始记录智能体行为结果。"
         : "Launching will open the simulation run view, generate the first state, and begin recording behavior outcomes."
       : isZh
         ? `当前还缺少 ${missingRequiredChecks.length} 项关键配置。先补齐检查单中的待补项，再启动实验。`
@@ -552,7 +570,7 @@ export const Step6Structure: React.FC = () => {
               <SummaryInfoCard label={isZh ? "场景" : "Scenario"} value={scenarioName} />
               <SummaryInfoCard label={isZh ? "行动数" : "Actions"} value={actionCount} />
               <SummaryInfoCard
-                label={isZh ? "参与者数" : "Participants"}
+                label={isZh ? "智能体数" : "Agents"}
                 value={totalAgents}
               />
               <SummaryInfoCard
@@ -626,8 +644,8 @@ export const Step6Structure: React.FC = () => {
                   <div className="ss-launch-review__detail-list">
                     {Object.entries(scenarioParams).map(([key, value]) => (
                       <div key={key} className="ss-launch-review__detail-row">
-                        <span>{key}</span>
-                        <strong>{formatValue(value)}</strong>
+                        <span>{getScenarioParamDefinition(selectedScenarioData, key)?.label || key}</span>
+                        <strong>{formatScenarioParamValue(selectedScenarioData, key, value)}</strong>
                       </div>
                     ))}
                   </div>
@@ -656,6 +674,7 @@ export const Step6Structure: React.FC = () => {
 
               {representativeAgent ? (
                 <PromptPreviewPanel
+                  scenarioData={selectedScenarioData}
                   agentTypeLabel={representativeAgent.label}
                   agentTypeProfile={representativeAgent.userProfile || ""}
                   agentTypeRolePrompt={representativeAgent.rolePrompt || ""}
@@ -670,11 +689,11 @@ export const Step6Structure: React.FC = () => {
                   <div className="ss-workflow-kicker">
                     {isZh ? "系统说明预览" : "System prompt preview"}
                   </div>
-                  <p>
-                    {isZh
-                      ? "当前还没有参与者，因此暂无可预览的系统说明。"
-                      : "There are no participants yet, so no system prompt preview is available."}
-                  </p>
+                    <p>
+                      {isZh
+                      ? "当前还没有智能体，因此暂无可预览的系统说明。"
+                      : "There are no agents yet, so no system prompt preview is available."}
+                    </p>
                 </div>
               )}
             </div>

@@ -6,13 +6,13 @@ export interface ScenarioParam {
   key: string;
   label: string;
   description?: string;
-  type: 'number' | 'text';
+  type: 'number' | 'text' | 'string' | 'integer' | 'boolean' | 'array';
   default: unknown;
   ui_hint?: string;
   min?: number;
   max?: number;
   step?: number;
-  options?: string[];
+  options?: Array<string | { value: string; label: string }>;
   placeholder?: string;
   generates_actions?: boolean;  // Flag indicating this parameter generates actions
 }

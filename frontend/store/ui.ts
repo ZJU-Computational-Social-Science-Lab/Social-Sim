@@ -10,7 +10,9 @@
 // Used by: All components with modals, Layout for notifications, GuideAssistant
 
 import { StateCreator } from 'zustand';
+import { apiClient } from '../services/client';
 import type { Notification, GuideMessage } from '../types';
+import type { StoreState } from './storeState';
 
 export interface UISlice {
   // Modal states
@@ -26,6 +28,8 @@ export interface UISlice {
   globalKnowledgeOpen: boolean;
   isInitialEventsOpen: boolean;
   isSyncModalOpen: boolean;
+  isSnapshotModalOpen: boolean;
+  isTreeOpsModalOpen: boolean;
 
   // Loading states
   isGenerating: boolean;
@@ -58,6 +62,10 @@ export interface UISlice {
   openSyncModal: () => void;
   closeSyncModal: () => void;
   syncCurrentSimulation: () => Promise<void>;
+  openSnapshotModal: () => void;
+  closeSnapshotModal: () => void;
+  openTreeOpsModal: () => void;
+  closeTreeOpsModal: () => void;
 
   // Notification actions
   addNotification: (type: 'success' | 'error' | 'info', message: string) => void;
@@ -69,7 +77,7 @@ export interface UISlice {
 }
 
 export const createUISlice: StateCreator<
-  UISlice,
+  StoreState,
   [],
   [],
   UISlice
@@ -87,6 +95,8 @@ export const createUISlice: StateCreator<
   globalKnowledgeOpen: false,
   isInitialEventsOpen: false,
   isSyncModalOpen: false,
+  isSnapshotModalOpen: false,
+  isTreeOpsModalOpen: false,
   isGenerating: false,
   isGeneratingReport: false,
   isSyncing: false,
@@ -134,29 +144,35 @@ export const createUISlice: StateCreator<
 
   closeSyncModal: () => set({ isSyncModalOpen: false, isSyncing: false }),
 
+  openSnapshotModal: () => set({ isSnapshotModalOpen: true }),
+
+  closeSnapshotModal: () => set({ isSnapshotModalOpen: false }),
+
+  openTreeOpsModal: () => set({ isTreeOpsModalOpen: true }),
+
+  closeTreeOpsModal: () => set({ isTreeOpsModalOpen: false }),
+
   syncCurrentSimulation: async () => {
     set({ isSyncing: true, syncLogs: ['Starting sync...'] });
 
     try {
       // Get current simulation state from store
-      const state = get() as any;
+      const state = get();
       const currentSim = state.currentSimulation;
       const agents = state.agents || [];
       const nodes = state.nodes || [];
 
       if (!currentSim) {
-        set((prev: any) => ({ syncLogs: [...prev.syncLogs, 'Error: No simulation loaded'], isSyncing: false }));
+        set((prev) => ({ syncLogs: [...prev.syncLogs, 'Error: No simulation loaded'], isSyncing: false }));
         return;
       }
 
       // Add sync log entries
-      set((prev: any) => ({ syncLogs: [...prev.syncLogs, `Syncing simulation: ${currentSim.name || currentSim.id}`] }));
-      set((prev: any) => ({ syncLogs: [...prev.syncLogs, `Agents: ${agents.length}`] }));
-      set((prev: any) => ({ syncLogs: [...prev.syncLogs, `Nodes: ${nodes.length}`] }));
+      set((prev) => ({ syncLogs: [...prev.syncLogs, `Syncing simulation: ${currentSim.name || currentSim.id}`] }));
+      set((prev) => ({ syncLogs: [...prev.syncLogs, `Agents: ${agents.length}`] }));
+      set((prev) => ({ syncLogs: [...prev.syncLogs, `Nodes: ${nodes.length}`] }));
 
       // Import API service
-      const { apiClient } = await import('../services/client');
-
       // Sync simulation state to backend
       const syncPayload = {
         simulation_id: currentSim.id,
@@ -174,15 +190,15 @@ export const createUISlice: StateCreator<
         }))
       };
 
-      set((prev: any) => ({ syncLogs: [...prev.syncLogs, 'Sending data to backend...'] }));
+      set((prev) => ({ syncLogs: [...prev.syncLogs, 'Sending data to backend...'] }));
 
       await apiClient.post(`simulations/${currentSim.id}/sync`, syncPayload);
 
-      set((prev: any) => ({ syncLogs: [...prev.syncLogs, 'Sync completed successfully!'], isSyncing: false }));
+      set((prev) => ({ syncLogs: [...prev.syncLogs, 'Sync completed successfully!'], isSyncing: false }));
     } catch (error: any) {
       console.error('Sync failed:', error);
       const errorMsg = error?.response?.data?.detail || error?.message || 'Unknown error';
-      set((prev: any) => ({ syncLogs: [...prev.syncLogs, `Sync failed: ${errorMsg}`], isSyncing: false }));
+      set((prev) => ({ syncLogs: [...prev.syncLogs, `Sync failed: ${errorMsg}`], isSyncing: false }));
     }
   },
 
@@ -199,7 +215,6 @@ export const createUISlice: StateCreator<
 
     try {
       // Call backend guide API
-      const { apiClient } = await import('../services/client');
       const response = await apiClient.post<{ message: string }>('llm/guide', {
         history: get().guideMessages.map((m) => ({
           role: m.role,

@@ -39,6 +39,7 @@ export const NodeWorkspacePanel: React.FC<NodeWorkspacePanelProps> = ({
   const isGenerating = useSimulationStore((state) => state.isGenerating);
   const advanceSimulation = useSimulationStore((state) => state.advanceSimulation);
   const selectNode = useSimulationStore((state) => state.selectNode);
+  const setCompareTarget = useSimulationStore((state) => state.setCompareTarget);
 
   const selectedNode = React.useMemo(
     () => nodes.find((node) => node.id === selectedNodeId) || nodes[0] || null,
@@ -85,6 +86,14 @@ export const NodeWorkspacePanel: React.FC<NodeWorkspacePanelProps> = ({
   const providerSelection = selectedProviderId ?? currentProviderId ?? null;
   const selectedProvider =
     llmProviders.find((provider) => provider.id === providerSelection) || null;
+
+  const handleActivateNode = (nodeId: string) => {
+    if (isCompareMode && nodeId !== selectedNodeId) {
+      setCompareTarget(nodeId);
+      return;
+    }
+    selectNode(nodeId);
+  };
 
   return (
     <section className="ss-node-workspace">
@@ -182,7 +191,7 @@ export const NodeWorkspacePanel: React.FC<NodeWorkspacePanelProps> = ({
           </button>
           {!isObservationMode ? (
             <button
-              onClick={() => parentNode && selectNode(parentNode.id)}
+              onClick={() => parentNode && handleActivateNode(parentNode.id)}
               disabled={!parentNode}
               className="ss-button-secondary"
             >

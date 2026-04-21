@@ -33,11 +33,14 @@ SYSTEM_TEMPLATES_DIR = Path(__file__).parent.parent.parent.parent / "templates"
 
 
 def scene_config_template(scene_key: str, scene_cls) -> dict:
-    # Special handling for ExperimentScene - it has a different constructor
-    if scene_key == "experiment_template":
+    # Experiment framework scenes use ExperimentConfig, not legacy Scene(name, initial_event).
+    if scene_key in {"experiment_template", "council_experiment"}:
+        scene_name = "ExperimentScene"
+        if scene_key == "council_experiment":
+            scene_name = "CouncilExperimentScene"
         return {
             "type": scene_key,
-            "name": "ExperimentScene",
+            "name": scene_name,
             "description": SCENE_DESCRIPTIONS.get(scene_key, ""),
             "config_schema": {
                 "agents": [],

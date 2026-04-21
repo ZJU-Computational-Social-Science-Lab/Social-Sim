@@ -103,9 +103,7 @@ export const GlobalKnowledgePanel: React.FC = () => {
     setUploadError(null);
 
     try {
-      console.log(`INFO: Global document upload started - file=${file.name}`);
-      const result = await uploadGlobalDocument(simulationId, file);
-      console.log(`INFO: Global document upload complete - kw_id=${result.kw_id}, chunks=${result.chunks_count}`);
+      await uploadGlobalDocument(simulationId, file);
       loadItems();
     } catch (err: any) {
       console.error('ERROR: Global document upload failed -', err);
