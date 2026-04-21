@@ -322,6 +322,10 @@ export const createExperimentsSlice: StateCreator<
         if (graph) {
           const nodesMapped = mapGraphToNodes(graph);
           set({ nodes: nodesMapped, selectedNodeId: newSelectedId } as any);
+        } else {
+          // Graph fetch failed (server briefly busy) — still update the selected node
+          // so the next auto-advance step uses the correct parent.
+          set({ selectedNodeId: newSelectedId } as any);
         }
 
         let events: any[] = [];
@@ -445,7 +449,8 @@ export const createExperimentsSlice: StateCreator<
             logs: [...(prev.logs || []), ...logsMapped],
             rawEvents: [...(prev.rawEvents || []), ...normalizedEvents],
             agents: agentsMapped,
-            isGenerating: false
+            isGenerating: false,
+            selectedNodeId: newSelectedId,
           };
         });
         return;
