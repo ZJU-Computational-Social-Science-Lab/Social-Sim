@@ -10,6 +10,7 @@ The runner manages the main experiment loop:
 
 import asyncio
 import logging
+import os
 from datetime import datetime
 from typing import List, Dict, Any, Literal, Optional, TYPE_CHECKING
 from dataclasses import dataclass
@@ -394,20 +395,26 @@ class ExperimentRunner:
         """
         actions = []
 
+        # Cap concurrent LLM calls so the model server is not overwhelmed.
+        # Tune via SOCIALSIM_LLM_CONCURRENCY env var (default 10).
+        max_concurrent = int(os.environ.get("SOCIALSIM_LLM_CONCURRENCY", "10"))
+        semaphore = asyncio.Semaphore(max_concurrent)
+
+        async def _prompt_with_limit(agent):
+            async with semaphore:
+                return await self._prompt_agent(agent, round_num)
+
         # For follow-up actions, keep prompt/follow-up pairs isolated so one
         # agent's second call cannot interleave with another agent's first call.
         if self._scene_has_followup_actions():
             action_results = []
             for agent in self.agents:
                 try:
-                    action_results.append(await self._prompt_agent(agent, round_num))
+                    action_results.append(await _prompt_with_limit(agent))
                 except Exception as result:
                     action_results.append(result)
         else:
-            tasks = [
-                self._prompt_agent(agent, round_num)
-                for agent in self.agents
-            ]
+            tasks = [_prompt_with_limit(agent) for agent in self.agents]
             action_results = await asyncio.gather(*tasks, return_exceptions=True)
 
         for result in action_results:
@@ -905,11 +912,23 @@ class ExperimentRunner:
             # Get per-agent LLM client (LLM distribution)
             agent_llm_client = self.get_agent_llm_client(agent)
 
-            # Call LLM (wrap synchronous call for async compatibility)
+            # Call LLM with up to 3 retries for transient server errors (e.g. Ollama 500).
             messages = [{"role": "user", "content": prompt}]
-            raw_response = await asyncio.to_thread(
-                agent_llm_client.chat, messages, json_mode=True
-            )
+            raw_response = None
+            last_llm_error = None
+            for _attempt in range(3):
+                try:
+                    raw_response = await asyncio.to_thread(
+                        agent_llm_client.chat, messages, json_mode=True
+                    )
+                    break
+                except Exception as _llm_err:
+                    last_llm_error = _llm_err
+                    logger.warning(f"LLM call failed for {agent.name} (attempt {_attempt + 1}/3): {_llm_err}")
+                    if _attempt < 2:
+                        await asyncio.sleep(2 ** _attempt)
+            if raw_response is None:
+                raise last_llm_error
 
             # Handle empty response gracefully (e.g., Qwen3 via Ollama returns 0 chars)
             if not raw_response or not raw_response.strip():
