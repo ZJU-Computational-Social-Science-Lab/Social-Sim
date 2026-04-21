@@ -63,6 +63,10 @@ services:
       SOCIALSIM4_EMBEDDING_BACKEND: ollama
       SOCIALSIM4_OLLAMA_EMBED_MODEL: nomic-embed-text:latest
       OLLAMA_BASE_URL: http://socialsim-ollama:11434
+      # Cap concurrent Ollama requests to avoid overwhelming the GPU inference server.
+      # 10 simultaneous requests (the default) crashes Ollama under heavy load.
+      SOCIALSIM_LLM_CONCURRENCY: "${SOCIALSIM_LLM_CONCURRENCY:-3}"
+      LLM_TIMEOUT_S: "${LLM_TIMEOUT_S:-120}"
       HOME: /tmp
       HF_HOME: /tmp/huggingface
       TORCH_HOME: /tmp/torch
@@ -112,6 +116,8 @@ services:
     environment:
       NVIDIA_VISIBLE_DEVICES: all
       NVIDIA_DRIVER_CAPABILITIES: compute,utility
+      # Allow Ollama to process multiple requests in parallel (matches SOCIALSIM_LLM_CONCURRENCY).
+      OLLAMA_NUM_PARALLEL: "${OLLAMA_NUM_PARALLEL:-3}"
     volumes:
       - ollama_data:/root/.ollama
     networks:
