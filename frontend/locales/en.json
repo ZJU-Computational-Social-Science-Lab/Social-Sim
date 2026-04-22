@@ -9,9 +9,11 @@
     "cancel": "Cancel",
     "next": "Next",
     "back": "Back",
-    "previous": "Previous"
+    "previous": "Previous",
+    "agents": "Agents",
+    "providers": "Providers"
   },
-  "brand": "SocialSim4",
+  "brand": "Future of Society",
   "nav": {
     "dashboard": "Dashboard",
     "new": "New",
@@ -25,11 +27,11 @@
   },
   "landing": {
     "hero": {
-      "badge": "Social Systems Laboratory",
-      "line1": "Architecting",
-      "line2": "social logic",
-      "accent": "for branching, observation, and intervention",
-      "sub": "A cross-disciplinary simulation platform for researchers, policy teams, and social scientists. Enter through branching, observation, and intervention to study how complex systems actually evolve.",
+      "badge": "FOS",
+      "line1": "Future of Society",
+      "line2": "",
+      "accent": "Social Simulation Platform",
+      "sub": "A social systems simulation platform for research, scenario testing, and decision exploration through branching, observation, and intervention.",
       "primaryCta": "Enter Laboratory",
       "secondaryCta": "Read Methodology",
       "tag1": "High-fidelity simulation",
@@ -173,6 +175,12 @@
       "sociology": "Sociology",
       "custom": "Custom"
     },
+    "social_dynamics": {
+      "xihu_yilianbao": {
+        "name": "Xihu Yilianbao Enrollment Diffusion",
+        "description": "Eligible residents receive one of the A0-A8 information interventions, then decide whether to enroll for themselves or family members under government endorsement, message complexity, household medical burden, competitor news, and neighborhood discussion."
+      }
+    },
     "sociology": {
       "social_norm_disruption": {
         "name": "Social Norm Disruption",
@@ -220,7 +228,7 @@
       },
       "council_chamber": {
         "name": "Council Chamber",
-        "description": "Formal deliberation with voting and procedural rules. Participants debate proposals, call for votes, and make collective decisions."
+        "description": "Formal deliberation with voting and procedural rules. Agents debate proposals, call for votes, and make collective decisions."
       }
     },
     "spatial": {
@@ -270,7 +278,7 @@
       "placeholder": "Two-factor authentication and password reset flows will appear here.",
       "sessionsTitle": "Session control",
       "controlTitle": "Access posture",
-      "controlHint": "This workspace still uses the real SocialSim4 auth session and token refresh behavior."
+      "controlHint": "This workspace still uses the real FOS auth session and token refresh behavior."
     },
     "providers": {
       "title": "Provider integrations",
@@ -614,7 +622,7 @@
     },
     "actions": {
       "chooseAction": "Choose {{action}}",
-      "send_message": "Post a message to all participants",
+      "send_message": "Post a message to all agents",
       "talk_to": "Say something to a nearby person",
       "speak": "Say something",
       "yield": "End your turn",
@@ -693,11 +701,11 @@
   },
   "auth": {
     "layout": {
-      "badge": "Social Systems Laboratory",
-      "line1": "Return to the",
-      "line2": "research workspace",
+      "badge": "Future of Society",
+      "line1": "Welcome to",
+      "line2": "Future of Society",
       "accent": "for branching, observation, and intervention",
-      "copy": "Continue where your scenarios, branches, and role observation left off inside the SocialSim4 research shell.",
+      "copy": "Sign in to restore your research context and continue working inside Future of Society.",
       "tag1": "Configure scenarios",
       "tag2": "Branch timelines",
       "tag3": "Observe roles",
@@ -711,9 +719,9 @@
       "note": "Signing in restores your workspace context and keeps existing experiment results intact."
     },
     "login": {
-      "badge": "Return to research workspace",
-      "welcome": "Welcome back",
-      "subtitle": "Enter your credentials to continue into the Social Systems Laboratory and resume branching, observation, and intervention.",
+      "badge": "Welcome",
+      "welcome": "Sign in",
+      "subtitle": "Enter your email and password to access Future of Society.",
       "email": "Email",
       "emailPlaceholder": "Enter institutional email",
       "password": "Password",
@@ -727,32 +735,30 @@
       "help": "Lab Support",
       "credentialCheck": "Continue with your current workspace identity",
       "workspaceBound": "Reconnect to saved branches and observation context",
-      "footerLeft": "Social Systems Laboratory",
-      "footerRight": "Branch · Observe · Intervene"
+      "footerLeft": "Future of Society",
+      "footerRight": "FOS · Branch · Observe · Intervene"
     },
     "register": {
       "badge": "Create research workspace",
       "title": "Create your workspace",
-      "subtitle": "Set up your workspace identity and operator credentials before entering the Social Systems Laboratory.",
+      "subtitle": "Set up your workspace identity and operator credentials before entering Future of Society.",
       "organization": "Organization",
       "email": "Email",
       "emailPlaceholder": "Enter institutional email",
       "username": "Username",
       "fullName": "Full name",
       "phone": "Phone number",
-      "countryCode": "Country code",
       "phonePlaceholder": "Enter phone number",
-      "phoneHint": "Choose a country code first (default +86), then enter the remaining digits. Leading 0 will be removed automatically.",
       "password": "Password",
       "passwordPlaceholder": "Set access password",
       "submit": "Create account",
       "success": "Registration successful. Check your email.",
       "failed": "Registration failed",
-      "invalidPhone": "Invalid phone number. Select a country code and enter 8–15 digits.",
-      "invalidPhoneTitle": "Select a country code and enter the phone digits. The app will convert it to international format.",
+      "invalidPhone": "Invalid phone number format. Use +123456789 (8–15 digits).",
+      "invalidPhoneTitle": "Use E.164 format: +123456789 (8–15 digits)",
       "have": "Already registered?",
       "signin": "Sign in",
-      "footerLeft": "Social Systems Laboratory",
+      "footerLeft": "Future of Society",
       "footerRight": "Configure · Branch · Observe"
     }
   },
@@ -965,11 +971,13 @@
   },
   "simPage": {
     "noSimulation": "No simulation selected",
-    "engineConnected": "SocialSim4 Engine",
+    "engineConnected": "FOS Engine",
     "engineStandalone": "Standalone mode",
     "newSimulation": "New simulation",
     "connectedTo": "Connected to {{endpoint}}",
-    "socialSim4Engine": "SocialSim4 Engine",
+    "runningBrowserStandalone": "Running in Browser (Gemini Standalone)",
+    "socialSim4Engine": "FOS Engine",
+    "standaloneMode": "Standalone Mode",
     "networkTopology": "Social Network Topology",
     "globalKnowledge": "Global Knowledge Base",
     "timeSettings": "Adjust Time Flow",
@@ -1011,15 +1019,7 @@
     "resetSuccess": "Simulation reset",
     "resetFail": "Failed to reset simulation",
     "deleteSuccess": "Simulation deleted",
-    "deleteFail": "Failed to delete simulation",
-    "autoAdvance": "Auto-advance",
-    "stop": "Stop",
-    "enterSteps": "Enter number of steps",
-    "advancingProgress": "Step {{current}} of {{total}}",
-    "tabs": {
-      "timeline": "Timeline",
-      "agents": "Agents"
-    }
+    "deleteFail": "Failed to delete simulation"
   },
   "components": {
     "agentPanel": {
@@ -1043,7 +1043,6 @@
       "noCustomAttributes": "No custom attributes",
       "knowledgeBase": "Knowledge Base (RAG)",
       "noKnowledgeDocs": "No knowledge base documents yet",
-      "searchPlaceholder": "Search agents...",
       "save": "Save",
       "addKnowledge": "Add knowledge item",
       "documentKnowledgeBase": "Document Knowledge Base",
@@ -1086,11 +1085,17 @@
       "suggestionsTitle": "Environmental Event Suggestions",
       "suggestionsDescription": "Based on recent simulation activity, here are some environmental events that could occur:",
       "generating": "Generating suggestions...",
+      "createConfiguration": "Environment Configuration",
+      "suggestionsTab": "System Suggestions",
+      "customTab": "Environment Configuration",
       "eventType": {
         "weather": "Weather",
         "emergency": "Emergency",
         "notification": "Notification",
-        "opinion": "Public Opinion"
+        "opinion": "Public Opinion",
+        "accident": "Accident",
+        "social": "Social Event",
+        "other": "Other"
       },
       "severity": {
         "mild": "Mild",
@@ -1108,6 +1113,38 @@
       "publicOpinion": "Public Opinion",
       "disableDynamicEvents": "Disable dynamic environment events",
       "enableDynamicEvents": "Enable dynamic environment events"
+    },
+    "environmentConfiguration": {
+      "configMode": "Configuration Mode",
+      "globalMode": "Global Configuration",
+      "agentMode": "Single Agent Configuration",
+      "selectAgent": "Select Agent",
+      "chooseAgent": "Please select an agent",
+      "eventType": "Event Type",
+      "severity": "Severity",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe the environmental event in detail...",
+      "multimodal": "Multimodal Content",
+      "addImage": "Add Image",
+      "imageUploaded": "Image uploaded",
+      "imageAdded": "Image added",
+      "addAudio": "Add Audio",
+      "audioUploaded": "Audio uploaded",
+      "audioAdded": "Audio added",
+      "uploading": "Uploading...",
+      "receivers": "Event Receivers",
+      "receiversHint": "Select agents to receive this event (leave empty to broadcast to all)",
+      "noticeOnly": "Notice-only mode (no system broadcast)",
+      "noticeOnlyHint": "When enabled, agents receive the notification but it won't trigger system-level event responses",
+      "contentRequired": "Please enter a description or upload an image/audio",
+      "emptyEvent": "Event content cannot be empty",
+      "noSimulation": "No available simulation",
+      "selectAgent": "Please select an agent",
+      "createConfig": "Create Configuration",
+      "creating": "Creating...",
+      "configCreated": "Environment configuration created and applied",
+      "creationError": "Failed to create configuration",
+      "uploadError": "Media upload failed"
     },
     "experimentDesignModal": {
       "interventionPlaceholder": "Describe specific intervention content..."
@@ -1185,30 +1222,55 @@
     "experimentDesignModal": {
       "title": "Causal Intervention Experiment Design",
       "subtitle": "Create parallel control groups based on node <span class=\"font-mono bg-white px-1 rounded border border-indigo-200\">{{displayId}}</span> ({{name}})",
+      "selectNodeFirst": "Please select a simulation node first",
       "experimentNameLabel": "Experiment Name",
       "experimentNamePlaceholder": "e.g., High Stress Environment Test",
       "pleaseEnterName": "Please enter an experiment name",
       "controlGroup": "Control Group",
       "controlGroupDescription": "Baseline comparison, no additional interventions applied.",
       "controlGroupState": "Inherits current node state and history records.",
+      "baselineReference": "Baseline Reference",
+      "baselineHint": "All variants branch from the selected node and inherit its current world, memory, and public state.",
       "hintTitle": "Tips:",
       "hintAddVariant": "Click \"Add Variant\" on the right.",
       "hintDefineVariables": "Define different intervention variables for each group.",
       "hintAutoParallel": "System will automatically run all branches in parallel.",
-      "variantPrefix": "Group ",
+      "designerGuide": "Design Guide",
+      "variantWorkspace": "Variant Workspace",
+      "variantTitle": "Configure Experimental Branches",
+      "variantCopy": "Each branch inherits the selected baseline and applies a controlled set of interventions before launch.",
+      "variantPrefix": "Group",
+      "variantCount": "Variants",
+      "variantDescriptionPlaceholder": "Describe the intended branch logic, observation focus, or treatment goal.",
       "noInterventions": "No interventions yet",
+      "interventionCount": "Interventions",
       "instructionType": "Global Instruction",
       "propertyType": "Modify Property",
       "environmentType": "Environment Event",
+      "followUpConditionType": "Follow-up Condition",
+      "followUpThreadSeedType": "Follow-up Thread Seed",
       "selectAgent": "Select agent...",
+      "liveVariantChannel": "Live Variant Channel",
+      "interventionWorkbench": "Intervention Workbench",
+      "interventionCardTitle": "Intervention",
       "imageLabel": "Image (optional)",
       "imageHelper": "Drag/click to upload and insert image as markdown link",
       "propertyPlaceholder": "e.g., Reduce trust value to 10",
+      "followUpConditionPlaceholder": "e.g., resource_shortage=0.8, public_opinion_pressure=0.6 or {\"resource_shortage\": 0.8}",
+      "followUpThreadSeedPlaceholder": "e.g., Agent 3 sends a message to Agent 4: \"Execution is difficult, please respond.\" JSON is also supported.",
       "descriptionPlaceholder": "Describe specific intervention content...",
       "addIntervention": "Add Intervention",
       "addVariant": "Add New Variant",
+      "launchQueue": "Launch Queue",
+      "summaryTitle": "Summary",
+      "launchDecision": "Launch Decision",
+      "launchCopy": "Launching creates a parallel set of branches from the selected control node while preserving the current simulation state as the baseline.",
       "cancel": "Cancel",
       "startBatch": "Start Batch Run ({{count}} branches)",
+      "statusPending": "Pending",
+      "statusRunning": "Running",
+      "statusCompleted": "Completed",
+      "statusFailed": "Failed",
       "liveLogPreview": "Live log preview (last {{count}} entries)",
       "noLogsYet": "No logs yet",
       "imageUploaded": "Image uploaded and inserted"
@@ -1391,9 +1453,6 @@
       "nodes": "nodes",
       "edges": "edges"
     },
-    "networkGraph": {
-      "emptyState": "No network to display"
-    },
     "reportModal": {
       "title": "Simulation Experiment Analysis Report",
       "subtitle": "Automated Analysis",
@@ -1518,7 +1577,8 @@
       "error": "Failed to load documentation"
     },
     "simulationPage": {
-      "manualSyncBackend": "Manually sync to backend"
+      "manualSyncBackend": "Manually sync to backend",
+      "runningBrowserStandalone": "Running in Browser (Gemini Standalone)"
     },
     "simulationWizardPage": {
       "noDescription": "No description yet"
@@ -1817,7 +1877,11 @@
       "conflict_sensitivity": "Conflict Sensitivity",
       "block_probability": "Block Probability",
       "num_agents_per_tier": "Agents per Tier",
-      "policy_text": "Initial Background Context"
+      "policy_text": "Initial Background Context",
+      "action_1_name": "Action 1 name",
+      "action_2_name": "Action 2 name",
+      "action_1_description": "Action 1 description",
+      "action_2_description": "Action 2 description"
     },
     "paramDescriptions": {
       "cascade_mode": "Choose whether each level must relay the policy faithfully or may distort and block it during transmission.",
@@ -1927,7 +1991,9 @@
       "removeAction": "Remove action"
     },
     "step4": {
+      "title": "Agent setup",
       "modeTitle": "How would you like to create agents?",
+      "modeDescription": "Choose how agents are organized first, then refine representative profiles and research attributes.",
       "modes": {
         "manual": {
           "title": "Manual Types",
@@ -1942,6 +2008,9 @@
           "description": "Import agent configurations from a JSON file"
         }
       },
+      "demographicEyebrow": "Group generation",
+      "demographicTitle": "Demographic generation",
+      "demographicDescription": "Define the population structure first, then generate a representative agent set.",
       "defineTypes": "Define Agent Types",
       "manualHint": "Manual mode now creates individually editable agents. Even if you add several at once, you can edit each name, tier, profile, prompt, and properties below.",
       "typeLabel": "Type Label",
@@ -1951,6 +2020,7 @@
       "autoDetectTier": "Auto-detect",
       "agentName": "Agent name",
       "agentListTitle": "Configured agents",
+      "agentSummaryLabel": "Agents",
       "rolePrompt": "Role Prompt (what is this agent's role?)",
       "rolePromptPlaceholder": "e.g., A senior official responsible for passing down policy and supervising execution",
       "userProfile": "Profile / Summary",
@@ -1959,6 +2029,7 @@
       "addProperty": "Add property",
       "noProperties": "No extra properties yet",
       "sharedPropertyBadge": "Shared",
+      "sharedPropertyCountLabel": "Shared props",
       "sharedPropertyConfirm": "Property \"{{key}}\" is shared by {{count}} agents. Rename this property for all linked agents?",
       "sharedPropertyTooltip": "Property \"{{key}}\" is shared by: {{agents}}",
       "tierConfigTitle": "Policy Tier Order",
@@ -1987,14 +2058,23 @@
       "agentsDefined": "{{count}} agent(s) defined",
       "llmProvider": "LLM Provider",
       "defaultProvider": "Default Provider",
+      "providerSummaryLabel": "Providers",
+      "providerActive": "Active",
+      "providerDefault": "Default",
+      "collectionLabel": "Agent collection",
+      "collectionMembers": "Members",
+      "representativeLabel": "Representative",
+      "collectionHint": "The main editor shows one representative profile for this category. Use the roster below if you need to inspect or tweak individual members.",
+      "searchAgents": "Search collections or representative profiles",
+      "noDirectoryResults": "No collections match the current search.",
+      "memberRoster": "Member roster",
+      "memberRosterHint": "Switch members without reopening the whole category.",
       "importTitle": "Import Agent Data",
       "importDesc": "Upload a CSV or JSON file with agent definitions.",
       "csvFormat": "CSV Format Example:",
       "uploadCSV": "Upload CSV",
       "uploadJSON": "Upload JSON",
-      "importInfo": "File import will be implemented in Phase 7.",
-      "generationLlmProvider": "Agent Generation LLM Provider",
-      "generationLlmProviderHint": "Select the LLM provider to use for generating agents with demographic profiles"
+      "importInfo": "File import will be implemented in Phase 7."
     },
     "step5": {
       "networkPresets": "Network Presets",
@@ -2079,19 +2159,7 @@
         "timeHours": "Time (hours)",
         "resources": "Resources",
         "custom": "Custom..."
-      },
-      "amountPerRoundLabel": "Amount per Round",
-      "displaySettingsTitle": "Display Settings",
-      "showAverageLabel": "Show average contribution to agents",
-      "showAverageHint": "When enabled, agents can see the group's average contribution before making their decision"
-    },
-    "deductionSettings": {
-      "title": "Deduction Settings",
-      "budgetLabel": "Deduction Budget per Phase",
-      "budgetHint": "Number of deduction points each agent can use per phase to reduce others' contributions",
-      "costRatioLabel": "Deduction Cost Ratio",
-      "costRatioHint": "Cost to deduct 1 unit from others (e.g., 3.0 = spend 3 to deduct 1)",
-      "anonymousLabel": "Anonymous deductions (hide who deducted from whom)"
+      }
     }
   },
   "simulation": {
@@ -2127,7 +2195,7 @@
         "intro": "You have {{initial_amount}} {{resource}}.",
         "action_instruction": "You can {{action_name}} some amount to a shared pool.",
         "action_description": "{{action_description}}",
-        "pool_mechanics": "The pool is multiplied by {{multiplier}} and distributed equally among all participants.",
+        "pool_mechanics": "The pool is multiplied by {{multiplier}} and distributed equally among all agents.",
         "choose_instruction": "Choose how much to {{action_name}} (0 to {{initial_amount}})."
       }
     }
