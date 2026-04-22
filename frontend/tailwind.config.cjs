@@ -1,13 +1,13 @@
 /**
  * Tailwind CSS configuration for FOS (Future of Society) frontend.
  *
- * Maps the `brand` color scale to the FOS warm honey-gold palette
- * instead of the old sky-blue. All brand-* utility classes (bg-brand-600,
- * text-brand-500, etc.) now render FOS gold tones.
+ * Maps the `brand` color scale to CSS custom properties from tokens.css
+ * so all brand-* utility classes respond to light/dark theme switching:
+ *   - Light theme: warm honey-gold (#d4a24e family)
+ *   - Dark theme: teal (#2fe6a6 family)
  *
  * Key exports: Tailwind config with content globs and brand color overrides.
  */
-const colors = require("tailwindcss/colors");
 
 module.exports = {
   darkMode: ['selector', '.theme-dark'],
@@ -25,16 +25,16 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          50:  '#fdf8ed',
-          100: '#fbefd0',
-          200: '#f5d89a',
-          300: '#ecc060',
-          400: '#d4a24e',
-          500: '#c4922e',
-          600: '#b08930',
-          700: '#8e6c22',
-          800: '#745520',
-          900: '#60481d',
+          50:  'var(--ss-brand-soft)',
+          100: 'var(--ss-brand-soft)',
+          200: 'var(--ss-brand-soft)',
+          300: 'var(--ss-brand-soft)',
+          400: 'var(--ss-brand-primary)',
+          500: 'var(--ss-brand-primary)',
+          600: 'var(--ss-brand-primary)',
+          700: 'var(--ss-brand-hover)',
+          800: 'var(--ss-brand-hover)',
+          900: 'var(--ss-brand-on)',
         },
       },
       transitionDuration: {
