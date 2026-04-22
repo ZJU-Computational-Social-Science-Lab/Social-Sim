@@ -166,7 +166,7 @@ export const GlobalKnowledgePanel: React.FC = () => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+    <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/30">
       <div className="bg-white w-full max-w-2xl max-h-[80vh] rounded-xl shadow-xl flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">

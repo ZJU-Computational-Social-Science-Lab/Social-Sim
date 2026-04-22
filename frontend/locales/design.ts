@@ -17,7 +17,7 @@ export const zhDesign = {
   nav: {
     create: "新建实验",
     workbench: "实验台",
-    new: "实验台",
+    new: "新建实验",
   },
   dashboardDesk: {
     eyebrow: "研究工作台",
@@ -501,7 +501,7 @@ export const enDesign = {
   nav: {
     create: "Create experiment",
     workbench: "Workbench",
-    new: "Workbench",
+    new: "Create experiment",
   },
   dashboardDesk: {
     eyebrow: "Research Workbench",

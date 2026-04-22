@@ -38,7 +38,7 @@ export const InitialEventsModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[140] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl h-[80vh] flex flex-col overflow-hidden">
         <div className="px-5 py-3 border-b bg-slate-50 flex items-center justify-between">
           <h3 className="font-bold text-slate-800 text-sm">{t('components.initialEventsModal.title')}</h3>

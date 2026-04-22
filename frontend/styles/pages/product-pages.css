@@ -742,7 +742,7 @@
 
   .ss-dashboard-page__hero-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-columns: minmax(0, 1fr);
     gap: 1.35rem;
     align-items: start;
   }
@@ -782,7 +782,7 @@
   .ss-dashboard-page__desk-lab-grid {
     position: relative;
     display: grid;
-    grid-template-columns: minmax(300px, 0.92fr) minmax(0, 1.08fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 1.15rem;
     align-items: start;
   }
@@ -794,8 +794,10 @@
   }
 
   .ss-dashboard-page__desk-column--actions {
-    padding-right: 1.15rem;
-    border-right: 1px solid color-mix(in srgb, var(--ss-border) 88%, transparent);
+    padding-right: 0;
+    padding-bottom: 1.15rem;
+    border-right: 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--ss-border) 88%, transparent);
   }
 
   .ss-dashboard-page__desk-head {
@@ -837,6 +839,13 @@
     justify-content: space-between;
     gap: 0.9rem;
     padding: 0.85rem 0.95rem;
+  }
+
+  .ss-dashboard-page__quick-card-copy {
+    min-width: 0;
+    display: grid;
+    gap: 0.45rem;
+    flex: 1 1 auto;
   }
 
   .ss-dashboard-page__scene-grid {
@@ -946,6 +955,10 @@
   }
 
   @media (max-width: 1280px) {
+    .ss-dashboard-page__hero-grid {
+      grid-template-columns: 1fr;
+    }
+
     .ss-dashboard-page__quick-grid,
     .ss-dashboard-page__scene-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));

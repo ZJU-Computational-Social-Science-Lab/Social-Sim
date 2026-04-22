@@ -17,6 +17,15 @@ const stringifyValue = (value: unknown, max = 260) => {
 
 const eventType = (event: any) => String(event?.type ?? event?.event_type ?? 'event');
 
+const humanizeBackendLabel = (value: string): string => {
+   const normalized = String(value || '').trim();
+   if (!normalized) return '';
+   return normalized
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .replace(/\b\w/g, (match) => match.toUpperCase());
+};
+
 const eventPayload = (event: any) => event?.data ?? event?.payload ?? event ?? {};
 
 const eventMainText = (event: any) => {
@@ -54,6 +63,30 @@ export const ComparisonView: React.FC = () => {
 
    const [compareData, setCompareData] = useState<any | null>(null);
    const [isLoadingComparison, setIsLoadingComparison] = useState(false);
+
+   const translateEventType = (event: any) => {
+      const type = eventType(event);
+      switch (type) {
+         case 'SYSTEM':
+         case 'system_broadcast':
+         case 'system_announcement':
+            return t('components.logViewer.typeSystem');
+         case 'AGENT_METADATA':
+            return t('components.logViewer.typeAgentMetadata');
+         case 'AGENT_SAY':
+            return t('components.logViewer.typeDialogue');
+         case 'AGENT_ACTION':
+         case 'action_start':
+         case 'action_end':
+            return t('components.logViewer.typeAction');
+         case 'ENVIRONMENT':
+         case 'environment':
+         case 'environment_event':
+            return t('components.logViewer.typeEnvironment');
+         default:
+            return humanizeBackendLabel(type);
+      }
+   };
 
    useEffect(() => {
       let mounted = true;
@@ -230,7 +263,7 @@ export const ComparisonView: React.FC = () => {
                      <div className="text-[10px] font-bold uppercase text-[var(--ss-workspace-muted)]">{t('components.comparisonView.exampleA')}</div>
                      {firstLeftEvent ? (
                         <div className="mt-2">
-                           <div className="font-mono text-xs text-[color-mix(in_srgb,var(--ss-info)_70%,var(--ss-workspace-heading))]">{eventType(firstLeftEvent)}</div>
+                           <div className="font-mono text-xs text-[color-mix(in_srgb,var(--ss-info)_70%,var(--ss-workspace-heading))]">{translateEventType(firstLeftEvent)}</div>
                            <p className="mt-2 text-sm leading-6 text-[var(--ss-workspace-text)]">{eventMainText(firstLeftEvent)}</p>
                         </div>
                      ) : (
@@ -244,7 +277,7 @@ export const ComparisonView: React.FC = () => {
                      <div className="text-[10px] font-bold uppercase text-[var(--ss-workspace-muted)]">{t('components.comparisonView.exampleB')}</div>
                      {firstRightEvent ? (
                         <div className="mt-2">
-                           <div className="font-mono text-xs text-[color-mix(in_srgb,var(--ss-secondary)_76%,var(--ss-workspace-heading))]">{eventType(firstRightEvent)}</div>
+                           <div className="font-mono text-xs text-[color-mix(in_srgb,var(--ss-secondary)_76%,var(--ss-workspace-heading))]">{translateEventType(firstRightEvent)}</div>
                            <p className="mt-2 text-sm leading-6 text-[var(--ss-workspace-text)]">{eventMainText(firstRightEvent)}</p>
                         </div>
                      ) : (
@@ -261,7 +294,7 @@ export const ComparisonView: React.FC = () => {
                      {leftEvents.length === 0 ? <div className="text-xs text-[var(--ss-workspace-muted)]">{t('components.comparisonView.noUniqueEvents')}</div> : null}
                      {leftEvents.map((ev:any, idx:number) => (
                         <div key={idx} className="rounded-xl border border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface-strong)] p-3 text-[12px]">
-                           <div className="font-mono text-xs text-[var(--ss-workspace-muted)]">{eventType(ev)}</div>
+                           <div className="font-mono text-xs text-[var(--ss-workspace-muted)]">{translateEventType(ev)}</div>
                            <div className="mt-1 leading-5 text-[var(--ss-workspace-text)]">{eventMainText(ev)}</div>
                         </div>
                      ))}
@@ -291,7 +324,7 @@ export const ComparisonView: React.FC = () => {
                      {rightEvents.length === 0 ? <div className="text-xs text-[var(--ss-workspace-muted)]">{t('components.comparisonView.noUniqueEvents')}</div> : null}
                      {rightEvents.map((ev:any, idx:number) => (
                         <div key={idx} className="rounded-xl border border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface-strong)] p-3 text-[12px]">
-                           <div className="font-mono text-xs text-[var(--ss-workspace-muted)]">{eventType(ev)}</div>
+                           <div className="font-mono text-xs text-[var(--ss-workspace-muted)]">{translateEventType(ev)}</div>
                            <div className="mt-1 leading-5 text-[var(--ss-workspace-text)]">{eventMainText(ev)}</div>
                         </div>
                      ))}

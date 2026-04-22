@@ -4412,6 +4412,55 @@
   gap: 0.95rem;
 }
 
+.theme-light .ss-structure-workflow__preview-graphic {
+  border-color: color-mix(in srgb, var(--ss-brand-primary) 12%, rgba(210, 201, 183, 0.86));
+  background:
+    radial-gradient(circle at top center, rgba(135, 189, 255, 0.14), transparent 48%),
+    linear-gradient(180deg, rgba(255, 251, 243, 0.96), rgba(247, 241, 229, 0.98));
+}
+
+.theme-light .ss-structure-workflow__preview-graphic line {
+  stroke: rgba(124, 155, 168, 0.58);
+}
+
+.theme-light .ss-structure-workflow__preview-graphic circle {
+  fill: rgba(255, 255, 255, 0.98);
+  stroke: color-mix(in srgb, var(--ss-brand-primary) 70%, #ffffff);
+}
+
+.theme-light .ss-structure-workflow__preview-badge {
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--ss-brand-primary);
+  border: 1px solid color-mix(in srgb, var(--ss-brand-primary) 18%, rgba(210, 201, 183, 0.9));
+}
+
+.theme-light .ss-structure-workflow__graph-stage {
+  background:
+    radial-gradient(circle at top center, rgba(135, 189, 255, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(255, 251, 243, 0.98), rgba(248, 242, 231, 0.98));
+}
+
+.theme-light .ss-structure-workflow__graph-tools,
+.theme-light .ss-structure-workflow__graph-meta,
+.theme-light .ss-structure-workflow__graph-tooltip {
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ss-text-muted);
+  border-color: color-mix(in srgb, var(--ss-brand-primary) 14%, rgba(210, 201, 183, 0.86));
+}
+
+.theme-light .ss-structure-workflow__drawer-backdrop {
+  background: rgba(252, 247, 239, 0.72);
+}
+
+.theme-light .ss-structure-workflow__drawer {
+  background:
+    radial-gradient(circle at top right, rgba(135, 189, 255, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(249, 244, 236, 0.98));
+  box-shadow:
+    0 24px 64px rgba(90, 72, 38, 0.14),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+}
+
 .ss-structure-workflow__isolated strong {
   color: var(--ss-heading);
   font-size: 0.88rem;

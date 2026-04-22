@@ -591,6 +591,8 @@ export const LogViewer: React.FC = () => {
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const logItemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const previousSelectedNodeIdRef = useRef<string | null>(selectedNodeId);
 
   // Compute Ancestry Path for current selection
   const ancestorIds = useMemo(() => {
@@ -658,12 +660,25 @@ export const LogViewer: React.FC = () => {
     });
   }, [logs, searchQuery, selectedTypes, selectedAgents, ancestorIds]);
 
-  // Auto-scroll to bottom when logs change
+  // When the selected node changes, jump to that node's first visible log entry.
+  // Otherwise keep the existing behavior of following new logs to the bottom.
   useEffect(() => {
+    const nodeChanged = previousSelectedNodeIdRef.current !== selectedNodeId;
+    previousSelectedNodeIdRef.current = selectedNodeId;
+
+    if (nodeChanged && selectedNodeId) {
+      const targetLog = filteredLogs.find(log => log.nodeId === selectedNodeId);
+      const targetElement = targetLog ? logItemRefs.current[targetLog.id] : null;
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+    }
+
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [filteredLogs.length, selectedNodeId]);
+  }, [filteredLogs, selectedNodeId]);
 
   const toggleType = (type: string) => {
     setSelectedTypes(prev =>
@@ -835,14 +850,20 @@ export const LogViewer: React.FC = () => {
              // Find corresponding node worldTime if available (optional enhancement)
              const node = nodes.find(n => n.id === log.nodeId);
              return (
-               <LogItem
+               <div
                  key={log.id}
-                 entry={log}
-                 mode={viewMode}
-                 nodeWorldTime={node?.worldTime}
-                 agents={agents}
-                 scenarioParams={scenarioParams}
-               />
+                 ref={(element) => {
+                   logItemRefs.current[log.id] = element;
+                 }}
+               >
+                 <LogItem
+                   entry={log}
+                   mode={viewMode}
+                   nodeWorldTime={node?.worldTime}
+                   agents={agents}
+                   scenarioParams={scenarioParams}
+                 />
+               </div>
              );
           })
         ) : (

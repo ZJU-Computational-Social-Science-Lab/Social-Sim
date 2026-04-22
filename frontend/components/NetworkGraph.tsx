@@ -19,6 +19,7 @@ import {
   useSetSettings,
 } from '@react-sigma/core';
 import '@react-sigma/core/lib/style.css';
+import { NodeCircleProgram } from 'sigma/rendering';
 import type { SocialNetwork, Agent } from '../types';
 
 /** Color constants for graph rendering. */
@@ -270,11 +271,15 @@ export default function NetworkGraph({
         graph={graph}
         style={{ width: '100%', height: '100%' }}
         settings={{
+          defaultNodeType: 'circle',
           defaultEdgeColor: EDGE_COLOR,
           defaultNodeColor: NODE_COLOR,
           renderEdgeLabels: false,
           minCameraRatio: 0.1,
           maxCameraRatio: 10,
+          nodeProgramClasses: {
+            circle: NodeCircleProgram,
+          },
         }}
       >
         <GraphEvents

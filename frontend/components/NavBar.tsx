@@ -6,7 +6,6 @@ import { BrandLogo } from "./BrandLogo";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useSimulationStore } from "../store";
 import { useAuthStore } from "../store/auth";
-import { useSimulationStore } from "../store";
 import { useThemeStore } from "../store/theme";
 
 const DESKTOP_BREAKPOINT_QUERY = "(min-width: 961px)";
@@ -26,7 +25,6 @@ export function NavBar({ variant = "default" }: { variant?: NavBarVariant }) {
   const mode = useThemeStore((s) => s.mode);
   const toggle = useThemeStore((s) => s.toggle);
 
-  const workbenchPath = currentSimulation?.id ? `/simulations/${currentSimulation.id}` : "/simulations/new";
   const isProduct = variant === "product";
   const isAdmin = String(user?.role ?? "") === "admin";
   const workspaceLink = currentSimulationId ? `/simulations/${currentSimulationId}` : "/simulations/workspace";

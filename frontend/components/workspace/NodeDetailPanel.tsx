@@ -140,13 +140,15 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
         </div>
       </div>
 
-      <div className="ss-node-detail__body">
+      <div className={`ss-node-detail__body${activeTab === "events" ? " is-events" : " is-scrollable"}`}>
         {activeTab === "events" ? (
-          isCompareMode ? (
-            <ComparisonView />
-          ) : (
-            <LogViewer selectedAgentId={selectedAgentId} onClearSelectedAgent={onClearSelectedAgent} />
-          )
+          <div className="ss-node-detail__viewer">
+            {isCompareMode ? (
+              <ComparisonView />
+            ) : (
+              <LogViewer selectedAgentId={selectedAgentId} onClearSelectedAgent={onClearSelectedAgent} />
+            )}
+          </div>
         ) : null}
 
         {activeTab === "branches" ? (

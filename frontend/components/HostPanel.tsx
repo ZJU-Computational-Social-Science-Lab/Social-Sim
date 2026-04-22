@@ -7,6 +7,15 @@ import { Megaphone, CloudLightning, Edit, Save, Sparkles, Loader2, Check, FilePl
 import { MultimodalInput } from './MultimodalInput';
 import { InitialEventsModal } from './InitialEventsModal';
 
+const humanizeBackendLabel = (value: string): string => {
+  const normalized = String(value || '').trim();
+  if (!normalized) return '';
+  return normalized
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+};
+
 export const HostPanel: React.FC = () => {
    const { t } = useTranslation();
   const agents = useSimulationStore(state => state.agents);
@@ -30,6 +39,18 @@ export const HostPanel: React.FC = () => {
   // #12 Environment Suggestions
   const [suggestions, setSuggestions] = useState<EnvironmentSuggestion[]>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
+
+  const translateSuggestionEventType = (eventType: string) => {
+    const key = `components.environmentSuggestion.eventType.${eventType}`;
+    const translated = t(key);
+    return translated === key ? humanizeBackendLabel(eventType) : translated;
+  };
+
+  const translateSuggestionSeverity = (severity: string) => {
+    const key = `components.environmentSuggestion.severity.${severity}`;
+    const translated = t(key);
+    return translated === key ? humanizeBackendLabel(severity) : translated;
+  };
 
   const formatBroadcastLog = (description: string) => {
     const recipients = broadcastRecipients.filter(Boolean);
@@ -160,7 +181,7 @@ export const HostPanel: React.FC = () => {
                 <div key={i} className="p-2 rounded border border-indigo-100 text-xs shadow-sm group" style={{ background: 'var(--ss-workspace-surface)' }}>
                   <p className="font-bold mb-1" style={{ color: 'var(--ss-workspace-heading)' }}>{s.description}</p>
                   <p className="text-[10px] mb-2 uppercase tracking-[0.12em]" style={{ color: 'var(--ss-workspace-muted)' }}>
-                    {s.event_type} · {s.severity}
+                    {translateSuggestionEventType(s.event_type)} · {translateSuggestionSeverity(s.severity)}
                   </p>
                   <button
                     onClick={() => handleAdoptSuggestion(s)}

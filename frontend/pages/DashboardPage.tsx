@@ -122,7 +122,7 @@ export function DashboardPage() {
                     <Orbit className="ss-dashboard-page__section-icon" size={20} />
                   </div>
 
-                  <div className="ss-dashboard-page__quick-grid">
+                  <div className="ss-dashboard-page__action-grid">
                     {[
                       {
                         icon: FlaskConical,
@@ -151,7 +151,7 @@ export function DashboardPage() {
                     ].map((item) => {
                       const Icon = item.icon;
                       return (
-                        <Link key={item.label} to={item.to} className="ss-dashboard-page__quick-card">
+                        <Link key={item.label} to={item.to} className="ss-dashboard-page__action-card">
                           <div className="ss-dashboard-page__quick-card-copy">
                             <div className="flex items-center gap-3">
                               <span className="ss-dashboard-page__icon-badge">
