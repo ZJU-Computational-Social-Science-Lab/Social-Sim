@@ -36,6 +36,7 @@ import { useTranslation } from "react-i18next";
 import { TabBar } from "../components/TabBar";
 import ContextToolbar from "../components/ContextToolbar";
 import { PeekOverlay } from "../components/PeekOverlay";
+import { FosBrand } from "../components/FosBrand";
 import {
   Plus,
   Settings,
@@ -64,13 +65,10 @@ const Header: React.FC = () => {
   return (
     <header className="h-14 border-b flex items-center justify-between px-4 shrink-0 z-20" style={{ background: 'var(--ss-nav-bg)', borderColor: 'var(--ss-nav-border)' }}>
       <div className="flex items-center gap-4">
-        <Link to="/dashboard" className="flex items-center gap-2 text-brand-600 font-bold text-lg tracking-tight hover:opacity-80">
-          <div className="w-8 h-8 bg-brand-600 text-white rounded-lg flex items-center justify-center">
-            S4
-          </div>
-          <span>
-            SocialSim
-            <span className="font-light" style={{ color: 'var(--ss-workspace-muted)' }}>Next</span>
+        <Link to="/dashboard" className="flex items-center gap-2 hover:opacity-80">
+          <FosBrand layout="mark" className="text-xl" />
+          <span className="font-bold text-sm tracking-tight" style={{ color: 'var(--ss-brand-primary)' }}>
+            {t('brand')}
           </span>
         </Link>
         
