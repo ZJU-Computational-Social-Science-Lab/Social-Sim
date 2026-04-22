@@ -47,19 +47,6 @@
   --ss-neutral-700: #5f6258;
   --ss-neutral-900: #2f312b;
 
-  /* ── Semantic extended ── */
-  --ss-error-400: #f87171;
-  --ss-error-500: #ef4444;
-  --ss-error-700: #b91c1c;
-  --ss-success-400: #22c55e;
-  --ss-success-500: #16a34a;
-  --ss-success-600: #059669;
-  --ss-warning-600: #b45309;
-  --ss-info-600: #1d4ed8;
-  --ss-info-soft: rgba(37, 99, 235, 0.12);
-  --ss-success-soft: rgba(16, 185, 129, 0.12);
-  --ss-warning-soft: rgba(245, 158, 11, 0.12);
-
   --ss-space-1: 0.25rem;
   --ss-space-2: 0.5rem;
   --ss-space-3: 0.75rem;
@@ -69,11 +56,6 @@
   --ss-space-7: 2rem;
   --ss-space-8: 2.5rem;
   --ss-space-9: 3rem;
-  --ss-space-0-5: 0.125rem;
-  --ss-gap-xs: 0.35rem;
-  --ss-gap-sm: 0.4rem;
-  --ss-gap-lg: 0.6rem;
-  --ss-gap-xl: 0.7rem;
   --ss-page-width: 108rem;
 
   --ss-type-page-title: 3.25rem;
@@ -83,11 +65,6 @@
   --ss-type-caption: 0.8125rem;
   --ss-type-label: 0.75rem;
   --ss-type-button: 0.875rem;
-  --ss-type-xs: 0.8rem;
-  --ss-type-sm: 0.85rem;
-  --ss-type-md: 0.9rem;
-  --ss-type-subtitle: 1.2rem;
-  --ss-type-input: 1rem;
 
   --ss-radius-sm: 0.625rem;
   --ss-radius-2xl: 1.875rem;
@@ -176,7 +153,6 @@
   --ss-link: #b08930;
   --ss-info: #7EA8D0;
   --ss-success: #5a9a6b;
-  --ss-status-positive: #5a9a6b;
   --ss-warning: #c49535;
   --ss-danger: #c4605a;
   --ss-danger-soft: rgba(196, 96, 90, 0.10);
@@ -223,14 +199,33 @@
   --ss-workspace-topology-link: rgba(135, 189, 255, 0.28);
   --ss-workspace-node-leaf: #FFF9ED;
   --ss-workspace-node-leaf-stroke: #d4a24e;
-  --ss-workspace-node-selected: #87BDFF;
-  --ss-workspace-node-selected-stroke: #5A9EF0;
+  --ss-workspace-node-selected: #f5d36f;
+  --ss-workspace-node-selected-stroke: #c98f25;
   --ss-workspace-node-compare: #B49CDA;
   --ss-workspace-node-compare-stroke: #8B6FB8;
   --ss-workspace-node-failed: rgba(196, 96, 90, 0.10);
   --ss-workspace-node-failed-stroke: var(--ss-danger);
   --ss-workspace-toolbar: rgba(255, 253, 250, 0.94);
   --ss-workspace-glow: rgba(255, 200, 112, 0.08);
+
+  /* ── Network graph ── */
+  --ss-network-preview-bg:
+    linear-gradient(180deg, rgba(245, 239, 229, 0.98), rgba(236, 229, 217, 0.98));
+  --ss-network-preview-edge: rgba(126, 168, 208, 0.44);
+  --ss-network-preview-node-fill: rgba(255, 249, 237, 0.98);
+  --ss-network-preview-node-stroke: #c4922e;
+  --ss-network-preview-badge-bg: rgba(255, 252, 244, 0.98);
+  --ss-network-preview-badge-text: #8f6b1b;
+  --ss-network-graph-stage-bg:
+    linear-gradient(180deg, rgba(245, 239, 229, 0.99), rgba(234, 227, 214, 0.99));
+  --ss-network-graph-chip-bg: rgba(247, 241, 232, 0.96);
+  --ss-network-graph-edge: rgba(126, 168, 208, 0.5);
+  --ss-network-graph-node-fill: rgba(255, 249, 237, 0.98);
+  --ss-network-graph-node-fill-hover: rgba(255, 243, 215, 0.98);
+  --ss-network-graph-node-stroke: #c4922e;
+  --ss-network-graph-label: #2c2724;
+  --ss-network-graph-tooltip-bg: rgba(255, 253, 250, 0.98);
+  --ss-network-graph-tooltip-text: #3e3a37;
 
   /* ── Layers ── */
   --ss-layer-page: rgba(255, 253, 248, 0.96);
@@ -277,7 +272,6 @@
   --ss-link: #7df4c6;
   --ss-info: #67b7ff;
   --ss-success: #6e8f68;
-  --ss-status-positive: #6e8f68;
   --ss-warning: #c9a268;
   --ss-danger: #ff7e7e;
   --ss-danger-soft: rgba(255, 126, 126, 0.12);
@@ -313,14 +307,33 @@
   --ss-workspace-topology-link: rgba(47, 230, 166, 0.24);
   --ss-workspace-node-leaf: rgba(47, 230, 166, 0.09);
   --ss-workspace-node-leaf-stroke: #2fe6a6;
-  --ss-workspace-node-selected: #2fe6a6;
-  --ss-workspace-node-selected-stroke: #d3fff0;
+  --ss-workspace-node-selected: #f7cd63;
+  --ss-workspace-node-selected-stroke: #ffe7a8;
   --ss-workspace-node-compare: #67b7ff;
   --ss-workspace-node-compare-stroke: #b7deff;
   --ss-workspace-node-failed: rgba(255, 126, 126, 0.14);
   --ss-workspace-node-failed-stroke: #ff7e7e;
   --ss-workspace-toolbar: rgba(9, 17, 16, 0.92);
   --ss-workspace-glow: rgba(47, 230, 166, 0.1);
+  --ss-network-preview-bg:
+    radial-gradient(circle at top center, rgba(47, 230, 166, 0.06), transparent 48%),
+    rgba(8, 16, 15, 0.92);
+  --ss-network-preview-edge: rgba(143, 193, 177, 0.46);
+  --ss-network-preview-node-fill: rgba(17, 55, 47, 0.96);
+  --ss-network-preview-node-stroke: #5df2bf;
+  --ss-network-preview-badge-bg: rgba(17, 55, 47, 0.98);
+  --ss-network-preview-badge-text: #9cefd0;
+  --ss-network-graph-stage-bg:
+    radial-gradient(circle at top center, rgba(47, 230, 166, 0.06), transparent 34%),
+    linear-gradient(180deg, rgba(8, 16, 15, 0.96), rgba(10, 17, 16, 0.98));
+  --ss-network-graph-chip-bg: rgba(10, 17, 16, 0.94);
+  --ss-network-graph-edge: rgba(143, 193, 177, 0.46);
+  --ss-network-graph-node-fill: rgba(17, 55, 47, 0.96);
+  --ss-network-graph-node-fill-hover: rgba(24, 74, 62, 0.98);
+  --ss-network-graph-node-stroke: #5df2bf;
+  --ss-network-graph-label: #b8d1c7;
+  --ss-network-graph-tooltip-bg: rgba(9, 17, 16, 0.96);
+  --ss-network-graph-tooltip-text: var(--ss-text);
   --ss-layer-page: rgba(6, 13, 12, 0.92);
   --ss-layer-panel: rgba(10, 17, 16, 0.9);
   --ss-layer-card: rgba(13, 23, 22, 0.96);
