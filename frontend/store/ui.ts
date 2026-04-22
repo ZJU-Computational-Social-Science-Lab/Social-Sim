@@ -170,7 +170,7 @@ export const createUISlice: StateCreator<
 
     try {
       // Get current simulation state from store
-      const state = get();
+      const state = get() as any;
       const currentSim = state.currentSimulation;
       const agents = state.agents || [];
       const nodes = state.nodes || [];

@@ -223,18 +223,13 @@ export const getScenarioParamOptionLabel = (
     return value;
   }
 
-  const match = param.options.find((option) => {
-    if (typeof option === "string") {
-      return option === value;
-    }
-    return option.value === value;
-  });
+  const match = param.options.find((option) => option === value);
 
   if (!match) {
     return value;
   }
 
-  return typeof match === "string" ? match : match.label;
+  return match;
 };
 
 export const formatScenarioParamValue = (
