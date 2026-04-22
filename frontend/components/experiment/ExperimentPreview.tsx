@@ -207,7 +207,7 @@ export const ExperimentPreview: React.FC = () => {
                 Turn Order
               </h4>
               <p className="text-sm" style={{ color: 'var(--ss-text-muted)' }}>
-                {TURN_ORDER_LABELS[turnOrder.type] || turnOrder.type}
+                {TURN_ORDER_LABELS[turnOrder] || turnOrder}
               </p>
             </div>
 
