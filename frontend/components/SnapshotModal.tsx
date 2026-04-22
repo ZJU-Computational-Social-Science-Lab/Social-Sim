@@ -69,22 +69,28 @@ export const SnapshotModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 px-4 py-6">
-      <div className="flex max-h-[80vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface)] shadow-2xl">
-        <div className="flex items-center justify-between gap-4 border-b border-[var(--ss-workspace-border)] px-4 py-3">
-          <div>
-            <div className="ss-kicker">{isZh ? "快照管理" : "Snapshot manager"}</div>
-            <h2 className="mt-1 text-lg font-semibold text-[var(--ss-workspace-heading)]">
-              {currentSimulation?.name || (isZh ? "当前仿真" : "Current simulation")}
-            </h2>
+    <div className="ss-extension-modal">
+      <div className="ss-extension-modal__panel ss-extension-modal__panel--wide">
+        <div className="ss-extension-modal__header">
+          <div className="ss-extension-modal__header-title">
+            <div className="ss-extension-modal__header-icon">
+              <Save size={18} />
+            </div>
+            <div className="ss-extension-modal__header-copy">
+              <div className="ss-kicker">{isZh ? "快照管理" : "Snapshot manager"}</div>
+              <h2>
+                {currentSimulation?.name || (isZh ? "当前仿真" : "Current simulation")}
+              </h2>
+            </div>
           </div>
           <button type="button" className="ss-icon-button" onClick={close} aria-label={isZh ? "关闭" : "Close"}>
             <X size={16} />
           </button>
         </div>
 
-        <div className="grid min-h-0 flex-1 gap-4 overflow-hidden p-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-          <section className="flex min-h-0 flex-col gap-3 rounded-2xl border border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface-strong)] p-4">
+        <div className="ss-extension-modal__body">
+        <div className="grid min-h-0 flex-1 gap-4 overflow-hidden lg:grid-cols-[320px_minmax(0,1fr)]">
+          <section className="ss-extension-modal__surface flex min-h-0 flex-col gap-3 p-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ss-workspace-heading)]">
               <Save size={15} />
               <span>{isZh ? "保存当前快照" : "Save snapshot"}</span>
@@ -115,7 +121,7 @@ export const SnapshotModal: React.FC = () => {
             </div>
           </section>
 
-          <section className="flex min-h-0 flex-col rounded-2xl border border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface-strong)]">
+          <section className="ss-extension-modal__surface flex min-h-0 flex-col">
             <div className="flex items-center justify-between border-b border-[var(--ss-workspace-border)] px-4 py-3">
               <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ss-workspace-heading)]">
                 <Clock3 size={15} />
@@ -168,6 +174,7 @@ export const SnapshotModal: React.FC = () => {
               )}
             </div>
           </section>
+        </div>
         </div>
       </div>
     </div>

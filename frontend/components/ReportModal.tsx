@@ -44,29 +44,33 @@ export const ReportModal: React.FC = () => {
   const report = currentSim.report;
 
   return (
-    <div className="fixed inset-0 z-[140] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="ss-extension-modal">
+      <div className="ss-extension-modal__panel ss-extension-modal__panel--full h-[90vh] animate-in fade-in zoom-in-95 duration-200">
 
         {/* Header */}
-        <div className="px-6 py-4 border-b flex justify-between items-center bg-indigo-50 shrink-0">
-          <div>
-            <h2 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
-              <FileText className="text-indigo-600" size={20} />
+        <div className="ss-extension-modal__header shrink-0">
+          <div className="ss-extension-modal__header-title">
+            <div className="ss-extension-modal__header-icon">
+              <FileText size={18} />
+            </div>
+            <div className="ss-extension-modal__header-copy">
+            <h2 className="flex items-center gap-2">
               {t('components.reportModal.title')} ({t('components.reportModal.subtitle')})
             </h2>
-            <p className="text-xs text-indigo-600 mt-1">
+            <p className="text-xs mt-1">
                {report ? `${t('components.reportModal.generatedAt')} ${new Date(report.generatedAt).toLocaleString()}` : t('components.reportModal.noReport')}
             </p>
             {report?.refinedByLLM && (
-              <span className="inline-flex items-center px-2 py-0.5 mt-1 text-[11px] font-semibold rounded-full bg-indigo-100 text-indigo-700">
+              <span className="inline-flex items-center px-2 py-0.5 mt-1 text-[11px] font-semibold rounded-full bg-amber-100 text-amber-700">
                 {t('components.reportModal.aiGenerated')}
               </span>
             )}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowSettings((v) => !v)}
-              className="text-xs px-3 py-1 rounded-lg border border-indigo-200 text-indigo-700 hover:bg-indigo-100"
+              className="text-xs px-3 py-1 rounded-lg border border-amber-200 text-amber-800 hover:bg-amber-100"
             >
               {showSettings ? t('components.reportModal.hideSettings') : t('components.reportModal.analysisSettings')}
             </button>
@@ -77,7 +81,7 @@ export const ReportModal: React.FC = () => {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto bg-slate-50 p-6 md:p-8 flex gap-6">
+        <div className="ss-extension-modal__body bg-transparent p-6 md:p-8 flex gap-6">
            <style>
              {`
              .dual-range input[type="range"] {
@@ -109,7 +113,7 @@ export const ReportModal: React.FC = () => {
              `}
            </style>
            {showSettings && (
-             <div className="w-72 shrink-0 bg-white border rounded-lg shadow-sm p-4 h-fit">
+               <div className="ss-extension-modal__surface w-72 shrink-0 p-4 h-fit">
                <div className="flex items-center justify-between mb-3">
                  <h4 className="text-sm font-bold text-slate-700">{t('components.reportModal.analysisSettings')}</h4>
                  <button className="text-xs text-slate-500 hover:text-slate-700" onClick={() => setShowSettings(false)}>{t('components.reportModal.close')}</button>
@@ -139,7 +143,7 @@ export const ReportModal: React.FC = () => {
                    <div className="flex items-center justify-between">
                      <label className="text-xs text-slate-500">{t('components.reportModal.roundRange')}</label>
                      <button
-                       className="text-xs text-indigo-600 hover:underline"
+                       className="text-xs text-amber-700 hover:underline"
                        onClick={() => updateAnalysisConfig({ roundStart: null, roundEnd: null })}
                      >
                        {t('components.reportModal.clear')}
@@ -170,7 +174,7 @@ export const ReportModal: React.FC = () => {
                            const v = Number(e.target.value);
                            updateAnalysisConfig({ roundStart: Math.min(v, endVal) });
                          }}
-                         className="absolute inset-0 w-full cursor-pointer z-30 bg-transparent"
+                           className="absolute inset-0 w-full cursor-pointer z-30 bg-transparent"
                        />
                        <input
                          type="range"
@@ -183,7 +187,7 @@ export const ReportModal: React.FC = () => {
                            const v = Number(e.target.value);
                            updateAnalysisConfig({ roundEnd: Math.max(v, startVal) });
                          }}
-                         className="absolute inset-0 w-full cursor-pointer z-40 bg-transparent"
+                           className="absolute inset-0 w-full cursor-pointer z-40 bg-transparent"
                        />
                      </div>
                      {roundBounds.max === roundBounds.min && (
@@ -239,7 +243,7 @@ export const ReportModal: React.FC = () => {
                  <button
                    onClick={generateReport}
                    disabled={isGenerating}
-                   className="px-8 py-3 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 hover:shadow-xl transition-all font-bold flex items-center gap-2 disabled:opacity-70 disabled:cursor-wait"
+                   className="ss-extension-modal__action ss-extension-modal__action--primary px-8 py-3 shadow-lg hover:shadow-xl transition-all font-bold disabled:opacity-70 disabled:cursor-wait"
                  >
                     {isGenerating ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
                     {isGenerating ? t('components.reportModal.analyzing') : t('components.reportModal.generateNow')}
@@ -381,29 +385,29 @@ export const ReportModal: React.FC = () => {
         </div>
 
         {report && (
-          <div className="px-6 py-4 border-t bg-white flex justify-end gap-3 shrink-0">
+           <div className="ss-extension-modal__footer shrink-0">
              <button
                 onClick={() => exportReport('json')}
                 disabled={isGenerating}
-                className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg flex items-center gap-2 disabled:opacity-50"
+               className="ss-extension-modal__action disabled:opacity-50"
              >
                 <Download size={16} /> {t('components.reportModal.exportJson')}
              </button>
              <button
                 onClick={() => exportReport('md')}
                 disabled={isGenerating}
-                className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg flex items-center gap-2 disabled:opacity-50"
+               className="ss-extension-modal__action disabled:opacity-50"
              >
                 <Download size={16} /> {t('components.reportModal.exportMarkdown')}
              </button>
              <button
                 onClick={generateReport}
                 disabled={isGenerating}
-                className="px-4 py-2 text-sm text-slate-600 font-medium hover:bg-slate-100 rounded-lg flex items-center gap-2 disabled:opacity-50"
+               className="ss-extension-modal__action disabled:opacity-50"
              >
                 <Sparkles size={16} /> {t('components.reportModal.regenerate')}
              </button>
-             <button onClick={() => toggle(false)} className="px-6 py-2 text-sm bg-indigo-600 text-white font-medium hover:bg-indigo-700 rounded-lg shadow-sm">
+             <button onClick={() => toggle(false)} className="ss-extension-modal__action ss-extension-modal__action--primary">
                 {t('components.reportModal.close')}
              </button>
           </div>
@@ -411,7 +415,7 @@ export const ReportModal: React.FC = () => {
 
         {/* Lightbox Modal */}
         {lightbox && (
-           <div className="fixed inset-0 z-[120] bg-black/80 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
+           <div className="fixed inset-0 z-[150] bg-black/80 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
               <img src={lightbox} alt="full" className="max-w-full max-h-full rounded shadow-2xl" />
               <button className="absolute top-4 right-4 text-white" onClick={() => setLightbox(null)}>
                  <X size={28} />

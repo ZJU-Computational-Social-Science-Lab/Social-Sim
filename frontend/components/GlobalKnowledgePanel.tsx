@@ -166,17 +166,17 @@ export const GlobalKnowledgePanel: React.FC = () => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/30">
-      <div className="bg-white w-full max-w-2xl max-h-[80vh] rounded-xl shadow-xl flex flex-col">
+    <div className="ss-extension-modal">
+      <div className="ss-extension-modal__panel ss-extension-modal__panel--wide">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b">
+        <div className="ss-extension-modal__header">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Globe className="w-5 h-5 text-blue-600" />
+            <div className="ss-extension-modal__header-icon">
+              <Globe className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-800">{t('components.globalKnowledgePanel.title')}</h2>
-              <p className="text-xs text-slate-500">{t('components.globalKnowledgePanel.subtitle')}</p>
+            <div className="ss-extension-modal__header-copy">
+              <h2>{t('components.globalKnowledgePanel.title')}</h2>
+              <p>{t('components.globalKnowledgePanel.subtitle')}</p>
             </div>
           </div>
           <button
@@ -188,7 +188,7 @@ export const GlobalKnowledgePanel: React.FC = () => {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="ss-extension-modal__body space-y-6">
           {/* Document Upload Section */}
           <div>
             <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
@@ -198,8 +198,8 @@ export const GlobalKnowledgePanel: React.FC = () => {
             <div
               className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
                 isDragging
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-slate-300 hover:border-blue-400'
+                    ? 'border-amber-500 bg-amber-50'
+                    : 'border-slate-300 hover:border-amber-400'
               } ${isUploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -249,19 +249,19 @@ export const GlobalKnowledgePanel: React.FC = () => {
                   placeholder={t('components.globalKnowledgePanel.titlePlaceholder')}
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full p-2 border rounded text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 border rounded text-sm outline-none focus:ring-2 focus:ring-amber-500"
                 />
                 <textarea
                   placeholder={t('components.globalKnowledgePanel.contentPlaceholder')}
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value)}
-                  className="w-full p-2 border rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none"
+                  className="w-full p-2 border rounded text-sm outline-none focus:ring-2 focus:ring-amber-500 h-24 resize-none"
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={handleAddText}
                     disabled={isSavingText || !newContent.trim()}
-                    className="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 text-sm flex items-center justify-center gap-2"
+                    className="ss-extension-modal__action ss-extension-modal__action--primary flex-1 disabled:opacity-50 text-sm"
                   >
                     {isSavingText && <Loader2 size={14} className="animate-spin" />}
                     {t('components.globalKnowledgePanel.save')}
@@ -272,7 +272,7 @@ export const GlobalKnowledgePanel: React.FC = () => {
                       setNewTitle('');
                       setNewContent('');
                     }}
-                    className="flex-1 py-2 bg-slate-200 text-slate-600 rounded hover:bg-slate-300 text-sm"
+                    className="ss-extension-modal__action flex-1 text-sm"
                   >
                     {t('components.globalKnowledgePanel.cancel')}
                   </button>
@@ -281,7 +281,7 @@ export const GlobalKnowledgePanel: React.FC = () => {
             ) : (
               <button
                 onClick={() => setIsAddingText(true)}
-                className="w-full py-3 border-2 border-dashed border-slate-300 text-slate-500 hover:border-blue-500 hover:text-blue-600 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
+                className="w-full py-3 border-2 border-dashed border-slate-300 text-slate-500 hover:border-amber-500 hover:text-amber-700 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
               >
                 <Plus size={16} /> {t('components.globalKnowledgePanel.addTextKnowledge')}
               </button>

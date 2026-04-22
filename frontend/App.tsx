@@ -8,14 +8,21 @@ import { AuthLayout } from "./components/layout/AuthLayout";
 import { RequireAuth } from "./components/RequireAuth";
 import { useSimulationStore } from "./store";
 import { useThemeStore } from "./store/theme";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // 旧前端的页面
 const DashboardPage = lazy(() =>
   import("./pages/DashboardPage").then((m) => ({ default: m.DashboardPage }))
 );
-import { LandingPage } from "./pages/LandingPage";
-import { LoginPage } from "./pages/LoginPage";
-import { RegisterPage } from "./pages/RegisterPage";
+const LandingPage = lazy(() =>
+  import("./pages/LandingPage").then((m) => ({ default: m.LandingPage }))
+);
+const LoginPage = lazy(() =>
+  import("./pages/LoginPage").then((m) => ({ default: m.LoginPage }))
+);
+const RegisterPage = lazy(() =>
+  import("./pages/RegisterPage").then((m) => ({ default: m.RegisterPage }))
+);
 const SavedSimulationsPage = lazy(() =>
   import("./pages/SavedSimulationsPage").then((m) => ({
     default: m.SavedSimulationsPage,
@@ -35,8 +42,7 @@ const DocsPage = lazy(() =>
 );
 
 // 新前端的仿真主界面（你已经把原来的 App 改名为 SimulationPage.tsx，并 default export）
-import SimulationPage from "./pages/SimulationPage";
-import { ErrorBoundary } from "./components/ErrorBoundary";
+const SimulationPage = lazy(() => import("./pages/SimulationPage"));
 
 const App: React.FC = () => {
   const applyTheme = useThemeStore((state) => state.apply);

@@ -88,22 +88,28 @@ export const AdvancedTreeOpsModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 px-4 py-6">
-      <div className="flex max-h-[82vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface)] shadow-2xl">
-        <div className="flex items-center justify-between gap-4 border-b border-[var(--ss-workspace-border)] px-4 py-3">
-          <div>
-            <div className="ss-kicker">{isZh ? "高级树推进" : "Advanced tree ops"}</div>
-            <h2 className="mt-1 text-lg font-semibold text-[var(--ss-workspace-heading)]">
-              {currentSimulation?.name || (isZh ? "当前仿真" : "Current simulation")}
-            </h2>
+    <div className="ss-extension-modal">
+      <div className="ss-extension-modal__panel ss-extension-modal__panel--medium">
+        <div className="ss-extension-modal__header">
+          <div className="ss-extension-modal__header-title">
+            <div className="ss-extension-modal__header-icon">
+              <GitBranchPlus size={18} />
+            </div>
+            <div className="ss-extension-modal__header-copy">
+              <div className="ss-kicker">{isZh ? "高级树推进" : "Advanced tree ops"}</div>
+              <h2>
+                {currentSimulation?.name || (isZh ? "当前仿真" : "Current simulation")}
+              </h2>
+            </div>
           </div>
           <button type="button" className="ss-icon-button" onClick={close} aria-label={isZh ? "关闭" : "Close"}>
             <X size={16} />
           </button>
         </div>
 
-        <div className="grid gap-4 p-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-          <section className="rounded-2xl border border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface-strong)] p-4">
+        <div className="ss-extension-modal__body">
+        <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <section className="ss-extension-modal__surface p-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ss-workspace-heading)]">
               <Play size={15} />
               <span>{isZh ? "推进参数" : "Advance parameters"}</span>
@@ -149,7 +155,7 @@ export const AdvancedTreeOpsModal: React.FC = () => {
             </div>
           </section>
 
-          <section className="flex flex-col gap-3 rounded-2xl border border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface-strong)] p-4">
+          <section className="ss-extension-modal__surface flex flex-col gap-3 p-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ss-workspace-heading)]">
               <Layers3 size={15} />
               <span>{isZh ? "执行操作" : "Execute"}</span>
@@ -191,6 +197,7 @@ export const AdvancedTreeOpsModal: React.FC = () => {
                 : "The tree refreshes automatically after execution."}
             </div>
           </section>
+        </div>
         </div>
       </div>
     </div>
