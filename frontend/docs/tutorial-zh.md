@@ -159,7 +159,7 @@ Base URL：通常为 https://google.serper.dev/search。
 #### 6.3.1 具体操作步骤
 ## 1.  新建仿真时在场景配置环节，或已启动仿真时点击顶部"全局知识库"，进入设置页面；
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-11.png)
+![教程截图 - 全局知识库入口](/tutorial/06-host-panel.png)
 
 ## 2.  通过"上传文档"或"添加文本知识"两种方式导入内容；
 ## 3.  仿真过程中可实时补充、修改知识库内容，无需重启仿真。

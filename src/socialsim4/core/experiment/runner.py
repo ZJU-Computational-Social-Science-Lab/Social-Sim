@@ -400,48 +400,22 @@ class ExperimentRunner:
         max_concurrent = int(os.environ.get("SOCIALSIM_LLM_CONCURRENCY", "10"))
         semaphore = asyncio.Semaphore(max_concurrent)
 
-        # Circuit breaker: if N consecutive agents fail, the LLM provider is
-        # likely down. Fail-fast remaining agents instead of each one independently
-        # timing out. Tune via SOCIALSIM_CIRCUIT_BREAKER env var (default 5).
-        circuit_threshold = int(os.environ.get("SOCIALSIM_CIRCUIT_BREAKER", "5"))
-        consecutive_failures = 0
-
         async def _prompt_with_limit(agent):
-            nonlocal consecutive_failures
-
-            # Check circuit breaker BEFORE acquiring semaphore.
-            # If provider is down, skip immediately — don't queue behind
-            # other agents that are also about to fail.
-            if consecutive_failures >= circuit_threshold:
-                logger.warning(
-                    f"Circuit breaker tripped ({consecutive_failures} consecutive "
-                    f"failures), skipping {agent.name}"
-                )
-                return ActionResult(
-                    agent_name=agent.name,
-                    action_name="skip",
-                    parameters={"error": "Circuit breaker: LLM provider appears down"},
-                    summary="Skipped - circuit breaker tripped",
-                    success=False,
-                    skipped=True,
-                    round_num=round_num,
-                    error="Circuit breaker tripped"
-                )
-
             async with semaphore:
-                result = await self._prompt_agent(agent, round_num)
+                return await self._prompt_agent(agent, round_num)
 
-            # Update circuit breaker state
-            if isinstance(result, Exception) or getattr(result, 'skipped', False) or not getattr(result, 'success', True):
-                consecutive_failures += 1
-            else:
-                consecutive_failures = 0  # Reset on success
-
-            return result
-
-        # Run all agents concurrently up to max_concurrent.
-        tasks = [_prompt_with_limit(agent) for agent in self.agents]
-        action_results = await asyncio.gather(*tasks, return_exceptions=True)
+        # For follow-up actions, keep prompt/follow-up pairs isolated so one
+        # agent's second call cannot interleave with another agent's first call.
+        if self._scene_has_followup_actions():
+            action_results = []
+            for agent in self.agents:
+                try:
+                    action_results.append(await _prompt_with_limit(agent))
+                except Exception as result:
+                    action_results.append(result)
+        else:
+            tasks = [_prompt_with_limit(agent) for agent in self.agents]
+            action_results = await asyncio.gather(*tasks, return_exceptions=True)
 
         for result in action_results:
             if isinstance(result, Exception):
@@ -938,14 +912,23 @@ class ExperimentRunner:
             # Get per-agent LLM client (LLM distribution)
             agent_llm_client = self.get_agent_llm_client(agent)
 
-            # Single LLM call. LLMClient._with_timeout_and_retry handles retries
-            # (3 attempts with exponential backoff, configurable via LLM_MAX_RETRIES).
-            # Do NOT add another retry loop here — that causes 9 total attempts per
-            # failure, each waiting 30s timeout × 3 retries = 4.7min per agent.
+            # Call LLM with up to 3 retries for transient server errors (e.g. Ollama 500).
             messages = [{"role": "user", "content": prompt}]
-            raw_response = await asyncio.to_thread(
-                agent_llm_client.chat, messages, json_mode=True
-            )
+            raw_response = None
+            last_llm_error = None
+            for _attempt in range(3):
+                try:
+                    raw_response = await asyncio.to_thread(
+                        agent_llm_client.chat, messages, json_mode=True
+                    )
+                    break
+                except Exception as _llm_err:
+                    last_llm_error = _llm_err
+                    logger.warning(f"LLM call failed for {agent.name} (attempt {_attempt + 1}/3): {_llm_err}")
+                    if _attempt < 2:
+                        await asyncio.sleep(2 ** _attempt)
+            if raw_response is None:
+                raise last_llm_error
 
             # Handle empty response gracefully (e.g., Qwen3 via Ollama returns 0 chars)
             if not raw_response or not raw_response.strip():

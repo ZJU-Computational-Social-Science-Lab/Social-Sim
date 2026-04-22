@@ -47,23 +47,16 @@ const UPDATE_LABELS: Record<string, string> = {
 
 export const ExperimentPreview: React.FC = () => {
   const {
-    selectedScenarioData,
-    scenarioDescription,
+    interactionTypes,
+    scenario,
     agentTypes,
+    mechanicConfigs,
     networkType,
+    successCondition,
     turnOrder,
     interRoundUpdate,
     metrics,
-    availableActions,
-    selectedActionIds,
   } = useExperimentBuilder();
-
-  const interactionTypes = selectedScenarioData ? [selectedScenarioData.category] : [];
-  const scenario = scenarioDescription || selectedScenarioData?.description || '';
-  const mechanicConfigs: Record<string, any> = {};
-  const successCondition = { type: 'fixed_rounds', maxRounds: undefined as number | undefined };
-  const selectedMetrics = metrics || [];
-  const selectedActions = availableActions.filter((action) => selectedActionIds.includes(action.name));
 
   const totalAgents = agentTypes.reduce((sum, t) => sum + t.count, 0);
 
@@ -80,15 +73,14 @@ export const ExperimentPreview: React.FC = () => {
         <div className="space-y-6">
           {/* Interaction Types */}
           <div>
-            <h4 className="text-sm font-semibold mb-2" style={{ color: 'var(--ss-text)' }}>
+            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Interaction Patterns
             </h4>
             <div className="flex flex-wrap gap-2">
               {interactionTypes.map((type) => (
                 <span
                   key={type}
-                  className="px-3 py-1 rounded-full text-sm"
-                  style={{ background: 'var(--ss-accent-warm-soft)', color: 'var(--ss-text)' }}
+                  className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-sm"
                 >
                   {INTERACTION_LABELS[type] || type}
                 </span>
@@ -99,10 +91,10 @@ export const ExperimentPreview: React.FC = () => {
           {/* Scenario */}
           {scenario && (
             <div>
-              <h4 className="text-sm font-semibold mb-2" style={{ color: 'var(--ss-text)' }}>
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Scenario
               </h4>
-              <p className="text-sm p-3 rounded border" style={{ background: 'var(--ss-page-surface-muted)', borderColor: 'var(--ss-border)', color: 'var(--ss-text-muted)' }}>
+              <p className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/50 p-3 rounded border border-gray-200 dark:border-gray-700">
                 {scenario}
               </p>
             </div>
@@ -110,26 +102,25 @@ export const ExperimentPreview: React.FC = () => {
 
           {/* Agents */}
           <div>
-            <h4 className="text-sm font-semibold mb-2" style={{ color: 'var(--ss-text)' }}>
+            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Agents ({totalAgents} total)
             </h4>
             <div className="space-y-2">
               {agentTypes.map((type) => (
                 <div
                   key={type.id}
-                  className="flex items-center justify-between text-sm p-2 rounded"
-                  style={{ background: 'var(--ss-page-surface-muted)' }}
+                  className="flex items-center justify-between text-sm p-2 bg-gray-50 dark:bg-gray-900/50 rounded"
                 >
-                  <span className="font-medium" style={{ color: 'var(--ss-heading)' }}>
+                  <span className="font-medium text-gray-900 dark:text-white">
                     {type.label}
                   </span>
-                  <span style={{ color: 'var(--ss-text-muted)' }}>
+                  <span className="text-gray-600 dark:text-gray-400">
                     {type.count} agent{type.count !== 1 ? 's' : ''}
                   </span>
                 </div>
               ))}
               {agentTypes.length === 0 && (
-                <p className="text-sm italic" style={{ color: 'var(--ss-text-subtle)' }}>
+                <p className="text-sm text-gray-500 dark:text-gray-500 italic">
                   No agents defined
                 </p>
               )}
@@ -139,10 +130,10 @@ export const ExperimentPreview: React.FC = () => {
           {/* Mechanic Configs */}
           {hasStrategic && mechanicConfigs.strategic_choice && (
             <div>
-              <h4 className="text-sm font-semibold mb-2" style={{ color: 'var(--ss-text)' }}>
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Strategic Choices
               </h4>
-              <div className="text-sm space-y-1" style={{ color: 'var(--ss-text-muted)' }}>
+              <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                 <p>Options: {mechanicConfigs.strategic_choice.strategies?.join(', ') || 'Not defined'}</p>
                 <p>Payoff Mode: {mechanicConfigs.strategic_choice.payoffMode || 'pairwise'}</p>
                 <p>Visibility: {mechanicConfigs.strategic_choice.payoffVisibility || 'private'}</p>
@@ -152,10 +143,10 @@ export const ExperimentPreview: React.FC = () => {
 
           {hasOpinion && mechanicConfigs.opinion && (
             <div>
-              <h4 className="text-sm font-semibold mb-2" style={{ color: 'var(--ss-text)' }}>
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Opinions & Influence
               </h4>
-              <div className="text-sm space-y-1" style={{ color: 'var(--ss-text-muted)' }}>
+              <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                 <p>Dimension: {mechanicConfigs.opinion.opinionDimensions?.[0]?.name || 'Not defined'}</p>
                 <p>Influence: {mechanicConfigs.opinion.influenceModel || 'bounded_confidence'}</p>
                 {mechanicConfigs.opinion.influenceModel === 'bounded_confidence' && (
@@ -167,10 +158,10 @@ export const ExperimentPreview: React.FC = () => {
 
           {hasNetwork && mechanicConfigs.network_dynamics && (
             <div>
-              <h4 className="text-sm font-semibold mb-2" style={{ color: 'var(--ss-text)' }}>
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Network Dynamics
               </h4>
-              <div className="text-sm space-y-1" style={{ color: 'var(--ss-text-muted)' }}>
+              <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                 <p>Spreads: {mechanicConfigs.network_dynamics.propagationType || 'opinion'}</p>
                 <p>Evolution: {mechanicConfigs.network_dynamics.evolutionModel || 'none'}</p>
               </div>
@@ -180,77 +171,62 @@ export const ExperimentPreview: React.FC = () => {
           {/* Structure Settings */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <h4 className="text-sm font-semibold mb-2" style={{ color: 'var(--ss-text)' }}>
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Network Structure
               </h4>
-              <p className="text-sm" style={{ color: 'var(--ss-text-muted)' }}>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 {NETWORK_LABELS[networkType] || networkType}
               </p>
             </div>
 
             <div>
-              <h4 className="text-sm font-semibold mb-2" style={{ color: 'var(--ss-text)' }}>
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Stopping Condition
               </h4>
-              <p className="text-sm" style={{ color: 'var(--ss-text-muted)' }}>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 {SUCCESS_LABELS[successCondition.type] || successCondition.type}
               </p>
               {successCondition.maxRounds && (
-                <p className="text-xs" style={{ color: 'var(--ss-text-subtle)' }}>
+                <p className="text-xs text-gray-500 dark:text-gray-500">
                   Max {successCondition.maxRounds} rounds
                 </p>
               )}
             </div>
 
             <div>
-              <h4 className="text-sm font-semibold mb-2" style={{ color: 'var(--ss-text)' }}>
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Turn Order
               </h4>
+<<<<<<< Updated upstream
               <p className="text-sm" style={{ color: 'var(--ss-text-muted)' }}>
-                {TURN_ORDER_LABELS[turnOrder] || turnOrder}
+=======
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+>>>>>>> Stashed changes
+                {TURN_ORDER_LABELS[turnOrder.type] || turnOrder.type}
               </p>
             </div>
 
             <div>
-              <h4 className="text-sm font-semibold mb-2" style={{ color: 'var(--ss-text)' }}>
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Inter-Round Update
               </h4>
-              <p className="text-sm" style={{ color: 'var(--ss-text-muted)' }}>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 {UPDATE_LABELS[interRoundUpdate.type] || interRoundUpdate.type}
               </p>
             </div>
           </div>
 
-          {selectedActions.length > 0 && (
+          {/* Metrics */}
+          {metrics.length > 0 && (
             <div>
               <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Available Actions
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {selectedActions.map((action) => (
-                  <span
-                    key={action.name}
-                    className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded text-sm"
-                  >
-                    {action.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Metrics */}
-          {selectedMetrics.length > 0 && (
-            <div>
-              <h4 className="text-sm font-semibold mb-2" style={{ color: 'var(--ss-text)' }}>
                 Metrics to Collect
               </h4>
               <div className="flex flex-wrap gap-2">
-                {selectedMetrics.map((metric) => (
+                {metrics.map((metric) => (
                   <span
                     key={metric}
-                    className="px-2 py-1 rounded text-sm"
-                    style={{ background: 'var(--ss-surface-strong)', color: 'var(--ss-text)' }}
+                    className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded text-sm"
                   >
                     {metric}
                   </span>

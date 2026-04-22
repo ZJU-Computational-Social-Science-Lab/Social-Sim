@@ -6,7 +6,7 @@ import zh from './locales/zh.json';
 import { enDesign, zhDesign } from './locales/design';
 ;(window as any).i18next = i18n;
 
-const STORAGE_KEY = 'socialsim4.lang';
+const STORAGE_KEY = 'fos.lang';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);

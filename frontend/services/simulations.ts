@@ -37,6 +37,31 @@ export async function resetSimulation(simulationId: string): Promise<void> {
   await apiClient.post(`/simulations/${simulationId}/reset`, {});
 }
 
+export interface SimulationSnapshotItem {
+  id: number;
+  label: string;
+  turns: number;
+  state: Record<string, any>;
+  created_at: string;
+}
+
+export async function listSimulationSnapshots(simulationId: string): Promise<SimulationSnapshotItem[]> {
+  const { data } = await apiClient.get(`/simulations/${simulationId}/snapshots`);
+  return data;
+}
+
+export async function createSimulationSnapshot(simulationId: string, label?: string): Promise<SimulationSnapshotItem> {
+  const { data } = await apiClient.post(`/simulations/${simulationId}/save`, { label: label || '' });
+  return data;
+}
+
+export async function resumeSimulationFromSnapshot(simulationId: string, snapshotId: number): Promise<any> {
+  const { data } = await apiClient.post(`/simulations/${simulationId}/resume`, null, {
+    params: { snapshot_id: snapshotId },
+  });
+  return data;
+}
+
 // Fetch a single simulation by id
 export async function getSimulation(simulationId: string): Promise<any> {
   const { data } = await apiClient.get(`/simulations/${encodeURIComponent(simulationId)}`);

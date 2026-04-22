@@ -63,7 +63,7 @@ export const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
         setAvailableProviders(providers);
       } catch (err) {
         console.error('Failed to fetch LLM providers:', err);
-        setProvidersError(t('components.agentPanel.providersLoadError'));
+        setProvidersError(t('components.agentPanel.providersLoadError', { defaultValue: '加载提供商失败' }));
       } finally {
         setProvidersLoading(false);
       }
@@ -264,31 +264,34 @@ export const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   };
 
   return (
-    <div className="border-b last:border-b-0" style={{ background: 'var(--ss-workspace-surface)' }}>
+    <div className="ss-agent-card border-b last:border-b-0" style={{ background: 'var(--ss-workspace-surface)' }}>
       {/* Collapsible Header — always visible, click to expand/collapse */}
       <div
-        className="flex items-center gap-3 p-3 cursor-pointer select-none"
+        className="flex items-start gap-4 px-4 py-4 cursor-pointer select-none"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <img
           src={agent.avatarUrl}
           alt={agent.name}
-          className="w-10 h-10 rounded-full border object-cover flex-shrink-0"
+          className="w-14 h-14 rounded-2xl border object-cover flex-shrink-0 shadow-sm"
           style={{ borderColor: 'var(--ss-workspace-border)' }}
         />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h4 className="font-bold truncate text-sm" style={{ color: 'var(--ss-workspace-heading)' }}>{agent.name}</h4>
-            <span className="inline-block px-2 py-0.5 text-[10px] rounded-full border" style={{ background: 'var(--ss-surface-inset)', color: 'var(--ss-workspace-text)', borderColor: 'var(--ss-workspace-border)' }}>
+          <div className="flex flex-wrap items-center gap-2">
+            <h4 className="max-w-full text-base font-bold leading-tight break-words" style={{ color: 'var(--ss-workspace-heading)' }}>{agent.name}</h4>
+            <span className="inline-flex max-w-full items-center px-2.5 py-1 text-[11px] rounded-full border whitespace-nowrap" style={{ background: 'var(--ss-surface-inset)', color: 'var(--ss-workspace-text)', borderColor: 'var(--ss-workspace-border)' }}>
               {agent.role}
             </span>
           </div>
-          <div className="flex items-center gap-1 mt-0.5">
-            <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border ${getModelBadgeStyle(agent.llmConfig?.provider || 'default').className}`} style={getModelBadgeStyle(agent.llmConfig?.provider || 'default').style}>
-              <Bot size={10} />
-              <span className="font-mono">{agent.llmConfig?.model || t('components.agentPanel.auto')}</span>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <span className={`inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] ${getModelBadgeStyle(agent.llmConfig?.provider || 'default').className}`} style={getModelBadgeStyle(agent.llmConfig?.provider || 'default').style}>
+              <Bot size={11} />
+              <span className="font-mono break-all">{agent.llmConfig?.model || t('components.agentPanel.auto')}</span>
             </span>
           </div>
+          <p className="mt-2 text-sm leading-6 line-clamp-2" style={{ color: 'var(--ss-workspace-muted)' }}>
+            {agent.profile || t('components.agentPanel.noProfile')}
+          </p>
         </div>
         <div className="ml-auto flex-shrink-0">
           {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -354,7 +357,7 @@ export const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
           {/* LLM Provider Dropdown (expanded only) */}
           <div className="mt-3 flex items-center gap-2">
             <span className="text-[10px] font-semibold uppercase" style={{ color: 'var(--ss-workspace-muted)' }}>
-              {t('components.agentPanel.changeLLM')}
+              {t('components.agentPanel.changeLLM', { defaultValue: '切换 LLM' })}
             </span>
             {providersLoading ? (
               <span className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--ss-workspace-muted)' }}>
@@ -370,13 +373,13 @@ export const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                     listProviders()
                       .then(setAvailableProviders)
                       .catch(() => {
-                        setProvidersError(t('components.agentPanel.providersLoadError'));
+                        setProvidersError(t('components.agentPanel.providersLoadError', { defaultValue: '加载提供商失败' }));
                       })
                       .finally(() => setProvidersLoading(false));
                   }}
                   className="hover:text-brand-500 p-1"
                   style={{ color: 'var(--ss-workspace-muted)' }}
-                  title={t('components.agentPanel.retry')}
+                  title={t('components.agentPanel.retry', { defaultValue: '重试' })}
                 >
                   <RefreshCw size={10} />
                 </button>

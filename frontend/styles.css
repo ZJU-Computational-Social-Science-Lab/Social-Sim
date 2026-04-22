@@ -1,3 +1,4 @@
+@import "./styles/llm-console.css";
 @import "./styles/system/tokens.css";
 @import "./styles/system/base.css";
 @import "./styles/system/primitives.css";
@@ -7,6 +8,7 @@
 @import "./styles/pages/auth.css";
 @import "./styles/pages/landing.css";
 @import "./styles/pages/product-pages.css";
+@import "./styles/pages/provider-management.css";
 @import "./styles/pages/archive.css";
 @import "./styles/pages/workbench.css";
 

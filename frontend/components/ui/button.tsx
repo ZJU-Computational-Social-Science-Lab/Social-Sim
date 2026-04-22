@@ -19,18 +19,23 @@ export const Button: React.FC<ButtonProps> = ({
   children,
   ...props
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
+  const baseClasses =
+    'inline-flex items-center justify-center gap-2 rounded-full font-medium tracking-[0.01em] transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
 
   const variantClasses = {
-    default: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
-    outline: 'border border-gray-300 dark:border-gray-700 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300',
-    ghost: 'bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300',
-    destructive: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+    default:
+      'bg-[var(--ss-brand-primary)] text-[var(--ss-brand-on)] shadow-[0_16px_40px_rgba(212,162,78,0.16)] hover:-translate-y-0.5 hover:brightness-110 focus:ring-[var(--ss-brand-primary)]',
+    outline:
+      'border border-[var(--ss-border)] bg-[var(--ss-surface)] text-[var(--ss-text)] hover:-translate-y-0.5 hover:border-[var(--ss-border-strong)] focus:ring-[var(--ss-border-strong)]',
+    ghost:
+      'bg-transparent text-[var(--ss-text-muted)] hover:bg-[var(--ss-surface-muted)] hover:text-[var(--ss-text)] focus:ring-[var(--ss-border)]',
+    destructive:
+      'bg-[var(--ss-danger)] text-white shadow-[0_14px_32px_rgba(196,96,90,0.18)] hover:-translate-y-0.5 hover:brightness-110 focus:ring-[var(--ss-danger)]',
   };
 
   const sizeClasses = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-sm',
+    sm: 'px-3.5 py-2 text-sm',
+    md: 'px-4.5 py-2.5 text-sm',
     lg: 'px-6 py-3 text-base',
   };
 

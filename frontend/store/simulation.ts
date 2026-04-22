@@ -19,12 +19,20 @@ import type {
   SimulationTemplate,
   Agent,
   EngineConfig,
+  EngineMode,
   SocialNetwork
 } from '../types';
 import { SYSTEM_TEMPLATES, generateNodes, mapGraphToNodes, DEFAULT_TIME_CONFIG, mapBackendEventsToLogs } from './helpers';
 import { getApiBase } from '../services/base';
 import i18n from '../i18n';
 import type { Provider } from '../services/providers';
+
+const ENGINE_MODE_STORAGE_KEY = 'socialsim4.engine-mode';
+
+const readInitialEngineMode = (): EngineMode => {
+  const stored = globalThis.localStorage?.getItem(ENGINE_MODE_STORAGE_KEY);
+  return stored === 'connected' ? 'connected' : 'standalone';
+};
 
 export interface SimulationSlice {
   // State
@@ -57,6 +65,7 @@ export interface SimulationSlice {
   deleteSimulation: () => Promise<void>;
   selectNode: (id: string) => void;
   updateSocialNetwork: (network: SocialNetwork) => Promise<void>;
+  setEngineMode: (mode: EngineMode) => void;
   loadSimulations: () => Promise<void>;
   loadSimulationById: (id: string) => Promise<void>;
 }
@@ -75,6 +84,7 @@ export const createSimulationSlice: StateCreator<
   savedTemplates: [...SYSTEM_TEMPLATES],
   timeConfig: DEFAULT_TIME_CONFIG,
   engineConfig: {
+    mode: readInitialEngineMode(),
     endpoint: getApiBase(),
     status: 'disconnected',
     token: import.meta.env?.VITE_API_TOKEN || undefined
@@ -82,6 +92,13 @@ export const createSimulationSlice: StateCreator<
 
   // Actions
   setSimulation: (sim) => set({ currentSimulation: sim }),
+
+  setEngineMode: (mode) => {
+    globalThis.localStorage?.setItem(ENGINE_MODE_STORAGE_KEY, mode);
+    set((state) => ({
+      engineConfig: { ...state.engineConfig, mode }
+    }));
+  },
 
   loadSimulations: async () => {
     try {

@@ -329,47 +329,45 @@ async def simulation_tree_advance_chain(
             steps = max(1, int(data.turns))
             last = parent
 
-            async with record._advance_lock:
-                for _ in range(steps):
-                    cid = tree.copy_sim(last)
-                    tree.attach(last, [{"op": "advance", "turns": 1}], cid)
-                    node = tree.nodes[cid]
-                    broadcast_tree_event(
-                        record,
-                        {
-                            "type": "attached",
-                            "data": {
-                                "node": int(cid),
-                                "parent": int(last),
-                                "depth": int(node["depth"]),
-                                "edge_type": node["edge_type"],
-                                "ops": node["ops"],
-                            },
+            for _ in range(steps):
+                cid = tree.copy_sim(last)
+                tree.attach(last, [{"op": "advance", "turns": 1}], cid)
+                node = tree.nodes[cid]
+                broadcast_tree_event(
+                    record,
+                    {
+                        "type": "attached",
+                        "data": {
+                            "node": int(cid),
+                            "parent": int(last),
+                            "depth": int(node["depth"]),
+                            "edge_type": node["edge_type"],
+                            "ops": node["ops"],
                         },
-                    )
-                    record.running.add(cid)
-                    broadcast_tree_event(record, {"type": "run_start", "data": {"node": int(cid)}})
-                    await asyncio.sleep(0)
+                    },
+                )
+                record.running.add(cid)
+                broadcast_tree_event(record, {"type": "run_start", "data": {"node": int(cid)}})
+                await asyncio.sleep(0)
 
-                    simulator = tree.nodes[cid]["sim"]
-                    total_turns = 1 * max(1, len(simulator.agents))
-                    logger.info(f"[ADVANCE_CHAIN] Running simulator for node {cid}, max_turns={total_turns}")
-                    try:
-                        await asyncio.to_thread(simulator.run, max_turns=total_turns)
-                        logger.info(f"[ADVANCE_CHAIN] Simulator run complete for node {cid}")
+                simulator = tree.nodes[cid]["sim"]
+                total_turns = 1 * max(1, len(simulator.agents))
+                logger.info(f"[ADVANCE_CHAIN] Running simulator for node {cid}, max_turns={total_turns}")
+                await asyncio.to_thread(simulator.run, max_turns=total_turns)
+                logger.info(f"[ADVANCE_CHAIN] Simulator run complete for node {cid}")
 
-                        from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
-                        if isinstance(simulator, ExperimentRunnerAdapter):
-                            new_events = len(simulator.events)
-                            node_logs = len(node.get('logs', []))
-                            logger.info(f"[ADVANCE_CHAIN] Adapter events count: {new_events}, node logs count: {node_logs}")
-                            if new_events == 0:
-                                logger.warning(f"[ADVANCE_CHAIN] Node {cid} produced ZERO events — simulation may have failed silently")
-                    finally:
-                        if cid in record.running:
-                            record.running.remove(cid)
-                        broadcast_tree_event(record, {"type": "run_finish", "data": {"node": int(cid)}})
-                    last = cid
+                from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
+                if isinstance(simulator, ExperimentRunnerAdapter):
+                    new_events = len(simulator.events)
+                    node_logs = len(node.get('logs', []))
+                    logger.info(f"[ADVANCE_CHAIN] Adapter events count: {new_events}, node logs count: {node_logs}")
+                    if new_events == 0:
+                        logger.warning(f"[ADVANCE_CHAIN] Node {cid} produced ZERO events — simulation may have failed silently")
+
+                if cid in record.running:
+                    record.running.remove(cid)
+                broadcast_tree_event(record, {"type": "run_finish", "data": {"node": int(cid)}})
+                last = cid
 
             try:
                 serialized = tree.serialize()

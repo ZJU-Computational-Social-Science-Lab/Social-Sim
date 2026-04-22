@@ -11,17 +11,230 @@ import { useExperimentBuilder } from '../store/experiment-builder';
 import { ExperimentBuilder } from './experiment/ExperimentBuilder';
 import { X } from 'lucide-react';
 import { useSimulationStore } from '../store';
+<<<<<<< Updated upstream
+import { NavBar } from './NavBar';
+import { useThemeStore } from '../store/theme';
+=======
+import { useThemeStore } from '../store/theme';
+import {
+  buildScenarioTitle,
+  getLocalizedScenarioDescription,
+  getLocalizedScenarioName,
+} from '../utils/scenarioLocalization';
+>>>>>>> Stashed changes
 
 interface ExperimentBuilderModalProps {
   isOpen?: boolean;
   onClose?: () => void;
   onComplete?: (config: unknown) => void;
+  presentation?: 'modal' | 'page';
+}
+
+export function launchExperimentFromBuilderState({
+  t,
+  addSimulation,
+  addNotification,
+}: {
+<<<<<<< Updated upstream
+  t: (key: string) => string;
+  addSimulation: (...args: any[]) => void;
+  addNotification: (...args: any[]) => void;
+}) {
+  const state = useExperimentBuilder.getState();
+  const scenarioName = state.selectedScenarioData?.name || t('experimentBuilder.newExperiment');
+  const scenarioDescription = state.scenarioDescription || '';
+
+  let name = scenarioName;
+  if (scenarioDescription) {
+    const maxDescLength = 30;
+    const description = scenarioDescription.length > maxDescLength
+      ? scenarioDescription.substring(0, maxDescLength) + '...'
+      : scenarioDescription;
+    name = `${scenarioName} - ${description}`;
+  }
+
+  const convertAgentToSimulationAgent = (agentType: any, index: number) => {
+=======
+  t: (key: string, options?: Record<string, unknown>) => string;
+  addSimulation: (...args: any[]) => void;
+  addNotification: ((type: string, message: string) => void) | undefined;
+}) {
+  const state = useExperimentBuilder.getState();
+  const localizedScenarioName = getLocalizedScenarioName(t, state.selectedScenarioData);
+  const localizedScenarioDescription = getLocalizedScenarioDescription(
+    t,
+    state.selectedScenarioData,
+  );
+
+  const scenarioName = localizedScenarioName || t('experimentBuilder.newExperiment');
+  const scenarioDescription = state.scenarioDescription || '';
+
+  const convertAgentToSimulationAgent = (agentType: any) => {
+>>>>>>> Stashed changes
+    const count = agentType.count || 1;
+    const props = agentType.properties || {};
+    const agents = [];
+
+    for (let i = 0; i < count; i++) {
+      const rolePrompt = agentType.rolePrompt?.trim() || null;
+      const userProfile = agentType.userProfile?.trim() || '';
+      const suffix = count > 1 ? ` ${i + 1}` : '';
+      const idSuffix = count > 1 ? `-${i}` : '';
+      const avatarUrl = props.avatarUrl as string ||
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(agentType.label || 'agent') + i}`;
+<<<<<<< Updated upstream
+      const providerId = agentType.providerId ?? state.selectedProviderId;
+      const selectedProvider = state.llmProviders.find((p) => p.id === providerId);
+=======
+
+      const providerId = agentType.providerId ?? state.selectedProviderId;
+      const selectedProvider = state.llmProviders.find((provider) => provider.id === providerId);
+>>>>>>> Stashed changes
+      const llmConfig = selectedProvider
+        ? {
+            provider: selectedProvider.provider,
+            model: selectedProvider.model || 'default',
+          }
+        : {
+            provider: 'backend',
+            model: 'default',
+          };
+
+      agents.push({
+        name: agentType.label + suffix,
+        id: agentType.id + idSuffix,
+        role: rolePrompt || '',
+        role_prompt: rolePrompt,
+        profile: userProfile || rolePrompt || '',
+        user_profile: userProfile || '',
+<<<<<<< Updated upstream
+        avatarUrl: avatarUrl,
+=======
+        avatarUrl,
+>>>>>>> Stashed changes
+        llm_config: llmConfig,
+        provider_id: providerId,
+        properties: {
+          ...props,
+<<<<<<< Updated upstream
+          avatarUrl: avatarUrl,
+=======
+          avatarUrl,
+>>>>>>> Stashed changes
+        },
+        history: {},
+        memory: [],
+        knowledgeBase: [],
+        score: 0,
+      });
+    }
+
+    return agents;
+  };
+
+  const customAgents = state.agentTypes.flatMap(convertAgentToSimulationAgent);
+  const allAvailableActions = state.availableActions || [];
+  const selectedActionObjects = allAvailableActions.filter(
+<<<<<<< Updated upstream
+    (a: any) => state.selectedActionIds.includes(a.name)
+=======
+    (action: any) => state.selectedActionIds.includes(action.name)
+>>>>>>> Stashed changes
+  );
+  const scenarioData = state.selectedScenarioData;
+  const resolvedDescription =
+    scenarioDescription && scenarioDescription.trim().length > 0
+      ? scenarioDescription
+<<<<<<< Updated upstream
+      : scenarioData?.description || t('experimentBuilder.customExperiment');
+
+  const genericConfig: any = {
+    description: resolvedDescription,
+    scenario_id: state.selectedScenarioId || 'custom',
+    actions: selectedActionObjects.map((a: any) => ({
+      name: a.name,
+      description: a.description || a.name,
+=======
+      : localizedScenarioDescription || t('experimentBuilder.customExperiment');
+
+  const name = buildScenarioTitle(scenarioName, resolvedDescription);
+  const genericConfig: any = {
+    description: resolvedDescription,
+    scenario_id: state.selectedScenarioId || 'custom',
+    actions: selectedActionObjects.map((action: any) => ({
+      name: action.name,
+      description: action.description || action.name,
+>>>>>>> Stashed changes
+    })),
+    parameters: state.scenarioParams || {},
+    round_visibility: state.roundVisibility || 'simultaneous',
+  };
+
+  const isPolicyCascade =
+    scenarioData?.id === 'policy_diffusion' ||
+    scenarioData?.id === 'policyDiffusion' ||
+    (scenarioData?.name || '').toLowerCase().includes('policy') ||
+    (scenarioData?.name || '').includes('政策');
+
+  const isNewArchitecture = scenarioData?.category === 'game_theory' ||
+<<<<<<< Updated upstream
+                           scenarioData?.category === 'discussion' ||
+                           scenarioData?.category === 'grid' ||
+                           scenarioData?.category === 'social_dynamics' ||
+                           scenarioData?.category === 'social_deduction' ||
+                           scenarioData?.category === 'spatial';
+=======
+    scenarioData?.category === 'discussion' ||
+    scenarioData?.category === 'grid' ||
+    scenarioData?.category === 'social_dynamics' ||
+    scenarioData?.category === 'social_deduction' ||
+    scenarioData?.category === 'spatial';
+>>>>>>> Stashed changes
+
+  addSimulation(
+    name,
+    {
+      id: 'experiment-template',
+<<<<<<< Updated upstream
+      name: name,
+=======
+      name,
+>>>>>>> Stashed changes
+      description: resolvedDescription,
+      category: (scenarioData?.category || 'custom') as const,
+      sceneType: isPolicyCascade ? 'policy_cascade_scene' : isNewArchitecture ? 'experiment' : 'generic',
+      agents: customAgents,
+      defaultTimeConfig: {
+        baseTime: new Date().toISOString(),
+        unit: 'hour' as const,
+        step: 1,
+      },
+<<<<<<< Updated upstream
+      genericConfig: genericConfig,
+      defaultNetwork: state.socialNetwork || {},
+    },
+    undefined,
+    undefined
+  );
+
+  addNotification('success', t('experimentBuilder.experimentCreated'));
+=======
+      genericConfig,
+      defaultNetwork: state.socialNetwork || {},
+    },
+    undefined,
+    undefined,
+  );
+
+  addNotification?.('success', t('experimentBuilder.experimentCreated'));
+>>>>>>> Stashed changes
 }
 
 export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
   isOpen,
   onClose,
   onComplete,
+  presentation = 'modal',
 }) => {
   const { t } = useTranslation();
 
@@ -30,6 +243,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
   const toggleWizard = useSimulationStore((state) => state.toggleWizard);
   const addSimulation = useSimulationStore((state) => state.addSimulation);
   const addNotification = useSimulationStore((state) => state.addNotification);
+  const themeMode = useThemeStore((state) => state.mode);
 
   // Use prop if explicitly provided, otherwise use store state
   const useExplicitState = isOpen !== undefined;
@@ -51,152 +265,11 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
   };
 
   const handleComplete = () => {
-    // Get experiment builder state
-    const state = useExperimentBuilder.getState();
-
-    // Create simulation name from scenario
-    const scenarioName = state.selectedScenarioData?.name || t('experimentBuilder.newExperiment');
-    const scenarioDescription = state.scenarioDescription || '';
-
-    // Build a descriptive name
-    let name = scenarioName;
-    if (scenarioDescription) {
-      // Truncate description if too long
-      const maxDescLength = 30;
-      const description = scenarioDescription.length > maxDescLength
-        ? scenarioDescription.substring(0, maxDescLength) + '...'
-        : scenarioDescription;
-      name = `${scenarioName} - ${description}`;
-    }
-
-    // Convert agent types to simulation agent format
-    const convertAgentToSimulationAgent = (agentType: any, index: number) => {
-      const count = agentType.count || 1;
-      const props = agentType.properties || {};
-      const agents = [];
-
-      for (let i = 0; i < count; i++) {
-        // Only use rolePrompt if explicitly provided - let backend handle identity from name
-        const rolePrompt = agentType.rolePrompt?.trim() || null;
-        const userProfile = agentType.userProfile?.trim() || '';
-
-        // Determine unique ID and name for each agent instance
-        const suffix = count > 1 ? ` ${i + 1}` : '';
-        const idSuffix = count > 1 ? `-${i}` : '';
-
-        // Use avatarUrl from properties if available, otherwise generate one
-        const avatarUrl = props.avatarUrl as string ||
-          `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(agentType.label || 'agent') + i}`;
-
-        // Get LLM config - use agent type's provider if set, otherwise use global selection
-        const providerId = agentType.providerId ?? state.selectedProviderId;
-        const selectedProvider = state.llmProviders.find((p) => p.id === providerId);
-        const llmConfig = selectedProvider
-          ? {
-              provider: selectedProvider.provider,
-              model: selectedProvider.model || 'default',
-            }
-          : {
-              provider: 'backend',
-              model: 'default',
-            };
-
-        agents.push({
-          name: agentType.label + suffix,
-          id: agentType.id + idSuffix,
-          role: rolePrompt || '',
-          role_prompt: rolePrompt,  // snake_case for backend
-          profile: userProfile || rolePrompt || '',  // backend expects 'profile' or 'user_profile'
-          user_profile: userProfile || '',  // snake_case for backend
-          avatarUrl: avatarUrl,
-          llmConfig: llmConfig,
-          provider_id: providerId,  // Track which provider this agent uses
-          properties: {
-            ...props,
-            avatarUrl: avatarUrl,  // Ensure avatarUrl is in properties
-          },
-          history: {},
-          memory: [],
-          knowledgeBase: [],
-          score: 0,  // Initialize score for agents that need it
-        });
-      }
-
-      return agents;
-    };
-
-    // Create custom agents array from agent types
-    const customAgents = state.agentTypes.flatMap(convertAgentToSimulationAgent);
-
-    // Build action list with full objects (including descriptions)
-    const allAvailableActions = state.availableActions || [];
-    const selectedActionObjects = allAvailableActions.filter(
-      (a: any) => state.selectedActionIds.includes(a.name)
-    );
-
-    // Get scenario for backend
-    const scenarioData = state.selectedScenarioData;
-
-    // Resolve description: prefer user-edited, otherwise scenario default, then generic fallback
-    const resolvedDescription =
-      scenarioDescription && scenarioDescription.trim().length > 0
-        ? scenarioDescription
-        : scenarioData?.description || t('experimentBuilder.customExperiment');
-
-    // Build generic config with full action objects and parameters
-    const genericConfig: any = {
-      description: resolvedDescription,
-      scenario_id: state.selectedScenarioId || 'custom',
-      actions: selectedActionObjects.map((a: any) => ({
-        name: a.name,
-        description: a.description || a.name,
-      })),
-      parameters: state.scenarioParams || {},
-      round_visibility: state.roundVisibility || 'simultaneous',
-    };
-
-    // Determine scene type: policy cascade uses dedicated scene, otherwise experiment/generic
-    const isPolicyCascade =
-      scenarioData?.id === 'policy_diffusion' ||
-      scenarioData?.id === 'policyDiffusion' ||
-      (scenarioData?.name || '').toLowerCase().includes('policy') ||
-      (scenarioData?.name || '').toLowerCase().includes('cascade');
-
-    // Determine if this uses the new Three-Layer Architecture
-    // (strategic_decisions or any scenario with structured actions)
-    const isNewArchitecture = scenarioData?.category === 'game_theory' ||
-                             scenarioData?.category === 'discussion' ||
-                             scenarioData?.category === 'grid' ||
-                             scenarioData?.category === 'social_dynamics' ||
-                             scenarioData?.category === 'social_deduction' ||
-                             scenarioData?.category === 'spatial';
-
-    addSimulation(
-      name,
-      {
-        id: 'experiment-template',
-        name: name,
-        description: resolvedDescription,
-        category: scenarioData ? 'system' : 'custom',
-        sceneType: isPolicyCascade ? 'policy_cascade_scene' : isNewArchitecture ? 'experiment' : 'generic',
-        agents: customAgents,
-        defaultTimeConfig: {
-          baseTime: new Date().toISOString(),
-          unit: 'hour' as const,
-          step: 1,
-        },
-        genericConfig: genericConfig,
-        defaultNetwork: state.socialNetwork || {},
-      },
-      undefined,
-      undefined
-    );
-
-    addNotification('success', t('experimentBuilder.experimentCreated'));
+    launchExperimentFromBuilderState({ t, addSimulation, addNotification });
 
     if (onComplete) {
       onComplete({});
-    } else {
+    } else if (presentation === 'modal') {
       handleClose();
     }
   };
@@ -206,28 +279,34 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
     return null;
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" style={{ background: 'var(--ss-overlay)' }}>
-      <div className="rounded-xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]" style={{ background: 'var(--ss-surface)', border: '1px solid var(--ss-border)', boxShadow: 'var(--ss-shadow-3)', color: 'var(--ss-text)' }}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--ss-border)' }}>
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--ss-heading)' }}>
-            {t('experimentBuilder.modalTitle')}
-          </h2>
-          <button
-            onClick={handleClose}
-            className="transition-colors"
-            style={{ color: 'var(--ss-text-subtle)' }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--ss-text)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--ss-text-subtle)'; }}
-            aria-label={t('experimentBuilder.close')}
-          >
-            <X size={20} />
-          </button>
+  if (presentation === 'page') {
+    return (
+      <div className={`ss-setup-page ${themeMode === 'dark' ? 'is-dark' : 'is-light'}`}>
+<<<<<<< Updated upstream
+        <NavBar variant="product" />
+=======
+>>>>>>> Stashed changes
+        <div className="ss-setup-page__viewport">
+          <ExperimentBuilder
+            onComplete={handleComplete}
+            onCancel={handleClose}
+          />
         </div>
+      </div>
+    );
+  }
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto">
+  return (
+    <div className="ss-setup-modal">
+      <div className="ss-setup-modal__dialog">
+        <button
+          onClick={handleClose}
+          className="ss-setup-modal__close"
+          aria-label={t('experimentBuilder.close')}
+        >
+          <X size={18} />
+        </button>
+        <div className="ss-setup-modal__body">
           <ExperimentBuilder
             onComplete={handleComplete}
             onCancel={handleClose}

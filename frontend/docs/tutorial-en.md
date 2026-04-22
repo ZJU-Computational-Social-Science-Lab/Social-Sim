@@ -230,7 +230,7 @@ Build a global knowledge base, import documents and text knowledge for real-time
 
 1. When creating a new simulation during scene configuration, or after starting a simulation, click "Global Knowledge Base" at the top to enter the settings page;
 
-![Tutorial Screenshot](/uploads/extracted-doc-images/tutorial-img-11.png)
+![Tutorial Screenshot - Global Knowledge Base Entry](/tutorial/06-host-panel.png)
 
 2. Import content through two methods: "Upload Documents" or "Add Text Knowledge";
 3. During the simulation, you can supplement or modify knowledge base content in real-time without restarting the simulation.

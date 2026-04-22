@@ -52,9 +52,25 @@ export function DashboardPage() {
 
   const formatDate = (value: string) => new Date(value).toLocaleString();
 
+  const getSceneName = (scene: { type: string; name: string }) =>
+    t(`dashboardDesk.sceneTypes.${scene.type}.name`, {
+      defaultValue: scene.name,
+    });
+
+  const getSceneDescription = (scene: { type: string; description?: string }) =>
+    t(`dashboardDesk.sceneTypes.${scene.type}.description`, {
+      defaultValue: scene.description || t("dashboardDesk.scenarioEntryHint"),
+    });
+
   const formatSceneName = (simulation: any) => {
     const matched = (scenesQuery.data ?? []).find((scene) => scene.type === simulation.scene_type);
-    return matched?.name ?? simulation.scene_type;
+    if (matched) {
+      return getSceneName(matched);
+    }
+
+    return t(`dashboardDesk.sceneTypes.${simulation.scene_type}.name`, {
+      defaultValue: simulation.scene_type,
+    });
   };
 
   return (
@@ -106,21 +122,44 @@ export function DashboardPage() {
                     <Orbit className="ss-dashboard-page__section-icon" size={20} />
                   </div>
 
-                  <div className="ss-dashboard-page__action-grid">
+                  <div className="ss-dashboard-page__quick-grid">
                     {[
-                      { icon: FlaskConical, label: t("dashboardDesk.recommendationNew"), to: "/simulations/new" },
-                      { icon: Radar, label: t("dashboardDesk.recommendationScenes"), to: "/simulations/new" },
-                      { icon: Orbit, label: t("dashboardDesk.recommendationNetwork"), to: "/simulations/new" },
-                      { icon: Sparkles, label: t("dashboardDesk.recommendationAnalyze"), to: "/simulations/saved" },
+                      {
+                        icon: FlaskConical,
+                        label: t("dashboardDesk.recommendationNew"),
+                        hint: t("dashboardDesk.newExperimentHint"),
+                        to: "/simulations/new",
+                      },
+                      {
+                        icon: Radar,
+                        label: t("dashboardDesk.recommendationScenes"),
+                        hint: t("dashboardDesk.sceneLibraryHint"),
+                        to: "/simulations/new",
+                      },
+                      {
+                        icon: Orbit,
+                        label: t("dashboardDesk.recommendationNetwork"),
+                        hint: t("dashboardDesk.networkHint"),
+                        to: "/simulations/new",
+                      },
+                      {
+                        icon: Sparkles,
+                        label: t("dashboardDesk.recommendationAnalyze"),
+                        hint: t("dashboardDesk.analyzeHint"),
+                        to: "/simulations/saved",
+                      },
                     ].map((item) => {
                       const Icon = item.icon;
                       return (
-                        <Link key={item.label} to={item.to} className="ss-dashboard-page__action-card">
-                          <div className="flex items-center gap-3">
-                            <span className="ss-dashboard-page__icon-badge">
-                              <Icon size={14} />
-                            </span>
-                            <span className="ss-dashboard-page__item-title">{item.label}</span>
+                        <Link key={item.label} to={item.to} className="ss-dashboard-page__quick-card">
+                          <div className="ss-dashboard-page__quick-card-copy">
+                            <div className="flex items-center gap-3">
+                              <span className="ss-dashboard-page__icon-badge">
+                                <Icon size={14} />
+                              </span>
+                              <span className="ss-dashboard-page__item-title">{item.label}</span>
+                            </div>
+                            <p className="ss-dashboard-page__quick-card-hint">{item.hint}</p>
                           </div>
                           <ArrowRight size={16} className="ss-dashboard-page__item-arrow" />
                         </Link>
@@ -146,9 +185,9 @@ export function DashboardPage() {
                     {scenePreview.map((scene) => (
                       <Link key={scene.type} to="/simulations/new" className="ss-dashboard-page__scene-card">
                         <div className="space-y-2">
-                          <div className="lab-label">{scene.name}</div>
-                          <div className="ss-dashboard-page__scene-title">{scene.name}</div>
-                          <p className="lab-meta">{scene.description || t("dashboardDesk.scenarioEntryHint")}</p>
+                          <div className="lab-label">{getSceneName(scene)}</div>
+                          <div className="ss-dashboard-page__scene-title">{getSceneName(scene)}</div>
+                          <p className="lab-meta">{getSceneDescription(scene)}</p>
                         </div>
                         <div className="ss-dashboard-page__meta-row">
                           <span>{t("common.actions")}: {(scene.allowed_actions ?? scene.basic_actions ?? []).length}</span>

@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSimulationStore, fetchEnvironmentSuggestions } from '../store';
-import { applyEnvironmentEvent } from '../services/environmentSuggestions';
+import { useSimulationStore } from '../store';
+import { applyEnvironmentEvent, generateSuggestions, type EnvironmentSuggestion } from '../services/environmentSuggestions';
 import { Megaphone, CloudLightning, Edit, Save, Sparkles, Loader2, Check, FilePlus } from 'lucide-react';
 import { MultimodalInput } from './MultimodalInput';
 import { InitialEventsModal } from './InitialEventsModal';
@@ -10,7 +10,6 @@ import { InitialEventsModal } from './InitialEventsModal';
 export const HostPanel: React.FC = () => {
    const { t } = useTranslation();
   const agents = useSimulationStore(state => state.agents);
-  const logs = useSimulationStore(state => state.logs);
   const currentSimulation = useSimulationStore(state => state.currentSimulation);
   const selectedNodeId = useSimulationStore(state => state.selectedNodeId);
   const injectLog = useSimulationStore(state => state.injectLog);
@@ -29,7 +28,7 @@ export const HostPanel: React.FC = () => {
   const [propValue, setPropValue] = useState('');
 
   // #12 Environment Suggestions
-  const [suggestions, setSuggestions] = useState<Array<{event: string, reason: string}>>([]);
+  const [suggestions, setSuggestions] = useState<EnvironmentSuggestion[]>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
 
   const formatBroadcastLog = (description: string) => {
@@ -95,10 +94,15 @@ export const HostPanel: React.FC = () => {
   };
 
   const handleGetSuggestions = async () => {
+    if (!currentSimulation?.id) {
+      addNotification('error', t('components.hostPanel.fetchSuggestionsFailed'));
+      return;
+    }
+
     setIsSuggesting(true);
     try {
-      const results = await fetchEnvironmentSuggestions(logs, agents);
-      setSuggestions(results);
+      const result = await generateSuggestions(currentSimulation.id, selectedNodeId);
+      setSuggestions(result.suggestions || []);
     } catch (e) {
       addNotification('error', t('components.hostPanel.fetchSuggestionsFailed'));
     } finally {
@@ -106,10 +110,10 @@ export const HostPanel: React.FC = () => {
     }
   };
 
-  const handleAdoptSuggestion = (eventText: string) => {
-    handleEnvEvent(eventText);
+  const handleAdoptSuggestion = (suggestion: EnvironmentSuggestion) => {
+    void handleEnvEvent(suggestion.description);
     // Remove from list
-    setSuggestions(prev => prev.filter(s => s.event !== eventText));
+    setSuggestions(prev => prev.filter(s => s.description !== suggestion.description));
     addNotification('success', t('components.hostPanel.suggestionAdopted'));
   };
 
@@ -154,10 +158,12 @@ export const HostPanel: React.FC = () => {
             <div className="space-y-2">
               {suggestions.map((s, i) => (
                 <div key={i} className="p-2 rounded border border-indigo-100 text-xs shadow-sm group" style={{ background: 'var(--ss-workspace-surface)' }}>
-                  <p className="font-bold mb-1" style={{ color: 'var(--ss-workspace-heading)' }}>{s.event}</p>
-                  <p className="text-[10px] mb-2" style={{ color: 'var(--ss-workspace-muted)' }}>{s.reason}</p>
+                  <p className="font-bold mb-1" style={{ color: 'var(--ss-workspace-heading)' }}>{s.description}</p>
+                  <p className="text-[10px] mb-2 uppercase tracking-[0.12em]" style={{ color: 'var(--ss-workspace-muted)' }}>
+                    {s.event_type} · {s.severity}
+                  </p>
                   <button
-                    onClick={() => handleAdoptSuggestion(s.event)}
+                    onClick={() => handleAdoptSuggestion(s)}
                     className="w-full py-1 bg-indigo-50 text-indigo-600 font-bold rounded hover:bg-indigo-100 flex items-center justify-center gap-1 opacity-80 hover:opacity-100"
                   >
                     <Check size={12} /> {t('components.hostPanel.adoptEvent')}

@@ -9,14 +9,19 @@
     "cancel": "取消",
     "next": "下一步",
     "back": "返回",
-    "previous": "上一页",
-    "agents": "智能体",
-    "providers": "提供商"
+    "previous": "上一页"
   },
-  "brand": "Future of Society",
+  "brand": "FOS",
   "nav": {
     "dashboard": "仪表盘",
+<<<<<<< Updated upstream
+    "create": "新建实验",
+    "workbench": "实验台",
+    "new": "实验台",
+=======
     "new": "新建",
+    "workspace": "实验台",
+>>>>>>> Stashed changes
     "saved": "已保存",
     "settings": "设置",
     "docs": "文档",
@@ -27,11 +32,11 @@
   },
   "landing": {
     "hero": {
-      "badge": "FOS",
-      "line1": "Future of Society",
-      "line2": "",
-      "accent": "社会系统模拟平台",
-      "sub": "面向研究、推演与决策验证的社会系统模拟平台，\n通过分支、观测与干预理解复杂系统如何演化。",
+      "badge": "社会系统实验室 Social Systems Laboratory",
+      "line1": "以精密模拟架构",
+      "line2": "社会逻辑",
+      "accent": "构建社会逻辑",
+      "sub": "为研究者、政策制定者与社会科学家打造的跨领域模拟平台。通过分支、观测与干预，洞察复杂系统的深层演化规律。",
       "primaryCta": "进入实验室",
       "secondaryCta": "阅读方法论",
       "tag1": "高保真模拟",
@@ -175,16 +180,10 @@
       "sociology": "社会学",
       "custom": "自定义"
     },
-    "social_dynamics": {
-      "xihu_yilianbao": {
-        "name": "西湖益联保参保扩散",
-        "description": "模拟符合条件的居民接收 A0-A8 不同信息干预后，如何在官方背书、信息复杂度、家庭医疗负担、竞品负面信息与邻里讨论影响下做出参保决策。"
-      }
-    },
     "sociology": {
       "social_norm_disruption": {
         "name": "社会规范破坏",
-        "description": "一项新规则突然强加给群体。具有不同社会地位和性格的智能体必须决定如何应对。"
+        "description": "一项新规则突然强加给群体。具有不同社会地位和性格的代理人必须决定如何应对。"
       },
       "policy_erosion": {
         "name": "政策意义侵蚀",
@@ -192,11 +191,11 @@
       },
       "echo_chamber": {
         "name": "回声室",
-        "description": "智能体持有从强烈进步到强烈保守的观点。观察观点漂移和信息茧房。"
+        "description": "代理人持有从强烈进步到强烈保守的观点。观察观点漂移和信息茧房。"
       },
       "resource_scarcity": {
         "name": "资源稀缺",
-        "description": "灾后社区面临资源稀缺。智能体决定是分享、交易还是为了个人利益而背叛。"
+        "description": "灾后社区面临资源稀缺。代理人决定是分享、交易还是为了个人利益而背叛。"
       }
     },
     "game_theory": {
@@ -214,7 +213,7 @@
       },
       "public_goods": {
         "name": "公共品博弈",
-        "description": "每个智能体都有资源，并决定向共享池贡献多少。共享池会倍增并平均分配给所有智能体，无论贡献多少。"
+        "description": "每个代理都有资源，并决定向共享池贡献多少。共享池会倍增并平均分配给所有代理，无论贡献多少。"
       },
       "coordination_game": {
         "name": "协调博弈",
@@ -224,21 +223,21 @@
     "discussion": {
       "open_discussion": {
         "name": "自由讨论",
-        "description": "智能体自由讨论一个话题。没有结构化的决策——只是对话。"
+        "description": "代理自由讨论一个话题。没有结构化的决策——只是对话。"
       },
       "council_chamber": {
         "name": "议事厅",
-        "description": "带有投票和程序规则的正式审议。智能体辩论提案、发起投票并做出集体决策。"
+        "description": "带有投票和程序规则的正式审议。参与者辩论提案、发起投票并做出集体决策。"
       }
     },
     "spatial": {
       "grid_world": {
         "name": "网格世界",
-        "description": "智能体在网格上移动，收集资源并观察环境。"
+        "description": "代理在网格上移动，收集资源并观察环境。"
       },
       "contagion": {
         "name": "传染扩散",
-        "description": "网格上的智能体可以通过邻近和社交互动传播传染病。观察感染如何在人群中扩散，同时智能体在移动和交流。"
+        "description": "网格上的代理可以通过邻近和社交互动传播传染病。观察感染如何在人群中扩散，同时代理在移动和交流。"
       }
     },
     "social_deduction": {
@@ -505,7 +504,7 @@
       "startGeneration": "开始生成",
       "demographics": "人口统计维度",
       "addDimension": "添加维度",
-      "dimensionNamePlaceholder": "维度名称（如：年龄）",
+      "dimensionNamePlaceholder": "维度名称 (如: Age)",
       "categoriesLabel": "类别 (用逗号分隔):",
       "addCategory": "添加类别",
       "archetypes": "生成的原型：{{count}}",
@@ -622,7 +621,7 @@
     },
     "actions": {
       "chooseAction": "选择{{action}}",
-      "send_message": "向所有智能体发送消息",
+      "send_message": "向所有参与者发送消息",
       "talk_to": "与附近的人交谈",
       "speak": "发言",
       "yield": "结束本轮发言",
@@ -701,11 +700,11 @@
   },
   "auth": {
     "layout": {
-      "badge": "Future of Society",
-      "line1": "欢迎来到",
-      "line2": "Future of Society",
+      "badge": "社会系统实验室 Social Systems Laboratory",
+      "line1": "继续进入",
+      "line2": "研究工作台",
       "accent": "Branch, observe, and intervene",
-      "copy": "登录后恢复你的研究上下文，在 Future of Society 中继续记录、分支、观测与干预。",
+      "copy": "回到你的研究工作台，在既有场景与实验路径上继续配置、分支、观测与干预社会模拟。",
       "tag1": "配置场景",
       "tag2": "分支推演",
       "tag3": "角色观测",
@@ -719,9 +718,9 @@
       "note": "登录只会恢复你的研究工作区上下文，不会覆盖已有实验结果。"
     },
     "login": {
-      "badge": "欢迎登录",
-      "welcome": "登录",
-      "subtitle": "输入邮箱和密码，进入 Future of Society。",
+      "badge": "继续进入研究工作台",
+      "welcome": "欢迎回来",
+      "subtitle": "输入你的凭据后，即可继续进入社会系统实验室，在当前研究工作区中继续分支、观测与干预。",
       "email": "邮箱",
       "emailPlaceholder": "输入机构邮箱",
       "password": "密码",
@@ -735,30 +734,32 @@
       "help": "实验室支持",
       "credentialCheck": "延续当前研究工作区身份",
       "workspaceBound": "继续进入已有实验路径与观测上下文",
-      "footerLeft": "Future of Society",
-      "footerRight": "FOS · 分支 · 观测 · 干预"
+      "footerLeft": "社会系统实验室",
+      "footerRight": "分支 · 观测 · 干预"
     },
     "register": {
       "badge": "创建研究工作区",
       "title": "创建你的工作空间",
-      "subtitle": "完成工作区身份与操作者信息配置后，即可进入 Future of Society 并开始新的研究路径。",
+      "subtitle": "完成工作区身份与操作者信息配置后，即可进入社会系统实验室并开始新的研究路径。",
       "organization": "组织",
       "email": "邮箱",
       "emailPlaceholder": "输入机构邮箱",
       "username": "用户名",
       "fullName": "姓名",
       "phone": "手机号",
-      "phonePlaceholder": "输入手机号",
+      "countryCode": "区号",
+      "phonePlaceholder": "请输入手机号",
+      "phoneHint": "先选择区号（默认 +86），再输入手机号数字即可。开头的 0 会自动去掉。",
       "password": "密码",
       "passwordPlaceholder": "设置访问密码",
       "submit": "创建账户",
       "success": "注册成功，请查收邮件。",
       "failed": "注册失败",
-      "invalidPhone": "手机号格式不正确，请使用国际格式，如 +8613712345678（8–15 位数字）",
-      "invalidPhoneTitle": "使用国际格式：+国家码+号码（8–15 位数字）",
+      "invalidPhone": "手机号格式不正确。请选择区号后输入 8–15 位手机号数字。",
+      "invalidPhoneTitle": "选择区号后输入手机号数字，系统会自动拼成国际格式。",
       "have": "已经注册？",
       "signin": "去登录",
-      "footerLeft": "Future of Society",
+      "footerLeft": "社会系统实验室",
       "footerRight": "配置 · 分支 · 观测"
     }
   },
@@ -945,7 +946,7 @@
       "execute": "{agent_name} 退出接触"
     },
     "share_resources": {
-      "description": "将部分资源给另一个智能体",
+      "description": "将部分资源给另一个代理",
       "execute": "{agent_name} 分享了资源"
     },
     "hoard": {
@@ -975,9 +976,7 @@
     "engineStandalone": "独立模式",
     "newSimulation": "新建仿真",
     "connectedTo": "已连接到 {{endpoint}}",
-    "runningBrowserStandalone": "在浏览器中运行 (Gemini 独立模式)",
     "socialSim4Engine": "FOS 引擎",
-    "standaloneMode": "独立模式",
     "networkTopology": "社交网络拓扑",
     "globalKnowledge": "全局知识库",
     "timeSettings": "调整时间流速",
@@ -985,17 +984,6 @@
     "nodeId": "节点 {{id}}",
     "advance": "推进节点",
     "advancing": "推演中…",
-    "autoAdvance": "自动推进",
-    "autoAdvanceStopped": "自动推进停止于第 {{current}} 步（共 {{total}} 步）",
-    "autoAdvanceError": "自动推进错误：{{error}}",
-    "autoAdvanceComplete": "自动推进完成 {{count}} 步",
-    "advancingProgress": "{{current}} / {{total}}",
-    "stop": "停止",
-    "enterSteps": "步数",
-    "tabs": {
-      "timeline": "时间轴",
-      "agents": "智能体"
-    },
     "branch": "创建分支",
     "designExperiment": "设计对照实验",
     "compareMode": "对比模式 (Diff)",
@@ -1030,12 +1018,24 @@
     "resetSuccess": "仿真已重置",
     "resetFail": "重置仿真失败",
     "deleteSuccess": "仿真已删除",
-    "deleteFail": "删除仿真失败"
+    "deleteFail": "删除仿真失败",
+    "autoAdvance": "自动推进",
+    "stop": "停止",
+    "enterSteps": "输入步数",
+    "advancingProgress": "第 {{current}} 步，共 {{total}} 步",
+    "tabs": {
+      "timeline": "时间线",
+      "agents": "智能体"
+    }
   },
   "components": {
     "agentPanel": {
       "modelTooltip": "模型：",
       "auto": "自动",
+      "searchPlaceholder": "搜索智能体、角色或模型…",
+      "changeLLM": "切换 LLM",
+      "providersLoadError": "加载提供商失败",
+      "retry": "重试",
       "noSimulationId": "无模拟 ID",
       "fileTooLarge": "文件过大。最大大小：10MB",
       "uploadFailed": "上传失败",
@@ -1054,6 +1054,7 @@
       "noCustomAttributes": "无自定义属性",
       "knowledgeBase": "知识库 (RAG)",
       "noKnowledgeDocs": "暂无知识库文档",
+      "searchPlaceholder": "搜索代理人...",
       "save": "保存",
       "addKnowledge": "添加知识条目",
       "documentKnowledgeBase": "文档知识库",
@@ -1073,6 +1074,8 @@
       "selectBaselineNode": "请选择基准节点",
       "selectCompareNode": "请在仿真树中选择第二个节点进行对比。",
       "selectCompareNodeHint": "点击树状图中的节点即可设定为对比对象 (B)。",
+      "activeTitle": "分支对比模式已开启",
+      "activeHint": "当前视图只展示两个节点之间的变化证据；如果没有做干预，差异通常会集中在事件文本而不是属性。",
       "baseline": "基准 (A)",
       "compare": "对比 (B)",
       "smartSummary": "智能因果推断",
@@ -1084,8 +1087,21 @@
       "generateAnalysisReport": "生成分析报告",
       "nodeAEvents": "节点 A 独有事件",
       "nodeBEvents": "节点 B 独有事件",
+<<<<<<< Updated upstream
+      "agentDiffs": "差异摘要与代理属性差异",
+      "noAgentDiffs": "未检测到代理属性差异",
+=======
+      "agentDiffFields": "属性变化字段",
+      "eventTypes": "变化事件类型",
+      "keyDivergence": "关键分歧",
+      "keyDivergenceHint": "优先展示两边最早出现的独有事件",
+      "noUniqueEvents": "暂无独有事件",
+      "noVisibleDiffSummary": "两个节点的日志和智能体属性目前几乎一致。要看到更明显的对比，可以从同一基准创建两个分支并施加不同干预。",
+      "eventOnlyDiffSummary": "目前主要差异在事件内容：A 有 {{left}} 条独有事件，B 有 {{right}} 条独有事件；智能体属性没有发生可检测变化。",
+      "eventAndAgentDiffSummary": "两条路径已经出现可见分歧：A 有 {{left}} 条独有事件，B 有 {{right}} 条独有事件，{{agents}} 个智能体共有 {{fields}} 个属性字段不同。",
       "agentDiffs": "差异摘要与智能体属性差异",
       "noAgentDiffs": "未检测到智能体属性差异",
+>>>>>>> Stashed changes
       "dataSourceNote": "数据来自后端对比结果；AI 摘要仅基于上方展示的证据"
     },
     "demographicsBuilder": {
@@ -1096,17 +1112,11 @@
       "suggestionsTitle": "环境事件建议",
       "suggestionsDescription": "基于最近的模拟活动，以下是可能发生的环境事件：",
       "generating": "正在生成建议...",
-      "createConfiguration": "环境配置",
-      "suggestionsTab": "系统建议",
-      "customTab": "环境配置",
       "eventType": {
         "weather": "天气",
         "emergency": "紧急情况",
         "notification": "通知",
-        "opinion": "公众舆论",
-        "accident": "事故",
-        "social": "社会事件",
-        "other": "其他"
+        "opinion": "公众舆论"
       },
       "severity": {
         "mild": "轻微",
@@ -1125,44 +1135,18 @@
       "disableDynamicEvents": "禁用动态环境事件",
       "enableDynamicEvents": "启用动态环境事件"
     },
-    "environmentConfiguration": {
-      "configMode": "配置模式",
-      "globalMode": "全局配置",
-      "agentMode": "单个Agent配置",
-      "selectAgent": "选择Agent",
-      "chooseAgent": "请选择一个Agent",
-      "eventType": "事件类型",
-      "severity": "严重程度",
-      "description": "描述",
-      "descriptionPlaceholder": "详细描述发生的环境事件...",
-      "multimodal": "多模态内容",
-      "addImage": "添加图片",
-      "imageUploaded": "图片已上传",
-      "imageAdded": "已添加图片",
-      "addAudio": "添加音频",
-      "audioUploaded": "音频已上传",
-      "audioAdded": "已添加音频",
-      "uploading": "上传中...",
-      "receivers": "事件接收者",
-      "receiversHint": "选择要接收此事件的智能体（留空表示广播给所有人）",
-      "noticeOnly": "仅通知模式（不触发系统广播）",
-      "noticeOnlyHint": "启用此选项后，智能体将收到通知但不会触发系统级事件响应",
-      "contentRequired": "请至少输入描述、上传图片或音频",
-      "emptyEvent": "事件内容不能为空",
-      "noSimulation": "无可用的模拟",
-      "selectAgent": "请选择一个Agent",
-      "createConfig": "创建配置",
-      "creating": "创建中...",
-      "configCreated": "环境配置已创建并应用",
-      "creationError": "配置创建失败",
-      "uploadError": "媒体上传失败"
+    "experimentDesignModal": {
+      "interventionPlaceholder": "描述具体的干预内容..."
+    },
+    "experimentDesignModal": {
+      "interventionPlaceholder": "描述具体的干预内容..."
     },
     "exportModal": {
       "confirmExport": "确认导出"
     },
     "globalKnowledgePanel": {
       "title": "全局知识库",
-      "subtitle": "所有智能体共享的知识",
+      "subtitle": "所有代理共享的知识",
       "noSimulationId": "无模拟 ID",
       "fileTooLarge": "文件过大。最大大小：10MB",
       "uploadFailed": "上传失败",
@@ -1196,7 +1180,24 @@
       "openExport": "打开导出面板",
       "openAnalytics": "查看统计分析",
       "openHost": "前往主持控制台",
+      "openReport": "生成分析报告",
+      "openKnowledge": "打开全局知识库",
+      "openMultimodal": "打开多模态导入",
+      "openEnvironment": "生成环境事件建议",
       "executeAction": "执行操作",
+      "starterKicker": "收尾与高级配置",
+      "starterTitle": "从这里接回报告、拓扑、知识库和多模态能力",
+      "starterBody": "实验跑到一定阶段后，先生成报告总结关键转折点，再用高级配置继续做分支、对照和环境干预。",
+      "reportGuideTitle": "生成分析报告",
+      "reportGuideBody": "概括发生了什么、关键节点、智能体模式，以及下一步值得调整的变量。",
+      "networkGuideTitle": "社交网络拓扑",
+      "networkGuideBody": "设置谁能影响谁，用环形、星形或自定义连接控制信息传播路径。",
+      "knowledgeGuideTitle": "全局知识库",
+      "knowledgeGuideBody": "导入文本或文档，让智能体行动前调用平台知识，形成差异化储备。",
+      "multimodalGuideTitle": "多模态导入",
+      "multimodalGuideBody": "把地图、街景、现场图像或视频链接注入为会影响行为的初始事件。",
+      "environmentGuideTitle": "环境事件建议",
+      "environmentGuideBody": "让平台根据当前局势推荐外部扰动，用于继续推进或创建干预分支。",
       "placeholder": "你想了解什么功能...",
       "disclaimer": "AI 可能会犯错。请核对重要信息。"
     },
@@ -1223,107 +1224,44 @@
       "confirmExport": "确认导出"
     },
     "guidePrompt": {
-      "systemPrompt": "你是「Future of Society」社会模拟平台的专家指引助手。\n     你的目标是帮助用户设计实验并导航平台功能。\n     \n     平台功能地图:\n     1. **新建仿真**: 'SimulationWizard' (从村庄/议会/狼人杀等模板创建仿真，导入智能体，AI 生成智能体)。\n     2. **社交网络**: 'NetworkEditor' (定义环形/星形/小世界等拓扑结构以控制信息传播)。\n     3. **实验设计**: 'ExperimentDesigner' (因果推断，A/B 测试，并行分支，对照组)。\n     4. **主持控制**: 'HostPanel' (上帝模式，广播消息，注入环境事件，修改智能体属性)。\n     5. **统计分析**: 'AnalyticsPanel' (智能体属性如信任度/压力随时间变化的折线图)。\n     6. **导出**: 'ExportModal' (以 JSON/CSV/Excel 格式下载日志)。\n     7. **分析报告**: 'ReportModal' (AI 生成的分析报告)。\n     8. **仿真树**: 主要可视化界面。支持『分支』(创建并行时间线)和『推进』(下一回合)。\n     9. **对比**: 'ComparisonView' (对比两个节点/时间线)。\n\n     指引说明:\n     - 分析用户的意图。\n     - 提供简洁的、循序渐进的指南，将用户的目标映射到具体的平台工具。\n     - 如果用户需要打开特定工具，请在回复末尾附加标签，格式为: [[ACTION_NAME]]。\n     - 支持的标签: [[OPEN_WIZARD]], [[OPEN_NETWORK]], [[OPEN_EXPERIMENT]], [[OPEN_EXPORT]], [[OPEN_ANALYTICS]], [[OPEN_HOST]]。\n     - 可以包含多个相关标签，但优先考虑最重要的一个。\n     - 使用 Markdown 格式进行排版。",
+<<<<<<< Updated upstream
+      "systemPrompt": "你是「FOS」社会模拟平台的专家指引助手。\n     你的目标是帮助用户设计实验并导航平台功能。\n     \n     平台功能地图:\n     1. **新建仿真**: 'SimulationWizard' (从村庄/议会/狼人杀等模板创建仿真，导入智能体，AI 生成智能体)。\n     2. **社交网络**: 'NetworkEditor' (定义环形/星形/小世界等拓扑结构以控制信息传播)。\n     3. **实验设计**: 'ExperimentDesigner' (因果推断，A/B 测试，并行分支，对照组)。\n     4. **主持控制**: 'HostPanel' (上帝模式，广播消息，注入环境事件，修改智能体属性)。\n     5. **统计分析**: 'AnalyticsPanel' (智能体属性如信任度/压力随时间变化的折线图)。\n     6. **导出**: 'ExportModal' (以 JSON/CSV/Excel 格式下载日志)。\n     7. **分析报告**: 'ReportModal' (AI 生成的分析报告)。\n     8. **仿真树**: 主要可视化界面。支持『分支』(创建并行时间线)和『推进』(下一回合)。\n     9. **对比**: 'ComparisonView' (对比两个节点/时间线)。\n\n     指引说明:\n     - 分析用户的意图。\n     - 提供简洁的、循序渐进的指南，将用户的目标映射到具体的平台工具。\n     - 如果用户需要打开特定工具，请在回复末尾附加标签，格式为: [[ACTION_NAME]]。\n     - 支持的标签: [[OPEN_WIZARD]], [[OPEN_NETWORK]], [[OPEN_EXPERIMENT]], [[OPEN_EXPORT]], [[OPEN_ANALYTICS]], [[OPEN_HOST]]。\n     - 可以包含多个相关标签，但优先考虑最重要的一个。\n     - 使用 Markdown 格式进行排版。",
+=======
+      "systemPrompt": "你是「SocialSim4 Next」社会模拟平台的专家指引助手。\n     你的目标是帮助用户设计实验并导航平台功能。\n     \n     平台功能地图:\n     1. **新建仿真**: 'SimulationWizard' (从村庄/议会/狼人杀等模板创建仿真，导入智能体，AI 生成智能体)。\n     2. **社交网络拓扑**: 'NetworkEditor' (定义环形/星形/小世界等拓扑结构以控制信息传播)。\n     3. **实验设计**: 'ExperimentDesigner' (因果推断，A/B 测试，并行分支，对照组)。\n     4. **主持控制**: 'HostPanel' (上帝模式，广播消息，注入环境事件，修改智能体属性)。\n     5. **统计分析**: 'AnalyticsPanel' (智能体属性如信任度/压力随时间变化的折线图)。\n     6. **导出**: 'ExportModal' (以 JSON/CSV/Excel 格式下载日志)。\n     7. **分析报告**: 'ReportModal' (AI 生成报告，概括实验过程、关键转折点、智能体行为模式和下一步调整建议)。\n     8. **全局知识库**: 'GlobalKnowledgePanel' (导入文本或文档，让智能体拥有可调用的背景知识)。\n     9. **多模态导入**: 'InitialEventsModal' (把地图、街景、图片、音频或视频链接作为影响行为的初始事件输入)。\n     10. **环境事件建议**: 'EnvironmentSuggestion' (根据当前局势推荐外部扰动与后续干预)。\n     11. **仿真树**: 主要可视化界面。支持『分支』(创建并行时间线)和『推进』(下一回合)。\n     12. **对比**: 'ComparisonView' (对比两个节点/时间线)。\n\n     指引说明:\n     - 分析用户的意图。\n     - 提供简洁的、循序渐进的指南，将用户的目标映射到具体的平台工具。\n     - 如果用户需要打开特定工具，请在回复末尾附加标签，格式为: [[ACTION_NAME]]。\n     - 支持的标签: [[OPEN_WIZARD]], [[OPEN_NETWORK]], [[OPEN_EXPERIMENT]], [[OPEN_EXPORT]], [[OPEN_ANALYTICS]], [[OPEN_HOST]], [[OPEN_REPORT]], [[OPEN_KNOWLEDGE]], [[OPEN_MULTIMODAL]], [[OPEN_ENVIRONMENT]]。\n     - 可以包含多个相关标签，但优先考虑最重要的一个。\n     - 使用 Markdown 格式进行排版。",
+>>>>>>> Stashed changes
       "defaultResponse": "抱歉，我无法理解您的请求。",
       "connectionTimeout": "连接 AI 服务超时，请稍后再试。"
     },
     "experimentDesignModal": {
       "title": "因果干预实验设计",
       "subtitle": "基于节点 <span class=\"font-mono bg-white px-1 rounded border border-indigo-200\">{{displayId}}</span> ({{name}}) 创建平行对照组",
-      "selectNodeFirst": "请先选择一个仿真节点",
       "experimentNameLabel": "实验名称",
       "experimentNamePlaceholder": "例如：高压力环境测试",
       "pleaseEnterName": "请输入实验名称",
       "controlGroup": "对照组",
       "controlGroupDescription": "基准对照，不施加额外干预。",
       "controlGroupState": "继承当前节点状态与历史记录。",
-      "baselineReference": "基准参考",
-      "baselineHint": "所有实验组都将从当前节点分支，并继承其世界状态、记忆上下文和公共状态。",
       "hintTitle": "💡 提示：",
       "hintAddVariant": "点击右侧添加实验组。",
       "hintDefineVariables": "为每个组定义不同的干预变量。",
       "hintAutoParallel": "系统将自动并行运行所有分支。",
-      "designerGuide": "设计指南",
-      "variantWorkspace": "实验组工作台",
-      "variantTitle": "配置实验分支",
-      "variantCopy": "每个分支将继承所选基准状态，并在启动前应用一组受控干预。",
       "variantPrefix": "实验组",
-      "variantCount": "实验组",
-      "variantDescriptionPlaceholder": "描述该分支的目标、观察重点或干预策略。",
       "noInterventions": "暂无干预措施",
-      "interventionCount": "干预项",
       "instructionType": "全局指令",
       "propertyType": "修改属性",
       "environmentType": "环境事件",
-      "followUpConditionType": "后续条件",
-      "followUpThreadSeedType": "后续对话种子",
       "selectAgent": "选择智能体...",
-      "liveVariantChannel": "实时分支通道",
-      "interventionWorkbench": "干预工作台",
-      "interventionCardTitle": "干预项",
       "imageLabel": "图片 (可选)",
       "imageHelper": "拖拽/点击上传后将图片以 markdown 链接插入",
       "propertyPlaceholder": "例如：将信任值降低至 10",
-      "followUpConditionPlaceholder": "例如：resource_shortage=0.8, public_opinion_pressure=0.6 或 {\"resource_shortage\": 0.8}",
-      "followUpThreadSeedPlaceholder": "例如：智能体3给智能体4发消息，内容为“执行困难，需要回应”。也支持 JSON。",
       "descriptionPlaceholder": "描述具体的干预内容...",
       "addIntervention": "添加干预项",
       "addVariant": "添加新的实验组",
-      "launchQueue": "启动队列",
-      "summaryTitle": "摘要",
-      "launchDecision": "启动决策",
-      "launchCopy": "启动后会从当前对照节点创建一组并行分支，同时保留当前仿真状态作为基准。",
       "cancel": "取消",
       "startBatch": "启动批量运行 ({{count}} 个分支)",
-      "statusPending": "待运行",
-      "statusRunning": "运行中",
-      "statusCompleted": "已完成",
-      "statusFailed": "失败",
       "liveLogPreview": "实时日志预览（最近 {{count}} 条）",
       "noLogsYet": "暂无日志",
-      "imageUploaded": "图片已上传并插入",
-      "scenarioParamsType": "场景参数",
-      "networkTopologyType": "网络拓扑",
-      "scenarioParamsHint": "编辑下方参数以修改此分支时间线的场景配置。",
-      "previewTitle": "实验预览",
-      "previewVariant": "实验组",
-      "previewScenarioParams": "场景参数",
-      "previewUnknownKey": "(未知参数)",
-      "previewWas": "原值",
-      "previewIntervention": "干预项",
-      "previewNoChanges": "与基准无差异",
-      "previewBack": "返回编辑",
-      "previewConfirm": "确认并启动",
-      "previewDescriptionChanged": "描述已变更",
-      "previewRoundVisibilityChanged": "回合可见性已变更",
-      "previewEdges": "条边",
-      "previewSeed": "种子",
-      "presetFull": "全连接",
-      "presetRing": "环形",
-      "presetStar": "星形",
-      "presetRandom": "随机",
-      "presetNewmanWatts": "Newman-Watts",
-      "presetCorePeriphery": "核心-边缘",
-      "presetHolmeKim": "Holme-Kim",
-      "presetWaxman": "Waxman",
-      "presetSbm": "随机块模型",
-      "presetCustom": "自定义",
-      "paramConnectionChance": "连接概率",
-      "paramNeighborsEachSide": "每侧邻居数",
-      "paramShortcutChance": "捷径概率",
-      "paramInfluencerPercent": "影响力节点占比",
-      "paramInfluencerConnectivity": "影响力节点连接度",
-      "paramInfluencerReach": "影响力节点覆盖范围",
-      "paramRegularConnectivity": "普通节点连接度",
-      "paramNewConnections": "新增连接数",
-      "paramClusteringChance": "聚类概率",
-      "paramMaxDistance": "最大距离",
-      "paramDistanceEffect": "距离衰减效应",
-      "paramGroupSize": "分组大小",
-      "paramWithinGroupConnectivity": "组内连接度",
-      "paramBridgeConnections": "桥接连接数",
-      "customEdgesPlaceholder": "输入自定义边，例如：0-1, 1-2, 2-3",
-      "networkEdgeCountHint": "已配置 {{count}} 条边"
+      "imageUploaded": "图片已上传并插入"
     },
     "hostPanel": {
       "godModeTitle": "主持模式",
@@ -1503,6 +1441,9 @@
       "nodes": "节点",
       "edges": "边"
     },
+    "networkGraph": {
+      "emptyState": "暂无网络可显示"
+    },
     "reportModal": {
       "title": "仿真实验分析报告",
       "subtitle": "自动分析",
@@ -1627,8 +1568,7 @@
       "error": "文档加载失败"
     },
     "simulationPage": {
-      "manualSyncBackend": "手动同步到后端",
-      "runningBrowserStandalone": "在浏览器中运行 (Gemini 独立模式)"
+      "manualSyncBackend": "手动同步到后端"
     },
     "simulationWizardPage": {
       "noDescription": "暂无描述"
@@ -1696,7 +1636,11 @@
     "interactionOccurred": "进行了一次交互",
     "node": "节点",
     "defaultSimulationName": "2024年乡村委员会模拟",
-    "guideWelcomeMessage": "你好！我是Future of Society的智能指引助手。我可以帮你设计实验、推荐功能或解释平台操作。比如，你可以问我：\n\n- \"如何模拟信息在人群中的传播？\"\n- \"我想做一个AB测试实验。\"\n- \"怎么导出分析报告？\"",
+<<<<<<< Updated upstream
+    "guideWelcomeMessage": "你好！我是FOS的智能指引助手。我可以帮你设计实验、推荐功能或解释平台操作。比如，你可以问我：\n\n- \"如何模拟信息在人群中的传播？\"\n- \"我想做一个AB测试实验。\"\n- \"怎么导出分析报告？\"",
+=======
+    "guideWelcomeMessage": "你好！我是SocialSim4的智能指引助手。我可以帮你设计实验、推荐功能或解释平台操作。比如，你可以问我：\n\n- \"如何模拟信息在人群中的传播？\"\n- \"我想做一个AB测试实验。\"\n- \"怎么导出分析报告？\"",
+>>>>>>> Stashed changes
     "simulationCreated": "仿真「{{name}}」创建成功",
     "failedToCreateSimulation": "后端创建仿真失败",
     "initialState": "初始状态",
@@ -1761,24 +1705,9 @@
     "loadProvidersFailed": "加载 LLM 提供商失败",
     "experimentSubmitted": "实验「{{name}}」已提交到后端运行（run_id={{runId}}）",
     "experimentCompleted": "实验 {{name}} 已完成（run {{status}}）",
-    "experimentBranchCreated": "实验分支已创建：{{experimentName}} — {{variantName}}",
-    "experimentInterventionContent": "干预内容",
-    "experimentCreatedNoRun": "实验「{{name}}」已创建（尚未启动）",
-    "experimentNodeMappingEmpty": "实验已创建，但后端尚未返回节点映射",
-    "experimentNodesTimeout": "实验节点尚未可用，请刷新或重试。",
-    "advanceHydrationFailed": "仿真已推进，但加载新节点详情失败",
-    "failedToLoadSimulation": "加载仿真失败",
-    "summary": "摘要",
-    "agentAnalysis": "智能体分析",
     "failedToStartExperiment": "启动实验失败",
     "batchExperimentStarted": "批量实验「{{name}}」已启动",
-    "comparisonAnalysisFailed": "比较分析失败",
-    "selectedNodeNotFound": "在仿真树中未找到所选节点，请尝试刷新仿真。",
-    "branchCreated": "分支已创建",
-    "simulationReport": "仿真实验分析报告",
-    "generatedAt": "生成时间",
-    "keyEvents": "关键事件",
-    "suggestions": "建议"
+    "comparisonAnalysisFailed": "比较分析失败"
   },
   "helpModal": {
     "title": "理解「前沿」概念",
@@ -1861,7 +1790,6 @@
       "selectTemplate": "选择一个场景模板来开始构建您的实验",
       "retry": "重试",
       "scenariosCount": "{{count}} 个场景",
-      "noScenariosAvailable": "暂无可用场景",
       "strategic_decisions": {
         "title": "战略决策",
         "description": "研究结果取决于他人选择的情况",
@@ -1910,9 +1838,9 @@
       }
     },
     "promptPreview": {
-      "title": "示例智能体提示词",
-      "note": "所有 {n} 个智能体类型接收相同的场景、行动和输出格式。只有智能体描述不同。",
-      "otherTypes": "其他智能体类型"
+      "title": "示例代理提示词",
+      "note": "所有 {n} 个代理类型接收相同的场景、行动和输出格式。只有代理描述不同。",
+      "otherTypes": "其他代理类型"
     },
     "actions": {
       "chooseAction": "选择 {{action}}"
@@ -1927,17 +1855,13 @@
       "conflict_sensitivity": "冲突敏感度",
       "block_probability": "阻断概率",
       "num_agents_per_tier": "每层智能体数量",
-      "policy_text": "初始背景设定",
-      "action_1_name": "动作一名称",
-      "action_2_name": "动作二名称",
-      "action_1_description": "动作一说明",
-      "action_2_description": "动作二说明"
+      "policy_text": "初始背景设定"
     },
     "paramDescriptions": {
       "cascade_mode": "选择是严格逐层传达，还是允许在传递中出现改写、冲突和截留。",
       "distortion_strength": "只在失真模式下生效。数值越高，下层越可能明显改写原政策。",
       "conflict_sensitivity": "只在失真模式下生效。数值越高，角色利益冲突越容易转化为抵触或偏离。",
-      "block_probability": "只在失真模式下生效。表示智能体直接不往下传、选择截留政策的基础概率。",
+      "block_probability": "只在失真模式下生效。表示代理直接不往下传、选择截留政策的基础概率。",
       "num_agents_per_tier": "控制每一个层级自动生成多少个智能体。",
       "policy_text": "仅用于设定第一轮的开场背景或情境，不会自动作为后续逐级传递时必须保留的原始政策。"
     },
@@ -1967,7 +1891,7 @@
       "iChoose": "我选择 ↓",
       "theyChoose": "他们选择 →",
       "pointsEach": "各得积分",
-      "tip": "提示：这些收益值会显示在智能体的提示中，帮助他们理解游戏激励。",
+      "tip": "提示：这些收益值会显示在代理的提示中，帮助他们理解游戏激励。",
       "actions": {
         "cooperate": "与对方玩家合作",
         "defect": "为自己利益行事",
@@ -1995,8 +1919,25 @@
       "selectScenarioFirst": "请先在步骤1中选择一个场景。",
       "configureTitle": "配置{{name}}",
       "configureSubtitle": "自定义场景描述和参数",
+<<<<<<< Updated upstream
+      "scenarioDescriptionLabel": "场景描述（代理将看到此内容）",
+      "scenarioDescriptionPlaceholder": "输入代理能够理解的场景描述...",
+=======
+      "generateCount": "生成数量",
+      "startGeneration": "开始生成",
+      "demographics": "人口统计维度",
+      "addDimension": "添加维度",
+      "dimensionNamePlaceholder": "维度名称（如：年龄）",
+      "categoriesLabel": "类别（用逗号分隔）：",
+      "addCategory": "添加类别",
+      "traitsHint": "属性将使用高斯分布（均值 ± 标准差）生成，范围限制在 0-100。",
+      "mean": "均值",
+      "std": "标准差",
+      "generatedAgents": "已生成 {{count}} 个智能体",
+      "clearReset": "清空重置",
       "scenarioDescriptionLabel": "场景描述（智能体将看到此内容）",
       "scenarioDescriptionPlaceholder": "输入智能体能够理解的场景描述...",
+>>>>>>> Stashed changes
       "parametersTitle": "参数",
       "noParameters": "此场景没有可配置的参数。调整上面的描述并进入下一步。",
       "cascadeCards": {
@@ -2023,11 +1964,21 @@
         "youThey": "你：{{actionA}} / 对方：{{actionB}}"
       }
     },
+    "llmDistribution": {
+      "title": "LLM Distribution",
+      "loadingProviders": "正在加载提供商...",
+      "noProviders": "当前没有可用的 LLM 提供商。",
+      "configureInSettings": "请先在设置中配置提供商。",
+      "addLlm": "Add LLM",
+      "totalValid": "Total: 100% ✓",
+      "mustEqual100": "总占比必须等于 100%（当前 {{count}}%）",
+      "distributionHint": "分配结果会在生成智能体时应用。"
+    },
     "step3": {
       "title": "选择动作",
-      "subtitle": "选择智能体可以采取的动作。至少需要选择一个动作。",
+      "subtitle": "选择代理可以采取的动作。至少需要选择一个动作。",
       "linkedTitle": "这一步会直接影响后续模拟",
-      "linkedDesc": "这里选中的动作会写入最终创建的智能体行为空间，并出现在第 6 步提示词预览和后端实际运行配置里。自定义动作也会一并保存。",
+      "linkedDesc": "这里选中的动作会写入最终创建的代理 action space，并出现在第 6 步提示词预览和后端实际运行配置里。自定义动作也会一并保存。",
       "categoryInfo": "显示{{category}}类别的所有可用动作。此场景以一组预选动作开始。",
       "noActions": "没有可用动作。请先选择一个场景或添加自定义动作。",
       "addCustomAction": "添加自定义动作",
@@ -2040,57 +1991,41 @@
       "actionsSelected": "已选择 {{selected}} / {{total}} 个动作",
       "removeAction": "删除动作",
       "selectionMode": "选择方式",
-      "manualSelection": "手动选择",
-      "policyActions": {
-        "send_message": { "label": "发送消息", "description": "向其他智能体发送消息" },
-        "yield": { "label": "让出发言权", "description": "将发言权让给其他智能体" },
-        "report_upward": { "label": "向上汇报", "description": "向上级汇报信息" },
-        "escalate_complaint": { "label": "升级投诉", "description": "向更高级别升级投诉" },
-        "consult_peer": { "label": "咨询同级", "description": "与同级智能体协商" },
-        "notify_subordinate": { "label": "通知下属", "description": "通知下级智能体" },
-        "announce_policy_adjustment": { "label": "宣布政策调整", "description": "向全组宣布政策变更" }
-      }
+      "manualSelection": "手动选择"
     },
     "step4": {
-      "title": "智能体配置",
-      "modeTitle": "你想如何创建智能体？",
-      "modeDescription": "先确定智能体的组织方式，再逐步补充代表样本与研究属性。",
+      "modeTitle": "您想如何创建代理？",
       "modes": {
         "manual": {
-          "title": "手动创建",
-          "description": "手动定义智能体类型，设置角色说明和数量"
+          "title": "手动类型",
+          "description": "手动定义代理类型，设置自定义提示词和数量"
         },
         "demographic": {
           "title": "人口统计生成",
-          "description": "从自定义人口统计变量生成智能体"
+          "description": "从自定义人口统计变量生成代理"
         },
         "import": {
           "title": "文件导入",
-          "description": "从 JSON 文件导入智能体配置"
+          "description": "从JSON文件导入代理配置"
         }
       },
-      "demographicEyebrow": "群体生成",
-      "demographicTitle": "人口统计生成",
-      "demographicDescription": "先定义人口结构，再据此生成代表性的智能体集合。",
-      "defineTypes": "定义智能体类型",
-      "manualHint": "手动模式会把新增对象创建为可单独编辑的智能体。即使一次添加多个，也可以在下方分别修改名字、层级、简介、提示词和属性。",
-      "typeLabel": "智能体类型",
-      "typeLabelPlaceholder": "例如：嫌疑人 / 居民 / 基层执行者",
+      "defineTypes": "定义代理类型",
+      "manualHint": "手动模式现在会把新增对象直接创建为可单独编辑的代理。即使一次添加多个，也可以在下方分别修改名字、层级、简介、提示词和属性。",
+      "typeLabel": "类型标签",
+      "typeLabelPlaceholder": "例如：top-tier 官员 / Agent 1",
       "count": "数量",
       "tier": "层级",
       "autoDetectTier": "自动识别",
-      "agentName": "智能体名称",
-      "agentListTitle": "智能体清单",
-      "agentSummaryLabel": "智能体",
-      "rolePrompt": "角色提示词（这个智能体的角色是什么？）",
+      "agentName": "代理名字",
+      "agentListTitle": "已配置代理",
+      "rolePrompt": "角色提示词（这个代理的角色是什么？）",
       "rolePromptPlaceholder": "例如：负责传达政策并监督执行的高层官员",
       "userProfile": "简介 / 画像",
       "userProfilePlaceholder": "例如：重视数据治理、偏好强执行与问责",
-      "properties": "智能体属性",
+      "properties": "代理属性",
       "addProperty": "添加属性",
       "noProperties": "暂时没有额外属性",
       "sharedPropertyBadge": "共用",
-      "sharedPropertyCountLabel": "共用属性",
       "sharedPropertyConfirm": "属性“{{key}}”被 {{count}} 个智能体共用。是否将这个属性名同步修改到所有相关智能体？",
       "sharedPropertyTooltip": "属性“{{key}}”由以下智能体共用：{{agents}}",
       "tierConfigTitle": "政策层级顺序",
@@ -2112,32 +2047,27 @@
         "strict_cascade": "严格级联",
         "distortion_cascade": "失真级联"
       },
-      "addAgentType": "+ 添加智能体类型",
-      "noTypes": "尚未定义智能体类型",
+      "addAgentType": "+ 添加代理类型",
+      "noTypes": "尚未定义代理类型",
       "remove": "删除",
-      "totalAgents": "智能体总数：{{count}}",
-      "agentsDefined": "已定义 {{count}} 个智能体",
+      "totalAgents": "代理总数：{{count}}",
+      "agentsDefined": "已定义 {{count}} 个代理",
       "llmProvider": "LLM 提供商",
       "defaultProvider": "默认提供商",
-      "providerSummaryLabel": "模型提供商",
-      "providerActive": "已启用",
-      "providerDefault": "默认",
-      "collectionLabel": "智能体分组",
-      "collectionMembers": "智能体数",
-      "representativeLabel": "代表智能体",
-      "collectionHint": "主编辑区展示这个分组中的一个代表智能体。如果需要微调单个智能体，可以在下方智能体列表中切换。",
-      "searchAgents": "搜索分组或智能体画像",
-      "noDirectoryResults": "没有匹配当前搜索的智能体分组。",
-      "memberRoster": "智能体列表",
-      "memberRosterHint": "可以在同一分组内切换智能体。",
-      "importTitle": "导入智能体数据",
-      "importDesc": "上传包含智能体定义的 CSV 或 JSON 文件。",
+      "importTitle": "导入代理数据",
+      "importDesc": "上传包含代理定义的 CSV 或 JSON 文件。",
       "csvFormat": "CSV 格式示例：",
+      "jsonFormat": "JSON 格式示例：",
       "uploadCSV": "上传 CSV",
       "uploadJSON": "上传 JSON",
+<<<<<<< Updated upstream
       "importInfo": "文件导入功能将在第7阶段实现。",
-      "generationLlmProvider": "生成用 LLM 提供商",
-      "generationLlmProviderHint": "选择用于 AI 生成智能体档案的提供商"
+      "generationLlmProvider": "代理生成LLM提供商",
+      "generationLlmProviderHint": "选择用于生成具有人口统计特征的代理的LLM提供商"
+=======
+      "importInfo": "导入内容会追加到当前智能体列表，额外列会成为可编辑的智能体属性。",
+      "importSuccess": "已从 {{file}} 导入 {{count}} 个智能体。"
+>>>>>>> Stashed changes
     },
     "step5": {
       "networkPresets": "网络预设",
@@ -2145,7 +2075,7 @@
       "presets": {
         "fully_connected": { "name": "全连接", "description": "每个人都认识每个人" },
         "random": { "name": "随机", "description": "随机连接" },
-        "ring": { "name": "环形", "description": "每个智能体连接到邻居" },
+        "ring": { "name": "环形", "description": "每个代理连接到邻居" },
         "small_world": { "name": "小世界", "description": "Newman-Watts 小世界网络" },
         "scale_free": { "name": "无标度", "description": "Holme-Kim 无标度网络" },
         "star": { "name": "星形", "description": "一个中心枢纽" },
@@ -2154,8 +2084,8 @@
         "communities": { "name": "社区", "description": "随机块模型" }
       },
       "applyChanges": "应用更改",
-      "noAgentsConfigured": "未配置智能体",
-      "goBackToStep4": "返回步骤4添加智能体后再配置网络。",
+      "noAgentsConfigured": "未配置代理",
+      "goBackToStep4": "返回步骤4添加代理后再配置网络。",
       "fullyConnected": "全连接",
       "reset": "重置",
       "nodes": "{{count}} 个节点",
@@ -2163,22 +2093,19 @@
       "instructions": "说明",
       "instructionSelect": "选择预设以生成网络",
       "instructionDrag": "拖动节点重新排列",
-      "instructionZoom": "滚动缩放，拖动平移",
-      "manualLinks": "手动连接",
-      "addLink": "添加连接",
-      "noLinks": "暂无连接"
+      "instructionZoom": "滚动缩放，拖动平移"
     },
     "step6": {
-      "noAgentsDefined": "未定义智能体",
-      "goBackToStep4": "返回步骤4为你的实验添加智能体。",
-      "totalAgentsTypes": "共 {{agents}} 个智能体，分为 {{types}} 种类型"
+      "noAgentsDefined": "未定义代理",
+      "goBackToStep4": "返回步骤4为您的实验添加代理。",
+      "totalAgentsTypes": "共 {{agents}} 个代理，分为 {{types}} 种类型"
     },
     "progressBar": {
       "steps": {
         "chooseScenario": "选择场景",
         "configureScenario": "配置场景",
         "selectActions": "选择动作",
-        "createAgents": "创建智能体",
+        "createAgents": "创建代理",
         "network": "网络",
         "review": "预览"
       }
@@ -2186,7 +2113,7 @@
     "experimentBuilder": {
       "step3": {
         "title": "选择动作",
-        "subtitle": "选择智能体可以采取的动作。至少需要选择一个动作。",
+        "subtitle": "选择代理可以采取的动作。至少需要选择一个动作。",
         "categoryInfo": "显示{{category}}类别的所有可用动作。此场景以一组预选动作开始。",
         "noActions": "没有可用动作。请先选择一个场景或添加自定义动作。",
         "addCustomAction": "添加自定义动作",
@@ -2225,19 +2152,23 @@
         "timeHours": "时间（小时）",
         "resources": "资源",
         "custom": "自定义..."
+<<<<<<< Updated upstream
       },
-      "amountPerRoundLabel": "每轮分配数量",
+      "amountPerRoundLabel": "每轮数量",
       "displaySettingsTitle": "显示设置",
-      "showAverageLabel": "显示平均贡献",
-      "showAverageHint": "每轮结束后显示全组平均贡献值"
+      "showAverageLabel": "向代理显示平均贡献",
+      "showAverageHint": "启用后，代理可以在做决定前看到群体的平均贡献"
     },
     "deductionSettings": {
-      "title": "惩罚设置",
-      "budgetLabel": "每轮惩罚预算",
-      "budgetHint": "设为 0 可禁用惩罚",
-      "costRatioLabel": "惩罚成本比率",
-      "costRatioHint": "数值越高，惩罚效果越强",
-      "anonymousLabel": "匿名惩罚模式"
+      "title": "扣罚设置",
+      "budgetLabel": "每阶段扣罚预算",
+      "budgetHint": "每个代理每阶段可用于减少他人贡献的扣罚点数",
+      "costRatioLabel": "扣罚成本比率",
+      "costRatioHint": "从他人处扣除1单位的成本（例如：3.0 = 花费3来扣除1）",
+      "anonymousLabel": "匿名扣罚（隐藏谁从谁那里扣罚）"
+=======
+      }
+>>>>>>> Stashed changes
     }
   },
   "simulation": {
@@ -2250,7 +2181,7 @@
     },
     "results": {
       "round_title": "第 {{round}} 轮结果",
-      "agents_chose": "{{count}} 个智能体选择了此项",
+      "agents_chose": "{{count}} 个代理选择了此项",
       "total_contributed": "总贡献量",
       "pool_after_multiplier": "资金池 (×{{multiplier}})",
       "per_agent_share": "人均分配"
@@ -2273,7 +2204,7 @@
         "intro": "你有 {{initial_amount}} {{resource}}。",
         "action_instruction": "你可以{{action_name}}一定数量到共享池中。",
         "action_description": "{{action_description}}",
-        "pool_mechanics": "资金池将乘以 {{multiplier}} 并平均分配给所有智能体。",
+        "pool_mechanics": "资金池将乘以 {{multiplier}} 并平均分配给所有参与者。",
         "choose_instruction": "选择要{{action_name}}的数量（0 到 {{initial_amount}}）。"
       }
     }
@@ -2281,11 +2212,11 @@
   "systemTemplates": {
     "normDisruption": {
       "name": "社会规范的突变",
-      "description": "常人方法论视角：20个异质智能体在突发规范变化中的意义构建与适应。观察从服从→反抗→黑市协议的演化轨迹。"
+      "description": "常人方法论视角：20个异质代理在突发规范变化中的意义构建与适应。观察从服从→反抗→黑市协议的演化轨迹。"
     },
     "norm_disruption": {
       "name": "社会规范的突变",
-      "description": "常人方法论视角：20个异质智能体在突发规范变化中的意义构建与适应。观察从服从→反抗→黑市协议的演化轨迹。"
+      "description": "常人方法论视角：20个异质代理在突发规范变化中的意义构建与适应。观察从服从→反抗→黑市协议的演化轨迹。"
     },
     "policyDiffusion": {
       "name": "政策传播中的意义磨损",
@@ -2297,15 +2228,15 @@
     },
     "polarization": {
       "name": "极化与数字茧房生成",
-      "description": "回声壁效应视角：20个智能体（8激进+8保守+4中立）在推荐算法驱动下的观点极化与群体分裂。追踪情绪传染机制。"
+      "description": "回声壁效应视角：20个代理（8激进+8保守+4中立）在推荐算法驱动下的观点极化与群体分裂。追踪情绪传染机制。"
     },
     "resourceScarcity": {
       "name": "稀缺资源下的社会契约",
-      "description": "霍布斯丛林视角：灾后社区中，拥有社会资本的智能体能否通过信用契约度过危机，还是陷入大规模欺诈与崩溃？"
+      "description": "霍布斯丛林视角：灾后社区中，拥有社会资本的代理能否通过信用契约度过危机，还是陷入大规模欺诈与崩溃？"
     },
     "resource_scarcity": {
       "name": "稀缺资源下的社会契约",
-      "description": "霍布斯丛林视角：灾后社区中，拥有社会资本的智能体能否通过信用契约度过危机，还是陷入大规模欺诈与崩溃？"
+      "description": "霍布斯丛林视角：灾后社区中，拥有社会资本的代理能否通过信用契约度过危机，还是陷入大规模欺诈与崩溃？"
     },
     "village": {
       "name": "乡村治理",

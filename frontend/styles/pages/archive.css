@@ -168,11 +168,51 @@
   }
 
   .ss-archive-card__actions {
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+    justify-content: stretch;
   }
 
   .ss-archive-card__actions > * {
-    flex: 1 1 0;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .ss-archive-card__actions .ss-button,
+  .ss-archive-card__actions .ss-button-secondary,
+  .ss-archive-card__actions .ss-button-danger,
+  .ss-archive-detail__actions .ss-button,
+  .ss-archive-detail__actions .ss-button-secondary,
+  .ss-archive-detail__actions .ss-button-danger {
+    display: inline-flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-height: 3.2rem;
+    padding: 0.72rem 0.95rem;
+    border-radius: 1.05rem;
+    font-size: 0.92rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+
+  .ss-archive-card__actions .ss-button span,
+  .ss-archive-card__actions .ss-button-secondary span,
+  .ss-archive-card__actions .ss-button-danger span,
+  .ss-archive-detail__actions .ss-button span,
+  .ss-archive-detail__actions .ss-button-secondary span,
+  .ss-archive-detail__actions .ss-button-danger span {
+    white-space: nowrap;
+  }
+
+  .ss-archive-detail__actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
   }
 
   .ss-archive-detail {

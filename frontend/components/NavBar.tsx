@@ -2,8 +2,11 @@ import { useEffect, useState } from "react";
 import { Menu, MoonStar, SunMedium, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { BrandLogo } from "./BrandLogo";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { useSimulationStore } from "../store";
 import { useAuthStore } from "../store/auth";
+import { useSimulationStore } from "../store";
 import { useThemeStore } from "../store/theme";
 
 const DESKTOP_BREAKPOINT_QUERY = "(min-width: 961px)";
@@ -18,21 +21,38 @@ export function NavBar({ variant = "default" }: { variant?: NavBarVariant }) {
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const clearSession = useAuthStore((s) => s.clearSession);
+<<<<<<< Updated upstream
+  const currentSimulation = useSimulationStore((s) => s.currentSimulation);
+=======
+  const currentSimulationId = useSimulationStore((s) => s.currentSimulation?.id ?? null);
+>>>>>>> Stashed changes
 
   const mode = useThemeStore((s) => s.mode);
   const toggle = useThemeStore((s) => s.toggle);
 
+  const workbenchPath = currentSimulation?.id ? `/simulations/${currentSimulation.id}` : "/simulations/new";
   const isProduct = variant === "product";
   const isAdmin = String(user?.role ?? "") === "admin";
+  const workspaceLink = currentSimulationId ? `/simulations/${currentSimulationId}` : "/simulations/workspace";
   const navItems = [
+<<<<<<< Updated upstream
     { to: "/dashboard", label: t("nav.dashboard") },
-    { to: "/simulations/new", label: t("nav.new") },
+    { to: "/simulations/create", label: t("nav.create") },
+    { to: workbenchPath, label: t("nav.workbench") },
     { to: "/simulations/saved", label: t("nav.saved") },
     { to: "/settings/providers", label: t("nav.settings") },
     { to: "/docs", label: t("nav.docs") || "Docs" },
+=======
+    { id: "dashboard", to: "/dashboard", label: t("nav.dashboard") },
+    { id: "new", to: "/simulations/new", label: t("nav.new") },
+    { id: "workspace", to: workspaceLink, label: t("nav.workspace", { defaultValue: "实验台" }) },
+    { id: "saved", to: "/simulations/saved", label: t("nav.saved") },
+    { id: "settings", to: "/settings", label: t("nav.settings") },
+    { id: "docs", to: "/docs", label: t("nav.docs") || "Docs" },
+>>>>>>> Stashed changes
   ];
   const allNavItems = isAdmin
-    ? [...navItems, { to: "/admin", label: t("nav.admin") || "Admin" }]
+    ? [...navItems, { id: "admin", to: "/admin", label: t("nav.admin") || "Admin" }]
     : navItems;
   const themeIcon =
     isProduct
@@ -65,13 +85,46 @@ export function NavBar({ variant = "default" }: { variant?: NavBarVariant }) {
     return () => media.removeEventListener("change", closeCompact);
   }, [isProduct]);
 
+  const isNavItemActive = (itemId: string, itemTo: string) => {
+    if (itemId === "dashboard") {
+      return location.pathname.startsWith("/dashboard");
+    }
+
+    if (itemId === "new") {
+      return location.pathname.startsWith("/simulations/new");
+    }
+
+    if (itemId === "workspace") {
+      return (
+        location.pathname === "/simulations/workspace" ||
+        (location.pathname.startsWith("/simulations/") &&
+          !location.pathname.startsWith("/simulations/new") &&
+          !location.pathname.startsWith("/simulations/saved"))
+      );
+    }
+
+    if (itemId === "saved") {
+      return location.pathname.startsWith("/simulations/saved");
+    }
+
+    if (itemId === "settings") {
+      return location.pathname.startsWith("/settings");
+    }
+
+    if (itemId === "docs") {
+      return location.pathname.startsWith("/docs");
+    }
+
+    return location.pathname.startsWith(itemTo);
+  };
+
   const renderNavLinks = (extraClass = "") =>
     allNavItems.map((item) => (
       <Link
-        key={item.to}
+        key={item.id}
         to={item.to}
         className={`nav-link ${extraClass} ${
-          location.pathname.startsWith(item.to) ? "active" : ""
+          isNavItemActive(item.id, item.to) ? "active" : ""
         }`.trim()}
       >
         {item.label}
@@ -83,7 +136,7 @@ export function NavBar({ variant = "default" }: { variant?: NavBarVariant }) {
       <div className="nav-shell">
         <div className="nav-left">
           <Link to="/" className="nav-brand">
-            {t("brand")}
+            <BrandLogo />
           </Link>
 
           <div className="nav-links nav-links--desktop">

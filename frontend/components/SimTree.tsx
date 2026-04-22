@@ -4,11 +4,20 @@ import * as d3 from 'd3';
 import { SimNode } from '../types';
 import { useSimulationStore } from '../store';
 import { useTranslation } from 'react-i18next';
-import i18n from '../i18n';
 import { HelpCircle, Move, ZoomIn, ZoomOut, Maximize, MousePointer2, Trash2 } from 'lucide-react';
 import { EnvironmentSuggestionDialogWrapper, EnvironmentToggleButton } from './EnvironmentSuggestion';
 
-export const SimTree: React.FC = () => {
+interface SimTreeProps {
+  nodesOverride?: SimNode[];
+  alwaysSelectOnClick?: boolean;
+  layoutDirection?: 'horizontal' | 'vertical';
+}
+
+export const SimTree: React.FC<SimTreeProps> = ({
+  nodesOverride,
+  alwaysSelectOnClick = false,
+  layoutDirection = 'horizontal',
+}) => {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const nodes = useSimulationStore(state => state.nodes);
@@ -19,36 +28,26 @@ export const SimTree: React.FC = () => {
   const toggleHelpModal = useSimulationStore(state => state.toggleHelpModal);
   const isCompareMode = useSimulationStore(state => state.isCompareMode);
   const deleteNode = useSimulationStore(state => state.deleteNode);
-  const highlightedNodeId = useSimulationStore(state => state.highlightedNodeId);
 
   // Keep track of zoom behavior to call it programmatically
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const svgRef = useRef<d3.Selection<SVGSVGElement, unknown, null, undefined> | null>(null);
+  const selectedNodeIdRef = useRef(selectedNodeId);
+  const isCompareModeRef = useRef(isCompareMode);
+
+  const resolvedNodes = nodesOverride || nodes;
 
   useEffect(() => {
-    if (!containerRef.current || nodes.length === 0) return;
+    selectedNodeIdRef.current = selectedNodeId;
+    isCompareModeRef.current = isCompareMode;
+  }, [selectedNodeId, isCompareMode]);
+
+  useEffect(() => {
+    if (!containerRef.current || resolvedNodes.length === 0) return;
 
     const width = containerRef.current.clientWidth;
     const height = containerRef.current.clientHeight;
-
-    // Guard against zero dimensions (Docker container may not be laid out yet)
-    if (width === 0 || height === 0) {
-      console.warn('SimTree: Container has zero dimensions, retrying...', {
-        width, height, nodes: nodes.length
-      });
-      // Retry after a short delay to allow layout to complete
-      const retryTimer = setTimeout(() => {
-        if (containerRef.current) {
-          const newWidth = containerRef.current.clientWidth;
-          const newHeight = containerRef.current.clientHeight;
-          if (newWidth > 0 && newHeight > 0) {
-            console.log('SimTree: Retry successful', { width: newWidth, height: newHeight });
-          }
-        }
-      }, 100);
-      return () => clearTimeout(retryTimer);
-    }
-
+    
     // Clear previous
     d3.select(containerRef.current).selectAll('*').remove();
 
@@ -75,8 +74,8 @@ export const SimTree: React.FC = () => {
 
 // Hierarchy
 // Filter out nodes with parentIds that don't exist (orphaned/pending experiment nodes)
-const nodeIds = new Set(nodes.map(n => n.id));
-const validNodes = nodes.filter(n => {
+const nodeIds = new Set(resolvedNodes.map(n => n.id));
+const validNodes = resolvedNodes.filter(n => {
   // Root node (no parent) is always valid
   if (!n.parentId) return true;
   // Node with existing parent is valid
@@ -96,10 +95,11 @@ const root = d3.stratify<SimNode>()
   .parentId(d => d.parentId)
   (validNodes);
 
-    // Use nodeSize for dynamic sizing instead of fixed box
-    // [vertical_spacing, horizontal_spacing]
+    const isVertical = layoutDirection === 'vertical';
+
+    // nodeSize: [x spacing, y spacing]
     const treeLayout = d3.tree<SimNode>()
-      .nodeSize([120, 60]);
+      .nodeSize(isVertical ? [130, 92] : [60, 120]);
 
     treeLayout(root);
 
@@ -110,11 +110,15 @@ const root = d3.stratify<SimNode>()
       .append('path')
       .attr('class', 'link')
       .attr('fill', 'none')
-      .attr('stroke', '#cbd5e1')
+      .attr('stroke', 'var(--ss-workspace-topology-link)')
       .attr('stroke-width', 2)
-      .attr('d', d3.linkVertical<any, any>()
-        .x(d => d.x)
-        .y(d => d.y)
+      .attr('d', isVertical
+        ? d3.linkVertical<any, any>()
+            .x(d => d.x)
+            .y(d => d.y)
+        : d3.linkHorizontal<any, any>()
+            .x(d => d.y)
+            .y(d => d.x)
       );
 
     // Nodes
@@ -123,35 +127,39 @@ const root = d3.stratify<SimNode>()
       .enter()
       .append('g')
       .attr('class', 'node')
-      .attr('transform', d => `translate(${d.x},${d.y})`)
+      .attr('data-node-id', d => d.data.id)
+      .attr('transform', d => isVertical ? `translate(${d.x},${d.y})` : `translate(${d.y},${d.x})`)
       .on('click', (event, d) => {
         event.stopPropagation();
-        if (isCompareMode) {
-          // If we are already in comparison mode, clicking sets the TARGET, unless we click the primary selected
-          if (d.data.id !== selectedNodeId) {
-             setCompareTarget(d.data.id);
+        const nodeId = d.data.id;
+
+        if (isCompareModeRef.current) {
+          if (nodeId !== selectedNodeIdRef.current) {
+            setCompareTarget(nodeId);
           }
-        } else {
-          selectNode(d.data.id);
+          return;
         }
+
+        selectNode(nodeId);
       });
 
     // Node Circle
     nodeGroup.append('circle')
+      .attr('class', 'node-circle')
       .attr('r', 16)
       .attr('fill', d => {
-        if (d.data.status === 'failed') return '#dc2626'; // Failed Red
-        if (d.data.id === selectedNodeId) return '#0ea5e9'; // Selected (Primary)
-        if (d.data.id === compareTargetNodeId && isCompareMode) return '#f59e0b'; // Compare Target
-        if (d.data.isLeaf) return '#0284c7'; // Leaf — deeper blue
-        return '#64748b'; // Default node — slate-500, readable with white text
+        if (d.data.status === 'failed') return 'var(--ss-workspace-node-failed)';
+        if (d.data.id === selectedNodeId) return 'var(--ss-workspace-node-selected)';
+        if (d.data.id === compareTargetNodeId && isCompareMode) return 'var(--ss-workspace-node-compare)';
+        if (d.data.isLeaf) return 'var(--ss-workspace-node-leaf)';
+        return 'var(--ss-workspace-surface-strong)';
       })
       .attr('stroke', d => {
-        if (d.data.status === 'failed') return '#ef4444'; // Failed Red
-        if (d.data.id === selectedNodeId) return '#0369a1';
-        if (d.data.id === compareTargetNodeId && isCompareMode) return '#b45309';
-        if (d.data.isLeaf) return '#0ea5e9'; // Frontier color
-        return '#94a3b8';
+        if (d.data.status === 'failed') return 'var(--ss-workspace-node-failed-stroke)';
+        if (d.data.id === selectedNodeId) return 'var(--ss-workspace-node-selected-stroke)';
+        if (d.data.id === compareTargetNodeId && isCompareMode) return 'var(--ss-workspace-node-compare-stroke)';
+        if (d.data.isLeaf) return 'var(--ss-workspace-node-leaf-stroke)';
+        return 'var(--ss-workspace-border-strong)';
       })
       .attr('stroke-width', d => {
          if (d.data.id === selectedNodeId) return 3;
@@ -165,37 +173,57 @@ const root = d3.stratify<SimNode>()
       })
       .style('cursor', isCompareMode ? 'crosshair' : 'pointer');
 
-    // Labels — positioned inside the node circle for clean readability
+    // Labels
     nodeGroup.append('text')
-      .attr('dy', 4)
-      .attr('x', 0)
-      .attr('y', 0)
-      .style('text-anchor', 'middle')
+      .attr('dy', isVertical ? 34 : 4)
+      .attr('x', d => isVertical ? 0 : (d.children ? -24 : 24))
+      .style('text-anchor', d => isVertical ? 'middle' : (d.children ? 'end' : 'start'))
       .text(d => d.data.display_id || d.data.id)
-      .attr('class', d => `text-xs font-bold pointer-events-none select-none ${d.data.status === 'failed' ? 'fill-red-100' : 'fill-white'}`)
-      .style('paint-order', 'stroke fill');
-
-    // Auto-advance highlight ring
-    if (highlightedNodeId) {
-      nodeGroup.filter(d => d.data.id === highlightedNodeId)
-        .append('circle')
-        .attr('r', 22)
-        .attr('fill', 'none')
-        .attr('stroke', '#10b981')  // emerald-500
-        .attr('stroke-width', 3)
-        .attr('opacity', 1)
-        .transition()
-        .duration(2000)
-        .attr('r', 28)
-        .attr('opacity', 0)
-        .remove();
-    }
+      .attr('class', d => `text-xs font-medium pointer-events-none select-none ${d.data.status === 'failed' ? 'fill-red-300' : 'fill-current'}`);
 
     // Initial positioning
-    const initialTransform = d3.zoomIdentity.translate(width / 2, 50).scale(1);
+    const initialTransform = isVertical
+      ? d3.zoomIdentity.translate(width / 2, 80).scale(1)
+      : d3.zoomIdentity.translate(80, height / 2).scale(1);
     svg.call(zoom.transform, initialTransform);
 
-  }, [nodes, selectedNodeId, compareTargetNodeId, selectNode, setCompareTarget, isCompareMode, i18n.language, highlightedNodeId]);
+  }, [resolvedNodes, selectNode, setCompareTarget, alwaysSelectOnClick, layoutDirection]);
+
+  useEffect(() => {
+    if (!svgRef.current) return;
+
+    svgRef.current
+      .selectAll<SVGGElement, d3.HierarchyPointNode<SimNode>>('.node')
+      .each(function updateNodeVisuals(d) {
+        const circle = d3.select(this).select<SVGCircleElement>('circle');
+
+        circle
+          .attr('fill', () => {
+            if (d.data.status === 'failed') return 'var(--ss-workspace-node-failed)';
+            if (d.data.id === selectedNodeId) return 'var(--ss-workspace-node-selected)';
+            if (d.data.id === compareTargetNodeId && isCompareMode) return 'var(--ss-workspace-node-compare)';
+            if (d.data.isLeaf) return 'var(--ss-workspace-node-leaf)';
+            return 'var(--ss-workspace-surface-strong)';
+          })
+          .attr('stroke', () => {
+            if (d.data.status === 'failed') return 'var(--ss-workspace-node-failed-stroke)';
+            if (d.data.id === selectedNodeId) return 'var(--ss-workspace-node-selected-stroke)';
+            if (d.data.id === compareTargetNodeId && isCompareMode) return 'var(--ss-workspace-node-compare-stroke)';
+            if (d.data.isLeaf) return 'var(--ss-workspace-node-leaf-stroke)';
+            return 'var(--ss-workspace-border-strong)';
+          })
+          .attr('stroke-width', () => {
+            if (d.data.id === selectedNodeId) return 3;
+            if (d.data.id === compareTargetNodeId && isCompareMode) return 3;
+            return 2;
+          })
+          .attr('stroke-dasharray', () => {
+            if (d.data.id === compareTargetNodeId && isCompareMode) return '3 2';
+            return 'none';
+          })
+          .style('cursor', isCompareMode ? 'crosshair' : 'pointer');
+      });
+  }, [selectedNodeId, compareTargetNodeId, isCompareMode]);
 
   const handleZoomIn = () => {
     if (svgRef.current && zoomRef.current) {
@@ -211,9 +239,11 @@ const root = d3.stratify<SimNode>()
 
   const handleReset = () => {
     if (svgRef.current && zoomRef.current && containerRef.current) {
-      const height = containerRef.current.clientHeight;
       const width = containerRef.current.clientWidth;
-      const initialTransform = d3.zoomIdentity.translate(width / 2, 50).scale(1);
+      const height = containerRef.current.clientHeight;
+      const initialTransform = layoutDirection === 'vertical'
+        ? d3.zoomIdentity.translate(width / 2, 80).scale(1)
+        : d3.zoomIdentity.translate(80, height / 2).scale(1);
       svgRef.current.transition().duration(500).call(zoomRef.current.transform, initialTransform);
     }
   };
@@ -221,37 +251,44 @@ const root = d3.stratify<SimNode>()
   return (
     <>
       <EnvironmentSuggestionDialogWrapper />
-      <div className={`flex flex-col h-full border rounded-lg shadow-sm overflow-hidden relative transition-colors ${isCompareMode ? 'ring-2 ring-amber-400 border-amber-300' : ''}`} style={{ background: 'var(--ss-workspace-surface)', borderColor: isCompareMode ? undefined : 'var(--ss-workspace-border)' }}>
-        <div className="flex items-center justify-between px-4 py-3 border-b z-10 relative" style={{ background: 'var(--ss-surface-strong)', borderColor: 'var(--ss-workspace-border)' }}>
-          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--ss-workspace-heading)' }}>
-            {isCompareMode ? <MousePointer2 size={16} className="text-amber-500" /> : <Move size={16} style={{ color: 'var(--ss-workspace-muted)' }} />}
+      <div className={`ss-workspace__panel ss-workspace__panel--topology h-full relative transition-colors ${isCompareMode ? 'ring-2 ring-[rgba(124,111,168,0.45)]' : ''}`}>
+        <div className="ss-workspace__panel-header z-10 relative">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--ss-workspace-heading)]">
+              {isCompareMode ? <MousePointer2 size={16} className="text-[#B7AED9]" /> : <Move size={16} className="text-[var(--ss-workspace-muted)]" />}
             {isCompareMode ? t('components.simTree.selectCompareNode') : t('components.simTree.title')}
-        </h3>
-        <div className="flex items-center gap-2">
-          <EnvironmentToggleButton />
-          <button
-            onClick={() => toggleHelpModal(true)}
-            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
-          >
-            <HelpCircle size={14} />
-            <span>{t('components.simTree.legendHelp')}</span>
-          </button>
+            </h3>
+            <div className="flex items-center gap-2">
+              <EnvironmentToggleButton />
+              <button
+                onClick={() => toggleHelpModal(true)}
+                className="inline-flex items-center gap-1 text-xs text-[var(--ss-workspace-link)] transition-colors hover:opacity-80"
+              >
+                <HelpCircle size={14} />
+                <span>{t('components.simTree.legendHelp')}</span>
+              </button>
+            </div>
+          </div>
+          <p className="ss-workspace__panel-copy mt-3">
+            {isCompareMode
+              ? t('components.simTree.clickToCompare')
+              : t('components.sidebar.overviewHint')}
+          </p>
         </div>
-      </div>
       
       {/* Zoom Controls */}
-      <div className="absolute top-14 right-4 z-10 flex flex-col gap-1 border rounded shadow-sm p-1" style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)' }}>
-        <button onClick={handleZoomIn} className="p-1.5 rounded" style={{ color: 'var(--ss-workspace-text)' }} title={t('components.simTree.zoomIn')}>
+      <div className="absolute top-20 right-4 z-10 flex flex-col gap-1 rounded-2xl border border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface-strong)] p-1 shadow-lg">
+        <button onClick={handleZoomIn} className="ss-icon-button square" title={t('components.simTree.zoomIn')}>
           <ZoomIn size={16} />
         </button>
-        <button onClick={handleZoomOut} className="p-1.5 rounded" style={{ color: 'var(--ss-workspace-text)' }} title={t('components.simTree.zoomOut')}>
+        <button onClick={handleZoomOut} className="ss-icon-button square" title={t('components.simTree.zoomOut')}>
           <ZoomOut size={16} />
         </button>
-        <div className="h-px my-0.5" style={{ background: 'var(--ss-workspace-border)' }}></div>
-        <button onClick={handleReset} className="p-1.5 rounded" style={{ color: 'var(--ss-workspace-text)' }} title={t('components.simTree.resetView')}>
+        <div className="my-0.5 h-px bg-[var(--ss-workspace-border)]"></div>
+        <button onClick={handleReset} className="ss-icon-button square" title={t('components.simTree.resetView')}>
           <Maximize size={16} />
         </button>
-        <div className="h-px my-0.5" style={{ background: 'var(--ss-workspace-border)' }}></div>
+        <div className="my-0.5 h-px bg-[var(--ss-workspace-border)]"></div>
         <button
           onClick={() => {
             if (selectedNodeId && window.confirm(t('components.simTree.confirmDelete'))) {
@@ -259,44 +296,43 @@ const root = d3.stratify<SimNode>()
             }
           }}
           disabled={!selectedNodeId}
-          className="p-1.5 hover:bg-red-50 rounded hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
-          style={{ color: 'var(--ss-workspace-text)' }}
+          className="ss-icon-button square disabled:cursor-not-allowed disabled:opacity-30"
           title={t('components.simTree.deleteNode')}
         >
           <Trash2 size={16} />
         </button>
       </div>
 
-      <div ref={containerRef} className="flex-1 overflow-hidden relative" style={{ background: 'var(--ss-surface-strong)' }} />
+      <div ref={containerRef} className="flex-1 overflow-hidden relative bg-transparent text-[var(--ss-workspace-muted)]" />
       
       {/* Legend */}
-      <div className="px-4 py-2 border-t text-xs flex gap-4 z-10 relative" style={{ background: 'var(--ss-surface-strong)', color: 'var(--ss-workspace-muted)', borderColor: 'var(--ss-workspace-border)' }}>
+      <div className="z-10 relative flex gap-4 border-t border-[var(--ss-workspace-border)] bg-[var(--ss-workspace-surface-alt)] px-4 py-3 text-xs text-[var(--ss-workspace-muted)]">
         {isCompareMode ? (
           <>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+              <div className="w-3 h-3 rounded-full bg-[var(--ss-workspace-node-selected)]"></div>
               <span>{t('components.simTree.baseline')}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-amber-500 border-dashed border-2 border-white"></div>
+              <div className="w-3 h-3 rounded-full bg-[var(--ss-workspace-node-compare)] border border-dashed border-[var(--ss-workspace-node-compare-stroke)]"></div>
               <span>{t('components.simTree.compare')}</span>
             </div>
-            <div className="ml-auto text-amber-600 font-medium">
+            <div className="ml-auto font-medium text-[#B7AED9]">
                {t('components.simTree.clickToCompare')}
             </div>
           </>
         ) : (
           <>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full border-2 border-brand-500 bg-brand-100"></div>
+              <div className="w-3 h-3 rounded-full border border-[var(--ss-workspace-node-leaf-stroke)] bg-[var(--ss-workspace-node-leaf)]"></div>
               <span>{t('components.simTree.frontier')}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-brand-500"></div>
+              <div className="w-3 h-3 rounded-full bg-[var(--ss-workspace-node-selected)]"></div>
               <span>{t('components.simTree.selected')}</span>
             </div>
              <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-100 border-2 border-red-500"></div>
+              <div className="w-3 h-3 rounded-full border border-[var(--ss-workspace-node-failed-stroke)] bg-[var(--ss-workspace-node-failed)]"></div>
               <span>{t('components.simTree.failed')}</span>
             </div>
           </>

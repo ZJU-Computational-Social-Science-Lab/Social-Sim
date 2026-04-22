@@ -11,6 +11,11 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import * as Widgets from './parameter_widgets';
 
+export interface ParameterOption {
+  value: string;
+  label: string;
+}
+
 export interface ScenarioParam {
   type: 'integer' | 'string' | 'boolean' | 'array';
   default: any;
@@ -18,7 +23,7 @@ export interface ScenarioParam {
   min?: number;
   max?: number;
   step?: number;
-  options?: string[];
+  options?: Array<string | ParameterOption>;
   placeholder?: string;
 }
 
@@ -43,16 +48,6 @@ export default function ParameterField({
     case 'slider':
       return (
         <Widgets.SliderField
-          {...commonProps}
-          min={param.min ?? 0}
-          max={param.max ?? 100}
-          step={param.step ?? 1}
-        />
-      );
-
-    case 'number':
-      return (
-        <Widgets.NumberField
           {...commonProps}
           min={param.min ?? 0}
           max={param.max ?? 100}

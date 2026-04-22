@@ -30,9 +30,9 @@ export const AgentPanel: React.FC = () => {
   const virtualizer = useVirtualizer({
     count: filteredAgents.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 60,
+    estimateSize: () => 108,
     overscan: 5,
-    measureElement: (el) => el?.getBoundingClientRect().height ?? 60,
+    measureElement: (el) => el?.getBoundingClientRect().height ?? 108,
   });
 
   return (
@@ -45,7 +45,7 @@ export const AgentPanel: React.FC = () => {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('components.agentPanel.searchPlaceholder')}
+            placeholder={t('components.agentPanel.searchPlaceholder', { defaultValue: '搜索智能体、角色或模型…' })}
             className="flex-1 bg-transparent text-sm outline-none"
             style={{ color: 'var(--ss-workspace-heading)' }}
           />

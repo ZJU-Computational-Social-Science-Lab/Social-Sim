@@ -61,10 +61,11 @@ vi.mock('../services/simulationTree', () => ({
     root: 0,
     nodes: [{ id: 0, depth: 0, status: 'completed' }],
     edges: [],
-    running: new Set()
+    running: []
   })),
-  treeAdvanceChain: vi.fn(() => Promise.resolve({ node_id: 1 })),
-  treeBranchPublic: vi.fn(() => Promise.resolve({ node_id: 2 })),
+  treeAdvanceChain: vi.fn(() => Promise.resolve({ child: 1 })),
+  treeBranch: vi.fn(() => Promise.resolve({ child: 2 })),
+  treeBranchPublic: vi.fn(() => Promise.resolve({ child: 2 })),
   getSimEvents: vi.fn(() => Promise.resolve([])),
   treeDeleteSubtree: vi.fn(() => Promise.resolve())
 }));

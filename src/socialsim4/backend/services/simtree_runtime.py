@@ -59,8 +59,6 @@ class SimTreeRecord:
         self.running: set[int] = set()
         # Track which suggestion intervals have been viewed (to avoid re-showing)
         self._suggestions_viewed_intervals: set[int] = set()
-        # Prevents two concurrent advance_chain operations on the same simulation
-        self._advance_lock: asyncio.Lock = asyncio.Lock()
 
     def replace_tree(self, tree: SimTree) -> None:
         self.tree = tree

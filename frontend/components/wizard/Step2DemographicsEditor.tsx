@@ -77,7 +77,7 @@ export interface Step2DemographicsEditorProps {
   availableProviders?: Provider[];  // Providers from parent
   providersLoading?: boolean;       // Loading state from parent
   useTranslation?: boolean; // If true, use t() function for labels
-  t?: (key: string) => string;
+  t?: (key: string, options?: Record<string, unknown>) => string;
 }
 
 // =============================================================================
@@ -87,24 +87,30 @@ export interface Step2DemographicsEditorProps {
 interface Step2AgentsPreviewProps {
   agents: Agent[];
   onClear: () => void;
-  t?: (key: string) => string;
+  t?: (key: string, options?: Record<string, unknown>) => string;
 }
 
 const Step2AgentsPreview: React.FC<Step2AgentsPreviewProps> = ({ agents, onClear, t }) => {
-  const getText = (key: string, fallback: string) => t?.(key) || fallback;
+  const getText = (key: string, fallback: string, options?: Record<string, unknown>) => {
+    const translated = t?.(key, options);
+    if (!translated || translated === key) {
+      return fallback.replace(/\{\{\s*(\w+)\s*\}\}/g, (_match, token) => String(options?.[token] ?? ''));
+    }
+    return translated;
+  };
 
   return (
     <div className="rounded-lg p-4" style={{ border: '1px solid var(--ss-border)', background: 'var(--ss-page-surface-muted)' }}>
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-sm font-bold" style={{ color: 'var(--ss-heading)' }}>
-          {getText('wizard.step2.generatedAgents', 'Generated Agents')} ({agents.length})
+          {getText('wizard.step2.generatedAgents', 'Generated {{count}} agents', { count: agents.length })}
         </h4>
         <button
           onClick={onClear}
           className="text-xs px-2 py-1 rounded"
           style={{ background: 'var(--ss-danger-soft)', color: 'var(--ss-danger)' }}
         >
-          {getText('wizard.step2.clear', 'Clear')}
+          {getText('wizard.step2.clearReset', 'Clear & Reset')}
         </button>
       </div>
       <div className="max-h-48 overflow-y-auto space-y-2">
@@ -169,7 +175,18 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
   useTranslation = false,
   t,
 }) => {
-  const getText = (key: string, fallback: string) => (useTranslation && t ? t(key) : fallback);
+  const getText = (key: string, fallback: string, options?: Record<string, unknown>) => {
+    if (!(useTranslation && t)) {
+      return fallback.replace(/\{\{\s*(\w+)\s*\}\}/g, (_match, token) => String(options?.[token] ?? ''));
+    }
+
+    const translated = t(key, options);
+    if (!translated || translated === key) {
+      return fallback.replace(/\{\{\s*(\w+)\s*\}\}/g, (_match, token) => String(options?.[token] ?? ''));
+    }
+
+    return translated;
+  };
 
   // Use providers from props (managed by parent)
   const availableProviders = propAvailableProviders;
@@ -465,7 +482,7 @@ export const Step2DemographicsEditor: React.FC<Step2DemographicsEditorProps> = (
                     {isLlmDistributionValid ? (
                       <span>{getText('wizard.llmDistribution.totalValid', 'Total: 100% ✓')}</span>
                     ) : (
-                      <span>{getText('wizard.llmDistribution.mustEqual100', `Total must equal 100% (currently ${totalPercentage}%)`)}</span>
+                      <span>{getText('wizard.llmDistribution.mustEqual100', 'Total must equal 100% (currently {{count}}%)', { count: totalPercentage })}</span>
                     )}
                   </div>
                   {llmAllocations && llmAllocations.length > 0 && (
