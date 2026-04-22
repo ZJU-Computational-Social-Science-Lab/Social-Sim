@@ -28,7 +28,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
             <div className="ss-auth__brand-mark">
               <Atom size={18} />
             </div>
-            <span className="ss-auth__brand-link">SocialSim4</span>
+            <span className="ss-auth__brand-link">FOS</span>
           </Link>
 
           <div className="ss-auth__topbar-controls">

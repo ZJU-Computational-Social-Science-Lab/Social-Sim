@@ -26,9 +26,9 @@ function virtualDocsPlugin(): Plugin {
             sections: [
               {
                 id: "overview",
-                title: "SocialSim4 文档占位",
+                title: "FOS 文档占位",
                 lang: "zh",
-                html: "<h1>SocialSim4 文档</h1><p>这里是占位内容，说明 virtual:docs 已经正常工作。</p>"
+                html: "<h1>FOS 文档</h1><p>这里是占位内容，说明 virtual:docs 已经正常工作。</p>"
               }
             ]
           };
