@@ -51,6 +51,7 @@ const SimulationPage: React.FC = () => {
   const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null);
   const [isBranchComposerOpen, setIsBranchComposerOpen] = React.useState(false);
   const [detailTab, setDetailTab] = React.useState<NodeDetailTab>("events");
+  const hasActiveSimulation = Boolean(currentSimulation?.id);
 
   const selectedNode = React.useMemo(
     () => nodes.find((node) => node.id === selectedNodeId) || nodes[0] || null,
@@ -59,6 +60,11 @@ const SimulationPage: React.FC = () => {
 
   React.useEffect(() => {
     if (!isNewExperimentRoute) return;
+
+    if (hasActiveSimulation) {
+      navigate(`/simulations/${currentSimulation?.id}`, { replace: true });
+      return;
+    }
 
     useSimulationStore.setState({
       currentSimulation: null,
@@ -70,7 +76,7 @@ const SimulationPage: React.FC = () => {
     } as any);
     setHasSubmittedSetup(false);
     setSelectedAgentId(null);
-  }, [isNewExperimentRoute]);
+  }, [currentSimulation?.id, hasActiveSimulation, isNewExperimentRoute, navigate]);
 
   React.useEffect(() => {
     if (!isNewExperimentRoute) return;
@@ -581,7 +587,7 @@ const SimulationPage: React.FC = () => {
     compareTargetNodeId,
   ]);
 
-  const showSetupStudio = isNewExperimentRoute;
+  const showSetupStudio = isNewExperimentRoute && !hasActiveSimulation;
   const showLoadingState = Boolean(simIdParam) && !currentSimulation;
 
   if (showSetupStudio) {

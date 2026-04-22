@@ -29,6 +29,9 @@ const AdminPage = lazy(() =>
 const DocsPage = lazy(() =>
   import("./pages/DocsPage").then((m) => ({ default: m.DocsPage }))
 );
+const CreateExperimentPage = lazy(() =>
+  import("./pages/CreateExperimentPage").then((m) => ({ default: m.CreateExperimentPage }))
+);
 
 // 新前端的仿真主界面（你已经把原来的 App 改名为 SimulationPage.tsx，并 default export）
 import SimulationPage from "./pages/SimulationPage";
@@ -94,6 +97,17 @@ const App: React.FC = () => {
         />
 
         {/* SimulationPage 有自己的全屏布局，不需要 Layout 包裹 */}
+        <Route
+          path="/simulations/create"
+          element={
+            <RequireAuth>
+              <Layout navVariant="product">
+                <CreateExperimentPage />
+              </Layout>
+            </RequireAuth>
+          }
+        />
+
         <Route
           path="/simulations/new/*"
           element={

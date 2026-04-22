@@ -11,10 +11,12 @@
     "back": "Back",
     "previous": "Previous"
   },
-  "brand": "SocialSim4",
+  "brand": "FOS",
   "nav": {
     "dashboard": "Dashboard",
-    "new": "New",
+    "create": "Create Experiment",
+    "workbench": "Workbench",
+    "new": "Workbench",
     "saved": "Saved",
     "settings": "Settings",
     "docs": "Docs",
@@ -270,7 +272,7 @@
       "placeholder": "Two-factor authentication and password reset flows will appear here.",
       "sessionsTitle": "Session control",
       "controlTitle": "Access posture",
-      "controlHint": "This workspace still uses the real SocialSim4 auth session and token refresh behavior."
+      "controlHint": "This workspace still uses the real FOS auth session and token refresh behavior."
     },
     "providers": {
       "title": "Provider integrations",
@@ -697,7 +699,7 @@
       "line1": "Return to the",
       "line2": "research workspace",
       "accent": "for branching, observation, and intervention",
-      "copy": "Continue where your scenarios, branches, and role observation left off inside the SocialSim4 research shell.",
+      "copy": "Continue where your scenarios, branches, and role observation left off inside the FOS research shell.",
       "tag1": "Configure scenarios",
       "tag2": "Branch timelines",
       "tag3": "Observe roles",
@@ -965,11 +967,11 @@
   },
   "simPage": {
     "noSimulation": "No simulation selected",
-    "engineConnected": "SocialSim4 Engine",
+    "engineConnected": "FOS Engine",
     "engineStandalone": "Standalone mode",
     "newSimulation": "New simulation",
     "connectedTo": "Connected to {{endpoint}}",
-    "socialSim4Engine": "SocialSim4 Engine",
+    "socialSim4Engine": "FOS Engine",
     "networkTopology": "Social Network Topology",
     "globalKnowledge": "Global Knowledge Base",
     "timeSettings": "Adjust Time Flow",
@@ -1178,7 +1180,7 @@
       "confirmExport": "Confirm Export"
     },
     "guidePrompt": {
-      "systemPrompt": "You are the expert guide for \"SocialSim4 Next\", a social simulation platform.\n     Your goal is to help users design experiments and navigate the platform features.\n     \n     PLATFORM CAPABILITIES MAP:\n     1. **New Simulation**: 'SimulationWizard' (Create sim from templates like Village/Council/Werewolf, Import Agents, AI Generate Agents).\n     2. **Social Network**: 'NetworkEditor' (Define topology like Ring/Star/Small World to control information flow).\n     3. **Experiment Design**: 'ExperimentDesigner' (Causal inference, AB testing, parallel branches, control groups).\n     4. **Host Control**: 'HostPanel' (God mode, broadcast messages, inject environment events, modify agent properties).\n     5. **Analytics**: 'AnalyticsPanel' (Line charts for agent properties like Trust/Stress over time).\n     6. **Export**: 'ExportModal' (Download logs as JSON/CSV/Excel).\n     7. **Reports**: 'ReportModal' (AI-generated analysis reports).\n     8. **SimTree**: The main visualization. Supports 'Branching' (create parallel timeline) and 'Advancing' (next round).\n     9. **Comparison**: 'ComparisonView' (Diff two nodes/timelines).\n\n     INSTRUCTIONS:\n     - Analyze the user's intent.\n     - Provide a concise, step-by-step guide mapping their goal to specific Platform Tools.\n     - If the user needs to OPEN a specific tool, append a tag at the end of your response in the format: [[ACTION_NAME]].\n     - Supported Tags: [[OPEN_WIZARD]], [[OPEN_NETWORK]], [[OPEN_EXPERIMENT]], [[OPEN_EXPORT]], [[OPEN_ANALYTICS]], [[OPEN_HOST]].\n     - You can include multiple tags if relevant, but prioritize the most important one.\n     - Use Markdown for formatting.",
+      "systemPrompt": "You are the expert guide for \"FOS\", a social simulation platform.\n     Your goal is to help users design experiments and navigate the platform features.\n     \n     PLATFORM CAPABILITIES MAP:\n     1. **New Simulation**: 'SimulationWizard' (Create sim from templates like Village/Council/Werewolf, Import Agents, AI Generate Agents).\n     2. **Social Network**: 'NetworkEditor' (Define topology like Ring/Star/Small World to control information flow).\n     3. **Experiment Design**: 'ExperimentDesigner' (Causal inference, AB testing, parallel branches, control groups).\n     4. **Host Control**: 'HostPanel' (God mode, broadcast messages, inject environment events, modify agent properties).\n     5. **Analytics**: 'AnalyticsPanel' (Line charts for agent properties like Trust/Stress over time).\n     6. **Export**: 'ExportModal' (Download logs as JSON/CSV/Excel).\n     7. **Reports**: 'ReportModal' (AI-generated analysis reports).\n     8. **SimTree**: The main visualization. Supports 'Branching' (create parallel timeline) and 'Advancing' (next round).\n     9. **Comparison**: 'ComparisonView' (Diff two nodes/timelines).\n\n     INSTRUCTIONS:\n     - Analyze the user's intent.\n     - Provide a concise, step-by-step guide mapping their goal to specific Platform Tools.\n     - If the user needs to OPEN a specific tool, append a tag at the end of your response in the format: [[ACTION_NAME]].\n     - Supported Tags: [[OPEN_WIZARD]], [[OPEN_NETWORK]], [[OPEN_EXPERIMENT]], [[OPEN_EXPORT]], [[OPEN_ANALYTICS]], [[OPEN_HOST]].\n     - You can include multiple tags if relevant, but prioritize the most important one.\n     - Use Markdown for formatting.",
       "defaultResponse": "Sorry, I cannot understand your request.",
       "connectionTimeout": "AI service connection timeout, please try again later."
     },
@@ -1586,7 +1588,7 @@
     "interactionOccurred": "An interaction occurred",
     "node": "Node",
     "defaultSimulationName": "2024 Village Committee Simulation",
-    "guideWelcomeMessage": "Hello! I am SocialSim4's intelligent guide assistant. I can help you design experiments, recommend features, or explain platform operations. For example, you can ask me:\n\n- \"How to simulate information propagation in a crowd?\"\n- \"I want to run an AB test experiment.\"\n- \"How to export analysis reports?\"",
+    "guideWelcomeMessage": "Hello! I am FOS's intelligent guide assistant. I can help you design experiments, recommend features, or explain platform operations. For example, you can ask me:\n\n- \"How to simulate information propagation in a crowd?\"\n- \"I want to run an AB test experiment.\"\n- \"How to export analysis reports?\"",
     "simulationCreated": "Simulation \"{{name}}\" created",
     "failedToCreateSimulation": "Failed to create simulation via backend",
     "initialState": "Initial state",

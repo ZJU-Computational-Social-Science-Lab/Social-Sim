@@ -9,11 +9,11 @@ import {
   Map as MapIcon,
   Moon,
   MousePointer2,
-  Orbit,
   Search,
   Sun,
   Trash2,
 } from "lucide-react";
+import { BrandLogo } from "../components/BrandLogo";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { SimTree } from "../components/SimTree";
 import { ToastContainer } from "../components/Toast";
@@ -256,25 +256,21 @@ const TopologyExplorerPage: React.FC = () => {
         <div className="ss-workspace__topbar">
           <div className="flex flex-wrap items-center gap-4">
             <div className="ss-workspace__brand">
-              <div className="ss-workspace__brand-mark">
-                <Orbit size={18} />
-              </div>
-              <div>
-                <div className="text-sm font-semibold tracking-tight text-[var(--ss-workspace-heading)]">
-                  SocialSim4
-                </div>
-                <div className="text-[11px] uppercase tracking-[0.16em] text-[var(--ss-workspace-muted)]">
-                  {t("topologyExplorer.topologyExplorer")}
-                </div>
-              </div>
+              <BrandLogo
+                subtitle={t("topologyExplorer.topologyExplorer")}
+                titleClassName="text-sm font-semibold tracking-tight text-[var(--ss-workspace-heading)]"
+              />
             </div>
 
             <nav className="ss-workspace__nav">
               <Link to="/dashboard" className="ss-workspace__nav-link">
                 {t("nav.dashboard")}
               </Link>
+              <Link to="/simulations/create" className="ss-workspace__nav-link">
+                {t("nav.create")}
+              </Link>
               <Link to="/simulations/new" className="ss-workspace__nav-link">
-                {t("nav.new")}
+                {t("nav.workbench")}
               </Link>
               <Link to="/simulations/saved" className="ss-workspace__nav-link">
                 {t("nav.saved")}

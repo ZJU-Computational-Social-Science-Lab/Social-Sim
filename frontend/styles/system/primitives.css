@@ -428,7 +428,73 @@
     gap: 1rem;
   }
 
+  .brand-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.72rem;
+    min-width: 0;
+  }
+
+  .brand-logo--stacked {
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.45rem;
+    text-align: center;
+  }
+
+  .brand-logo__mark {
+    display: inline-flex;
+    width: 2.7rem;
+    height: 2.7rem;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--ss-brand-primary) 20%, var(--ss-border));
+    background: color-mix(in srgb, var(--ss-brand-soft) 76%, var(--ss-page-surface) 24%);
+    color: var(--ss-brand-primary);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.65),
+      0 10px 24px rgba(212, 162, 78, 0.16);
+  }
+
+  .brand-logo--stacked .brand-logo__mark {
+    width: 2.95rem;
+    height: 2.95rem;
+  }
+
+  .brand-logo__text {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    line-height: 1.05;
+  }
+
+  .brand-logo__title {
+    font-family: var(--font-display);
+    font-size: 1.12rem;
+    font-weight: 750;
+    letter-spacing: -0.045em;
+    color: var(--ss-heading);
+  }
+
+  .brand-logo__subtitle {
+    margin-top: 0.16rem;
+    color: var(--ss-text-muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .brand-logo--stacked .brand-logo__subtitle {
+    white-space: normal;
+  }
+
   .nav-brand {
+    display: inline-flex;
+    align-items: center;
     font-family: var(--font-display);
     font-size: 1.12rem;
     font-weight: 650;
@@ -570,7 +636,17 @@
     font-size: 1.04rem;
     font-weight: 750;
     letter-spacing: -0.06em;
+  }
+
+  .nav--product .nav-brand .brand-logo__title {
+    color: var(--ss-brand-primary);
+    font-size: 1.04rem;
     text-transform: uppercase;
+  }
+
+  .nav--product .nav-brand .brand-logo__mark {
+    width: 2.45rem;
+    height: 2.45rem;
   }
 
   .nav--product .nav-links {

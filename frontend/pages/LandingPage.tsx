@@ -15,6 +15,7 @@ import {
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useThemeStore } from "../store/theme";
+import { resolveStaticAssetPath } from "../utils/assets";
 
 export function LandingPage() {
   const { t } = useTranslation();
@@ -230,8 +231,8 @@ export function LandingPage() {
           <div className="ss-landing__preview-grid">
             <Link to="/simulations/new" className="ss-landing__preview-stage">
               <img
-                src="/tutorial/05-simulation-view.png"
-                alt="SocialSim4 simulation interface preview"
+                src={resolveStaticAssetPath("tutorial/05-simulation-view.png")}
+                alt="FOS simulation interface preview"
                 className="ss-landing__preview-image"
               />
 
@@ -293,8 +294,8 @@ export function LandingPage() {
 
               <div className="ss-landing__capability-media">
                 <img
-                  src="/tutorial/07-experiment-design.png"
-                  alt="SocialSim4 experiment design interface"
+                  src={resolveStaticAssetPath("tutorial/07-experiment-design.png")}
+                  alt="FOS experiment design interface"
                   className="ss-landing__capability-image"
                 />
               </div>

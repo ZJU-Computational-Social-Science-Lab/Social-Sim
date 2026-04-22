@@ -1,11 +1,12 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowUpLeft, Eye, GitCompareArrows, GitFork, LogOut, Moon, MoreHorizontal, Orbit, Play, Settings, Sun } from "lucide-react";
+import { ArrowUpLeft, Eye, GitCompareArrows, GitFork, LogOut, Moon, MoreHorizontal, Play, Settings, Sun } from "lucide-react";
 
 import { useSimulationStore } from "../../store";
 import { useAuthStore } from "../../store/auth";
 import { useThemeStore } from "../../store/theme";
+import { BrandLogo } from "../BrandLogo";
 import { LanguageSwitcher } from "../LanguageSwitcher";
 import { getWorkspaceNodeLabel } from "./workspaceLabels";
 
@@ -23,7 +24,7 @@ interface TopControlBarProps {
 
 const NAV_ITEMS = [
   { to: "/dashboard", labelKey: "nav.dashboard" },
-  { to: "/simulations/new", labelKey: "nav.new" },
+  { to: "/simulations/create", labelKey: "nav.create" },
   { to: "/simulations/saved", labelKey: "nav.saved" },
   { to: "/settings", labelKey: "nav.settings" },
 ];
@@ -74,25 +75,28 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   const providerLabel = selectedProvider
     ? `${selectedProvider.name || selectedProvider.provider}${selectedProvider.model ? ` · ${selectedProvider.model}` : ""}`
     : t("simulationWorkspace.noProvider");
+  const workbenchPath = currentSimulation?.id ? `/simulations/${currentSimulation.id}` : "/simulations/new";
+  const navItems = React.useMemo(
+    () => [
+      NAV_ITEMS[0],
+      NAV_ITEMS[1],
+      { to: workbenchPath, labelKey: "nav.workbench" },
+      NAV_ITEMS[2],
+      NAV_ITEMS[3],
+    ],
+    [workbenchPath],
+  );
 
   return (
     <header className="ss-top-control-bar">
       <div className="ss-top-control-bar__row">
         <div className="ss-top-control-bar__brand-group">
           <div className="ss-top-control-bar__brand">
-            <div className="ss-top-control-bar__brand-mark">
-              <Orbit size={18} />
-            </div>
-            <div>
-              <div className="ss-top-control-bar__brand-title">{t("brand")}</div>
-              <div className="ss-top-control-bar__brand-subtitle">
-                {isZh ? "实验控制台" : "Simulation Control Room"}
-              </div>
-            </div>
+            <BrandLogo subtitle={isZh ? "实验控制台" : "Simulation Control Room"} />
           </div>
 
           <nav className="ss-top-control-bar__nav" aria-label={isZh ? "一级导航" : "Primary"}>
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const isActive = location.pathname.startsWith(item.to);
               return (
                 <Link

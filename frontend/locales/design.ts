@@ -15,7 +15,9 @@ export const zhDesign = {
     autosave: "自动保存",
   },
   nav: {
-    new: "新建实验",
+    create: "新建实验",
+    workbench: "实验台",
+    new: "实验台",
   },
   dashboardDesk: {
     eyebrow: "研究工作台",
@@ -478,7 +480,9 @@ export const enDesign = {
     autosave: "Autosave",
   },
   nav: {
-    new: "New experiment",
+    create: "Create experiment",
+    workbench: "Workbench",
+    new: "Workbench",
   },
   dashboardDesk: {
     eyebrow: "Research Workbench",

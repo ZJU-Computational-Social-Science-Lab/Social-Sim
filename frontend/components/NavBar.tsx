@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { Menu, MoonStar, SunMedium, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { BrandLogo } from "./BrandLogo";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { useSimulationStore } from "../store";
 import { useAuthStore } from "../store/auth";
 import { useThemeStore } from "../store/theme";
 
@@ -18,15 +20,18 @@ export function NavBar({ variant = "default" }: { variant?: NavBarVariant }) {
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const clearSession = useAuthStore((s) => s.clearSession);
+  const currentSimulation = useSimulationStore((s) => s.currentSimulation);
 
   const mode = useThemeStore((s) => s.mode);
   const toggle = useThemeStore((s) => s.toggle);
 
+  const workbenchPath = currentSimulation?.id ? `/simulations/${currentSimulation.id}` : "/simulations/new";
   const isProduct = variant === "product";
   const isAdmin = String(user?.role ?? "") === "admin";
   const navItems = [
     { to: "/dashboard", label: t("nav.dashboard") },
-    { to: "/simulations/new", label: t("nav.new") },
+    { to: "/simulations/create", label: t("nav.create") },
+    { to: workbenchPath, label: t("nav.workbench") },
     { to: "/simulations/saved", label: t("nav.saved") },
     { to: "/settings/providers", label: t("nav.settings") },
     { to: "/docs", label: t("nav.docs") || "Docs" },
@@ -83,7 +88,7 @@ export function NavBar({ variant = "default" }: { variant?: NavBarVariant }) {
       <div className="nav-shell">
         <div className="nav-left">
           <Link to="/" className="nav-brand">
-            {t("brand")}
+            <BrandLogo />
           </Link>
 
           <div className="nav-links nav-links--desktop">
