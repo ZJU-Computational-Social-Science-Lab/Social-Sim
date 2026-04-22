@@ -26,6 +26,8 @@ export interface UISlice {
   globalKnowledgeOpen: boolean;
   isInitialEventsOpen: boolean;
   isSyncModalOpen: boolean;
+  isSnapshotModalOpen: boolean;
+  isTreeOpsModalOpen: boolean;
 
   // Loading states
   isGenerating: boolean;
@@ -57,6 +59,10 @@ export interface UISlice {
   toggleInitialEvents: (isOpen: boolean) => void;
   openSyncModal: () => void;
   closeSyncModal: () => void;
+  openSnapshotModal: () => void;
+  closeSnapshotModal: () => void;
+  openTreeOpsModal: () => void;
+  closeTreeOpsModal: () => void;
   syncCurrentSimulation: () => Promise<void>;
 
   // Notification actions
@@ -95,6 +101,8 @@ export const createUISlice: StateCreator<
   globalKnowledgeOpen: false,
   isInitialEventsOpen: false,
   isSyncModalOpen: false,
+  isSnapshotModalOpen: false,
+  isTreeOpsModalOpen: false,
   isGenerating: false,
   isGeneratingReport: false,
   isSyncing: false,
@@ -147,6 +155,14 @@ export const createUISlice: StateCreator<
   openSyncModal: () => set({ isSyncModalOpen: true, syncLogs: [] }),
 
   closeSyncModal: () => set({ isSyncModalOpen: false, isSyncing: false }),
+
+  openSnapshotModal: () => set({ isSnapshotModalOpen: true }),
+
+  closeSnapshotModal: () => set({ isSnapshotModalOpen: false }),
+
+  openTreeOpsModal: () => set({ isTreeOpsModalOpen: true }),
+
+  closeTreeOpsModal: () => set({ isTreeOpsModalOpen: false }),
 
   syncCurrentSimulation: async () => {
     set({ isSyncing: true, syncLogs: ['Starting sync...'] });

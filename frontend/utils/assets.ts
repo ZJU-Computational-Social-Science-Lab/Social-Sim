@@ -7,6 +7,23 @@ const normalizedBaseUrl =
       ? rawBaseUrl
       : `${rawBaseUrl}/`;
 
+const tutorialAssetModules = import.meta.glob("../assets/tutorial/*.{png,jpg,jpeg,gif,webp,svg,mp4,webm}", {
+  eager: true,
+  import: "default",
+}) as Record<string, string>;
+
+const tutorialAssetMap = Object.entries(tutorialAssetModules).reduce<Record<string, string>>((map, [modulePath, assetUrl]) => {
+  const [, tutorialRelativePath = ""] = modulePath.split("/assets/tutorial/");
+
+  if (!tutorialRelativePath) {
+    return map;
+  }
+
+  map[`tutorial/${tutorialRelativePath}`] = assetUrl;
+  map[`/tutorial/${tutorialRelativePath}`] = assetUrl;
+  return map;
+}, {});
+
 export function resolveStaticAssetPath(path: string) {
   if (!path) {
     return path;
@@ -20,8 +37,15 @@ export function resolveStaticAssetPath(path: string) {
     return path;
   }
 
-  if (path.startsWith("/tutorial/") || path.startsWith("tutorial/")) {
-    const relativePath = path.replace(/^\/+/, "");
+  const [cleanPath, suffix = ""] = path.split(/([?#].*)/, 2);
+  const bundledTutorialAssetUrl = tutorialAssetMap[cleanPath];
+
+  if (bundledTutorialAssetUrl) {
+    return `${bundledTutorialAssetUrl}${suffix}`;
+  }
+
+  if (cleanPath.startsWith("/tutorial/") || cleanPath.startsWith("tutorial/")) {
+    const relativePath = cleanPath.replace(/^\/+/, "");
     return `${normalizedBaseUrl}${relativePath}`;
   }
 

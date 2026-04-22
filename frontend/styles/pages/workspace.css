@@ -5467,8 +5467,15 @@
   .ss-node-detail__viewer {
     display: flex;
     min-height: 0;
+    min-width: 0;
     flex: 1;
     overflow: hidden;
+  }
+
+  .ss-node-detail__viewer > * {
+    min-width: 0;
+    height: 100%;
+    flex: 1 1 auto;
   }
 
   .ss-node-detail__grid {

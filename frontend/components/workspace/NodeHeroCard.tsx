@@ -14,7 +14,6 @@ export const NodeHeroCard: React.FC<NodeHeroCardProps> = ({ observationMode }) =
   const nodes = useSimulationStore((state) => state.nodes);
   const selectedNodeId = useSimulationStore((state) => state.selectedNodeId);
   const currentSimulation = useSimulationStore((state) => state.currentSimulation);
-  const engineConfig = useSimulationStore((state) => state.engineConfig);
   const llmProviders = useSimulationStore((state) => state.llmProviders);
   const selectedProviderId = useSimulationStore((state) => state.selectedProviderId);
   const currentProviderId = useSimulationStore((state) => state.currentProviderId);
@@ -114,11 +113,7 @@ export const NodeHeroCard: React.FC<NodeHeroCardProps> = ({ observationMode }) =
               ? `${selectedProvider.name || selectedProvider.provider}${selectedProvider.model ? ` · ${selectedProvider.model}` : ""}`
               : t("simulationWorkspace.noProvider")}
           </strong>
-          <p>
-            {engineConfig.mode === "connected"
-              ? t("simPage.socialSim4Engine")
-              : t("simPage.standaloneMode")}
-          </p>
+          <p>{t("simPage.socialSim4Engine")}</p>
         </div>
         <div className="ss-node-hero__meta-card">
           <span>{t("controlRoom.branchRelations")}</span>

@@ -96,12 +96,11 @@ const TopologyExplorerPage: React.FC = () => {
 
   React.useEffect(() => {
     if (!simIdParam) return;
-    if (engineConfig.mode === "connected" && (!hasRestored || !isAuthenticated)) return;
+    if (!hasRestored || !isAuthenticated) return;
     if (currentSimulation && String(currentSimulation.id) === String(simIdParam) && nodes.length > 0) return;
     void loadSimulationById(String(simIdParam));
   }, [
     currentSimulation,
-    engineConfig.mode,
     hasRestored,
     isAuthenticated,
     loadSimulationById,

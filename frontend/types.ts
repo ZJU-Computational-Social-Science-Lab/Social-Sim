@@ -26,11 +26,7 @@ export interface UploadedAsset {
   extracted_text?: string | null;
 }
 
-// # Integration: Platform Connection Status
-export type EngineMode = 'standalone' | 'connected';
-
 export interface EngineConfig {
-  mode: EngineMode;
   endpoint: string; // e.g., "http://localhost:8000/api"
   status: 'disconnected' | 'connecting' | 'connected' | 'error';
   latency?: number;
@@ -76,6 +72,7 @@ export interface LogEntry {
   type: 'SYSTEM' | 'AGENT_ACTION' | 'AGENT_SAY' | 'ENVIRONMENT' | 'HOST_INTERVENTION' | 'AGENT_METADATA';
   agentId?: string;
   content: string;
+  actionLabel?: string;
   structuredData?: {
     kind: 'policy_diff';
     title: string;
@@ -132,6 +129,20 @@ export interface SimulationReport {
   agentAnalysis: { agentName: string; analysis: string }[];
   suggestions: string[];
   roundStats?: { round: number; actions: number; errors: number; broadcasts: number }[];
+  benchmarkComparison?: {
+    armId: string;
+    armLabel: string;
+    sampleSize: number;
+    items: {
+      key: string;
+      label: string;
+      benchmarkMean: number;
+      simulatedValue: number;
+      delta: number;
+      interpretation: string;
+    }[];
+    possibleDrivers: string[];
+  };
 }
 
 // #20 Template System

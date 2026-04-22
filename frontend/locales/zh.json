@@ -5,6 +5,7 @@
     "show": "显示",
     "yes": "是",
     "no": "否",
+    "agents": "智能体",
     "none": "（无）",
     "cancel": "取消",
     "next": "下一步",
@@ -967,7 +968,6 @@
   "simPage": {
     "noSimulation": "未选择仿真",
     "engineConnected": "FOS 引擎",
-    "engineStandalone": "独立模式",
     "newSimulation": "新建仿真",
     "connectedTo": "已连接到 {{endpoint}}",
     "socialSim4Engine": "FOS 引擎",
@@ -1017,6 +1017,9 @@
     "stop": "停止",
     "enterSteps": "输入步数",
     "advancingProgress": "第 {{current}} 步，共 {{total}} 步",
+    "autoAdvanceStopped": "自动推进停止于第 {{current}} 步（共 {{total}} 步）",
+    "autoAdvanceError": "自动推进错误：{{error}}",
+    "autoAdvanceComplete": "自动推进完成 {{count}} 步",
     "tabs": {
       "timeline": "时间线",
       "agents": "智能体"
@@ -1760,8 +1763,23 @@
     "experimentSubmitted": "实验「{{name}}」已提交到后端运行（run_id={{runId}}）",
     "experimentCompleted": "实验 {{name}} 已完成（run {{status}}）",
     "failedToStartExperiment": "启动实验失败",
+    "advanceHydrationFailed": "仿真已推进，但加载新节点详情失败",
+    "agentAnalysis": "智能体分析",
+    "experimentBranchCreated": "实验分支已创建：{{experimentName}} — {{variantName}}",
+    "experimentCreatedNoRun": "实验「{{name}}」已创建（尚未启动）",
+    "experimentInterventionContent": "干预内容",
+    "experimentNodeMappingEmpty": "实验已创建，但后端尚未返回节点映射",
+    "experimentNodesTimeout": "实验节点尚未可用，请刷新或重试。",
+    "failedToLoadSimulation": "加载仿真失败",
     "batchExperimentStarted": "批量实验「{{name}}」已启动",
-    "comparisonAnalysisFailed": "比较分析失败"
+    "comparisonAnalysisFailed": "比较分析失败",
+    "selectedNodeNotFound": "在仿真树中未找到所选节点，请尝试刷新仿真。",
+    "branchCreated": "分支已创建",
+    "simulationReport": "仿真实验分析报告",
+    "generatedAt": "生成时间",
+    "keyEvents": "关键事件",
+    "suggestions": "建议",
+    "summary": "摘要"
   },
   "helpModal": {
     "title": "理解「前沿」概念",
@@ -2043,7 +2061,9 @@
       "manualSelection": "手动选择"
     },
     "step4": {
+      "title": "智能体配置",
       "modeTitle": "您想如何创建代理？",
+      "modeDescription": "先确定智能体的组织方式，再逐步补充代表样本与研究属性。",
       "modes": {
         "manual": {
           "title": "手动类型",
@@ -2058,6 +2078,9 @@
           "description": "从JSON文件导入代理配置"
         }
       },
+      "demographicEyebrow": "群体生成",
+      "demographicTitle": "人口统计生成",
+      "demographicDescription": "先定义人口结构，再据此生成代表性的智能体集合。",
       "defineTypes": "定义代理类型",
       "manualHint": "手动模式现在会把新增对象直接创建为可单独编辑的代理。即使一次添加多个，也可以在下方分别修改名字、层级、简介、提示词和属性。",
       "typeLabel": "类型标签",
@@ -2103,6 +2126,19 @@
       "agentsDefined": "已定义 {{count}} 个代理",
       "llmProvider": "LLM 提供商",
       "defaultProvider": "默认提供商",
+      "agentSummaryLabel": "智能体",
+      "sharedPropertyCountLabel": "共用属性",
+      "providerSummaryLabel": "模型提供商",
+      "providerActive": "已启用",
+      "providerDefault": "默认",
+      "collectionLabel": "智能体分组",
+      "collectionMembers": "智能体数",
+      "representativeLabel": "代表智能体",
+      "collectionHint": "主编辑区展示这个分组中的一个代表智能体。如果需要微调单个智能体，可以在下方智能体列表中切换。",
+      "searchAgents": "搜索分组或智能体画像",
+      "noDirectoryResults": "没有匹配当前搜索的智能体分组。",
+      "memberRoster": "智能体列表",
+      "memberRosterHint": "可以在同一分组内切换智能体。",
       "importTitle": "导入代理数据",
       "importDesc": "上传包含代理定义的 CSV 或 JSON 文件。",
       "csvFormat": "CSV 格式示例：",
@@ -2110,7 +2146,9 @@
       "uploadCSV": "上传 CSV",
       "uploadJSON": "上传 JSON",
       "importInfo": "导入内容会追加到当前智能体列表，额外列会成为可编辑的智能体属性。",
-      "importSuccess": "已从 {{file}} 导入 {{count}} 个智能体。"
+      "importSuccess": "已从 {{file}} 导入 {{count}} 个智能体。",
+      "generationLlmProvider": "生成用 LLM 提供商",
+      "generationLlmProviderHint": "选择用于 AI 生成智能体档案的提供商"
     },
     "step5": {
       "networkPresets": "网络预设",
@@ -2127,6 +2165,7 @@
         "communities": { "name": "社区", "description": "随机块模型" }
       },
       "applyChanges": "应用更改",
+      "addLink": "添加连接",
       "noAgentsConfigured": "未配置代理",
       "goBackToStep4": "返回步骤4添加代理后再配置网络。",
       "fullyConnected": "全连接",

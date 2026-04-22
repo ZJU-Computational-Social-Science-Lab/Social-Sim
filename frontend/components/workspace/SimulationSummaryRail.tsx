@@ -25,7 +25,6 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
   const selectedProviderId = useSimulationStore((state) => state.selectedProviderId);
   const currentProviderId = useSimulationStore((state) => state.currentProviderId);
   const llmProviders = useSimulationStore((state) => state.llmProviders);
-  const engineConfig = useSimulationStore((state) => state.engineConfig);
   const toggleTimeSettings = useSimulationStore((state) => state.toggleTimeSettings);
   const toggleReportModal = useSimulationStore((state) => state.toggleReportModal);
   const toggleExport = useSimulationStore((state) => state.toggleExport);
@@ -69,7 +68,7 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
     },
     {
       label: isZh ? "模式" : "Mode",
-      value: engineConfig.mode === "connected" ? t("simPage.socialSim4Engine") : t("simPage.standaloneMode"),
+      value: t("simPage.socialSim4Engine"),
     },
     {
       label: isZh ? "当前轮次" : "Current round",

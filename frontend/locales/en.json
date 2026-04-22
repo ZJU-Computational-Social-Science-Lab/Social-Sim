@@ -5,6 +5,7 @@
     "show": "Show",
     "yes": "Yes",
     "no": "No",
+    "agents": "Agents",
     "none": "(none)",
     "cancel": "Cancel",
     "next": "Next",
@@ -967,7 +968,6 @@
   "simPage": {
     "noSimulation": "No simulation selected",
     "engineConnected": "FOS Engine",
-    "engineStandalone": "Standalone mode",
     "newSimulation": "New simulation",
     "connectedTo": "Connected to {{endpoint}}",
     "socialSim4Engine": "FOS Engine",
@@ -1017,6 +1017,9 @@
     "stop": "Stop",
     "enterSteps": "Enter number of steps",
     "advancingProgress": "Step {{current}} of {{total}}",
+    "autoAdvanceStopped": "Auto-advance stopped at step {{current}} of {{total}}",
+    "autoAdvanceError": "Auto-advance error: {{error}}",
+    "autoAdvanceComplete": "Auto-advance completed {{count}} steps",
     "tabs": {
       "timeline": "Timeline",
       "agents": "Agents"
@@ -1760,6 +1763,14 @@
     "experimentSubmitted": "Experiment \"{{name}}\" submitted to backend (run_id={{runId}})",
     "experimentCompleted": "Experiment {{name}} completed (run {{status}})",
     "failedToStartExperiment": "Failed to start experiment",
+    "advanceHydrationFailed": "Simulation advanced, but loading the new node details failed",
+    "agentAnalysis": "Agent Analysis",
+    "experimentBranchCreated": "Experiment branch created: {{experimentName}} — {{variantName}}",
+    "experimentCreatedNoRun": "Experiment \"{{name}}\" created (not started yet)",
+    "experimentInterventionContent": "Intervention content",
+    "experimentNodeMappingEmpty": "Experiment created, but backend returned no node mapping yet",
+    "experimentNodesTimeout": "Experiment nodes not available yet; please refresh or retry.",
+    "failedToLoadSimulation": "Failed to load simulation",
     "batchExperimentStarted": "Batch experiment \"{{name}}\" started",
     "comparisonAnalysisFailed": "Comparison analysis failed",
     "selectedNodeNotFound": "Selected node not found in the simulation tree. Please try refreshing the simulation.",
@@ -1776,7 +1787,8 @@
     "simulationReport": "Simulation Experiment Analysis Report",
     "generatedAt": "Generated at",
     "keyEvents": "Key Events",
-    "suggestions": "Suggestions"
+    "suggestions": "Suggestions",
+    "summary": "Summary"
   },
   "helpModal": {
     "title": "Understanding the Frontier Concept",
@@ -2057,7 +2069,9 @@
       "removeAction": "Remove action"
     },
     "step4": {
+      "title": "Agent setup",
       "modeTitle": "How would you like to create agents?",
+      "modeDescription": "Choose how agents are organized first, then refine representative profiles and research attributes.",
       "modes": {
         "manual": {
           "title": "Manual Types",
@@ -2072,6 +2086,9 @@
           "description": "Import agent configurations from a JSON file"
         }
       },
+      "demographicEyebrow": "Group generation",
+      "demographicTitle": "Demographic generation",
+      "demographicDescription": "Define the population structure first, then generate a representative agent set.",
       "defineTypes": "Define Agent Types",
       "manualHint": "Manual mode now creates individually editable agents. Even if you add several at once, you can edit each name, tier, profile, prompt, and properties below.",
       "typeLabel": "Type Label",
@@ -2117,6 +2134,19 @@
       "agentsDefined": "{{count}} agent(s) defined",
       "llmProvider": "LLM Provider",
       "defaultProvider": "Default Provider",
+      "agentSummaryLabel": "Agents",
+      "sharedPropertyCountLabel": "Shared props",
+      "providerSummaryLabel": "Providers",
+      "providerActive": "Active",
+      "providerDefault": "Default",
+      "collectionLabel": "Agent collection",
+      "collectionMembers": "Members",
+      "representativeLabel": "Representative",
+      "collectionHint": "The main editor shows one representative profile for this category. Use the roster below if you need to inspect or tweak individual members.",
+      "searchAgents": "Search collections or representative profiles",
+      "noDirectoryResults": "No collections match the current search.",
+      "memberRoster": "Member roster",
+      "memberRosterHint": "Switch members without reopening the whole category.",
       "importTitle": "Import Agent Data",
       "importDesc": "Upload a CSV or JSON file with agent definitions.",
       "csvFormat": "CSV Format Example:",
@@ -2124,7 +2154,9 @@
       "uploadCSV": "Upload CSV",
       "uploadJSON": "Upload JSON",
       "importInfo": "Imports are appended to the current agent registry. Extra columns become editable agent properties.",
-      "importSuccess": "Imported {{count}} agents from {{file}}."
+      "importSuccess": "Imported {{count}} agents from {{file}}.",
+      "generationLlmProvider": "Generation LLM Provider",
+      "generationLlmProviderHint": "Select a provider for AI-generated agent profiles"
     },
     "step5": {
       "networkPresets": "Network Presets",
@@ -2141,6 +2173,7 @@
         "communities": { "name": "Communities", "description": "Stochastic block model" }
       },
       "applyChanges": "Apply Changes",
+      "addLink": "Add link",
       "noAgentsConfigured": "No Agents Configured",
       "goBackToStep4": "Go back to Step 4 to add agents before configuring the network.",
       "fullyConnected": "Fully Connected",

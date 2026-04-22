@@ -11,14 +11,12 @@ import {
   Loader2,
   Network,
   Play,
-  Plug,
   RotateCcw,
   Save,
   Split,
   Trash2,
   Zap,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 import { useSimulationStore } from "../../store";
 
@@ -77,15 +75,12 @@ export const SimulationControlPanel: React.FC<SimulationControlPanelProps> = ({
   workspaceMode,
 }) => {
   const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
-  const navigate = useNavigate();
+  i18n.language.startsWith("zh");
   const currentSimulation = useSimulationStore((state) => state.currentSimulation);
   const selectedNodeId = useSimulationStore((state) => state.selectedNodeId);
   const selectedNode = useSimulationStore((state) =>
     state.nodes.find((node) => node.id === state.selectedNodeId) || state.nodes[0] || null,
   );
-  const engineConfig = useSimulationStore((state) => state.engineConfig);
-  const setEngineMode = useSimulationStore((state) => state.setEngineMode);
   const advanceSimulation = useSimulationStore((state) => state.advanceSimulation);
   const toggleAnalytics = useSimulationStore((state) => state.toggleAnalytics);
   const toggleExport = useSimulationStore((state) => state.toggleExport);
@@ -120,14 +115,6 @@ export const SimulationControlPanel: React.FC<SimulationControlPanelProps> = ({
       return;
     }
     toggleCompareMode(true);
-  };
-
-  const toggleEngine = () => {
-    if (engineConfig.mode === "standalone" && !providerSelection) {
-      navigate("/settings?tab=providers_llm");
-      return;
-    }
-    setEngineMode(engineConfig.mode === "standalone" ? "connected" : "standalone");
   };
 
   return (
@@ -193,25 +180,6 @@ export const SimulationControlPanel: React.FC<SimulationControlPanelProps> = ({
                 caption={t("controlRoom.exportCopy")}
                 onClick={() => toggleExport(true)}
                 disabled={!hasSimulation}
-              />
-            ) : null}
-            {!isObservationMode ? (
-              <ControlAction
-                icon={engineConfig.mode === "connected" ? <Zap size={15} /> : <Plug size={15} />}
-                label={
-                  engineConfig.mode === "connected"
-                    ? t("simPage.socialSim4Engine")
-                    : t("simPage.standaloneMode")
-                }
-                caption={
-                  engineConfig.mode === "standalone" && !providerSelection
-                    ? isZh
-                      ? "先选择模型提供商，再切换到智能引擎"
-                      : "Choose a model provider before switching to the intelligent engine."
-                    : t("controlRoom.engineModeCopy")
-                }
-                onClick={toggleEngine}
-                active={engineConfig.mode === "connected"}
               />
             ) : null}
           </div>

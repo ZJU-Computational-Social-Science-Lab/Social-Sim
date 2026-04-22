@@ -40,8 +40,6 @@ export const AnalysisContextPanel: React.FC<AnalysisContextPanelProps> = ({
   const selectNode = useSimulationStore((state) => state.selectNode);
   const setCompareTarget = useSimulationStore((state) => state.setCompareTarget);
   const toggleCompareMode = useSimulationStore((state) => state.toggleCompareMode);
-  const engineConfig = useSimulationStore((state) => state.engineConfig);
-  const setEngineMode = useSimulationStore((state) => state.setEngineMode);
   const llmProviders = useSimulationStore((state) => state.llmProviders);
   const selectedProviderId = useSimulationStore((state) => state.selectedProviderId);
   const currentProviderId = useSimulationStore((state) => state.currentProviderId);
@@ -97,14 +95,6 @@ export const AnalysisContextPanel: React.FC<AnalysisContextPanelProps> = ({
       return;
     }
     selectNode(nodeId);
-  };
-
-  const handleToggleEngine = () => {
-    if (engineConfig.mode === "standalone" && !providerSelection) {
-      navigate("/settings?tab=providers_llm");
-      return;
-    }
-    setEngineMode(engineConfig.mode === "standalone" ? "connected" : "standalone");
   };
 
   const metaRows = [
@@ -268,13 +258,6 @@ export const AnalysisContextPanel: React.FC<AnalysisContextPanelProps> = ({
                 ))}
               </select>
             </label>
-
-            <button type="button" onClick={handleToggleEngine} className="ss-button-secondary">
-              <Zap size={14} />
-              {engineConfig.mode === "connected"
-                ? t("simPage.socialSim4Engine")
-                : t("simPage.standaloneMode")}
-            </button>
           </div>
 
           <div className="ss-analysis-panel__tool-grid">

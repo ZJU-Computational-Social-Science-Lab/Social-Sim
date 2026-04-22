@@ -111,15 +111,8 @@ const SimulationPage: React.FC = () => {
   React.useEffect(() => {
     (async () => {
       if (!simIdParam) return;
-      // read engineConfig from hook above so effect re-runs when mode changes
-      // If we're in connected mode, wait until auth restoration has completed
-      if (engineConfig.mode === 'connected' && !hasRestored) {
-        return;
-      }
-      // If connected mode requires an authenticated user, don't attempt load when not authenticated
-      if (engineConfig.mode === 'connected' && !isAuthenticated) {
-        return;
-      }
+      if (!hasRestored) return;
+      if (!isAuthenticated) return;
       try {
           const token = (engineConfig as any).token as string | undefined;
           let sim: any | null = null;
@@ -263,7 +256,7 @@ const SimulationPage: React.FC = () => {
         console.warn('Failed to load simulation on mount', e);
       }
     })();
-  }, [simIdParam, engineConfig.mode, hasRestored, isAuthenticated]);
+  }, [simIdParam, engineConfig.endpoint, hasRestored, isAuthenticated, getNodeName]);
 
   // Load providers for any authenticated workspace session so users can
   // choose a provider before enabling the connected / LLM-backed engine.
@@ -271,13 +264,6 @@ const SimulationPage: React.FC = () => {
     if (!hasRestored || !isAuthenticated) return;
     void useSimulationStore.getState().loadProviders();
   }, [hasRestored, isAuthenticated]);
-
-  React.useEffect(() => {
-    if (!simIdParam) return;
-    if (!hasRestored || !isAuthenticated) return;
-    if (engineConfig.mode === "connected") return;
-    useSimulationStore.getState().setEngineMode("connected");
-  }, [simIdParam, hasRestored, isAuthenticated, engineConfig.mode]);
 
   React.useEffect(() => {
     if (!isCompareMode) return;

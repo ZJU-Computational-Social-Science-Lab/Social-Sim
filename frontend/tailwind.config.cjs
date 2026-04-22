@@ -1,8 +1,9 @@
-/*
- * Tailwind CSS configuration for SocialSim4 frontend.
- * Key exports: content glob patterns and theme extensions for brand utilities.
+/**
+ * Tailwind CSS configuration for FOS (Future of Society) frontend.
+ *
+ * Maps the `brand` color scale to CSS custom properties from tokens.css
+ * so all brand-* utility classes respond to light/dark theme switching.
  */
-const colors = require("tailwindcss/colors");
 
 module.exports = {
   darkMode: ['selector', '.theme-dark'],
@@ -19,7 +20,18 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        brand: colors.sky,
+        brand: {
+          50: 'var(--ss-brand-soft)',
+          100: 'var(--ss-brand-soft)',
+          200: 'var(--ss-brand-soft)',
+          300: 'var(--ss-brand-soft)',
+          400: 'var(--ss-brand-primary)',
+          500: 'var(--ss-brand-primary)',
+          600: 'var(--ss-brand-primary)',
+          700: 'var(--ss-brand-hover)',
+          800: 'var(--ss-brand-hover)',
+          900: 'var(--ss-brand-on)',
+        },
       },
       transitionDuration: {
         '250': '250ms',
