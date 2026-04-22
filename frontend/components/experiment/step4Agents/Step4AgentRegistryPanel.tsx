@@ -70,21 +70,13 @@ export function Step4AgentRegistryPanel({
 }: Step4AgentRegistryPanelProps) {
   return (
     <ResearchInputPanel
-<<<<<<< Updated upstream
-      eyebrow={t('experimentBuilder.step4.agentListTitle', { defaultValue: 'Participant registry' })}
-=======
       eyebrow={t('experimentBuilder.step4.agentListTitle', { defaultValue: 'Agent registry' })}
->>>>>>> Stashed changes
       title={t('experimentBuilder.step4.agentListTitle')}
       description={t('experimentBuilder.step4.totalAgents', { count: totalAgents })}
     >
       <div className="ss-workflow-summary-grid">
         <SummaryInfoCard
-<<<<<<< Updated upstream
-          label={t('common.agents', { defaultValue: 'Agents' })}
-=======
           label={t('experimentBuilder.step4.agentSummaryLabel', { defaultValue: 'Agents' })}
->>>>>>> Stashed changes
           value={totalAgents}
         />
         <SummaryInfoCard
@@ -92,19 +84,11 @@ export function Step4AgentRegistryPanel({
           value={agentCollections.length}
         />
         <SummaryInfoCard
-<<<<<<< Updated upstream
-          label={t('simulationWorkspace.provider', { defaultValue: 'Providers' })}
-          value={providerCount}
-        />
-        <SummaryInfoCard
-          label={t('experimentBuilder.step4.sharedPropertyBadge', { defaultValue: 'Shared props' })}
-=======
           label={t('experimentBuilder.step4.providerSummaryLabel', { defaultValue: 'Providers' })}
           value={providerCount}
         />
         <SummaryInfoCard
           label={t('experimentBuilder.step4.sharedPropertyCountLabel', { defaultValue: 'Shared props' })}
->>>>>>> Stashed changes
           value={sharedPropertyCount}
         />
       </div>
@@ -231,30 +215,18 @@ export function Step4AgentRegistryPanel({
                     label={t('experimentBuilder.step4.userProfile')}
                     className="md:col-span-2"
                   >
-<<<<<<< Updated upstream
-                    <input
-                      type="text"
-                      value={selectedEditorAgent.userProfile || ''}
-                      onChange={(e) => updateAgentType(selectedEditorAgent.id, { userProfile: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
-=======
                     <textarea
                       value={selectedEditorAgent.userProfile || ''}
                       onChange={(e) => updateAgentType(selectedEditorAgent.id, { userProfile: e.target.value })}
                       rows={5}
                       className="ss-participant-workflow__profile-textarea"
                       placeholder={t('experimentBuilder.step4.userProfilePlaceholder')}
->>>>>>> Stashed changes
                     />
                   </FieldBlock>
                   <FieldBlock
                     label={t('experimentBuilder.step4.rolePrompt')}
                     helper={t('experimentBuilder.step4.rolePromptHelper', {
-<<<<<<< Updated upstream
-                      defaultValue: '用一句话说明这个群体在实验中的角色、立场或行动倾向。',
-=======
                       defaultValue: '用一句话说明这个智能体类型在实验中的角色、立场或行动倾向。',
->>>>>>> Stashed changes
                     })}
                     className="md:col-span-2"
                   >
@@ -262,11 +234,7 @@ export function Step4AgentRegistryPanel({
                       value={selectedEditorAgent.rolePrompt || ''}
                       onChange={(e) => updateAgentType(selectedEditorAgent.id, { rolePrompt: e.target.value })}
                       rows={4}
-<<<<<<< Updated upstream
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
-=======
                       className="ss-participant-workflow__profile-textarea is-compact"
->>>>>>> Stashed changes
                     />
                   </FieldBlock>
                   <FieldBlock label={t('experimentBuilder.step4.llmProvider')}>

@@ -3,10 +3,7 @@ import { ArrowRight, Brain, BookOpen, ChevronLeft, Sparkles, UserRound, X } from
 import { useTranslation } from "react-i18next";
 
 import { useSimulationStore } from "../../store";
-<<<<<<< Updated upstream
-=======
 import { getAgentDisplayName, getAgentDisplayRole } from "../../store/helpers";
->>>>>>> Stashed changes
 
 interface AgentObservationPanelProps {
   selectedAgentId: string | null;
@@ -114,17 +111,10 @@ export const AgentObservationPanel: React.FC<AgentObservationPanelProps> = ({
               >
                 <div className="ss-agent-observation__card-top">
                   <div className="ss-agent-observation__identity">
-<<<<<<< Updated upstream
-                    <img src={agent.avatarUrl} alt={agent.name} className="ss-agent-observation__avatar" />
-                    <div>
-                      <strong>{agent.name}</strong>
-                      <span>{agent.role || (isZh ? "参与当前实验" : "Active in simulation")}</span>
-=======
                     <img src={agent.avatarUrl} alt={getAgentDisplayName(agent)} className="ss-agent-observation__avatar" />
                     <div>
                       <strong>{getAgentDisplayName(agent)}</strong>
                       <span>{getAgentDisplayRole(agent)}</span>
->>>>>>> Stashed changes
                     </div>
                   </div>
                   <span className={`ss-agent-observation__state is-${status.tone}`}>{status.label}</span>
@@ -162,19 +152,11 @@ export const AgentObservationPanel: React.FC<AgentObservationPanelProps> = ({
           <div className="ss-agent-drawer__backdrop" onClick={() => onSelectAgent(null)} />
           <aside className="ss-agent-drawer__panel">
             <div className="ss-agent-drawer__header">
-<<<<<<< Updated upstream
-              <div>
-                <div className="ss-kicker">{isZh ? "参与者详情" : "Agent details"}</div>
-                <h3>{selectedAgent.name}</h3>
-                <p>{selectedAgent.role || (isZh ? "参与当前实验推演" : "Participant in the simulation")}</p>
-              </div>
-=======
                 <div>
                   <div className="ss-kicker">{isZh ? "参与者详情" : "Agent details"}</div>
                 <h3>{getAgentDisplayName(selectedAgent)}</h3>
                 <p>{getAgentDisplayRole(selectedAgent)}</p>
                 </div>
->>>>>>> Stashed changes
               <button type="button" className="ss-icon-button" onClick={() => onSelectAgent(null)}>
                 <X size={16} />
               </button>

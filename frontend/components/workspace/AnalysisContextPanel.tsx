@@ -41,10 +41,7 @@ export const AnalysisContextPanel: React.FC<AnalysisContextPanelProps> = ({
   const setCompareTarget = useSimulationStore((state) => state.setCompareTarget);
   const toggleCompareMode = useSimulationStore((state) => state.toggleCompareMode);
   const engineConfig = useSimulationStore((state) => state.engineConfig);
-<<<<<<< Updated upstream
-=======
   const setEngineMode = useSimulationStore((state) => state.setEngineMode);
->>>>>>> Stashed changes
   const llmProviders = useSimulationStore((state) => state.llmProviders);
   const selectedProviderId = useSimulationStore((state) => state.selectedProviderId);
   const currentProviderId = useSimulationStore((state) => state.currentProviderId);
@@ -103,15 +100,11 @@ export const AnalysisContextPanel: React.FC<AnalysisContextPanelProps> = ({
   };
 
   const handleToggleEngine = () => {
-<<<<<<< Updated upstream
-    navigate("/settings?tab=providers_llm");
-=======
     if (engineConfig.mode === "standalone" && !providerSelection) {
       navigate("/settings?tab=providers_llm");
       return;
     }
     setEngineMode(engineConfig.mode === "standalone" ? "connected" : "standalone");
->>>>>>> Stashed changes
   };
 
   const metaRows = [

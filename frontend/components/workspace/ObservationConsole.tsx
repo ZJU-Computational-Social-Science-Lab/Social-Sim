@@ -163,21 +163,15 @@ CollectionRow.displayName = "CollectionRow";
 interface ObservationConsoleProps {
   selectedAgentId: string | null;
   onSelectAgent: (agentId: string | null) => void;
-<<<<<<< Updated upstream
-=======
   forcedTab?: "observe" | "host";
   showTabs?: boolean;
->>>>>>> Stashed changes
 }
 
 export const ObservationConsole: React.FC<ObservationConsoleProps> = ({
   selectedAgentId,
   onSelectAgent,
-<<<<<<< Updated upstream
-=======
   forcedTab,
   showTabs = true,
->>>>>>> Stashed changes
 }) => {
   const { t } = useTranslation();
   const agents = useSimulationStore((state) => state.agents);
@@ -185,12 +179,6 @@ export const ObservationConsole: React.FC<ObservationConsoleProps> = ({
   const lastLog = useSimulationStore((state) => state.logs[state.logs.length - 1] || null);
   const selectedNodeId = useSimulationStore((state) => state.selectedNodeId);
   const isCompareMode = useSimulationStore((state) => state.isCompareMode);
-<<<<<<< Updated upstream
-  const [activeTab, setActiveTab] = React.useState<"observe" | "host">("observe");
-  const [directoryQuery, setDirectoryQuery] = React.useState("");
-  const [selectedCollectionKey, setSelectedCollectionKey] = React.useState<string | null>(null);
-
-=======
   const [activeTab, setActiveTab] = React.useState<"observe" | "host">(forcedTab ?? "observe");
   const [directoryQuery, setDirectoryQuery] = React.useState("");
   const [selectedCollectionKey, setSelectedCollectionKey] = React.useState<string | null>(null);
@@ -201,7 +189,6 @@ export const ObservationConsole: React.FC<ObservationConsoleProps> = ({
     }
   }, [forcedTab]);
 
->>>>>>> Stashed changes
   const agentIndex = React.useMemo(() => buildAgentIndex(agents), [agents]);
   const agentSignature = React.useMemo(() => agents.map((agent) => agent.id).join("|"), [agents]);
   const previousNodeIdRef = React.useRef<string | null>(selectedNodeId);
@@ -352,8 +339,6 @@ export const ObservationConsole: React.FC<ObservationConsoleProps> = ({
     [onSelectAgent, selectedAgentId]
   );
 
-<<<<<<< Updated upstream
-=======
   const isHostTab = activeTab === "host";
   const panelKicker = isHostTab
     ? t("controlRoom.hostIntervention")
@@ -371,47 +356,20 @@ export const ObservationConsole: React.FC<ObservationConsoleProps> = ({
       ? t("controlRoom.compareHint")
       : t("components.sidebar.overviewHint");
 
->>>>>>> Stashed changes
   return (
     <aside className="ss-workspace__panel ss-workspace__panel--observation ss-observation">
       <div className="ss-workspace__panel-header">
         <div className="flex items-start justify-between gap-3">
           <div>
-<<<<<<< Updated upstream
-            <div className="ss-kicker">{t("controlRoom.roleObservation")}</div>
-            <h2 className="ss-workspace__panel-title mt-2">{t("controlRoom.focusedAgent")}</h2>
-            <p className="ss-workspace__panel-copy">
-              {isCompareMode ? t("controlRoom.compareHint") : t("components.sidebar.overviewHint")}
-            </p>
-=======
             <div className="ss-kicker">{panelKicker}</div>
             <h2 className="ss-workspace__panel-title mt-2">{panelTitle}</h2>
             <p className="ss-workspace__panel-copy">{panelCopy}</p>
->>>>>>> Stashed changes
           </div>
           {isCompareMode ? (
             <span className="ss-observation__compare-chip">{t("controlRoom.compareActive")}</span>
           ) : null}
         </div>
 
-<<<<<<< Updated upstream
-        <div className="ss-observation__tabs">
-          <button
-            onClick={() => setActiveTab("observe")}
-            className={`ss-observation__tab ${activeTab === "observe" ? "is-active" : ""}`}
-          >
-            <UserRound size={15} />
-            {t("controlRoom.roleObservation")}
-          </button>
-          <button
-            onClick={() => setActiveTab("host")}
-            className={`ss-observation__tab ${activeTab === "host" ? "is-active" : ""}`}
-          >
-            <Zap size={15} />
-            {t("controlRoom.hostIntervention")}
-          </button>
-        </div>
-=======
         {showTabs ? (
           <div className="ss-observation__tabs">
             <button
@@ -430,7 +388,6 @@ export const ObservationConsole: React.FC<ObservationConsoleProps> = ({
             </button>
           </div>
         ) : null}
->>>>>>> Stashed changes
       </div>
 
       {activeTab === "host" ? (

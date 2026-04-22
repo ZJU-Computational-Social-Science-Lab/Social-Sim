@@ -26,9 +26,4 @@ export const buildBranchContextHref = (
   appendParam(params, "compare", compareId);
   const query = params.toString();
   return query ? `${pathname}?${query}` : pathname;
-<<<<<<< Updated upstream
 };
-
-=======
-};
->>>>>>> Stashed changes

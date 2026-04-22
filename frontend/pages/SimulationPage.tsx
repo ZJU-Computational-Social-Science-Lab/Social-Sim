@@ -13,15 +13,9 @@ import { GlobalKnowledgePanel } from "../components/GlobalKnowledgePanel";
 import { InitialEventsModal } from "../components/InitialEventsModal";
 import { GuideAssistant } from "../components/GuideAssistant";
 import { ToastContainer } from "../components/Toast";
-<<<<<<< Updated upstream
-import { generateNodes, useSimulationStore } from "../store";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { getSimulation as apiGetSimulation } from "../services/simulations";
-=======
 import { generateNodes, mapGraphToNodes, useSimulationStore } from "../store";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { createSimulationSnapshot, getSimulation as apiGetSimulation } from "../services/simulations";
->>>>>>> Stashed changes
 import { getTreeGraph, getSimEvents, getSimState, getRehydrate } from "../services/simulationTree";
 import { buildSerializedSnapshot, mapBackendAgents, withSimulationSocialNetwork } from "../services/simulationSnapshots";
 import { useAuthStore } from "../store/auth";
@@ -29,10 +23,6 @@ import { useTranslation } from "react-i18next";
 import { BranchComposerDialog } from "../components/workspace/BranchComposerDialog";
 import { readBranchContext } from "../utils/branchContext";
 import { TopControlBar } from "../components/workspace/TopControlBar";
-<<<<<<< Updated upstream
-import { NodeDetailPanel, type NodeDetailTab } from "../components/workspace/NodeDetailPanel";
-import { SimTree } from "../components/SimTree";
-=======
 import { SimTree } from "../components/SimTree";
 import { NodeDetailPanel, type NodeDetailTab } from "../components/workspace/NodeDetailPanel";
 import { SimulationSummaryRail } from "../components/workspace/SimulationSummaryRail";
@@ -41,7 +31,6 @@ import { SnapshotModal } from "../components/SnapshotModal";
 import { AdvancedTreeOpsModal } from "../components/AdvancedTreeOpsModal";
 import { AgentPanel } from "../components/AgentPanel";
 import { HostPanel } from "../components/HostPanel";
->>>>>>> Stashed changes
 
 // ---------------- 页面主组件：SimulationPage ----------------
 
@@ -55,10 +44,6 @@ const SimulationPage: React.FC = () => {
   const selectNode = useSimulationStore((state) => state.selectNode);
   const setCompareTarget = useSimulationStore((state) => state.setCompareTarget);
   const toggleCompareMode = useSimulationStore((state) => state.toggleCompareMode);
-<<<<<<< Updated upstream
-  const agents = useSimulationStore((state) => state.agents);
-  const advanceSimulation = useSimulationStore((state) => state.advanceSimulation);
-=======
   const advanceSimulation = useSimulationStore((state) => state.advanceSimulation);
   const resetSimulation = useSimulationStore((state) => state.resetSimulation);
   const deleteSimulation = useSimulationStore((state) => state.deleteSimulation);
@@ -71,28 +56,18 @@ const SimulationPage: React.FC = () => {
   const openSnapshotModal = useSimulationStore((state) => state.openSnapshotModal);
   const openTreeOpsModal = useSimulationStore((state) => state.openTreeOpsModal);
   const addNotification = useSimulationStore((state) => state.addNotification);
->>>>>>> Stashed changes
   const params = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const simIdParam = params['id'] || params['simulationId'] || null;
-<<<<<<< Updated upstream
-  const isNewExperimentRoute = !simIdParam;
-=======
   const isWorkspaceEntryRoute = location.pathname.startsWith('/simulations/workspace');
   const isNewExperimentRoute = location.pathname.startsWith('/simulations/new');
->>>>>>> Stashed changes
   const engineConfig = useSimulationStore((state) => state.engineConfig);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasRestored = useAuthStore((s) => s.hasRestored);
   const { t } = useTranslation();
   const [hasSubmittedSetup, setHasSubmittedSetup] = React.useState(false);
   const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null);
-<<<<<<< Updated upstream
-  const [isBranchComposerOpen, setIsBranchComposerOpen] = React.useState(false);
-  const [detailTab, setDetailTab] = React.useState<NodeDetailTab>("events");
-  const hasActiveSimulation = Boolean(currentSimulation?.id);
-=======
   const [isSummaryRailVisible, setIsSummaryRailVisible] = React.useState(false);
   const [isBranchComposerOpen, setIsBranchComposerOpen] = React.useState(false);
   const [isTopologyModalOpen, setIsTopologyModalOpen] = React.useState(false);
@@ -100,31 +75,19 @@ const SimulationPage: React.FC = () => {
   const [workspaceMode, setWorkspaceMode] = React.useState<"timeline" | "agents" | "host">("timeline");
   const flowSectionRef = React.useRef<HTMLDivElement | null>(null);
   const detailSectionRef = React.useRef<HTMLDivElement | null>(null);
->>>>>>> Stashed changes
 
   const selectedNode = React.useMemo(
     () => nodes.find((node) => node.id === selectedNodeId) || nodes[0] || null,
     [nodes, selectedNodeId],
   );
-<<<<<<< Updated upstream
-=======
   const getNodeName = React.useCallback(
     (nodeId: number | string) => t('simPage.nodeId', { id: nodeId }),
     [t],
   );
->>>>>>> Stashed changes
 
   React.useEffect(() => {
     if (!isNewExperimentRoute) return;
 
-<<<<<<< Updated upstream
-    if (hasActiveSimulation) {
-      navigate(`/simulations/${currentSimulation?.id}`, { replace: true });
-      return;
-    }
-
-=======
->>>>>>> Stashed changes
     useSimulationStore.setState({
       currentSimulation: null,
       nodes: generateNodes(),
@@ -135,11 +98,7 @@ const SimulationPage: React.FC = () => {
     } as any);
     setHasSubmittedSetup(false);
     setSelectedAgentId(null);
-<<<<<<< Updated upstream
-  }, [currentSimulation?.id, hasActiveSimulation, isNewExperimentRoute, navigate]);
-=======
   }, [isNewExperimentRoute]);
->>>>>>> Stashed changes
 
   React.useEffect(() => {
     if (!isNewExperimentRoute) return;
@@ -314,36 +273,21 @@ const SimulationPage: React.FC = () => {
   }, [hasRestored, isAuthenticated]);
 
   React.useEffect(() => {
-<<<<<<< Updated upstream
-    if (!selectedAgentId) return;
-    if (agents.some((agent) => agent.id === selectedAgentId)) return;
-    setSelectedAgentId(null);
-  }, [agents, selectedAgentId]);
-=======
     if (!simIdParam) return;
     if (!hasRestored || !isAuthenticated) return;
     if (engineConfig.mode === "connected") return;
     useSimulationStore.getState().setEngineMode("connected");
   }, [simIdParam, hasRestored, isAuthenticated, engineConfig.mode]);
->>>>>>> Stashed changes
 
   React.useEffect(() => {
     if (!isCompareMode) return;
     setSelectedAgentId(null);
-<<<<<<< Updated upstream
-  }, [isCompareMode]);
-
-  React.useEffect(() => {
-    if (!selectedAgentId) return;
-  }, [selectedAgentId]);
-=======
     setWorkspaceMode("timeline");
   }, [isCompareMode]);
 
   const scrollToSection = React.useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
->>>>>>> Stashed changes
 
   React.useEffect(() => {
     if (isNewExperimentRoute) return;
@@ -412,14 +356,9 @@ const SimulationPage: React.FC = () => {
     compareTargetNodeId,
   ]);
 
-<<<<<<< Updated upstream
-  const showSetupStudio = isNewExperimentRoute && !hasActiveSimulation;
-  const showLoadingState = Boolean(simIdParam) && !currentSimulation;
-=======
   const showSetupStudio = isNewExperimentRoute;
   const showLoadingState = Boolean(simIdParam) && !currentSimulation;
   const showEmptyWorkspaceState = isWorkspaceEntryRoute && !currentSimulation;
->>>>>>> Stashed changes
 
   if (showSetupStudio) {
     return (
@@ -434,8 +373,6 @@ const SimulationPage: React.FC = () => {
       </>
     );
   }
-<<<<<<< Updated upstream
-=======
 
   if (showEmptyWorkspaceState) {
     return (
@@ -537,20 +474,12 @@ const SimulationPage: React.FC = () => {
           </div>
         </section>
       );
->>>>>>> Stashed changes
 
   return (
     <div className="ss-workspace">
       <TopControlBar
         isGenerating={isGenerating}
         isCompareMode={isCompareMode}
-<<<<<<< Updated upstream
-        canReturnToParent={Boolean(selectedNode?.parentId)}
-        onContinue={() => void advanceSimulation()}
-        onCreateBranch={() => setIsBranchComposerOpen(true)}
-        onViewDetails={() => setDetailTab("events")}
-        onToggleCompare={() => {
-=======
         workspaceMode={workspaceMode}
         onContinue={() => void advanceSimulation()}
         onCreateBranch={() => setIsBranchComposerOpen(true)}
@@ -569,7 +498,6 @@ const SimulationPage: React.FC = () => {
         }}
         onToggleCompare={() => {
           setWorkspaceMode("timeline");
->>>>>>> Stashed changes
           if (isCompareMode) {
             setCompareTarget(null);
             toggleCompareMode(false);
@@ -577,16 +505,6 @@ const SimulationPage: React.FC = () => {
           }
           toggleCompareMode(true);
         }}
-<<<<<<< Updated upstream
-        onOpenNode={() => setDetailTab("branches")}
-        onReturnToParent={() => {
-          if (selectedNode?.parentId) {
-            selectNode(selectedNode.parentId);
-          }
-        }}
-      />
-
-=======
         onOpenSimulationIntervention={() => toggleExperimentDesigner(true)}
         onOpenSnapshots={() => openSnapshotModal()}
         onSaveSimulation={() => {
@@ -633,7 +551,6 @@ const SimulationPage: React.FC = () => {
         }}
       />
 
->>>>>>> Stashed changes
       <div className="ss-workspace__main">
         {showLoadingState ? (
           <div className="ss-workspace__panel ss-workspace__panel--stage flex h-full items-center justify-center px-6">
@@ -645,22 +562,6 @@ const SimulationPage: React.FC = () => {
               <p className="mt-3 text-sm leading-7 text-[var(--ss-workspace-muted)]">
                 {t("simulationWorkspace.loadingBody")}
               </p>
-<<<<<<< Updated upstream
-            </div>
-          </div>
-        ) : (
-          <div className="ss-sim-split">
-            <div className="ss-sim-split__tree">
-              <SimTree />
-            </div>
-            <div className="ss-sim-split__detail">
-              <NodeDetailPanel
-                activeTab={detailTab}
-                onChangeTab={setDetailTab}
-                selectedAgentId={selectedAgentId}
-                onClearSelectedAgent={() => setSelectedAgentId(null)}
-              />
-=======
             </div>
           </div>
         ) : (
@@ -691,7 +592,6 @@ const SimulationPage: React.FC = () => {
                   onHide={() => setIsSummaryRailVisible(false)}
                 />
               ) : null}
->>>>>>> Stashed changes
             </div>
           </div>
         )}
@@ -702,8 +602,6 @@ const SimulationPage: React.FC = () => {
         onClose={() => setIsBranchComposerOpen(false)}
       />
 
-<<<<<<< Updated upstream
-=======
       <TopologyStructureModal
         isOpen={isTopologyModalOpen}
         onClose={() => setIsTopologyModalOpen(false)}
@@ -719,7 +617,6 @@ const SimulationPage: React.FC = () => {
       <SnapshotModal />
       <AdvancedTreeOpsModal />
 
->>>>>>> Stashed changes
       <ExperimentBuilderModal />
       <HelpModal />
       <AnalyticsPanel />

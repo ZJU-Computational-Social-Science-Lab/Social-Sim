@@ -14,31 +14,9 @@ import i18n from '../i18n';
 import type { Agent, LogEntry } from '../types';
 import { buildTranslatedActionExecution, extractSummaryParameterText, formatExperimentNarrative, formatExperimentParameters, prettifyAssistantContext, resolveAgentDisplayName, translateActionName, translateAgentContent, translateEnvText } from './helpers/agentText';
 import { generateAgentsWithAI, generateAgentsWithDemographics } from './helpers/agentGeneration';
-import { generateNodes, mapGraphToNodes } from './helpers/graph';
 import { fetchEnvironmentSuggestions } from './helpers/legacyEnvironment';
 import { SYSTEM_TEMPLATES } from './helpers/systemTemplates';
-import { addTime, formatWorldTime, isZh, pickText } from './helpers/time';
 
-<<<<<<< Updated upstream
-export {
-  buildTranslatedActionExecution,
-  extractSummaryParameterText,
-  formatExperimentNarrative,
-  formatExperimentParameters,
-  prettifyAssistantContext,
-  resolveAgentDisplayName,
-  translateActionName,
-  translateAgentContent,
-  translateEnvText,
-  getAgentDisplayName,
-  getAgentDisplayRole,
-} from './helpers/agentText';
-export { generateAgentsWithAI, generateAgentsWithDemographics } from './helpers/agentGeneration';
-export { generateNodes, mapGraphToNodes } from './helpers/graph';
-export { fetchEnvironmentSuggestions } from './helpers/legacyEnvironment';
-export { SYSTEM_TEMPLATES } from './helpers/systemTemplates';
-export { addTime, DEFAULT_TIME_CONFIG, formatWorldTime, getLocale, isZh, pickText } from './helpers/time';
-=======
 // =============================================================================
 // Time Helpers
 // =============================================================================
@@ -333,7 +311,6 @@ export const translateEnvText = (content: string): string => {
 
   return text;
 };
->>>>>>> Stashed changes
 
 // =============================================================================
 // Event Helpers
@@ -769,4 +746,11 @@ export default {
   generateAgentsWithDemographics,
   mapBackendEventsToLogs,
   fetchEnvironmentSuggestions
+};
+
+export {
+  SYSTEM_TEMPLATES,
+  generateAgentsWithAI,
+  generateAgentsWithDemographics,
+  fetchEnvironmentSuggestions,
 };

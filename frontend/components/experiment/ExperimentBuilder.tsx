@@ -49,27 +49,6 @@ type StepId = ExperimentBuilderStepId;
 interface ExperimentBuilderProps {
   onComplete: () => void;
   onCancel: () => void;
-<<<<<<< Updated upstream
-}
-
-interface GuideTask {
-  label: string;
-  done: boolean;
-}
-
-interface GuideAction {
-  label: string;
-  onClick: () => void;
-  tone?: "primary" | "secondary";
-}
-
-interface GuideHintState {
-  id: string;
-  message: string;
-  actionLabel: string;
-  onAction: () => void;
-=======
->>>>>>> Stashed changes
 }
 
 interface GuideTask {
@@ -148,68 +127,38 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
     () => [
       {
         id: 1,
-<<<<<<< Updated upstream
-        title: isZh ? "研究问题" : "Contextualization",
-        subtitle: isZh ? "选择一个起始情境" : "Choose a starting scenario",
-=======
         title: isZh ? "选择起点" : "Starting point",
         subtitle: isZh ? "选一个最接近你研究问题的场景" : "Pick the closest scenario to your question",
->>>>>>> Stashed changes
         state: currentStep === 1 ? "current" : currentStep > 1 ? "complete" : "upcoming",
       },
       {
         id: 2,
-<<<<<<< Updated upstream
-        title: isZh ? "核心变量" : "Variable Map",
-        subtitle: isZh ? "整理变量与条件" : "Shape variables and conditions",
-=======
         title: isZh ? "整理变量" : "Variables",
         subtitle: isZh ? "明确你要观察哪些关键因素" : "Decide which key factors to observe",
->>>>>>> Stashed changes
         state: currentStep === 2 ? "current" : currentStep > 2 ? "complete" : "upcoming",
       },
       {
         id: 3,
-<<<<<<< Updated upstream
-        title: isZh ? "行为规则" : "Heuristic Set",
-        subtitle: isZh ? "明确规则与动作" : "Define rules and actions",
-=======
         title: isZh ? "设定规则" : "Rules",
         subtitle: isZh ? "定义个体如何行动、互动与变化" : "Define how individuals act, interact, and change",
->>>>>>> Stashed changes
         state: currentStep === 3 ? "current" : currentStep > 3 ? "complete" : "upcoming",
       },
       {
         id: 4,
-<<<<<<< Updated upstream
-        title: isZh ? "参与者" : "Social Dynamics",
-        subtitle: isZh ? "定义群体与角色" : "Define groups and roles",
-=======
         title: isZh ? "配置智能体" : "Agents",
         subtitle: isZh ? "确定有哪些角色、数量和属性" : "Set roles, counts, and attributes",
->>>>>>> Stashed changes
         state: currentStep === 4 ? "current" : currentStep > 4 ? "complete" : "upcoming",
       },
       {
         id: 5,
-<<<<<<< Updated upstream
-        title: isZh ? "关系结构" : "Structure",
-        subtitle: isZh ? "设置连接结构" : "Set up the structure",
-=======
         title: isZh ? "建立关系" : "Relationships",
         subtitle: isZh ? "设置谁与谁之间会产生影响" : "Decide who can influence whom",
->>>>>>> Stashed changes
         state: currentStep === 5 ? "current" : currentStep > 5 ? "complete" : "upcoming",
       },
       {
         id: 6,
-<<<<<<< Updated upstream
-        title: isZh ? "运行预览" : "Launch Preview",
-        subtitle: isZh ? "检查摘要并准备启动" : "Review and launch",
-=======
         title: isZh ? "预览运行" : "Run preview",
         subtitle: isZh ? "检查配置并启动实验" : "Review the setup and launch",
->>>>>>> Stashed changes
         state: currentStep === 6 ? "current" : currentStep > 6 ? "complete" : "upcoming",
       },
     ],
@@ -220,9 +169,6 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
   const namedParticipantTypes = agentTypes.filter((agent) => agent.label.trim().length > 0).length;
   const hasParticipantType = agentTypes.length > 0;
   const hasNamedParticipantType = namedParticipantTypes > 0;
-<<<<<<< Updated upstream
-  const structureConfirmed = Object.keys(socialNetwork).length > 0;
-=======
   const socialNetworkNodeCount = Object.keys(socialNetwork).length;
   const socialNetworkEdgeCount = React.useMemo(
     () => getSocialNetworkEdgeCount(socialNetwork),
@@ -230,7 +176,6 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
   );
   const structureConfirmed =
     socialNetworkNodeCount > 0 && (totalAgents <= 1 || socialNetworkEdgeCount > 0);
->>>>>>> Stashed changes
   const fallbackProviderId =
     agentTypes.find((agent) => agent.providerId !== null)?.providerId ?? null;
   const effectiveProviderId =
@@ -386,13 +331,8 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
         title: isZh ? "下一步预告" : "Next",
         items: [
           isZh
-<<<<<<< Updated upstream
-            ? "下一步进入“行为规则”页，确定参与者在这个场景中可以采取哪些行动。"
-            : "Next, move to Heuristic Set and define which actions participants can take in this scenario.",
-=======
             ? "下一步进入“行为规则”页，确定智能体在这个场景中可以采取哪些行动。"
             : "Next, move to Heuristic Set and define which actions agents can take in this scenario.",
->>>>>>> Stashed changes
         ],
       },
     ],
@@ -466,13 +406,8 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
         title: isZh ? "下一步预告" : "Next",
         items: [
           isZh
-<<<<<<< Updated upstream
-            ? "进入“参与者”页，为不同群体绑定行为逻辑。"
-            : "Move to Social Dynamics and attach these behaviors to participant groups.",
-=======
             ? "进入“智能体”页，为不同智能体类型绑定行为逻辑。"
             : "Move to Agents and attach these behaviors to agent groups.",
->>>>>>> Stashed changes
         ],
       },
     ],
@@ -486,20 +421,6 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
         items: [
           hasParticipantType
             ? isZh
-<<<<<<< Updated upstream
-              ? `已创建参与者类型：${agentTypes.length}`
-              : `Participant types created: ${agentTypes.length}`
-            : isZh
-              ? "尚未创建参与者类型"
-              : "No participant type created yet",
-          hasNamedParticipantType
-            ? isZh
-              ? `已命名基础群体：${namedParticipantTypes}`
-              : `Named participant types: ${namedParticipantTypes}`
-            : isZh
-              ? "尚未填写群体名称"
-              : "Participant names are still empty",
-=======
               ? `已创建智能体类型：${agentTypes.length}`
               : `Agent types created: ${agentTypes.length}`
             : isZh
@@ -512,7 +433,6 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
             : isZh
               ? "尚未填写智能体名称"
               : "Agent names are still empty",
->>>>>>> Stashed changes
           effectiveProviderId !== null
             ? isZh
               ? `模型提供商：${providerLabel}`
@@ -526,13 +446,8 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
         title: isZh ? "下一步预告" : "Next",
         items: [
           isZh
-<<<<<<< Updated upstream
-            ? "下一步进入“关系结构”页，为不同群体决定如何连接。"
-            : "Next, move to Structure and decide how participant groups connect.",
-=======
             ? "下一步进入“关系结构”页，为不同智能体决定如何连接。"
             : "Next, move to Structure and decide how agent groups connect.",
->>>>>>> Stashed changes
         ],
       },
     ],
@@ -551,17 +466,10 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
     () => (
       <div className="ss-workflow-summary-grid">
         <SummaryInfoCard
-<<<<<<< Updated upstream
-          label={isZh ? "参与者类型" : "Participant types"}
-          value={agentTypes.length}
-        />
-        <SummaryInfoCard label={isZh ? "参与者数量" : "Participants"} value={totalAgents} />
-=======
           label={isZh ? "智能体类型" : "Agent types"}
           value={agentTypes.length}
         />
         <SummaryInfoCard label={isZh ? "智能体数量" : "Agents"} value={totalAgents} />
->>>>>>> Stashed changes
         <SummaryInfoCard label={isZh ? "模型提供商" : "Provider"} value={providerLabel} />
       </div>
     ),
@@ -579,19 +487,11 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
           : "Scenario not confirmed yet",
       totalAgents > 0
         ? isZh
-<<<<<<< Updated upstream
-          ? `已定义参与者：${totalAgents}`
-          : `Participants defined: ${totalAgents}`
-        : isZh
-          ? "尚未定义参与者"
-          : "Participants not defined yet",
-=======
           ? `已定义智能体：${totalAgents}`
           : `Agents defined: ${totalAgents}`
         : isZh
           ? "尚未定义智能体"
           : "Agents not defined yet",
->>>>>>> Stashed changes
       structureConfirmed
         ? isZh
           ? "关系结构已确认"
@@ -643,13 +543,8 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
           : null,
         !launchParticipantsReady
           ? isZh
-<<<<<<< Updated upstream
-            ? "尚未定义参与者群体"
-            : "Participants are not defined yet"
-=======
             ? "尚未定义智能体"
             : "Agents are not defined yet"
->>>>>>> Stashed changes
           : null,
         !launchStructureReady
           ? isZh
@@ -762,19 +657,11 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
   const stepOneTasks = React.useMemo<GuideTask[]>(
     () => [
       {
-<<<<<<< Updated upstream
-        label: isZh ? "选择一个场景模板" : "Choose a scenario template",
-        done: templateReady,
-      },
-      {
-        label: isZh ? "或创建自定义场景" : "Or create a custom scenario",
-=======
         label: isZh ? "选择实验起点" : "Choose a starting point",
         done: templateReady,
       },
       {
         label: isZh ? "必要时从空白开始" : "Start blank if needed",
->>>>>>> Stashed changes
         done: selectedCustomScenario,
       },
     ],
@@ -997,13 +884,8 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
     const stepFourEntryHint: GuideHintState = {
       id: "step4-create-base-type",
       message: isZh
-<<<<<<< Updated upstream
-        ? "先创建一个基础参与者类型，不需要一次定义所有群体。"
-        : "Start with one basic participant type. You do not need to define every group at once.",
-=======
         ? "先创建一个基础智能体类型，不需要一次定义所有群体。"
         : "Start with one basic agent type. You do not need to define every group at once.",
->>>>>>> Stashed changes
       actionLabel: isZh ? "去填写名称" : "Go to the name field",
       onAction: () => focusStepFourTarget("name"),
     };
@@ -1020,15 +902,9 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
     const stepFourReadyHint: GuideHintState = {
       id: "step4-first-type-ready",
       message: isZh
-<<<<<<< Updated upstream
-        ? "已创建第一个参与者类型，可以继续添加，也可以进入下一步。"
-        : "The first participant type is ready. You can add more or continue to the next step.",
-      actionLabel: isZh ? "查看参与者列表" : "Review participant registry",
-=======
         ? "已创建第一个智能体类型，可以继续添加，也可以进入下一步。"
         : "The first agent type is ready. You can add more or continue to the next step.",
       actionLabel: isZh ? "查看智能体列表" : "Review agent registry",
->>>>>>> Stashed changes
       onAction: () => focusStepFourTarget("registry"),
     };
 
@@ -1052,13 +928,8 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
 
     const stepFivePresetMessages: Record<string, string> = {
       full: isZh
-<<<<<<< Updated upstream
-        ? "当前选择“全连接”，表示每个参与者都能与其他人互动，适合高密度、充分接触的场景。"
-        : "Fully connected means every participant can interact with every other participant. Use it for dense, high-contact settings.",
-=======
         ? "当前选择“全连接”，表示每个智能体都能与其他智能体互动，适合高密度、充分接触的场景。"
         : "Fully connected means every agent can interact with every other agent. Use it for dense, high-contact settings.",
->>>>>>> Stashed changes
       random: isZh
         ? "当前选择“随机”，表示连接按概率生成，适合先观察扩散和偶遇式互动。"
         : "Random creates ties probabilistically, which is useful for diffusion and chance encounters.",
@@ -1072,19 +943,11 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
         ? "当前选择“小世界”，表示局部连接为主，同时保留少量跨区捷径。"
         : "Small world keeps local ties while adding a few long-range shortcuts.",
       "core-periphery": isZh
-<<<<<<< Updated upstream
-        ? "当前选择“核心-边缘”，表示少量核心成员更活跃，外围成员连接较少。"
-        : "Core-periphery keeps a small active core and a sparser periphery.",
-      sbm: isZh
-        ? "当前选择“社区”，表示参与者先在群组内连接，再通过少量桥接互动。"
-        : "Community structure connects participants within groups first, with a few bridging ties between them.",
-=======
         ? "当前选择“核心-边缘”，表示少量核心智能体更活跃，外围智能体连接较少。"
         : "Core-periphery keeps a small active core and a sparser periphery.",
       sbm: isZh
         ? "当前选择“社区”，表示智能体先在群组内连接，再通过少量桥接互动。"
         : "Community structure connects agents within groups first, with a few bridging ties between them.",
->>>>>>> Stashed changes
       custom: isZh
         ? "当前选择“自定义结构”，可以先确认基础框架，再按需细调局部连接。"
         : "Custom structure lets you confirm the basic frame first and then refine local ties only where needed.",
@@ -1276,15 +1139,6 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
     if (currentStep === 4) {
       return {
         stepLabel: isZh ? "第 4 步 / 共 6 步" : "Step 4 / 6",
-<<<<<<< Updated upstream
-        title: isZh ? "参与者定义" : "Participant setup",
-        goal: isZh
-          ? "先创建一个基础参与者类型，再决定是否继续补充更多群体。"
-          : "Create one basic participant type first, then decide whether to add more groups.",
-        tasks: [
-          {
-            label: isZh ? "创建一个基础参与者类型" : "Create one basic participant type",
-=======
         title: isZh ? "智能体定义" : "Agent setup",
         goal: isZh
           ? "先创建一个基础智能体类型，再决定是否继续补充更多群体。"
@@ -1292,7 +1146,6 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
         tasks: [
           {
             label: isZh ? "创建一个基础智能体类型" : "Create one basic agent type",
->>>>>>> Stashed changes
             done: hasParticipantType,
           },
           {
@@ -1307,20 +1160,12 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
           },
           hasParticipantType
             ? {
-<<<<<<< Updated upstream
-                label: isZh ? "查看参与者列表" : "Review participant registry",
-=======
                 label: isZh ? "查看智能体列表" : "Review agent registry",
->>>>>>> Stashed changes
                 onClick: () => focusStepFourTarget("registry"),
                 tone: "secondary",
               }
             : {
-<<<<<<< Updated upstream
-                label: isZh ? "查看参与者模式" : "Review setup modes",
-=======
                 label: isZh ? "查看智能体模式" : "Review setup modes",
->>>>>>> Stashed changes
                 onClick: () => focusStepFourTarget("mode"),
                 tone: "secondary",
               },
@@ -1473,13 +1318,8 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
         setSaveState(null);
         setStepOneActionHint(
           isZh
-<<<<<<< Updated upstream
-            ? "请先选择一个场景模板。"
-            : "Please choose a scenario template first."
-=======
             ? "请先选择一个实验起点。"
             : "Please choose an experiment starting point first."
->>>>>>> Stashed changes
         );
         return;
       }

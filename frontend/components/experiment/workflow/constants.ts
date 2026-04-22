@@ -10,13 +10,8 @@ export const SS_EVENTS = {
 } as const;
 
 // localStorage keys used by ExperimentBuilder.
-<<<<<<< Updated upstream
-export const DRAFT_STORAGE_KEY = "fos.experiment-draft";
-export const GUIDE_HINTS_STORAGE_KEY = "fos.guide-hints.dismissed";
-=======
 export const DRAFT_STORAGE_KEY = "socialsim4.experiment-draft";
 export const GUIDE_HINTS_STORAGE_KEY = "socialsim4.guide-hints.dismissed";
->>>>>>> Stashed changes
 
 // Timing constants (milliseconds).
 export const IDLE_HINT_DELAY_MS = 5_000;

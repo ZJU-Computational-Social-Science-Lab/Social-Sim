@@ -5,18 +5,6 @@ import { GitFork, Info, X } from "lucide-react";
 import { useSimulationStore } from "../../store";
 import type { SimNode } from "../../types";
 
-<<<<<<< Updated upstream
-type BranchKind = "parallel" | "compare" | "perturbation" | "custom";
-
-type BranchDraft = {
-  name: string;
-  branchType: BranchKind;
-  inheritCurrentState: boolean;
-  notes: string;
-};
-
-=======
->>>>>>> Stashed changes
 const GENERIC_NODE_PATTERN = /^(Node \d+|节点 \d+)$/;
 
 const getNodeLabel = (node: SimNode | null, t: (key: string, options?: any) => string) => {
@@ -47,48 +35,10 @@ export const BranchComposerDialog: React.FC<BranchComposerDialogProps> = ({
   );
 
   const selectedLabel = getNodeLabel(selectedNode, t);
-<<<<<<< Updated upstream
-  const [branchDraft, setBranchDraft] = React.useState<BranchDraft>({
-    name: "",
-    branchType: "parallel",
-    inheritCurrentState: true,
-    notes: "",
-  });
-
-  React.useEffect(() => {
-    if (!isOpen || !selectedNode) return;
-    setBranchDraft({
-      name: t("controlRoom.defaultBranchName", { name: selectedLabel }),
-      branchType: "parallel",
-      inheritCurrentState: true,
-      notes: "",
-    });
-  }, [isOpen, selectedLabel, selectedNode, t]);
-
-  const branchTypeOptions = React.useMemo(
-    () => [
-      { id: "parallel" as const, label: t("controlRoom.branchTypeParallel"), copy: t("controlRoom.branchTypeParallelCopy") },
-      { id: "compare" as const, label: t("controlRoom.branchTypeCompare"), copy: t("controlRoom.branchTypeCompareCopy") },
-      { id: "perturbation" as const, label: t("controlRoom.branchTypePerturbation"), copy: t("controlRoom.branchTypePerturbationCopy") },
-      { id: "custom" as const, label: t("controlRoom.branchTypeCustom"), copy: t("controlRoom.branchTypeCustomCopy") },
-    ],
-    [t],
-  );
-
-  const handleCreateBranch = async () => {
-    if (!selectedNode || !branchDraft.name.trim()) return;
-    await branchSimulation({
-      name: branchDraft.name.trim(),
-      branchType: branchDraft.branchType,
-      inheritCurrentState: branchDraft.inheritCurrentState,
-      notes: branchDraft.notes.trim(),
-    });
-=======
 
   const handleCreateBranch = async () => {
     if (!selectedNode) return;
     await branchSimulation();
->>>>>>> Stashed changes
     onClose();
   };
 
@@ -118,48 +68,17 @@ export const BranchComposerDialog: React.FC<BranchComposerDialogProps> = ({
           </div>
 
           <div className="ss-path__composer-field">
-<<<<<<< Updated upstream
-            <label htmlFor="branch-name">{t("controlRoom.branchName")}</label>
-            <input
-              id="branch-name"
-              className="ss-input"
-              value={branchDraft.name}
-              onChange={(event) => setBranchDraft((draft) => ({ ...draft, name: event.target.value }))}
-              placeholder={t("controlRoom.branchNamePlaceholder")}
-            />
-          </div>
-
-          <div className="ss-path__composer-field">
-            <label>{t("controlRoom.branchType")}</label>
-            <div className="ss-path__composer-type-grid">
-              {branchTypeOptions.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => setBranchDraft((draft) => ({ ...draft, branchType: option.id }))}
-                  className={`ss-path__composer-type ${branchDraft.branchType === option.id ? "is-active" : ""}`}
-                >
-                  <strong>{option.label}</strong>
-                  <span>{option.copy}</span>
-                </button>
-              ))}
-=======
             <label>{t("controlRoom.branchType")}</label>
             <div className="ss-path__composer-readonly">
               <strong>{t("controlRoom.branchTypeParallel")}</strong>
               <span>{t("controlRoom.branchSafeHint")}</span>
->>>>>>> Stashed changes
             </div>
           </div>
 
           <div className="ss-path__composer-field">
             <label>{t("controlRoom.inheritCurrentState")}</label>
             <div className="ss-path__composer-readonly ss-path__composer-readonly--toggle">
-<<<<<<< Updated upstream
-              <input type="checkbox" checked={branchDraft.inheritCurrentState} readOnly />
-=======
               <input type="checkbox" checked readOnly />
->>>>>>> Stashed changes
               <div>
                 <strong>{t("controlRoom.inheritCurrentStateEnabled")}</strong>
                 <span>{t("controlRoom.inheritCurrentStateFixed")}</span>
@@ -167,22 +86,6 @@ export const BranchComposerDialog: React.FC<BranchComposerDialogProps> = ({
             </div>
           </div>
 
-<<<<<<< Updated upstream
-          <div className="ss-path__composer-field">
-            <label htmlFor="branch-notes">{t("controlRoom.branchNotes")}</label>
-            <textarea
-              id="branch-notes"
-              className="ss-input ss-path__composer-notes"
-              value={branchDraft.notes}
-              onChange={(event) => setBranchDraft((draft) => ({ ...draft, notes: event.target.value }))}
-              placeholder={t("controlRoom.branchNotesPlaceholder")}
-            />
-          </div>
-
-          <div className="ss-path__composer-help">
-            <Info size={15} />
-            <span>{t("controlRoom.branchSafeHint")}</span>
-=======
           <div className="ss-path__composer-help">
             <Info size={15} />
             <span>
@@ -196,7 +99,6 @@ export const BranchComposerDialog: React.FC<BranchComposerDialogProps> = ({
             <span>
               {t("controlRoom.createBranchDialogCopy")}
             </span>
->>>>>>> Stashed changes
           </div>
         </div>
 
@@ -206,11 +108,7 @@ export const BranchComposerDialog: React.FC<BranchComposerDialogProps> = ({
           </button>
           <button
             onClick={() => void handleCreateBranch()}
-<<<<<<< Updated upstream
-            disabled={!branchDraft.name.trim() || isGenerating}
-=======
             disabled={isGenerating}
->>>>>>> Stashed changes
             className="ss-button"
           >
             <GitFork size={15} />

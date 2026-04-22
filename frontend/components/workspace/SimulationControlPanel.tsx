@@ -85,10 +85,7 @@ export const SimulationControlPanel: React.FC<SimulationControlPanelProps> = ({
     state.nodes.find((node) => node.id === state.selectedNodeId) || state.nodes[0] || null,
   );
   const engineConfig = useSimulationStore((state) => state.engineConfig);
-<<<<<<< Updated upstream
-=======
   const setEngineMode = useSimulationStore((state) => state.setEngineMode);
->>>>>>> Stashed changes
   const advanceSimulation = useSimulationStore((state) => state.advanceSimulation);
   const toggleAnalytics = useSimulationStore((state) => state.toggleAnalytics);
   const toggleExport = useSimulationStore((state) => state.toggleExport);
@@ -126,15 +123,11 @@ export const SimulationControlPanel: React.FC<SimulationControlPanelProps> = ({
   };
 
   const toggleEngine = () => {
-<<<<<<< Updated upstream
-    navigate("/settings?tab=providers_llm");
-=======
     if (engineConfig.mode === "standalone" && !providerSelection) {
       navigate("/settings?tab=providers_llm");
       return;
     }
     setEngineMode(engineConfig.mode === "standalone" ? "connected" : "standalone");
->>>>>>> Stashed changes
   };
 
   return (

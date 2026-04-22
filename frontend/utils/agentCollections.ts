@@ -64,8 +64,4 @@ export const buildAgentCollections = (
 
     return left.title.localeCompare(right.title, undefined, { sensitivity: "base" });
   });
-<<<<<<< Updated upstream
 };
-=======
-};
->>>>>>> Stashed changes

@@ -197,11 +197,7 @@ export const ExperimentPreview: React.FC = () => {
               <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Turn Order
               </h4>
-<<<<<<< Updated upstream
-              <p className="text-sm" style={{ color: 'var(--ss-text-muted)' }}>
-=======
               <p className="text-sm text-gray-600 dark:text-gray-400">
->>>>>>> Stashed changes
                 {TURN_ORDER_LABELS[turnOrder.type] || turnOrder.type}
               </p>
             </div>

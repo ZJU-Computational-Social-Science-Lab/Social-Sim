@@ -10,6 +10,7 @@ The prompt builder constructs structured prompts from:
 """
 
 import logging
+import re
 from typing import Dict, Any, Literal
 
 from socialsim4.core.experiment.agent import ExperimentAgent
@@ -417,9 +418,36 @@ def build_reprompt(
     if include_section_markers:
         sections.append("\n=== FOLLOW-UP PROMPT (Action Requires Parameters) ===")
 
-    params_desc = ", ".join(f'"{k}": <{v.get("description", k)}>' for k, v in parameter_schema.items())
     sections.append(f"\nYou chose to {chosen_action}. This action requires parameters.")
-    sections.append(f"Respond ONLY with valid JSON: {{\"action\": \"{chosen_action}\", {params_desc}}}")
+
+    # Detect numeric range constraints in parameter descriptions and highlight them.
+    # Pattern matches descriptions like "(integer, 0 to 10)" or "(0 to 20)".
+    _range_pattern = re.compile(
+        r'\(\s*(?:(?:integer|number|float)\s*,?\s*)?(\d+)\s+to\s+(\d+)\s*\)',
+        re.IGNORECASE,
+    )
+    for param_name, param_spec in parameter_schema.items():
+        desc = param_spec.get("description", param_name)
+        param_type = param_spec.get("type", "string")
+        match = _range_pattern.search(desc)
+        if match:
+            min_val, max_val = match.group(1), match.group(2)
+            sections.append(
+                f"CRITICAL: {param_name} must be {param_type} between {min_val} and {max_val}."
+            )
+
+    # Build JSON template with concise range-aware placeholders
+    params_parts: list[str] = []
+    for k, v in parameter_schema.items():
+        desc = v.get("description", k)
+        match = _range_pattern.search(desc)
+        if match:
+            params_parts.append(f'"{k}": <{match.group(1)}-{match.group(2)}>')
+        else:
+            params_parts.append(f'"{k}": <{desc}>')
+    params_desc = ", ".join(params_parts)
+
+    sections.append(f"\nRespond ONLY with valid JSON: {{\"action\": \"{chosen_action}\", {params_desc}}}")
     sections.append("\nNo markdown. No explanation. Only JSON.")
 
     full_prompt = "\n".join(sections)

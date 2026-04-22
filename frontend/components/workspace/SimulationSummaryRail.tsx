@@ -49,15 +49,12 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
     llmProviders.find((provider) => provider.id === providerSelection) || null;
   const sceneConfig = (currentSimulation?.scene_config ?? {}) as Record<string, any>;
   const selectedNodeLogCount = logs.filter((entry) => entry.nodeId === selectedNodeId).length;
-<<<<<<< Updated upstream
-=======
   const xihuMaterials = Array.isArray(sceneConfig.xihu_material_refs) ? sceneConfig.xihu_material_refs : [];
   const xihuBenchmarks = (sceneConfig.xihu_benchmarks?.metrics ?? {}) as Record<
     string,
     { label: string; mean: number; count: number }
   >;
   const xihuBenchmarkEntries = Object.values(xihuBenchmarks).slice(0, 6);
->>>>>>> Stashed changes
 
   const summaryFacts = [
     {
@@ -142,11 +139,7 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
         <CollapsibleInsightSection
           title={isZh ? "实验配置摘要" : "Simulation configuration"}
           subtitle={currentPath.length ? currentPath.map((node) => getWorkspaceNodeLabel(node, t)).join(" / ") : "—"}
-<<<<<<< Updated upstream
-          defaultOpen
-=======
           defaultOpen={false}
->>>>>>> Stashed changes
           tone="details"
         >
           <div className="ss-summary-rail__fact-grid">
@@ -175,8 +168,6 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
           </div>
         </CollapsibleInsightSection>
 
-<<<<<<< Updated upstream
-=======
         {sceneConfig.xihu_arm_id ? (
           <CollapsibleInsightSection
             title={isZh ? "西湖实验臂" : "Xihu intervention arm"}
@@ -230,7 +221,6 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
           </CollapsibleInsightSection>
         ) : null}
 
->>>>>>> Stashed changes
         <CollapsibleInsightSection
           title={isZh ? "系统指标" : "System metrics"}
           subtitle={isZh ? "保留关键数字，其余默认收起。" : "Keep the key numbers collapsed by default."}

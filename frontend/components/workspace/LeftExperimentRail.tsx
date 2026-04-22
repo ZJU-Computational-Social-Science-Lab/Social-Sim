@@ -4,20 +4,13 @@ import {
   FileText,
   GitBranchPlus,
   LayoutDashboard,
-<<<<<<< Updated upstream
-=======
   Orbit,
->>>>>>> Stashed changes
   Route,
   Settings2,
   UserRound,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-<<<<<<< Updated upstream
-import { BrandLogo } from "../BrandLogo";
-=======
->>>>>>> Stashed changes
 import { useAuthStore } from "../../store/auth";
 
 export type RailSection =
@@ -87,14 +80,10 @@ export const LeftExperimentRail: React.FC<LeftExperimentRailProps> = ({
   return (
     <aside className="ss-cockpit-rail">
       <div className="ss-cockpit-rail__brand">
-<<<<<<< Updated upstream
-        <BrandLogo layout="stacked" />
-=======
         <div className="ss-cockpit-rail__brand-mark">
           <Orbit size={18} />
         </div>
         <span>FOS</span>
->>>>>>> Stashed changes
       </div>
 
       <div className="ss-cockpit-rail__nav">

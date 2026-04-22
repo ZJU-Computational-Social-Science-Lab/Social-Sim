@@ -33,9 +33,6 @@ const CreateExperimentPage = lazy(() =>
 const DocsPage = lazy(() =>
   import("./pages/DocsPage").then((m) => ({ default: m.DocsPage }))
 );
-const CreateExperimentPage = lazy(() =>
-  import("./pages/CreateExperimentPage").then((m) => ({ default: m.CreateExperimentPage }))
-);
 
 // 新前端的仿真主界面（你已经把原来的 App 改名为 SimulationPage.tsx，并 default export）
 import SimulationPage from "./pages/SimulationPage";

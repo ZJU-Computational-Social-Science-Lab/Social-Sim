@@ -29,21 +29,12 @@ export function Step5TemplateLibraryPanel({
         <div>
           <div className="ss-workflow-kicker">{t('experimentBuilder.step5.networkPresets')}</div>
           <h2 className="ss-workflow-panel__title">
-<<<<<<< Updated upstream
-            {isZh ? '选择一个起始情境结构' : 'Choose a starting structure'}
-          </h2>
-          <p className="ss-workflow-panel__copy">
-            {isZh
-              ? '从一个已有连接方式出发，快速决定参与者如何彼此接触。'
-              : 'Start from a familiar topology and decide how participants can reach one another.'}
-=======
             {isZh ? '选择关系结构' : 'Choose a relationship structure'}
           </h2>
           <p className="ss-workflow-panel__copy">
             {isZh
               ? '从一个已有连接方式出发，快速决定智能体如何彼此接触。'
               : 'Start from a familiar topology and decide how agents can reach one another.'}
->>>>>>> Stashed changes
           </p>
         </div>
       </div>

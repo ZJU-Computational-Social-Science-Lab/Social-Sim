@@ -122,15 +122,9 @@ export function getExperimentBuilderNotebookProps(
       return {
         title: isZh ? "状态栏" : "Step status",
         subtitle: isZh
-<<<<<<< Updated upstream
-          ? "这里只保留当前步骤、参与者状态与下一步。"
-          : "Step status, participant state, and next.",
-        status: isZh ? "参与者状态" : "Participant state",
-=======
           ? "这里只保留当前步骤、智能体状态与下一步。"
           : "Step status, agent state, and next.",
         status: isZh ? "智能体状态" : "Agent state",
->>>>>>> Stashed changes
         progress: createProgress(
           4,
           isZh ? `已完成 ${completedCount} / 2 项` : `${completedCount} / 2 done`,
@@ -219,13 +213,8 @@ export function getExperimentBuilderActionBarState(
       : currentStep === 3
         ? actionsReady
           ? isZh
-<<<<<<< Updated upstream
-            ? "继续配置参与者"
-            : "Continue to participants"
-=======
             ? "继续配置智能体"
             : "Continue to agents"
->>>>>>> Stashed changes
           : isZh
             ? `至少保留 ${minimumActionCount} 个动作`
             : `Keep at least ${minimumActionCount} action${minimumActionCount > 1 ? "s" : ""}`

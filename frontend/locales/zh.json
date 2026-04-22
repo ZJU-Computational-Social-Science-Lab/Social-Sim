@@ -14,14 +14,8 @@
   "brand": "FOS",
   "nav": {
     "dashboard": "仪表盘",
-<<<<<<< Updated upstream
-    "create": "新建实验",
-    "workbench": "实验台",
-    "new": "实验台",
-=======
     "new": "新建",
     "workspace": "实验台",
->>>>>>> Stashed changes
     "saved": "已保存",
     "settings": "设置",
     "docs": "文档",
@@ -1087,10 +1081,6 @@
       "generateAnalysisReport": "生成分析报告",
       "nodeAEvents": "节点 A 独有事件",
       "nodeBEvents": "节点 B 独有事件",
-<<<<<<< Updated upstream
-      "agentDiffs": "差异摘要与代理属性差异",
-      "noAgentDiffs": "未检测到代理属性差异",
-=======
       "agentDiffFields": "属性变化字段",
       "eventTypes": "变化事件类型",
       "keyDivergence": "关键分歧",
@@ -1101,7 +1091,6 @@
       "eventAndAgentDiffSummary": "两条路径已经出现可见分歧：A 有 {{left}} 条独有事件，B 有 {{right}} 条独有事件，{{agents}} 个智能体共有 {{fields}} 个属性字段不同。",
       "agentDiffs": "差异摘要与智能体属性差异",
       "noAgentDiffs": "未检测到智能体属性差异",
->>>>>>> Stashed changes
       "dataSourceNote": "数据来自后端对比结果；AI 摘要仅基于上方展示的证据"
     },
     "demographicsBuilder": {
@@ -1224,11 +1213,7 @@
       "confirmExport": "确认导出"
     },
     "guidePrompt": {
-<<<<<<< Updated upstream
-      "systemPrompt": "你是「FOS」社会模拟平台的专家指引助手。\n     你的目标是帮助用户设计实验并导航平台功能。\n     \n     平台功能地图:\n     1. **新建仿真**: 'SimulationWizard' (从村庄/议会/狼人杀等模板创建仿真，导入智能体，AI 生成智能体)。\n     2. **社交网络**: 'NetworkEditor' (定义环形/星形/小世界等拓扑结构以控制信息传播)。\n     3. **实验设计**: 'ExperimentDesigner' (因果推断，A/B 测试，并行分支，对照组)。\n     4. **主持控制**: 'HostPanel' (上帝模式，广播消息，注入环境事件，修改智能体属性)。\n     5. **统计分析**: 'AnalyticsPanel' (智能体属性如信任度/压力随时间变化的折线图)。\n     6. **导出**: 'ExportModal' (以 JSON/CSV/Excel 格式下载日志)。\n     7. **分析报告**: 'ReportModal' (AI 生成的分析报告)。\n     8. **仿真树**: 主要可视化界面。支持『分支』(创建并行时间线)和『推进』(下一回合)。\n     9. **对比**: 'ComparisonView' (对比两个节点/时间线)。\n\n     指引说明:\n     - 分析用户的意图。\n     - 提供简洁的、循序渐进的指南，将用户的目标映射到具体的平台工具。\n     - 如果用户需要打开特定工具，请在回复末尾附加标签，格式为: [[ACTION_NAME]]。\n     - 支持的标签: [[OPEN_WIZARD]], [[OPEN_NETWORK]], [[OPEN_EXPERIMENT]], [[OPEN_EXPORT]], [[OPEN_ANALYTICS]], [[OPEN_HOST]]。\n     - 可以包含多个相关标签，但优先考虑最重要的一个。\n     - 使用 Markdown 格式进行排版。",
-=======
       "systemPrompt": "你是「SocialSim4 Next」社会模拟平台的专家指引助手。\n     你的目标是帮助用户设计实验并导航平台功能。\n     \n     平台功能地图:\n     1. **新建仿真**: 'SimulationWizard' (从村庄/议会/狼人杀等模板创建仿真，导入智能体，AI 生成智能体)。\n     2. **社交网络拓扑**: 'NetworkEditor' (定义环形/星形/小世界等拓扑结构以控制信息传播)。\n     3. **实验设计**: 'ExperimentDesigner' (因果推断，A/B 测试，并行分支，对照组)。\n     4. **主持控制**: 'HostPanel' (上帝模式，广播消息，注入环境事件，修改智能体属性)。\n     5. **统计分析**: 'AnalyticsPanel' (智能体属性如信任度/压力随时间变化的折线图)。\n     6. **导出**: 'ExportModal' (以 JSON/CSV/Excel 格式下载日志)。\n     7. **分析报告**: 'ReportModal' (AI 生成报告，概括实验过程、关键转折点、智能体行为模式和下一步调整建议)。\n     8. **全局知识库**: 'GlobalKnowledgePanel' (导入文本或文档，让智能体拥有可调用的背景知识)。\n     9. **多模态导入**: 'InitialEventsModal' (把地图、街景、图片、音频或视频链接作为影响行为的初始事件输入)。\n     10. **环境事件建议**: 'EnvironmentSuggestion' (根据当前局势推荐外部扰动与后续干预)。\n     11. **仿真树**: 主要可视化界面。支持『分支』(创建并行时间线)和『推进』(下一回合)。\n     12. **对比**: 'ComparisonView' (对比两个节点/时间线)。\n\n     指引说明:\n     - 分析用户的意图。\n     - 提供简洁的、循序渐进的指南，将用户的目标映射到具体的平台工具。\n     - 如果用户需要打开特定工具，请在回复末尾附加标签，格式为: [[ACTION_NAME]]。\n     - 支持的标签: [[OPEN_WIZARD]], [[OPEN_NETWORK]], [[OPEN_EXPERIMENT]], [[OPEN_EXPORT]], [[OPEN_ANALYTICS]], [[OPEN_HOST]], [[OPEN_REPORT]], [[OPEN_KNOWLEDGE]], [[OPEN_MULTIMODAL]], [[OPEN_ENVIRONMENT]]。\n     - 可以包含多个相关标签，但优先考虑最重要的一个。\n     - 使用 Markdown 格式进行排版。",
->>>>>>> Stashed changes
       "defaultResponse": "抱歉，我无法理解您的请求。",
       "connectionTimeout": "连接 AI 服务超时，请稍后再试。"
     },
@@ -1636,11 +1621,7 @@
     "interactionOccurred": "进行了一次交互",
     "node": "节点",
     "defaultSimulationName": "2024年乡村委员会模拟",
-<<<<<<< Updated upstream
-    "guideWelcomeMessage": "你好！我是FOS的智能指引助手。我可以帮你设计实验、推荐功能或解释平台操作。比如，你可以问我：\n\n- \"如何模拟信息在人群中的传播？\"\n- \"我想做一个AB测试实验。\"\n- \"怎么导出分析报告？\"",
-=======
     "guideWelcomeMessage": "你好！我是SocialSim4的智能指引助手。我可以帮你设计实验、推荐功能或解释平台操作。比如，你可以问我：\n\n- \"如何模拟信息在人群中的传播？\"\n- \"我想做一个AB测试实验。\"\n- \"怎么导出分析报告？\"",
->>>>>>> Stashed changes
     "simulationCreated": "仿真「{{name}}」创建成功",
     "failedToCreateSimulation": "后端创建仿真失败",
     "initialState": "初始状态",
@@ -1919,10 +1900,6 @@
       "selectScenarioFirst": "请先在步骤1中选择一个场景。",
       "configureTitle": "配置{{name}}",
       "configureSubtitle": "自定义场景描述和参数",
-<<<<<<< Updated upstream
-      "scenarioDescriptionLabel": "场景描述（代理将看到此内容）",
-      "scenarioDescriptionPlaceholder": "输入代理能够理解的场景描述...",
-=======
       "generateCount": "生成数量",
       "startGeneration": "开始生成",
       "demographics": "人口统计维度",
@@ -1937,7 +1914,6 @@
       "clearReset": "清空重置",
       "scenarioDescriptionLabel": "场景描述（智能体将看到此内容）",
       "scenarioDescriptionPlaceholder": "输入智能体能够理解的场景描述...",
->>>>>>> Stashed changes
       "parametersTitle": "参数",
       "noParameters": "此场景没有可配置的参数。调整上面的描述并进入下一步。",
       "cascadeCards": {
@@ -2060,14 +2036,8 @@
       "jsonFormat": "JSON 格式示例：",
       "uploadCSV": "上传 CSV",
       "uploadJSON": "上传 JSON",
-<<<<<<< Updated upstream
-      "importInfo": "文件导入功能将在第7阶段实现。",
-      "generationLlmProvider": "代理生成LLM提供商",
-      "generationLlmProviderHint": "选择用于生成具有人口统计特征的代理的LLM提供商"
-=======
       "importInfo": "导入内容会追加到当前智能体列表，额外列会成为可编辑的智能体属性。",
       "importSuccess": "已从 {{file}} 导入 {{count}} 个智能体。"
->>>>>>> Stashed changes
     },
     "step5": {
       "networkPresets": "网络预设",
@@ -2152,23 +2122,7 @@
         "timeHours": "时间（小时）",
         "resources": "资源",
         "custom": "自定义..."
-<<<<<<< Updated upstream
-      },
-      "amountPerRoundLabel": "每轮数量",
-      "displaySettingsTitle": "显示设置",
-      "showAverageLabel": "向代理显示平均贡献",
-      "showAverageHint": "启用后，代理可以在做决定前看到群体的平均贡献"
-    },
-    "deductionSettings": {
-      "title": "扣罚设置",
-      "budgetLabel": "每阶段扣罚预算",
-      "budgetHint": "每个代理每阶段可用于减少他人贡献的扣罚点数",
-      "costRatioLabel": "扣罚成本比率",
-      "costRatioHint": "从他人处扣除1单位的成本（例如：3.0 = 花费3来扣除1）",
-      "anonymousLabel": "匿名扣罚（隐藏谁从谁那里扣罚）"
-=======
       }
->>>>>>> Stashed changes
     }
   },
   "simulation": {

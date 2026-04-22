@@ -5,10 +5,7 @@ import { useTranslation } from "react-i18next";
 import { ComparisonView } from "../ComparisonView";
 import { LogViewer } from "../LogViewer";
 import { useSimulationStore } from "../../store";
-<<<<<<< Updated upstream
-=======
 import { resolveAgentDisplayName } from "../../store/helpers";
->>>>>>> Stashed changes
 import { buildWorkspacePath, getWorkspaceNodeLabel } from "./workspaceLabels";
 
 export type NodeDetailTab = "events" | "branches" | "logs" | "raw";
@@ -39,17 +36,12 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
   const logs = useSimulationStore((state) => state.logs);
   const rawEvents = useSimulationStore((state) => state.rawEvents);
   const selectedNodeId = useSimulationStore((state) => state.selectedNodeId);
-<<<<<<< Updated upstream
-  const isCompareMode = useSimulationStore((state) => state.isCompareMode);
-  const selectNode = useSimulationStore((state) => state.selectNode);
-=======
   const compareTargetNodeId = useSimulationStore((state) => state.compareTargetNodeId);
   const isCompareMode = useSimulationStore((state) => state.isCompareMode);
   const isGenerating = useSimulationStore((state) => state.isGenerating);
   const selectNode = useSimulationStore((state) => state.selectNode);
   const setCompareTarget = useSimulationStore((state) => state.setCompareTarget);
   const agents = useSimulationStore((state) => state.agents);
->>>>>>> Stashed changes
 
   const selectedNode = React.useMemo(
     () => nodes.find((node) => node.id === selectedNodeId) || nodes[0] || null,
@@ -97,21 +89,6 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
     [isZh],
   );
 
-<<<<<<< Updated upstream
-  return (
-    <section className="ss-node-detail" id="workspace-detail">
-      <div className="ss-node-detail__header">
-        <div>
-          <div className="ss-kicker">{isZh ? "当前节点详情" : "Current node detail"}</div>
-          <h2>{selectedNode ? getWorkspaceNodeLabel(selectedNode, t) : (isZh ? "未选择节点" : "No node selected")}</h2>
-          <p>
-            {isZh
-              ? "详情区只围绕当前选中节点展开，事件、日志和分支说明在这里切换。"
-              : "Keep the detail stage focused on the selected node and switch between events, logs, and branch explanations here."}
-          </p>
-        </div>
-
-=======
   const handleActivateNode = (nodeId: string) => {
     if (isCompareMode && nodeId !== selectedNodeId) {
       setCompareTarget(nodeId);
@@ -130,7 +107,6 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
   return (
     <section className="ss-node-detail" id="workspace-detail">
       <div className="ss-node-detail__header">
->>>>>>> Stashed changes
         <div className="ss-node-detail__tabs">
           {DETAIL_TABS.map((tab) => {
             const Icon = tab.icon;
@@ -147,8 +123,6 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
             );
           })}
         </div>
-<<<<<<< Updated upstream
-=======
 
         <div className="ss-node-detail__meta-strip">
           <div className="ss-node-detail__meta-item">
@@ -164,7 +138,6 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
             <strong>{getWorkspaceNodeLabel(selectedNode, t)}</strong>
           </div>
         </div>
->>>>>>> Stashed changes
       </div>
 
       <div className="ss-node-detail__body">
@@ -203,16 +176,12 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
               <span>{isZh ? "可切换的并行分支" : "Switchable sibling branches"}</span>
               {siblingNodes.length ? (
                 siblingNodes.map((node) => (
-<<<<<<< Updated upstream
-                  <button key={node.id} type="button" onClick={() => selectNode(node.id)} className="ss-node-detail__list-item">
-=======
                   <button
                     key={node.id}
                     type="button"
                     onClick={() => handleActivateNode(node.id)}
                     className={`ss-node-detail__list-item${compareTargetNodeId === node.id ? " is-compare" : ""}`}
                   >
->>>>>>> Stashed changes
                     <strong>{getWorkspaceNodeLabel(node, t)}</strong>
                     <span>{node.display_id || node.id}</span>
                   </button>
@@ -226,16 +195,12 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
               <span>{isZh ? "当前节点展开出的后续路径" : "Child paths from this node"}</span>
               {childNodes.length ? (
                 childNodes.map((node) => (
-<<<<<<< Updated upstream
-                  <button key={node.id} type="button" onClick={() => selectNode(node.id)} className="ss-node-detail__list-item">
-=======
                   <button
                     key={node.id}
                     type="button"
                     onClick={() => handleActivateNode(node.id)}
                     className={`ss-node-detail__list-item${compareTargetNodeId === node.id ? " is-compare" : ""}`}
                   >
->>>>>>> Stashed changes
                     <strong>{getWorkspaceNodeLabel(node, t)}</strong>
                     <span>{node.display_id || node.id}</span>
                   </button>
@@ -254,11 +219,7 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
               selectedNodeLogs.map((entry) => (
                 <div key={entry.id} className="ss-node-detail__log-item">
                   <div className="ss-node-detail__log-top">
-<<<<<<< Updated upstream
-                    <strong>{entry.agentId || (isZh ? "系统" : "System")}</strong>
-=======
                     <strong>{entry.agentId ? resolveAgentDisplayName(entry.agentId, agents) : (isZh ? "系统" : "System")}</strong>
->>>>>>> Stashed changes
                     <span>{entry.timestamp}</span>
                   </div>
                   <p>{entry.content}</p>

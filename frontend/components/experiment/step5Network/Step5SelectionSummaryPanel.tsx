@@ -80,11 +80,7 @@ export function Step5SelectionSummaryPanel({
 
           <div className="ss-workflow-summary-grid">
             <SummaryInfoCard label={isZh ? '当前模型' : 'Current model'} value={currentPatternLabel} />
-<<<<<<< Updated upstream
-            <SummaryInfoCard label={isZh ? '角色数' : 'Participants'} value={agentIdsLength} />
-=======
             <SummaryInfoCard label={isZh ? '智能体数' : 'Agents'} value={agentIdsLength} />
->>>>>>> Stashed changes
             <SummaryInfoCard label={isZh ? '连线数' : 'Links'} value={edgeCount} />
             <SummaryInfoCard label={t('components.networkEditorModal.density')} value={`${(density * 100).toFixed(0)}%`} />
           </div>
@@ -137,11 +133,7 @@ export function Step5SelectionSummaryPanel({
               size="sm"
               onClick={() => openDetailSurface('memberConnections')}
             >
-<<<<<<< Updated upstream
-              {isZh ? '查看成员连接详情' : 'View member connections'}
-=======
               {isZh ? '查看智能体连接详情' : 'View agent connections'}
->>>>>>> Stashed changes
             </Button>
           </div>
         </>
@@ -157,11 +149,7 @@ export function Step5SelectionSummaryPanel({
               : 'Pick a familiar topology first, then open the overview and full graph only when needed.'}
           </p>
           <div className="ss-workflow-summary-grid">
-<<<<<<< Updated upstream
-            <SummaryInfoCard label={isZh ? '角色数' : 'Participants'} value={agentIdsLength} />
-=======
             <SummaryInfoCard label={isZh ? '智能体数' : 'Agents'} value={agentIdsLength} />
->>>>>>> Stashed changes
             <SummaryInfoCard label={isZh ? '连线数' : 'Links'} value={edgeCount} />
             <SummaryInfoCard
               label={t('components.networkEditorModal.density')}

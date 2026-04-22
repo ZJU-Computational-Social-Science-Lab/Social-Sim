@@ -103,11 +103,7 @@ export const SimulationPathPanel: React.FC<SimulationPathPanelProps> = ({
       <div className="ss-path-strip__actions">
         <button
           type="button"
-<<<<<<< Updated upstream
-          onClick={() => parentNode && selectNode(parentNode.id)}
-=======
           onClick={() => parentNode && handleActivateNode(parentNode.id)}
->>>>>>> Stashed changes
           disabled={!parentNode}
           className="ss-button-secondary"
         >

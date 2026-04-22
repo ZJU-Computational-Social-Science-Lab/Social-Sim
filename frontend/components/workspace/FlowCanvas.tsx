@@ -112,8 +112,6 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({ onOpenDetails, onOpenTop
     [childMap, selectedNode],
   );
 
-<<<<<<< Updated upstream
-=======
   const handleActivateNode = (nodeId: string) => {
     if (isCompareMode && nodeId !== selectedNodeId) {
       setCompareTarget(nodeId);
@@ -122,7 +120,6 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({ onOpenDetails, onOpenTop
     selectNode(nodeId);
   };
 
->>>>>>> Stashed changes
   return (
     <section className="ss-flow-canvas" id="workspace-flow">
       <div className="ss-flow-canvas__header">
@@ -178,11 +175,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({ onOpenDetails, onOpenTop
               <div className="ss-flow-canvas__step-main">
                 <button
                   type="button"
-<<<<<<< Updated upstream
-                  onClick={() => selectNode(node.id)}
-=======
                   onClick={() => handleActivateNode(node.id)}
->>>>>>> Stashed changes
                   className={`ss-flow-node${isCurrent ? " is-current" : ""}${node.status === "pending" ? " is-locked" : ""}${isCompare ? " is-compare" : ""}`}
                 >
                   <div className="ss-flow-node__top">
@@ -208,17 +201,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({ onOpenDetails, onOpenTop
                         <button
                           key={branch.id}
                           type="button"
-<<<<<<< Updated upstream
-                          onClick={() => {
-                            if (isCompareMode && branch.id !== selectedNodeId) {
-                              setCompareTarget(branch.id);
-                              return;
-                            }
-                            selectNode(branch.id);
-                          }}
-=======
                           onClick={() => handleActivateNode(branch.id)}
->>>>>>> Stashed changes
                           className={`ss-flow-branch${compareTargetNodeId === branch.id ? " is-compare" : ""}${branch.status === "pending" ? " is-pending" : ""}`}
                         >
                           <strong>{getWorkspaceNodeLabel(branch, t)}</strong>
@@ -241,16 +224,12 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({ onOpenDetails, onOpenTop
               <span>{isZh ? "当前节点的并行分支" : "Sibling branches"}</span>
               <div className="ss-flow-canvas__branch-grid">
                 {selectedSiblings.map((node) => (
-<<<<<<< Updated upstream
-                  <button key={node.id} type="button" onClick={() => selectNode(node.id)} className="ss-flow-branch">
-=======
                   <button
                     key={node.id}
                     type="button"
                     onClick={() => handleActivateNode(node.id)}
                     className={`ss-flow-branch${compareTargetNodeId === node.id ? " is-compare" : ""}${node.status === "pending" ? " is-pending" : ""}`}
                   >
->>>>>>> Stashed changes
                     <strong>{getWorkspaceNodeLabel(node, t)}</strong>
                     <span>{summarizeNode(node, latestByNode.get(node.id) || null, isZh)}</span>
                   </button>
@@ -264,16 +243,12 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({ onOpenDetails, onOpenTop
               <span>{isZh ? "当前节点展开后的下一层" : "Next layer after this node"}</span>
               <div className="ss-flow-canvas__branch-grid">
                 {selectedChildren.map((node) => (
-<<<<<<< Updated upstream
-                  <button key={node.id} type="button" onClick={() => selectNode(node.id)} className="ss-flow-branch">
-=======
                   <button
                     key={node.id}
                     type="button"
                     onClick={() => handleActivateNode(node.id)}
                     className={`ss-flow-branch${compareTargetNodeId === node.id ? " is-compare" : ""}${node.status === "pending" ? " is-pending" : ""}`}
                   >
->>>>>>> Stashed changes
                     <strong>{getWorkspaceNodeLabel(node, t)}</strong>
                     <span>{summarizeNode(node, latestByNode.get(node.id) || null, isZh)}</span>
                   </button>

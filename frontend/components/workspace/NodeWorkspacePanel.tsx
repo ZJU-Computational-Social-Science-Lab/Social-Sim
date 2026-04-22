@@ -39,10 +39,7 @@ export const NodeWorkspacePanel: React.FC<NodeWorkspacePanelProps> = ({
   const isGenerating = useSimulationStore((state) => state.isGenerating);
   const advanceSimulation = useSimulationStore((state) => state.advanceSimulation);
   const selectNode = useSimulationStore((state) => state.selectNode);
-<<<<<<< Updated upstream
-=======
   const setCompareTarget = useSimulationStore((state) => state.setCompareTarget);
->>>>>>> Stashed changes
 
   const selectedNode = React.useMemo(
     () => nodes.find((node) => node.id === selectedNodeId) || nodes[0] || null,
@@ -90,8 +87,6 @@ export const NodeWorkspacePanel: React.FC<NodeWorkspacePanelProps> = ({
   const selectedProvider =
     llmProviders.find((provider) => provider.id === providerSelection) || null;
 
-<<<<<<< Updated upstream
-=======
   const handleActivateNode = (nodeId: string) => {
     if (isCompareMode && nodeId !== selectedNodeId) {
       setCompareTarget(nodeId);
@@ -100,7 +95,6 @@ export const NodeWorkspacePanel: React.FC<NodeWorkspacePanelProps> = ({
     selectNode(nodeId);
   };
 
->>>>>>> Stashed changes
   return (
     <section className="ss-node-workspace">
       <div
@@ -197,11 +191,7 @@ export const NodeWorkspacePanel: React.FC<NodeWorkspacePanelProps> = ({
           </button>
           {!isObservationMode ? (
             <button
-<<<<<<< Updated upstream
-              onClick={() => parentNode && selectNode(parentNode.id)}
-=======
               onClick={() => parentNode && handleActivateNode(parentNode.id)}
->>>>>>> Stashed changes
               disabled={!parentNode}
               className="ss-button-secondary"
             >

@@ -88,8 +88,4 @@ export const buildNetworkOverview = (
     largestComponent,
     hubAgents,
   };
-<<<<<<< Updated upstream
 };
-=======
-};
->>>>>>> Stashed changes

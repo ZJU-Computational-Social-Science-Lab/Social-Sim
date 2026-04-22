@@ -21,11 +21,7 @@ export function NavBar({ variant = "default" }: { variant?: NavBarVariant }) {
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const clearSession = useAuthStore((s) => s.clearSession);
-<<<<<<< Updated upstream
-  const currentSimulation = useSimulationStore((s) => s.currentSimulation);
-=======
   const currentSimulationId = useSimulationStore((s) => s.currentSimulation?.id ?? null);
->>>>>>> Stashed changes
 
   const mode = useThemeStore((s) => s.mode);
   const toggle = useThemeStore((s) => s.toggle);
@@ -35,21 +31,12 @@ export function NavBar({ variant = "default" }: { variant?: NavBarVariant }) {
   const isAdmin = String(user?.role ?? "") === "admin";
   const workspaceLink = currentSimulationId ? `/simulations/${currentSimulationId}` : "/simulations/workspace";
   const navItems = [
-<<<<<<< Updated upstream
-    { to: "/dashboard", label: t("nav.dashboard") },
-    { to: "/simulations/create", label: t("nav.create") },
-    { to: workbenchPath, label: t("nav.workbench") },
-    { to: "/simulations/saved", label: t("nav.saved") },
-    { to: "/settings/providers", label: t("nav.settings") },
-    { to: "/docs", label: t("nav.docs") || "Docs" },
-=======
     { id: "dashboard", to: "/dashboard", label: t("nav.dashboard") },
     { id: "new", to: "/simulations/new", label: t("nav.new") },
     { id: "workspace", to: workspaceLink, label: t("nav.workspace", { defaultValue: "实验台" }) },
     { id: "saved", to: "/simulations/saved", label: t("nav.saved") },
     { id: "settings", to: "/settings", label: t("nav.settings") },
     { id: "docs", to: "/docs", label: t("nav.docs") || "Docs" },
->>>>>>> Stashed changes
   ];
   const allNavItems = isAdmin
     ? [...navItems, { id: "admin", to: "/admin", label: t("nav.admin") || "Admin" }]

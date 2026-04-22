@@ -38,14 +38,11 @@ export const zhDesign = {
     noRecent: "还没有实验记录，先创建一个实验来建立你的工作台。",
     continueLabel: "继续当前实验",
     openScenarioLibrary: "打开场景库",
-<<<<<<< Updated upstream
-=======
     newExperimentHint: "从模板或空白场景快速开始。",
     archiveHint: "回到已有实验与分支记录。",
     sceneLibraryHint: "直接挑选一个研究场景进入。",
     networkHint: "先整理角色关系和结构，再进入后续推演。",
     analyzeHint: "回到归档查看分支、快照与分析结果。",
->>>>>>> Stashed changes
     providerWarningTitle: "先连接模型服务，再开始实验",
     providerWarningBody: "Social-Sim 需要至少一个可用提供商来生成角色行为、运行实验和分析结果。",
     recommendationSetup: "配置提供商",
@@ -525,14 +522,11 @@ export const enDesign = {
     noRecent: "No experiments yet. Create one to establish your workbench.",
     continueLabel: "Continue current experiment",
     openScenarioLibrary: "Open scenario library",
-<<<<<<< Updated upstream
-=======
     newExperimentHint: "Start quickly from a template or blank setup.",
     archiveHint: "Return to saved experiments and branch history.",
     sceneLibraryHint: "Pick a research scenario directly.",
     networkHint: "Organize roles and network structure before running the study.",
     analyzeHint: "Return to saved runs for branches, snapshots, and analysis outputs.",
->>>>>>> Stashed changes
     providerWarningTitle: "Connect a model provider before you run experiments",
     providerWarningBody: "Social-Sim needs at least one provider to generate agent behavior, run experiments, and analyze outcomes.",
     recommendationSetup: "Configure providers",
