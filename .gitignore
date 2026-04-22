@@ -145,6 +145,13 @@ uploads/
 *.jpeg
 *.gif
 *.webp
+# Allow public web assets despite image extension rules
+!frontend/public/**/*.png
+!frontend/public/**/*.jpg
+!frontend/public/**/*.jpeg
+!frontend/public/**/*.gif
+!frontend/public/**/*.webp
+!frontend/public/**/*.mp4
 
 # Claude Code settings (local to each developer)
 .claude/
