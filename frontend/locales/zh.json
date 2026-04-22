@@ -1761,9 +1761,24 @@
     "loadProvidersFailed": "加载 LLM 提供商失败",
     "experimentSubmitted": "实验「{{name}}」已提交到后端运行（run_id={{runId}}）",
     "experimentCompleted": "实验 {{name}} 已完成（run {{status}}）",
+    "experimentBranchCreated": "实验分支已创建：{{experimentName}} — {{variantName}}",
+    "experimentInterventionContent": "干预内容",
+    "experimentCreatedNoRun": "实验「{{name}}」已创建（尚未启动）",
+    "experimentNodeMappingEmpty": "实验已创建，但后端尚未返回节点映射",
+    "experimentNodesTimeout": "实验节点尚未可用，请刷新或重试。",
+    "advanceHydrationFailed": "仿真已推进，但加载新节点详情失败",
+    "failedToLoadSimulation": "加载仿真失败",
+    "summary": "摘要",
+    "agentAnalysis": "智能体分析",
     "failedToStartExperiment": "启动实验失败",
     "batchExperimentStarted": "批量实验「{{name}}」已启动",
-    "comparisonAnalysisFailed": "比较分析失败"
+    "comparisonAnalysisFailed": "比较分析失败",
+    "selectedNodeNotFound": "在仿真树中未找到所选节点，请尝试刷新仿真。",
+    "branchCreated": "分支已创建",
+    "simulationReport": "仿真实验分析报告",
+    "generatedAt": "生成时间",
+    "keyEvents": "关键事件",
+    "suggestions": "建议"
   },
   "helpModal": {
     "title": "理解「前沿」概念",
@@ -1846,6 +1861,7 @@
       "selectTemplate": "选择一个场景模板来开始构建您的实验",
       "retry": "重试",
       "scenariosCount": "{{count}} 个场景",
+      "noScenariosAvailable": "暂无可用场景",
       "strategic_decisions": {
         "title": "战略决策",
         "description": "研究结果取决于他人选择的情况",
@@ -2024,7 +2040,16 @@
       "actionsSelected": "已选择 {{selected}} / {{total}} 个动作",
       "removeAction": "删除动作",
       "selectionMode": "选择方式",
-      "manualSelection": "手动选择"
+      "manualSelection": "手动选择",
+      "policyActions": {
+        "send_message": { "label": "发送消息", "description": "向其他智能体发送消息" },
+        "yield": { "label": "让出发言权", "description": "将发言权让给其他智能体" },
+        "report_upward": { "label": "向上汇报", "description": "向上级汇报信息" },
+        "escalate_complaint": { "label": "升级投诉", "description": "向更高级别升级投诉" },
+        "consult_peer": { "label": "咨询同级", "description": "与同级智能体协商" },
+        "notify_subordinate": { "label": "通知下属", "description": "通知下级智能体" },
+        "announce_policy_adjustment": { "label": "宣布政策调整", "description": "向全组宣布政策变更" }
+      }
     },
     "step4": {
       "title": "智能体配置",
@@ -2110,7 +2135,9 @@
       "csvFormat": "CSV 格式示例：",
       "uploadCSV": "上传 CSV",
       "uploadJSON": "上传 JSON",
-      "importInfo": "文件导入功能将在第7阶段实现。"
+      "importInfo": "文件导入功能将在第7阶段实现。",
+      "generationLlmProvider": "生成用 LLM 提供商",
+      "generationLlmProviderHint": "选择用于 AI 生成智能体档案的提供商"
     },
     "step5": {
       "networkPresets": "网络预设",
@@ -2136,7 +2163,10 @@
       "instructions": "说明",
       "instructionSelect": "选择预设以生成网络",
       "instructionDrag": "拖动节点重新排列",
-      "instructionZoom": "滚动缩放，拖动平移"
+      "instructionZoom": "滚动缩放，拖动平移",
+      "manualLinks": "手动连接",
+      "addLink": "添加连接",
+      "noLinks": "暂无连接"
     },
     "step6": {
       "noAgentsDefined": "未定义智能体",
@@ -2195,7 +2225,19 @@
         "timeHours": "时间（小时）",
         "resources": "资源",
         "custom": "自定义..."
-      }
+      },
+      "amountPerRoundLabel": "每轮分配数量",
+      "displaySettingsTitle": "显示设置",
+      "showAverageLabel": "显示平均贡献",
+      "showAverageHint": "每轮结束后显示全组平均贡献值"
+    },
+    "deductionSettings": {
+      "title": "惩罚设置",
+      "budgetLabel": "每轮惩罚预算",
+      "budgetHint": "设为 0 可禁用惩罚",
+      "costRatioLabel": "惩罚成本比率",
+      "costRatioHint": "数值越高，惩罚效果越强",
+      "anonymousLabel": "匿名惩罚模式"
     }
   },
   "simulation": {

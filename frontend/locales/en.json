@@ -1761,6 +1761,15 @@
     "loadProvidersFailed": "Failed to load LLM providers",
     "experimentSubmitted": "Experiment \"{{name}}\" submitted to backend (run_id={{runId}})",
     "experimentCompleted": "Experiment {{name}} completed (run {{status}})",
+    "experimentBranchCreated": "Experiment branch created: {{experimentName}} — {{variantName}}",
+    "experimentInterventionContent": "Intervention content",
+    "experimentCreatedNoRun": "Experiment \"{{name}}\" created (not started yet)",
+    "experimentNodeMappingEmpty": "Experiment created, but backend returned no node mapping yet",
+    "experimentNodesTimeout": "Experiment nodes not available yet; please refresh or retry.",
+    "advanceHydrationFailed": "Simulation advanced, but loading the new node details failed",
+    "failedToLoadSimulation": "Failed to load simulation",
+    "summary": "Summary",
+    "agentAnalysis": "Agent Analysis",
     "failedToStartExperiment": "Failed to start experiment",
     "batchExperimentStarted": "Batch experiment \"{{name}}\" started",
     "comparisonAnalysisFailed": "Comparison analysis failed",
@@ -2038,7 +2047,16 @@
       "descriptionPlaceholder": "Describe what this action does...",
       "addAction": "Add Action",
       "actionsSelected": "{{selected}} of {{total}} actions selected",
-      "removeAction": "Remove action"
+      "removeAction": "Remove action",
+      "policyActions": {
+        "send_message": { "label": "Send Message", "description": "Send a message to another agent" },
+        "yield": { "label": "Yield", "description": "Yield the floor to other agents" },
+        "report_upward": { "label": "Report Upward", "description": "Report information to superior" },
+        "escalate_complaint": { "label": "Escalate Complaint", "description": "Escalate a complaint to higher level" },
+        "consult_peer": { "label": "Consult Peer", "description": "Consult with a peer agent" },
+        "notify_subordinate": { "label": "Notify Subordinate", "description": "Notify subordinate agents" },
+        "announce_policy_adjustment": { "label": "Announce Policy Adjustment", "description": "Announce a policy change to the group" }
+      }
     },
     "step4": {
       "title": "Agent setup",
@@ -2124,7 +2142,9 @@
       "csvFormat": "CSV Format Example:",
       "uploadCSV": "Upload CSV",
       "uploadJSON": "Upload JSON",
-      "importInfo": "File import will be implemented in Phase 7."
+      "importInfo": "File import will be implemented in Phase 7.",
+      "generationLlmProvider": "Generation LLM Provider",
+      "generationLlmProviderHint": "Select a provider for AI-generated agent profiles"
     },
     "step5": {
       "networkPresets": "Network Presets",
@@ -2150,7 +2170,10 @@
       "instructions": "Instructions",
       "instructionSelect": "Select a preset to generate a network",
       "instructionDrag": "Drag nodes to rearrange",
-      "instructionZoom": "Scroll to zoom, drag to pan"
+      "instructionZoom": "Scroll to zoom, drag to pan",
+      "manualLinks": "Manual links",
+      "addLink": "Add link",
+      "noLinks": "No links yet"
     },
     "step6": {
       "noAgentsDefined": "No Agents Defined",
@@ -2209,7 +2232,19 @@
         "timeHours": "Time (hours)",
         "resources": "Resources",
         "custom": "Custom..."
-      }
+      },
+      "amountPerRoundLabel": "Amount per Round",
+      "displaySettingsTitle": "Display Settings",
+      "showAverageLabel": "Show Average Contribution",
+      "showAverageHint": "Display the group average contribution after each round"
+    },
+    "deductionSettings": {
+      "title": "Deduction Settings",
+      "budgetLabel": "Deduction Budget per Round",
+      "budgetHint": "Set to 0 to disable deductions",
+      "costRatioLabel": "Cost Ratio",
+      "costRatioHint": "Higher values mean stronger deduction effect",
+      "anonymousLabel": "Anonymous Deduction Mode"
     }
   },
   "simulation": {
