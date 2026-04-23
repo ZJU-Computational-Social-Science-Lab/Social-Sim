@@ -4,11 +4,10 @@
  * Orchestrates the tab-based layout (Sim Tree, Logs, Agents) with a peek overlay
  * for cross-panel awareness. Loads simulation state from backend.
  *
- * Exports: SimulationPage (default), SimulationPage (named), Header
+ * Exports: SimulationPage (default), SimulationPage (named)
  */
 
 import React from "react";
-import { Link } from "react-router-dom";
 import { SimTree } from "../components/SimTree";
 import { Sidebar } from "../components/Sidebar";
 import { LogViewer } from "../components/LogViewer";
@@ -31,150 +30,12 @@ import { useParams } from "react-router-dom";
 import { getSimulation as apiGetSimulation } from "../services/simulations";
 import { getTreeGraph, getSimEvents, getSimState, getRehydrate } from "../services/simulationTree";
 import { useAuthStore } from "../store/auth";
-import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { useTranslation } from "react-i18next";
 import { TabBar } from "../components/TabBar";
 import ContextToolbar from "../components/ContextToolbar";
 import { PeekOverlay } from "../components/PeekOverlay";
-import { BrandLogo } from "../components/BrandLogo";
-import {
-  Plus,
-  Settings,
-  Save,
-  LogOut,
-  RotateCcw,
-  Trash2,
-} from "lucide-react";
 
-// ---------------- Header ----------------
-
-const Header: React.FC = () => {
-  const currentSim = useSimulationStore((state) => state.currentSimulation);
-  const toggleWizard = useSimulationStore((state) => state.toggleWizard);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const hasRestored = useAuthStore((s) => s.hasRestored);
-  const loadProviders = useSimulationStore((state) => state.loadProviders);
-  const resetSimulation = useSimulationStore((state) => state.resetSimulation);
-  const deleteSimulation = useSimulationStore((state) => state.deleteSimulation);
-  const toggleSaveTemplate = useSimulationStore((state) => state.toggleSaveTemplate);
-  const isGenerating = useSimulationStore((state) => state.isGenerating);
-  const user = useAuthStore((state) => state.user);
-  const logout = useAuthStore((state) => state.clearSession);
-  const { t } = useTranslation();
-
-  return (
-    <header className="h-14 border-b flex items-center justify-between px-4 shrink-0 z-20" style={{ background: 'var(--ss-nav-bg)', borderColor: 'var(--ss-nav-border)' }}>
-      <div className="flex items-center gap-4">
-        <Link to="/dashboard" className="flex items-center gap-2 hover:opacity-80">
-          <BrandLogo layout="inline" className="text-xl" />
-          <span className="font-bold text-sm tracking-tight" style={{ color: 'var(--ss-brand-primary)' }}>
-            {t('brand')}
-          </span>
-        </Link>
-        
-        {/* 导航链接 */}
-        <nav className="flex items-center gap-1 ml-4">
-          <Link to="/dashboard" className="px-3 py-1.5 text-sm rounded hover:text-brand-600 hover:bg-slate-100" style={{ color: 'var(--ss-workspace-muted)' }}>
-            {t('nav.dashboard')}
-          </Link>
-          <Link to="/simulations/saved" className="px-3 py-1.5 text-sm rounded hover:text-brand-600 hover:bg-slate-100" style={{ color: 'var(--ss-workspace-muted)' }}>
-            {t('nav.saved')}
-          </Link>
-          <Link to="/settings" className="px-3 py-1.5 text-sm rounded hover:text-brand-600 hover:bg-slate-100" style={{ color: 'var(--ss-workspace-muted)' }}>
-            {t('nav.settings')}
-          </Link>
-        </nav>
-        
-        <div className="h-6 w-px mx-2" style={{ background: 'var(--ss-workspace-border)' }}></div>
-        <div>
-          <h1 className="text-sm font-bold" style={{ color: 'var(--ss-workspace-heading)' }}>
-            {currentSim?.name || t('simPage.noSimulation')}
-          </h1>
-          <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color: 'var(--ss-workspace-muted)' }}>
-            {currentSim?.id}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => toggleWizard(true)}
-          className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium hover:bg-slate-200 rounded-md transition-colors"
-          style={{ background: 'var(--ss-workspace-surface)', color: 'var(--ss-workspace-text)' }}
-        >
-          <Plus size={14} /> {t('simPage.newSimulation')}
-        </button>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              if (window.confirm(t('simPage.confirmReset'))) {
-                resetSimulation();
-              }
-            }}
-            className="flex items-center gap-2 px-3 py-1.5 border hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
-            style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-text)' }}
-            title={t('simPage.resetSimulation')}
-            disabled={isGenerating}
-          >
-            <RotateCcw size={14} />
-          </button>
-
-          <button
-            onClick={() => {
-              if (window.confirm(t('simPage.confirmDelete'))) {
-                deleteSimulation();
-              }
-            }}
-            className="flex items-center gap-2 px-3 py-1.5 border hover:text-red-700 hover:border-red-300 text-xs font-medium rounded shadow-sm transition-all"
-            style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-error-500)' }}
-            title={t('simPage.deleteSimulation')}
-            disabled={isGenerating}
-          >
-            <Trash2 size={14} />
-          </button>
-
-          <button
-            onClick={() => toggleSaveTemplate(true)}
-            className="flex items-center gap-2 px-3 py-1.5 border hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
-            style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-text)' }}
-            title={t('simPage.saveAsTemplate')}
-          >
-            <Save size={14} />
-          </button>
-          <button
-            onClick={() => useSimulationStore.getState().openSyncModal()}
-            className="flex items-center gap-2 px-3 py-1.5 border hover:text-brand-600 hover:border-brand-300 text-xs font-medium rounded shadow-sm transition-all"
-            style={{ background: 'var(--ss-workspace-surface)', borderColor: 'var(--ss-workspace-border)', color: 'var(--ss-workspace-text)' }}
-            title={t('simPage.syncBackend')}
-          >
-            {t('simPage.syncBackend')}
-          </button>
-        </div>
-        <Link to="/settings" className="p-2 hover:text-slate-600 hover:bg-slate-100 rounded-md" style={{ color: 'var(--ss-workspace-muted)' }}>
-          <Settings size={18} />
-        </Link>
-
-        <div className="h-4 w-px mx-2" style={{ background: 'var(--ss-workspace-border)' }}></div>
-        <LanguageSwitcher />
-        <div className="h-4 w-px mx-2" style={{ background: 'var(--ss-workspace-border)' }}></div>
-
-        {/* 用户信息 */}
-        <span className="text-sm" style={{ color: 'var(--ss-workspace-muted)' }}>{String(user?.email ?? '')}</span>
-        <button
-          onClick={logout}
-          className="flex items-center gap-1 px-2 py-1.5 text-xs hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-          style={{ color: 'var(--ss-workspace-muted)' }}
-          title={t('nav.signout')}
-        >
-          <LogOut size={14} />
-        </button>
-      </div>
-    </header>
-  );
-};
-
-// ---------------- 页面主组件：SimulationPage ----------------
+// ---------------- SimulationPage ----------------
 
 const SimulationPage: React.FC = () => {
   const { t } = useTranslation();
@@ -615,7 +476,6 @@ const SimulationPage: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen" style={{ background: 'var(--ss-workspace-bg)' }}>
-      <Header />
       <TabBar />
       <ContextToolbar />
 
