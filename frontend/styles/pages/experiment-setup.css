@@ -2380,6 +2380,11 @@
 .ss-variable-map__param-current {
   display: inline-flex;
   min-width: 3.25rem;
+  max-width: 9rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
   padding: 0.45rem 0.75rem;

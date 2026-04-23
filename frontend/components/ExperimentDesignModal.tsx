@@ -112,6 +112,13 @@ const parseThreadSeed = (text: string, agentNames: string[]): Record<string, any
   return seed;
 };
 
+const toParameterFieldType = (type: string | undefined): 'integer' | 'string' | 'boolean' | 'array' => {
+  if (type === 'boolean') return 'boolean';
+  if (type === 'array') return 'array';
+  if (type === 'number' || type === 'integer' || type === 'float') return 'integer';
+  return 'string';
+};
+
 const hasMeaningfulInterventionText = (text: string): boolean => {
   return String(text || '').trim().length > 0;
 };
@@ -948,9 +955,15 @@ export const ExperimentDesignModal: React.FC = () => {
                                               )}
                                               <ParameterField
                                                 param={{
-                                                  type: param.type === 'number' ? 'integer' : param.type === 'boolean' ? 'boolean' : 'string',
+                                                  type: toParameterFieldType(param.type),
                                                   default: param.default,
-                                                  ui_hint: param.ui_hint || (param.type === 'boolean' ? 'toggle' : 'text'),
+                                                  ui_hint:
+                                                    param.ui_hint ||
+                                                    (param.type === 'boolean'
+                                                      ? 'toggle'
+                                                      : param.type === 'number' || param.type === 'integer' || param.type === 'float'
+                                                        ? 'number'
+                                                        : 'text'),
                                                   min: param.min,
                                                   max: param.max,
                                                   step: param.step,

@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { SlidersHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { useExperimentBuilder } from "../../store/experiment-builder";
@@ -8,7 +8,6 @@ import { ActionEditor } from "./ActionEditor";
 import { ResourceConfig } from "./ResourceConfig";
 import { FieldBlock } from "./workflow/FieldBlock";
 import { ResearchInputPanel } from "./workflow/ResearchInputPanel";
-import { SecondaryGhostButton } from "./workflow/SecondaryGhostButton";
 import { SummaryInfoCard } from "./workflow/SummaryInfoCard";
 import {
   getLocalizedActionName,
@@ -21,25 +20,8 @@ const DISTORTION_ONLY_PARAM_KEYS = new Set([
   "block_probability",
 ]);
 
-const CORE_PARAM_PRIORITY = [
-  "grid_width",
-  "grid_height",
-  "grid_size",
-  "initial_amount",
-  "resource_count",
-  "num_resources",
-  "resources",
-  "participant_count",
-  "num_agents",
-  "num_agents_per_tier",
-  "multiplier",
-];
-
 const isCascadeScenario = (parameterKeys: string[]) =>
   parameterKeys.includes("cascade_mode");
-
-const compareValues = (left: unknown, right: unknown) =>
-  JSON.stringify(left) === JSON.stringify(right);
 
 type StepTwoGuideTarget = "scenario" | "params" | "schedule";
 
@@ -51,6 +33,16 @@ interface ScenarioStructureAnalysis {
 
 const getNumericParam = (value: unknown, fallback: number) =>
   typeof value === "number" ? value : Number(value) || fallback;
+
+const isNumericType = (type: string | undefined) =>
+  type === "number" || type === "integer" || type === "float";
+
+const toParameterFieldType = (type: string | undefined): "integer" | "string" | "boolean" | "array" => {
+  if (type === "boolean") return "boolean";
+  if (type === "array") return "array";
+  if (isNumericType(type)) return "integer";
+  return "string";
+};
 
 const buildOrdering = (entries: Array<{ label: string; value: number }>) => {
   const sorted = [...entries].sort((left, right) => {
@@ -333,7 +325,6 @@ export const Step2StarterTemplate: React.FC = () => {
   const [localTurnOrder, setLocalTurnOrder] = useState<"fixed" | "random">(
     "fixed"
   );
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [guidedTarget, setGuidedTarget] = useState<StepTwoGuideTarget | null>(null);
 
   useEffect(() => {
@@ -367,10 +358,6 @@ export const Step2StarterTemplate: React.FC = () => {
       const target = event.detail.target;
       setGuidedTarget(target);
 
-      if (target === "schedule") {
-        setShowAdvanced(true);
-      }
-
       window.setTimeout(() => {
         const elementId =
           target === "scenario"
@@ -381,7 +368,7 @@ export const Step2StarterTemplate: React.FC = () => {
         document
           .getElementById(elementId)
           ?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, target === "schedule" ? 120 : 0);
+      }, 0);
     };
 
     window.addEventListener("ss-step2-guide", handleGuideEvent as EventListener);
@@ -410,6 +397,10 @@ export const Step2StarterTemplate: React.FC = () => {
     setScenarioParams({ ...scenarioParams, [key]: value });
   };
 
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setScenarioDescription(e.target.value);
+  };
+
   const handlePayoffChange = (value: {
     cooperate_reward: number;
     sucker_penalty: number;
@@ -428,6 +419,11 @@ export const Step2StarterTemplate: React.FC = () => {
   const getParamValue = (param: { key: string; default: unknown }) =>
     scenarioParams[param.key] !== undefined ? scenarioParams[param.key] : param.default;
 
+  const getParamDescription = (param: { key: string; description?: string }) =>
+    t(`experimentBuilder.paramDescriptions.${param.key}`, {
+      defaultValue: param.description || "",
+    });
+
   const rawActionA = String(
     scenarioParams.action_1_name || selectedScenarioData.actions?.[0]?.name || "Action 1"
   );
@@ -437,33 +433,8 @@ export const Step2StarterTemplate: React.FC = () => {
   const localizedActionA = getLocalizedActionName(rawActionA, isZh);
   const localizedActionB = getLocalizedActionName(rawActionB, isZh);
 
-  const getParamLabel = (param: { key: string; label: string }) => {
-    if (param.key === "cooperate_reward") {
-      return isZh ? `双方都选择${localizedActionA}` : `Both ${rawActionA}`;
-    }
-    if (param.key === "sucker_penalty") {
-      return isZh
-        ? `你选择${localizedActionA}，对方选择${localizedActionB}`
-        : `You ${rawActionA}, They ${rawActionB}`;
-    }
-    if (param.key === "temptation_reward") {
-      return isZh
-        ? `你选择${localizedActionB}，对方选择${localizedActionA}`
-        : `You ${rawActionB}, They ${rawActionA}`;
-    }
-    if (param.key === "defect_penalty") {
-      return isZh ? `双方都选择${localizedActionB}` : `Both ${rawActionB}`;
-    }
-    return t(`experimentBuilder.paramLabels.${param.key}`, { defaultValue: param.label });
-  };
-
-  const getParamDisplayValue = (param: { key: string; default: unknown }) => {
-    const value = getParamValue(param);
-    if (param.key === "action_1_name" || param.key === "action_2_name") {
-      return getLocalizedActionName(String(value), isZh);
-    }
-    return value;
-  };
+  const getParamLabel = (param: { key: string; label: string }) =>
+    t(`experimentBuilder.paramLabels.${param.key}`, { defaultValue: param.label });
 
   const getActionEditor = () => {
     const scenarioId = selectedScenarioData.id;
@@ -494,19 +465,19 @@ export const Step2StarterTemplate: React.FC = () => {
     }
 
     if (scenarioId === "public_goods") {
+      const defaultResourceName = t('experimentBuilder.resourceConfig.resourceOptions.tokens', { defaultValue: 'tokens' });
       return (
         <ResourceConfig
           values={{
-            resource_name: (scenarioParams.resource_name as string) || "Tokens",
-            resource_name_custom: (scenarioParams.resource_name_custom as string) || "",
-            initial_amount: (scenarioParams.initial_amount as number) || 20,
-            multiplier: (scenarioParams.multiplier as number) || 1.5,
-            action_name: (scenarioParams.action_name as string) || "Contribute",
-            action_description:
-              (scenarioParams.action_description as string) ||
-              "Contribute {resource} to the shared pool",
+            resource_name: (scenarioParams.resource_name as string) || defaultResourceName,
+            tokens_per_round: (scenarioParams.tokens_per_round as number) ?? 10,
+            multiplier: (scenarioParams.multiplier as number) ?? 1.3,
+            deduction_budget_per_phase: (scenarioParams.deduction_budget_per_phase as number) ?? 0,
+            deduction_cost_ratio: (scenarioParams.deduction_cost_ratio as number) ?? 3,
+            deduction_anonymous: (scenarioParams.deduction_anonymous as boolean) ?? false,
+            show_average_contribution: (scenarioParams.show_average_contribution as boolean) ?? false,
           }}
-          onChange={(key, value) => handleParamChange(key, value)}
+          onChange={handleParamChange}
         />
       );
     }
@@ -535,6 +506,14 @@ export const Step2StarterTemplate: React.FC = () => {
       "strict_cascade"
   );
   const visibleParameters = selectedScenarioData.parameters.filter((param) => {
+    // Exclude deduction category parameters - they're handled by ResourceConfig
+    if (param.category === 'deduction') {
+      return false;
+    }
+    // Exclude resource category parameters - they're handled by ResourceConfig
+    if (param.category === 'resource') {
+      return false;
+    }
     if (!DISTORTION_ONLY_PARAM_KEYS.has(param.key)) {
       return true;
     }
@@ -555,56 +534,11 @@ export const Step2StarterTemplate: React.FC = () => {
         : "Parameter-driven",
   ].filter(Boolean);
 
-  const coreParameters = useMemo(() => {
-    if (selectedScenarioData.display_type === "payoff_matrix") {
-      return [];
-    }
-
-    const ordered = CORE_PARAM_PRIORITY
-      .map((key) => visibleParameters.find((param) => param.key === key))
-      .filter((param): param is NonNullable<typeof param> => Boolean(param));
-
-    const numericFallback = visibleParameters.filter(
-      (param) =>
-        !ordered.some((candidate) => candidate.key === param.key) &&
-        (param.type === "number" || param.ui_hint === "slider" || param.ui_hint === "percentage")
-    );
-
-    const fallback = visibleParameters.filter(
-      (param) =>
-        !ordered.some((candidate) => candidate.key === param.key) &&
-        !numericFallback.some((candidate) => candidate.key === param.key)
-    );
-
-    return [...ordered, ...numericFallback, ...fallback].slice(0, 4);
-  }, [selectedScenarioData.display_type, visibleParameters]);
-
-  const advancedParameters = useMemo(() => {
-    const coreKeys = new Set(coreParameters.map((param) => param.key));
-    return visibleParameters.filter((param) => !coreKeys.has(param.key));
-  }, [coreParameters, visibleParameters]);
-
   const actionEditor = getActionEditor();
-  const hasAdvancedSection =
-    Boolean(actionEditor) || advancedParameters.length > 0 || hasParameters;
-
-  const defaultRoundVisibility =
-    selectedScenarioData.interaction_mode === "sequential" ? "sequential" : "simultaneous";
-  const turnOrderChanged =
-    localRoundVisibility === "sequential" && localTurnOrder !== "fixed";
-  const changedParamCount = visibleParameters.reduce((count, param) => {
+  const tuningCount = visibleParameters.reduce((count, param) => {
     const currentValue = getParamValue(param);
-    return count + (compareValues(currentValue, param.default) ? 0 : 1);
+    return count + (JSON.stringify(currentValue) === JSON.stringify(param.default) ? 0 : 1);
   }, 0);
-  const tuningCount =
-    changedParamCount +
-    (localRoundVisibility !== defaultRoundVisibility ? 1 : 0) +
-    (turnOrderChanged ? 1 : 0);
-  const payoffAnalysis = analyzeScenarioStructure(
-    selectedScenarioData.id,
-    scenarioParams,
-    isZh
-  );
 
   return (
     <div className="ss-variable-map">
@@ -626,7 +560,22 @@ export const Step2StarterTemplate: React.FC = () => {
                 </span>
               ))}
             </div>
-            <p className="ss-workflow-panel__copy">{translatedDescription}</p>
+              <label
+                htmlFor="scenario-description"
+                className="block text-sm font-medium mt-1"
+                style={{ color: 'var(--ss-heading)' }}
+              >
+                {t('experimentBuilder.step2.scenarioDescriptionLabel')}
+              </label>
+              <textarea
+                id="scenario-description"
+                value={scenarioDescription}
+                onChange={handleDescriptionChange}
+                rows={4}
+                className="w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 resize-y mt-1"
+                style={{ borderColor: 'var(--ss-border-strong)' }}
+                placeholder={t('experimentBuilder.step2.scenarioDescriptionPlaceholder')}
+              />
           </div>
 
           <div className="ss-variable-map__summary-cards">
@@ -665,6 +614,7 @@ export const Step2StarterTemplate: React.FC = () => {
         }
       >
         <div id="ss-step2-core-params">
+          {actionEditor}
           {selectedScenarioData.display_type === "payoff_matrix" ? (
             <PayoffInput
               value={scenarioParams as { cooperate_reward?: number; defect_penalty?: number }}
@@ -673,10 +623,11 @@ export const Step2StarterTemplate: React.FC = () => {
               highlightFirstCard={guidedTarget === "params"}
               onChange={handlePayoffChange}
             />
-          ) : coreParameters.length > 0 ? (
+          ) : hasParameters ? (
             <div className="ss-variable-map__core-grid">
-              {coreParameters.map((param, index) => {
-                const value = getParamDisplayValue(param);
+              {visibleParameters.map((param, index) => {
+                const value = getParamValue(param);
+                const description = getParamDescription(param);
                 return (
                   <article
                     key={param.key}
@@ -687,55 +638,37 @@ export const Step2StarterTemplate: React.FC = () => {
                     <div className="ss-variable-map__param-head">
                       <div className="ss-variable-map__param-copy">
                         <h3 className="ss-variable-map__param-name">{getParamLabel(param)}</h3>
+                        {description ? (
+                          <p className="text-xs leading-5 text-[var(--ss-workspace-muted)]">{description}</p>
+                        ) : null}
                       </div>
                       <div className="ss-variable-map__param-current">
                         {String(value)}
                       </div>
                     </div>
 
-                    {param.type === "number" || param.ui_hint === "slider" ? (
-                      <div className="ss-variable-map__range-row">
-                        <input
-                          type="range"
-                          min={param.min ?? 0}
-                          max={param.max ?? 100}
-                          step={param.step ?? 1}
-                          value={Number(value)}
-                          onChange={(event) =>
-                            handleParamChange(param.key, Number(event.target.value))
-                          }
-                          className="ss-variable-map__range-input"
-                        />
-                        <input
-                          type="number"
-                          min={param.min ?? 0}
-                          max={param.max ?? 100}
-                          step={param.step ?? 1}
-                          value={Number(value)}
-                          onChange={(event) =>
-                            handleParamChange(param.key, Number(event.target.value) || 0)
-                          }
-                          className="ss-variable-map__value-input"
-                        />
-                      </div>
-                    ) : (
-                      <div className="ss-variable-map__field-wrap">
-                        <ParameterField
-                          param={{
-                            type: param.type === "number" ? "integer" : "string",
-                            default: param.default,
-                            ui_hint: param.ui_hint || "text",
-                            min: param.min,
-                            max: param.max,
-                            step: param.step,
-                            options: param.options,
-                            placeholder: param.placeholder,
-                          }}
-                          value={value}
-                          onChange={(nextValue) => handleParamChange(param.key, nextValue)}
-                        />
-                      </div>
-                    )}
+                    <div className="ss-variable-map__field-wrap">
+                      <ParameterField
+                        param={{
+                          type: toParameterFieldType(param.type),
+                          default: param.default,
+                          ui_hint:
+                            param.ui_hint ||
+                            (isNumericType(param.type)
+                              ? "number"
+                              : param.type === "boolean"
+                                ? "toggle"
+                                : "text"),
+                          min: param.min,
+                          max: param.max,
+                          step: param.step,
+                          options: param.options,
+                          placeholder: param.placeholder,
+                        }}
+                        value={value}
+                        onChange={(nextValue) => handleParamChange(param.key, nextValue)}
+                      />
+                    </div>
                   </article>
                 );
               })}
@@ -746,149 +679,60 @@ export const Step2StarterTemplate: React.FC = () => {
             </div>
           )}
         </div>
-        {payoffAnalysis ? (
-          <div className="ss-variable-map__analysis-inline">
-            <div>
-              <strong>{isZh ? "当前结构分析" : "Current structure analysis"}</strong>
-              <span>{payoffAnalysis.ordering}</span>
-            </div>
-            <p>{payoffAnalysis.explanation}</p>
-            <p>{payoffAnalysis.inference}</p>
-          </div>
-        ) : null}
       </ResearchInputPanel>
 
-      {hasAdvancedSection ? (
+      {hasParameters ? (
         <ResearchInputPanel
-          eyebrow={isZh ? "进阶设置" : "Advanced settings"}
-          title={isZh ? "进阶设置" : "Advanced settings"}
-          actions={
-            <SecondaryGhostButton onClick={() => setShowAdvanced((value) => !value)}>
-              {showAdvanced ? (
-                <>
-                  <ChevronUp size={16} />
-                  <span>{isZh ? "收起进阶设置" : "Collapse advanced settings"}</span>
-                </>
-              ) : (
-                <>
-                  <ChevronDown size={16} />
-                  <span>{isZh ? "展开进阶设置" : "Open advanced settings"}</span>
-                </>
-              )}
-            </SecondaryGhostButton>
-          }
+          eyebrow={isZh ? "轮次设置" : "Round settings"}
+          title={t("experimentBuilder.roundSettings.title")}
         >
-          {showAdvanced ? (
-            <div className="ss-variable-map__advanced-stack">
-              {actionEditor ? (
-                <section className="ss-variable-map__advanced-section">
-                  <div className="ss-variable-map__advanced-head">
-                    <h3>{isZh ? "补充规则与变量" : "Additional rules and variables"}</h3>
-                  </div>
-                  {actionEditor}
-                </section>
-              ) : null}
-
-              {advancedParameters.length > 0 ? (
-                <section className="ss-variable-map__advanced-section">
-                  <div className="ss-variable-map__advanced-head">
-                    <h3>{isZh ? "更多参数" : "More parameters"}</h3>
-                  </div>
-                  <div className="ss-variable-map__advanced-grid">
-                    {advancedParameters.map((param) => (
-                      <div key={param.key} className="lab-inset p-4">
-                        <label className="block text-sm font-medium text-slate-800">
-                          {getParamLabel(param)}
-                        </label>
-                        <div className="mt-3">
-                          <ParameterField
-                            param={{
-                              type: param.type === "number" ? "integer" : "string",
-                              default: param.default,
-                              ui_hint: param.ui_hint || "text",
-                              min: param.min,
-                              max: param.max,
-                              step: param.step,
-                              options: param.options,
-                              placeholder: param.placeholder,
-                            }}
-                            value={getParamDisplayValue(param)}
-                            onChange={(value) => handleParamChange(param.key, value)}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
-
-              {hasParameters ? (
-                <section
-                  id="ss-step2-schedule-settings"
-                  className={`ss-variable-map__advanced-section${
-                    guidedTarget === "schedule" ? " is-guided" : ""
-                  }`.trim()}
+          <section
+            id="ss-step2-schedule-settings"
+            className={`ss-variable-map__advanced-section${
+              guidedTarget === "schedule" ? " is-guided" : ""
+            }`.trim()}
+          >
+            <div className="ss-variable-map__advanced-grid">
+              <FieldBlock label={t("experimentBuilder.roundSettings.roundVisibility.label")}>
+                <select
+                  value={localRoundVisibility}
+                  onChange={(event) => {
+                    const value = event.target.value as "simultaneous" | "sequential";
+                    setLocalRoundVisibility(value);
+                    setRoundVisibility(value);
+                  }}
+                  className="mt-1"
                 >
-                  <div className="ss-variable-map__advanced-head">
-                    <h3>{t("experimentBuilder.roundSettings.title")}</h3>
-                  </div>
-                  <div className="ss-variable-map__advanced-grid">
-                    <FieldBlock label={t("experimentBuilder.roundSettings.roundVisibility.label")}>
-                      <select
-                        value={localRoundVisibility}
-                        onChange={(event) => {
-                          const value = event.target.value as "simultaneous" | "sequential";
-                          setLocalRoundVisibility(value);
-                          setRoundVisibility(value);
-                        }}
-                        className="mt-1"
-                      >
-                        <option value="simultaneous">
-                          {t("experimentBuilder.roundSettings.roundVisibility.simultaneous")}
-                        </option>
-                        <option value="sequential">
-                          {t("experimentBuilder.roundSettings.roundVisibility.sequential")}
-                        </option>
-                      </select>
-                    </FieldBlock>
+                  <option value="simultaneous">
+                    {t("experimentBuilder.roundSettings.roundVisibility.simultaneous")}
+                  </option>
+                  <option value="sequential">
+                    {t("experimentBuilder.roundSettings.roundVisibility.sequential")}
+                  </option>
+                </select>
+              </FieldBlock>
 
-                    <FieldBlock label={t("experimentBuilder.roundSettings.turnOrder.label")}>
-                      <select
-                        value={localTurnOrder}
-                        onChange={(event) => {
-                          const value = event.target.value as "fixed" | "random";
-                          setLocalTurnOrder(value);
-                          setTurnOrder(value);
-                        }}
-                        className="mt-1"
-                        disabled={localRoundVisibility !== "sequential"}
-                      >
-                        <option value="fixed">
-                          {t("experimentBuilder.roundSettings.turnOrder.fixed")}
-                        </option>
-                        <option value="random">
-                          {t("experimentBuilder.roundSettings.turnOrder.random")}
-                        </option>
-                      </select>
-                    </FieldBlock>
-                  </div>
-                </section>
-              ) : null}
+              <FieldBlock label={t("experimentBuilder.roundSettings.turnOrder.label")}>
+                <select
+                  value={localTurnOrder}
+                  onChange={(event) => {
+                    const value = event.target.value as "fixed" | "random";
+                    setLocalTurnOrder(value);
+                    setTurnOrder(value);
+                  }}
+                  className="mt-1"
+                  disabled={localRoundVisibility !== "sequential"}
+                >
+                  <option value="fixed">
+                    {t("experimentBuilder.roundSettings.turnOrder.fixed")}
+                  </option>
+                  <option value="random">
+                    {t("experimentBuilder.roundSettings.turnOrder.random")}
+                  </option>
+                </select>
+              </FieldBlock>
             </div>
-          ) : (
-            <div className="ss-variable-map__advanced-summary">
-              <span>
-                {isZh
-                  ? "这里包含回合设置、补充规则和更多参数。"
-                  : "Round settings, additional rules, and more parameters live here."}
-              </span>
-              <strong>
-                {isZh
-                  ? "完成关键参数后再展开即可。"
-                  : "Open it after you finish the key variables."}
-              </strong>
-            </div>
-          )}
+          </section>
         </ResearchInputPanel>
       ) : null}
     </div>

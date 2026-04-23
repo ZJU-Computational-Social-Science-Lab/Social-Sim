@@ -75,6 +75,27 @@ describe('ParameterField', () => {
       expect(screen.getByText('50%')).toBeInTheDocument();
     });
 
+    test('should render NumberField for ui_hint="number"', () => {
+      const param: ScenarioParam = {
+        type: 'integer',
+        default: 5,
+        ui_hint: 'number',
+        min: 0,
+        max: 10,
+        step: 1,
+      };
+
+      render(
+        <ParameterField param={param} value={5} onChange={onChange} />,
+        { wrapper }
+      );
+
+      const numberInput = screen.container.querySelector('input[type="number"]');
+      const rangeInput = screen.container.querySelector('input[type="range"]');
+      expect(numberInput).toBeInTheDocument();
+      expect(rangeInput).not.toBeInTheDocument();
+    });
+
     test('should render TextAreaField for ui_hint="textarea"', () => {
       const param: ScenarioParam = {
         type: 'string',

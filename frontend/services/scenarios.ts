@@ -9,9 +9,21 @@ export interface ScenarioParam {
   label: string;
   description?: string;
   category?: string;
-  type: 'number' | 'text';
+  type: 'integer' | 'number' | 'float' | 'string' | 'text' | 'boolean' | 'array';
   default: unknown;
-  ui_hint?: string;
+  ui_hint?:
+    | 'slider'
+    | 'number'
+    | 'percentage'
+    | 'text'
+    | 'textarea'
+    | 'select'
+    | 'toggle'
+    | 'list'
+    | 'multiselect'
+    | 'key_value'
+    | 'drag_list'
+    | string;
   min?: number;
   max?: number;
   step?: number;
