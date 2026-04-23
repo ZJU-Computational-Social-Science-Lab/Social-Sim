@@ -461,7 +461,7 @@ export const createExperimentsSlice: StateCreator<
     if (!state.currentSimulation || !state.selectedNodeId) return;
 
     try {
-      const { treeBranch, getTreeGraph } = await import('../services/simulationTree');
+      const { treeBranchPublic, getTreeGraph } = await import('../services/simulationTree');
       const { mapGraphToNodes } = await import('./helpers');
 
       const base = state.engineConfig.endpoint;
@@ -474,7 +474,13 @@ export const createExperimentsSlice: StateCreator<
         return;
       }
 
-      const result = await treeBranch(base, state.currentSimulation.id, parentNumeric, [], token);
+      const result = await treeBranchPublic(
+        base,
+        state.currentSimulation.id,
+        parentNumeric,
+        i18n.t('store.branch') || 'Branch',
+        token,
+      );
 
       if (result?.child !== undefined) {
         // Refresh tree

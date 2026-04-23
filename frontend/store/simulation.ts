@@ -715,6 +715,16 @@ export const createSimulationSlice: StateCreator<
       // a wrong key that gets silently ignored
       await updateSimApi(currentSim.id, { scene_config: { social_network: network } });
 
+      // Apply to live SimTree so next advance picks up the new network topology
+      const state = get() as any;
+      const parentNumeric = Number(state.selectedNodeId);
+      if (Number.isFinite(parentNumeric)) {
+        const { treeBranch } = await import('../services/simulationTree');
+        const base = state.engineConfig?.endpoint;
+        const token = state.engineConfig?.token;
+        await treeBranch(base, currentSim.id, parentNumeric, [{ op: 'network_replace', network }], token);
+      }
+
       set((state) => ({
         currentSimulation: state.currentSimulation
           ? { ...state.currentSimulation, socialNetwork: network }

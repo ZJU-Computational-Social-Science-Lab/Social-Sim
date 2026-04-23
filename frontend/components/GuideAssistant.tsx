@@ -25,7 +25,11 @@ export const GuideAssistant: React.FC = () => {
   const toggleExperimentDesigner = useSimulationStore(state => state.toggleExperimentDesigner);
   const toggleExport = useSimulationStore(state => state.toggleExport);
   const toggleAnalytics = useSimulationStore(state => state.toggleAnalytics);
-   const addNotification = useSimulationStore(state => state.addNotification);
+  const toggleReportModal = useSimulationStore(state => state.toggleReportModal);
+  const setGlobalKnowledgeOpen = useSimulationStore(state => state.setGlobalKnowledgeOpen);
+  const toggleInitialEvents = useSimulationStore(state => state.toggleInitialEvents);
+  const generateEnvironmentSuggestions = useSimulationStore(state => state.generateEnvironmentSuggestions);
+  const addNotification = useSimulationStore(state => state.addNotification);
   // Host Panel logic is part of Sidebar, we can't toggle it directly from store easily without a dedicated state, 
   // but we can assume user knows where it is or add a notification/hint. 
   // *Correction*: We can just highlight or guide user. 
@@ -80,6 +84,10 @@ export const GuideAssistant: React.FC = () => {
         case 'OPEN_EXPERIMENT': toggleExperimentDesigner(true); break;
         case 'OPEN_EXPORT': toggleExport(true); break;
         case 'OPEN_ANALYTICS': toggleAnalytics(true); break;
+        case 'OPEN_REPORT': toggleReportModal(true); break;
+        case 'OPEN_KNOWLEDGE': setGlobalKnowledgeOpen(true); break;
+        case 'OPEN_MULTIMODAL': toggleInitialEvents(true); break;
+        case 'OPEN_ENVIRONMENT': void generateEnvironmentSuggestions(); break;
         case 'OPEN_HOST':
            // Sidebar tab switching is local state in Sidebar.tsx.
            // In a full app, we would move activeTab to global store.
@@ -97,6 +105,10 @@ export const GuideAssistant: React.FC = () => {
         case 'OPEN_EXPORT': return t('components.guideAssistant.openExport');
         case 'OPEN_ANALYTICS': return t('components.guideAssistant.openAnalytics');
         case 'OPEN_HOST': return t('components.guideAssistant.openHost');
+          case 'OPEN_REPORT': return t('components.guideAssistant.openReport');
+          case 'OPEN_KNOWLEDGE': return t('components.guideAssistant.openKnowledge');
+          case 'OPEN_MULTIMODAL': return t('components.guideAssistant.openMultimodal');
+          case 'OPEN_ENVIRONMENT': return t('components.guideAssistant.openEnvironment');
         default: return t('components.guideAssistant.executeAction');
      }
   };

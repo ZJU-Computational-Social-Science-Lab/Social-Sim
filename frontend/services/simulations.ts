@@ -91,14 +91,29 @@ export async function updateSimulation(
 
 export async function enqueueSync(simulationId: string | null, payload: any): Promise<any> {
   const id = simulationId ? encodeURIComponent(simulationId) : '';
-  const { data } = await apiClient.post(`/simulations/${id}/sync`, payload || {});
-  return data;
+  await apiClient.patch(`/simulations/${id}`, {
+    agent_config: payload?.agent_config,
+    scene_config: payload?.scene_config,
+  });
+
+  const { data } = await apiClient.post(`/simulations/${id}/save`, {
+    label: payload?.label || `Sync ${new Date().toISOString()}`,
+  });
+
+  return {
+    status: 'finished',
+    sync_log_id: data?.id ?? null,
+    snapshot_id: data?.id ?? null,
+  };
 }
 
 export async function getSyncLog(simulationId: string | null, syncLogId: number): Promise<any> {
-  const id = simulationId ? encodeURIComponent(simulationId) : '';
-  const { data } = await apiClient.get(`/simulations/${id}/sync/${syncLogId}`);
-  return data;
+  return {
+    id: syncLogId,
+    status: 'finished',
+    message: 'Sync completed',
+    details: [],
+  };
 }
 
 // ---------------------------------------------------------

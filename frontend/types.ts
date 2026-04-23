@@ -262,7 +262,11 @@ export type GuideActionType =
   | 'OPEN_EXPERIMENT'
   | 'OPEN_EXPORT'
   | 'OPEN_ANALYTICS'
-  | 'OPEN_HOST';
+  | 'OPEN_HOST'
+  | 'OPEN_REPORT'
+  | 'OPEN_KNOWLEDGE'
+  | 'OPEN_MULTIMODAL'
+  | 'OPEN_ENVIRONMENT';
 
 // =============================================================================
 // Generic Template System Types

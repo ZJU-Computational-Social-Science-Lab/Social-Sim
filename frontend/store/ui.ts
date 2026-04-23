@@ -10,7 +10,54 @@
 // Used by: All components with modals, Layout for notifications, GuideAssistant
 
 import { StateCreator } from 'zustand';
-import type { Notification, GuideMessage } from '../types';
+import i18n from '../i18n';
+import type { Notification, GuideActionType, GuideMessage } from '../types';
+
+const SUPPORTED_GUIDE_ACTIONS: GuideActionType[] = [
+  'OPEN_WIZARD',
+  'OPEN_NETWORK',
+  'OPEN_EXPERIMENT',
+  'OPEN_EXPORT',
+  'OPEN_ANALYTICS',
+  'OPEN_HOST',
+  'OPEN_REPORT',
+  'OPEN_KNOWLEDGE',
+  'OPEN_MULTIMODAL',
+  'OPEN_ENVIRONMENT',
+];
+
+const GUIDE_ACTION_SET = new Set<GuideActionType>(SUPPORTED_GUIDE_ACTIONS);
+const GUIDE_ACTION_TAG_PATTERN = /\[\[(OPEN_[A-Z_]+)\]\]/g;
+
+export function parseGuideResponse(rawContent: string): Pick<GuideMessage, 'content' | 'suggestedActions'> {
+  const suggestedActions = Array.from(rawContent.matchAll(GUIDE_ACTION_TAG_PATTERN))
+    .map((match) => match[1] as GuideActionType)
+    .filter((action, index, actions) => GUIDE_ACTION_SET.has(action) && actions.indexOf(action) === index);
+
+  const content = rawContent
+    .replace(GUIDE_ACTION_TAG_PATTERN, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  return {
+    content,
+    suggestedActions,
+  };
+}
+
+export function buildGuidePrompt(systemPrompt: string, history: GuideMessage[]): string {
+  const transcript = history
+    .map((message) => `${message.role === 'assistant' ? 'Assistant' : 'User'}: ${message.content}`)
+    .join('\n\n');
+
+  return [
+    systemPrompt,
+    'Conversation history:',
+    transcript,
+    'Respond to the most recent user message as the platform guide assistant.',
+    'Keep any [[OPEN_*]] action tags at the end of the response.',
+  ].join('\n\n');
+}
 
 export interface UISlice {
   // Modal states
@@ -168,7 +215,6 @@ export const createUISlice: StateCreator<
     set({ isSyncing: true, syncLogs: ['Starting sync...'] });
 
     try {
-      // Get current simulation state from store
       const state = get() as any;
       const currentSim = state.currentSimulation;
       const agents = state.agents || [];
@@ -179,34 +225,57 @@ export const createUISlice: StateCreator<
         return;
       }
 
-      // Add sync log entries
       set((prev: any) => ({ syncLogs: [...prev.syncLogs, `Syncing simulation: ${currentSim.name || currentSim.id}`] }));
       set((prev: any) => ({ syncLogs: [...prev.syncLogs, `Agents: ${agents.length}`] }));
       set((prev: any) => ({ syncLogs: [...prev.syncLogs, `Nodes: ${nodes.length}`] }));
 
-      // Import API service
       const { apiClient } = await import('../services/client');
-
-      // Sync simulation state to backend
       const syncPayload = {
         simulation_id: currentSim.id,
-        agents: agents.map((a: any) => ({
-          name: a.name,
-          role: a.role,
-          properties: a.properties || {},
-          memory: a.memory || []
+        agents: agents.map((agent: any) => ({
+          name: agent.name,
+          role: agent.role,
+          properties: agent.properties || {},
+          memory: agent.memory || [],
         })),
-        nodes: nodes.map((n: any) => ({
-          id: n.id,
-          parentId: n.parentId,
-          depth: n.depth,
-          meta: n.meta || {}
-        }))
+        nodes: nodes.map((node: any) => ({
+          id: node.id,
+          parentId: node.parentId,
+          depth: node.depth,
+          meta: node.meta || {},
+        })),
       };
+      const nextAgentConfig = {
+        ...(currentSim.agent_config || {}),
+        agents: agents,
+      };
+
+      const socialNetwork = currentSim.socialNetwork || currentSim.scene_config?.social_network || {};
+      const nextSceneConfig = Object.keys(socialNetwork).length > 0
+        ? {
+            ...(currentSim.scene_config || {}),
+            social_network: socialNetwork,
+          }
+        : currentSim.scene_config;
 
       set((prev: any) => ({ syncLogs: [...prev.syncLogs, 'Sending data to backend...'] }));
 
-      await apiClient.post(`simulations/${currentSim.id}/sync`, syncPayload);
+      await apiClient.patch(`simulations/${currentSim.id}`, {
+        agent_config: nextAgentConfig,
+        ...(nextSceneConfig ? { scene_config: nextSceneConfig } : {}),
+      });
+
+      await apiClient.post(`simulations/${currentSim.id}/save`, {
+        label: `Manual sync ${syncPayload.simulation_id} ${new Date().toISOString()}`,
+      });
+
+      set((prev: any) => ({
+        currentSimulation: {
+          ...prev.currentSimulation,
+          agent_config: nextAgentConfig,
+          ...(nextSceneConfig ? { scene_config: nextSceneConfig, socialNetwork } : {}),
+        },
+      }));
 
       set((prev: any) => ({ syncLogs: [...prev.syncLogs, 'Sync completed successfully!'], isSyncing: false }));
     } catch (error: any) {
@@ -228,19 +297,20 @@ export const createUISlice: StateCreator<
     }));
 
     try {
-      // Call backend guide API
       const { apiClient } = await import('../services/client');
-      const response = await apiClient.post<{ message: string }>('llm/guide', {
-        history: get().guideMessages.map((m) => ({
-          role: m.role,
-          content: m.content
-        }))
+      const history = get().guideMessages;
+      const prompt = buildGuidePrompt(i18n.t('guidePrompt.systemPrompt'), history);
+      const response = await apiClient.post<{ text: string }>('llm/refine_report', {
+        prompt,
       });
+      const responseText = (response.data.text || i18n.t('guidePrompt.defaultResponse')).trim();
+      const parsedResponse = parseGuideResponse(responseText);
 
       const assistantMessage: GuideMessage = {
         id: `guide-${Date.now()}`,
         role: 'assistant',
-        content: response.data.message || ''
+        content: parsedResponse.content || i18n.t('guidePrompt.defaultResponse'),
+        suggestedActions: parsedResponse.suggestedActions.length > 0 ? parsedResponse.suggestedActions : undefined,
       };
       set((state) => ({
         guideMessages: [...state.guideMessages, assistantMessage],
@@ -251,7 +321,7 @@ export const createUISlice: StateCreator<
       const errorMessage: GuideMessage = {
         id: `guide-${Date.now()}`,
         role: 'assistant',
-        content: '抱歉，助手暂时无法回复。'
+        content: i18n.t('guidePrompt.connectionTimeout')
       };
       set((state) => ({
         guideMessages: [...state.guideMessages, errorMessage],

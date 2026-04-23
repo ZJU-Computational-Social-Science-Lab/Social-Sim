@@ -35,6 +35,20 @@ export function launchExperimentFromBuilderState({
   addNotification: ((type: string, message: string) => void) | undefined;
 }) {
   const state = useExperimentBuilder.getState();
+  const agentsWithEmptyPersona = (state.agentTypes as any[]).filter(
+    (a) => !a.rolePrompt?.trim() && !a.userProfile?.trim()
+  );
+  if (agentsWithEmptyPersona.length > 0) {
+    addNotification?.(
+      'error',
+      t('experimentBuilder.agentPersonaRequired', {
+        names: agentsWithEmptyPersona.map((a: any) => a.label || a.name || a.id).join(', '),
+        defaultValue: `以下智能体缺少角色设定（角色描述/用户画像），将导致行为完全相同：${agentsWithEmptyPersona.map((a: any) => a.label || a.name || a.id).join(', ')}`,
+      }),
+    );
+    return;
+  }
+
   const localizedScenarioName = getLocalizedScenarioName(t, state.selectedScenarioData);
   const localizedScenarioDescription = getLocalizedScenarioDescription(
     t,
