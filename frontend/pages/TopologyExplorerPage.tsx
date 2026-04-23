@@ -285,7 +285,7 @@ const TopologyExplorerPage: React.FC = () => {
               {themeMode === "dark" ? <Moon size={16} /> : <Sun size={16} />}
             </button>
             <LanguageSwitcher />
-            <div className="ss-pill ss-pill--quiet">{user?.email}</div>
+            <div className="ss-pill ss-pill--quiet">{String(user?.email || "")}</div>
             <button onClick={logout} className="ss-icon-button" title={t("nav.signout")}>
               <LogOut size={14} />
               <span className="hidden sm:inline">{t("nav.signout")}</span>

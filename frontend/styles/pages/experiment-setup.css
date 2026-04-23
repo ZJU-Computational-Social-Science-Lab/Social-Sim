@@ -152,14 +152,14 @@
     align-items: center;
     justify-content: center;
     gap: 0.45rem;
-    padding: 0.75rem 0.4rem;
+    padding: 0.75rem 0.75rem;
     border: 1px solid transparent;
-    border-radius: 14px;
+    border-radius: var(--ss-radius-xl);
     background: rgba(28, 27, 27, 0.94);
     color: #819386;
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.04em;
     text-align: center;
     text-transform: uppercase;
     transition:
@@ -517,9 +517,9 @@
     display: flex;
     align-items: center;
     gap: 0.45rem;
-    padding: 0.85rem 0.95rem;
+    padding: 0.85rem 1rem;
     border: 1px solid rgba(53, 53, 52, 0.92);
-    border-radius: 14px;
+    border-radius: var(--ss-radius-xl);
     background: rgba(28, 27, 27, 0.94);
     color: #c3c8c2;
     font-size: 0.76rem;
@@ -533,13 +533,13 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    min-height: 3rem;
-    padding: 0.72rem 1rem;
+    min-height: 2.75rem;
+    padding: 0.65rem 1.25rem;
     border: 1px solid transparent;
-    border-radius: 14px;
-    font-size: 0.76rem;
-    font-weight: 800;
-    letter-spacing: 0.16em;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
     transition:
       transform 0.2s ease,
@@ -650,7 +650,7 @@
     flex: 1;
     padding: 0.85rem 1rem;
     border: 1px solid rgba(130, 175, 160, 0.16);
-    border-radius: 14px;
+    border-radius: var(--ss-radius-xl);
     background: rgba(12, 30, 26, 0.82);
     color: var(--ss-text-subtle);
   }

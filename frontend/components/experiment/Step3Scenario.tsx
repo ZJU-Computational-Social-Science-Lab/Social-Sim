@@ -12,12 +12,6 @@ import { useTranslation } from 'react-i18next';
 import { useExperimentBuilder } from '../../store/experiment-builder';
 import { Circle, Plus, X } from 'lucide-react';
 import { ActionDef } from '../../services/scenarios';
-import { ResearchInputPanel } from './workflow/ResearchInputPanel';
-import { SummaryInfoCard } from './workflow/SummaryInfoCard';
-import {
-  getLocalizedActionDescription,
-  getLocalizedActionName,
-} from '../../utils/scenarioLocalization';
 
 const POLICY_SCENE_ACTION_IDS = [
   'send_message',
@@ -50,8 +44,6 @@ const isPolicyCascadeScenarioData = (scenario: {
 interface ActionToggleCardProps {
   name: string;
   description: string;
-  tag: string;
-  statusLabel: string;
   selected: boolean;
   onToggle: () => void;
   isCustom?: boolean;
@@ -62,8 +54,6 @@ interface ActionToggleCardProps {
 const ActionToggleCard: React.FC<ActionToggleCardProps> = ({
   name,
   description,
-  tag,
-  statusLabel,
   selected,
   onToggle,
   isCustom = false,
@@ -71,28 +61,34 @@ const ActionToggleCard: React.FC<ActionToggleCardProps> = ({
   removeLabel,
 }) => {
   return (
-    <div className={`ss-heuristic-card ${selected ? 'is-selected' : ''}`}>
+    <div
+      className="p-4 border-2 rounded-lg transition-all"
+      style={selected
+        ? { background: 'var(--ss-accent-warm-soft)', borderColor: 'var(--ss-brand-primary)' }
+        : { background: 'var(--ss-page-surface)', borderColor: 'var(--ss-border)' }
+      }
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 flex-1 min-w-0">
           <Circle
-            className={`w-5 h-5 flex-shrink-0 mt-0.5 ${selected ? 'text-current fill-current' : 'text-slate-300'}`}
+            className={`w-5 h-5 flex-shrink-0 mt-0.5 ${selected ? 'fill-current' : ''}`}
+            style={{ color: selected ? 'var(--ss-brand-primary)' : 'var(--ss-text-subtle)' }}
           />
           <div className="flex-1 min-w-0">
-            <h4 className="ss-heuristic-card__title">{name}</h4>
-            <p className="ss-heuristic-card__copy">{description}</p>
-            <div className="ss-heuristic-card__meta">
-              <span className="ss-heuristic-card__tag">{tag}</span>
-              <span className={`ss-heuristic-card__status${selected ? ' is-selected' : ''}`}>
-                {statusLabel}
-              </span>
-            </div>
+            <h4 className="font-semibold text-sm" style={{ color: 'var(--ss-heading)' }}>
+              {name}
+            </h4>
+            <p className="text-sm mt-1 line-clamp-2" style={{ color: 'var(--ss-text)' }}>
+              {description}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {isCustom && onRemove && (
             <button
               onClick={onRemove}
-              className="ss-heuristic-card__remove"
+              className="p-1.5 rounded transition-colors"
+              style={{ color: 'var(--ss-text-subtle)' }}
               type="button"
               aria-label={removeLabel}
             >
@@ -101,12 +97,17 @@ const ActionToggleCard: React.FC<ActionToggleCardProps> = ({
           )}
           <button
             onClick={onToggle}
-            className={`ss-heuristic-card__switch ${selected ? 'is-on' : ''}`}
+            className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+            style={{ background: selected ? 'var(--ss-brand-primary)' : 'var(--ss-border-strong)' }}
             type="button"
             aria-pressed={selected}
           >
             <span
-              className={`ss-heuristic-card__switch-thumb ${selected ? 'is-on' : ''}`}
+              className={`
+                inline-block h-4 w-4 transform rounded-full transition-transform
+                ${selected ? 'translate-x-6' : 'translate-x-1'}
+              `}
+              style={{ background: 'var(--ss-page-surface)' }}
             />
           </button>
         </div>
@@ -120,28 +121,8 @@ interface CustomAction {
   description: string;
 }
 
-const classifyActionTag = (name: string, description: string, isZh: boolean) => {
-  const source = `${name} ${description}`.toLowerCase();
-
-  if (/cooperate|协作|合作|share|contribute|help|support/.test(source)) {
-    return isZh ? '合作型' : 'Cooperative';
-  }
-  if (/defect|背叛|betray|cheat|take|attack|compete|抢/.test(source)) {
-    return isZh ? '竞争型' : 'Competitive';
-  }
-  if (/observe|observer|监测|观察|inspect/.test(source)) {
-    return isZh ? '观察型' : 'Observational';
-  }
-  if (/protect|care|careful|safe|guard|守|稳/.test(source)) {
-    return isZh ? '稳健型' : 'Protective';
-  }
-
-  return isZh ? '策略型' : 'Strategic';
-};
-
 export const Step3Scenario: React.FC = () => {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith('zh');
+  const { t } = useTranslation();
   const {
     selectedScenarioData,
     scenarioParams,
@@ -198,6 +179,10 @@ export const Step3Scenario: React.FC = () => {
     (p) => p.generates_actions === true
   );
 
+  /**
+   * Generate actions from a choices parameter value.
+   * Parses comma-separated choices and creates action definitions.
+   */
   const generateActionsFromChoices = (choicesValue: string): ActionDef[] => {
     const choices = choicesValue
       .split(',')
@@ -210,34 +195,45 @@ export const Step3Scenario: React.FC = () => {
     }));
   };
 
+  // Initialize available actions from scenario data
+  // Use category_actions if available, otherwise fall back to scenario.actions
+  // If a parameter has generates_actions=true, generate actions from that parameter
   useEffect(() => {
     if (selectedScenarioData) {
+      // Check if any parameter generates actions
       const generatorParam = selectedScenarioData.parameters?.find(
         (p) => p.generates_actions === true
       );
 
       if (generatorParam) {
+        // Get the current value of the generating parameter
         const paramValue =
           (scenarioParams[generatorParam.key] as string) ||
           (generatorParam.default as string) ||
           '';
 
+        // Generate actions from the parameter value
         const generatedActions = generateActionsFromChoices(paramValue);
         setAvailableActions(generatedActions);
 
+        // Preserve existing selections for actions that still exist
         const existingSelectedIds = selectedActionIds.filter((id) =>
           generatedActions.some((a) => a.name === id)
         );
+        // Find new actions that weren't in the previous list
         const newActionIds = generatedActions
           .filter((a) => !availableActions.some((prev) => prev.name === a.name))
           .map((a) => a.name);
 
         if (existingSelectedIds.length === 0 && newActionIds.length > 0) {
+          // First time or no existing selections - select all
           setSelectedActionIds(generatedActions.map((a) => a.name));
         } else {
+          // Preserve existing + add new
           setSelectedActionIds([...existingSelectedIds, ...newActionIds]);
         }
       } else {
+        // Use category_actions if available, otherwise use scenario.actions
         const isPolicyCascadeScenario = isPolicyCascadeScenarioData(selectedScenarioData);
         const rawActions =
           selectedScenarioData.category_actions || selectedScenarioData.actions || [];
@@ -246,6 +242,7 @@ export const Step3Scenario: React.FC = () => {
           : rawActions;
         setAvailableActions(actionsToShow);
 
+        // Use default_action_ids if available, otherwise select all actions by default
         const preferredIds = isPolicyCascadeScenario
           ? POLICY_SCENE_ACTION_IDS
           : (selectedScenarioData.default_action_ids || actionsToShow.map((a) => a.name));
@@ -259,6 +256,7 @@ export const Step3Scenario: React.FC = () => {
   const isCustom = selectedScenarioData?.id === 'custom';
   const isPolicyCascadeScenario = isPolicyCascadeScenarioData(selectedScenarioData);
 
+  // Combine preset and custom actions
   const presetActionNames = new Set(
     (selectedScenarioData?.category_actions || selectedScenarioData?.actions || []).map((action) => action.name)
   );
@@ -269,9 +267,15 @@ export const Step3Scenario: React.FC = () => {
   }));
 
   const handleToggleAction = (actionName: string) => {
+    // Prevent deselecting if it's the last action
     const isCurrentlySelected = selectedActionIds.includes(actionName);
     const willBeEmpty = isCurrentlySelected && selectedActionIds.length === 1;
-    if (willBeEmpty) return;
+
+    if (willBeEmpty) {
+      // Don't allow deselecting the last action
+      return;
+    }
+
     toggleActionId(actionName);
   };
 
@@ -289,6 +293,7 @@ export const Step3Scenario: React.FC = () => {
     setAvailableActions([...availableActions, newAction]);
     setSelectedActionIds([...selectedActionIds, newAction.name]);
 
+    // Reset form
     setNewActionName('');
     setNewActionDescription('');
     setShowAddAction(false);
@@ -301,41 +306,29 @@ export const Step3Scenario: React.FC = () => {
   };
 
   return (
-    <div className="ss-heuristic-workflow">
-      <ResearchInputPanel
-        eyebrow={t('common.actions')}
-        title={t('experimentBuilder.step3.title')}
-        description={t('experimentBuilder.step3.subtitle')}
-      >
-        <div className="ss-workflow-summary-grid">
-          <SummaryInfoCard
-            label={t('experimentDesk.summary.actions')}
-            value={selectedActionIds.length}
-            helper={t('experimentBuilder.step3.actionsSelected', {
-              selected: selectedActionIds.length,
-              total: allActions.length,
-            })}
-          />
-          <SummaryInfoCard
-            label={t('experimentBuilder.step3.selectionMode', { defaultValue: isZh ? '选择方式' : 'Selection mode' })}
-            value={
-              generatorParam
-                ? t('experimentBuilder.dynamicActionsInfo.title')
-                : t('experimentBuilder.step3.manualSelection', { defaultValue: isZh ? '手动选择' : 'Manual selection' })
-            }
-          />
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-semibold" style={{ color: 'var(--ss-heading)' }}>
+          {t('experimentBuilder.step3.title')}
+        </h2>
+        <p className="text-sm mt-1" style={{ color: 'var(--ss-text)' }}>
+          {t('experimentBuilder.step3.subtitle')}
+        </p>
+        <div className="mt-3 rounded-lg border px-4 py-3 text-sm" style={{ background: 'var(--ss-accent-warm-soft)', borderColor: 'var(--ss-layer-outline-strong)', color: 'var(--ss-text)' }}>
+          <div className="font-medium">{t('experimentBuilder.step3.linkedTitle')}</div>
+          <div className="mt-1">{t('experimentBuilder.step3.linkedDesc')}</div>
         </div>
         {selectedScenarioData?.category_actions && (
-          <p className="mt-3 text-xs text-slate-500">
+          <p className="text-xs mt-2" style={{ color: 'var(--ss-text)' }}>
             {t('experimentBuilder.step3.categoryInfo', { category: selectedScenarioData.category })}
           </p>
         )}
-      </ResearchInputPanel>
+      </div>
 
       {/* Dynamic actions info */}
       {generatorParam && (
-        <div className="rounded-[22px] border border-sky-200 bg-sky-50 p-4">
-          <p className="text-sm text-sky-800">
+        <div className="p-3 border rounded-lg" style={{ background: 'var(--ss-accent-warm-soft)', borderColor: 'var(--ss-layer-outline-strong)' }}>
+          <p className="text-sm" style={{ color: 'var(--ss-text)' }}>
             <strong>{t('experimentBuilder.dynamicActionsInfo.title')}</strong>{' '}
             {t('experimentBuilder.dynamicActionsInfo.message', { paramLabel: generatorParam.label })}
           </p>
@@ -344,40 +337,32 @@ export const Step3Scenario: React.FC = () => {
 
       {/* Validation Error */}
       {validationErrors.actions && (
-        <div className="rounded-[22px] border border-rose-200 bg-rose-50 p-4">
-          <p className="text-sm text-rose-700">{validationErrors.actions}</p>
+        <div className="p-3 border rounded-lg" style={{ background: 'var(--ss-danger-soft)', borderColor: 'var(--ss-danger)' }}>
+          <p className="text-sm" style={{ color: 'var(--ss-danger)' }}>{validationErrors.actions}</p>
         </div>
       )}
 
       {/* Action Toggle Cards */}
-      <div id="ss-step3-action-library" className="ss-guide-focus-target">
+      <div className="space-y-3">
         {allActions.length === 0 ? (
-          <div className="rounded-[24px] border border-dashed border-slate-300 p-8 text-center">
-            <p className="text-sm text-slate-600">
+          <div className="p-8 text-center border border-dashed rounded-lg" style={{ borderColor: 'var(--ss-border-strong)' }}>
+            <p className="text-sm" style={{ color: 'var(--ss-text)' }}>
               {t('experimentBuilder.step3.noActions')}
             </p>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {allActions.map((action) => (
-              <ActionToggleCard
-                key={action.name}
-                name={isPolicyCascadeScenario ? getPolicyActionLabel(action.name) : getLocalizedActionName(action.name, isZh)}
-                description={getLocalizedActionDescription(action.description, isZh)}
-                tag={classifyActionTag(action.name, action.description, isZh)}
-                statusLabel={
-                  selectedActionIds.includes(action.name)
-                    ? isZh ? '已启用' : 'Enabled'
-                    : isZh ? '未启用' : 'Disabled'
-                }
-                selected={selectedActionIds.includes(action.name)}
-                onToggle={() => handleToggleAction(action.name)}
-                isCustom={action.isCustom}
-                onRemove={action.isCustom ? () => handleRemoveCustomAction(action.name) : undefined}
-                removeLabel={t('experimentBuilder.step3.removeAction')}
-              />
-            ))}
-          </div>
+          allActions.map((action) => (
+            <ActionToggleCard
+              key={action.name}
+              name={isPolicyCascadeScenario ? getPolicyActionLabel(action.name) : action.name}
+              description={action.description}
+              selected={selectedActionIds.includes(action.name)}
+              onToggle={() => handleToggleAction(action.name)}
+              isCustom={action.isCustom}
+              onRemove={action.isCustom ? () => handleRemoveCustomAction(action.name) : undefined}
+              removeLabel={t('experimentBuilder.step3.removeAction')}
+            />
+          ))
         )}
       </div>
 
@@ -387,17 +372,18 @@ export const Step3Scenario: React.FC = () => {
           {!showAddAction ? (
             <button
               onClick={() => setShowAddAction(true)}
-              className="ss-heuristic-card__add"
+              className="flex items-center gap-2 px-4 py-2 border-2 border-dashed rounded-lg transition-colors"
+              style={{ borderColor: 'var(--ss-border-strong)', color: 'var(--ss-text)' }}
               type="button"
             >
               <Plus size={16} />
               <span className="text-sm font-medium">{t('experimentBuilder.step3.addCustomAction')}</span>
             </button>
           ) : (
-            <div className="space-y-3 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-              <h4 className="text-sm font-medium text-slate-900">{t('experimentBuilder.step3.customActionTitle')}</h4>
+            <div className="p-4 border rounded-lg space-y-3" style={{ background: 'var(--ss-page-surface-muted)', borderColor: 'var(--ss-border)' }}>
+              <h4 className="text-sm font-medium" style={{ color: 'var(--ss-heading)' }}>{t('experimentBuilder.step3.customActionTitle')}</h4>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-700">
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--ss-heading)' }}>
                   {t('experimentBuilder.step3.actionName')}
                 </label>
                 <input
@@ -410,7 +396,7 @@ export const Step3Scenario: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-700">
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--ss-heading)' }}>
                   {t('experimentBuilder.step3.description')}
                 </label>
                 <textarea
@@ -426,7 +412,8 @@ export const Step3Scenario: React.FC = () => {
                 <button
                   onClick={handleAddCustomAction}
                   disabled={!newActionName.trim() || !newActionDescription.trim()}
-                  className="ss-workflow-button ss-workflow-button--primary"
+                  className="px-4 py-2 text-white rounded-md text-sm font-medium disabled:cursor-not-allowed transition-colors"
+                  style={{ background: 'var(--ss-brand-primary)', opacity: (!newActionName.trim() || !newActionDescription.trim()) ? 0.5 : 1 }}
                   type="button"
                 >
                   {t('experimentBuilder.step3.addAction')}
@@ -437,7 +424,8 @@ export const Step3Scenario: React.FC = () => {
                     setNewActionName('');
                     setNewActionDescription('');
                   }}
-                  className="ss-workflow-button ss-workflow-button--secondary"
+                  className="px-4 py-2 border rounded-md text-sm font-medium transition-colors"
+                  style={{ borderColor: 'var(--ss-border-strong)', color: 'var(--ss-text)' }}
                   type="button"
                 >
                   {t('common.cancel')}
@@ -445,6 +433,13 @@ export const Step3Scenario: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Selected Count */}
+      {allActions.length > 0 && (
+        <div className="text-sm" style={{ color: 'var(--ss-text)' }}>
+          {t('experimentBuilder.step3.actionsSelected', { selected: selectedActionIds.length, total: allActions.length })}
         </div>
       )}
     </div>

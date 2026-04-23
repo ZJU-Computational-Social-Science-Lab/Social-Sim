@@ -44,6 +44,7 @@ celery>=5.3.0
 # Document Processing (Knowledge Base)
 pypdf>=4.0.0
 python-docx>=1.1.0
+openpyxl>=3.1.0  # Excel file reading for Xihu survey data
 
 # Embeddings (for RAG)
 sentence-transformers>=2.2.0

@@ -123,8 +123,7 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({
             id="deduction_anonymous"
             checked={values.deduction_anonymous}
             onChange={(e) => onChange('deduction_anonymous', e.target.checked)}
-            className="h-4 w-4 rounded"
-            style={{ accentColor: 'var(--ss-brand-primary)', borderColor: 'var(--ss-border-strong)' }}
+            className="h-4 w-4 rounded" style={{ accentColor: 'var(--ss-brand-primary)', borderColor: 'var(--ss-border-strong)' }}
           />
           <label htmlFor="deduction_anonymous" className="ml-2 block text-sm" style={{ color: 'var(--ss-heading)' }}>
             {t('experimentBuilder.deductionSettings.anonymousLabel')}
@@ -144,8 +143,7 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({
             id="show_average_contribution"
             checked={values.show_average_contribution}
             onChange={(e) => onChange('show_average_contribution', e.target.checked)}
-            className="h-4 w-4 rounded mt-0.5"
-            style={{ accentColor: 'var(--ss-brand-primary)' }}
+            className="h-4 w-4 rounded mt-0.5" style={{ accentColor: 'var(--ss-brand-primary)' }}
           />
           <div className="ml-2">
             <label htmlFor="show_average_contribution" className="block text-sm" style={{ color: 'var(--ss-text)' }}>
