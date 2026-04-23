@@ -126,14 +126,6 @@ export function LoginPage() {
 
       <div className="ss-auth__action-list">
         <button type="button" className="ss-auth__support-link">
-          <KeyRound size={15} />
-          <span>{t("auth.login.forgot")}</span>
-        </button>
-        <button type="button" className="ss-auth__support-link">
-          <ShieldCheck size={15} />
-          <span>{t("auth.login.sso")}</span>
-        </button>
-        <button type="button" className="ss-auth__support-link">
           <LifeBuoy size={15} />
           <span>{t("auth.login.help")}</span>
         </button>
