@@ -15,6 +15,7 @@ from socialsim4.core.llm import create_llm_client
 from socialsim4.core.llm_config import LLMConfig, guess_supports_vision
 from socialsim4.backend.models.user import ProviderConfig, SearchProviderConfig
 from socialsim4.backend.services.default_providers import get_default_ollama_base_url
+from socialsim4.backend.services.provider_dialect import normalize_provider_dialect
 from socialsim4.core.tools.web.search import create_search_client
 from socialsim4.core.search_config import SearchConfig
 
@@ -57,7 +58,7 @@ def run_experiment_task(self, simulation_id: str, exp_id: str, run_id: int, turn
             active_provider = None  # Track active provider for quota management
 
             for provider in items:
-                dialect = (provider.provider or "").lower()
+                dialect = normalize_provider_dialect(provider.provider)
                 cfg = LLMConfig(
                     dialect=dialect,
                     api_key=provider.api_key or "",

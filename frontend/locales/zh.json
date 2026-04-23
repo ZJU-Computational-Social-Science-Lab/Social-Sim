@@ -27,11 +27,11 @@
   },
   "landing": {
     "hero": {
-      "badge": "社会系统实验室 Social Systems Laboratory",
-      "line1": "以精密模拟架构",
-      "line2": "社会逻辑",
-      "accent": "构建社会逻辑",
-      "sub": "为研究者、政策制定者与社会科学家打造的跨领域模拟平台。通过分支、观测与干预，洞察复杂系统的深层演化规律。",
+      "badge": "社会系统模拟平台\nFOS",
+      "line1": "Future of Society",
+      "line2": "",
+      "accent": "",
+      "sub": "面向研究、推演与决策验证的社会系统模拟平台，\n通过分支、观测与干预理解复杂系统如何演化。",
       "primaryCta": "进入实验室",
       "secondaryCta": "阅读方法论",
       "tag1": "高保真模拟",

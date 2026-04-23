@@ -36,6 +36,7 @@ from socialsim4.backend.schemas.simulation import (
 )
 from socialsim4.backend.schemas.simtree import UpdateAgentLLMConfigRequest
 from socialsim4.backend.services.simulations import generate_simulation_id, generate_simulation_name
+from socialsim4.backend.services.provider_dialect import normalize_provider_dialect
 from socialsim4.backend.services.simtree_runtime import SIM_TREE_REGISTRY
 
 from .helpers import (
@@ -190,7 +191,7 @@ async def create_simulation(
         if provider is None:
             raise RuntimeError("LLM provider not configured")
 
-        dialect = (provider.provider or "").lower()
+        dialect = normalize_provider_dialect(provider.provider)
         if dialect not in {"openai", "gemini", "mock", "ollama"}:
             raise RuntimeError("Invalid LLM provider dialect")
         if dialect in {"openai", "gemini"} and not provider.api_key:
