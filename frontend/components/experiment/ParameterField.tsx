@@ -11,19 +11,14 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import * as Widgets from './parameter_widgets';
 
-export interface ParameterOption {
-  value: string;
-  label: string;
-}
-
 export interface ScenarioParam {
-  type: 'integer' | 'number' | 'float' | 'string' | 'boolean' | 'array';
+  type: 'integer' | 'string' | 'boolean' | 'array';
   default: any;
   ui_hint: string;
   min?: number;
   max?: number;
   step?: number;
-  options?: Array<string | ParameterOption>;
+  options?: string[];
   placeholder?: string;
 }
 
@@ -42,21 +37,13 @@ export default function ParameterField({
 }: ParameterFieldProps) {
   const { t } = useTranslation();
 
-  const normalizedUiHint =
-    param.ui_hint === 'integer' || param.ui_hint === 'float'
-      ? 'number'
-      : param.ui_hint;
-
-  const numericValue = typeof value === 'number' ? value : Number(value ?? param.default ?? 0);
   const commonProps = { value, onChange, disabled };
 
-  switch (normalizedUiHint) {
+  switch (param.ui_hint) {
     case 'slider':
       return (
         <Widgets.SliderField
-          value={numericValue}
-          onChange={onChange}
-          disabled={disabled}
+          {...commonProps}
           min={param.min ?? 0}
           max={param.max ?? 100}
           step={param.step ?? 1}
@@ -66,9 +53,7 @@ export default function ParameterField({
     case 'number':
       return (
         <Widgets.NumberField
-          value={numericValue}
-          onChange={onChange}
-          disabled={disabled}
+          {...commonProps}
           min={param.min ?? 0}
           max={param.max ?? 100}
           step={param.step ?? 1}
@@ -76,13 +61,7 @@ export default function ParameterField({
       );
 
     case 'percentage':
-      return (
-        <Widgets.PercentageField
-          value={numericValue}
-          onChange={onChange}
-          disabled={disabled}
-        />
-      );
+      return <Widgets.PercentageField {...commonProps} />;
 
     case 'textarea':
       return (
@@ -130,19 +109,6 @@ export default function ParameterField({
       return <Widgets.DragListField {...commonProps} />;
 
     default:
-      if (param.type === 'integer' || param.type === 'number' || param.type === 'float') {
-        return (
-          <Widgets.NumberField
-            value={numericValue}
-            onChange={onChange}
-            disabled={disabled}
-            min={param.min ?? 0}
-            max={param.max ?? 100}
-            step={param.step ?? 1}
-          />
-        );
-      }
-
       // Fallback to text input for unknown ui_hint
       return (
         <Widgets.TextField
