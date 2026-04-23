@@ -910,6 +910,25 @@ class ExperimentRunner:
         debug_buffer.append(f"--- AGENT PROPERTIES ---\n")
         for k, v in agent.get_properties_dict().items():
             debug_buffer.append(f"  {k}: {v}\n")
+
+        # --- LLM CLIENT DEBUG --- show the ACTUAL client that will make the LLM call
+        # This uses the same resolution logic as get_agent_llm_client() at the call site
+        _resolved_client = self.agent_llm_clients.get(agent.name) if self.agent_llm_clients else None
+        if _resolved_client is None:
+            _resolved_client = self.llm_client
+        _p = _resolved_client.provider if hasattr(_resolved_client, "provider") else None
+        if _p:
+            debug_buffer.append(f"\n--- LLM CLIENT (actual) ---\n")
+            debug_buffer.append(f"  source: {'per-agent distribution' if agent.name in (self.agent_llm_clients or {}) else 'default/fallback'}\n")
+            debug_buffer.append(f"  provider_id: {agent.properties.get('provider_id', 'N/A')}\n")
+            debug_buffer.append(f"  dialect: {_p.dialect}\n")
+            debug_buffer.append(f"  model: {_p.model}\n")
+            debug_buffer.append(f"  base_url: {_p.base_url}\n")
+        else:
+            debug_buffer.append(f"\n--- LLM CLIENT (actual) ---\n")
+            debug_buffer.append(f"  source: {'per-agent distribution' if agent.name in (self.agent_llm_clients or {}) else 'default/fallback'}\n")
+            debug_buffer.append(f"  provider_id: {agent.properties.get('provider_id', 'N/A')}\n")
+            debug_buffer.append(f"  client type: {type(_resolved_client).__name__}\n")
         debug_buffer.append(f"\n--- GAME CONFIG ---\n")
         debug_buffer.append(f"  scenario: {self.game_config.description[:100]}...\n")
         # GAP-CLOSURE-01: Show filtered actions in debug output
