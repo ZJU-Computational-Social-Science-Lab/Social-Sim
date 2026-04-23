@@ -1,18 +1,34 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
-import { createProvider as apiCreateProvider, listProviders, testProvider as apiTestProvider, updateProvider, deleteProvider as apiDeleteProvider, activateProvider as apiActivateProvider, type Provider } from "../services/providers";
-import { listSearchProviders, createSearchProvider, updateSearchProvider, type SearchProvider } from "../services/searchProviders";
-import { listUploads, deleteUpload, findOrphans, type UploadedFile } from "../services/uploads";
-import { useAuthStore } from "../store/auth";
+import {
+  Bot,
+  Database,
+  FileStack,
+  LogOut,
+  Search,
+  Shield,
+  UserCircle2,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { TitleCard } from "../components/TitleCard";
+import {
+  FilePlusIcon,
+  TrashIcon,
+} from "@radix-ui/react-icons";
+
 import { AppSelect } from "../components/AppSelect";
-import { Link2Icon, TrashIcon, FilePlusIcon, StarIcon, StarFilledIcon, EyeOpenIcon, EyeClosedIcon } from "@radix-ui/react-icons";
+import { TitleCard } from "../components/TitleCard";
+import { ProviderManagementPage } from "../components/provider-management/ProviderManagementPage";
+import {
+  createSearchProvider,
+  listSearchProviders,
+  updateSearchProvider,
+} from "../services/searchProviders";
+import { deleteUpload, findOrphans, listUploads } from "../services/uploads";
+import { useAuthStore } from "../store/auth";
 
 type Tab = "profile" | "security" | "providers_llm" | "providers_search" | "files";
 
-// Helper to get capability rows with translations
 const getCapabilityRows = (t: (key: string) => string) => [
   {
     model: "gpt-4o-mini",
@@ -48,34 +64,51 @@ const getCapabilityRows = (t: (key: string) => string) => [
   },
 ];
 
-// Provider type comes from ../api/providers
+function SettingsMetric({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="ss-settings-metric ss-inset">
+      <div className="ss-settings-metric__icon">{icon}</div>
+      <div>
+        <div className="ss-settings-metric__label">{label}</div>
+        <strong className="ss-settings-metric__value">{value}</strong>
+      </div>
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="ss-settings-info-row">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
 
 export function SettingsPage() {
-  const { t } = useTranslation();
-
-  // Format file size helper
-  const formatSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes}${t('settings.files.byte')}`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}${t('settings.files.kb')}`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)}${t('settings.files.mb')}`;
-  };
-
-  // Format date helper
-  const formatDate = (timestamp: number): string => {
-    return new Date(timestamp * 1000).toLocaleString();
-  };
-  const [activeTab, setActiveTab] = useState<Tab>("profile");
+  const { t, i18n } = useTranslation();
+  const isZh = i18n.language.startsWith("zh");
+  const location = useLocation();
+  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const clearSession = useAuthStore((state) => state.clearSession);
   const queryClient = useQueryClient();
-  const [testHints, setTestHints] = useState<Record<number, { ok: boolean; msg: string }>>({});
-  const [testingId, setTestingId] = useState<number | null>(null);
-
-
-  const providersQuery = useQuery({
-    queryKey: ["providers"],
-    enabled: activeTab === "providers_llm",
-    queryFn: () => listProviders(),
+  const [activeTab, setActiveTab] = useState<Tab>("profile");
+  const [orphanResult, setOrphanResult] = useState<{ orphaned: string[]; total: number } | null>(null);
+  const [findingOrphans, setFindingOrphans] = useState(false);
+  const [searchDraft, setSearchDraft] = useState({
+    provider: "ddg",
+    base_url: "",
+    api_key: "",
+    config: { region: "", safesearch: "moderate" } as Record<string, any>,
   });
 
   const searchProvidersQuery = useQuery({
@@ -97,58 +130,9 @@ export function SettingsPage() {
     },
   });
 
-  const [orphanResult, setOrphanResult] = useState<{ orphaned: string[]; total: number } | null>(null);
-  const [findingOrphans, setFindingOrphans] = useState(false);
-
-  const searchProvider = useMemo(() => {
-    const items = searchProvidersQuery.data || [];
-    return items[0] || null;
-  }, [searchProvidersQuery.data]);
-
-  const [providerDraft, setProviderDraft] = useState({
-    name: "",
-    provider: "openai",
-    model: "gpt-4",
-    base_url: "https://api.openai.com/v1",
-    api_key: "",
-  });
-  const [keyVisible, setKeyVisible] = useState(false);
-
-  const [searchDraft, setSearchDraft] = useState({
-    provider: "ddg",
-    base_url: "",
-    api_key: "",
-    config: { region: "", safesearch: "moderate" } as Record<string, any>,
-  });
-
-  useEffect(() => {
-    if (!searchProvider) return;
-    setSearchDraft({
-      provider: searchProvider.provider || "ddg",
-      base_url: String(searchProvider.base_url || ""),
-      api_key: "",
-      config: (searchProvider as any).config || {},
-    });
-  }, [searchProvider]);
-
-  const createProvider = useMutation({
-    mutationFn: async () =>
-      apiCreateProvider({
-        name: providerDraft.name,
-        provider: providerDraft.provider,
-        model: providerDraft.model,
-        base_url: providerDraft.base_url,
-        api_key: providerDraft.api_key,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["providers"] });
-      setProviderDraft({ name: "", provider: "openai", model: "gpt-4", base_url: "https://api.openai.com/v1", api_key: "" });
-      setKeyVisible(false);
-    },
-  });
-
   const upsertSearch = useMutation({
     mutationFn: async () => {
+      const searchProvider = (searchProvidersQuery.data ?? [])[0];
       if (searchProvider) {
         return updateSearchProvider(searchProvider.id, {
           provider: searchDraft.provider,
@@ -169,542 +153,459 @@ export function SettingsPage() {
     },
   });
 
-  const testProvider = useMutation({
-    mutationFn: async (providerId: number) => apiTestProvider(providerId),
-    onMutate: (providerId: number) => {
-      setTestingId(providerId);
-    },
-    onSuccess: (_data, providerId) => {
-      setTestHints((prev) => ({ ...prev, [providerId]: { ok: true, msg: t('settings.providers.testOk') || 'OK' } }));
-      setTimeout(() => {
-        setTestHints((prev) => {
-          const copy = { ...prev } as Record<number, { ok: boolean; msg: string }>;
-          delete copy[providerId];
-          return copy;
-        });
-      }, 3000);
-      queryClient.invalidateQueries({ queryKey: ["providers"] });
-    },
-    onError: (_err, providerId) => {
-      setTestHints((prev) => ({ ...prev, [providerId]: { ok: false, msg: t('settings.providers.testFail') || 'Failed' } }));
-      setTimeout(() => {
-        setTestHints((prev) => {
-          const copy = { ...prev } as Record<number, { ok: boolean; msg: string }>;
-          delete copy[providerId];
-          return copy;
-        });
-      }, 3000);
-    },
-    onSettled: () => {
-      setTestingId(null);
-    },
-  });
+  const searchProviders = searchProvidersQuery.data ?? [];
+  const uploads = filesQuery.data ?? [];
+  const searchProvider = searchProviders[0] || null;
 
-  const activateProvider = useMutation({
-    mutationFn: async (providerId: number) => apiActivateProvider(providerId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["providers"] });
-    },
-  });
+  useEffect(() => {
+    if (!searchProvider) return;
+    setSearchDraft({
+      provider: searchProvider.provider || "ddg",
+      base_url: String(searchProvider.base_url || ""),
+      api_key: "",
+      config: (searchProvider as any).config || {},
+    });
+  }, [searchProvider]);
 
-  const deleteProvider = useMutation({
-    mutationFn: async (providerId: number) => apiDeleteProvider(providerId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["providers"] });
-    },
-  });
-
-  const handleCreateProvider = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    createProvider.mutate();
+  const formatSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes}${t("settings.files.byte")}`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}${t("settings.files.kb")}`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)}${t("settings.files.mb")}`;
   };
 
-  const tabContent = useMemo(() => {
-    if (activeTab === "profile") {
-      return (
-        <div className="panel" style={{ gap: "var(--ss-space-2)" }}>
-          <div className="panel-title">{t('settings.tabs.profile')}</div>
-          <div className="card">
-            <div><strong>{t('settings.profile.email')}:</strong> {String(user?.email ?? "")}</div>
-            <div><strong>{t('settings.profile.username')}:</strong> {String(user?.username ?? "")}</div>
-            <div><strong>{t('settings.profile.fullName')}:</strong> {String(user?.full_name ?? "")}</div>
-            <div><strong>{t('settings.profile.organization')}:</strong> {String(user?.organization ?? "")}</div>
-          </div>
-        </div>
-      );
-    }
+  const formatDate = (timestamp: number): string => new Date(timestamp * 1000).toLocaleString();
 
-    if (activeTab === "security") {
-      return (
-        <div className="panel" style={{ gap: "var(--ss-space-2)" }}>
-          <div className="panel-title">{t('settings.tabs.security')}</div>
-          <div className="card">
-            <p>{t('settings.security.placeholder')}</p>
-            <button type="button" className="button button-danger" style={{ alignSelf: "flex-start" }} onClick={() => clearSession()}>
-              {t('settings.security.signoutAll')}
-            </button>
-          </div>
-        </div>
-      );
-    }
+  const tabItems = [
+    {
+      id: "profile" as const,
+      title: t("settings.tabs.profile"),
+      hint: isZh ? "身份与工作空间归属" : "Identity and workspace ownership",
+      icon: <UserCircle2 size={15} />,
+    },
+    {
+      id: "security" as const,
+      title: t("settings.tabs.security"),
+      hint: isZh ? "会话访问与退出控制" : "Session access and sign-out controls",
+      icon: <Shield size={15} />,
+    },
+    {
+      id: "providers_llm" as const,
+      title: "LLM 配置",
+      hint: isZh ? "模型与接口配置" : "Model and interface configuration",
+      icon: <Bot size={15} />,
+    },
+    {
+      id: "providers_search" as const,
+      title: t("settings.tabs.searchProviders") || t("settings.providers.searchTab"),
+      hint: isZh ? "搜索与检索提供商" : "Search and retrieval providers",
+      icon: <Search size={15} />,
+    },
+    {
+      id: "files" as const,
+      title: t("settings.tabs.files"),
+      hint: isZh ? "文件上传与存储整理" : "Uploads and storage hygiene",
+      icon: <FileStack size={15} />,
+    },
+  ];
 
-    return (
-      <div className="panel" style={{ gap: "var(--ss-space-3)" }}>
-        <div className="panel-header" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <div className="panel-title">{t('settings.providers.title')}</div>
-          {activeTab === 'providers_llm' && (
-            (() => {
-              const activeProv = (providersQuery.data || []).find((p) => p.is_active);
-              const name = activeProv ? activeProv.name : '-';
-              return (
-                <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-md)' }}>
-                  {t('settings.providers.current', { name })}
-                </div>
-              );
-            })()
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const nextTab = params.get("tab");
+    if (
+      nextTab === "profile" ||
+      nextTab === "security" ||
+      nextTab === "providers_llm" ||
+      nextTab === "providers_search" ||
+      nextTab === "files"
+    ) {
+      setActiveTab(nextTab);
+    }
+  }, [location.search]);
+
+  const selectTab = (tab: Tab) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(location.search);
+    params.set("tab", tab);
+    navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
+  };
+
+  const renderProfile = () => (
+    <div className="ss-settings-section">
+      <section className="ss-settings-hero ss-surface-strong">
+        <div>
+          <div className="kicker">{t("settings.tabs.profile")}</div>
+          <h2 className="section-title">{String(user?.full_name ?? user?.username ?? t("brand"))}</h2>
+          <p className="panel-subtitle">{t("settings.subtitle")}</p>
+        </div>
+        <div className="ss-settings-info-grid">
+          <InfoRow label={t("settings.profile.email")} value={String(user?.email ?? "—")} />
+          <InfoRow label={t("settings.profile.username")} value={String(user?.username ?? "—")} />
+          <InfoRow label={t("settings.profile.fullName")} value={String(user?.full_name ?? "—")} />
+          <InfoRow label={t("settings.profile.organization")} value={String(user?.organization ?? "—")} />
+        </div>
+      </section>
+
+      <div className="ss-settings-grid">
+        <section className="card">
+          <div className="panel-title">{t("settings.tabs.profile")}</div>
+          <div className="panel-subtitle">
+            {isZh
+              ? "保持研究者身份信息在实验、导出结果与共享工作空间中的一致性。"
+              : "Keep your researcher identity consistent across simulations, exports, and shared workspace surfaces."}
+          </div>
+          <div className="ss-settings-info-grid">
+            <InfoRow label={t("settings.profile.email")} value={String(user?.email ?? "—")} />
+            <InfoRow label={t("settings.profile.username")} value={String(user?.username ?? "—")} />
+            <InfoRow label={t("settings.profile.fullName")} value={String(user?.full_name ?? "—")} />
+            <InfoRow label={t("settings.profile.organization")} value={String(user?.organization ?? "—")} />
+          </div>
+        </section>
+
+        <section className="card">
+          <div className="panel-title">{t("settings.workspaceTitle")}</div>
+          <div className="panel-subtitle">{t("settings.workspaceHint")}</div>
+          <div className="ss-settings-stack">
+            <div className="ss-pill ss-pill--quiet">
+              <Shield size={14} />
+              <span>{isZh ? "已验证的工作空间访问" : "Authenticated workspace access"}</span>
+            </div>
+            <div className="ss-pill ss-pill--quiet">
+              <Database size={14} />
+              <span>
+                {isZh
+                  ? "身份信息会复用于已保存实验"
+                  : "Profile values are reused across saved simulations"}
+              </span>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+
+  const renderSecurity = () => (
+    <div className="ss-settings-grid">
+      <section className="card">
+        <div className="panel-title">{t("settings.security.sessionsTitle")}</div>
+        <div className="panel-subtitle">{t("settings.security.placeholder")}</div>
+        <button type="button" className="ss-button-danger" onClick={() => clearSession()}>
+          <LogOut size={15} />
+          <span>{t("settings.security.signoutAll")}</span>
+        </button>
+      </section>
+
+      <section className="card">
+        <div className="panel-title">{t("settings.security.controlTitle")}</div>
+        <div className="panel-subtitle">{t("settings.security.controlHint")}</div>
+        <div className="ss-settings-note">
+            {isZh
+            ? "认证流程仍然连接到 Future of Society 当前后端与 token 刷新链路。"
+            : "Authentication flows remain connected to the current Future of Society backend and token refresh chain."}
+          </div>
+        </section>
+    </div>
+  );
+
+  const renderProviders = () => (
+    <ProviderManagementPage />
+  );
+
+  const renderSearchProviders = () => (
+    <div className="ss-settings-grid ss-settings-grid--split">
+      <section className="card">
+        <div className="panel-title">{t("settings.providers.searchTitle")}</div>
+        <div className="panel-subtitle">
+          {isZh
+            ? "让检索服务与同一个研究工作空间和访问模型保持一致。"
+            : "Keep retrieval services aligned with the same research workspace and access model."}
+        </div>
+        <div className="ss-settings-info-grid">
+          <InfoRow label={t("settings.providers.fields.provider")} value={searchProvider?.provider || "—"} />
+          <InfoRow label={t("settings.providers.fields.baseUrl")} value={searchProvider?.base_url || "—"} />
+        </div>
+      </section>
+
+      <section className="card">
+        <div className="panel-title">{t("settings.providers.setSearchProvider")}</div>
+        <div className="ss-settings-form-grid">
+          <label>
+            <span className="ss-form-label">{t("settings.providers.fields.provider")}</span>
+            <AppSelect
+              value={searchDraft.provider}
+              options={[
+                { value: "ddg", label: t("settings.providers.searchEngine.ddg") },
+                { value: "serpapi", label: t("settings.providers.searchEngine.serpapi") },
+                { value: "serper", label: t("settings.providers.searchEngine.serper") },
+                { value: "tavily", label: t("settings.providers.searchEngine.tavily") },
+                { value: "mock", label: "Mock" },
+              ]}
+              onChange={(value) => setSearchDraft((prev) => ({ ...prev, provider: value }))}
+            />
+          </label>
+
+          {(searchDraft.provider === "serpapi" ||
+            searchDraft.provider === "serper" ||
+            searchDraft.provider === "tavily") && (
+            <>
+              <label>
+                <span className="ss-form-label">{t("settings.providers.fields.baseUrl")}</span>
+                <input
+                  value={searchDraft.base_url}
+                  onChange={(event) =>
+                    setSearchDraft((prev) => ({ ...prev, base_url: event.target.value }))
+                  }
+                />
+              </label>
+              <label>
+                <span className="ss-form-label">{t("settings.providers.fields.apiKey")}</span>
+                <input
+                  value={searchDraft.api_key}
+                  onChange={(event) =>
+                    setSearchDraft((prev) => ({ ...prev, api_key: event.target.value }))
+                  }
+                />
+              </label>
+            </>
+          )}
+
+          {searchDraft.provider === "ddg" && (
+            <>
+              <label>
+                <span className="ss-form-label">{t("settings.providers.search.region")}</span>
+                <input
+                  value={String((searchDraft.config as any).region || "")}
+                  onChange={(event) =>
+                    setSearchDraft((prev) => ({
+                      ...prev,
+                      config: { ...(prev.config || {}), region: event.target.value },
+                    }))
+                  }
+                />
+              </label>
+              <label>
+                <span className="ss-form-label">{t("settings.providers.search.safeSearch")}</span>
+                <input
+                  value={String((searchDraft.config as any).safesearch || "moderate")}
+                  onChange={(event) =>
+                    setSearchDraft((prev) => ({
+                      ...prev,
+                      config: { ...(prev.config || {}), safesearch: event.target.value },
+                    }))
+                  }
+                />
+              </label>
+            </>
+          )}
+
+          {searchDraft.provider === "tavily" && (
+            <>
+              <label>
+                <span className="ss-form-label">{t("settings.providers.search.searchDepth")}</span>
+                <AppSelect
+                  value={String((searchDraft.config as any).search_depth || "basic")}
+                  options={[
+                    { value: "basic", label: "basic" },
+                    { value: "advanced", label: "advanced" },
+                  ]}
+                  onChange={(value) =>
+                    setSearchDraft((prev) => ({
+                      ...prev,
+                      config: { ...(prev.config || {}), search_depth: value },
+                    }))
+                  }
+                />
+              </label>
+              <label>
+                <span className="ss-form-label">{t("settings.providers.search.topic")}</span>
+                <input
+                  value={String((searchDraft.config as any).topic || "")}
+                  onChange={(event) =>
+                    setSearchDraft((prev) => ({
+                      ...prev,
+                      config: { ...(prev.config || {}), topic: event.target.value },
+                    }))
+                  }
+                />
+              </label>
+              <label>
+                <span className="ss-form-label">{t("settings.providers.search.days")}</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={Number((searchDraft.config as any).days || 7)}
+                  onChange={(event) =>
+                    setSearchDraft((prev) => ({
+                      ...prev,
+                      config: { ...(prev.config || {}), days: Number(event.target.value || 0) },
+                    }))
+                  }
+                />
+              </label>
+              <label>
+                <span className="ss-form-label">{t("settings.providers.search.includeDomains")}</span>
+                <input
+                  value={String((searchDraft.config as any).include_domains || "")}
+                  onChange={(event) =>
+                    setSearchDraft((prev) => ({
+                      ...prev,
+                      config: { ...(prev.config || {}), include_domains: event.target.value },
+                    }))
+                  }
+                />
+              </label>
+            </>
           )}
         </div>
 
-        {/* LLM Providers: list above, add form below */}
-        {activeTab === 'providers_llm' && (
-          <>
-            {/* List (no outer card) */}
-            <div className="card" style={{ display: 'grid', gap: 0, padding: 'var(--ss-space-0-5) var(--ss-gap-lg)' }}>
-              {providersQuery.isLoading && <div>{t('settings.providers.loading')}</div>}
-              {providersQuery.error && <div style={{ color: "var(--ss-error-400)" }}>{t('settings.providers.error')}</div>}
-              {(providersQuery.data ?? []).map((provider, idx) => {
-                const active = provider.is_active;
-                return (
-                  <div key={provider.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', padding: 'var(--ss-space-2) 0' }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>{provider.name}</div>
-                      <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-sm)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {provider.provider} · {provider.model} · {provider.base_url || '-'}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 'var(--ss-gap-xs)', alignItems: 'center' }}>
-                      {testHints[provider.id] && (
-                        <span style={{ fontSize: 'var(--ss-type-xs)', color: testHints[provider.id].ok ? 'var(--ss-success-400)' : 'var(--ss-error-400)' }}>
-                          {testHints[provider.id].ok ? '✓' : '✕'} {testHints[provider.id].msg}
-                        </span>
-                      )}
+        <button
+          type="button"
+          className="ss-button"
+          onClick={() => upsertSearch.mutate()}
+          disabled={upsertSearch.isPending}
+        >
+          {upsertSearch.isPending ? <span className="spinner" aria-hidden /> : <FilePlusIcon />}
+          <span>{t("settings.providers.save")}</span>
+        </button>
+      </section>
+    </div>
+  );
+
+  const renderFiles = () => (
+    <div className="ss-settings-section">
+      <div className="ss-settings-grid">
+        <SettingsMetric
+          label={isZh ? "文件数量" : "Files"}
+          value={String(uploads.length)}
+          icon={<FileStack size={16} />}
+        />
+        <SettingsMetric
+          label={isZh ? "孤立文件扫描" : "Orphan scan"}
+          value={orphanResult ? String(orphanResult.orphaned.length) : "—"}
+          icon={<Database size={16} />}
+        />
+      </div>
+
+      <section className="card">
+        <div className="panel-title">{t("settings.files.title")}</div>
+        <div className="panel-subtitle">{t("settings.files.description")}</div>
+
+        {filesQuery.isLoading ? <div>{t("settings.files.loading")}</div> : null}
+        {filesQuery.error ? <div>{t("settings.files.error")}</div> : null}
+
+        {uploads.length ? (
+          <div className="ss-data-table-wrap">
+            <table className="ss-data-table">
+              <thead>
+                <tr>
+                  <th>{t("settings.files.table.filename")}</th>
+                  <th>{t("settings.files.table.type")}</th>
+                  <th>{t("settings.files.table.size")}</th>
+                  <th>{t("settings.files.table.created")}</th>
+                  <th>{t("settings.files.table.actions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {uploads.map((file) => (
+                  <tr key={file.id}>
+                    <td title={file.filename}>{file.filename}</td>
+                    <td>{file.type || "-"}</td>
+                    <td>{formatSize(file.size)}</td>
+                    <td>{formatDate(file.created)}</td>
+                    <td className="ss-data-table__actions">
                       <button
                         type="button"
                         className="icon-button square"
-                        title={t('settings.providers.test')}
-                        aria-label={t('settings.providers.test')}
-                        onClick={() => testProvider.mutate(provider.id)}
-                        disabled={testingId !== null}
-                        style={{ borderColor: 'var(--border)', color: 'var(--ss-info-600)' }}
-                      >
-                        {testingId === provider.id ? <span className="spinner" aria-hidden /> : <Link2Icon />}
-                      </button>
-                      <button
-                        type="button"
-                        className="icon-button square"
-                        title={active ? (t('settings.providers.activeTag') || 'Active') : (t('settings.providers.makeActive') || 'Use')}
-                        aria-label={active ? (t('settings.providers.activeTag') || 'Active') : (t('settings.providers.makeActive') || 'Use')}
-                        onClick={() => !active && activateProvider.mutate(provider.id)}
-                        disabled={active || activateProvider.isPending}
-                        style={{ borderColor: 'var(--border)', color: 'var(--ss-warning-600)' }}
-                      >
-                        {active ? <StarFilledIcon /> : <StarIcon />}
-                      </button>
-                      <button
-                        type="button"
-                        className="icon-button square"
-                        title={t('saved.delete')}
-                        aria-label={t('saved.delete')}
+                        title={t("settings.files.delete")}
+                        aria-label={t("settings.files.delete")}
                         onClick={() => {
-                          if (active) {
-                            const msg = t('settings.providers.deleteActiveConfirm') || 'This provider is active. Delete anyway?';
-                            if (!window.confirm(msg)) return;
+                          if (window.confirm(t("settings.files.deleteConfirm"))) {
+                            deleteFile.mutate(file.id);
                           }
-                          deleteProvider.mutate(provider.id);
                         }}
-                        disabled={deleteProvider.isPending}
-                        style={{ borderColor: 'var(--border)', color: 'var(--ss-error-500)' }}
+                        disabled={deleteFile.isPending}
                       >
                         <TrashIcon />
                       </button>
-                    </div>
-                    {idx < (providersQuery.data?.length || 0) - 1 && <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border)', margin: '0.4rem 0 0 0', opacity: 0.8 }} />}
-                  </div>
-                );
-              })}
-              {(providersQuery.data ?? []).length === 0 && <div style={{ color: "var(--ss-text-muted)" }}>{t('settings.providers.none')}</div>}
-            </div>
-
-            {/* Add form */}
-            <form onSubmit={handleCreateProvider} className="card" style={{ gap: "var(--ss-space-1)", padding: '0.45rem 0.55rem', marginTop: 'var(--ss-gap-lg)', fontSize: 'var(--ss-type-sm)' }}>
-              <h2 style={{ margin: 0, fontSize: "var(--ss-type-md)" }}>{t('settings.providers.add')}</h2>
-              <label>
-                {t('settings.providers.fields.label')}
-                <input className="input small"
-                  required
-                  value={providerDraft.name}
-                  onChange={(event) => setProviderDraft((prev) => ({ ...prev, name: event.target.value }))}
-                />
-              </label>
-              <label>
-                {t('settings.providers.fields.provider')}
-                <AppSelect
-                  value={providerDraft.provider}
-                  options={[
-                    { value: 'openai', label: t('settings.providers.type.openai') },
-                    { value: 'gemini', label: t('settings.providers.type.gemini') },
-                  ]}
-                  onChange={(val) => setProviderDraft((prev) => ({ ...prev, provider: val, base_url: val === 'openai' ? 'https://api.openai.com/v1' : '' }))}
-                  size="small"
-                />
-              </label>
-              <label>
-                {t('settings.providers.fields.model')}
-                <input className="input small"
-                  required
-                  value={providerDraft.model}
-                  onChange={(event) => setProviderDraft((prev) => ({ ...prev, model: event.target.value }))}
-                />
-              </label>
-              <label>
-                {t('settings.providers.fields.baseUrl')}
-                <input className="input small"
-                  required
-                  value={providerDraft.base_url}
-                  onChange={(event) => setProviderDraft((prev) => ({ ...prev, base_url: event.target.value }))}
-                />
-              </label>
-              <label>
-                {t('settings.providers.fields.apiKey')}
-                <div style={{ display: "flex", gap: "var(--ss-space-2)", alignItems: "center", marginTop: "0.5rem" }}>
-                  <input
-                    required
-                    type={keyVisible ? "text" : "password"}
-                    className="input small"
-                    value={providerDraft.api_key}
-                    onChange={(event) => setProviderDraft((prev) => ({ ...prev, api_key: event.target.value }))}
-                    style={{ flex: 1 }}
-                  />
-                  <button
-                    type="button"
-                    className="icon-button square"
-                    title={keyVisible ? (t('common.hide') || 'Hide') : (t('common.show') || 'Show')}
-                    aria-label={keyVisible ? (t('common.hide') || 'Hide') : (t('common.show') || 'Show')}
-                    onClick={() => setKeyVisible((prev) => !prev)}
-                  >
-                    {keyVisible ? <EyeClosedIcon /> : <EyeOpenIcon />}
-                  </button>
-                </div>
-              </label>
-              {createProvider.error && <div style={{ color: "var(--ss-error-400)" }}>{t('settings.providers.createFailed') || 'Failed to add provider.'}</div>}
-              <button
-                type="submit"
-                className="icon-button square"
-                title={t('settings.providers.save')}
-                aria-label={t('settings.providers.save')}
-                disabled={createProvider.isPending}
-                style={{ color: 'var(--ss-success-500)' }}
-              >
-                {createProvider.isPending ? <span className="spinner" aria-hidden /> : <FilePlusIcon />}
-              </button>
-            </form>
-
-            <div className="card" style={{ padding: 'var(--ss-gap-lg) var(--ss-gap-xl)', display: 'grid', gap: 'var(--ss-gap-sm)' }}>
-              <div className="panel-subtitle" style={{ margin: 0 }}>{t('settings.providers.capabilities.title')}</div>
-              <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-md)' }}>{t('settings.providers.capabilities.hint')}</div>
-              <div style={{ display: 'grid', gap: 'var(--ss-space-2)' }}>
-                {getCapabilityRows(t).map((row) => (
-                  <div key={row.model} style={{ border: '1px solid var(--border)', borderRadius: 'var(--ss-radius-md)', padding: 'var(--ss-gap-lg) var(--ss-gap-xl)', background: 'rgba(255,255,255,0.02)', display: 'grid', gap: 'var(--ss-gap-xs)' }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 'var(--ss-gap-lg)', flexWrap: 'wrap' }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: 'var(--ss-type-input)' }}>{row.model}</div>
-                        <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-md)' }}>{t('settings.providers.capabilities.modalities')}: {row.modalities}</div>
-                      </div>
-                      <div style={{ display: 'flex', gap: 'var(--ss-gap-xs)', flexWrap: 'wrap' }}>
-                        <span className="pill" style={{ background: 'var(--ss-info-soft)', color: 'var(--ss-info-600)', padding: '0.2rem 0.45rem', borderRadius: 'var(--ss-radius-pill)', fontSize: 'var(--ss-type-sm)' }}>
-                          {t('settings.providers.capabilities.context')}: {row.context}
-                        </span>
-                        <span className="pill" style={{ background: 'var(--ss-success-soft)', color: 'var(--ss-success-600)', padding: '0.2rem 0.45rem', borderRadius: 'var(--ss-radius-pill)', fontSize: 'var(--ss-type-sm)' }}>
-                          {t('settings.providers.capabilities.input')}: {row.input}
-                        </span>
-                        <span className="pill" style={{ background: 'var(--ss-warning-soft)', color: 'var(--ss-warning-600)', padding: '0.2rem 0.45rem', borderRadius: 'var(--ss-radius-pill)', fontSize: 'var(--ss-type-sm)' }}>
-                          {t('settings.providers.capabilities.output')}: {row.output}
-                        </span>
-                      </div>
-                    </div>
-                    <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-md)' }}>
-                      {t('settings.providers.capabilities.note')}: {t(row.note)}
-                    </div>
-                  </div>
+                    </td>
+                  </tr>
                 ))}
-              </div>
-              <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-sm)' }}>{t('settings.providers.capabilities.disclaimer')}</div>
-            </div>
-          </>
-        )}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
 
-        {/* Search Providers */}
-        {activeTab === 'providers_search' && (
-          <>
-            <div className="card" style={{ padding: 'var(--ss-gap-lg) var(--ss-gap-xl)', display: 'grid', gap: 'var(--ss-space-1)' }}>
-              <div className="panel-subtitle" style={{ margin: 0 }}>{t('settings.providers.searchTab') || 'Search providers'}</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: 'var(--ss-space-2)', rowGap: '0.2rem', alignItems: 'baseline', fontSize: 'var(--ss-type-md)', lineHeight: 1.25 }}>
-                <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-xs)', whiteSpace: 'nowrap' }}>{t('settings.providers.fields.provider')}</div>
-                <div>{searchProvider ? (searchProvider.provider || '-') : '-'}</div>
-                <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-xs)', whiteSpace: 'nowrap' }}>{t('settings.providers.fields.baseUrl')}</div>
-                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{searchProvider ? (searchProvider.base_url || '-') : '-'}</div>
-              </div>
-            </div>
-            <div className="card" style={{ gap: "0.3rem", padding: 'var(--ss-space-2) var(--ss-gap-lg)', fontSize: 'var(--ss-type-sm)' }}>
-              <h2 style={{ margin: 0, fontSize: "var(--ss-type-md)" }}>{t('settings.providers.setSearchProvider')}</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--ss-space-2)" }}>
-                <label>
-                  {t('settings.providers.fields.provider')}
-                  <AppSelect
-                    value={searchDraft.provider}
-                    options={[
-                      { value: "ddg", label: t('settings.providers.searchEngine.ddg') },
-                      { value: "serpapi", label: t('settings.providers.searchEngine.serpapi') },
-                      { value: "serper", label: t('settings.providers.searchEngine.serper') },
-                      { value: "tavily", label: t('settings.providers.searchEngine.tavily') },
-                      { value: "mock", label: "Mock" },
-                    ]}
-                    onChange={(val) => setSearchDraft((p) => ({ ...p, provider: val }))}
-                    size="small"
-                  />
-                </label>
-                {(searchDraft.provider === "serpapi" || searchDraft.provider === "serper" || searchDraft.provider === "tavily") && (
-                  <>
-                    <label>
-                      {t('settings.providers.fields.baseUrl')}
-                      <input className="input small" value={searchDraft.base_url} onChange={(e) => setSearchDraft((p) => ({ ...p, base_url: e.target.value }))} />
-                    </label>
-                    <label>
-                      {t('settings.providers.fields.apiKey')}
-                      <input className="input small" value={searchDraft.api_key} onChange={(e) => setSearchDraft((p) => ({ ...p, api_key: e.target.value }))} />
-                    </label>
-                  </>
-                )}
-                {searchDraft.provider === "ddg" && (
-                  <>
-                    <label>
-                      {t('settings.providers.search.region')}
-                      <input className="input small" value={String((searchDraft.config as any).region || "")} onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), region: e.target.value } }))} />
-                    </label>
-                    <label>
-                      {t('settings.providers.search.safeSearch')}
-                      <input className="input small" value={String((searchDraft.config as any).safesearch || "moderate")} onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), safesearch: e.target.value } }))} />
-                    </label>
-                  </>
-                )}
-                {searchDraft.provider === "tavily" && (
-                  <>
-                    <label>
-                      {t('settings.providers.search.searchDepth')}
-                      <AppSelect
-                        value={String((searchDraft.config as any).search_depth || "basic")}
-                        options={[
-                          { value: "basic", label: "basic" },
-                          { value: "advanced", label: "advanced" },
-                        ]}
-                        onChange={(val) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), search_depth: val } }))}
-                        size="small"
-                      />
-                    </label>
-                    <label>
-                      {t('settings.providers.search.includeAnswer')}
-                      <input
-                        type="checkbox"
-                        checked={Boolean((searchDraft.config as any).include_answer || false)}
-                        onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), include_answer: e.target.checked } }))}
-                      />
-                    </label>
-                    <label>
-                      {t('settings.providers.search.topic')}
-                      <input
-                        className="input small"
-                        value={String((searchDraft.config as any).topic || "")}
-                        onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), topic: e.target.value } }))}
-                      />
-                    </label>
-                    <label>
-                      {t('settings.providers.search.days')}
-                      <input
-                        className="input small"
-                        type="number"
-                        min={1}
-                        value={Number((searchDraft.config as any).days || 7)}
-                        onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), days: Number(e.target.value || 0) } }))}
-                      />
-                    </label>
-                    <label>
-                      {t('settings.providers.search.includeDomains')}
-                      <input
-                        className="input small"
-                        value={String((searchDraft.config as any).include_domains || "")}
-                        onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), include_domains: e.target.value } }))}
-                      />
-                    </label>
-                    <label>
-                      {t('settings.providers.search.excludeDomains')}
-                      <input
-                        className="input small"
-                        value={String((searchDraft.config as any).exclude_domains || "")}
-                        onChange={(e) => setSearchDraft((p) => ({ ...p, config: { ...(p.config || {}), exclude_domains: e.target.value } }))}
-                      />
-                    </label>
-                  </>
-                )}
-                {searchDraft.provider === "mock" && (
-                  <>
-                    <div />
-                    <div />
-                  </>
-                )}
-              </div>
-              <div style={{ display: "flex", gap: "var(--ss-space-2)", alignItems: "center" }}>
-                <button
-                  type="button"
-                  className="icon-button square"
-                  title={t('settings.providers.save')}
-                  aria-label={t('settings.providers.save')}
-                  onClick={() => upsertSearch.mutate()}
-                  disabled={upsertSearch.isPending}
-                  style={{ color: 'var(--ss-success-500)' }}
-                >
-                  {upsertSearch.isPending ? <span className="spinner" aria-hidden /> : <FilePlusIcon />}
-                </button>
-                {searchProvider && (
-                  <div style={{ color: "var(--ss-text-muted)", lineHeight: 1 }}>
-                    {t('settings.providers.search.active')}: {searchProvider.provider}
-                  </div>
-
-                )}
-              </div>
-            </div>
-          </>)
-        }
-
-        {/* File Management Tab */}
-        {activeTab === 'files' && (
-          <div className="card" style={{ padding: 'var(--ss-gap-lg) var(--ss-gap-xl)', display: 'grid', gap: 'var(--ss-gap-sm)' }}>
-            <div className="panel-subtitle" style={{ margin: 0 }}>{t('settings.files.title')}</div>
-            <div style={{ color: 'var(--muted)', fontSize: 'var(--ss-type-md)' }}>{t('settings.files.description')}</div>
-
-            {filesQuery.isLoading && <div>{t('settings.files.loading')}</div>}
-            {filesQuery.error && <div style={{ color: "var(--ss-error-400)" }}>{t('settings.files.error')}</div>}
-
-            {filesQuery.data && filesQuery.data.length > 0 && (
-              <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--ss-radius-sm)' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--ss-type-sm)' }}>
-                  <thead style={{ background: 'rgba(0,0,0,0.02)' }}>
-                    <tr>
-                      <th style={{ padding: 'var(--ss-space-2)', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.filename')}</th>
-                      <th style={{ padding: 'var(--ss-space-2)', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.type')}</th>
-                      <th style={{ padding: 'var(--ss-space-2)', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.size')}</th>
-                      <th style={{ padding: 'var(--ss-space-2)', textAlign: 'left', fontWeight: 600 }}>{t('settings.files.table.created')}</th>
-                      <th style={{ padding: 'var(--ss-space-2)', textAlign: 'right', fontWeight: 600 }}>{t('settings.files.table.actions')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filesQuery.data.map((file) => (
-                      <tr key={file.id} style={{ borderTop: '1px solid var(--border)' }}>
-                        <td style={{ padding: 'var(--ss-space-2)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          <span title={file.filename}>{file.filename}</span>
-                        </td>
-                        <td style={{ padding: 'var(--ss-space-2)' }}>
-                          <span style={{ textTransform: 'uppercase', fontSize: 'var(--ss-type-label)' }}>{file.type || '-'}</span>
-                        </td>
-                        <td style={{ padding: 'var(--ss-space-2)' }}>{formatSize(file.size)}</td>
-                        <td style={{ padding: 'var(--ss-space-2)', color: 'var(--muted)' }}>{formatDate(file.created)}</td>
-                        <td style={{ padding: 'var(--ss-space-2)', textAlign: 'right' }}>
-                          <button
-                            type="button"
-                            className="icon-button square"
-                            title={t('settings.files.delete')}
-                            aria-label={t('settings.files.delete')}
-                            onClick={() => {
-                              if (window.confirm(t('settings.files.deleteConfirm'))) {
-                                deleteFile.mutate(file.id);
-                              }
-                            }}
-                            disabled={deleteFile.isPending}
-                            style={{ borderColor: 'var(--border)', color: 'var(--ss-error-500)' }}
-                          >
-                            <TrashIcon />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {filesQuery.data && filesQuery.data.length === 0 && (
-              <div style={{ color: "var(--ss-text-muted)" }}>{t('settings.files.empty')}</div>
-            )}
-
-            <div style={{ display: 'flex', gap: 'var(--ss-space-2)', alignItems: 'center' }}>
-              <button
-                type="button"
-                className="button"
-                onClick={async () => {
-                  setFindingOrphans(true);
-                  try {
-                    const result = await findOrphans();
-                    setOrphanResult(result);
-                  } catch (err) {
-                    console.error(err);
-                  } finally {
-                    setFindingOrphans(false);
-                  }
-                }}
-                disabled={findingOrphans}
-              >
-                {findingOrphans ? '...' : t('settings.files.findOrphans')}
-              </button>
-
-              {orphanResult && (
-                <span style={{ fontSize: 'var(--ss-type-sm)', color: 'var(--muted)' }}>
-                  {orphanResult.orphaned.length > 0
-                    ? t('settings.files.orphansFound', { count: orphanResult.orphaned.length })
-                    : t('settings.files.noOrphans')}
-                </span>
-              )}
+        {!uploads.length && !filesQuery.isLoading ? (
+          <div className="ss-empty-state ss-inset">
+            <div className="panel-title">{t("settings.files.empty")}</div>
+            <div className="panel-subtitle">
+              {isZh
+                ? "上传的研究文件会在关联到实验后显示在这里。"
+                : "Uploaded research files will appear here once they are attached to simulations."}
             </div>
           </div>
-        )}
-      </div>
+        ) : null}
+      </section>
 
-    );
-  }, [activeTab, user, providerDraft, providersQuery, createProvider, testProvider, clearSession, keyVisible, filesQuery, deleteFile, t, formatSize, formatDate, orphanResult, findingOrphans]);
+      <section className="card">
+        <div className="panel-title">{t("settings.files.maintenanceTitle")}</div>
+        <div className="panel-subtitle">{t("settings.files.maintenanceHint")}</div>
+        <div className="ss-settings-action-row">
+          <button
+            type="button"
+            className="ss-button-secondary"
+            onClick={async () => {
+              setFindingOrphans(true);
+              const result = await findOrphans();
+              setOrphanResult(result);
+              setFindingOrphans(false);
+            }}
+            disabled={findingOrphans}
+          >
+            {findingOrphans ? "…" : t("settings.files.findOrphans")}
+          </button>
+          <span className="panel-subtitle">
+            {orphanResult
+              ? orphanResult.orphaned.length > 0
+                ? t("settings.files.orphansFound", { count: orphanResult.orphaned.length })
+                : t("settings.files.noOrphans")
+              : t("settings.files.noOrphans")}
+          </span>
+        </div>
+      </section>
+    </div>
+  );
+
+  const renderActiveTab = () => {
+    if (activeTab === "profile") return renderProfile();
+    if (activeTab === "security") return renderSecurity();
+    if (activeTab === "providers_llm") return renderProviders();
+    if (activeTab === "providers_search") return renderSearchProviders();
+    return renderFiles();
+  };
 
   return (
-    <div style={{ height: "100%", overflow: "auto" }}>
-      <TitleCard title={t('settings.title')} />
-      <div className="tab-layout">
-        <nav className="tab-nav">
-          <button type="button" className={`tab-button ${activeTab === "profile" ? "active" : ""}`} onClick={() => setActiveTab("profile")}>
-            {t('settings.tabs.profile')}
-          </button>
-          <button type="button" className={`tab-button ${activeTab === "security" ? "active" : ""}`} onClick={() => setActiveTab("security")}>
-            {t('settings.tabs.security')}
-          </button>
-          <button type="button" className={`tab-button ${activeTab === "providers_llm" ? "active" : ""}`} onClick={() => setActiveTab("providers_llm")}>
-            {t('settings.tabs.llmProviders') || t('settings.providers.llmTab')}
-          </button>
-          <button type="button" className={`tab-button ${activeTab === "providers_search" ? "active" : ""}`} onClick={() => setActiveTab("providers_search")}>
-            {t('settings.tabs.searchProviders') || t('settings.providers.searchTab')}
-          </button>
-          <button type="button" className={`tab-button ${activeTab === "files" ? "active" : ""}`} onClick={() => setActiveTab("files")}>
-            {t('settings.tabs.files')}
-          </button>
+    <div className="ss-product-page ss-product-page--settings scroll-panel">
+      <TitleCard title={t("settings.title")} />
+
+      <div className="tab-layout ss-settings-page__layout">
+        <nav className="tab-nav ss-settings-page__nav">
+          {tabItems.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`tab-button ss-settings-page__tab ${activeTab === item.id ? "active" : ""}`}
+              onClick={() => selectTab(item.id)}
+            >
+              <span className="ss-settings-page__tab-icon">{item.icon}</span>
+              <span className="ss-settings-page__tab-copy">
+                <strong>{item.title}</strong>
+                <span>{item.hint}</span>
+              </span>
+            </button>
+          ))}
         </nav>
-        <section>{tabContent}</section>
+        <section className="ss-settings-page__content">{renderActiveTab()}</section>
       </div>
     </div>
   );
 }
-
-// (Radix-based AppSelect replaces local FancySelect)

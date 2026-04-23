@@ -14,6 +14,7 @@ from ...core.database import get_session
 from ...dependencies import extract_bearer_token, resolve_current_user
 from ...models.user import ProviderConfig
 from ...services.default_providers import get_default_ollama_base_url
+from ...services.provider_dialect import normalize_provider_dialect
 
 # 👇 关键：这里需要上升 3 层到 socialsim4，然后再进入 core
 from ....core.llm import create_llm_client, generate_agents_with_archetypes
@@ -100,7 +101,7 @@ async def _select_provider(
     if provider is None:
             raise RuntimeError("LLM provider not configured")
 
-    dialect = (provider.provider or "").lower()
+    dialect = normalize_provider_dialect(provider.provider)
     if dialect not in {"openai", "gemini", "mock", "ollama"}:
         raise RuntimeError("Invalid LLM provider dialect")
     if dialect in {"openai", "gemini"} and not provider.api_key:
@@ -127,7 +128,7 @@ async def generate_agents(
         provider = await _select_provider(
             session, current_user.id, data.provider_id
         )
-        dialect = (provider.provider or "").lower()
+        dialect = normalize_provider_dialect(provider.provider)
 
         cfg = LLMConfig(
             dialect=dialect,
@@ -295,7 +296,7 @@ async def refine_report(request: Request, data: RefineReportRequest) -> dict:
         current_user = await resolve_current_user(session, token)
         provider = await _select_provider(session, current_user.id, data.provider_id)
         cfg = LLMConfig(
-            dialect=(provider.provider or "").lower(),
+            dialect=normalize_provider_dialect(provider.provider),
             api_key=provider.api_key or "",
             model=provider.model,
             base_url=provider.base_url,
@@ -342,7 +343,7 @@ async def generate_agents_demographics(
                 session, current_user.id, data.provider_id
             )
 
-            dialect = (provider.provider or "").lower()
+            dialect = normalize_provider_dialect(provider.provider)
             cfg = LLMConfig(
                 dialect=dialect,
                 api_key=provider.api_key or "",

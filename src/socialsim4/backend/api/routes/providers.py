@@ -30,6 +30,7 @@ from ...models.user import ProviderConfig
 from ...schemas.common import Message
 from ...schemas.provider import ProviderBase, ProviderCreate, ProviderUpdate
 from ...services.default_providers import ensure_default_ollama_providers
+from ...services.provider_dialect import normalize_provider_dialect
 
 
 def _normalize_dialect(raw: str, base_url: str | None) -> tuple[str, str | None]:
@@ -46,7 +47,7 @@ def _normalize_dialect(raw: str, base_url: str | None) -> tuple[str, str | None]
     Returns:
         Tuple of (normalized_dialect, normalized_base_url)
     """
-    val = (raw or "").lower().strip()
+    val = normalize_provider_dialect(raw)
     if val == "ollama":
         # Strip /v1 suffix if present (native Ollama API doesn't use it)
         if base_url and "/v1" in base_url:
@@ -62,10 +63,14 @@ def _normalize_dialect(raw: str, base_url: str | None) -> tuple[str, str | None]
 
 
 def _serialize_provider(provider: ProviderConfig) -> ProviderBase:
+    serialized_provider = provider.provider
+    if normalize_provider_dialect(provider.provider) == "openai":
+        serialized_provider = "openai-compatible"
+
     return ProviderBase(
         id=provider.id,
         name=provider.name,
-        provider=provider.provider,
+        provider=serialized_provider,
         model=provider.model,
         base_url=provider.base_url,
         has_api_key=bool(provider.api_key),
@@ -112,7 +117,7 @@ async def create_provider(request: Request, data: ProviderCreate) -> ProviderBas
         provider = ProviderConfig(
             user_id=current_user.id,
             name=data.name,
-            provider=data.provider,
+            provider=normalize_provider_dialect(data.provider),
             model=data.model,
             base_url=data.base_url,
             api_key=data.api_key,
@@ -137,7 +142,7 @@ async def update_provider(
         if data.name is not None:
             provider.name = data.name
         if data.provider is not None:
-            provider.provider = data.provider
+            provider.provider = normalize_provider_dialect(data.provider)
         if data.model is not None:
             provider.model = data.model
         if data.base_url is not None:

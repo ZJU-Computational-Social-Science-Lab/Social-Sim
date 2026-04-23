@@ -32,6 +32,7 @@ from socialsim4.backend.dependencies import settings
 from socialsim4.backend.models.simulation import Simulation
 from socialsim4.backend.models.user import ProviderConfig, SearchProviderConfig, User
 from socialsim4.backend.services.default_providers import get_default_ollama_base_url
+from socialsim4.backend.services.provider_dialect import normalize_provider_dialect
 from socialsim4.backend.services.simtree_runtime import SIM_TREE_REGISTRY, SimTreeRecord
 
 
@@ -107,7 +108,7 @@ async def get_tree_record(
             status_code=400,
             detail="LLM provider not configured"
         )
-    dialect = (provider.provider or "").lower()
+    dialect = normalize_provider_dialect(provider.provider)
     base_url = provider.base_url or (get_default_ollama_base_url() if dialect == "ollama" else None)
 
     # Heuristic: openai + localhost base_url without /v1 => append /v1 for OpenAI-compatible servers like Ollama
@@ -159,7 +160,7 @@ async def get_tree_record(
     # Build per-provider client map for LLM distribution across agents
     provider_clients: dict[int, object] = {}
     for p in items:
-        p_dialect = (p.provider or "").lower()
+        p_dialect = normalize_provider_dialect(p.provider)
         if p_dialect not in {"openai", "gemini", "mock", "ollama"}:
             continue
         if p_dialect in {"openai", "gemini"} and not p.api_key:

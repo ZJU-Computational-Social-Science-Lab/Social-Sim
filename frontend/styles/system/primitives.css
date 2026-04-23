@@ -212,7 +212,9 @@
   }
 
   .ss-button,
-  .button {
+  .button,
+  .ss-button-danger,
+  .button-danger {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -236,7 +238,9 @@
   }
 
   .ss-button:hover,
-  .button:hover {
+  .button:hover,
+  .ss-button-danger:hover,
+  .button-danger:hover {
     transform: translateY(-1px);
     box-shadow:
       var(--ss-glow-primary),
@@ -244,7 +248,9 @@
   }
 
   .ss-button:disabled,
-  .button:disabled {
+  .button:disabled,
+  .ss-button-danger:disabled,
+  .button-danger:disabled {
     opacity: 0.56;
     cursor: not-allowed;
     transform: none;
