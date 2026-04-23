@@ -692,27 +692,26 @@ export const Step4Agents: React.FC = () => {
       }));
 
       // Call the real backend API
-      const agents = await generateAgentsWithDemographics(
+      const generated = await generateAgentsWithDemographics(
         genCount,
         demographicsData,
         archetypeProbabilities,
         traitsData,
         currentLang,
-        llmAllocations.length > 0 ? undefined : selectedProviderId ?? undefined
+        selectedProviderId ?? undefined
       );
 
-      const distributedAgents = llmAllocations.length > 0
-        ? applyLlmDistribution(
-            agents,
-            llmAllocations,
-            `${selectedScenarioId || selectedScenarioData?.id || 'builder'}-${genCount}`,
-            {
-              provider: agents[0]?.llmConfig?.provider || 'backend',
-              model: agents[0]?.llmConfig?.model || 'default',
-              provider_id: agents[0]?.provider_id || null,
-            },
-          )
-        : agents;
+      const defaultProvider = llmProviders.find((provider) => provider.id === selectedProviderId) || llmProviders[0];
+      const distributedAgents = applyLlmDistribution(
+        generated,
+        llmAllocations,
+        `${scenarioId || 'experiment'}:${selectedProviderId || 'default'}:${genCount}`,
+        {
+          provider: defaultProvider?.provider || generated[0]?.llmConfig?.provider || 'backend',
+          model: defaultProvider?.model || generated[0]?.llmConfig?.model || 'default',
+          provider_id: defaultProvider?.id ?? selectedProviderId ?? generated[0]?.provider_id ?? null,
+        },
+      );
 
       setGeneratedAgents(distributedAgents);
 
@@ -739,13 +738,13 @@ export const Step4Agents: React.FC = () => {
           delete nextProperties.tier;
         }
         const agentType: ManualAgentType = {
-          id: `demo-agent-${agent.id}`,
+          id: agent.id,
           label: agent.name,
           count: 1,
           rolePrompt: agent.profile,
           userProfile: agent.profile,
           properties: nextProperties,
-          providerId: agent.provider_id ?? selectedProviderId ?? undefined,
+          providerId: agent.provider_id ?? undefined,
         };
         addAgentType(agentType);
       });

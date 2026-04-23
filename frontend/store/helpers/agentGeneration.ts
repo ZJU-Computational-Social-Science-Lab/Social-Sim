@@ -84,6 +84,7 @@ export async function generateAgentsWithDemographics(
     avatarUrl: agent.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(agent.name || `agent_${index}`)}`,
     profile: agent.profile || fallbackProfile,
     llmConfig: { provider: agent.provider || 'backend', model: agent.model || 'default' },
+    provider_id: agent.provider_id,
     properties: agent.properties || {},
     history: agent.history || {},
     memory: agent.memory || [],

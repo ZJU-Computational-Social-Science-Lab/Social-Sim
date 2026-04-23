@@ -17,13 +17,14 @@ import { useTranslation } from "react-i18next";
 import { useThemeStore } from "../store/theme";
 
 import landingDemoVideo from "../assets/landing/landing-demo.mp4";
-import sceneBehaviorImage from "../assets/landing/scene-behavior.png";
-import sceneInstitutionImage from "../assets/landing/scene-institution.png";
-import sceneInterventionImage from "../assets/landing/scene-intervention.png";
-import scenePolicyImage from "../assets/landing/scene-policy.png";
-import experimentDesignImage from "../assets/tutorial/07-experiment-design.png";
-import realtimeObservationImage from "../assets/tutorial/08-realtime-obs.png";
-import networkTopologyImage from "../assets/tutorial/09-network-topology.png";
+
+const scenePolicyImage = "/tutorial/03-new-simulation.png";
+const sceneBehaviorImage = "/tutorial/04-agent-generation.png";
+const sceneInstitutionImage = "/tutorial/05-simulation-view.png";
+const sceneInterventionImage = "/tutorial/06-host-panel.png";
+const experimentDesignImage = "/tutorial/07-experiment-design.png";
+const realtimeObservationImage = "/tutorial/08-analytics.png";
+const networkTopologyImage = "/tutorial/09-network-topology.png";
 
 export function LandingPage() {
   const { t } = useTranslation();

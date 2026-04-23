@@ -77,7 +77,7 @@ export function launchExperimentFromBuilderState({
         profile: userProfile || rolePrompt || '',
         user_profile: userProfile || '',
         avatarUrl,
-        llm_config: llmConfig,
+        llmConfig,
         provider_id: providerId,
         properties: {
           ...props,
