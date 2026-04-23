@@ -17,7 +17,6 @@ import { useTranslation } from "react-i18next";
 import { useThemeStore } from "../store/theme";
 
 import landingDemoVideo from "../assets/landing/landing-demo.mp4";
-import heroPreviewBackground from "../assets/landing/preview-hero-bg.png";
 import sceneBehaviorImage from "../assets/landing/scene-behavior.png";
 import sceneInstitutionImage from "../assets/landing/scene-institution.png";
 import sceneInterventionImage from "../assets/landing/scene-intervention.png";
@@ -30,9 +29,18 @@ export function LandingPage() {
   const { t } = useTranslation();
   const mode = useThemeStore((state) => state.mode);
   const themeClass = mode === "dark" ? "is-dark" : "is-light";
-  const landingMediaVars = {
-    "--ss-landing-hero-image": `url(${heroPreviewBackground})`,
-  } as React.CSSProperties;
+  const heroSubtitle = String(t("landing.hero.sub"));
+  const heroSubtitleLines = heroSubtitle
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const heroSubtitleSegments =
+    heroSubtitleLines.length > 1
+      ? heroSubtitleLines
+      : heroSubtitle
+          .split(/(?<=[,，。.!?；;])/u)
+          .map((segment) => segment.trim())
+          .filter(Boolean);
 
   useEffect(() => {
     const sections = document.querySelectorAll<HTMLElement>(".ss-reveal");
@@ -142,22 +150,32 @@ export function LandingPage() {
   ];
 
   return (
-    <div className={`ss-landing ${themeClass}`.trim()} style={landingMediaVars}>
+    <div className={`ss-landing ${themeClass}`.trim()}>
       <section className="ss-landing__hero ss-reveal">
         <div className="ss-landing__frame ss-landing__hero-grid">
           <div className="ss-landing__hero-copy">
             <div className="ss-landing__hero-stage">
               <div className="ss-landing__hero-body">
-                <div className="ss-landing__eyebrow ss-landing__eyebrow--hero">{t("landing.hero.badge")}</div>
-
                 <div className="ss-landing__headline-group">
-                  <h1 className="ss-landing__title">
-                    <span className="ss-landing__title-line">{t("landing.hero.line1")}</span>
-                    <span className="ss-landing__title-line">{t("landing.hero.line2")}</span>
-                    <span className="ss-landing__title-accent">{t("landing.hero.accent")}</span>
-                  </h1>
+                  <div className="ss-landing__title-stack">
+                    <h1 className="ss-landing__title">
+                      <span className="ss-landing__title-line">{t("landing.hero.line1")}</span>
+                      <span className="ss-landing__title-line">{t("landing.hero.line2")}</span>
+                      <span className="ss-landing__title-accent">{t("landing.hero.accent")}</span>
+                    </h1>
 
-                  <p className="ss-landing__subtitle">{t("landing.hero.sub")}</p>
+                    <div className="ss-landing__eyebrow ss-landing__eyebrow--hero">
+                      {t("landing.hero.badge")}
+                    </div>
+                  </div>
+
+                  <p className="ss-landing__subtitle ss-landing__subtitle--dynamic">
+                    {heroSubtitleSegments.map((segment) => (
+                      <span key={segment} className="ss-landing__subtitle-segment">
+                        {segment}
+                      </span>
+                    ))}
+                  </p>
                 </div>
               </div>
 
@@ -264,39 +282,7 @@ export function LandingPage() {
               >
                 {t("landing.preview.title")}
               </video>
-
-              <div className="ss-landing__preview-float">
-                <span>{t("landing.preview.overlayLabel")}</span>
-                <span>{t("landing.preview.overlayBranch")}</span>
-              </div>
             </div>
-
-            <aside className="ss-landing__preview-rail">
-              <div className="ss-landing__preview-panel">
-                <div className="ss-landing__preview-overlay-head">
-                  <span>{t("landing.preview.overlayLabel")}</span>
-                  <span>{t("landing.preview.overlayBranch")}</span>
-                </div>
-                <div className="ss-landing__preview-meter">
-                  <div className="ss-landing__preview-meter-fill" />
-                </div>
-                <p className="ss-landing__preview-overlay-copy">{t("landing.preview.overlayBody")}</p>
-              </div>
-
-              <div className="ss-landing__preview-signal-list">
-                {heroTags.map((tag) => (
-                  <div key={tag} className="ss-landing__preview-signal">
-                    <span className="ss-landing__preview-signal-dot" />
-                    <span>{tag}</span>
-                  </div>
-                ))}
-              </div>
-
-              <Link to="/simulations/new" className="ss-landing__preview-link ss-landing__preview-link--panel">
-                <span>{t("landing.hero.primaryCta")}</span>
-                <ArrowRight className="ss-landing__preview-link-icon" size={16} />
-              </Link>
-            </aside>
           </div>
         </div>
       </section>
