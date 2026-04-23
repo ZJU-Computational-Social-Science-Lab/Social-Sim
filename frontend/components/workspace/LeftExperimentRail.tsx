@@ -107,10 +107,10 @@ export const LeftExperimentRail: React.FC<LeftExperimentRailProps> = ({
 
       <div className="ss-cockpit-rail__footer">
         <button type="button" onClick={onOpenSettings} className="ss-cockpit-rail__account">
-          <div className="ss-cockpit-rail__avatar">{String(user?.email || "S").slice(0, 1).toUpperCase()}</div>
+          <div className="ss-cockpit-rail__avatar">{(user?.email || "S").slice(0, 1).toUpperCase()}</div>
           <div>
             <strong>{isZh ? "账户入口" : "Account"}</strong>
-            <span>{String(user?.email || (isZh ? "系统设置" : "System settings"))}</span>
+            <span>{user?.email || (isZh ? "系统设置" : "System settings")}</span>
           </div>
         </button>
       </div>

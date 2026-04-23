@@ -1,7 +1,5 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
-import { isZh } from "../../store/helpers";
 import {
   BarChart2,
   Beaker,
@@ -77,7 +75,6 @@ export const SimulationControlPanel: React.FC<SimulationControlPanelProps> = ({
   workspaceMode,
 }) => {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
   i18n.language.startsWith("zh");
   const currentSimulation = useSimulationStore((state) => state.currentSimulation);
   const selectedNodeId = useSimulationStore((state) => state.selectedNodeId);

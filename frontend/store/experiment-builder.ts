@@ -10,7 +10,6 @@ console.log('[experiment-builder.ts] STORE MODULE LOADED');
 
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import type { SocialNetwork } from '../types';
 import {
   ScenarioData,
   ScenarioParam,
@@ -40,6 +39,13 @@ export interface ManualAgentType {
   providerId?: number | null;
 }
 
+export interface LLMAllocation {
+  providerId: number;
+  providerName: string;
+  modelName: string;
+  percentage: number;
+}
+
 export interface ExperimentBuilderState {
   // Current step
   currentStep: 1 | 2 | 3 | 4 | 5 | 6;
@@ -48,19 +54,12 @@ export interface ExperimentBuilderState {
   // Step 1: Scenario selection
   selectedScenarioId: string | null;
   selectedScenarioData: ScenarioData | null;
-  interactionTypes?: string[];
-  scenario?: string;
 
   // Step 2: Scenario configuration
   scenarioDescription: string;
   scenarioParams: Record<string, unknown>;
   roundVisibility: 'simultaneous' | 'sequential';
   turnOrder: 'fixed' | 'random';
-  successCondition?: { type: string; maxRounds?: number };
-  interRoundUpdate?: { type: string };
-  metrics?: string[];
-  networkType?: string;
-  mechanicConfigs?: Record<string, any>;
 
   // Step 3: Actions
   availableActions: ActionDef[];
@@ -71,6 +70,7 @@ export interface ExperimentBuilderState {
   agentTypes: ManualAgentType[];
   llmProviders: LLMProvider[];
   selectedProviderId: number | null;
+  llmAllocations: LLMAllocation[];
 
   // Step 5: Network Configuration
   socialNetwork: SocialNetwork;
@@ -109,6 +109,9 @@ interface ExperimentBuilderActions {
   loadProviders: () => Promise<void>;
   setSelectedProviderId: (id: number | null) => void;
   getSelectedProviderId: () => number | null;
+  addLlmAllocation: () => void;
+  removeLlmAllocation: (index: number) => void;
+  updateLlmAllocation: (index: number, field: keyof LLMAllocation, value: number | string) => void;
 
   // Step 5: Network Configuration
   setSocialNetwork: (network: SocialNetwork) => void;
@@ -136,15 +139,9 @@ const getInitialState = (): ExperimentBuilderState => ({
   agentTypes: [],
   llmProviders: [],
   selectedProviderId: null,
+  llmAllocations: [],
   socialNetwork: {},
   validationErrors: {},
-  interactionTypes: [],
-  scenario: '',
-  successCondition: { type: 'fixed_rounds' },
-  interRoundUpdate: { type: 'none' },
-  metrics: [],
-  networkType: 'custom',
-  mechanicConfigs: {},
 });
 
 const initialState: ExperimentBuilderState = getInitialState();
@@ -299,6 +296,79 @@ export const useExperimentBuilder = create<ExperimentBuilderState & ExperimentBu
   setSelectedProviderId: (id) => set({ selectedProviderId: id }),
 
   getSelectedProviderId: () => get().selectedProviderId,
+
+  addLlmAllocation: () => {
+    const state = get();
+    const usedProviderIds = new Set(state.llmAllocations.map((item) => item.providerId));
+    const nextProvider = state.llmProviders.find((provider) => !usedProviderIds.has(provider.id));
+    if (!nextProvider) return;
+
+    const nextAllocations = [
+      ...state.llmAllocations,
+      {
+        providerId: nextProvider.id,
+        providerName: nextProvider.provider,
+        modelName: nextProvider.model || 'default',
+        percentage: 100,
+      },
+    ];
+
+    const basePercentage = Math.floor(100 / nextAllocations.length);
+    const remainder = 100 - basePercentage * nextAllocations.length;
+
+    set({
+      llmAllocations: nextAllocations.map((allocation, index) => ({
+        ...allocation,
+        percentage: basePercentage + (index < remainder ? 1 : 0),
+      })),
+    });
+  },
+
+  removeLlmAllocation: (index) => {
+    const nextAllocations = get().llmAllocations.filter((_, itemIndex) => itemIndex !== index);
+    if (nextAllocations.length === 0) {
+      set({ llmAllocations: [] });
+      return;
+    }
+
+    const basePercentage = Math.floor(100 / nextAllocations.length);
+    const remainder = 100 - basePercentage * nextAllocations.length;
+
+    set({
+      llmAllocations: nextAllocations.map((allocation, itemIndex) => ({
+        ...allocation,
+        percentage: basePercentage + (itemIndex < remainder ? 1 : 0),
+      })),
+    });
+  },
+
+  updateLlmAllocation: (index, field, value) => {
+    const state = get();
+    const nextAllocations = [...state.llmAllocations];
+    const current = nextAllocations[index];
+    if (!current) return;
+
+    if (field === 'providerId') {
+      const provider = state.llmProviders.find((item) => item.id === Number(value));
+      if (!provider) return;
+      nextAllocations[index] = {
+        ...current,
+        providerId: provider.id,
+        providerName: provider.provider,
+        modelName: provider.model || 'default',
+      };
+      set({ llmAllocations: nextAllocations });
+      return;
+    }
+
+    if (field === 'percentage') {
+      nextAllocations[index] = {
+        ...current,
+        percentage: Number(value),
+      };
+      set({ llmAllocations: nextAllocations });
+    }
+  },
 
   // Step 5: Network Configuration
   setSocialNetwork: (network) => set({ socialNetwork: network }),

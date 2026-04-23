@@ -11,8 +11,7 @@
 // Used by: Multiple store slices, components
 
 import i18n from '../i18n';
-import type { Agent, LogEntry, TimeUnit, TimeConfig, SimNode } from '../types';
-import type { Graph } from '../services/simulationTree';
+import type { Agent, LogEntry } from '../types';
 import { buildTranslatedActionExecution, extractSummaryParameterText, formatExperimentNarrative, formatExperimentParameters, prettifyAssistantContext, resolveAgentDisplayName, translateActionName, translateAgentContent, translateEnvText } from './helpers/agentText';
 import { generateAgentsWithAI, generateAgentsWithDemographics } from './helpers/agentGeneration';
 import { fetchEnvironmentSuggestions } from './helpers/legacyEnvironment';
@@ -94,7 +93,30 @@ export const getAgentDisplayRole = (agent: Partial<Agent> | null | undefined): s
   return pickText('Participant in current simulation', '参与当前实验');
 };
 
-export { resolveAgentDisplayName } from './helpers/agentText';
+export const resolveAgentDisplayName = (
+  agentRef: string | undefined,
+  agents: Partial<Agent>[],
+): string => {
+  if (!agentRef) {
+    return pickText('System', '系统');
+  }
+
+  const matchedAgent = agents.find((agent) => agent.id === agentRef || agent.name === agentRef) || null;
+  if (matchedAgent) {
+    return getAgentDisplayName(matchedAgent);
+  }
+
+  if (!isGenericAgentLabel(agentRef)) {
+    return agentRef;
+  }
+
+  const ordinal = extractAgentOrdinal(agentRef);
+  if (ordinal) {
+    return pickText(`Participant ${ordinal}`, `${ordinal}号参与者`);
+  }
+
+  return pickText('Participant', '参与者');
+};
 
 // =============================================================================
 // Graph/Node Helpers
@@ -152,7 +174,143 @@ export const mapGraphToNodes = (graph: Graph): SimNode[] => {
 // Translation Helpers
 // =============================================================================
 
-export { translateActionName } from './helpers/agentText';
+const ACTION_LABELS: Record<'en' | 'zh', Record<string, string>> = {
+  en: {
+    look_around: 'Look around',
+    move_to_location: 'Move to location',
+    send_message: 'Send message',
+    rest: 'Rest',
+    yield: 'Yield'
+  },
+  zh: {
+    look_around: '环顾四周',
+    move_to_location: '移动到位置',
+    send_message: '发送消息',
+    gather_resource: '采集资源',
+    rest: '休息',
+    yield: '结束本轮发言'
+  }
+};
+
+export const translateActionName = (name: string | undefined): string => {
+  if (!name) return pickText('Unknown action', '未知动作');
+  const lang = isZh() ? 'zh' : 'en';
+  return ACTION_LABELS[lang][name] || ACTION_LABELS.en[name] || name;
+};
+
+const normalizePlanMarkers = (text: string): string => {
+  if (!text) return '';
+  if (!isZh()) return text;
+  let t = text;
+  t = t.replace(/\[CURRENT\]/g, '[当前]');
+  t = t.replace(/\[Done\]/gi, '[已完成]');
+  t = t.replace(/\[DONE\]/g, '[已完成]');
+  return t;
+};
+
+const stripActionXml = (raw: string): string => {
+  if (!raw) return '';
+  let t = raw;
+  t = t.replace(/<Action[\s\S]*?<\/Action>/gi, '');
+  t = t.replace(/<Action[^>]*\/>/gi, '');
+  t = t.replace(/<\/?(message|messages|youshould_send_message)[^>]*>/gi, '');
+  t = t.replace(/<[^>]+>/g, '');
+  return t.trim();
+};
+
+const prettifyAssistantCtx = (content: string): string => {
+  if (!content) return '';
+  const cleaned = stripActionXml(content);
+
+  const thoughtsMatch = cleaned.match(/--- Thoughts ---\s*([\s\S]*?)\s*--- Plan ---/);
+  const planMatch = cleaned.match(/--- Plan ---\s*([\s\S]*?)(?:\n--- Action ---|\n--- Plan Update ---|\n--- Emotion Update ---|\s*$)/);
+
+  const rawThoughts = thoughtsMatch && thoughtsMatch[1] ? thoughtsMatch[1].trim() : '';
+  const rawPlan = planMatch && planMatch[1] ? planMatch[1].trim() : '';
+
+  const normalizedThoughts = normalizePlanMarkers(rawThoughts);
+  const normalizedPlan = normalizePlanMarkers(rawPlan);
+
+  const thoughts = translateAgentContent(normalizedThoughts);
+  const plan = translateAgentContent(normalizedPlan);
+
+  if (!thoughts && !plan) {
+    const normalized = normalizePlanMarkers(cleaned);
+    return translateAgentContent(normalized);
+  }
+
+  let out = '';
+  if (thoughts) {
+    out += `【思考】\n${thoughts}`;
+  }
+  if (plan) {
+    if (out) out += '\n\n';
+    out += `【计划】\n${plan}`;
+  }
+  return out;
+};
+
+export const translateAgentContent = (text: string): string => {
+  if (!text) return '';
+  if (!isZh()) return text;
+  let t = text;
+
+  // Role-related
+  t = t.replace(/My role is (the )?/gi, '我的角色是');
+  t = t.replace(/I am (the )?/gi, '我是');
+  t = t.replace(/I'm (the )?/gi, '我是');
+  t = t.replace(/focusing on/gi, '专注于');
+  t = t.replace(/as (the )?/gi, '作为');
+  t = t.replace(/\bthe Speaker\b/gi, '发言人');
+  t = t.replace(/\bthe Moderator\b/gi, '主持人');
+
+  // Goals and plans
+  t = t.replace(/My (immediate )?focus is (to )?/gi, '我的（当前）重点是');
+  t = t.replace(/My goal is (to )?/gi, '我的目标是');
+  t = t.replace(/My goals? (are|is)/gi, '我的目标是');
+  t = t.replace(/I need to/gi, '我需要');
+  t = t.replace(/I will/gi, '我将');
+  t = t.replace(/I should/gi, '我应该');
+
+  // Common verbs
+  t = t.replace(/\bensure\b/gi, '确保');
+  t = t.replace(/\bfacilitate\b/gi, '促进');
+  t = t.replace(/\bmaintain\b/gi, '维持');
+  t = t.replace(/\bestablish\b/gi, '建立');
+
+  // Markers
+  t = t.replace(/\[当前\]/g, '[当前]');
+  t = t.replace(/\[Current\]/gi, '[当前]');
+  t = t.replace(/\[CURRENT\]/g, '[当前]');
+
+  return t;
+};
+
+export const translateEnvText = (content: string): string => {
+  if (!content) return '';
+  const t = (key: string) => i18n.t(key);
+  const lang = isZh() ? 'zh' : 'en';
+
+  let text = content;
+
+  // Only translate if Chinese
+  if (lang === 'zh') {
+    text = text.replace('[0:00] Status:', t('env.statusTime'));
+    text = text.replace('--- Status ---', t('env.statusHeader'));
+    text = text.replace('Current position:', t('env.currentPosition'));
+    text = text.replace('Hunger level:', t('env.hungerLevel'));
+    text = text.replace('Energy level:', t('env.energyLevel'));
+    text = text.replace('Inventory:', t('env.inventory'));
+    text = text.replace('Current time:', t('env.currentTime'));
+    text = text.replace(/You are at\s*/g, t('env.youAreAt'));
+    text = text.replace(/You arrived at\s*/g, t('env.youArrivedAt'));
+    text = text.replace(/Nearby agents:/g, t('env.nearbyAgents'));
+    text = text.replace(/plain\b/g, t('env.plain'));
+    text = text.replace('[Message]', t('env.messageLabel'));
+  }
+
+  return text;
+};
 
 // =============================================================================
 // Event Helpers
