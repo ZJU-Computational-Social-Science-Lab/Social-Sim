@@ -146,7 +146,7 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
             {isCompareMode ? (
               <ComparisonView />
             ) : (
-              <LogViewer selectedAgentId={selectedAgentId} onClearSelectedAgent={onClearSelectedAgent} />
+              <LogViewer />
             )}
           </div>
         ) : null}

@@ -47,7 +47,6 @@ export function CreateExperimentPage() {
   return (
     <div className="studio-page">
       <ExperimentBuilder
-        onBackToHall={() => navigate("/dashboard")}
         onCancel={() => navigate("/dashboard")}
         onComplete={handleLaunch}
       />
