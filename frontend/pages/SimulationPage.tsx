@@ -483,7 +483,7 @@ const SimulationPage: React.FC = () => {
         {activeTab === 'timeline' && (
           <div className="flex gap-3 h-full">
             <div className="w-[40%] flex flex-col">
-              <SimTree />
+              <SimTree layoutDirection="vertical" />
             </div>
             <div className="flex-1 flex flex-col">
               {isCompareMode ? <ComparisonView /> : <LogViewer />}
