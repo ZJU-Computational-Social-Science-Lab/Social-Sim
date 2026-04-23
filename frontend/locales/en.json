@@ -5,18 +5,18 @@
     "show": "Show",
     "yes": "Yes",
     "no": "No",
+    "agents": "Agents",
     "none": "(none)",
     "cancel": "Cancel",
     "next": "Next",
     "back": "Back",
-    "previous": "Previous",
-    "agents": "Agents",
-    "providers": "Providers"
+    "previous": "Previous"
   },
-  "brand": "Future of Society",
+  "brand": "FOS",
   "nav": {
     "dashboard": "Dashboard",
     "new": "New",
+    "workspace": "Workspace",
     "saved": "Saved",
     "settings": "Settings",
     "docs": "Docs",
@@ -27,11 +27,11 @@
   },
   "landing": {
     "hero": {
-      "badge": "FOS",
-      "line1": "Future of Society",
-      "line2": "",
-      "accent": "Social Simulation Platform",
-      "sub": "A social systems simulation platform for research, scenario testing, and decision exploration through branching, observation, and intervention.",
+      "badge": "Social Systems Laboratory",
+      "line1": "Architecting",
+      "line2": "social logic",
+      "accent": "for branching, observation, and intervention",
+      "sub": "A cross-disciplinary simulation platform for researchers, policy teams, and social scientists. Enter through branching, observation, and intervention to study how complex systems actually evolve.",
       "primaryCta": "Enter Laboratory",
       "secondaryCta": "Read Methodology",
       "tag1": "High-fidelity simulation",
@@ -622,7 +622,7 @@
     },
     "actions": {
       "chooseAction": "Choose {{action}}",
-      "send_message": "Post a message to all agents",
+      "send_message": "Post a message to all participants",
       "talk_to": "Say something to a nearby person",
       "speak": "Say something",
       "yield": "End your turn",
@@ -701,11 +701,11 @@
   },
   "auth": {
     "layout": {
-      "badge": "Future of Society",
-      "line1": "Welcome to",
-      "line2": "Future of Society",
+      "badge": "Social Systems Laboratory",
+      "line1": "Return to the",
+      "line2": "research workspace",
       "accent": "for branching, observation, and intervention",
-      "copy": "Sign in to restore your research context and continue working inside Future of Society.",
+      "copy": "Continue where your scenarios, branches, and role observation left off inside the FOS research shell.",
       "tag1": "Configure scenarios",
       "tag2": "Branch timelines",
       "tag3": "Observe roles",
@@ -719,9 +719,9 @@
       "note": "Signing in restores your workspace context and keeps existing experiment results intact."
     },
     "login": {
-      "badge": "Welcome",
-      "welcome": "Sign in",
-      "subtitle": "Enter your email and password to access Future of Society.",
+      "badge": "Return to research workspace",
+      "welcome": "Welcome back",
+      "subtitle": "Enter your credentials to continue into the Social Systems Laboratory and resume branching, observation, and intervention.",
       "email": "Email",
       "emailPlaceholder": "Enter institutional email",
       "password": "Password",
@@ -735,30 +735,32 @@
       "help": "Lab Support",
       "credentialCheck": "Continue with your current workspace identity",
       "workspaceBound": "Reconnect to saved branches and observation context",
-      "footerLeft": "Future of Society",
-      "footerRight": "FOS · Branch · Observe · Intervene"
+      "footerLeft": "Social Systems Laboratory",
+      "footerRight": "Branch · Observe · Intervene"
     },
     "register": {
       "badge": "Create research workspace",
       "title": "Create your workspace",
-      "subtitle": "Set up your workspace identity and operator credentials before entering Future of Society.",
+      "subtitle": "Set up your workspace identity and operator credentials before entering the Social Systems Laboratory.",
       "organization": "Organization",
       "email": "Email",
       "emailPlaceholder": "Enter institutional email",
       "username": "Username",
       "fullName": "Full name",
       "phone": "Phone number",
+      "countryCode": "Country code",
       "phonePlaceholder": "Enter phone number",
+      "phoneHint": "Choose a country code first (default +86), then enter the remaining digits. Leading 0 will be removed automatically.",
       "password": "Password",
       "passwordPlaceholder": "Set access password",
       "submit": "Create account",
       "success": "Registration successful. Check your email.",
       "failed": "Registration failed",
-      "invalidPhone": "Invalid phone number format. Use +123456789 (8–15 digits).",
-      "invalidPhoneTitle": "Use E.164 format: +123456789 (8–15 digits)",
+      "invalidPhone": "Invalid phone number. Select a country code and enter 8–15 digits.",
+      "invalidPhoneTitle": "Select a country code and enter the phone digits. The app will convert it to international format.",
       "have": "Already registered?",
       "signin": "Sign in",
-      "footerLeft": "Future of Society",
+      "footerLeft": "Social Systems Laboratory",
       "footerRight": "Configure · Branch · Observe"
     }
   },
@@ -972,12 +974,9 @@
   "simPage": {
     "noSimulation": "No simulation selected",
     "engineConnected": "FOS Engine",
-    "engineStandalone": "Standalone mode",
     "newSimulation": "New simulation",
     "connectedTo": "Connected to {{endpoint}}",
-    "runningBrowserStandalone": "Running in Browser (Gemini Standalone)",
     "socialSim4Engine": "FOS Engine",
-    "standaloneMode": "Standalone Mode",
     "networkTopology": "Social Network Topology",
     "globalKnowledge": "Global Knowledge Base",
     "timeSettings": "Adjust Time Flow",
@@ -985,17 +984,6 @@
     "nodeId": "Node {{id}}",
     "advance": "Advance node",
     "advancing": "Advancing…",
-    "autoAdvance": "Auto advance",
-    "autoAdvanceStopped": "Auto-advance stopped at step {{current}} of {{total}}",
-    "autoAdvanceError": "Auto-advance error: {{error}}",
-    "autoAdvanceComplete": "Auto-advance completed {{count}} steps",
-    "advancingProgress": "{{current}} / {{total}}",
-    "stop": "Stop",
-    "enterSteps": "Number of steps",
-    "tabs": {
-      "timeline": "Timeline",
-      "agents": "Agents"
-    },
     "branch": "Create branch",
     "designExperiment": "Design experiment",
     "compareMode": "Compare mode (Diff)",
@@ -1030,12 +1018,27 @@
     "resetSuccess": "Simulation reset",
     "resetFail": "Failed to reset simulation",
     "deleteSuccess": "Simulation deleted",
-    "deleteFail": "Failed to delete simulation"
+    "deleteFail": "Failed to delete simulation",
+    "autoAdvance": "Auto-advance",
+    "stop": "Stop",
+    "enterSteps": "Enter number of steps",
+    "advancingProgress": "Step {{current}} of {{total}}",
+    "autoAdvanceStopped": "Auto-advance stopped at step {{current}} of {{total}}",
+    "autoAdvanceError": "Auto-advance error: {{error}}",
+    "autoAdvanceComplete": "Auto-advance completed {{count}} steps",
+    "tabs": {
+      "timeline": "Timeline",
+      "agents": "Agents"
+    }
   },
   "components": {
     "agentPanel": {
       "modelTooltip": "Model:",
       "auto": "Auto",
+      "searchPlaceholder": "Search agents...",
+      "changeLLM": "Change LLM",
+      "providersLoadError": "Failed to load providers",
+      "retry": "Retry",
       "noSimulationId": "No simulation ID",
       "fileTooLarge": "File too large. Max size: 10MB",
       "uploadFailed": "Upload failed",
@@ -1062,7 +1065,13 @@
       "supportedFormats": "Supports: PDF, TXT, DOCX, MD (max 10MB)",
       "noUploadedDocs": "No uploaded documents yet",
       "textChunks": "text chunks",
-      "shortTermMemory": "Short-term Memory"
+      "shortTermMemory": "Short-term Memory",
+      "memoryTypes": {
+        "thought": "Thought",
+        "assistant": "Assistant reply",
+        "user": "User input",
+        "system": "System"
+      }
     },
     "copyButton": {
       "copy": "Copy",
@@ -1073,6 +1082,8 @@
       "selectBaselineNode": "Please select baseline node",
       "selectCompareNode": "Please select a second node from the simulation tree to compare.",
       "selectCompareNodeHint": "Click a node in the tree to set it as the comparison target (B).",
+      "activeTitle": "Branch comparison mode is active",
+      "activeHint": "This view shows only the evidence that differs between two nodes. Without an intervention, differences usually stay in event text instead of agent attributes.",
       "baseline": "Baseline (A)",
       "compare": "Compare (B)",
       "smartSummary": "Smart Causal Inference",
@@ -1084,6 +1095,14 @@
       "generateAnalysisReport": "Generate analysis report",
       "nodeAEvents": "Node A unique events",
       "nodeBEvents": "Node B unique events",
+      "agentDiffFields": "Changed attribute fields",
+      "eventTypes": "Changed event types",
+      "keyDivergence": "Key divergence",
+      "keyDivergenceHint": "Shows the earliest unique event on each side first",
+      "noUniqueEvents": "No unique events yet",
+      "noVisibleDiffSummary": "The two nodes currently look nearly identical in logs and agent attributes. For a stronger contrast, create two branches from the same baseline and apply different interventions.",
+      "eventOnlyDiffSummary": "The main difference is currently event content: A has {{left}} unique events and B has {{right}} unique events; no agent attribute changes were detected.",
+      "eventAndAgentDiffSummary": "The paths have visible divergence: A has {{left}} unique events, B has {{right}} unique events, and {{agents}} agents differ across {{fields}} attribute fields.",
       "agentDiffs": "Difference summary and agent attribute differences",
       "noAgentDiffs": "No agent attribute differences detected",
       "dataSourceNote": "Data from backend comparison results; AI summary based only on evidence shown above"
@@ -1096,17 +1115,11 @@
       "suggestionsTitle": "Environmental Event Suggestions",
       "suggestionsDescription": "Based on recent simulation activity, here are some environmental events that could occur:",
       "generating": "Generating suggestions...",
-      "createConfiguration": "Environment Configuration",
-      "suggestionsTab": "System Suggestions",
-      "customTab": "Environment Configuration",
       "eventType": {
         "weather": "Weather",
         "emergency": "Emergency",
         "notification": "Notification",
-        "opinion": "Public Opinion",
-        "accident": "Accident",
-        "social": "Social Event",
-        "other": "Other"
+        "opinion": "Public Opinion"
       },
       "severity": {
         "mild": "Mild",
@@ -1124,108 +1137,6 @@
       "publicOpinion": "Public Opinion",
       "disableDynamicEvents": "Disable dynamic environment events",
       "enableDynamicEvents": "Enable dynamic environment events"
-    },
-    "environmentConfiguration": {
-      "configMode": "Configuration Mode",
-      "globalMode": "Global Configuration",
-      "agentMode": "Single Agent Configuration",
-      "selectAgent": "Select Agent",
-      "chooseAgent": "Please select an agent",
-      "eventType": "Event Type",
-      "severity": "Severity",
-      "description": "Description",
-      "descriptionPlaceholder": "Describe the environmental event in detail...",
-      "multimodal": "Multimodal Content",
-      "addImage": "Add Image",
-      "imageUploaded": "Image uploaded",
-      "imageAdded": "Image added",
-      "addAudio": "Add Audio",
-      "audioUploaded": "Audio uploaded",
-      "audioAdded": "Audio added",
-      "uploading": "Uploading...",
-      "receivers": "Event Receivers",
-      "receiversHint": "Select agents to receive this event (leave empty to broadcast to all)",
-      "noticeOnly": "Notice-only mode (no system broadcast)",
-      "noticeOnlyHint": "When enabled, agents receive the notification but it won't trigger system-level event responses",
-      "contentRequired": "Please enter a description or upload an image/audio",
-      "emptyEvent": "Event content cannot be empty",
-      "noSimulation": "No available simulation",
-      "selectAgent": "Please select an agent",
-      "createConfig": "Create Configuration",
-      "creating": "Creating...",
-      "configCreated": "Environment configuration created and applied",
-      "creationError": "Failed to create configuration",
-      "uploadError": "Media upload failed"
-    },
-    "exportModal": {
-      "confirmExport": "Confirm export"
-    },
-    "globalKnowledgePanel": {
-      "title": "Global Knowledge Base",
-      "subtitle": "Knowledge shared by all agents",
-      "noSimulationId": "No simulation ID",
-      "fileTooLarge": "File too large. Max size: 10MB",
-      "uploadFailed": "Upload failed",
-      "invalidFileType": "Invalid file type. Allowed: {{types}}",
-      "text": "Text",
-      "uploadDocuments": "Upload Documents",
-      "uploading": "Uploading...",
-      "dragDropUpload": "Drag and drop files or click to upload",
-      "supportedFormats": "Supported: PDF, TXT, DOCX, MD (max 10MB)",
-      "addTextKnowledge": "Add Text Knowledge",
-      "titlePlaceholder": "Title (optional)",
-      "contentPlaceholder": "Knowledge content...",
-      "save": "Save",
-      "cancel": "Cancel",
-      "knowledgeList": "Knowledge List ({{count}})",
-      "loading": "Loading...",
-      "noKnowledgeYet": "No global knowledge yet",
-      "unnamed": "Unnamed",
-      "document": "Document",
-      "textChunks": "{{count}} text chunks"
-    },
-    "guideAssistant": {
-      "insertImage": "Insert image",
-      "title": "Platform Guide Assistant",
-      "uploadSuccess": "Image uploaded and inserted",
-      "uploadFailed": "Upload failed",
-      "hostPanelHint": "Please check the \"Host Control\" tab on the right sidebar.",
-      "openWizard": "Open New Simulation Wizard",
-      "openNetwork": "Open Social Network Editor",
-      "openExperiment": "Open Experiment Designer",
-      "openExport": "Open Export Panel",
-      "openAnalytics": "View Statistical Analysis",
-      "openHost": "Go to Host Console",
-      "executeAction": "Execute Action",
-      "placeholder": "What would you like to know...",
-      "disclaimer": "AI can make mistakes. Please verify important information."
-    },
-    "analyticsPanel": {
-      "title": "Data Trend Analysis",
-      "metricLabel": "Metric:",
-      "noAgentData": "No agent data available",
-      "axisLabel": "X-axis: Round · Y-axis: {{metric}} value"
-    },
-    "exportModal": {
-      "title": "Export Data",
-      "selectContent": "1. Select export content",
-      "allLogs": "Complete Log Records",
-      "agentData": "Agent Profiles & Status",
-      "selectFormat": "2. Select file format",
-      "json": "JSON",
-      "excelCsv": "Excel / CSV",
-      "hintAllLogsCsv": "CSV format flattens logs into a table, suitable for Excel analysis.",
-      "hintAllLogsJson": "JSON format retains complete nested structure, suitable for programmatic processing.",
-      "hintAgentDataCsv": "CSV format only includes basic agent information and flattened attributes.",
-      "hintAgentDataJson": "Includes complete agent memory, historical status curves, and all other data.",
-      "cancel": "Cancel",
-      "generating": "Generating...",
-      "confirmExport": "Confirm Export"
-    },
-    "guidePrompt": {
-      "systemPrompt": "You are the expert guide for \"Future of Society\", a social simulation platform.\n     Your goal is to help users design experiments and navigate the platform features.\n     \n     PLATFORM CAPABILITIES MAP:\n     1. **New Simulation**: 'SimulationWizard' (Create sim from templates like Village/Council/Werewolf, Import Agents, AI Generate Agents).\n     2. **Social Network**: 'NetworkEditor' (Define topology like Ring/Star/Small World to control information flow).\n     3. **Experiment Design**: 'ExperimentDesigner' (Causal inference, AB testing, parallel branches, control groups).\n     4. **Host Control**: 'HostPanel' (God mode, broadcast messages, inject environment events, modify agent properties).\n     5. **Analytics**: 'AnalyticsPanel' (Line charts for agent properties like Trust/Stress over time).\n     6. **Export**: 'ExportModal' (Download logs as JSON/CSV/Excel).\n     7. **Reports**: 'ReportModal' (AI-generated analysis reports).\n     8. **SimTree**: The main visualization. Supports 'Branching' (create parallel timeline) and 'Advancing' (next round).\n     9. **Comparison**: 'ComparisonView' (Diff two nodes/timelines).\n\n     INSTRUCTIONS:\n     - Analyze the user's intent.\n     - Provide a concise, step-by-step guide mapping their goal to specific Platform Tools.\n     - If the user needs to OPEN a specific tool, append a tag at the end of your response in the format: [[ACTION_NAME]].\n     - Supported Tags: [[OPEN_WIZARD]], [[OPEN_NETWORK]], [[OPEN_EXPERIMENT]], [[OPEN_EXPORT]], [[OPEN_ANALYTICS]], [[OPEN_HOST]].\n     - You can include multiple tags if relevant, but prioritize the most important one.\n     - Use Markdown for formatting.",
-      "defaultResponse": "Sorry, I cannot understand your request.",
-      "connectionTimeout": "AI service connection timeout, please try again later."
     },
     "experimentDesignModal": {
       "title": "Causal Intervention Experiment Design",
@@ -1325,6 +1236,90 @@
       "customEdgesPlaceholder": "Enter custom edges, e.g.: 0-1, 1-2, 2-3",
       "networkEdgeCountHint": "{{count}} edges configured"
     },
+    "exportModal": {
+      "title": "Export Data",
+      "selectContent": "1. Select export content",
+      "allLogs": "Complete Log Records",
+      "agentData": "Agent Profiles & Status",
+      "selectFormat": "2. Select file format",
+      "json": "JSON",
+      "excelCsv": "Excel / CSV",
+      "hintAllLogsCsv": "CSV format flattens logs into a table, suitable for Excel analysis.",
+      "hintAllLogsJson": "JSON format retains complete nested structure, suitable for programmatic processing.",
+      "hintAgentDataCsv": "CSV format only includes basic agent information and flattened attributes.",
+      "hintAgentDataJson": "Includes complete agent memory, historical status curves, and all other data.",
+      "cancel": "Cancel",
+      "generating": "Generating...",
+      "confirmExport": "Confirm Export"
+    },
+    "globalKnowledgePanel": {
+      "title": "Global Knowledge Base",
+      "subtitle": "Knowledge shared by all agents",
+      "noSimulationId": "No simulation ID",
+      "fileTooLarge": "File too large. Max size: 10MB",
+      "uploadFailed": "Upload failed",
+      "invalidFileType": "Invalid file type. Allowed: {{types}}",
+      "text": "Text",
+      "uploadDocuments": "Upload Documents",
+      "uploading": "Uploading...",
+      "dragDropUpload": "Drag and drop files or click to upload",
+      "supportedFormats": "Supported: PDF, TXT, DOCX, MD (max 10MB)",
+      "addTextKnowledge": "Add Text Knowledge",
+      "titlePlaceholder": "Title (optional)",
+      "contentPlaceholder": "Knowledge content...",
+      "save": "Save",
+      "cancel": "Cancel",
+      "knowledgeList": "Knowledge List ({{count}})",
+      "loading": "Loading...",
+      "noKnowledgeYet": "No global knowledge yet",
+      "unnamed": "Unnamed",
+      "document": "Document",
+      "textChunks": "{{count}} text chunks"
+    },
+    "guideAssistant": {
+      "insertImage": "Insert image",
+      "title": "Platform Guide Assistant",
+      "uploadSuccess": "Image uploaded and inserted",
+      "uploadFailed": "Upload failed",
+      "hostPanelHint": "Please check the \"Host Control\" tab on the right sidebar.",
+      "openWizard": "Open New Simulation Wizard",
+      "openNetwork": "Open Social Network Editor",
+      "openExperiment": "Open Experiment Designer",
+      "openExport": "Open Export Panel",
+      "openAnalytics": "View Statistical Analysis",
+      "openHost": "Go to Host Console",
+      "openReport": "Generate Analysis Report",
+      "openKnowledge": "Open Global Knowledge",
+      "openMultimodal": "Open Multimodal Import",
+      "openEnvironment": "Generate Environment Suggestions",
+      "executeAction": "Execute Action",
+      "starterKicker": "Wrap-up and advanced setup",
+      "starterTitle": "Reports, topology, knowledge, and multimodal tools are here",
+      "starterBody": "After an experiment has run for a while, generate a report first, then use advanced configuration to branch, compare, and intervene.",
+      "reportGuideTitle": "Generate analysis report",
+      "reportGuideBody": "Summarize what happened, key turning points, agent patterns, and what to adjust next.",
+      "networkGuideTitle": "Social network topology",
+      "networkGuideBody": "Control who influences whom with ring, star, small-world, or custom information paths.",
+      "knowledgeGuideTitle": "Global knowledge base",
+      "knowledgeGuideBody": "Import text or documents so agents can consult platform knowledge before acting.",
+      "multimodalGuideTitle": "Multimodal import",
+      "multimodalGuideBody": "Inject maps, street views, images, audio, or video links as behavior-shaping initial events.",
+      "environmentGuideTitle": "Environment event suggestions",
+      "environmentGuideBody": "Let the platform recommend outside disturbances for continued runs or intervention branches.",
+      "placeholder": "What would you like to know...",
+      "disclaimer": "AI can make mistakes. Please verify important information."
+    },
+    "analyticsPanel": {
+      "title": "Data Trend Analysis",
+      "metricLabel": "Metric:",
+      "noAgentData": "No agent data available",
+      "axisLabel": "X-axis: Round · Y-axis: {{metric}} value"
+    },
+    "guidePrompt": {
+      "systemPrompt": "You are the expert guide for \"SocialSim4 Next\", a social simulation platform.\n     Your goal is to help users design experiments and navigate the platform features.\n     \n     PLATFORM CAPABILITIES MAP:\n     1. **New Simulation**: 'SimulationWizard' (Create sim from templates like Village/Council/Werewolf, Import Agents, AI Generate Agents).\n     2. **Social Network Topology**: 'NetworkEditor' (Define Ring/Star/Small World/custom topology to control information flow).\n     3. **Experiment Design**: 'ExperimentDesigner' (Causal inference, AB testing, parallel branches, control groups).\n     4. **Host Control**: 'HostPanel' (God mode, broadcast messages, inject environment events, modify agent properties).\n     5. **Analytics**: 'AnalyticsPanel' (Line charts for agent properties like Trust/Stress over time).\n     6. **Export**: 'ExportModal' (Download logs as JSON/CSV/Excel).\n     7. **Reports**: 'ReportModal' (AI-generated reports summarizing what happened, key turning points, agent patterns, and next adjustments).\n     8. **Global Knowledge**: 'GlobalKnowledgePanel' (Import text or documents so agents can use platform-provided knowledge).\n     9. **Multimodal Import**: 'InitialEventsModal' (Inject maps, street views, images, audio, or video links as behavior-shaping initial events).\n     10. **Environment Suggestions**: 'EnvironmentSuggestion' (Recommend outside disturbances and follow-up interventions from the current situation).\n     11. **SimTree**: The main visualization. Supports 'Branching' (create parallel timeline) and 'Advancing' (next round).\n     12. **Comparison**: 'ComparisonView' (Diff two nodes/timelines).\n\n     INSTRUCTIONS:\n     - Analyze the user's intent.\n     - Provide a concise, step-by-step guide mapping their goal to specific Platform Tools.\n     - If the user needs to OPEN a specific tool, append a tag at the end of your response in the format: [[ACTION_NAME]].\n     - Supported Tags: [[OPEN_WIZARD]], [[OPEN_NETWORK]], [[OPEN_EXPERIMENT]], [[OPEN_EXPORT]], [[OPEN_ANALYTICS]], [[OPEN_HOST]], [[OPEN_REPORT]], [[OPEN_KNOWLEDGE]], [[OPEN_MULTIMODAL]], [[OPEN_ENVIRONMENT]].\n     - You can include multiple tags if relevant, but prioritize the most important one.\n     - Use Markdown for formatting.",
+      "defaultResponse": "Sorry, I cannot understand your request.",
+      "connectionTimeout": "AI service connection timeout, please try again later."
+    },
     "hostPanel": {
       "godModeTitle": "God Mode",
       "godModeDescription": "These operations forcibly intervene in the simulation state and immediately generate system logs. Use with caution.",
@@ -1373,9 +1368,27 @@
       "video": "Video"
     },
     "logViewer": {
-      "environment": "Environment",
-      "logAttachment": "Log Attachment",
-      "fullSize": "Full Size"
+      "listView": "List view",
+      "cardView": "Card view",
+      "timelineView": "Timeline view",
+      "currentBranchFilter": "Current branch path filter",
+      "searchPlaceholder": "Search logs...",
+      "filter": "Filter",
+      "eventTypes": "Event Types",
+      "typeSystem": "System",
+      "typeAgentMetadata": "Agent Metadata",
+      "typeDialogue": "Dialogue",
+      "typeAction": "Action",
+      "typeEnvironment": "Environment",
+      "relatedAgents": "Related Agents",
+      "clearAllFilters": "Clear all filters",
+      "noMatchingLogs": "No matching logs found",
+      "clearFilters": "Clear filters",
+      "noLogsYet": "No activity records for this node yet",
+      "showingRecords": "Showing {{count}} records (current branch)",
+      "filterActive": "Filter active",
+      "audioLink": "Audio link",
+      "videoLink": "Video link"
     },
     "multimodalInput": {
       "cropAndUploadSuccess": "Crop and upload successful",
@@ -1428,29 +1441,6 @@
       "agents": "Agents",
       "hostControl": "Host Control"
     },
-    "logViewer": {
-      "listView": "List view",
-      "cardView": "Card view",
-      "timelineView": "Timeline view",
-      "currentBranchFilter": "Current branch path filter",
-      "searchPlaceholder": "Search logs...",
-      "filter": "Filter",
-      "eventTypes": "Event Types",
-      "typeSystem": "System",
-      "typeAgentMetadata": "Agent Metadata",
-      "typeDialogue": "Dialogue",
-      "typeAction": "Action",
-      "typeEnvironment": "Environment",
-      "relatedAgents": "Related Agents",
-      "clearAllFilters": "Clear all filters",
-      "noMatchingLogs": "No matching logs found",
-      "clearFilters": "Clear filters",
-      "noLogsYet": "No activity records for this node yet",
-      "showingRecords": "Showing {{count}} records (current branch)",
-      "filterActive": "Filter active",
-      "audioLink": "Audio link",
-      "videoLink": "Video link"
-    },
     "networkEditorModal": {
       "title": "Social Network Topology",
       "description": "Define information propagation paths and visibility boundaries between agents.",
@@ -1502,6 +1492,9 @@
       "resetView": "Reset view",
       "nodes": "nodes",
       "edges": "edges"
+    },
+    "networkGraph": {
+      "emptyState": "No network to display"
     },
     "reportModal": {
       "title": "Simulation Experiment Analysis Report",
@@ -1627,8 +1620,7 @@
       "error": "Failed to load documentation"
     },
     "simulationPage": {
-      "manualSyncBackend": "Manually sync to backend",
-      "runningBrowserStandalone": "Running in Browser (Gemini Standalone)"
+      "manualSyncBackend": "Manually sync to backend"
     },
     "simulationWizardPage": {
       "noDescription": "No description yet"
@@ -1696,7 +1688,7 @@
     "interactionOccurred": "An interaction occurred",
     "node": "Node",
     "defaultSimulationName": "2024 Village Committee Simulation",
-    "guideWelcomeMessage": "Hello! I am Future of Society's intelligent guide assistant. I can help you design experiments, recommend features, or explain platform operations. For example, you can ask me:\n\n- \"How to simulate information propagation in a crowd?\"\n- \"I want to run an AB test experiment.\"\n- \"How to export analysis reports?\"",
+    "guideWelcomeMessage": "Hello! I am SocialSim4's intelligent guide assistant. I can help you design experiments, recommend features, or explain platform operations. For example, you can ask me:\n\n- \"How to simulate information propagation in a crowd?\"\n- \"I want to run an AB test experiment.\"\n- \"How to export analysis reports?\"",
     "simulationCreated": "Simulation \"{{name}}\" created",
     "failedToCreateSimulation": "Failed to create simulation via backend",
     "initialState": "Initial state",
@@ -1761,16 +1753,15 @@
     "loadProvidersFailed": "Failed to load LLM providers",
     "experimentSubmitted": "Experiment \"{{name}}\" submitted to backend (run_id={{runId}})",
     "experimentCompleted": "Experiment {{name}} completed (run {{status}})",
+    "failedToStartExperiment": "Failed to start experiment",
+    "advanceHydrationFailed": "Simulation advanced, but loading the new node details failed",
+    "agentAnalysis": "Agent Analysis",
     "experimentBranchCreated": "Experiment branch created: {{experimentName}} — {{variantName}}",
-    "experimentInterventionContent": "Intervention content",
     "experimentCreatedNoRun": "Experiment \"{{name}}\" created (not started yet)",
+    "experimentInterventionContent": "Intervention content",
     "experimentNodeMappingEmpty": "Experiment created, but backend returned no node mapping yet",
     "experimentNodesTimeout": "Experiment nodes not available yet; please refresh or retry.",
-    "advanceHydrationFailed": "Simulation advanced, but loading the new node details failed",
     "failedToLoadSimulation": "Failed to load simulation",
-    "summary": "Summary",
-    "agentAnalysis": "Agent Analysis",
-    "failedToStartExperiment": "Failed to start experiment",
     "batchExperimentStarted": "Batch experiment \"{{name}}\" started",
     "comparisonAnalysisFailed": "Comparison analysis failed",
     "selectedNodeNotFound": "Selected node not found in the simulation tree. Please try refreshing the simulation.",
@@ -1787,7 +1778,8 @@
     "simulationReport": "Simulation Experiment Analysis Report",
     "generatedAt": "Generated at",
     "keyEvents": "Key Events",
-    "suggestions": "Suggestions"
+    "suggestions": "Suggestions",
+    "summary": "Summary"
   },
   "helpModal": {
     "title": "Understanding the Frontier Concept",
@@ -1874,32 +1866,56 @@
       "strategic_decisions": {
         "title": "Strategic Decisions",
         "description": "Study situations where outcomes depend on what others choose",
-        "examples": ["Prisoner's Dilemma", "Stag Hunt", "Public Goods Game"]
+        "examples": [
+          "Prisoner's Dilemma",
+          "Stag Hunt",
+          "Public Goods Game"
+        ]
       },
       "opinions_influence": {
         "title": "Opinions & Influence",
         "description": "Model how views shift through social interaction and influence",
-        "examples": ["Opinion Polarization", "Consensus Formation", "Social Influence"]
+        "examples": [
+          "Opinion Polarization",
+          "Consensus Formation",
+          "Social Influence"
+        ]
       },
       "network_spread": {
         "title": "Network & Spread",
         "description": "Study how ideas, behaviors, or information spread through connections",
-        "examples": ["Information Cascades", "Viral Content", "Network Effects"]
+        "examples": [
+          "Information Cascades",
+          "Viral Content",
+          "Network Effects"
+        ]
       },
       "markets_exchange": {
         "title": "Markets & Exchange",
         "description": "Model buying, selling, bidding, and trading",
-        "examples": ["Double Auction", "Common Pool Resources", "Market Design"]
+        "examples": [
+          "Double Auction",
+          "Common Pool Resources",
+          "Market Design"
+        ]
       },
       "spatial_movement": {
         "title": "Spatial & Movement",
         "description": "Study scenarios where location and proximity matter",
-        "examples": ["Spatial Games", "Segregation", "Territoriality"]
+        "examples": [
+          "Spatial Games",
+          "Segregation",
+          "Territoriality"
+        ]
       },
       "open_conversation": {
         "title": "Open Conversation",
         "description": "Agents simply talk and discuss - no formal structure",
-        "examples": ["Focus Groups", "Deliberation", "Unstructured Discussion"]
+        "examples": [
+          "Focus Groups",
+          "Deliberation",
+          "Unstructured Discussion"
+        ]
       },
       "optionalAddons": "Optional Add-ons Available",
       "optionalAddonsDesc": "Based on your selection, you can add voting, multiple phases, or scripted agents in later steps."
@@ -2004,6 +2020,18 @@
       "selectScenarioFirst": "Please select a scenario in Step 1 first.",
       "configureTitle": "Configure {{name}}",
       "configureSubtitle": "Customize the scenario description and parameters",
+      "generateCount": "Generate Count",
+      "startGeneration": "Start Generating",
+      "demographics": "Demographics",
+      "addDimension": "Add Dimension",
+      "dimensionNamePlaceholder": "Dimension name (e.g., Age)",
+      "categoriesLabel": "Categories (comma separated):",
+      "addCategory": "Add Category",
+      "traitsHint": "Traits will use Gaussian distribution (mean ± std), limited to 0-100 range.",
+      "mean": "Mean",
+      "std": "Std",
+      "generatedAgents": "Generated {{count}} agents",
+      "clearReset": "Clear & Reset",
       "scenarioDescriptionLabel": "Scenario description (agents will see this)",
       "scenarioDescriptionPlaceholder": "Enter a description of the scenario that agents will understand...",
       "parametersTitle": "Parameters",
@@ -2032,6 +2060,16 @@
         "youThey": "You: {{actionA}} / They: {{actionB}}"
       }
     },
+    "llmDistribution": {
+      "title": "LLM Distribution",
+      "loadingProviders": "Loading providers...",
+      "noProviders": "No LLM providers configured.",
+      "configureInSettings": "Please configure providers in Settings.",
+      "addLlm": "Add LLM",
+      "totalValid": "Total: 100% ✓",
+      "mustEqual100": "Total must equal 100% (currently {{count}}%)",
+      "distributionHint": "Distribution will be applied when agents are generated."
+    },
     "step3": {
       "title": "Select Actions",
       "subtitle": "Choose what actions agents can take. At least one action must be selected.",
@@ -2049,13 +2087,34 @@
       "actionsSelected": "{{selected}} of {{total}} actions selected",
       "removeAction": "Remove action",
       "policyActions": {
-        "send_message": { "label": "Send Message", "description": "Send a message to another agent" },
-        "yield": { "label": "Yield", "description": "Yield the floor to other agents" },
-        "report_upward": { "label": "Report Upward", "description": "Report information to superior" },
-        "escalate_complaint": { "label": "Escalate Complaint", "description": "Escalate a complaint to higher level" },
-        "consult_peer": { "label": "Consult Peer", "description": "Consult with a peer agent" },
-        "notify_subordinate": { "label": "Notify Subordinate", "description": "Notify subordinate agents" },
-        "announce_policy_adjustment": { "label": "Announce Policy Adjustment", "description": "Announce a policy change to the group" }
+        "send_message": {
+          "label": "Send Message",
+          "description": "Send a message to another agent"
+        },
+        "yield": {
+          "label": "Yield",
+          "description": "Yield the floor to other agents"
+        },
+        "report_upward": {
+          "label": "Report Upward",
+          "description": "Report information to superior"
+        },
+        "escalate_complaint": {
+          "label": "Escalate Complaint",
+          "description": "Escalate a complaint to higher level"
+        },
+        "consult_peer": {
+          "label": "Consult Peer",
+          "description": "Consult with a peer agent"
+        },
+        "notify_subordinate": {
+          "label": "Notify Subordinate",
+          "description": "Notify subordinate agents"
+        },
+        "announce_policy_adjustment": {
+          "label": "Announce Policy Adjustment",
+          "description": "Announce a policy change to the group"
+        }
       }
     },
     "step4": {
@@ -2088,7 +2147,6 @@
       "autoDetectTier": "Auto-detect",
       "agentName": "Agent name",
       "agentListTitle": "Configured agents",
-      "agentSummaryLabel": "Agents",
       "rolePrompt": "Role Prompt (what is this agent's role?)",
       "rolePromptPlaceholder": "e.g., A senior official responsible for passing down policy and supervising execution",
       "userProfile": "Profile / Summary",
@@ -2097,7 +2155,6 @@
       "addProperty": "Add property",
       "noProperties": "No extra properties yet",
       "sharedPropertyBadge": "Shared",
-      "sharedPropertyCountLabel": "Shared props",
       "sharedPropertyConfirm": "Property \"{{key}}\" is shared by {{count}} agents. Rename this property for all linked agents?",
       "sharedPropertyTooltip": "Property \"{{key}}\" is shared by: {{agents}}",
       "tierConfigTitle": "Policy Tier Order",
@@ -2126,6 +2183,8 @@
       "agentsDefined": "{{count}} agent(s) defined",
       "llmProvider": "LLM Provider",
       "defaultProvider": "Default Provider",
+      "agentSummaryLabel": "Agents",
+      "sharedPropertyCountLabel": "Shared props",
       "providerSummaryLabel": "Providers",
       "providerActive": "Active",
       "providerDefault": "Default",
@@ -2140,9 +2199,11 @@
       "importTitle": "Import Agent Data",
       "importDesc": "Upload a CSV or JSON file with agent definitions.",
       "csvFormat": "CSV Format Example:",
+      "jsonFormat": "JSON Format Example:",
       "uploadCSV": "Upload CSV",
       "uploadJSON": "Upload JSON",
-      "importInfo": "File import will be implemented in Phase 7.",
+      "importInfo": "Imports are appended to the current agent registry. Extra columns become editable agent properties.",
+      "importSuccess": "Imported {{count}} agents from {{file}}.",
       "generationLlmProvider": "Generation LLM Provider",
       "generationLlmProviderHint": "Select a provider for AI-generated agent profiles"
     },
@@ -2150,17 +2211,45 @@
       "networkPresets": "Network Presets",
       "chooseTopology": "Choose a network topology",
       "presets": {
-        "fully_connected": { "name": "Fully Connected", "description": "Everyone knows everyone" },
-        "random": { "name": "Random", "description": "Random connections" },
-        "ring": { "name": "Ring", "description": "Each agent connected to neighbors" },
-        "small_world": { "name": "Small World", "description": "Newman-Watts small world network" },
-        "scale_free": { "name": "Scale-Free", "description": "Holme-Kim scale-free network" },
-        "star": { "name": "Star", "description": "One central hub" },
-        "core_periphery": { "name": "Core-Periphery", "description": "Dense core, sparse periphery" },
-        "spatial": { "name": "Spatial", "description": "Waxman spatial network" },
-        "communities": { "name": "Communities", "description": "Stochastic block model" }
+        "fully_connected": {
+          "name": "Fully Connected",
+          "description": "Everyone knows everyone"
+        },
+        "random": {
+          "name": "Random",
+          "description": "Random connections"
+        },
+        "ring": {
+          "name": "Ring",
+          "description": "Each agent connected to neighbors"
+        },
+        "small_world": {
+          "name": "Small World",
+          "description": "Newman-Watts small world network"
+        },
+        "scale_free": {
+          "name": "Scale-Free",
+          "description": "Holme-Kim scale-free network"
+        },
+        "star": {
+          "name": "Star",
+          "description": "One central hub"
+        },
+        "core_periphery": {
+          "name": "Core-Periphery",
+          "description": "Dense core, sparse periphery"
+        },
+        "spatial": {
+          "name": "Spatial",
+          "description": "Waxman spatial network"
+        },
+        "communities": {
+          "name": "Communities",
+          "description": "Stochastic block model"
+        }
       },
       "applyChanges": "Apply Changes",
+      "addLink": "Add link",
       "noAgentsConfigured": "No Agents Configured",
       "goBackToStep4": "Go back to Step 4 to add agents before configuring the network.",
       "fullyConnected": "Fully Connected",
@@ -2170,10 +2259,7 @@
       "instructions": "Instructions",
       "instructionSelect": "Select a preset to generate a network",
       "instructionDrag": "Drag nodes to rearrange",
-      "instructionZoom": "Scroll to zoom, drag to pan",
-      "manualLinks": "Manual links",
-      "addLink": "Add link",
-      "noLinks": "No links yet"
+      "instructionZoom": "Scroll to zoom, drag to pan"
     },
     "step6": {
       "noAgentsDefined": "No Agents Defined",
@@ -2280,7 +2366,7 @@
         "intro": "You have {{initial_amount}} {{resource}}.",
         "action_instruction": "You can {{action_name}} some amount to a shared pool.",
         "action_description": "{{action_description}}",
-        "pool_mechanics": "The pool is multiplied by {{multiplier}} and distributed equally among all agents.",
+        "pool_mechanics": "The pool is multiplied by {{multiplier}} and distributed equally among all participants.",
         "choose_instruction": "Choose how much to {{action_name}} (0 to {{initial_amount}})."
       }
     }

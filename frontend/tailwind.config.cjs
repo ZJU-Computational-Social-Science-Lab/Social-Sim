@@ -2,11 +2,7 @@
  * Tailwind CSS configuration for FOS (Future of Society) frontend.
  *
  * Maps the `brand` color scale to CSS custom properties from tokens.css
- * so all brand-* utility classes respond to light/dark theme switching:
- *   - Light theme: warm honey-gold (#d4a24e family)
- *   - Dark theme: teal (#2fe6a6 family)
- *
- * Key exports: Tailwind config with content globs and brand color overrides.
+ * so all brand-* utility classes respond to light/dark theme switching.
  */
 
 module.exports = {
@@ -25,7 +21,7 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          50:  'var(--ss-brand-soft)',
+          50: 'var(--ss-brand-soft)',
           100: 'var(--ss-brand-soft)',
           200: 'var(--ss-brand-soft)',
           300: 'var(--ss-brand-soft)',

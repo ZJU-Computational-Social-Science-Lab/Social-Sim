@@ -10,7 +10,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { I18nextProvider } from 'react-i18next';
+import { I18nextProvider } from 'i18next';
 import ParameterField, { ScenarioParam } from '../ParameterField';
 import { vi } from 'vitest';
 
@@ -47,13 +47,13 @@ describe('ParameterField', () => {
         step: 1,
       };
 
-      const { container } = render(
+      render(
         <ParameterField param={param} value={50} onChange={onChange} />,
         { wrapper }
       );
 
-      const slider = container.querySelector('input[type="range"]');
-      const numberInput = container.querySelector('input[type="number"]');
+      const slider = screen.container.querySelector('input[type="range"]');
+      const numberInput = screen.container.querySelector('input[type="number"]');
       expect(slider).toBeInTheDocument();
       expect(numberInput).toBeInTheDocument();
     });
@@ -65,14 +65,35 @@ describe('ParameterField', () => {
         ui_hint: 'percentage',
       };
 
-      const { container } = render(
+      render(
         <ParameterField param={param} value={0.5} onChange={onChange} />,
         { wrapper }
       );
 
-      const slider = container.querySelector('input[type="range"]');
+      const slider = screen.container.querySelector('input[type="range"]');
       expect(slider).toBeInTheDocument();
       expect(screen.getByText('50%')).toBeInTheDocument();
+    });
+
+    test('should render NumberField for ui_hint="number"', () => {
+      const param: ScenarioParam = {
+        type: 'integer',
+        default: 5,
+        ui_hint: 'number',
+        min: 0,
+        max: 10,
+        step: 1,
+      };
+
+      render(
+        <ParameterField param={param} value={5} onChange={onChange} />,
+        { wrapper }
+      );
+
+      const numberInput = screen.container.querySelector('input[type="number"]');
+      const rangeInput = screen.container.querySelector('input[type="range"]');
+      expect(numberInput).toBeInTheDocument();
+      expect(rangeInput).not.toBeInTheDocument();
     });
 
     test('should render TextAreaField for ui_hint="textarea"', () => {
@@ -83,12 +104,12 @@ describe('ParameterField', () => {
         placeholder: 'Enter text',
       };
 
-      const { container } = render(
+      render(
         <ParameterField param={param} value="" onChange={onChange} />,
         { wrapper }
       );
 
-      const textarea = container.querySelector('textarea');
+      const textarea = screen.container.querySelector('textarea');
       expect(textarea).toBeInTheDocument();
       expect(textarea).toHaveAttribute('placeholder', 'Enter text');
     });
@@ -100,12 +121,12 @@ describe('ParameterField', () => {
         ui_hint: 'toggle',
       };
 
-      const { container } = render(
+      render(
         <ParameterField param={param} value={false} onChange={onChange} />,
         { wrapper }
       );
 
-      const checkbox = container.querySelector('input[type="checkbox"]');
+      const checkbox = screen.container.querySelector('input[type="checkbox"]');
       expect(checkbox).toBeInTheDocument();
       expect(screen.getByText('Disabled')).toBeInTheDocument();
     });
@@ -126,12 +147,12 @@ describe('ParameterField', () => {
         step: 1,
       };
 
-      const { container } = render(
+      render(
         <ParameterField param={param} value={50} onChange={onChange} />,
         { wrapper }
       );
 
-      const numberInput = container.querySelector('input[type="number"]') as HTMLInputElement;
+      const numberInput = screen.container.querySelector('input[type="number"]') as HTMLInputElement;
       expect(numberInput).toBeInTheDocument();
 
       fireEvent.change(numberInput, { target: { value: '75' } });
@@ -146,12 +167,12 @@ describe('ParameterField', () => {
         ui_hint: 'toggle',
       };
 
-      const { container } = render(
+      render(
         <ParameterField param={param} value={false} onChange={onChange} />,
         { wrapper }
       );
 
-      const label = container.querySelector('label') as HTMLLabelElement;
+      const label = screen.container.querySelector('label') as HTMLLabelElement;
       fireEvent.click(label);
 
       expect(onChange).toHaveBeenCalledWith(true);

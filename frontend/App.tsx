@@ -6,7 +6,9 @@ import i18n from "./i18n";
 import { Layout } from "./components/Layout";
 import { AuthLayout } from "./components/layout/AuthLayout";
 import { RequireAuth } from "./components/RequireAuth";
+import { useSimulationStore } from "./store";
 import { useThemeStore } from "./store/theme";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // 旧前端的页面
 const DashboardPage = lazy(() =>
@@ -32,16 +34,19 @@ const SettingsPage = lazy(() =>
 const AdminPage = lazy(() =>
   import("./pages/AdminPage").then((m) => ({ default: m.AdminPage }))
 );
+const CreateExperimentPage = lazy(() =>
+  import("./pages/CreateExperimentPage").then((m) => ({ default: m.CreateExperimentPage }))
+);
 const DocsPage = lazy(() =>
   import("./pages/DocsPage").then((m) => ({ default: m.DocsPage }))
 );
 
 // 新前端的仿真主界面（你已经把原来的 App 改名为 SimulationPage.tsx，并 default export）
 const SimulationPage = lazy(() => import("./pages/SimulationPage"));
-import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const App: React.FC = () => {
   const applyTheme = useThemeStore((state) => state.apply);
+  const currentSimulationId = useSimulationStore((state) => state.currentSimulation?.id ?? null);
 
   useEffect(() => {
     applyTheme();
@@ -99,14 +104,40 @@ const App: React.FC = () => {
           }
         />
 
-        {/* SimulationPage 有自己的全屏布局，不需要 Layout 包裹 */}
+        <Route
+          path="/simulations/create"
+          element={
+            <RequireAuth>
+              <Layout navVariant="product">
+                <CreateExperimentPage />
+              </Layout>
+            </RequireAuth>
+          }
+        />
+
         <Route
           path="/simulations/new/*"
           element={
             <RequireAuth>
-              <ErrorBoundary>
-                <SimulationPage />
-              </ErrorBoundary>
+              <Layout navVariant="product">
+                <CreateExperimentPage />
+              </Layout>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/simulations/workspace"
+          element={
+            <RequireAuth>
+              {currentSimulationId ? (
+                <Navigate to={`/simulations/${currentSimulationId}`} replace />
+              ) : (
+                <Layout navVariant="product">
+                  <ErrorBoundary>
+                    <SimulationPage />
+                  </ErrorBoundary>
+                </Layout>
+              )}
             </RequireAuth>
           }
         />
@@ -124,9 +155,11 @@ const App: React.FC = () => {
           path="/simulations/:id"
           element={
             <RequireAuth>
-              <ErrorBoundary>
-                <SimulationPage />
-              </ErrorBoundary>
+              <Layout navVariant="product">
+                <ErrorBoundary>
+                  <SimulationPage />
+                </ErrorBoundary>
+              </Layout>
             </RequireAuth>
           }
         />

@@ -1,7 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowRight, AtSign, LockKeyhole } from "lucide-react";
+import { ArrowRight, AtSign, KeyRound, LifeBuoy, LockKeyhole, ShieldCheck } from "lucide-react";
 
 import { apiClient } from "../services/client";
 import { useAuthStore } from "../store/auth";
@@ -51,13 +51,9 @@ export function LoginPage() {
   };
 
   return (
-    <section className="ss-auth__card ss-auth__login-card">
-      <div className="ss-auth__login-intro">
-        <div className="ss-auth__hero-badge">
-          <span className="ss-auth__hero-badge-dot" />
-          {t("auth.login.badge")}
-        </div>
-
+    <section className="ss-auth__card">
+      <div className="space-y-3">
+        <div className="ss-auth__hero-badge">{t("auth.login.badge")}</div>
         <div className="space-y-2">
           <h2 className="ss-auth__title">
             {t("auth.login.welcome")}
@@ -68,7 +64,7 @@ export function LoginPage() {
         </div>
       </div>
 
-      <form onSubmit={onSubmit} className="ss-auth__login-form">
+      <form onSubmit={onSubmit} className="mt-8 space-y-5">
         <div>
           <label htmlFor="login-email" className="ss-auth__label">
             {t("auth.login.email")}
@@ -79,7 +75,6 @@ export function LoginPage() {
               id="login-email"
               className="ss-input ss-auth__input"
               type="email"
-              autoComplete="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder={t("auth.login.emailPlaceholder")}
@@ -98,7 +93,6 @@ export function LoginPage() {
               id="login-password"
               className="ss-input ss-auth__input"
               type="password"
-              autoComplete="current-password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder={t("auth.login.passwordPlaceholder")}
@@ -119,6 +113,32 @@ export function LoginPage() {
         </button>
       </form>
 
+      <div className="ss-auth__trust-row">
+        <div className="ss-auth__trust-item">
+          <ShieldCheck size={15} />
+          <span>{t("auth.login.credentialCheck")}</span>
+        </div>
+        <div className="ss-auth__trust-item">
+          <KeyRound size={15} />
+          <span>{t("auth.login.workspaceBound")}</span>
+        </div>
+      </div>
+
+      <div className="ss-auth__action-list">
+        <button type="button" className="ss-auth__support-link">
+          <KeyRound size={15} />
+          <span>{t("auth.login.forgot")}</span>
+        </button>
+        <button type="button" className="ss-auth__support-link">
+          <ShieldCheck size={15} />
+          <span>{t("auth.login.sso")}</span>
+        </button>
+        <button type="button" className="ss-auth__support-link">
+          <LifeBuoy size={15} />
+          <span>{t("auth.login.help")}</span>
+        </button>
+      </div>
+
       <div className="ss-auth__footer">
         <p className="ss-auth__footer-text">
           {t("auth.login.noAccount")}{" "}
@@ -126,6 +146,10 @@ export function LoginPage() {
             {t("auth.login.create")}
           </Link>
         </p>
+        <div className="ss-auth__footer-note">
+          <span>{t("auth.login.footerLeft")}</span>
+          <span>{t("auth.login.footerRight")}</span>
+        </div>
       </div>
     </section>
   );

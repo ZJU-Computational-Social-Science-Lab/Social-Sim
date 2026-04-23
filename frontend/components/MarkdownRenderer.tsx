@@ -10,6 +10,7 @@
 
 import React from "react";
 import ReactMarkdown from "react-markdown";
+import { resolveStaticAssetPath } from "../utils/assets";
 
 export interface MarkdownRendererProps {
   /** Markdown content to render */
@@ -159,7 +160,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
             <blockquote style={blockquoteStyles}>{children}</blockquote>
           ),
           img: ({ src, alt }) => (
-            <img src={src} alt={alt || ""} style={imageStyles} loading="lazy" />
+            <img src={resolveStaticAssetPath(String(src || ""))} alt={alt || ""} style={imageStyles} />
           ),
           table: ({ children }) => (
             <table style={tableStyles}>{children}</table>

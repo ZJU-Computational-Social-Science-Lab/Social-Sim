@@ -16,22 +16,23 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useThemeStore } from "../store/theme";
 
+import landingDemoVideo from "../assets/landing/landing-demo.mp4";
+import heroPreviewBackground from "../assets/landing/preview-hero-bg.png";
+import sceneBehaviorImage from "../assets/landing/scene-behavior.png";
+import sceneInstitutionImage from "../assets/landing/scene-institution.png";
+import sceneInterventionImage from "../assets/landing/scene-intervention.png";
+import scenePolicyImage from "../assets/landing/scene-policy.png";
+import experimentDesignImage from "../assets/tutorial/07-experiment-design.png";
+import realtimeObservationImage from "../assets/tutorial/08-realtime-obs.png";
+import networkTopologyImage from "../assets/tutorial/09-network-topology.png";
+
 export function LandingPage() {
   const { t } = useTranslation();
   const mode = useThemeStore((state) => state.mode);
   const themeClass = mode === "dark" ? "is-dark" : "is-light";
-  const heroSubtitle = String(t("landing.hero.sub"));
-  const heroSubtitleLines = heroSubtitle
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-  const heroSubtitleSegments =
-    heroSubtitleLines.length > 1
-      ? heroSubtitleLines
-      : heroSubtitle
-          .split(/(?<=[,，。.!?；;])/u)
-          .map((segment) => segment.trim())
-          .filter(Boolean);
+  const landingMediaVars = {
+    "--ss-landing-hero-image": `url(${heroPreviewBackground})`,
+  } as React.CSSProperties;
 
   useEffect(() => {
     const sections = document.querySelectorAll<HTMLElement>(".ss-reveal");
@@ -94,28 +95,28 @@ export function LandingPage() {
       title: t("landing.scenes.policyTitle"),
       subtitle: t("landing.scenes.policySubtitle"),
       body: t("landing.scenes.policyBody"),
-      image: "/scene-policy.png",
+      image: scenePolicyImage,
     },
     {
       tone: "behavior",
       title: t("landing.scenes.behaviorTitle"),
       subtitle: t("landing.scenes.behaviorSubtitle"),
       body: t("landing.scenes.behaviorBody"),
-      image: "/scene-behavior.png",
+      image: sceneBehaviorImage,
     },
     {
       tone: "institution",
       title: t("landing.scenes.institutionTitle"),
       subtitle: t("landing.scenes.institutionSubtitle"),
       body: t("landing.scenes.institutionBody"),
-      image: "/scene-institution.png",
+      image: sceneInstitutionImage,
     },
     {
       tone: "intervention",
       title: t("landing.scenes.interventionTitle"),
       subtitle: t("landing.scenes.interventionSubtitle"),
       body: t("landing.scenes.interventionBody"),
-      image: "/scene-intervention.png",
+      image: sceneInterventionImage,
     },
   ];
 
@@ -141,32 +142,22 @@ export function LandingPage() {
   ];
 
   return (
-    <div className={`ss-landing ${themeClass}`.trim()}>
+    <div className={`ss-landing ${themeClass}`.trim()} style={landingMediaVars}>
       <section className="ss-landing__hero ss-reveal">
         <div className="ss-landing__frame ss-landing__hero-grid">
           <div className="ss-landing__hero-copy">
             <div className="ss-landing__hero-stage">
               <div className="ss-landing__hero-body">
+                <div className="ss-landing__eyebrow ss-landing__eyebrow--hero">{t("landing.hero.badge")}</div>
+
                 <div className="ss-landing__headline-group">
-                  <div className="ss-landing__title-stack">
-                    <h1 className="ss-landing__title">
-                      <span className="ss-landing__title-line">{t("landing.hero.line1")}</span>
-                      <span className="ss-landing__title-line">{t("landing.hero.line2")}</span>
-                      <span className="ss-landing__title-accent">{t("landing.hero.accent")}</span>
-                    </h1>
+                  <h1 className="ss-landing__title">
+                    <span className="ss-landing__title-line">{t("landing.hero.line1")}</span>
+                    <span className="ss-landing__title-line">{t("landing.hero.line2")}</span>
+                    <span className="ss-landing__title-accent">{t("landing.hero.accent")}</span>
+                  </h1>
 
-                    <div className="ss-landing__eyebrow ss-landing__eyebrow--hero">
-                      {t("landing.hero.badge")}
-                    </div>
-                  </div>
-
-                  <p className="ss-landing__subtitle ss-landing__subtitle--dynamic">
-                    {heroSubtitleSegments.map((segment) => (
-                      <span key={segment} className="ss-landing__subtitle-segment">
-                        {segment}
-                      </span>
-                    ))}
-                  </p>
+                  <p className="ss-landing__subtitle">{t("landing.hero.sub")}</p>
                 </div>
               </div>
 
@@ -263,7 +254,7 @@ export function LandingPage() {
             <div className="ss-landing__preview-stage ss-landing__preview-stage--video">
               <video
                 className="ss-landing__preview-video"
-                src="/media/landing-demo.mp4"
+                src={landingDemoVideo}
                 autoPlay
                 muted
                 loop
@@ -273,7 +264,39 @@ export function LandingPage() {
               >
                 {t("landing.preview.title")}
               </video>
+
+              <div className="ss-landing__preview-float">
+                <span>{t("landing.preview.overlayLabel")}</span>
+                <span>{t("landing.preview.overlayBranch")}</span>
+              </div>
             </div>
+
+            <aside className="ss-landing__preview-rail">
+              <div className="ss-landing__preview-panel">
+                <div className="ss-landing__preview-overlay-head">
+                  <span>{t("landing.preview.overlayLabel")}</span>
+                  <span>{t("landing.preview.overlayBranch")}</span>
+                </div>
+                <div className="ss-landing__preview-meter">
+                  <div className="ss-landing__preview-meter-fill" />
+                </div>
+                <p className="ss-landing__preview-overlay-copy">{t("landing.preview.overlayBody")}</p>
+              </div>
+
+              <div className="ss-landing__preview-signal-list">
+                {heroTags.map((tag) => (
+                  <div key={tag} className="ss-landing__preview-signal">
+                    <span className="ss-landing__preview-signal-dot" />
+                    <span>{tag}</span>
+                  </div>
+                ))}
+              </div>
+
+              <Link to="/simulations/new" className="ss-landing__preview-link ss-landing__preview-link--panel">
+                <span>{t("landing.hero.primaryCta")}</span>
+                <ArrowRight className="ss-landing__preview-link-icon" size={16} />
+              </Link>
+            </aside>
           </div>
         </div>
       </section>
@@ -300,7 +323,7 @@ export function LandingPage() {
 
               <div className="ss-landing__capability-media">
                 <img
-                  src="/tutorial/07-experiment-design.png"
+                  src={experimentDesignImage}
                   alt="FOS experiment design interface"
                   className="ss-landing__capability-image"
                 />
@@ -317,7 +340,7 @@ export function LandingPage() {
               </div>
               <div className="ss-landing__capability-thumb">
                 <img
-                  src="/tutorial/08-realtime-obs.png"
+                  src={realtimeObservationImage}
                   alt="Real-time simulation observation interface"
                   className="ss-landing__capability-thumb-img"
                 />
@@ -334,7 +357,7 @@ export function LandingPage() {
               </div>
               <div className="ss-landing__capability-thumb">
                 <img
-                  src="/tutorial/09-network-topology.png"
+                  src={networkTopologyImage}
                   alt="Branch and compare simulation timelines"
                   className="ss-landing__capability-thumb-img"
                 />

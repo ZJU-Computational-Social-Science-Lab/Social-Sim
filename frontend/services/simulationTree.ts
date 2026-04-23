@@ -111,6 +111,10 @@ export async function treeAdvanceChain(base: string, id: string, parent: number,
   return await httpPost<{ child: number }>(base, `/simulations/${id}/tree/advance_chain`, { parent, turns }, token);
 }
 
+export async function treeBranch(base: string, id: string, parent: number, ops: Array<Record<string, unknown>>, token?: string): Promise<{ child: number }> {
+  return await httpPost<{ child: number }>(base, `/simulations/${id}/tree/branch`, { parent, ops }, token);
+}
+
 export async function treeBranchPublic(base: string, id: string, parent: number, text: string, token?: string): Promise<{ child: number }> {
   return await httpPost<{ child: number }>(base, `/simulations/${id}/tree/branch`, { parent, ops: [{ op: "public_broadcast", text }] }, token);
 }

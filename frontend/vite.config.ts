@@ -83,7 +83,13 @@ export default defineConfig(({ mode }) => {
             if (id.includes("recharts")) {
               return "charts-vendor";
             }
-            if (id.includes("react-markdown") || id.includes("@mdx-js") || id.includes("micromark") || id.includes("remark") || id.includes("unified")) {
+            if (
+              id.includes("react-markdown") ||
+              id.includes("@mdx-js") ||
+              id.includes("micromark") ||
+              id.includes("remark") ||
+              id.includes("unified")
+            ) {
               return "markdown-vendor";
             }
             if (id.includes("@radix-ui")) {

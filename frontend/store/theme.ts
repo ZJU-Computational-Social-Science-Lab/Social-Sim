@@ -9,7 +9,7 @@ type ThemeState = {
   apply: () => void;
 };
 
-const STORAGE_KEY = "socialsim4.theme";
+const STORAGE_KEY = "fos.theme";
 
 function readInitialTheme(): ThemeMode {
   const stored = localStorage.getItem(STORAGE_KEY);

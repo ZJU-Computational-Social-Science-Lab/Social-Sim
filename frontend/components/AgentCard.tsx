@@ -27,6 +27,15 @@ const renderProfileHtml = (text: string) => {
   return withImages.replace(/\n/g, '<br />');
 };
 
+const humanizeBackendLabel = (value: string): string => {
+  const normalized = String(value || '').trim();
+  if (!normalized) return '';
+  return normalized
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+};
+
 export const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -53,6 +62,21 @@ export const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   const [providersLoading, setProvidersLoading] = useState<boolean>(true);
   const [providersError, setProvidersError] = useState<string | null>(null);
 
+  const translateMemoryType = (type: string) => {
+    switch (type) {
+      case 'thought':
+        return t('components.agentPanel.memoryTypes.thought');
+      case 'assistant':
+        return t('components.agentPanel.memoryTypes.assistant');
+      case 'user':
+        return t('components.agentPanel.memoryTypes.user');
+      case 'system':
+        return t('components.agentPanel.memoryTypes.system');
+      default:
+        return humanizeBackendLabel(type);
+    }
+  };
+
   // Fetch available LLM providers
   useEffect(() => {
     const fetchProviders = async () => {
@@ -63,7 +87,7 @@ export const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
         setAvailableProviders(providers);
       } catch (err) {
         console.error('Failed to fetch LLM providers:', err);
-        setProvidersError(t('components.agentPanel.providersLoadError'));
+        setProvidersError(t('components.agentPanel.providersLoadError', { defaultValue: '加载提供商失败' }));
       } finally {
         setProvidersLoading(false);
       }
@@ -87,6 +111,12 @@ export const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
+
+  const trimmedProfile = String(agent.profile || '').trim();
+  const trimmedRole = String(agent.role || '').trim();
+  const profileText = trimmedProfile || t('components.agentPanel.noProfile');
+  const roleBadgeText = trimmedRole.length > 0 && trimmedRole.length <= 40 ? trimmedRole : '';
+  const rolePreviewText = trimmedRole.length > 40 ? trimmedRole : '';
 
   // Profile editing state
   const [isProfileEditing, setIsProfileEditing] = useState(false);
@@ -264,30 +294,40 @@ export const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   };
 
   return (
-    <div className="border-b last:border-b-0" style={{ background: 'var(--ss-workspace-surface)' }}>
+    <div className="ss-agent-card border-b last:border-b-0" style={{ background: 'var(--ss-workspace-surface)' }}>
       {/* Collapsible Header — always visible, click to expand/collapse */}
       <div
-        className="flex items-center gap-3 p-3 cursor-pointer select-none"
+        className="flex items-start gap-4 px-4 py-4 cursor-pointer select-none"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <img
           src={agent.avatarUrl}
           alt={agent.name}
-          className="w-10 h-10 rounded-full border object-cover flex-shrink-0"
+          className="w-14 h-14 rounded-2xl border object-cover flex-shrink-0 shadow-sm"
           style={{ borderColor: 'var(--ss-workspace-border)' }}
         />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h4 className="font-bold truncate text-sm" style={{ color: 'var(--ss-workspace-heading)' }}>{agent.name}</h4>
-            <span className="inline-block px-2 py-0.5 text-[10px] rounded-full border" style={{ background: 'var(--ss-surface-inset)', color: 'var(--ss-workspace-text)', borderColor: 'var(--ss-workspace-border)' }}>
-              {agent.role}
+          <div className="flex flex-wrap items-center gap-2">
+            <h4 className="max-w-full text-base font-bold leading-tight break-words" style={{ color: 'var(--ss-workspace-heading)' }}>{agent.name}</h4>
+            {roleBadgeText ? (
+              <span className="ss-agent-card__role-chip" style={{ background: 'var(--ss-surface-inset)', color: 'var(--ss-workspace-text)', borderColor: 'var(--ss-workspace-border)' }}>
+                {roleBadgeText}
+              </span>
+            ) : null}
+          </div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <span className={`inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] ${getModelBadgeStyle(agent.llmConfig?.provider || 'default').className}`} style={getModelBadgeStyle(agent.llmConfig?.provider || 'default').style}>
+              <Bot size={11} />
+              <span className="font-mono break-all">{agent.llmConfig?.model || t('components.agentPanel.auto')}</span>
             </span>
           </div>
-          <div className="flex items-center gap-1 mt-0.5">
-            <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border ${getModelBadgeStyle(agent.llmConfig?.provider || 'default').className}`} style={getModelBadgeStyle(agent.llmConfig?.provider || 'default').style}>
-              <Bot size={10} />
-              <span className="font-mono">{agent.llmConfig?.model || t('components.agentPanel.auto')}</span>
-            </span>
+          {rolePreviewText ? (
+            <div className="ss-agent-card__role-preview">
+              <div className="ss-agent-card__role-preview-copy">{rolePreviewText}</div>
+            </div>
+          ) : null}
+          <div className="ss-agent-card__profile-preview">
+            <div className="ss-agent-card__profile-preview-copy">{profileText}</div>
           </div>
         </div>
         <div className="ml-auto flex-shrink-0">
@@ -334,27 +374,48 @@ export const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
               </div>
             </div>
           ) : (
-            <div className="mt-3 flex items-start gap-2">
-              <div
-                className="text-xs leading-relaxed flex-1 markdown-body"
-                style={{ color: 'var(--ss-workspace-muted)' }}
-                dangerouslySetInnerHTML={{ __html: renderProfileHtml(agent.profile || t('components.agentPanel.noProfile')) }}
-              />
-              <button
-                className="hover:text-brand-600"
-                style={{ color: 'var(--ss-workspace-muted)' }}
-                onClick={() => setIsProfileEditing(true)}
-                title={t('components.agentPanel.editProfile')}
-              >
-                <Edit3 size={14} />
-              </button>
-            </div>
+            <>
+              {trimmedRole ? (
+                <div className="ss-agent-card__profile-section">
+                  <div className="ss-agent-card__profile-section-head">
+                    <span className="ss-agent-card__profile-section-label">
+                      {t('components.agentPanel.roleLabel', { defaultValue: '角色设定' })}
+                    </span>
+                  </div>
+                  <div
+                    className="ss-agent-card__profile-box markdown-body"
+                    style={{ color: 'var(--ss-workspace-muted)' }}
+                    dangerouslySetInnerHTML={{ __html: renderProfileHtml(trimmedRole) }}
+                  />
+                </div>
+              ) : null}
+              <div className="ss-agent-card__profile-section">
+                <div className="ss-agent-card__profile-section-head">
+                  <span className="ss-agent-card__profile-section-label">
+                    {t('components.agentPanel.profileLabel', { defaultValue: '智能体简介' })}
+                  </span>
+                  <button
+                    className="ss-agent-card__profile-edit hover:text-brand-600"
+                    style={{ color: 'var(--ss-workspace-muted)' }}
+                    onClick={() => setIsProfileEditing(true)}
+                    title={t('components.agentPanel.editProfile')}
+                  >
+                    <Edit3 size={14} />
+                  </button>
+                </div>
+                <div
+                  className={`ss-agent-card__profile-box markdown-body${trimmedProfile ? '' : ' is-empty'}`}
+                  style={{ color: 'var(--ss-workspace-muted)' }}
+                  dangerouslySetInnerHTML={{ __html: renderProfileHtml(profileText) }}
+                />
+              </div>
+            </>
           )}
 
           {/* LLM Provider Dropdown (expanded only) */}
           <div className="mt-3 flex items-center gap-2">
             <span className="text-[10px] font-semibold uppercase" style={{ color: 'var(--ss-workspace-muted)' }}>
-              {t('components.agentPanel.changeLLM')}
+              {t('components.agentPanel.changeLLM', { defaultValue: '切换 LLM' })}
             </span>
             {providersLoading ? (
               <span className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--ss-workspace-muted)' }}>
@@ -370,13 +431,13 @@ export const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                     listProviders()
                       .then(setAvailableProviders)
                       .catch(() => {
-                        setProvidersError(t('components.agentPanel.providersLoadError'));
+                        setProvidersError(t('components.agentPanel.providersLoadError', { defaultValue: '加载提供商失败' }));
                       })
                       .finally(() => setProvidersLoading(false));
                   }}
                   className="hover:text-brand-500 p-1"
                   style={{ color: 'var(--ss-workspace-muted)' }}
-                  title={t('components.agentPanel.retry')}
+                  title={t('components.agentPanel.retry', { defaultValue: '重试' })}
                 >
                   <RefreshCw size={10} />
                 </button>
@@ -676,7 +737,7 @@ export const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                 {agent.memory.map((mem) => (
                   <div key={mem.id} className="text-xs relative pl-3 border-l-2" style={{ borderColor: 'var(--ss-workspace-border)' }}>
                     <div className="flex justify-between mb-0.5" style={{ color: 'var(--ss-workspace-muted)' }}>
-                      <span className="uppercase text-[10px] font-bold tracking-wider">{mem.type}</span>
+                      <span className="uppercase text-[10px] font-bold tracking-wider">{translateMemoryType(mem.type)}</span>
                       <span className="font-mono text-[10px]">{mem.timestamp}</span>
                     </div>
                     <p className={`leading-relaxed ${mem.type === 'thought' ? 'italic' : ''}`} style={{ color: mem.type === 'thought' ? 'var(--ss-workspace-muted)' : 'var(--ss-workspace-heading)' }}>

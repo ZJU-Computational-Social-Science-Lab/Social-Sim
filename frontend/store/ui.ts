@@ -11,7 +11,6 @@
 
 import { StateCreator } from 'zustand';
 import type { Notification, GuideMessage } from '../types';
-import { apiClient } from '../services/client';
 
 export interface UISlice {
   // Modal states
@@ -176,14 +175,17 @@ export const createUISlice: StateCreator<
       const nodes = state.nodes || [];
 
       if (!currentSim) {
-        set((prev) => ({ syncLogs: [...prev.syncLogs, 'Error: No simulation loaded'], isSyncing: false }));
+        set((prev: any) => ({ syncLogs: [...prev.syncLogs, 'Error: No simulation loaded'], isSyncing: false }));
         return;
       }
 
       // Add sync log entries
-      set((prev) => ({ syncLogs: [...prev.syncLogs, `Syncing simulation: ${currentSim.name || currentSim.id}`] }));
-      set((prev) => ({ syncLogs: [...prev.syncLogs, `Agents: ${agents.length}`] }));
-      set((prev) => ({ syncLogs: [...prev.syncLogs, `Nodes: ${nodes.length}`] }));
+      set((prev: any) => ({ syncLogs: [...prev.syncLogs, `Syncing simulation: ${currentSim.name || currentSim.id}`] }));
+      set((prev: any) => ({ syncLogs: [...prev.syncLogs, `Agents: ${agents.length}`] }));
+      set((prev: any) => ({ syncLogs: [...prev.syncLogs, `Nodes: ${nodes.length}`] }));
+
+      // Import API service
+      const { apiClient } = await import('../services/client');
 
       // Sync simulation state to backend
       const syncPayload = {
@@ -202,15 +204,15 @@ export const createUISlice: StateCreator<
         }))
       };
 
-      set((prev) => ({ syncLogs: [...prev.syncLogs, 'Sending data to backend...'] }));
+      set((prev: any) => ({ syncLogs: [...prev.syncLogs, 'Sending data to backend...'] }));
 
       await apiClient.post(`simulations/${currentSim.id}/sync`, syncPayload);
 
-      set((prev) => ({ syncLogs: [...prev.syncLogs, 'Sync completed successfully!'], isSyncing: false }));
+      set((prev: any) => ({ syncLogs: [...prev.syncLogs, 'Sync completed successfully!'], isSyncing: false }));
     } catch (error: any) {
       console.error('Sync failed:', error);
       const errorMsg = error?.response?.data?.detail || error?.message || 'Unknown error';
-      set((prev) => ({ syncLogs: [...prev.syncLogs, `Sync failed: ${errorMsg}`], isSyncing: false }));
+      set((prev: any) => ({ syncLogs: [...prev.syncLogs, `Sync failed: ${errorMsg}`], isSyncing: false }));
     }
   },
 
@@ -227,6 +229,7 @@ export const createUISlice: StateCreator<
 
     try {
       // Call backend guide API
+      const { apiClient } = await import('../services/client');
       const response = await apiClient.post<{ message: string }>('llm/guide', {
         history: get().guideMessages.map((m) => ({
           role: m.role,

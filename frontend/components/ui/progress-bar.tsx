@@ -41,7 +41,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   return (
     <div className="w-full">
       {/* Step indicators */}
-      <div className="flex justify-between mb-2">
+      <div className="flex justify-between mb-3">
         {steps.map((step, index) => {
           const stepNumber = index + 1;
           const isCompleted = completed.includes(stepNumber);
@@ -52,12 +52,12 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
             <div key={step.id} className="flex-1 text-center">
               <div
                 className={`
-                  inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium
+                  inline-flex h-9 w-9 items-center justify-center rounded-full border text-sm font-medium transition-all
                   ${isCompleted || isPast
-                    ? 'bg-green-500 text-white'
+                    ? 'border-emerald-600 bg-emerald-600 text-white'
                     : isCurrent
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 text-gray-600'
+                    ? 'border-slate-900 bg-slate-900 text-white shadow-[0_14px_26px_rgba(15,23,42,0.14)]'
+                    : 'border-slate-200 bg-white text-slate-500'
                   }
                 `}
               >
@@ -79,7 +79,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
 
           return (
             <div key={step.id} className="flex-1 text-center px-1">
-              <div className={`text-xs font-medium ${isCurrent ? 'text-blue-600' : 'text-gray-600'}`}>
+              <div className={`text-xs font-medium ${isCurrent ? 'text-slate-900' : 'text-slate-500'}`}>
                 {translatedTitle}
               </div>
             </div>
@@ -88,9 +88,9 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       </div>
 
       {/* Progress bar */}
-      <div className="w-full bg-gray-200 rounded-full h-2">
+      <div className="h-2 w-full rounded-full bg-slate-200/80">
         <div
-          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+          className="h-2 rounded-full bg-slate-900 transition-all duration-300"
           style={{ width: `${(current / total) * 100}%` }}
         />
       </div>

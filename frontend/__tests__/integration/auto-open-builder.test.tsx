@@ -8,12 +8,21 @@
  * Contains: Three test cases for the auto-open wizard effect.
  */
 
-import { render, waitFor, act } from '@testing-library/react';
+import { render, waitFor, act, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import SimulationPage from '../../pages/SimulationPage';
 import { useSimulationStore } from '../../store';
 import { useAuthStore } from '../../store/auth';
+
+vi.mock('../../components/ExperimentBuilderModal', () => ({
+  ExperimentBuilderModal: ({ isOpen, presentation }: { isOpen?: boolean; presentation?: string }) => (
+    isOpen ? <div data-testid="experiment-builder">{presentation || 'modal'}</div> : null
+  ),
+  default: ({ isOpen, presentation }: { isOpen?: boolean; presentation?: string }) => (
+    isOpen ? <div data-testid="experiment-builder">{presentation || 'modal'}</div> : null
+  ),
+}));
 
 // Minimal i18n mock
 vi.mock('react-i18next', () => ({
@@ -51,7 +60,12 @@ vi.mock('../../services/providers', () => ({
   listProviders: vi.fn().mockResolvedValue([]),
 }));
 
-describe('Auto-open experiment builder on /simulations/new', () => {
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="location-probe">{location.pathname}</div>;
+}
+
+describe('Workbench entry on /simulations/new', () => {
   beforeEach(() => {
     useSimulationStore.setState({
       currentSimulation: null,
@@ -66,7 +80,7 @@ describe('Auto-open experiment builder on /simulations/new', () => {
     } as any);
   });
 
-  it('opens the wizard automatically when no simulation ID is in the URL', async () => {
+  it('renders the builder when no current simulation exists', async () => {
     render(
       <MemoryRouter initialEntries={['/simulations/new']}>
         <Routes>
@@ -76,12 +90,35 @@ describe('Auto-open experiment builder on /simulations/new', () => {
     );
 
     await waitFor(() => {
-      const state = useSimulationStore.getState();
-      expect(state.isWizardOpen).toBe(true);
+      expect(screen.getByTestId('experiment-builder')).toBeInTheDocument();
     });
   });
 
-  it('does NOT open the wizard when a simulation ID is present', async () => {
+  it('redirects to the current simulation instead of opening a new builder', async () => {
+    useSimulationStore.setState({
+      currentSimulation: { id: 'sim-123', name: 'Existing Simulation' },
+      nodes: [{ id: 'root', parentId: null, name: 'Root', depth: 0, isLeaf: true }],
+      selectedNodeId: 'root',
+    } as any);
+
+    render(
+      <MemoryRouter initialEntries={['/simulations/new']}>
+        <LocationProbe />
+        <Routes>
+          <Route path="/simulations/new" element={<SimulationPage />} />
+          <Route path="/simulations/:id" element={<SimulationPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location-probe').textContent).toBe('/simulations/sim-123');
+    });
+
+    expect(screen.queryByTestId('experiment-builder')).not.toBeInTheDocument();
+  });
+
+  it('does NOT render the builder when a simulation ID is present', async () => {
     render(
       <MemoryRouter initialEntries={['/simulations/sim-123']}>
         <Routes>
@@ -94,26 +131,6 @@ describe('Auto-open experiment builder on /simulations/new', () => {
       await new Promise((r) => setTimeout(r, 50));
     });
 
-    const state = useSimulationStore.getState();
-    expect(state.isWizardOpen).toBe(false);
-  });
-
-  it('does NOT open the wizard before auth is restored', async () => {
-    useAuthStore.setState({ hasRestored: false } as any);
-
-    render(
-      <MemoryRouter initialEntries={['/simulations/new']}>
-        <Routes>
-          <Route path="/simulations/new" element={<SimulationPage />} />
-        </Routes>
-      </MemoryRouter>
-    );
-
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 50));
-    });
-
-    const state = useSimulationStore.getState();
-    expect(state.isWizardOpen).toBe(false);
+    expect(screen.queryByTestId('experiment-builder')).not.toBeInTheDocument();
   });
 });

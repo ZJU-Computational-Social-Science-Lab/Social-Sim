@@ -26,7 +26,6 @@ export interface UploadedAsset {
   extracted_text?: string | null;
 }
 
-// # Integration: Platform Connection Status
 export interface EngineConfig {
   endpoint: string; // e.g., "http://localhost:8000/api"
   status: 'disconnected' | 'connecting' | 'connected' | 'error';

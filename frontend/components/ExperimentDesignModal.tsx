@@ -112,8 +112,24 @@ const parseThreadSeed = (text: string, agentNames: string[]): Record<string, any
   return seed;
 };
 
+const toParameterFieldType = (type: string | undefined): 'integer' | 'string' | 'boolean' | 'array' => {
+  if (type === 'boolean') return 'boolean';
+  if (type === 'array') return 'array';
+  if (type === 'number' || type === 'integer' || type === 'float') return 'integer';
+  return 'string';
+};
+
 const hasMeaningfulInterventionText = (text: string): boolean => {
   return String(text || '').trim().length > 0;
+};
+
+const humanizeBackendLabel = (value: string): string => {
+  const normalized = String(value || '').trim();
+  if (!normalized) return '';
+  return normalized
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\b\w/g, (match) => match.toUpperCase());
 };
 
 export const ExperimentDesignModal: React.FC = () => {
@@ -149,6 +165,96 @@ export const ExperimentDesignModal: React.FC = () => {
   const [nodeSockets, setNodeSockets] = useState<Record<string, WebSocket | null>>({});
   // cached scenario data for SCENARIO_PARAMS intervention UI
   const [scenarioDataCache, setScenarioDataCache] = useState<Record<string, ScenarioData>>({});
+
+  const translateVariantStatus = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return t('components.experimentDesignModal.statusPending');
+      case 'running':
+        return t('components.experimentDesignModal.statusRunning');
+      case 'completed':
+        return t('components.experimentDesignModal.statusCompleted');
+      case 'failed':
+        return t('components.experimentDesignModal.statusFailed');
+      default:
+        return humanizeBackendLabel(status);
+    }
+  };
+
+  const translateExperimentLogType = (value: string) => {
+    switch (value) {
+      case 'SYSTEM':
+      case 'system_broadcast':
+      case 'system_announcement':
+        return t('components.logViewer.typeSystem');
+      case 'AGENT_METADATA':
+        return t('components.logViewer.typeAgentMetadata');
+      case 'AGENT_SAY':
+        return t('components.logViewer.typeDialogue');
+      case 'AGENT_ACTION':
+      case 'action_start':
+      case 'action_end':
+        return t('components.logViewer.typeAction');
+      case 'ENVIRONMENT':
+      case 'environment':
+      case 'environment_event':
+        return t('components.logViewer.typeEnvironment');
+      default:
+        return humanizeBackendLabel(value || 'evt');
+    }
+  };
+
+  const translateNetworkPreset = (preset: string) => {
+    switch (preset) {
+      case 'full':
+        return t('components.experimentDesignModal.presetFull');
+      case 'ring':
+        return t('components.experimentDesignModal.presetRing');
+      case 'star':
+        return t('components.experimentDesignModal.presetStar');
+      case 'random':
+        return t('components.experimentDesignModal.presetRandom');
+      case 'newman-watts':
+        return t('components.experimentDesignModal.presetNewmanWatts');
+      case 'core-periphery':
+        return t('components.experimentDesignModal.presetCorePeriphery');
+      case 'holme-kim':
+        return t('components.experimentDesignModal.presetHolmeKim');
+      case 'waxman':
+        return t('components.experimentDesignModal.presetWaxman');
+      case 'sbm':
+        return t('components.experimentDesignModal.presetSbm');
+      case 'custom':
+        return t('components.experimentDesignModal.presetCustom');
+      default:
+        return humanizeBackendLabel(preset);
+    }
+  };
+
+  const translateInterventionType = (type: string) => {
+    switch (type) {
+      case 'SCENARIO_PARAMS':
+        return t('components.experimentDesignModal.scenarioParamsType');
+      case 'SCENARIO_DESCRIPTION':
+        return t('experimentBuilder.step2.scenarioDescriptionLabel', { defaultValue: 'Scenario description' });
+      case 'NETWORK_TOPOLOGY':
+        return t('components.experimentDesignModal.networkTopologyType');
+      case 'ROUND_VISIBILITY':
+        return t('experimentBuilder.roundSettings.roundVisibility.label', { defaultValue: 'Round visibility' });
+      case 'INSTRUCTION':
+        return t('components.experimentDesignModal.instructionType');
+      case 'AGENT_PROPERTY':
+        return t('components.experimentDesignModal.propertyType');
+      case 'ENVIRONMENT':
+        return t('components.experimentDesignModal.environmentType');
+      case 'FOLLOW_UP_CONDITION':
+        return t('components.experimentDesignModal.followUpConditionType');
+      case 'FOLLOW_UP_THREAD_SEED':
+        return t('components.experimentDesignModal.followUpThreadSeedType');
+      default:
+        return humanizeBackendLabel(type);
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) {
@@ -374,7 +480,7 @@ export const ExperimentDesignModal: React.FC = () => {
           }
           otherInterventions.push({
             type: 'NETWORK_TOPOLOGY',
-            description: `${iv.networkPreset || 'full'}: ${network.edges.length} ${t('components.experimentDesignModal.previewEdges')}, ${t('components.experimentDesignModal.previewSeed')}=${network.seed}`
+            description: `${translateNetworkPreset(iv.networkPreset || 'full')}: ${network.edges.length} ${t('components.experimentDesignModal.previewEdges')}, ${t('components.experimentDesignModal.previewSeed')}=${network.seed}`
           });
         } else {
           otherInterventions.push({
@@ -512,7 +618,7 @@ export const ExperimentDesignModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" style={{ background: 'var(--ss-overlay)' }}>
+    <div className="fixed inset-0 z-[140] flex items-center justify-center backdrop-blur-sm" style={{ background: 'var(--ss-overlay)' }}>
       <div className="rounded-xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200" style={{ background: 'var(--ss-surface)', border: '1px solid var(--ss-border)', boxShadow: 'var(--ss-shadow-3)', color: 'var(--ss-text)' }}>
 
         {/* Header */}
@@ -595,7 +701,9 @@ export const ExperimentDesignModal: React.FC = () => {
                           const st = node ? node.status : 'pending';
                           const badgeColor = st === 'running' ? 'var(--ss-warning)' : st === 'completed' ? 'var(--ss-status-positive)' : 'var(--ss-text-subtle)';
                           return (
-                            <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ color: badgeColor, background: 'var(--ss-surface-inset)' }}>{st}</span>
+                            <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ color: badgeColor, background: 'var(--ss-surface-inset)' }}>
+                              {translateVariantStatus(st)}
+                            </span>
                           );
                         })()}
 
@@ -616,7 +724,9 @@ export const ExperimentDesignModal: React.FC = () => {
                               <div className="mt-2 border rounded p-2 text-[11px] h-20 overflow-auto" style={{ background: 'var(--ss-surface-inset)', borderColor: 'var(--ss-border)' }}>
                                 {logs.slice(-5).map((l: any, i: number) => (
                                   <div key={i} className="py-0.5 border-b" style={{ borderColor: 'var(--ss-border)' }}>
-                                    <div className="font-mono text-[11px]" style={{ color: 'var(--ss-text-muted)' }}>{String(l.type || l.event_type || 'evt')}</div>
+                                    <div className="font-mono text-[11px]" style={{ color: 'var(--ss-text-muted)' }}>
+                                      {translateExperimentLogType(String(l.type || l.event_type || 'evt'))}
+                                    </div>
                                     <div style={{ color: 'var(--ss-text)' }}>{String((l.data && (l.data.action || l.data.message || JSON.stringify(l.data))) || l.data || '')}</div>
                                   </div>
                                 ))}
@@ -845,9 +955,15 @@ export const ExperimentDesignModal: React.FC = () => {
                                               )}
                                               <ParameterField
                                                 param={{
-                                                  type: param.type === 'number' ? 'integer' : param.type === 'boolean' ? 'boolean' : 'string',
+                                                  type: toParameterFieldType(param.type),
                                                   default: param.default,
-                                                  ui_hint: param.ui_hint || (param.type === 'boolean' ? 'toggle' : 'text'),
+                                                  ui_hint:
+                                                    param.ui_hint ||
+                                                    (param.type === 'boolean'
+                                                      ? 'toggle'
+                                                      : param.type === 'number' || param.type === 'integer' || param.type === 'float'
+                                                        ? 'number'
+                                                        : 'text'),
                                                   min: param.min,
                                                   max: param.max,
                                                   step: param.step,
@@ -1311,12 +1427,12 @@ export const ExperimentDesignModal: React.FC = () => {
                     {preview.otherInterventions.length > 0 && (
                       <div>
                         <h5 className="text-xs font-semibold mb-2" style={{ color: 'var(--ss-text-muted)' }}>
-                          {t('components.experimentDesignModal.previewIntervention')}s:
+                          {t('components.experimentDesignModal.interventionCount')}:
                         </h5>
                         <div className="space-y-1">
                           {preview.otherInterventions.map((iv, idx) => (
                             <div key={idx} className="text-xs rounded px-2 py-1" style={{ background: 'var(--ss-layer-card)' }}>
-                              <span className="font-semibold" style={{ color: 'var(--ss-text-muted)' }}>{iv.type}:</span>{' '}
+                              <span className="font-semibold" style={{ color: 'var(--ss-text-muted)' }}>{translateInterventionType(iv.type)}:</span>{' '}
                               <span style={{ color: 'var(--ss-text)' }}>{iv.description}</span>
                             </div>
                           ))}

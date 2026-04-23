@@ -38,26 +38,33 @@ export const InitialEventsModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl h-[80vh] flex flex-col overflow-hidden">
-        <div className="px-5 py-3 border-b bg-slate-50 flex items-center justify-between">
-          <h3 className="font-bold text-slate-800 text-sm">{t('components.initialEventsModal.title')}</h3>
+    <div className="ss-extension-modal">
+      <div className="ss-extension-modal__panel ss-extension-modal__panel--wide h-[80vh]">
+        <div className="ss-extension-modal__header">
+          <div className="ss-extension-modal__header-title">
+            <div className="ss-extension-modal__header-icon">
+              <ImageIcon size={18} />
+            </div>
+            <div className="ss-extension-modal__header-copy">
+              <h3>{t('components.initialEventsModal.title')}</h3>
+            </div>
+          </div>
           <button onClick={() => { toggle(false); reset(); }} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
-          <div className="bg-white border rounded-lg p-3 space-y-3 shadow-sm">
+        <div className="ss-extension-modal__body space-y-4 bg-transparent">
+          <div className="ss-extension-modal__surface p-3 space-y-3">
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={t('components.initialEventsModal.eventTitlePlaceholder')}
-              className="w-full text-sm border rounded px-3 py-2 focus:ring-1 focus:ring-brand-500 outline-none"
+              className="w-full text-sm border rounded px-3 py-2 focus:ring-1 focus:ring-amber-500 outline-none"
             />
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder={t('components.initialEventsModal.eventDescPlaceholder')}
-              className="w-full text-sm border rounded px-3 py-2 focus:ring-1 focus:ring-brand-500 outline-none min-h-[120px]"
+              className="w-full text-sm border rounded px-3 py-2 focus:ring-1 focus:ring-amber-500 outline-none min-h-[120px]"
             />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="col-span-1">
@@ -75,7 +82,7 @@ export const InitialEventsModal: React.FC = () => {
                   value={mediaType === 'audio' ? (mediaUrl || '') : ''}
                   onChange={(e) => { setMediaUrl(e.target.value); setMediaType('audio'); }}
                   placeholder={t('components.initialEventsModal.audioUrlPlaceholder')}
-                  className="w-full text-sm border rounded px-3 py-2 focus:ring-1 focus:ring-brand-500 outline-none"
+                  className="w-full text-sm border rounded px-3 py-2 focus:ring-1 focus:ring-amber-500 outline-none"
                 />
               </div>
               <div className="col-span-1 space-y-2">
@@ -85,25 +92,25 @@ export const InitialEventsModal: React.FC = () => {
                   value={mediaType === 'video' ? (mediaUrl || '') : ''}
                   onChange={(e) => { setMediaUrl(e.target.value); setMediaType('video'); }}
                   placeholder={t('components.initialEventsModal.videoUrlPlaceholder')}
-                  className="w-full text-sm border rounded px-3 py-2 focus:ring-1 focus:ring-brand-500 outline-none"
+                  className="w-full text-sm border rounded px-3 py-2 focus:ring-1 focus:ring-amber-500 outline-none"
                 />
               </div>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={handleSave}
-                className="flex-1 py-2 bg-brand-600 text-white rounded flex items-center justify-center gap-2 text-sm"
+                className="ss-extension-modal__action ss-extension-modal__action--primary flex-1 text-sm"
               >
                 <Save size={14} /> {t('components.initialEventsModal.saveAndInject')}
               </button>
               <button
                 onClick={reset}
-                className="px-3 py-2 text-sm text-slate-500 hover:text-slate-700"
+                className="ss-extension-modal__action text-sm"
               >{t('components.initialEventsModal.reset')}</button>
             </div>
           </div>
 
-          <div className="bg-white border rounded-lg p-3 shadow-sm">
+          <div className="ss-extension-modal__surface p-3">
             <div className="text-xs font-bold text-slate-600 mb-2">{t('components.initialEventsModal.savedEvents')}</div>
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {initialEvents.length === 0 && <div className="text-xs text-slate-400">{t('components.initialEventsModal.noEventsYet')}</div>}

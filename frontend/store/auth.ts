@@ -58,9 +58,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   webSocketConnected: false,
 
   setSession: ({ accessToken, refreshToken, user }) => {
-    localStorage.setItem("socialsim4.access", accessToken);
-    localStorage.setItem("socialsim4.refresh", refreshToken);
-    localStorage.setItem("socialsim4.user", JSON.stringify(user));
+    localStorage.setItem("fos.access", accessToken);
+    localStorage.setItem("fos.refresh", refreshToken);
+    localStorage.setItem("fos.user", JSON.stringify(user));
     set({
       accessToken,
       refreshToken,
@@ -78,19 +78,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   clearSession: () => {
     // Clear proactive refresh timer
     get().clearProactiveRefresh();
-    localStorage.removeItem("socialsim4.access");
-    localStorage.removeItem("socialsim4.refresh");
-    localStorage.removeItem("socialsim4.user");
+    localStorage.removeItem("fos.access");
+    localStorage.removeItem("fos.refresh");
+    localStorage.removeItem("fos.user");
     set({ accessToken: null, refreshToken: null, user: null, isAuthenticated: false, hasRestored: true });
   },
 
   updateTokens: (accessToken, refreshToken) => {
-    const userRaw = localStorage.getItem("socialsim4.user");
+    const userRaw = localStorage.getItem("fos.user");
     if (accessToken) {
-      localStorage.setItem("socialsim4.access", accessToken);
+      localStorage.setItem("fos.access", accessToken);
     }
     if (refreshToken) {
-      localStorage.setItem("socialsim4.refresh", refreshToken);
+      localStorage.setItem("fos.refresh", refreshToken);
     }
     set((state) => ({
       accessToken,
@@ -107,9 +107,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   restoreSession: () => {
-    const access = localStorage.getItem("socialsim4.access");
-    const refresh = localStorage.getItem("socialsim4.refresh");
-    const userRaw = localStorage.getItem("socialsim4.user");
+    const access = localStorage.getItem("fos.access");
+    const refresh = localStorage.getItem("fos.refresh");
+    const userRaw = localStorage.getItem("fos.user");
     if (!access || !refresh || !userRaw) {
       set({ accessToken: null, refreshToken: null, user: null, isAuthenticated: false, hasRestored: true });
       return;
@@ -124,9 +124,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     } catch (error) {
       console.error("Failed to parse stored user", error);
-      localStorage.removeItem("socialsim4.access");
-      localStorage.removeItem("socialsim4.refresh");
-      localStorage.removeItem("socialsim4.user");
+      localStorage.removeItem("fos.access");
+      localStorage.removeItem("fos.refresh");
+      localStorage.removeItem("fos.user");
       set({ accessToken: null, refreshToken: null, user: null, isAuthenticated: false, hasRestored: true });
     }
   },

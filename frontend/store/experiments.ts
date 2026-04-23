@@ -61,7 +61,7 @@ export interface ExperimentsSlice {
 
   // Simulation control
   advanceSimulation: () => Promise<void>;
-  branchSimulation: () => void;
+  branchSimulation: () => Promise<void>;
   deleteNode: () => Promise<void>;
 
   // Experiment execution
@@ -322,10 +322,6 @@ export const createExperimentsSlice: StateCreator<
         if (graph) {
           const nodesMapped = mapGraphToNodes(graph);
           set({ nodes: nodesMapped, selectedNodeId: newSelectedId } as any);
-        } else {
-          // Graph fetch failed (server briefly busy) — still update the selected node
-          // so the next auto-advance step uses the correct parent.
-          set({ selectedNodeId: newSelectedId } as any);
         }
 
         let events: any[] = [];
@@ -449,8 +445,7 @@ export const createExperimentsSlice: StateCreator<
             logs: [...(prev.logs || []), ...logsMapped],
             rawEvents: [...(prev.rawEvents || []), ...normalizedEvents],
             agents: agentsMapped,
-            isGenerating: false,
-            selectedNodeId: newSelectedId,
+            isGenerating: false
           };
         });
         return;
@@ -466,7 +461,7 @@ export const createExperimentsSlice: StateCreator<
     if (!state.currentSimulation || !state.selectedNodeId) return;
 
     try {
-      const { treeBranchPublic, getTreeGraph } = await import('../services/simulationTree');
+      const { treeBranch, getTreeGraph } = await import('../services/simulationTree');
       const { mapGraphToNodes } = await import('./helpers');
 
       const base = state.engineConfig.endpoint;
@@ -479,8 +474,7 @@ export const createExperimentsSlice: StateCreator<
         return;
       }
 
-      // treeBranchPublic expects: (base, id, parent, text, token)
-      const result = await treeBranchPublic(base, state.currentSimulation.id, parentNumeric, i18n.t('store.branch') || 'Branch', token);
+      const result = await treeBranch(base, state.currentSimulation.id, parentNumeric, [], token);
 
       if (result?.child !== undefined) {
         // Refresh tree

@@ -722,8 +722,8 @@ export const NetworkEditorModal: React.FC = () => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
-      <div className="rounded-xl shadow-2xl w-full max-w-5xl h-[750px] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={{ background: 'var(--ss-page-surface)', border: '1px solid var(--ss-border)' }}>
+    <div className="fixed inset-0 z-[140] flex items-start justify-center overflow-y-auto p-4 backdrop-blur-sm sm:p-6" style={{ background: 'var(--ss-overlay)' }}>
+      <div className="my-auto flex max-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-xl shadow-2xl animate-in zoom-in-95 duration-200 sm:max-h-[calc(100vh-3rem)]" style={{ background: 'var(--ss-page-surface)', border: '1px solid var(--ss-border)' }}>
         <div className="px-6 py-4 border-b flex justify-between items-center" style={{ background: 'var(--ss-page-surface-muted)', borderColor: 'var(--ss-border)' }}>
           <div>
             <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--ss-heading)' }}>
