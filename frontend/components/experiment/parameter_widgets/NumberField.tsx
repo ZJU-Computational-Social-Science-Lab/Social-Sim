@@ -51,10 +51,11 @@ export default function NumberField({
         type="button"
         onClick={handleDecrement}
         disabled={disabled || value <= min}
-        className="p-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="p-2 rounded-md border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        style={{ borderColor: 'var(--ss-border-strong)', background: 'var(--ss-page-surface)', color: 'var(--ss-text)' }}
         aria-label="Decrease"
       >
-        <Minus className="w-4 h-4 text-gray-600" />
+        <Minus className="w-4 h-4" />
       </button>
       <input
         type="number"
@@ -64,16 +65,18 @@ export default function NumberField({
         value={value}
         onChange={handleInputChange}
         disabled={disabled}
-        className="w-20 px-3 py-2 border border-gray-300 rounded-md text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+        className="w-20 px-3 py-2 border rounded-md text-center focus:outline-none focus:ring-2 disabled:opacity-60 disabled:cursor-not-allowed"
+        style={{ borderColor: 'var(--ss-border-strong)', background: 'var(--ss-page-surface)', color: 'var(--ss-heading)' }}
       />
       <button
         type="button"
         onClick={handleIncrement}
         disabled={disabled || value >= max}
-        className="p-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="p-2 rounded-md border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        style={{ borderColor: 'var(--ss-border-strong)', background: 'var(--ss-page-surface)', color: 'var(--ss-text)' }}
         aria-label="Increase"
       >
-        <Plus className="w-4 h-4 text-gray-600" />
+        <Plus className="w-4 h-4" />
       </button>
     </div>
   );

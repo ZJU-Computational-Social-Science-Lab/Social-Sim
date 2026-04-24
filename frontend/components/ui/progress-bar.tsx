@@ -51,15 +51,13 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
           return (
             <div key={step.id} className="flex-1 text-center">
               <div
-                className={`
-                  inline-flex h-9 w-9 items-center justify-center rounded-full border text-sm font-medium transition-all
-                  ${isCompleted || isPast
-                    ? 'border-emerald-600 bg-emerald-600 text-white'
-                    : isCurrent
-                    ? 'border-slate-900 bg-slate-900 text-white shadow-[0_14px_26px_rgba(15,23,42,0.14)]'
-                    : 'border-slate-200 bg-white text-slate-500'
-                  }
-                `}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border text-sm font-medium transition-all"
+                style={isCompleted || isPast
+                  ? { borderColor: 'var(--ss-success)', background: 'var(--ss-success)', color: '#fff' }
+                  : isCurrent
+                  ? { borderColor: 'var(--ss-brand-primary)', background: 'var(--ss-brand-primary)', color: 'var(--ss-brand-on)' }
+                  : { borderColor: 'var(--ss-border-strong)', background: 'var(--ss-page-surface)', color: 'var(--ss-text-muted)' }
+                }
               >
                 {isCompleted || isPast ? '✓' : stepNumber}
               </div>
@@ -79,7 +77,10 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
 
           return (
             <div key={step.id} className="flex-1 text-center px-1">
-              <div className={`text-xs font-medium ${isCurrent ? 'text-slate-900' : 'text-slate-500'}`}>
+              <div
+                className="text-xs font-medium"
+                style={{ color: isCurrent ? 'var(--ss-heading)' : 'var(--ss-text-muted)' }}
+              >
                 {translatedTitle}
               </div>
             </div>
@@ -88,10 +89,10 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       </div>
 
       {/* Progress bar */}
-      <div className="h-2 w-full rounded-full bg-slate-200/80">
+      <div className="h-2 w-full rounded-full" style={{ background: 'var(--ss-border-strong)' }}>
         <div
-          className="h-2 rounded-full bg-slate-900 transition-all duration-300"
-          style={{ width: `${(current / total) * 100}%` }}
+          className="h-2 rounded-full transition-all duration-300"
+          style={{ width: `${(current / total) * 100}%`, background: 'var(--ss-brand-primary)' }}
         />
       </div>
     </div>
