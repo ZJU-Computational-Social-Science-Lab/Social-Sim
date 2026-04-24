@@ -2,10 +2,15 @@
 Game configuration for experiment prompts.
 
 Adapted from tests/llm_prompt_testing/prompt_v2/game_configs.py
+Provides translated game configs for social science experiment patterns.
+
+Contains: GameConfig, CouncilConfig, GAME_CONFIGS, get_game_config
 """
 
 from dataclasses import dataclass, field
 from typing import Literal, Any
+
+from ...i18n import T, get_request_locale
 
 
 @dataclass
@@ -209,4 +214,61 @@ def create_council_config(
         deliberation_rounds=deliberation_rounds,
         voting_threshold=voting_threshold,
         proposal_text=proposal_text,
+    )
+
+
+# Map of game type keys to base GameConfig instances
+GAME_CONFIGS: dict[str, GameConfig] = {
+    "prisoners_dilemma": PRISONERS_DILEMMA,
+    "stag_hunt": STAG_HUNT,
+    "minimum_effort": MINIMUM_EFFORT,
+    "information_cascade": INFORMATION_CASCADE,
+    "consensus_game": CONSENSUS_GAME,
+    "spatial_cooperation": SPATIAL_COOPERATION,
+}
+
+
+def get_game_config(game_type: str, locale: str | None = None) -> GameConfig:
+    """Return a translated GameConfig for the given game type and locale.
+
+    Args:
+        game_type: Key from GAME_CONFIGS (e.g., 'prisoners_dilemma')
+        locale: Language code. Falls back to request context or default.
+
+    Returns:
+        A new GameConfig with translated text fields.
+    """
+    effective_locale = locale or get_request_locale()
+    base = GAME_CONFIGS[game_type]
+    prefix = f"game_configs.{game_type}"
+
+    action_descriptions = base.action_descriptions or {}
+    translated_descriptions = {
+        action_key: T(f"{prefix}.actions.{action_key}", locale=effective_locale)
+        for action_key in action_descriptions
+    }
+    # Keep original for keys where no translation exists
+    for k, v in translated_descriptions.items():
+        if v == f"{prefix}.actions.{k}":
+            translated_descriptions[k] = action_descriptions[k]
+
+    return GameConfig(
+        name=T(f"{prefix}.name", locale=effective_locale),
+        description=T(f"{prefix}.description", locale=effective_locale),
+        action_type=base.action_type,
+        actions=base.actions,
+        action_descriptions=translated_descriptions or None,
+        output_field=base.output_field,
+        min=base.min,
+        max=base.max,
+        payoff_summary=T(f"{prefix}.payoff_summary", locale=effective_locale),
+        cooperate_reward=base.cooperate_reward,
+        sucker_penalty=base.sucker_penalty,
+        temptation_reward=base.temptation_reward,
+        defect_penalty=base.defect_penalty,
+        grouping_mode=base.grouping_mode,
+        payoff_type=base.payoff_type,
+        payoff_config=base.payoff_config,
+        action_schemas=base.action_schemas,
+        action_followup_modes=base.action_followup_modes,
     )

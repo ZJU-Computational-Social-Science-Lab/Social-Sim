@@ -34,6 +34,7 @@ from socialsim4.backend.models.user import ProviderConfig, SearchProviderConfig,
 from socialsim4.backend.services.default_providers import get_default_ollama_base_url
 from socialsim4.backend.services.provider_dialect import normalize_provider_dialect
 from socialsim4.backend.services.simtree_runtime import SIM_TREE_REGISTRY, SimTreeRecord
+from socialsim4.i18n import T
 
 
 logger = logging.getLogger(__name__)
@@ -116,13 +117,13 @@ async def get_tree_record(
         base_url = base_url.rstrip("/") + "/v1"
 
     if dialect not in {"openai", "gemini", "mock", "ollama"}:
-        raise HTTPException(status_code=400, detail="Invalid LLM provider dialect")
+        raise HTTPException(status_code=400, detail=T("api.errors.provider_invalid"))
 
     if dialect in {"openai", "gemini"} and not provider.api_key:
-        raise HTTPException(status_code=400, detail="LLM API key required")
+        raise HTTPException(status_code=400, detail=T("api.errors.provider_api_key_required"))
 
     if not provider.model:
-        raise HTTPException(status_code=400, detail="LLM model required")
+        raise HTTPException(status_code=400, detail=T("api.errors.provider_model_required"))
 
     # Create LLM client
     cfg = LLMConfig(
@@ -238,7 +239,7 @@ async def get_simulation_and_tree_any(
     """
     sim = await session.get(Simulation, simulation_id.upper())
     if sim is None:
-        raise HTTPException(status_code=404, detail="Simulation not found")
+        raise HTTPException(status_code=404, detail=T("api.errors.simulation_not_found"))
     record = await get_tree_record(sim, session, sim.owner_id)
     return sim, record
 

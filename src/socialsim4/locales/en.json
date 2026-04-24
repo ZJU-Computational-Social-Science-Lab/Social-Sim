@@ -118,7 +118,18 @@
       "agent_memory_unavailable": "Agent memory not available. Provide a valid node_id from a running simulation.",
       "llm_disabled_large_diff": " (Note: Large diff detected, LLM summary disabled to save resources)",
       "llm_no_client": " (No LLM client configured)",
-      "llm_quota_exhausted": " (Note: User LLM quota exhausted, LLM summary disabled)"
+      "llm_quota_exhausted": " (Note: User LLM quota exhausted, LLM summary disabled)",
+      "simulation_not_found": "Simulation not found",
+      "invalid_credentials": "Invalid credentials",
+      "admin_only": "Admin access required",
+      "user_not_found": "User not found",
+      "provider_not_found": "LLM provider not found or does not belong to current user",
+      "provider_not_configured": "LLM provider not configured",
+      "provider_invalid": "Invalid LLM provider dialect",
+      "provider_api_key_required": "LLM API key required",
+      "provider_model_required": "LLM model required",
+      "missing_bearer_token": "Missing bearer token",
+      "tree_node_not_found": "Tree node not found"
     },
     "compare": {
       "node_unique_events": "Node {{node}} has {{count}} unique events.",
@@ -486,6 +497,106 @@
         "demographic_needs_categories": "Demographic '{name}' must have at least one category.",
         "trait_mean_out_of_range": "Trait '{name}' mean value {value} is outside valid range [0, 100].",
         "trait_std_out_of_range": "Trait '{name}' std value {value} is outside valid range [0, 50]."
+      }
+    }
+  },
+  "scenario_templates": {
+    "prisoners_dilemma": {
+      "name": "Prisoner's Dilemma",
+      "description": "Two suspects are arrested and held separately. Each must decide whether to betray the other or remain silent. Your payoff depends on both your choice and your partner's choice.",
+      "parameters": {
+        "cooperate_reward": {"label": "Both Cooperate", "description": "Reward when both prisoners cooperate"},
+        "sucker_penalty": {"label": "You Cooperate, They Defect", "description": "Penalty for cooperating while partner defects"},
+        "temptation_reward": {"label": "You Defect, They Cooperate", "description": "Reward for defecting while partner cooperates"},
+        "defect_penalty": {"label": "Both Defect", "description": "Punishment when both prisoners defect"}
+      },
+      "actions": {
+        "cooperate": {"name": "Cooperate", "description": "Work together with your partner"},
+        "defect": {"name": "Defect", "description": "Pursue your own interest"}
+      }
+    },
+    "battle_of_the_sexes": {
+      "name": "Battle of the Sexes",
+      "description": "A couple wants to coordinate on an evening activity. One prefers opera, the other prefers football. They get positive payoff if they coordinate, but each prefers their own activity.",
+      "parameters": {
+        "preferred_mispreferred": {"label": "Preferred / Mispreferred Payoff", "description": "Payoff for coordinating on your preferred activity"},
+        "mispreferred_payoff": {"label": "Mispreferred Alone Payoff", "description": "Payoff when failing to coordinate"}
+      },
+      "actions": {
+        "opera": {"name": "Opera", "description": "Go to the opera"},
+        "football": {"name": "Football", "description": "Go to the football game"}
+      }
+    },
+    "stag_hunt": {
+      "name": "Stag Hunt",
+      "description": "Hunters must all choose stag (high reward) or hare (safe but low reward). Stag requires everyone to cooperate. If even one person chooses hare, the stag escapes and stag hunters get nothing.",
+      "parameters": {
+        "stag_reward": {"label": "Stag Reward (if all choose)", "description": "Reward when all hunters choose stag"},
+        "hare_reward": {"label": "Hare Reward (always)", "description": "Reward for choosing hare (guaranteed but low)"}
+      },
+      "actions": {
+        "stag": {"name": "Stag", "description": "Hunt the stag (requires all to cooperate)"},
+        "hare": {"name": "Hare", "description": "Hunt the hare (safe but lower reward)"}
+      }
+    },
+    "public_goods": {
+      "name": "Public Goods Game",
+      "description": "Each person has resources and decides how much to contribute to a shared pool. The pool is multiplied and distributed equally among all members, regardless of contribution.",
+      "parameters": {
+        "resource_name": {"label": "Resource Name", "description": "Name of the resource"},
+        "tokens_per_round": {"label": "Amount per Round", "description": "Amount of resources each agent receives per round"},
+        "multiplier": {"label": "Pool Multiplier", "description": "Multiplier applied to total contributions before distribution"}
+      },
+      "actions": {
+        "allocate": {"name": "Allocate", "description": "Allocate resources to the group account"},
+        "keep": {"name": "Keep", "description": "Keep all your resources this round"}
+      }
+    }
+  },
+  "game_configs": {
+    "prisoners_dilemma": {
+      "name": "Prisoner's Dilemma",
+      "description": "Two suspects are arrested and held separately. Each must decide whether to betray the other or remain silent.\nPayoffs: Both cooperate → 1 year each. Both defect → 3 years each. One betrays → betrayer goes free, cooperator gets 5 years.",
+      "payoff_summary": "Your payoff depends on both your choice and your partner's choice.",
+      "actions": {
+        "cooperate": "Remain silent and cooperate with your partner",
+        "defect": "Betray your partner and testify against them"
+      }
+    },
+    "stag_hunt": {
+      "name": "Stag Hunt",
+      "description": "A group of hunters must choose between hunting a stag (high reward, requires cooperation) or a hare (low reward, can be done alone).",
+      "payoff_summary": "Stag pays high if ALL choose it, else 0. Hare always pays low.",
+      "actions": {
+        "stag": "Hunt the stag (requires all to cooperate)",
+        "hare": "Hunt the hare (safe but lower reward)"
+      }
+    },
+    "minimum_effort": {
+      "name": "Minimum Effort Game",
+      "description": "Players simultaneously choose an effort level. Everyone's payoff depends on the minimum effort chosen by any player.",
+      "payoff_summary": "Your payoff depends on the minimum effort level chosen by any player.",
+      "actions": {}
+    },
+    "information_cascade": {
+      "name": "Information Cascade",
+      "description": "Players observe previous players' actions and must decide based on private information and observed behavior.",
+      "payoff_summary": "Your decision should balance your private signal with observed behavior.",
+      "actions": {}
+    },
+    "consensus_game": {
+      "name": "Consensus Game",
+      "description": "Players must reach consensus on a value through repeated discussion and voting.",
+      "payoff_summary": "Success requires all players to agree on the same value.",
+      "actions": {}
+    },
+    "spatial_cooperation": {
+      "name": "Spatial Cooperation",
+      "description": "Players are arranged in a spatial grid and interact with their neighbors. Cooperation spreads through local interactions.",
+      "payoff_summary": "Your payoff depends on your action and your neighbors' actions.",
+      "actions": {
+        "cooperate": "Cooperate with neighbors",
+        "defect": "Exploit neighbors for personal gain"
       }
     }
   }

@@ -12,6 +12,7 @@ from ...models.simulation import Simulation
 from ...models.user import User
 from ...schemas.simulation import SimulationBase
 from ...schemas.user import UserPublic
+from socialsim4.i18n import T
 
 
 class RoleUpdate(BaseModel):
@@ -20,7 +21,7 @@ class RoleUpdate(BaseModel):
 
 def _require_admin(user: UserPublic) -> None:
     if str(getattr(user, "role", "")) != "admin":
-        raise HTTPException(status_code=403, detail="Admin only")
+        raise HTTPException(status_code=403, detail=T("api.errors.admin_only"))
 
 
 @get("/users")
@@ -249,7 +250,7 @@ async def admin_update_user_role(
             raise HTTPException(status_code=400, detail="Invalid role")
         db_user = await session.get(User, int(user_id))
         if db_user is None:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise HTTPException(status_code=404, detail=T("api.errors.user_not_found"))
         db_user.role = role
         await session.commit()
         await session.refresh(db_user)

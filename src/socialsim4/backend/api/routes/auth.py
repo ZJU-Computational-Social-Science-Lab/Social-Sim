@@ -75,7 +75,7 @@ async def login(data: LoginRequest) -> TokenPair:
         result = await session.execute(select(User).where(User.email == data.email))
         user = result.scalar_one_or_none()
         if user is None or not verify_password(data.password, user.hashed_password):
-            raise HTTPException(status_code=401, detail="Invalid credentials")
+            raise HTTPException(status_code=401, detail=T("api.errors.invalid_credentials"))
         if not user.is_active:
             raise HTTPException(status_code=403, detail="User disabled")
         if settings.require_email_verification and not user.is_verified:

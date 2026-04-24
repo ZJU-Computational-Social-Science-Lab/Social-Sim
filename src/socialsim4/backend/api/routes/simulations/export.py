@@ -13,6 +13,7 @@ from socialsim4.backend.core.database import get_session
 from socialsim4.backend.dependencies import extract_bearer_token, resolve_current_user
 from socialsim4.backend.services.export_service import export_events, generate_export_filename
 from socialsim4.core.scenarios.registry import get_scenario
+from socialsim4.i18n import T
 
 from .helpers import get_simulation_and_tree_any
 
@@ -50,7 +51,7 @@ async def export_simulation(
         logger.info(f"Found simulation: {sim.id}, owner_id={current_user.id}")
 
         if not sim:
-            raise HTTPException(status_code=404, detail="Simulation not found")
+            raise HTTPException(status_code=404, detail=T("api.errors.simulation_not_found"))
 
         # Get scenario config
         scene_config = sim.scene_config or {}

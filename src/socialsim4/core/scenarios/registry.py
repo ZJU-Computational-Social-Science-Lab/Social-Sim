@@ -7,6 +7,7 @@ Each scenario defines parameters, actions, and settings for the frontend.
 
 from typing import Dict, List, Any
 from .actions import CATEGORY_ACTION_LIBRARIES
+from ...i18n import T, get_request_locale
 
 
 # ============================================================================
@@ -447,6 +448,39 @@ RESOURCE_SCARCITY: Dict[str, Any] = {
     "default_action_ids": ["share_resources", "hoard", "propose_trade", "form_contract"],
 }
 
+XIHU_YILIANBAO: Dict[str, Any] = {
+    "id": "xihu_yilianbao",
+    "name": "Xihu Yilianbao Enrollment Diffusion",
+    "category": "sociology",
+    "description": "Eligible residents receive one of the A0-A8 information interventions, then decide whether to enroll for themselves or family members under government endorsement, message complexity, household medical burden, competitor news, and neighborhood discussion.",
+    "grouping_mode": "individual",
+    "payoff_type": "none",
+    "interaction_mode": "simultaneous",
+    "display_type": "params",
+    "parameters": [
+        {
+            "id": "xihu_package_id",
+            "key": "xihu_package_id",
+            "label": "Package ID",
+            "type": "string",
+            "default": "round1",
+            "ui_hint": "text",
+        },
+        {
+            "id": "intervention_arm",
+            "key": "intervention_arm",
+            "label": "Intervention Arm",
+            "type": "string",
+            "default": "A0",
+            "ui_hint": "select",
+            "options": ["A0", "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8"],
+        },
+    ],
+    "actions": [],
+    "category_actions": "sociology",
+    "default_action_ids": ["express_opinion", "persuade_others", "seek_common_ground", "disengage"],
+}
+
 # ============================================================================
 # Discussion / Open Scenarios
 # ============================================================================
@@ -883,6 +917,7 @@ ALL_SCENARIOS: List[Dict[str, Any]] = [
     POLICY_EROSION,
     ECHO_CHAMBER,
     RESOURCE_SCARCITY,
+    XIHU_YILIANBAO,
     OPEN_DISCUSSION,
     COUNCIL_CHAMBER,
     GRID_WORLD,
@@ -894,12 +929,59 @@ ALL_SCENARIOS: List[Dict[str, Any]] = [
 ]
 
 
-def get_all_scenarios() -> List[Dict[str, Any]]:
+def _translate_scenario(template: dict, locale: str) -> dict:
+    """Return a copy of a scenario template with translated text fields."""
+    result = dict(template)
+    key_prefix = template.get("id", "")
+    name = T(f"scenario_templates.{key_prefix}.name", locale=locale)
+    desc = T(f"scenario_templates.{key_prefix}.description", locale=locale)
+    # Only overwrite when a real translation was found
+    if name != f"scenario_templates.{key_prefix}.name":
+        result["name"] = name
+    if desc != f"scenario_templates.{key_prefix}.description":
+        result["description"] = desc
+
+    if "parameters" in result:
+        translated_params = []
+        for p in result["parameters"]:
+            param = dict(p)
+            param_key = p.get("key", p.get("id", ""))
+            label = T(f"scenario_templates.{key_prefix}.parameters.{param_key}.label", locale=locale)
+            pdesc = T(f"scenario_templates.{key_prefix}.parameters.{param_key}.description", locale=locale)
+            if label != f"scenario_templates.{key_prefix}.parameters.{param_key}.label":
+                param["label"] = label
+            if pdesc != f"scenario_templates.{key_prefix}.parameters.{param_key}.description":
+                param["description"] = pdesc
+            translated_params.append(param)
+        result["parameters"] = translated_params
+
+    if "actions" in result:
+        translated_actions = []
+        for a in result["actions"]:
+            action = dict(a)
+            action_id = a.get("id", "")
+            aname = T(f"scenario_templates.{key_prefix}.actions.{action_id}.name", locale=locale)
+            adesc = T(f"scenario_templates.{key_prefix}.actions.{action_id}.description", locale=locale)
+            if aname != f"scenario_templates.{key_prefix}.actions.{action_id}.name":
+                action["name"] = aname
+            if adesc != f"scenario_templates.{key_prefix}.actions.{action_id}.description":
+                action["description"] = adesc
+            translated_actions.append(action)
+        result["actions"] = translated_actions
+
+    return result
+
+
+def get_all_scenarios(locale: str | None = None) -> List[Dict[str, Any]]:
     """Get all available scenario definitions.
+
+    Args:
+        locale: Language code. Falls back to request context or default.
 
     Returns:
         List of scenario dictionaries with metadata.
     """
+    effective_locale = locale or get_request_locale()
     scenarios = []
     for scenario in ALL_SCENARIOS:
         # Copy scenario to avoid mutating original
@@ -910,19 +992,21 @@ def get_all_scenarios() -> List[Dict[str, Any]]:
             category = scenario_copy["category_actions"]
             if category in CATEGORY_ACTION_LIBRARIES:
                 scenario_copy["category_actions"] = CATEGORY_ACTION_LIBRARIES[category]
-        scenarios.append(scenario_copy)
+        scenarios.append(_translate_scenario(scenario_copy, effective_locale))
     return scenarios
 
 
-def get_scenario(scenario_id: str) -> Dict[str, Any] | None:
+def get_scenario(scenario_id: str, locale: str | None = None) -> Dict[str, Any] | None:
     """Get a specific scenario by ID.
 
     Args:
         scenario_id: The unique scenario identifier
+        locale: Language code. Falls back to request context or default.
 
     Returns:
-        A copy of the scenario dict, or None if not found.
+        A translated copy of the scenario dict, or None if not found.
     """
+    effective_locale = locale or get_request_locale()
     for scenario in ALL_SCENARIOS:
         if scenario["id"] == scenario_id:
             scenario = scenario.copy()
@@ -930,21 +1014,22 @@ def get_scenario(scenario_id: str) -> Dict[str, Any] | None:
                 category = scenario["category_actions"]
                 if category in CATEGORY_ACTION_LIBRARIES:
                     scenario["category_actions"] = CATEGORY_ACTION_LIBRARIES[category]
-            return scenario
+            return _translate_scenario(scenario, effective_locale)
     return None
 
 
-def get_scenario_actions(scenario_id: str) -> List[Dict[str, Any]]:
+def get_scenario_actions(scenario_id: str, locale: str | None = None) -> List[Dict[str, Any]]:
     """Get actions for a specific scenario.
 
     Args:
         scenario_id: The unique scenario identifier
+        locale: Language code. Falls back to request context or default.
 
     Returns:
         List of action dicts with 'id' and 'description' keys.
         Returns empty list if scenario not found.
     """
-    scenario = get_scenario(scenario_id)
+    scenario = get_scenario(scenario_id, locale=locale)
     if not scenario:
         return []
 

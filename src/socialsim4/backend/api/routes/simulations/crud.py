@@ -38,6 +38,7 @@ from socialsim4.backend.schemas.simtree import UpdateAgentLLMConfigRequest
 from socialsim4.backend.services.simulations import generate_simulation_id, generate_simulation_name
 from socialsim4.backend.services.provider_dialect import normalize_provider_dialect
 from socialsim4.backend.services.simtree_runtime import SIM_TREE_REGISTRY
+from socialsim4.i18n import T
 
 from .helpers import (
     get_simulation_for_owner,
@@ -189,15 +190,15 @@ async def create_simulation(
         )
         provider = result.scalars().first()
         if provider is None:
-            raise RuntimeError("LLM provider not configured")
+            raise RuntimeError(T("api.errors.provider_not_configured"))
 
         dialect = normalize_provider_dialect(provider.provider)
         if dialect not in {"openai", "gemini", "mock", "ollama"}:
-            raise RuntimeError("Invalid LLM provider dialect")
+            raise RuntimeError(T("api.errors.provider_invalid"))
         if dialect in {"openai", "gemini"} and not provider.api_key:
-            raise RuntimeError("LLM API key required")
+            raise RuntimeError(T("api.errors.provider_api_key_required"))
         if not provider.model:
-            raise RuntimeError("LLM model required")
+            raise RuntimeError(T("api.errors.provider_model_required"))
 
         # Normalize agent config field names from camelCase to snake_case
         normalized_agent_config = _normalize_agent_config(data.agent_config or {})

@@ -119,7 +119,18 @@
       "agent_memory_unavailable": "代理记忆不可用。请提供运行中模拟的有效 node_id。",
       "llm_disabled_large_diff": "（注意：差异过大，已禁用 LLM 摘要以节省资源）",
       "llm_no_client": "（未配置可用的 LLM 客户端）",
-      "llm_quota_exhausted": "（注意：用户 LLM 配额已耗尽，已禁用 LLM 摘要）"
+      "llm_quota_exhausted": "（注意：用户 LLM 配额已耗尽，已禁用 LLM 摘要）",
+      "simulation_not_found": "模拟未找到",
+      "invalid_credentials": "凭据无效",
+      "admin_only": "需要管理员权限",
+      "user_not_found": "用户未找到",
+      "provider_not_found": "LLM提供商不存在或不属于当前用户",
+      "provider_not_configured": "未配置LLM提供商",
+      "provider_invalid": "无效的LLM提供商类型",
+      "provider_api_key_required": "需要LLM API密钥",
+      "provider_model_required": "需要指定LLM模型",
+      "missing_bearer_token": "缺少Bearer令牌",
+      "tree_node_not_found": "树节点未找到"
     },
     "compare": {
       "node_unique_events": "节点 {{node}} 有 {{count}} 条独有事件。",
@@ -487,6 +498,106 @@
         "demographic_needs_categories": "人口维度 '{name}' 必须至少有一个类别。",
         "trait_mean_out_of_range": "特征 '{name}' 均值 {value} 超出有效范围 [0, 100]。",
         "trait_std_out_of_range": "特征 '{name}' 标准差 {value} 超出有效范围 [0, 50]。"
+      }
+    }
+  },
+  "scenario_templates": {
+    "prisoners_dilemma": {
+      "name": "囚徒困境",
+      "description": "两名嫌疑人被分别关押。每个人必须决定是背叛对方还是保持沉默。你的收益取决于你和伙伴的选择。",
+      "parameters": {
+        "cooperate_reward": {"label": "双方合作", "description": "两名囚徒都合作时的奖励"},
+        "sucker_penalty": {"label": "你合作对方背叛", "description": "在伙伴背叛时合作的惩罚"},
+        "temptation_reward": {"label": "你背叛对方合作", "description": "在伙伴合作时背叛的奖励"},
+        "defect_penalty": {"label": "双方背叛", "description": "两名囚徒都背叛时的惩罚"}
+      },
+      "actions": {
+        "cooperate": {"name": "合作", "description": "与伙伴合作"},
+        "defect": {"name": "背叛", "description": "追求自身利益"}
+      }
+    },
+    "battle_of_the_sexes": {
+      "name": "性别博弈",
+      "description": "一对情侣想协调一个晚间活动。一人偏好歌剧，另一人偏好足球。如果两人协调一致则获得正收益，但各自更偏好自己的活动。",
+      "parameters": {
+        "preferred_mispreferred": {"label": "偏好/非偏好收益", "description": "在自己偏好的活动上协调时的收益"},
+        "mispreferred_payoff": {"label": "非偏好单独收益", "description": "未能协调时的收益"}
+      },
+      "actions": {
+        "opera": {"name": "歌剧", "description": "去看歌剧"},
+        "football": {"name": "足球", "description": "去看足球比赛"}
+      }
+    },
+    "stag_hunt": {
+      "name": "猎鹿博弈",
+      "description": "猎人必须全部选择猎鹿（高回报）或猎兔（安全但低回报）。猎鹿需要所有人合作。只要有一人选择猎兔，鹿就会逃跑，猎鹿者什么也得不到。",
+      "parameters": {
+        "stag_reward": {"label": "猎鹿奖励（全员选择时）", "description": "所有猎人都选择猎鹿时的奖励"},
+        "hare_reward": {"label": "猎兔奖励（始终获得）", "description": "选择猎兔的奖励（有保障但较低）"}
+      },
+      "actions": {
+        "stag": {"name": "猎鹿", "description": "猎鹿（需要所有人合作）"},
+        "hare": {"name": "猎兔", "description": "猎兔（安全但回报较低）"}
+      }
+    },
+    "public_goods": {
+      "name": "公共物品博弈",
+      "description": "每个玩家获得初始资源，并决定向公共池投入多少。公共池被乘以倍数后平均分配给所有玩家。",
+      "parameters": {
+        "resource_name": {"label": "资源名称", "description": "资源的名称"},
+        "tokens_per_round": {"label": "每轮数量", "description": "每个智能体每轮获得的资源数量"},
+        "multiplier": {"label": "池乘数", "description": "公共池在分配前被乘以的倍数"}
+      },
+      "actions": {
+        "allocate": {"name": "投入", "description": "将资源投入公共账户"},
+        "keep": {"name": "保留", "description": "本轮保留所有资源"}
+      }
+    }
+  },
+  "game_configs": {
+    "prisoners_dilemma": {
+      "name": "囚徒困境",
+      "description": "两名嫌疑人被分别关押。每个人必须决定是背叛对方还是保持沉默。\n收益：双方合作 → 各判1年。双方背叛 → 各判3年。一方背叛 → 背叛者释放，合作者判5年。",
+      "payoff_summary": "你的收益取决于你和伙伴的选择。",
+      "actions": {
+        "cooperate": "保持沉默并与伙伴合作",
+        "defect": "背叛伙伴并作证指控对方"
+      }
+    },
+    "stag_hunt": {
+      "name": "猎鹿博弈",
+      "description": "一群猎人必须选择猎鹿（高回报，需要合作）或猎兔（低回报，可以独自完成）。",
+      "payoff_summary": "合作带来最高回报，但如果其他人不合作则有风险。",
+      "actions": {
+        "stag": "猎鹿（需要所有人合作）",
+        "hare": "猎兔（安全但回报较低）"
+      }
+    },
+    "minimum_effort": {
+      "name": "最小努力博弈",
+      "description": "玩家同时选择努力水平。所有人的收益取决于任何玩家选择的最低努力。",
+      "payoff_summary": "你的收益取决于任何玩家选择的最低努力水平。",
+      "actions": {}
+    },
+    "information_cascade": {
+      "name": "信息瀑布",
+      "description": "玩家观察之前玩家的行动，必须根据私人信息和观察到的行为做出决定。",
+      "payoff_summary": "你的决定应平衡私人信号和观察到的行为。",
+      "actions": {}
+    },
+    "consensus_game": {
+      "name": "共识博弈",
+      "description": "玩家必须通过反复讨论和投票就某个值达成共识。",
+      "payoff_summary": "成功需要所有玩家就相同的值达成一致。",
+      "actions": {}
+    },
+    "spatial_cooperation": {
+      "name": "空间合作博弈",
+      "description": "玩家排列在空间网格中并与邻居互动。合作通过局部互动传播。",
+      "payoff_summary": "你的收益取决于你的行动和邻居的行动。",
+      "actions": {
+        "cooperate": "与邻居合作",
+        "defect": "利用邻居谋取私利"
       }
     }
   }
