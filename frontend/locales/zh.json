@@ -586,11 +586,25 @@
         "rural": "乡村"
       },
       "newCategory": "新类别",
+      "dimensions": {
+        "age": "年龄",
+        "location": "地区"
+      },
       "ageRanges": {
         "young": "18-30岁",
         "middle": "31-50岁",
         "senior": "51岁以上"
       }
+    },
+    "llmDistribution": {
+      "title": "LLM 分配",
+      "loadingProviders": "正在加载提供商...",
+      "noProviders": "当前没有可用的 LLM 提供商。",
+      "configureInSettings": "请先在设置中配置提供商。",
+      "addLlm": "添加 LLM",
+      "totalValid": "总计：100% ✓",
+      "mustEqual100": "总占比必须等于 100%（当前 {{count}}%）",
+      "distributionHint": "分配结果会在生成智能体时应用。"
     }
   },
   "templateBuilder": {
@@ -1924,7 +1938,9 @@
     "promptPreview": {
       "title": "示例代理提示词",
       "note": "所有 {n} 个代理类型接收相同的场景、行动和输出格式。只有代理描述不同。",
-      "otherTypes": "其他代理类型"
+      "otherTypes": "其他代理类型",
+      "agentTypeLabel": "代理类型：{name}",
+      "youAre": "你是"
     },
     "actions": {
       "chooseAction": "选择 {{action}}"
@@ -1990,6 +2006,16 @@
         "soccer": "去足球比赛",
         "ballet": "去芭蕾舞",
         "choose": "选择{{action}}"
+      },
+      "actionNames": {
+        "cooperate": "合作",
+        "defect": "背叛",
+        "hunt_stag": "猎鹿",
+        "hunt_hare": "猎兔",
+        "heads": "正面",
+        "tails": "反面",
+        "soccer": "足球",
+        "ballet": "芭蕾"
       }
     },
     "keyValueField": {
@@ -2045,15 +2071,25 @@
         "yourPayoffs": "你的收益：",
         "instruction": "填写根据你的选择和对方的选择你将获得什么。",
         "youThey": "你：{{actionA}} / 对方：{{actionB}}"
+      },
+      "actionNames": {
+        "cooperate": "合作",
+        "defect": "背叛",
+        "hunt_stag": "猎鹿",
+        "hunt_hare": "猎兔",
+        "heads": "正面",
+        "tails": "反面",
+        "soccer": "足球",
+        "ballet": "芭蕾"
       }
     },
     "llmDistribution": {
-      "title": "LLM Distribution",
+      "title": "LLM 分配",
       "loadingProviders": "正在加载提供商...",
       "noProviders": "当前没有可用的 LLM 提供商。",
       "configureInSettings": "请先在设置中配置提供商。",
-      "addLlm": "Add LLM",
-      "totalValid": "Total: 100% ✓",
+      "addLlm": "添加 LLM",
+      "totalValid": "总计：100% ✓",
       "mustEqual100": "总占比必须等于 100%（当前 {{count}}%）",
       "distributionHint": "分配结果会在生成智能体时应用。"
     },

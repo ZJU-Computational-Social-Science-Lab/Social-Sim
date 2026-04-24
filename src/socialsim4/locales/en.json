@@ -505,6 +505,7 @@
     "prisoners_dilemma": {
       "name": "Prisoner's Dilemma",
       "description": "Two suspects are arrested and held separately. Each must decide whether to betray the other or remain silent. Your payoff depends on both your choice and your partner's choice.",
+      "description_template": "Two agents choose between {action_1} or {action_2}. Payoff depends on both choices.",
       "parameters": {
         "cooperate_reward": {"label": "Both Cooperate", "description": "Reward when both prisoners cooperate"},
         "sucker_penalty": {"label": "You Cooperate, They Defect", "description": "Penalty for cooperating while partner defects"},
@@ -519,6 +520,7 @@
     "battle_of_the_sexes": {
       "name": "Battle of the Sexes",
       "description": "A couple wants to coordinate on an evening activity. One prefers opera, the other prefers football. They get positive payoff if they coordinate, but each prefers their own activity.",
+      "description_template": "Two agents coordinate. One prefers {action_1}, the other {action_2}.",
       "parameters": {
         "preferred_mispreferred": {"label": "Preferred / Mispreferred Payoff", "description": "Payoff for coordinating on your preferred activity"},
         "mispreferred_payoff": {"label": "Mispreferred Alone Payoff", "description": "Payoff when failing to coordinate"}
@@ -531,6 +533,7 @@
     "stag_hunt": {
       "name": "Stag Hunt",
       "description": "Hunters must all choose stag (high reward) or hare (safe but low reward). Stag requires everyone to cooperate. If even one person chooses hare, the stag escapes and stag hunters get nothing.",
+      "description_template": "Group chooses {action_1} (risky, high reward if all cooperate) or {action_2} (safe, lower reward).",
       "parameters": {
         "stag_reward": {"label": "Stag Reward (if all choose)", "description": "Reward when all hunters choose stag"},
         "hare_reward": {"label": "Hare Reward (always)", "description": "Reward for choosing hare (guaranteed but low)"}
@@ -599,6 +602,97 @@
         "cooperate": "Cooperate with neighbors",
         "defect": "Exploit neighbors for personal gain"
       }
+    }
+  },
+  "experiment": {
+    "agent_embodiment": "You are a {role}. {description} When responding, think and react as this person would — not as a neutral assistant.",
+    "first_round": "This is the first round - no previous context.",
+    "json_only": "No markdown. No explanation. Only JSON.",
+    "response_actions": "## Your Response\nValid actions: {actions}\nRespond with ONLY JSON: {{\"{field}\": \"<action>\"}}",
+    "response_integer": "## Your Response\nChoose a number from {min} to {max}.\nRespond with ONLY JSON: {{\"{field}\": <number>}}",
+    "round_format": "Round {round_num}: {actions}",
+    "previous_rounds": "Previous rounds:\n{rounds}",
+    "payoffs_suffix": ". Payoffs: {payoffs}",
+    "scores_suffix": ". Running total: {scores}",
+    "followup_plain": "You chose to {action}. Please provide your response.",
+    "followup_params": "You chose to {action}. This action requires parameters.",
+    "range_constraint": "CRITICAL: {param} must be {type} between {min} and {max}.",
+    "followup_json": "Respond ONLY with valid JSON: {{\"action\": \"{action}\", {params}}}",
+    "participant_fallback": "You are a participant.",
+    "trait_numeric": "Your {key} score is {value}/100 ({interpretation}).",
+    "trait_string": "Your {key} is {value}.",
+    "payoff": {
+      "pd": {
+        "header": "Payoff Table:",
+        "coop_coop": "- You cooperate, they cooperate: {reward} points",
+        "coop_defect": "- You cooperate, they defect: {penalty} points",
+        "defect_coop": "- You defect, they cooperate: {reward} points",
+        "defect_defect": "- You defect, they defect: {penalty} points"
+      },
+      "pgg": {
+        "intro": "In this experiment, you receive {tokens} {resource} each round.",
+        "pool_concept": "Each person has resources and decides how much to contribute to a shared pool.",
+        "distribution": "The pool is multiplied and distributed equally among all members, regardless of contribution.",
+        "multiplier": "The total group contribution is multiplied by {multiplier} and distributed equally among all {members} members.",
+        "keep": "You keep any {resource} you do not allocate.",
+        "deduction_intro": "After the contribution phase, you have the opportunity to reduce other members' {resource}.",
+        "deduction_budget": "You have a deduction budget of {budget} points.",
+        "deduction_cost": "For each 1 point from your budget, the target loses {ratio} {resource}.",
+        "anonymous": "Your reductions are anonymous - targets will not know who reduced their resources.",
+        "visible": "Your reductions are visible - targets will see who reduced their resources."
+      },
+      "generic_header": "Game Parameters:",
+      "param_format": "- {label}: {value}"
+    },
+    "scenario": {
+      "social_norm": {
+        "description": "The norm or rule in effect: \"{norm}\"",
+        "enforcement": "This norm is {label} enforced in the group.",
+        "strength_weak": "weakly",
+        "strength_moderate": "moderately",
+        "strength_strong": "strongly"
+      },
+      "policy_erosion": {
+        "policy_text": "The policy being transmitted is: \"{policy}\"",
+        "tier_labels": "The hierarchy levels (top to bottom): {tiers}."
+      },
+      "echo_chamber": {
+        "topic": "The discussion topic is: \"{topic}\"",
+        "dist_balanced": "The group's opinions are currently balanced.",
+        "dist_polarized": "The group's opinions are currently polarized into opposing camps.",
+        "dist_random": "The group's opinions are currently distributed randomly."
+      },
+      "resource_scarcity": {
+        "amount": "There are {amount} units of shared resource available to the group.",
+        "dist_equal": "Resources are currently distributed equally among all members.",
+        "dist_random": "Resources are currently distributed randomly among members.",
+        "dist_skewed": "Resources are currently distributed unevenly, with some members holding much more than others."
+      },
+      "council": {
+        "proposal": "The proposal under discussion is: \"{proposal}\"",
+        "deliberation_rounds": "There will be {rounds} round(s) of deliberation before voting begins.",
+        "no_vote_yet": "You cannot vote until the deliberation period is complete."
+      }
+    },
+    "reduce_description": "Reduce another agent's resources",
+    "choose_action": "Choose {choice}",
+    "section_embodiment": "=== EMBODY THIS PERSON ===",
+    "section_scenario": "## Scenario",
+    "section_actions": "## Available Actions",
+    "section_action_integer": "## Your Action",
+    "section_context": "## Context",
+    "section_social_network": "## Your Social Network",
+    "agent_identity": "You are {name}.",
+    "agent_identity_with_adj": "You are {article} {adj} {noun}.",
+    "agent_identity_adj_only": "You are {article} {adj}.",
+    "agent_identity_noun_only": "You are {article} {noun}.",
+    "choose_range": "Choose a value from {min} to {max}.",
+    "rounds_omitted": "... (earlier rounds omitted)",
+    "your_response": "Your response:",
+    "interpretation": {
+      "low": "low",
+      "moderate": "moderate",
+      "high": "high"
     }
   }
 }

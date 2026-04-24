@@ -202,8 +202,8 @@ export const Step4Agents: React.FC = () => {
 
   const [demographics, setDemographics] = useState<Demographic[]>([]);
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
-  const [traits, setTraits] = useState<TraitConfig[]>([
-    { id: generateId(), name: 'Trust', mean: 50, std: 15 }
+  const [traits, setTraits] = useState<TraitConfig[]>(() => [
+    { id: generateId(), name: t('wizard.defaults.traits.trust'), mean: 50, std: 15 }
   ]);
   const [propertyDrafts, setPropertyDrafts] = useState<Record<string, Array<{ id: string; originalKey: string; key: string; value: string }>>>({});
   const [genCount, setGenCount] = useState(5);
@@ -261,13 +261,13 @@ export const Step4Agents: React.FC = () => {
       setDemographics([
         {
           id: generateId(),
-          name: 'Age',
-          categories: ['18-30', '31-50', '51+'],
+          name: t('wizard.defaults.dimensions.age'),
+          categories: [t('wizard.defaults.ageRanges.young'), t('wizard.defaults.ageRanges.middle'), t('wizard.defaults.ageRanges.senior')],
         },
         {
           id: generateId(),
-          name: 'Location',
-          categories: ['Urban', 'Suburban', 'Rural'],
+          name: t('wizard.defaults.dimensions.location'),
+          categories: [t('wizard.defaults.categories.urban'), t('wizard.defaults.categories.suburban'), t('wizard.defaults.categories.rural')],
         },
       ]);
     }
@@ -1120,7 +1120,8 @@ export const Step4Agents: React.FC = () => {
             onUpdateLlmAllocation={handleUpdateLlmAllocation}
             availableProviders={llmProviders as any}
             providersLoading={false}
-            useTranslation={false}
+            useTranslation={true}
+            t={t}
           />
         </div>
       )}

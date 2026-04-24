@@ -586,11 +586,25 @@
         "rural": "Rural"
       },
       "newCategory": "New Category",
+      "dimensions": {
+        "age": "Age",
+        "location": "Location"
+      },
       "ageRanges": {
         "young": "18-30",
         "middle": "31-50",
         "senior": "51+"
       }
+    },
+    "llmDistribution": {
+      "title": "LLM Distribution",
+      "loadingProviders": "Loading providers...",
+      "noProviders": "No LLM providers configured.",
+      "configureInSettings": "Please configure providers in Settings.",
+      "addLlm": "Add LLM",
+      "totalValid": "Total: 100% ✓",
+      "mustEqual100": "Total must equal 100% (currently {{count}}%)",
+      "distributionHint": "Distribution will be applied when agents are generated."
     }
   },
   "templateBuilder": {
@@ -1934,7 +1948,9 @@
     "promptPreview": {
       "title": "Example Agent Prompt",
       "note": "All {n} agent type(s) receive the same scenario, actions, and output format. Only the agent description changes.",
-      "otherTypes": "Other agent types"
+      "otherTypes": "Other agent types",
+      "agentTypeLabel": "Agent Type: {name}",
+      "youAre": "You are"
     },
     "actions": {
       "chooseAction": "Choose {{action}}"
@@ -2000,6 +2016,16 @@
         "soccer": "Go to the soccer game",
         "ballet": "Go to the ballet",
         "choose": "Choose {{action}}"
+      },
+      "actionNames": {
+        "cooperate": "Cooperate",
+        "defect": "Defect",
+        "hunt_stag": "Hunt Stag",
+        "hunt_hare": "Hunt Hare",
+        "heads": "Heads",
+        "tails": "Tails",
+        "soccer": "Soccer",
+        "ballet": "Ballet"
       }
     },
     "keyValueField": {
@@ -2055,6 +2081,16 @@
         "yourPayoffs": "Your Payoffs:",
         "instruction": "Fill in what YOU receive based on YOUR choice and THEIR choice.",
         "youThey": "You: {{actionA}} / They: {{actionB}}"
+      },
+      "actionNames": {
+        "cooperate": "Cooperate",
+        "defect": "Defect",
+        "hunt_stag": "Hunt Stag",
+        "hunt_hare": "Hunt Hare",
+        "heads": "Heads",
+        "tails": "Tails",
+        "soccer": "Soccer",
+        "ballet": "Ballet"
       }
     },
     "llmDistribution": {

@@ -15,25 +15,28 @@ from typing import Dict, Any, Literal
 
 from socialsim4.core.experiment.agent import ExperimentAgent
 from socialsim4.core.experiment.game_configs import GameConfig
+from socialsim4.i18n import T
 
 logger = logging.getLogger(__name__)
 
 
-def _interpret_score(value: int) -> str:
+def _interpret_score(value: int, locale: str = "en") -> str:
     """Convert numeric score to interpretation bracket.
 
     Args:
         value: Numeric score from 0-100
+        locale: Language code for i18n (default "en")
 
     Returns:
-        "low", "moderate", or "high"
+        "low", "moderate", or "high" (translated)
     """
     if value <= 33:
-        return "low"
+        level = "low"
     elif value <= 66:
-        return "moderate"
+        level = "moderate"
     else:
-        return "high"
+        level = "high"
+    return T(f"experiment.interpretation.{level}", locale=locale)
 
 
 def _get_article(word: str) -> str:
@@ -49,7 +52,7 @@ def _get_article(word: str) -> str:
     return "an" if word.lower().startswith(vowels) else "a"
 
 
-def truncate_context_to_budget(context: str, budget_chars: int) -> str:
+def truncate_context_to_budget(context: str, budget_chars: int, locale: str = "en") -> str:
     """Truncate context to fit within a character budget.
 
     Preserves whole lines, dropping from the middle to keep first and last content.
@@ -58,6 +61,7 @@ def truncate_context_to_budget(context: str, budget_chars: int) -> str:
     Args:
         context: Context string to truncate
         budget_chars: Maximum number of characters (0 = no limit)
+        locale: Language code for i18n (default "en")
 
     Returns:
         Truncated context string, or original if within budget
@@ -70,7 +74,7 @@ def truncate_context_to_budget(context: str, budget_chars: int) -> str:
     for line in lines:
         needed = len(line) + (1 if result else 0)
         if chars + needed > budget_chars:
-            result.append("... (earlier rounds omitted)")
+            result.append(T("experiment.rounds_omitted", locale=locale))
             break
         result.append(line)
         chars += needed
@@ -80,7 +84,8 @@ def truncate_context_to_budget(context: str, budget_chars: int) -> str:
 def build_agent_description(
     agent_properties: Dict[str, Any],
     role_prompt: str = None,
-    agent_name: str = ""
+    agent_name: str = "",
+    locale: str = "en",
 ) -> str:
     """Build agent description section from demographic properties.
 
@@ -95,6 +100,7 @@ def build_agent_description(
         agent_properties: Dict of demographic properties
         role_prompt: Optional role prompt to use instead of demographic description
         agent_name: Agent name used as identity fallback for manual agents
+        locale: Language code for i18n (default "en")
 
     Returns:
         Formatted agent description string with "=== EMBODY THIS PERSON ===" header
@@ -119,7 +125,7 @@ def build_agent_description(
 
     # Manual agent: no meaningful properties → use name directly
     if not meaningful_props:
-        return f"You are {agent_name}." if agent_name else "You are a participant."
+        return T("experiment.agent_identity", locale=locale, name=agent_name) if agent_name else T("experiment.participant_fallback", locale=locale)
 
     parts = []
 
@@ -137,28 +143,25 @@ def build_agent_description(
         profession = meaningful_props.get("profession") or meaningful_props.get("role") or meaningful_props.get("occupation")
 
         if age_group and profession:
-            article = _get_article(age_group)
-            parts.append(f"You are {article} {age_group} {profession}.")
+            parts.append(T("experiment.agent_identity_with_adj", locale=locale, article=_get_article(age_group), adj=age_group, noun=profession))
         elif age_group:
-            article = _get_article(age_group)
-            parts.append(f"You are {article} {age_group}.")
+            parts.append(T("experiment.agent_identity_adj_only", locale=locale, article=_get_article(age_group), adj=age_group))
         elif profession:
-            article = _get_article(profession)
-            parts.append(f"You are {article} {profession}.")
+            parts.append(T("experiment.agent_identity_noun_only", locale=locale, article=_get_article(profession), noun=profession))
     else:
         # No identity properties - use agent name as identity
         if agent_name:
-            parts.append(f"You are {agent_name}.")
+            parts.append(T("experiment.agent_identity", locale=locale, name=agent_name))
 
     # Add numeric traits with interpretation
     for key, value in meaningful_props.items():
         if key in _identity_keys:
             continue  # Already handled
         if isinstance(value, (int, float)):
-            interpretation = _interpret_score(int(value))
-            parts.append(f"Your {key} score is {value}/100 ({interpretation}).")
+            interpretation = _interpret_score(int(value), locale=locale)
+            parts.append(T("experiment.trait_numeric", locale=locale, key=key, value=value, interpretation=interpretation))
         elif isinstance(value, str) and value:
-            parts.append(f"Your {key} is {value}.")
+            parts.append(T("experiment.trait_string", locale=locale, key=key, value=value))
 
     return " ".join(parts)
 
@@ -174,6 +177,7 @@ def build_prompt(
     neighbor_context: str = "",
     allowed_actions: list[str] | None = None,
     speak_instruction: str | None = None,
+    locale: str = "en",
 ) -> str:
     """Build the 5-section structured prompt.
 
@@ -185,6 +189,7 @@ def build_prompt(
         allowed_actions: Optional filtered list of actions (GAP-CLOSURE-01).
                         If provided, overrides game_config.actions for phase-based filtering.
         speak_instruction: Optional instruction for speak action (e.g., brevity constraint).
+        locale: Language code for i18n (default "en").
 
     Returns:
         Complete prompt string
@@ -196,10 +201,11 @@ def build_prompt(
     agent_desc = build_agent_description(
         agent.get_properties_dict(),
         role_prompt=getattr(agent, 'role_prompt', None),
-        agent_name=agent.name
+        agent_name=agent.name,
+        locale=locale,
     )
     # Add header for Section 1 - "EMBODY THIS PERSON"
-    sections.append("=== EMBODY THIS PERSON ===")
+    sections.append(T("experiment.section_embodiment", locale=locale))
     sections.append(agent_desc)
 
     # Section 2: Scenario (including payoff_summary if present - Bug B)
@@ -208,7 +214,7 @@ def build_prompt(
         scenario_text += f"\n\n{game_config.payoff_summary}"
     if include_section_markers:
         sections.append("\n=== SECTION 2: SCENARIO ===")
-    sections.append(f"\n## Scenario\n{scenario_text}")
+    sections.append(f"\n{T('experiment.section_scenario', locale=locale)}\n{scenario_text}")
 
     # Section 3: Available Actions (using descriptions - Bug A)
     # GAP-CLOSURE-01: Use allowed_actions if provided for phase-based filtering
@@ -231,15 +237,15 @@ def build_prompt(
         if speak_instruction and "speak" in actions_to_show:
             actions_list += f"\n\n{speak_instruction}"
 
-        sections.append(f"\n## Available Actions\n{actions_list}")
+        sections.append(f"\n{T('experiment.section_actions', locale=locale)}\n{actions_list}")
     else:  # integer
-        sections.append(f"\n## Your Action\nChoose a value from {game_config.min} to {game_config.max}.")
+        sections.append(f"\n{T('experiment.section_action_integer', locale=locale)}\n{T('experiment.choose_range', locale=locale, min=game_config.min, max=game_config.max)}")
 
     # Section 3.5: Social Network Neighbors (if provided)
     if neighbor_context:
         if include_section_markers:
             sections.append("\n=== SECTION 3.5: SOCIAL NETWORK ===")
-        sections.append(f"\n## Your Social Network\n{neighbor_context}")
+        sections.append(f"\n{T('experiment.section_social_network', locale=locale)}\n{neighbor_context}")
 
     # Section 3.6: Knowledge Base (if agent has relevant knowledge)
     if kb_context:
@@ -252,13 +258,13 @@ def build_prompt(
         sections.append("\n=== SECTION 4: CONTEXT ===")
     budget = getattr(information_model, 'context_budget_chars', 0)
     display_context = (
-        truncate_context_to_budget(context_summary, budget)
+        truncate_context_to_budget(context_summary, budget, locale=locale)
         if context_summary else ""
     )
     if display_context:
-        sections.append(f"\n## Context\n{display_context}")
+        sections.append(f"\n{T('experiment.section_context', locale=locale)}\n{display_context}")
     else:
-        sections.append("\n## Context\nThis is the first round - no previous context.")
+        sections.append(f"\n{T('experiment.section_context', locale=locale)}\n{T('experiment.first_round', locale=locale)}")
 
     # Section 5: Output Format
     if include_section_markers:
@@ -267,13 +273,11 @@ def build_prompt(
     if game_config.action_type == "discrete":
         # GAP-CLOSURE-01: Use filtered actions in output format
         actions_formatted = ", ".join(f'"{a}"' for a in actions_to_show)
-        sections.append(f'\n## Your Response\nValid actions: {actions_formatted}')
-        sections.append(f'Respond with ONLY JSON: {{"{field}": "<action>"}}')
+        sections.append(T("experiment.response_actions", locale=locale, actions=actions_formatted, field=field))
     else:  # integer
-        sections.append(f'\n## Your Response\nChoose a number from {game_config.min} to {game_config.max}.')
-        sections.append(f'Respond with ONLY JSON: {{"{field}": <number>}}')
+        sections.append(T("experiment.response_integer", locale=locale, min=game_config.min, max=game_config.max, field=field))
 
-    sections.append("\nNo markdown. No explanation. Only JSON.")
+    sections.append(f"\n{T('experiment.json_only', locale=locale)}")
 
     prompt = "\n".join(sections)
 
@@ -301,6 +305,7 @@ def build_reprompt(
     neighbor_context: str = "",
     allowed_actions: list[str] | None = None,
     speak_instruction: str | None = None,
+    locale: str = "en",
 ) -> str:
     """Build a re-prompt for collecting missing parameters.
 
@@ -314,6 +319,7 @@ def build_reprompt(
         include_section_markers: If True, add explicit section markers for debugging
         allowed_actions: Optional filtered list of actions (GAP-CLOSURE-01)
         speak_instruction: Optional instruction for speak action (e.g., brevity constraint)
+        locale: Language code for i18n (default "en").
 
     Returns:
         Re-prompt string
@@ -327,7 +333,8 @@ def build_reprompt(
         agent_desc = build_agent_description(
             agent.get_properties_dict(),
             role_prompt=getattr(agent, 'role_prompt', None),
-            agent_name=agent.name
+            agent_name=agent.name,
+            locale=locale,
         )
         if include_section_markers:
             sections.append("=== SECTION 1: AGENT DESCRIPTION ===")
@@ -339,32 +346,32 @@ def build_reprompt(
             scenario_text += f"\n\n{game_config.payoff_summary}"
         if include_section_markers:
             sections.append("\n=== SECTION 2: SCENARIO ===")
-        sections.append(f"\n## Scenario\n{scenario_text}")
+        sections.append(f"\n{T('experiment.section_scenario', locale=locale)}\n{scenario_text}")
 
         # Section 4: Context (truncated if needed)
         if include_section_markers:
             sections.append("\n=== SECTION 4: CONTEXT ===")
         budget = getattr(information_model, 'context_budget_chars', 0) if information_model else 0
         display_context = (
-            truncate_context_to_budget(context_summary, budget)
+            truncate_context_to_budget(context_summary, budget, locale=locale)
             if context_summary else ""
         )
         if display_context:
-            sections.append(f"\n## Context\n{display_context}")
+            sections.append(f"\n{T('experiment.section_context', locale=locale)}\n{display_context}")
         else:
-            sections.append("\n## Context\nThis is the first round - no previous context.")
+            sections.append(f"\n{T('experiment.section_context', locale=locale)}\n{T('experiment.first_round', locale=locale)}")
 
         # Follow-up instruction - NO JSON format for plain_text mode
         if include_section_markers:
             sections.append("\n=== FOLLOW-UP PROMPT (Action Requires Parameters) ===")
 
-        sections.append(f"\nYou chose to {chosen_action}. Please provide your response.")
+        sections.append(f"\n{T('experiment.followup_plain', locale=locale, action=chosen_action)}")
 
         # Add brevity instruction for speak action if provided
         if speak_instruction and chosen_action == "speak":
             sections.append(f"\n{speak_instruction}")
 
-        sections.append("Your response:")
+        sections.append(T("experiment.your_response", locale=locale))
 
         full_prompt = "\n".join(sections)
 
@@ -387,7 +394,8 @@ def build_reprompt(
     agent_desc = build_agent_description(
         agent.get_properties_dict(),
         role_prompt=getattr(agent, 'role_prompt', None),
-        agent_name=agent.name
+        agent_name=agent.name,
+        locale=locale,
     )
     if include_section_markers:
         sections.append("=== SECTION 1: AGENT DESCRIPTION ===")
@@ -399,26 +407,26 @@ def build_reprompt(
         scenario_text += f"\n\n{game_config.payoff_summary}"
     if include_section_markers:
         sections.append("\n=== SECTION 2: SCENARIO ===")
-    sections.append(f"\n## Scenario\n{scenario_text}")
+    sections.append(f"\n{T('experiment.section_scenario', locale=locale)}\n{scenario_text}")
 
     # Section 4: Context (truncated if needed)
     if include_section_markers:
         sections.append("\n=== SECTION 4: CONTEXT ===")
     budget = getattr(information_model, 'context_budget_chars', 0) if information_model else 0
     display_context = (
-        truncate_context_to_budget(context_summary, budget)
+        truncate_context_to_budget(context_summary, budget, locale=locale)
         if context_summary else ""
     )
     if display_context:
-        sections.append(f"\n## Context\n{display_context}")
+        sections.append(f"\n{T('experiment.section_context', locale=locale)}\n{display_context}")
     else:
-        sections.append("\n## Context\nThis is the first round - no previous context.")
+        sections.append(f"\n{T('experiment.section_context', locale=locale)}\n{T('experiment.first_round', locale=locale)}")
 
     # Follow-up instruction with JSON format
     if include_section_markers:
         sections.append("\n=== FOLLOW-UP PROMPT (Action Requires Parameters) ===")
 
-    sections.append(f"\nYou chose to {chosen_action}. This action requires parameters.")
+    sections.append(f"\n{T('experiment.followup_params', locale=locale, action=chosen_action)}")
 
     # Detect numeric range constraints in parameter descriptions and highlight them.
     # Pattern matches descriptions like "(integer, 0 to 10)" or "(0 to 20)".
@@ -433,7 +441,7 @@ def build_reprompt(
         if match:
             min_val, max_val = match.group(1), match.group(2)
             sections.append(
-                f"CRITICAL: {param_name} must be {param_type} between {min_val} and {max_val}."
+                T("experiment.range_constraint", locale=locale, param=param_name, type=param_type, min=min_val, max=max_val)
             )
 
     # Build JSON template with concise range-aware placeholders
@@ -447,8 +455,8 @@ def build_reprompt(
             params_parts.append(f'"{k}": <{desc}>')
     params_desc = ", ".join(params_parts)
 
-    sections.append(f"\nRespond ONLY with valid JSON: {{\"action\": \"{chosen_action}\", {params_desc}}}")
-    sections.append("\nNo markdown. No explanation. Only JSON.")
+    sections.append(f"\n{T('experiment.followup_json', locale=locale, action=chosen_action, params=params_desc)}")
+    sections.append(f"\n{T('experiment.json_only', locale=locale)}")
 
     full_prompt = "\n".join(sections)
 

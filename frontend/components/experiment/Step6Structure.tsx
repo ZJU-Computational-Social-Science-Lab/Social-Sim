@@ -146,7 +146,7 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
         }}
       >
         <span className="text-sm font-semibold" style={{ color: 'var(--ss-heading)' }}>
-          Agent Type: &quot;{agentTypeLabel}&quot;
+          {t('experimentBuilder.promptPreview.agentTypeLabel', { name: agentTypeLabel })}
         </span>
       </div>
 
@@ -160,7 +160,7 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
       >
         {/* Section 1: Agent Description */}
         <div className="mb-4">
-          <span style={{ color: 'var(--ss-brand-primary)' }}>You are</span> {agentTypeLabel}.
+          <span style={{ color: 'var(--ss-brand-primary)' }}>{t('experimentBuilder.promptPreview.youAre')}</span> {agentTypeLabel}.
           {agentTypeRolePrompt ? (
             <>
               {' '}
@@ -293,7 +293,7 @@ export const Step6Structure: React.FC = () => {
       >
         <h3 className="text-lg font-semibold" style={{ color: 'var(--ss-heading)' }}>
           {t('experimentBuilder.promptPreview.title')}
-          {selectedType && ` (Agent Type: ${selectedType.label})`}
+          {selectedType && ` (${t('experimentBuilder.promptPreview.agentTypeLabel', { name: selectedType.label })})`}
         </h3>
         <p className="text-sm mt-1" style={{ color: 'var(--ss-text-muted)' }}>
           {t('experimentBuilder.promptPreview.note', { n: agentTypes.length })}

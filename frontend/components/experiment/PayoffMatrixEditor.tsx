@@ -37,6 +37,12 @@ export default function PayoffMatrixEditor({
     return action.charAt(0).toUpperCase() + action.slice(1).replace(/_/g, ' ');
   };
 
+  const getActionName = (action: string): string => {
+    const normalized = action.toLowerCase().replace(/\s+/g, '_');
+    const translated = t(`experimentBuilder.payoffMatrix.actionNames.${normalized}`, { defaultValue: '' });
+    return translated || formatActionName(action);
+  };
+
   const getCellKey = (row: string, col: string): string => {
     return `${row}:${col}`;
   };
@@ -89,7 +95,7 @@ export default function PayoffMatrixEditor({
           {[...matrixMeta.rows, ...matrixMeta.cols].filter((v, i, a) => a.indexOf(v) === i).map(action => (
             <div key={action} className="flex items-center gap-2 text-sm">
               <span className="font-medium text-gray-900 bg-white px-2 py-0.5 rounded border">
-                {formatActionName(action)}
+                {getActionName(action)}
               </span>
               <span className="text-gray-600">{getActionDescription(action)}</span>
             </div>
@@ -111,7 +117,7 @@ export default function PayoffMatrixEditor({
               </th>
               {matrixMeta.cols.map(col => (
                 <th key={col} className="border p-2 bg-gray-200 text-gray-900 font-semibold min-w-32">
-                  <div>{formatActionName(col)}</div>
+                  <div>{getActionName(col)}</div>
                   <div className="text-xs text-gray-500 font-normal">{getActionDescription(col)}</div>
                 </th>
               ))}
@@ -121,7 +127,7 @@ export default function PayoffMatrixEditor({
             {matrixMeta.rows.map(row => (
               <tr key={row}>
                 <th className="border p-2 bg-gray-200 text-gray-900 font-semibold min-w-32">
-                  <div>{formatActionName(row)}</div>
+                  <div>{getActionName(row)}</div>
                   <div className="text-xs text-gray-500 font-normal">{getActionDescription(row)}</div>
                 </th>
                 {matrixMeta.cols.map(col => {

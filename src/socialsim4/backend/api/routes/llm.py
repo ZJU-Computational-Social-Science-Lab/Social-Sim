@@ -51,7 +51,7 @@ class GenerateAgentsDemographicsRequest(BaseModel):
     demographics: List[DemographicDimension]
     archetype_probabilities: Dict[str, float] = {}
     traits: List[TraitConfig] = []
-    language: str = "zh"  # Default to Chinese
+    language: str = "en"  # Default to English; frontend sends explicit value
     provider_id: Optional[int] = None
 
 
@@ -223,7 +223,7 @@ async def generate_agents(
             agents.append(
                 GeneratedAgent(
                     id=a.get("id") or None,
-                    name=a.get("name") or f"Agent {i+1}",
+                    name=a.get("name") or T("prompts.llm.generate_agents.agent_name", locale=locale).format(index=i+1),
                     role=a.get("role"),
                     profile=a.get("profile"),
                     provider=provider.provider or "backend",

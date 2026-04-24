@@ -505,6 +505,7 @@
     "prisoners_dilemma": {
       "name": "囚徒困境",
       "description": "两名嫌疑人被分别关押。每个人必须决定是背叛对方还是保持沉默。你的收益取决于你和伙伴的选择。",
+      "description_template": "两个智能体在{action_1}或{action_2}之间做出选择。收益取决于双方的选择。",
       "parameters": {
         "cooperate_reward": {"label": "双方合作", "description": "两名囚徒都合作时的奖励"},
         "sucker_penalty": {"label": "你合作对方背叛", "description": "在伙伴背叛时合作的惩罚"},
@@ -519,6 +520,7 @@
     "battle_of_the_sexes": {
       "name": "性别博弈",
       "description": "一对情侣想协调一个晚间活动。一人偏好歌剧，另一人偏好足球。如果两人协调一致则获得正收益，但各自更偏好自己的活动。",
+      "description_template": "两个智能体协调选择。一人偏好{action_1}，另一人偏好{action_2}。",
       "parameters": {
         "preferred_mispreferred": {"label": "偏好/非偏好收益", "description": "在自己偏好的活动上协调时的收益"},
         "mispreferred_payoff": {"label": "非偏好单独收益", "description": "未能协调时的收益"}
@@ -531,6 +533,7 @@
     "stag_hunt": {
       "name": "猎鹿博弈",
       "description": "猎人必须全部选择猎鹿（高回报）或猎兔（安全但低回报）。猎鹿需要所有人合作。只要有一人选择猎兔，鹿就会逃跑，猎鹿者什么也得不到。",
+      "description_template": "群体选择{action_1}（高风险，全员合作则高回报）或{action_2}（安全，较低回报）。",
       "parameters": {
         "stag_reward": {"label": "猎鹿奖励（全员选择时）", "description": "所有猎人都选择猎鹿时的奖励"},
         "hare_reward": {"label": "猎兔奖励（始终获得）", "description": "选择猎兔的奖励（有保障但较低）"}
@@ -599,6 +602,97 @@
         "cooperate": "与邻居合作",
         "defect": "利用邻居谋取私利"
       }
+    }
+  },
+  "experiment": {
+    "agent_embodiment": "你是一个{role}。{description} 在回应时，请以这个人的身份思考和反应，而不是作为中立的助手。",
+    "first_round": "这是第一轮——没有之前的上下文。",
+    "json_only": "不要使用Markdown格式。不要解释。只输出JSON。",
+    "response_actions": "## 你的回应\n有效动作：{actions}\n只返回JSON：{{\"{field}\": \"<动作>\"}}",
+    "response_integer": "## 你的回应\n从 {min} 到 {max} 中选择一个数字。\n只返回JSON：{{\"{field}\": <数字>}}",
+    "round_format": "第 {round_num} 轮：{actions}",
+    "previous_rounds": "之前的轮次：\n{rounds}",
+    "payoffs_suffix": "。收益：{payoffs}",
+    "scores_suffix": "。累计得分：{scores}",
+    "followup_plain": "你选择了{action}。请提供你的回应。",
+    "followup_params": "你选择了{action}。此动作需要参数。",
+    "range_constraint": "关键：{param} 必须是 {type}，范围在 {min} 到 {max} 之间。",
+    "followup_json": "只返回有效的JSON：{{\"action\": \"{action}\", {params}}}",
+    "participant_fallback": "你是一名参与者。",
+    "trait_numeric": "你的{key}得分是{value}/100（{interpretation}）。",
+    "trait_string": "你的{key}是{value}。",
+    "payoff": {
+      "pd": {
+        "header": "收益表：",
+        "coop_coop": "- 你合作，对方合作：{reward} 分",
+        "coop_defect": "- 你合作，对方背叛：{penalty} 分",
+        "defect_coop": "- 你背叛，对方合作：{reward} 分",
+        "defect_defect": "- 你背叛，对方背叛：{penalty} 分"
+      },
+      "pgg": {
+        "intro": "在本实验中，你每轮收到 {tokens} {resource}。",
+        "pool_concept": "每个人都有资源，并决定向公共池投入多少。",
+        "distribution": "公共池被乘以倍数后平均分配给所有成员，无论贡献多少。",
+        "multiplier": "小组总贡献乘以 {multiplier} 后平均分配给所有 {members} 名成员。",
+        "keep": "你保留未投入的任何{resource}。",
+        "deduction_intro": "在贡献阶段之后，你有机会减少其他成员的{resource}。",
+        "deduction_budget": "你有 {budget} 点扣除预算。",
+        "deduction_cost": "每使用1点预算，目标成员失去 {ratio} {resource}。",
+        "anonymous": "你的扣除是匿名的——目标不会知道谁扣除了他们的资源。",
+        "visible": "你的扣除是公开的——目标会看到谁扣除了他们的资源。"
+      },
+      "generic_header": "游戏参数：",
+      "param_format": "- {label}：{value}"
+    },
+    "scenario": {
+      "social_norm": {
+        "description": "当前生效的规范或规则：\"{norm}\"",
+        "enforcement": "该规范在群体中被{label}执行。",
+        "strength_weak": "弱",
+        "strength_moderate": "中等程度",
+        "strength_strong": "强"
+      },
+      "policy_erosion": {
+        "policy_text": "正在传达的政策是：\"{policy}\"",
+        "tier_labels": "层级结构（从上到下）：{tiers}。"
+      },
+      "echo_chamber": {
+        "topic": "讨论主题是：\"{topic}\"",
+        "dist_balanced": "群体的观点目前是平衡的。",
+        "dist_polarized": "群体的观点目前两极分化为对立阵营。",
+        "dist_random": "群体的观点目前随机分布。"
+      },
+      "resource_scarcity": {
+        "amount": "小组共有 {amount} 单位的共享资源。",
+        "dist_equal": "资源目前在所有成员中平均分配。",
+        "dist_random": "资源目前在成员中随机分配。",
+        "dist_skewed": "资源目前分配不均，部分成员持有远多于其他成员。"
+      },
+      "council": {
+        "proposal": "正在讨论的提案是：\"{proposal}\"",
+        "deliberation_rounds": "在投票开始前将有 {rounds} 轮审议。",
+        "no_vote_yet": "在审议期结束前你不能投票。"
+      }
+    },
+    "reduce_description": "减少另一名智能体的资源",
+    "choose_action": "选择 {choice}",
+    "section_embodiment": "=== 化身为以下人物 ===",
+    "section_scenario": "## 场景",
+    "section_actions": "## 可用动作",
+    "section_action_integer": "## 你的动作",
+    "section_context": "## 上下文",
+    "section_social_network": "## 你的社交网络",
+    "agent_identity": "你是{name}。",
+    "agent_identity_with_adj": "你是一个{adj}{noun}。",
+    "agent_identity_adj_only": "你是一个{adj}。",
+    "agent_identity_noun_only": "你是一个{noun}。",
+    "choose_range": "从{min}到{max}中选择一个值。",
+    "rounds_omitted": "……（早期轮次已省略）",
+    "your_response": "你的回应：",
+    "interpretation": {
+      "low": "低",
+      "moderate": "中",
+      "high": "高"
     }
   }
 }

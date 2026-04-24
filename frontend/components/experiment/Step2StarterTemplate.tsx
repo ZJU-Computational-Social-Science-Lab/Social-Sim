@@ -46,7 +46,9 @@ function PayoffInput({ value, actionA = 'Action 1', actionB = 'Action 2', onChan
 
   // Helper to translate action names
   const translateAction = (action: string) => {
-    return t(`experimentBuilder.step2.actionNames.${action}`, { defaultValue: action });
+    const normalized = action.toLowerCase().replace(/\s+/g, '_');
+    const translated = t(`experimentBuilder.step2.actionNames.${normalized}`, { defaultValue: '' });
+    return translated || action;
   };
 
   const translatedActionA = translateAction(actionA);

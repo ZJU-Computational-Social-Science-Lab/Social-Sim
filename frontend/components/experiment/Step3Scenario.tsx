@@ -174,6 +174,18 @@ export const Step3Scenario: React.FC = () => {
     return t(`experimentBuilder.step3.policyActions.${actionName}.label`, { defaultValue: actionName });
   };
 
+  const getActionName = (actionName: string): string => {
+    const normalized = actionName.toLowerCase().replace(/\s+/g, '_');
+    const translated = t(`experimentBuilder.payoffMatrix.actionNames.${normalized}`, { defaultValue: '' });
+    return translated || actionName;
+  };
+
+  const getActionDescription = (actionName: string, fallback: string): string => {
+    const normalized = actionName.toLowerCase().replace(/\s+/g, '_');
+    const translated = t(`experimentBuilder.payoffMatrix.actions.${normalized}`, { defaultValue: '' });
+    return translated || fallback;
+  };
+
   // Check if actions are dynamically generated
   const generatorParam = selectedScenarioData?.parameters?.find(
     (p) => p.generates_actions === true
@@ -354,8 +366,8 @@ export const Step3Scenario: React.FC = () => {
           allActions.map((action) => (
             <ActionToggleCard
               key={action.name}
-              name={isPolicyCascadeScenario ? getPolicyActionLabel(action.name) : action.name}
-              description={action.description}
+              name={isPolicyCascadeScenario ? getPolicyActionLabel(action.name) : getActionName(action.name)}
+              description={isPolicyCascadeScenario ? action.description : getActionDescription(action.name, action.description)}
               selected={selectedActionIds.includes(action.name)}
               onToggle={() => handleToggleAction(action.name)}
               isCustom={action.isCustom}
