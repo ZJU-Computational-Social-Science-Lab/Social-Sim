@@ -46,6 +46,10 @@ pypdf>=4.0.0
 python-docx>=1.1.0
 openpyxl>=3.1.0  # Excel file reading for Xihu survey data
 
+# PyTorch — pinned to 2.4.x for Tesla V100 (compute capability 7.0) support.
+# PyTorch 2.5+ dropped CC 7.0 kernels; V100 requires <=2.4.x.
+torch>=2.4.0,<2.5.0
+
 # Embeddings (for RAG)
 sentence-transformers>=2.2.0
 
