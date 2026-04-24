@@ -1,4 +1,5 @@
 import { apiClient } from '../../services/client';
+import i18n from '../../i18n';
 import type { Agent } from '../../types';
 
 export const generateAgentsWithAI = async (
@@ -22,8 +23,8 @@ export const generateAgentsWithAI = async (
       ? response.data.agents
       : [];
 
-  const fallbackRole = language === 'zh' ? '角色' : 'Role';
-  const fallbackProfile = language === 'zh' ? '暂无描述' : 'No description';
+  const fallbackRole = i18n.t('agentGeneration.fallbacks.role');
+  const fallbackProfile = i18n.t('agentGeneration.fallbacks.profile');
 
   return rawAgents.map((agent: any, index: number) => ({
     id: agent.id || `gen_${Date.now()}_${index}`,
@@ -48,14 +49,15 @@ export async function generateAgentsWithDemographics(
   providerId?: string | number,
 ): Promise<Agent[]> {
   if (!traits || traits.length === 0) {
-    throw new Error('At least one trait (e.g., Trust, Empathy) is required. Please add traits with mean and standard deviation values.');
+    throw new Error(i18n.t('agentGeneration.errors.traits_required'));
   }
   if (!demographics || demographics.length === 0) {
-    throw new Error('At least one demographic dimension (e.g., Age, Political View) is required. Please add demographics with categories.');
+    throw new Error(i18n.t('agentGeneration.errors.demographics_required'));
   }
   for (const demographic of demographics) {
     if (!demographic.categories || demographic.categories.length === 0) {
-      throw new Error(`Demographic '${demographic.name}' must have at least one category.`);
+      throw new Error(i18n.t('agentGeneration.errors.demographic_needs_categories',
+        { name: demographic.name }));
     }
   }
 
@@ -74,8 +76,8 @@ export async function generateAgentsWithDemographics(
       ? response.data.agents
       : [];
 
-  const fallbackRole = language === 'zh' ? '角色' : 'Role';
-  const fallbackProfile = language === 'zh' ? '暂无描述' : 'No description';
+  const fallbackRole = i18n.t('agentGeneration.fallbacks.role');
+  const fallbackProfile = i18n.t('agentGeneration.fallbacks.profile');
 
   return rawAgents.map((agent: any, index: number) => ({
     id: agent.id || `gen_${Date.now()}_${index}`,

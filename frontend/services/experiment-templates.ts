@@ -7,6 +7,7 @@
  */
 
 import { apiGet, apiPost } from './client';
+import i18n from '../i18n';
 
 // =============================================================================
 // Types
@@ -108,27 +109,6 @@ const ACTION_TYPE_MAPPING: Record<string, string> = {
 };
 
 /**
- * Map action names to descriptions
- */
-const ACTION_DESCRIPTIONS: Record<string, string> = {
-  'cooperate': 'Cooperate with the other player(s) for mutual benefit',
-  'defect': 'Act in self-interest, potentially harming others',
-  'conform': 'Align with the group choice or opinion',
-  'betray': 'Break trust for personal gain',
-  'invest': 'Contribute resources to a public good',
-  'withdraw': 'Remove resources or opt out',
-  'share': 'Distribute resources to others',
-  'keep': 'Retain resources for oneself',
-  'move_left': 'Move to the left in the spatial arrangement',
-  'move_right': 'Move to the right in the spatial arrangement',
-  'stay': 'Remain in current position',
-  'vote_yes': 'Vote in favor of the proposal',
-  'vote_no': 'Vote against the proposal',
-  'abstain': 'Neither vote for nor against',
-  'speak': 'Communicate with other agents',
-};
-
-/**
  * Get the ActionType enum value for an action name
  */
 export function getActionType(actionName: string): string {
@@ -136,10 +116,13 @@ export function getActionType(actionName: string): string {
 }
 
 /**
- * Get the description for an action name
+ * Get the description for an action name via i18n.
+ * Falls back to the action name if no translation is found.
  */
 export function getActionDescription(actionName: string): string {
-  return ACTION_DESCRIPTIONS[actionName.toLowerCase()] || actionName;
+  const key = `actionDescriptions.${actionName.toLowerCase()}`;
+  const translation = i18n.t(key);
+  return translation !== key ? translation : actionName;
 }
 
 // =============================================================================

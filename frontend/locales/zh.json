@@ -168,18 +168,11 @@
   "scenario": {
     "category": {
       "game_theory": "博弈论",
-      "social_dynamics": "社会动力学",
       "discussion": "讨论",
       "spatial": "空间/网格",
       "social_deduction": "社会推理",
       "sociology": "社会学",
       "custom": "自定义"
-    },
-    "social_dynamics": {
-      "xihu_yilianbao": {
-        "name": "西湖益联保参保扩散",
-        "description": "模拟符合条件的居民接收 A0-A8 不同信息干预后，如何在官方背书、信息复杂度、家庭医疗负担、竞品负面信息与邻里讨论影响下做出参保决策。"
-      }
     },
     "sociology": {
       "social_norm_disruption": {
@@ -197,6 +190,10 @@
       "resource_scarcity": {
         "name": "资源稀缺",
         "description": "灾后社区面临资源稀缺。智能体决定是分享、交易还是为了个人利益而背叛。"
+      },
+      "xihu_yilianbao": {
+        "name": "西湖益联保参保扩散",
+        "description": "模拟符合条件的居民接收 A0-A8 不同信息干预后，如何在官方背书、信息复杂度、家庭医疗负担、竞品负面信息与邻里讨论影响下做出参保决策。"
       }
     },
     "game_theory": {
@@ -2403,6 +2400,34 @@
     "werewolf": {
       "name": "狼人杀",
       "description": "9人标准狼人杀局。"
+    }
+  },
+  "actionDescriptions": {
+    "cooperate": "与其他玩家合作以实现互利",
+    "defect": "为自身利益行动，可能损害他人",
+    "conform": "与群体的选择或意见保持一致",
+    "betray": "为个人利益破坏信任",
+    "invest": "向公共品投入资源",
+    "withdraw": "撤回资源或退出",
+    "share": "将资源分配给他人",
+    "keep": "为自己保留资源",
+    "move_left": "在空间排列中向左移动",
+    "move_right": "在空间排列中向右移动",
+    "stay": "留在当前位置",
+    "vote_yes": "对提案投赞成票",
+    "vote_no": "对提案投反对票",
+    "abstain": "既不赞成也不反对",
+    "speak": "与其他智能体交流"
+  },
+  "agentGeneration": {
+    "errors": {
+      "traits_required": "至少需要一个特征（如信任度、同理心）。请添加具有均值和标准差值的特征。",
+      "demographics_required": "至少需要一个人口维度（如年龄、政治观点）。请添加包含类别的人口维度。",
+      "demographic_needs_categories": "人口维度 '{{name}}' 必须至少有一个类别。"
+    },
+    "fallbacks": {
+      "role": "角色",
+      "profile": "暂无描述"
     }
   }
 }

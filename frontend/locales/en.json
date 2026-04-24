@@ -168,18 +168,11 @@
   "scenario": {
     "category": {
       "game_theory": "Game Theory",
-      "social_dynamics": "Social Dynamics",
       "discussion": "Discussion",
       "spatial": "Spatial / Grid-Based",
       "social_deduction": "Social Deduction",
       "sociology": "Sociology",
       "custom": "Custom"
-    },
-    "social_dynamics": {
-      "xihu_yilianbao": {
-        "name": "Xihu Yilianbao Enrollment Diffusion",
-        "description": "Eligible residents receive one of the A0-A8 information interventions, then decide whether to enroll for themselves or family members under government endorsement, message complexity, household medical burden, competitor news, and neighborhood discussion."
-      }
     },
     "sociology": {
       "social_norm_disruption": {
@@ -197,6 +190,10 @@
       "resource_scarcity": {
         "name": "Resource Scarcity",
         "description": "A post-disaster community faces scarce resources. Agents decide whether to share, trade, or defect for personal gain."
+      },
+      "xihu_yilianbao": {
+        "name": "Xihu Yilianbao Enrollment Diffusion",
+        "description": "Eligible residents receive one of the A0-A8 information interventions, then decide whether to enroll for themselves or family members under government endorsement, message complexity, household medical burden, competitor news, and neighborhood discussion."
       }
     },
     "game_theory": {
@@ -2411,6 +2408,34 @@
     "werewolf": {
       "name": "Werewolf",
       "description": "Standard 9-player Werewolf game."
+    }
+  },
+  "actionDescriptions": {
+    "cooperate": "Cooperate with the other player(s) for mutual benefit",
+    "defect": "Act in self-interest, potentially harming others",
+    "conform": "Align with the group choice or opinion",
+    "betray": "Break trust for personal gain",
+    "invest": "Contribute resources to a public good",
+    "withdraw": "Remove resources or opt out",
+    "share": "Distribute resources to others",
+    "keep": "Retain resources for oneself",
+    "move_left": "Move to the left in the spatial arrangement",
+    "move_right": "Move to the right in the spatial arrangement",
+    "stay": "Remain in current position",
+    "vote_yes": "Vote in favor of the proposal",
+    "vote_no": "Vote against the proposal",
+    "abstain": "Neither vote for nor against",
+    "speak": "Communicate with other agents"
+  },
+  "agentGeneration": {
+    "errors": {
+      "traits_required": "At least one trait (e.g., Trust, Empathy) is required. Please add traits with mean and standard deviation values.",
+      "demographics_required": "At least one demographic dimension (e.g., Age, Political View) is required. Please add demographics with categories.",
+      "demographic_needs_categories": "Demographic '{{name}}' must have at least one category."
+    },
+    "fallbacks": {
+      "role": "Role",
+      "profile": "No description"
     }
   }
 }
