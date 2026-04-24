@@ -342,7 +342,7 @@ export const Step2StarterTemplate: React.FC = () => {
           onChange={handleDescriptionChange}
           rows={4}
           className="w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 resize-y"
-          style={{ borderColor: 'var(--ss-border-strong)' }}
+          style={{ borderColor: 'var(--ss-border-strong)', background: 'var(--ss-page-surface)', color: 'var(--ss-text)' }}
           placeholder={t('experimentBuilder.step2.scenarioDescriptionPlaceholder')}
         />
       </div>
@@ -434,13 +434,13 @@ export const Step2StarterTemplate: React.FC = () => {
       {/* Round Settings */}
       {hasParameters && (
         <div className="border-t pt-4 mt-4">
-          <h3 className="font-medium mb-3">
+          <h3 className="font-medium mb-3" style={{ color: 'var(--ss-heading)' }}>
             {t('experimentBuilder.roundSettings.title')}
           </h3>
 
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ss-heading)' }}>
                 {t('experimentBuilder.roundSettings.roundVisibility.label')}
               </label>
               <select
@@ -451,6 +451,7 @@ export const Step2StarterTemplate: React.FC = () => {
                   setRoundVisibility(val);
                 }}
                 className="w-full px-3 py-2 border rounded-lg"
+                style={{ borderColor: 'var(--ss-border-strong)', background: 'var(--ss-page-surface)', color: 'var(--ss-text)' }}
               >
                 <option value="simultaneous">
                   {t('experimentBuilder.roundSettings.roundVisibility.simultaneous')}
@@ -463,7 +464,7 @@ export const Step2StarterTemplate: React.FC = () => {
 
             {localRoundVisibility === 'sequential' && (
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--ss-heading)' }}>
                   {t('experimentBuilder.roundSettings.turnOrder.label')}
                 </label>
                 <select
@@ -474,6 +475,7 @@ export const Step2StarterTemplate: React.FC = () => {
                     setTurnOrder(val);
                   }}
                   className="w-full px-3 py-2 border rounded-lg"
+                  style={{ borderColor: 'var(--ss-border-strong)', background: 'var(--ss-page-surface)', color: 'var(--ss-text)' }}
                 >
                   <option value="fixed">
                     {t('experimentBuilder.roundSettings.turnOrder.fixed')}

@@ -223,7 +223,7 @@ export const Step1InteractionType: React.FC = () => {
             const color = CATEGORY_COLORS[category] || '#6b7280';
 
             return (
-              <div key={category} className="border rounded-lg">
+              <div key={category} className="border rounded-lg" style={{ borderColor: 'var(--ss-border-strong)' }}>
                 <button
                   onClick={() => toggleCategory(category)}
                   className="w-full px-4 py-3 flex items-center justify-between"
@@ -231,23 +231,24 @@ export const Step1InteractionType: React.FC = () => {
                 >
                   <div className="flex items-center gap-3">
                     <span
-                      className="px-2 py-1 rounded text-xs font-medium text-white"
+                      className="px-2 py-1 rounded text-xs font-medium text-white flex-shrink-0"
                       style={{ backgroundColor: color }}
                     >
                       {t(`scenario.category.${category}`)}
                     </span>
-                    <span className="font-medium">
+                    <span className="font-medium" style={{ color: 'var(--ss-heading)' }}>
                       {t(`scenario.category.${category}`)}
                     </span>
-                    <span className="text-sm" style={{ color: 'var(--ss-text)' }}>
+                    <span className="text-sm" style={{ color: 'var(--ss-text-muted)' }}>
                       {t('experimentBuilder.step1.scenariosCount', { count: categoryScenarios.length })}
                     </span>
                   </div>
                   <svg
-                    className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                    className={`w-5 h-5 flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
+                    style={{ color: 'var(--ss-text-muted)' }}
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
