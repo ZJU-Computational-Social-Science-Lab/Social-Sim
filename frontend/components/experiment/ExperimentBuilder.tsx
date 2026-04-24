@@ -113,7 +113,7 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
       </div>
 
       {/* Step Content */}
-      <Card className="mb-6">
+      <Card className="mb-6 p-6">
         {currentStep === 1 && (
           <Step1InteractionType />
         )}
