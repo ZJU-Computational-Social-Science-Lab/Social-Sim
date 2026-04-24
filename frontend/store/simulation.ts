@@ -585,7 +585,7 @@ export const createSimulationSlice: StateCreator<
                 rolePrompt: a.rolePrompt,            // ADD: Pass rolePrompt explicitly for experiment templates
                 role: a.role,
                 avatarUrl: a.avatarUrl,
-                llmConfig: a.llmConfig,
+                llmConfig: a.llmConfig || a.llm_config,  // Accept both camelCase and snake_case
                 provider_id: a.provider_id,  // CRITICAL: Preserve provider_id for LLM assignment
                 properties: { ...a.properties, role: a.role },
                 history: a.history || {},

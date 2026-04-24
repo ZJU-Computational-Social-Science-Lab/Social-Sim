@@ -80,38 +80,42 @@ class ExperimentScene:
             for a in self.config.agents
         ]
 
-        # Create per-agent LLM clients based on llm_config.dialect
+        # Create per-agent LLM clients based on provider_id or llm_config.dialect
         # This enables LLM distribution - different agents can use different providers
+        #
+        # Resolution order (defense-in-depth):
+        #   1. provider_clients[provider_id] — authoritative source from DB ProviderConfig
+        #   2. llm_config dict/object        — fallback from agent config
+        #   3. default llm_client             — final fallback
         self._agent_llm_clients = {}
         for agent in self.agents:
-            # Handle both dict (from config) and LLMConfig object
+            # PRIORITY: Use provider_clients[provider_id] when available.
+            # This is the authoritative source — the DB ProviderConfig has the correct
+            # model for each provider, whereas llm_config may have the default provider's
+            # model due to a frontend bug where all agents get the same llmConfig.
+            if agent.provider_id and provider_clients and agent.provider_id in provider_clients:
+                self._agent_llm_clients[agent.name] = provider_clients[agent.provider_id]
+                logger.debug(
+                    f"Using provider_clients[{agent.provider_id}] for {agent.name}"
+                )
+                continue
+
+            # Fallback: Create client from llm_config when provider_id lookup fails
             if agent.llm_config:
-                # Extract config values - handle both dict and LLMConfig object
                 _known_dialects = {"openai", "gemini", "mock", "ollama"}
                 if isinstance(agent.llm_config, dict):
-                    # Accept "dialect" or "provider" as the dialect key (frontend sends "provider")
                     dialect = agent.llm_config.get("dialect") or agent.llm_config.get("provider")
-                    # Treat unknown/sentinel values (e.g. "backend") as "use default"
                     if not dialect or dialect not in _known_dialects:
-                        # Try provider_id lookup, else fall back to default
-                        if agent.provider_id and provider_clients and agent.provider_id in provider_clients:
-                            self._agent_llm_clients[agent.name] = provider_clients[agent.provider_id]
-                        else:
-                            self._agent_llm_clients[agent.name] = llm_client
+                        self._agent_llm_clients[agent.name] = llm_client
                         continue
                     model = agent.llm_config.get("model", "")
                     api_key = agent.llm_config.get("api_key", "")
                     base_url = agent.llm_config.get("base_url")
                     temperature = agent.llm_config.get("temperature", 0.7)
-                    # If api_key missing, resolve from provider_clients or fall back to default client creds
-                    if not api_key:
-                        if agent.provider_id and provider_clients and agent.provider_id in provider_clients:
-                            p = provider_clients[agent.provider_id].provider
-                            api_key = p.api_key
-                            base_url = base_url or p.base_url
-                        elif hasattr(llm_client, 'provider'):
-                            api_key = llm_client.provider.api_key
-                            base_url = base_url or llm_client.provider.base_url
+                    # Resolve credentials from default client if missing
+                    if not api_key and hasattr(llm_client, 'provider'):
+                        api_key = llm_client.provider.api_key
+                        base_url = base_url or llm_client.provider.base_url
                 else:
                     # It's an LLMConfig object
                     dialect = getattr(agent.llm_config, 'dialect', None)
@@ -123,7 +127,6 @@ class ExperimentScene:
                     base_url = getattr(agent.llm_config, 'base_url', None)
                     temperature = getattr(agent.llm_config, 'temperature', 0.7)
 
-                # Create LLM client for this agent based on their dialect
                 from socialsim4.core.llm_config import LLMConfig
                 from socialsim4.core.llm.client import LLMClient as AgentLLMClient
 
