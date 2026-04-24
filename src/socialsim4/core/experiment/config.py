@@ -2,7 +2,9 @@
 Experiment configuration dataclass.
 
 Defines the structure for experiment scenarios including agents,
-actions with descriptions, and scenario parameters.
+actions with descriptions, scenario parameters, and locale.
+
+Contains: ExperimentConfig
 """
 
 from dataclasses import dataclass, field
@@ -20,6 +22,7 @@ class ExperimentConfig:
         description: Human-readable scenario description
         scenario_id: Identifier for the scenario type
         round_visibility: How agents see each other's choices
+        locale: Language code for prompt translation (en/zh)
     """
 
     agents: list[dict[str, Any]]
@@ -30,3 +33,4 @@ class ExperimentConfig:
     scenario_id: str = "custom"
     round_visibility: str = "simultaneous"  # simultaneous | sequential | paired
     social_network: dict = field(default_factory=dict)  # Graph topology: {"edges": [["Alice","Bob"], ...]}
+    locale: str = "en"  # Language for prompts and generated text

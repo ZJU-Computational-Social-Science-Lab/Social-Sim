@@ -848,6 +848,7 @@ class ExperimentRunner:
         if self.scene and hasattr(self.scene, 'get_speak_instruction'):
             speak_instruction = self.scene.get_speak_instruction()
 
+        _locale = getattr(getattr(self.scene, 'config', None), 'locale', 'en') if self.scene else 'en'
         prompt = build_prompt(
             agent, self.game_config, context, include_section_markers=True,
             information_model=self.information_model,
@@ -855,6 +856,7 @@ class ExperimentRunner:
             neighbor_context=neighbor_context,
             allowed_actions=allowed_actions,
             speak_instruction=speak_instruction,
+            locale=_locale,
         )
 
         # Build debug output buffer (will be written atomically after LLM call)
@@ -1033,6 +1035,7 @@ class ExperimentRunner:
                 neighbor_context=neighbor_context,
                 allowed_actions=allowed_actions,
                 speak_instruction=speak_instruction,
+                locale=_locale,
             )
 
             # Append controller's debug log to our buffer

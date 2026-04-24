@@ -125,7 +125,7 @@ export function launchExperimentFromBuilderState({
   const isNewArchitecture = scenarioData?.category === 'game_theory' ||
     scenarioData?.category === 'discussion' ||
     scenarioData?.category === 'grid' ||
-    scenarioData?.category === 'social_dynamics' ||
+    scenarioData?.category === 'sociology' ||
     scenarioData?.category === 'social_deduction' ||
     scenarioData?.category === 'spatial';
 
@@ -288,6 +288,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
       })),
       parameters: state.scenarioParams || {},
       round_visibility: state.roundVisibility || 'simultaneous',
+      locale: i18n.language?.startsWith('zh') ? 'zh' : 'en',
     };
 
     // Determine scene type: policy cascade uses dedicated scene, otherwise experiment/generic
@@ -302,7 +303,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
     const isNewArchitecture = scenarioData?.category === 'game_theory' ||
                              scenarioData?.category === 'discussion' ||
                              scenarioData?.category === 'grid' ||
-                             scenarioData?.category === 'social_dynamics' ||
+                             scenarioData?.category === 'sociology' ||
                              scenarioData?.category === 'social_deduction' ||
                              scenarioData?.category === 'spatial';
 

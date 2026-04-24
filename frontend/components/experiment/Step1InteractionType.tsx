@@ -19,7 +19,6 @@ interface ScenarioCardProps {
 
 const CATEGORY_ORDER = [
   'game_theory',
-  'social_dynamics',
   'discussion',
   'spatial',
   'social_deduction',
@@ -29,7 +28,6 @@ const CATEGORY_ORDER = [
 
 const CATEGORY_COLORS: Record<string, string> = {
   game_theory: '#3b82f6',
-  social_dynamics: '#8b5cf6',
   discussion: '#10b981',
   spatial: '#f59e0b',
   social_deduction: '#ef4444',

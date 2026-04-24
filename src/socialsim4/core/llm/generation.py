@@ -425,10 +425,10 @@ def generate_agents_with_archetypes(
         # Create agents with random role and Gaussian noise on traits
         for i in range(count):
             agent_num = global_index + 1
-            name = f"Agent {agent_num}"
+            name = T("prompts.llm.generate_agents.agent_name", locale=language).format(index=agent_num)
 
             # Randomly assign a role from LLM-generated list
-            role = random.choice(template["roles"]) if template["roles"] else "Citizen"
+            role = random.choice(template["roles"]) if template["roles"] else T("prompts.llm.generate_agents.fallback_role", locale=language)
 
             # Generate trait values with Gaussian noise using USER-SPECIFIED mean/std
             properties = {
@@ -453,7 +453,7 @@ def generate_agents_with_archetypes(
             # Main description: You are a {role}. {bio}. When responding...
             description = template["description"]
             profile_lines.append(
-                f"You are a {role}. {description} When responding, think and react as this person would — not as a neutral assistant."
+                T("experiment.agent_embodiment", locale=language, role=role, description=description)
             )
 
             # Attributes line: Age: X | Location: Y | Trust: Z (0-100)

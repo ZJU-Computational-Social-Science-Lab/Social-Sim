@@ -941,6 +941,12 @@ def _translate_scenario(template: dict, locale: str) -> dict:
     if desc != f"scenario_templates.{key_prefix}.description":
         result["description"] = desc
 
+    # Translate description_template if present (game theory scenarios)
+    if "description_template" in result:
+        dt = T(f"scenario_templates.{key_prefix}.description_template", locale=locale)
+        if dt != f"scenario_templates.{key_prefix}.description_template":
+            result["description_template"] = dt
+
     if "parameters" in result:
         translated_params = []
         for p in result["parameters"]:

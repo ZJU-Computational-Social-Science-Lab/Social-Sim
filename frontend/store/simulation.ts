@@ -519,6 +519,7 @@ export const createSimulationSlice: StateCreator<
             time_scale: finalTimeConfig,
             social_network: template.defaultNetwork || {},
             language: i18n.language || 'en',
+            locale: i18n.language?.startsWith('zh') ? 'zh' : 'en',
           };
 
           // Provide opening notice text to backend scenes

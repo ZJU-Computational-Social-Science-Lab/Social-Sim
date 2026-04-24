@@ -15,6 +15,7 @@ from socialsim4.core.experiment.runner import ExperimentRunner, RoundResult
 from socialsim4.core.experiment.game_configs import GameConfig
 from socialsim4.core.experiment.state import ExperimentState, AgentState
 from socialsim4.core.llm.client import LLMClient
+from socialsim4.i18n import T
 
 logger = logging.getLogger(__name__)
 
@@ -396,7 +397,7 @@ class ExperimentScene:
         scenario = None
         try:
             from socialsim4.core.scenarios.registry import get_scenario as _get_scenario
-            scenario = _get_scenario(self.config.scenario_id)
+            scenario = _get_scenario(self.config.scenario_id, locale=self.config.locale)
         except Exception:
             scenario = None
 
@@ -497,16 +498,22 @@ class ExperimentScene:
         if self.config.scenario_id in ("coordination_game", "graph_coloring"):
             choices_str = params.get("choices") or params.get("Choices") or "red, blue, green"
             action_names = [c.strip() for c in choices_str.split(",")]
-            action_descriptions = {c: f"Choose {c}" for c in action_names}
+            action_descriptions = {c: T("experiment.choose_action", locale=self.config.locale, choice=c) for c in action_names}
 
         # Override action names/descriptions from parameterized action_1/action_2 if provided
+        # Use translated descriptions from scenario registry when available
         if params.get("action_1") and params.get("action_2"):
             a1 = params["action_1"]
             a2 = params["action_2"]
             action_names = [a1.lower(), a2.lower()]
+            # Prefer translated descriptions from scenario registry
+            _reg_descs = {
+                a.get("id", "").lower(): a.get("description", a.get("name", ""))
+                for a in (scenario.get("actions", []) if scenario else [])
+            }
             action_descriptions = {
-                a1.lower(): a1,  # Use action name as description
-                a2.lower(): a2,
+                a1.lower(): _reg_descs.get(a1.lower(), a1),
+                a2.lower(): _reg_descs.get(a2.lower(), a2),
             }
 
         # Build description: use description_template if present on the scenario
@@ -590,7 +597,7 @@ class ExperimentScene:
             # Add reduce action when deduction is enabled
             if "reduce" not in action_names:
                 action_names = action_names + ["reduce"]
-                action_descriptions["reduce"] = "Reduce another agent's resources"
+                action_descriptions["reduce"] = T("experiment.reduce_description", locale=self.config.locale)
                 if "reduce" not in followup_modes:
                     followup_modes["reduce"] = "json"
             logger.debug(f"[GAME_CONFIG] Added 'reduce' action (deduction_budget={deduction_budget})")
@@ -678,6 +685,7 @@ class ExperimentScene:
         - Other games: Generic parameter display
         """
         params = self.config.parameters
+        locale = self.config.locale
         logger.debug(f"[PAYOFF] parameters: {params}")
 
         if not params:
@@ -696,27 +704,26 @@ class ExperimentScene:
 
             # Build intertwined scenario description
             lines = [
-                f"In this experiment, you receive {tokens_per_round} {resource_name} each round.",
-                "Each person has resources and decides how much to contribute to a shared pool.",
-                "The pool is multiplied and distributed equally among all members, regardless of contribution.",
+                T("experiment.payoff.pgg.intro", locale=locale, tokens=tokens_per_round, resource=resource_name),
+                T("experiment.payoff.pgg.pool_concept", locale=locale),
+                T("experiment.payoff.pgg.distribution", locale=locale),
                 "",
-                f"The total group contribution is multiplied by {multiplier} and distributed equally among all {num_members} members.",
-                f"You keep any {resource_name} you do not allocate.",
+                T("experiment.payoff.pgg.multiplier", locale=locale, multiplier=multiplier, members=num_members),
+                T("experiment.payoff.pgg.keep", locale=locale, resource=resource_name),
             ]
 
             # Add deduction mechanics if enabled
             if deduction_budget and deduction_budget > 0:
                 lines.append("")
-                anonymity_text = (
-                    "Your reductions are anonymous - targets will not know who reduced their resources."
-                    if deduction_anonymous
-                    else "Your reductions are visible - targets will see who reduced their resources."
-                )
+                anonymity_key = "experiment.payoff.pgg.anonymous" if deduction_anonymous else "experiment.payoff.pgg.visible"
                 lines.append(
-                    f"After the contribution phase, you have the opportunity to reduce other members' {resource_name}. "
-                    f"You have a deduction budget of {deduction_budget} points. "
-                    f"For each 1 point from your budget, the target loses {deduction_cost_ratio} {resource_name}. "
-                    f"{anonymity_text}"
+                    T("experiment.payoff.pgg.deduction_intro", locale=locale, resource=resource_name)
+                    + " "
+                    + T("experiment.payoff.pgg.deduction_budget", locale=locale, budget=deduction_budget)
+                    + " "
+                    + T("experiment.payoff.pgg.deduction_cost", locale=locale, ratio=deduction_cost_ratio)
+                    + " "
+                    + T(anonymity_key, locale=locale)
                 )
 
             return "\n".join(lines)
@@ -728,19 +735,22 @@ class ExperimentScene:
         if has_all_pd:
             # Use the PD-specific format with generic "points" terminology
             # No meta-commentary - just the raw payoffs
-            return f"""Payoff Table:
-- You cooperate, they cooperate: {params['cooperate_reward']} points
-- You cooperate, they defect: {params['sucker_penalty']} points
-- You defect, they cooperate: {params['temptation_reward']} points
-- You defect, they defect: {params['defect_penalty']} points"""
+            lines = [
+                T("experiment.payoff.pd.header", locale=locale),
+                T("experiment.payoff.pd.coop_coop", locale=locale, reward=params['cooperate_reward']),
+                T("experiment.payoff.pd.coop_defect", locale=locale, penalty=params['sucker_penalty']),
+                T("experiment.payoff.pd.defect_coop", locale=locale, reward=params['temptation_reward']),
+                T("experiment.payoff.pd.defect_defect", locale=locale, penalty=params['defect_penalty']),
+            ]
+            return "\n".join(lines)
 
         # Generic parameter display for other game types
-        lines = ["Game Parameters:"]
+        lines = [T("experiment.payoff.generic_header", locale=locale)]
         for key, value in params.items():
             if value is not None:
                 # Format key nicely (snake_case to Title Case)
                 label = key.replace("_", " ").title()
-                lines.append(f"- {label}: {value}")
+                lines.append(T("experiment.payoff.param_format", locale=locale, label=label, value=value))
 
         return "\n".join(lines)
 
@@ -753,6 +763,7 @@ class ExperimentScene:
         """
         params = self.config.parameters
         scenario_id = self.config.scenario_id
+        locale = self.config.locale
         if not params:
             return ""
 
@@ -762,85 +773,79 @@ class ExperimentScene:
             norm_description = params.get("norm_description", "")
             norm_strength = params.get("norm_strength")
             if norm_description:
-                lines.append(f"The norm or rule in effect: \"{norm_description}\"")
+                lines.append(T("experiment.scenario.social_norm.description", locale=locale, norm=norm_description))
             if norm_strength is not None:
                 strength_val = float(norm_strength)
                 if strength_val <= 0.33:
-                    label = "weakly"
+                    label = T("experiment.scenario.social_norm.strength_weak", locale=locale)
                 elif strength_val <= 0.66:
-                    label = "moderately"
+                    label = T("experiment.scenario.social_norm.strength_moderate", locale=locale)
                 else:
-                    label = "strongly"
-                lines.append(f"This norm is {label} enforced in the group.")
+                    label = T("experiment.scenario.social_norm.strength_strong", locale=locale)
+                lines.append(T("experiment.scenario.social_norm.enforcement", locale=locale, label=label))
 
         elif scenario_id == "policy_erosion":
             policy_text = params.get("policy_text", "")
             tier_labels = params.get("tier_labels", "")
             if policy_text:
-                lines.append(f"The policy being transmitted is: \"{policy_text}\"")
+                lines.append(T("experiment.scenario.policy_erosion.policy_text", locale=locale, policy=policy_text))
             if tier_labels:
-                lines.append(f"The hierarchy levels (top to bottom): {tier_labels}.")
+                lines.append(T("experiment.scenario.policy_erosion.tier_labels", locale=locale, tiers=tier_labels))
 
         elif scenario_id == "echo_chamber":
             topic = params.get("topic", "")
             opinion_distribution = params.get("opinion_distribution", "")
             if topic:
-                lines.append(f"The discussion topic is: \"{topic}\"")
+                lines.append(T("experiment.scenario.echo_chamber.topic", locale=locale, topic=topic))
             if opinion_distribution:
-                dist_map = {
-                    "balanced": "The group's opinions are currently balanced.",
-                    "polarized": "The group's opinions are currently polarized into opposing camps.",
-                    "random": "The group's opinions are currently distributed randomly.",
-                }
-                lines.append(dist_map.get(opinion_distribution, f"Opinion distribution: {opinion_distribution}."))
+                dist_key = f"experiment.scenario.echo_chamber.dist_{opinion_distribution}"
+                lines.append(T(dist_key, locale=locale))
 
         elif scenario_id == "resource_scarcity":
             resource_amount = params.get("resource_amount")
             initial_distribution = params.get("initial_distribution", "")
             if resource_amount is not None:
-                lines.append(f"There are {resource_amount} units of shared resource available to the group.")
+                lines.append(T("experiment.scenario.resource_scarcity.amount", locale=locale, amount=resource_amount))
             if initial_distribution:
-                dist_map = {
-                    "equal": "Resources are currently distributed equally among all members.",
-                    "random": "Resources are currently distributed randomly among members.",
-                    "skewed": "Resources are currently distributed unevenly, with some members holding much more than others.",
-                }
-                lines.append(dist_map.get(initial_distribution, f"Initial distribution: {initial_distribution}."))
+                dist_key = f"experiment.scenario.resource_scarcity.dist_{initial_distribution}"
+                lines.append(T(dist_key, locale=locale))
 
         elif scenario_id == "council":
             # GAP-CLOSURE-01: Include deliberation rounds info for council scenarios
             deliberation_rounds = params.get("deliberation_rounds")
             proposal_text = params.get("proposal_text", "")
             if proposal_text:
-                lines.append(f"The proposal under discussion is: \"{proposal_text}\"")
+                lines.append(T("experiment.scenario.council.proposal", locale=locale, proposal=proposal_text))
             if deliberation_rounds is not None and deliberation_rounds > 0:
-                lines.append(f"There will be {deliberation_rounds} round(s) of deliberation before voting begins.")
-                lines.append("You cannot vote until the deliberation period is complete.")
+                lines.append(T("experiment.scenario.council.deliberation_rounds", locale=locale, rounds=deliberation_rounds))
+                lines.append(T("experiment.scenario.council.no_vote_yet", locale=locale))
 
         return "\n".join(lines)
 
     def _build_context_summary(self) -> str:
         """Build context summary from round history."""
+        locale = self.config.locale
         if not self._history:
-            return "This is the first round - no previous context."
+            return T("experiment.first_round", locale=locale)
 
         lines = []
         for entry in self._history[-5:]:  # Last 5 rounds max
             round_num = entry["round"]
             actions = entry["actions"]
             action_strs = [f"{a['agent']}: {a['action']}" for a in actions]
-            line = f"Round {round_num}: {', '.join(action_strs)}"
+            actions_str = ", ".join(action_strs)
+            line = T("experiment.round_format", locale=locale, round_num=round_num, actions=actions_str)
             # Include per-round payoffs if present (game theory scenarios)
             if entry.get("payoffs"):
                 payoff_strs = [f"{name} +{pts}" for name, pts in entry["payoffs"].items()]
-                line += f". Payoffs: {', '.join(payoff_strs)}"
+                line += T("experiment.payoffs_suffix", locale=locale, payoffs=", ".join(payoff_strs))
                 # Show cumulative scores for this agent
                 agent_scores = {a.name: a.score for a in self.agents}
                 score_strs = [f"{name}: {pts}" for name, pts in agent_scores.items()]
-                line += f". Running total: {', '.join(score_strs)}"
+                line += T("experiment.scores_suffix", locale=locale, scores=", ".join(score_strs))
             lines.append(line)
 
-        return "Previous rounds:\n" + "\n".join(lines)
+        return T("experiment.previous_rounds", locale=locale, rounds="\n".join(lines))
 
     def is_complete(self) -> bool:
         """Check if experiment has natural end (most don't)."""
@@ -974,6 +979,7 @@ class ExperimentScene:
                 "scenario_id": self.config.scenario_id,
                 "round_visibility": self.config.round_visibility,
                 "social_network": self.config.social_network,
+                "locale": self.config.locale,
             },
             "current_round": self.current_round,
             "history": self._history,

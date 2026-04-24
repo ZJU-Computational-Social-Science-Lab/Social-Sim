@@ -18,6 +18,7 @@ from socialsim4.core.experiment.config import ExperimentConfig
 from socialsim4.core.experiment.scene import ExperimentScene
 from socialsim4.core.experiment.game_configs import create_council_config
 from socialsim4.core.experiment.scenes.council_experiment import CouncilExperimentScene
+from socialsim4.i18n import get_request_locale
 
 
 logger = logging.getLogger(__name__)
@@ -458,6 +459,7 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
                 scenario_id="council",
                 round_visibility="sequential",
                 social_network=inner_cfg.get("social_network") or {},
+                locale=inner_cfg.get("locale") or get_request_locale(),
             )
             logger.debug(f"[COUNCIL_EXPERIMENT] Creating CouncilExperimentScene with parameters: {config.parameters}")
             scene = CouncilExperimentScene(config)
@@ -470,6 +472,7 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
                 scenario_id=scenario_id,
                 round_visibility=inner_cfg.get("round_visibility", "simultaneous"),
                 social_network=inner_cfg.get("social_network") or {},
+                locale=inner_cfg.get("locale") or get_request_locale(),
             )
             logger.debug(f"[EXPERIMENT] Creating ExperimentConfig with parameters: {cfg.get('parameters', {})}")
             scene = ExperimentScene(config)
@@ -516,6 +519,7 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
             scenario_id="council",
             round_visibility="sequential",  # Council uses sequential rounds
             social_network=cfg.get("social_network") or {},
+            locale=cfg.get("locale") or get_request_locale(),
         )
         logger.debug(f"[COUNCIL_EXPERIMENT] Creating CouncilExperimentScene with parameters: {config.parameters}")
         scene = CouncilExperimentScene(config)
