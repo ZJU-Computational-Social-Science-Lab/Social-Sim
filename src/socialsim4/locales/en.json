@@ -10,6 +10,7 @@
   "scenario": {
     "category": {
       "game_theory": "Game Theory",
+      "social_dynamics": "Social Dynamics",
       "discussion": "Discussion",
       "grid_world": "Grid World",
       "social_deduction": "Social Deduction",
