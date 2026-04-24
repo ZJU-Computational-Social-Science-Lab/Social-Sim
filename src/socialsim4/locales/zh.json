@@ -468,6 +468,26 @@
         "name": "资源稀缺",
         "description": "灾难情况：\n\n最近的灾难造成了严重的资源短缺。社区只有\n{resource_amount} 单位的关键物资供应 {num_agents} 人。\n\n初始分配：{initial_distribution}\n\n你的任务：决定如何管理这些稀缺资源。\n\n你可以：\n- 与需要的人分享资源\n- 为自己囤积资源\n- 提议交易以交换资源\n- 与他人签订合作协议\n- 履行你的合同承诺\n- 为个人利益违背合同\n\n考虑：\n- 你当前的资源水平\n- 他人的资源水平和可信度\n- 长期社区生存与短期收益\n- 你的声誉和未来合作\n\n目标是在维持社会关系的同时生存。"
       }
+    },
+    "llm": {
+      "generate_agents": {
+        "system": "你是一个社会模拟平台的智能体生成器。根据用户提供的场景描述生成多样化的智能体列表。重要：只返回有效的 JSON 数组，不要 markdown 格式，不要解释，不要代码块。每个智能体必须包含：name（姓名）、role（角色）、profile（描述）、properties（属性对象）。",
+        "user": "请为以下场景生成恰好 {count} 个多样化的智能体：\n\n{description}\n\n要求：\n1. 每个智能体应有不同的身份、立场和性格\n2. 只返回 JSON 数组，格式如下：\n[\n  {{\"name\": \"张三\", \"role\": \"村长\", \"profile\": \"60岁德高望重的领导者...\", \"properties\": {{\"信任度\": 70}}}},\n  {{\"name\": \"李四\", \"role\": \"商人\", \"profile\": \"45岁精明的生意人...\", \"properties\": {{\"信任度\": 45}}}}\n]\n\n只输出 JSON 数组，不要其他文字：",
+        "fallback_role": "角色",
+        "fallback_profile": "智能体资料不可用",
+        "agent_name": "智能体 {index}",
+        "agent_name_raw": "智能体资料不可用。原始输出：{raw_text}"
+      },
+      "refine_report": {
+        "system": "你是一名报告精炼助手，请严格返回 JSON。"
+      },
+      "errors": {
+        "traits_required": "人口统计生成需要特征参数。请添加至少一个特征（如信任度、同理心）及其均值和标准差。",
+        "demographics_required": "人口统计生成需要人口维度。请添加至少一个人口维度（如年龄、政治观点）。",
+        "demographic_needs_categories": "人口维度 '{name}' 必须至少有一个类别。",
+        "trait_mean_out_of_range": "特征 '{name}' 均值 {value} 超出有效范围 [0, 100]。",
+        "trait_std_out_of_range": "特征 '{name}' 标准差 {value} 超出有效范围 [0, 50]。"
+      }
     }
   }
 }

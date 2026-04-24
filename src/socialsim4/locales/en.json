@@ -10,7 +10,6 @@
   "scenario": {
     "category": {
       "game_theory": "Game Theory",
-      "social_dynamics": "Social Dynamics",
       "discussion": "Discussion",
       "grid_world": "Grid World",
       "social_deduction": "Social Deduction",
@@ -467,6 +466,26 @@
       "resource_scarcity": {
         "name": "Resource Scarcity",
         "description": "DISASTER SITUATION:\n\nA recent disaster has created severe resource scarcity. The community has\nonly {resource_amount} units of critical supplies to last {num_agents} people.\n\nInitial distribution: {initial_distribution}\n\nYour task: Decide how to manage these scarce resources.\n\nYou can:\n- Share resources with others in need\n- Hoard resources for yourself\n- Propose trades to exchange resources\n- Form cooperative contracts with others\n- Honor your contractual commitments\n- Defect from contracts for personal gain\n\nConsider:\n- Your current resource level\n- Others' resource levels and trustworthiness\n- Long-term community survival vs short-term gain\n- Your reputation and future cooperation\n\nThe goal is to survive while maintaining social relationships."
+      }
+    },
+    "llm": {
+      "generate_agents": {
+        "system": "You are an agent generator for a social simulation platform. Generate a list of diverse agents based on the user's scenario description. IMPORTANT: Return ONLY a valid JSON array, no markdown, no explanation, no code blocks. Each agent must have: name (string), role (string), profile (string), properties (object).",
+        "user": "Generate exactly {count} diverse agents for this scenario:\n\n{description}\n\nRequirements:\n1. Each agent should have different identity, stance, and personality\n2. Return ONLY a JSON array in this exact format:\n[\n  {{\"name\": \"John Smith\", \"role\": \"Village Chief\", \"profile\": \"60-year-old respected leader...\", \"properties\": {{\"trust\": 70}}}},\n  {{\"name\": \"Jane Doe\", \"role\": \"Merchant\", \"profile\": \"45-year-old shrewd businessperson...\", \"properties\": {{\"trust\": 45}}}}\n]\n\nOUTPUT ONLY THE JSON ARRAY, NO OTHER TEXT:",
+        "fallback_role": "Role",
+        "fallback_profile": "Agent profile unavailable",
+        "agent_name": "Agent {index}",
+        "agent_name_raw": "Agent profile unavailable. Raw output: {raw_text}"
+      },
+      "refine_report": {
+        "system": "You are a report refinement assistant. Return strictly valid JSON."
+      },
+      "errors": {
+        "traits_required": "Traits are required for demographic generation. Please add at least one trait (e.g., Trust, Empathy) with mean and standard deviation values.",
+        "demographics_required": "Demographics are required for demographic generation. Please add at least one demographic dimension (e.g., Age, Political View).",
+        "demographic_needs_categories": "Demographic '{name}' must have at least one category.",
+        "trait_mean_out_of_range": "Trait '{name}' mean value {value} is outside valid range [0, 100].",
+        "trait_std_out_of_range": "Trait '{name}' std value {value} is outside valid range [0, 50]."
       }
     }
   }

@@ -15,6 +15,7 @@ from ...dependencies import extract_bearer_token, resolve_current_user
 from ...models.user import ProviderConfig
 from ...services.default_providers import get_default_ollama_base_url
 from ...services.provider_dialect import normalize_provider_dialect
+from ....i18n import T, get_request_locale
 
 # 👇 关键：这里需要上升 3 层到 socialsim4，然后再进入 core
 from ....core.llm import create_llm_client, generate_agents_with_archetypes
@@ -144,53 +145,13 @@ async def generate_agents(
         )
         llm = create_llm_client(cfg)
 
-        # Language-aware prompts
-        is_zh = data.language.lower() == "zh"
+        # Language-aware prompts via i18n
+        locale = data.language or get_request_locale()
 
-        if is_zh:
-            system_prompt = (
-                "你是一个社会模拟平台的智能体生成器。"
-                "根据用户提供的场景描述生成多样化的智能体列表。"
-                "重要：只返回有效的 JSON 数组，不要 markdown 格式，不要解释，不要代码块。"
-                "每个智能体必须包含：name（姓名）、role（角色）、profile（描述）、properties（属性对象）。"
-            )
-
-            user_prompt = (
-                f"请为以下场景生成恰好 {data.count} 个多样化的智能体：\n\n"
-                f"{data.description}\n\n"
-                "要求：\n"
-                "1. 每个智能体应有不同的身份、立场和性格\n"
-                "2. 只返回 JSON 数组，格式如下：\n"
-                '[\n'
-                '  {"name": "张三", "role": "村长", "profile": "60岁德高望重的领导者...", "properties": {"信任度": 70}},\n'
-                '  {"name": "李四", "role": "商人", "profile": "45岁精明的生意人...", "properties": {"信任度": 45}}\n'
-                ']\n\n'
-                "只输出 JSON 数组，不要其他文字："
-            )
-            fallback_role = "角色"
-            fallback_profile = "LLM返回格式错误"
-        else:
-            system_prompt = (
-                "You are an agent generator for a social simulation platform. "
-                "Generate a list of diverse agents based on the user's scenario description. "
-                "IMPORTANT: Return ONLY a valid JSON array, no markdown, no explanation, no code blocks. "
-                "Each agent must have: name (string), role (string), profile (string), properties (object)."
-            )
-
-            user_prompt = (
-                f"Generate exactly {data.count} diverse agents for this scenario:\n\n"
-                f"{data.description}\n\n"
-                "Requirements:\n"
-                "1. Each agent should have different identity, stance, and personality\n"
-                "2. Return ONLY a JSON array in this exact format:\n"
-                '[\n'
-                '  {"name": "Zhang San", "role": "Village Chief", "profile": "60-year-old respected leader...", "properties": {"trust": 70}},\n'
-                '  {"name": "Li Si", "role": "Merchant", "profile": "45-year-old shrewd businessman...", "properties": {"trust": 45}}\n'
-                ']\n\n'
-                "OUTPUT ONLY THE JSON ARRAY, NO OTHER TEXT:"
-            )
-            fallback_role = "Role"
-            fallback_profile = "LLM format error"
+        system_prompt = T("prompts.llm.generate_agents.system", locale=locale)
+        user_prompt = T("prompts.llm.generate_agents.user", locale=locale,
+                        count=data.count, description=data.description)
+        fallback_role = T("prompts.llm.generate_agents.fallback_role", locale=locale)
 
         messages = [
             {"role": "system", "content": system_prompt},
@@ -231,11 +192,13 @@ async def generate_agents(
             logger.error(f"JSON parse failed: {e}")
             logger.error(f"Cleaned text (first 300 chars): {cleaned_text[:300]}")
             # LLM 没按要求返回 JSON 时的兜底，前端依然能跑
+            agent_name_template = T("prompts.llm.generate_agents.agent_name", locale=locale)
             parsed = [
                 {
-                    "name": f"{'智能体' if is_zh else 'Agent'} {i+1}",
+                    "name": agent_name_template.format(index=i + 1),
                     "role": fallback_role,
-                    "profile": f"{fallback_profile}。原始输出: {raw_text[:100]}..." if is_zh else f"{fallback_profile}. Raw output: {raw_text[:100]}...",
+                    "profile": T("prompts.llm.generate_agents.agent_name_raw", locale=locale,
+                                 raw_text=raw_text[:100]),
                     "properties": {},
                 }
                 for i in range(data.count)
@@ -277,7 +240,7 @@ async def generate_agents(
             idx = len(agents)
             agents.append(
                 GeneratedAgent(
-                    name=f"{'智能体' if is_zh else 'Agent'} {idx+1}",
+                    name=T("prompts.llm.generate_agents.agent_name", locale=locale).format(index=idx + 1),
                     role=fallback_role,
                     profile=data.description,
                     provider=provider.provider or "backend",
@@ -308,8 +271,9 @@ async def refine_report(request: Request, data: RefineReportRequest) -> dict:
         )
         llm = create_llm_client(cfg)
 
+        locale = get_request_locale()
         messages: list[dict[str, str]] = [
-            {"role": "system", "content": "你是一名报告精炼助手，请严格返回 JSON。"},
+            {"role": "system", "content": T("prompts.llm.refine_report.system", locale=locale)},
             {"role": "user", "content": data.prompt},
         ]
         text = llm.chat(messages)
@@ -358,18 +322,21 @@ async def generate_agents_demographics(
             )
             llm = create_llm_client(cfg)
 
+            locale = data.language or get_request_locale()
+
             # Traits are required
             if not data.traits:
-                raise ValueError("Traits are required for demographic generation. Please add at least one trait (e.g., Trust, Empathy) with mean and standard deviation values.")
+                raise ValueError(T("prompts.llm.errors.traits_required", locale=locale))
 
             # Demographics are required
             if not data.demographics:
-                raise ValueError("Demographics are required for demographic generation. Please add at least one demographic dimension (e.g., Age, Political View).")
+                raise ValueError(T("prompts.llm.errors.demographics_required", locale=locale))
 
             # Validate each demographic has categories
             for demo in data.demographics:
                 if not demo.categories or len(demo.categories) == 0:
-                    raise ValueError(f"Demographic '{demo.name}' must have at least one category.")
+                    raise ValueError(T("prompts.llm.errors.demographic_needs_categories",
+                                       locale=locale, name=demo.name))
 
             # Validate trait ranges before passing to generation
             for trait in data.traits:
@@ -377,16 +344,12 @@ async def generate_agents_demographics(
                 std_val = trait.std if trait.std is not None else 0
 
                 if not (0 <= mean_val <= 100):
-                    raise ValueError(
-                        f"Trait '{trait.name}' mean value {mean_val} is outside valid range [0, 100]. "
-                        f"Trait means should represent percentages or scores between 0 and 100."
-                    )
+                    raise ValueError(T("prompts.llm.errors.trait_mean_out_of_range",
+                                       locale=locale, name=trait.name, value=mean_val))
 
                 if not (0 <= std_val <= 50):
-                    raise ValueError(
-                        f"Trait '{trait.name}' std value {std_val} is outside valid range [0, 50]. "
-                        f"Standard deviation represents variation from the mean and should not exceed 50."
-                    )
+                    raise ValueError(T("prompts.llm.errors.trait_std_out_of_range",
+                                       locale=locale, name=trait.name, value=std_val))
 
             # Check probability sum and warn if not normalized
             if data.archetype_probabilities:
