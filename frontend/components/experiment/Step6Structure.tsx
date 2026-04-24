@@ -52,6 +52,8 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
   selectedActionIds,
   totalAgents,
 }) => {
+  const { t } = useTranslation();
+
   // Filter actions to only selected ones
   const selectedActions = availableActions.filter((a) =>
     selectedActionIds.includes(a.name)
