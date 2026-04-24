@@ -3,6 +3,7 @@
 import axios from "axios";
 import { useAuthStore } from "../store/auth";
 import { getApiBase } from "./base";
+import { getApiLanguage } from "./i18nUtils";
 
 /**
  * 统一的后端基础 URL（例如 http://localhost:8000/api）
@@ -92,6 +93,7 @@ async function authFetch(
   if (effectiveToken) {
     headers.set("Authorization", `Bearer ${effectiveToken}`);
   }
+  headers.set('X-Language', getApiLanguage());
 
   const response = await fetch(url, {
     ...init,
@@ -117,10 +119,11 @@ async function authFetch(
 // ---- 拦截器：自动带上 access token，并处理 401 刷新 ----
 apiClient.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
+  config.headers = (config.headers ?? {}) as any;
   if (token) {
-    config.headers = (config.headers ?? {}) as any;
     (config.headers as any).Authorization = `Bearer ${token}`;
   }
+  (config.headers as any)['X-Language'] = getApiLanguage();
   return config;
 });
 

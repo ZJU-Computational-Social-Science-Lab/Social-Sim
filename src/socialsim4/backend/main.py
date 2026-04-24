@@ -14,6 +14,7 @@ from .api.routes import router as api_router
 from .core.config import get_settings
 from .core.database import engine
 from .db.base import Base
+from .middleware import LocaleMiddleware
 
 
 async def _prepare_database() -> None:
@@ -121,6 +122,7 @@ def create_app() -> Litestar:
         "cors_config": cors_config,
         "debug": settings.debug,
         "openapi_config": OpenAPIConfig(title=settings.app_name, version="1.0.0"),
+        "middleware": [LocaleMiddleware],
     }
 
     return Litestar(**app_kwargs)

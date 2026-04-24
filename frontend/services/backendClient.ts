@@ -2,6 +2,7 @@
 import axios from "axios";
 import { useAuthStore } from "../store/auth";
 import { getApiBase } from "./base";
+import { getApiLanguage } from "./i18nUtils";
 
 export const API_BASE_URL = getApiBase().replace(/\/+$/, "");
 console.log("Api base url is :", API_BASE_URL);
@@ -15,10 +16,11 @@ export const apiClient = axios.create({
 // 请求里自动加 Authorization 头
 apiClient.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
+  config.headers = (config.headers ?? {}) as any;
   if (token) {
-    config.headers = (config.headers ?? {}) as any;
     (config.headers as any).Authorization = `Bearer ${token}`;
   }
+  (config.headers as any)['X-Language'] = getApiLanguage();
   return config;
 });
 

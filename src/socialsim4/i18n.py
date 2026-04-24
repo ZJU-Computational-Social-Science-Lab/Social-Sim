@@ -7,6 +7,7 @@ Supports English and Chinese languages with fallback to English.
 Contains: T() translation function, get_locale() language detector
 """
 
+import contextvars
 import json
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -14,6 +15,13 @@ from typing import Any, Dict, Optional
 # Supported languages
 SUPPORTED_LANGUAGES = ['en', 'zh']
 DEFAULT_LANGUAGE = 'en'
+
+# Request-scoped locale via contextvars.
+# Note: values are NOT propagated into asyncio.to_thread / ThreadPoolExecutor.
+# Code calling T() from a thread worker must pass locale= explicitly.
+_request_locale: contextvars.ContextVar[str] = contextvars.ContextVar(
+    '_request_locale', default=DEFAULT_LANGUAGE
+)
 
 # Cache for loaded translations
 _translation_cache: Dict[str, Dict[str, Any]] = {}
@@ -82,7 +90,9 @@ def _get_nested_key(data: Dict[str, Any], key: str) -> Any:
 
 def get_locale(locale: Optional[str] = None) -> str:
     """
-    Get the current locale, defaulting to English if not specified or invalid.
+    Get the current locale from explicit param, request context, or default.
+
+    Priority: explicit param > contextvar > DEFAULT_LANGUAGE.
 
     Args:
         locale: Language code (e.g., 'en', 'zh')
@@ -92,6 +102,9 @@ def get_locale(locale: Optional[str] = None) -> str:
     """
     if locale and locale in SUPPORTED_LANGUAGES:
         return locale
+    ctx_locale = _request_locale.get()
+    if ctx_locale in SUPPORTED_LANGUAGES:
+        return ctx_locale
     return DEFAULT_LANGUAGE
 
 
@@ -142,16 +155,21 @@ def T(key: str, locale: Optional[str] = None, **kwargs: Any) -> Any:
 
 def set_request_locale(locale: str) -> None:
     """
-    Set the locale for the current request context.
-
-    This is a placeholder for future integration with request context.
-    For now, locale is passed directly to T() function.
+    Set the locale for the current async request context.
 
     Args:
         locale: Language code to use
     """
-    pass
+    if locale in SUPPORTED_LANGUAGES:
+        _request_locale.set(locale)
+    else:
+        _request_locale.set(DEFAULT_LANGUAGE)
+
+
+def get_request_locale() -> str:
+    """Get the current request context locale."""
+    return _request_locale.get()
 
 
 # Export main translation function
-__all__ = ['T', 'get_locale', 'set_request_locale', 'SUPPORTED_LANGUAGES', 'DEFAULT_LANGUAGE']
+__all__ = ['T', 'get_locale', 'get_request_locale', 'set_request_locale', 'SUPPORTED_LANGUAGES', 'DEFAULT_LANGUAGE']
