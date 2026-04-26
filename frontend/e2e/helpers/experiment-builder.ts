@@ -93,15 +93,17 @@ export class ExperimentBuilder {
   async addAgents(names: string[], rolePrompts: string[]) {
     await this.page.waitForTimeout(1000);
 
+    const addText = t('experimentBuilder.step4.addAgentType', this.locale);
+    const escaped = addText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
     for (let i = 0; i < names.length; i++) {
       // Find inputs by their i18n placeholder text
       const labelPlaceholder = t('experimentBuilder.step4.typeLabelPlaceholder', this.locale);
       const labelInput = this.page.getByPlaceholder(labelPlaceholder).first();
 
-      if (await labelInput.isVisible({ timeout: 2_000 }).catch(() => false)) {
-        await labelInput.clear();
-        await labelInput.fill(names[i]);
-      }
+      await labelInput.waitFor({ state: 'visible', timeout: 3_000 });
+      await labelInput.clear();
+      await labelInput.fill(names[i]);
 
       const rolePlaceholder = t('experimentBuilder.step4.rolePromptPlaceholder', this.locale);
       const roleInput = this.page.getByPlaceholder(rolePlaceholder).first();
@@ -111,15 +113,14 @@ export class ExperimentBuilder {
         await roleInput.fill(rolePrompts[i]);
       }
 
-      if (i < names.length - 1) {
-        const addText = t('experimentBuilder.step4.addAgentType', this.locale);
-        const escaped = addText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const addBtn = this.page.getByRole('button', { name: new RegExp(escaped, 'i') });
-        if (await addBtn.isEnabled({ timeout: 2_000 }).catch(() => false)) {
-          await addBtn.click();
-          await this.page.waitForTimeout(500);
-        }
-      }
+      // Click "Add Agent Type" for every agent (including last)
+      // to add them to the list before proceeding
+      const addBtn = this.page.getByRole('button', { name: new RegExp(escaped, 'i') });
+      await addBtn.waitFor({ state: 'visible', timeout: 3_000 });
+      // Wait for button to become enabled after filling the label
+      await this.page.waitForTimeout(500);
+      await addBtn.click();
+      await this.page.waitForTimeout(500);
     }
 
     await this.clickNext();
