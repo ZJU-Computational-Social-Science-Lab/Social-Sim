@@ -38,12 +38,12 @@ export class ExperimentBuilder {
 
   /** Open the experiment builder by navigating to simulations page */
   async open() {
-    await this.page.goto('/simulations');
+    await this.page.goto('/simulations/new');
+    await this.page.waitForLoadState('networkidle');
 
-    // The wizard auto-opens when no simIdParam is present.
-    // Wait for the builder title to appear.
-    const modalTitle = t('experimentBuilder.modalTitle', this.locale);
-    await this.page.getByText(modalTitle).waitFor({
+    // Wait for the "Next" button — it's always visible on the builder page
+    const nextText = t('experimentBuilder.next', this.locale);
+    await this.page.getByRole('button', { name: new RegExp(nextText, 'i') }).waitFor({
       state: 'visible',
       timeout: 15_000,
     });
@@ -94,18 +94,17 @@ export class ExperimentBuilder {
     await this.page.waitForTimeout(1000);
 
     for (let i = 0; i < names.length; i++) {
-      const labelInput = this.page.locator(
-        'input[placeholder*="label"], input[placeholder*="name"], input[name*="label"]'
-      ).first();
+      // Find inputs by their i18n placeholder text
+      const labelPlaceholder = t('experimentBuilder.step4.typeLabelPlaceholder', this.locale);
+      const labelInput = this.page.getByPlaceholder(labelPlaceholder).first();
 
       if (await labelInput.isVisible({ timeout: 2_000 }).catch(() => false)) {
         await labelInput.clear();
         await labelInput.fill(names[i]);
       }
 
-      const roleInput = this.page.locator(
-        'textarea[placeholder*="role"], textarea[placeholder*="prompt"], textarea[name*="role"]'
-      ).first();
+      const rolePlaceholder = t('experimentBuilder.step4.rolePromptPlaceholder', this.locale);
+      const roleInput = this.page.getByPlaceholder(rolePlaceholder).first();
 
       if (await roleInput.isVisible({ timeout: 1_000 }).catch(() => false)) {
         await roleInput.clear();
@@ -113,8 +112,10 @@ export class ExperimentBuilder {
       }
 
       if (i < names.length - 1) {
-        const addBtn = this.page.getByRole('button', { name: /add agent|add type/i });
-        if (await addBtn.isVisible({ timeout: 1_000 }).catch(() => false)) {
+        const addText = t('experimentBuilder.step4.addAgentType', this.locale);
+        const escaped = addText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const addBtn = this.page.getByRole('button', { name: new RegExp(escaped, 'i') });
+        if (await addBtn.isEnabled({ timeout: 2_000 }).catch(() => false)) {
           await addBtn.click();
           await this.page.waitForTimeout(500);
         }

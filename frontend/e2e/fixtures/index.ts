@@ -1,14 +1,12 @@
 /**
  * E2E test fixture with authentication and locale pre-configured.
  *
- * Injects JWT tokens and language preference into localStorage
- * to bypass login and set the UI language. Keeps health-check
- * tests focused on the experiment builder flow.
+ * Logs in through the UI to establish a real session, then sets
+ * the language preference. This is more reliable than injecting
+ * tokens into localStorage.
  *
- * Uses addInitScript to set localStorage before the page loads,
- * so the auth store's restoreSession() picks up the tokens.
- *
- * Auth keys: fos.access, fos.refresh, fos.user
+ * Credentials: E2E_EMAIL / E2E_PASSWORD env vars
+ *   (defaults: test@test.com.cn / test)
  * Language key: fos.lang
  *
  * Exports: test, expect
@@ -24,24 +22,24 @@ type E2EFixtures = {
 export const test = base.extend<E2EFixtures>({
   locale: ['en', { option: true }],
   authedPage: async ({ page, locale }, use) => {
-    const accessToken = process.env.E2E_ACCESS_TOKEN || '';
-    const refreshToken = process.env.E2E_REFRESH_TOKEN || '';
-    const userJson = process.env.E2E_USER_JSON || '{}';
+    const email = process.env.E2E_EMAIL || 'test@test.com.cn';
+    const password = process.env.E2E_PASSWORD || 'test';
 
-    if (!accessToken) {
-      throw new Error(
-        'E2E_ACCESS_TOKEN env var is required. Get one by logging in via the UI ' +
-        'and copying fos.access from localStorage.'
-      );
-    }
-
-    // Set localStorage BEFORE the page loads so restoreSession() finds the tokens
-    await page.addInitScript(({ access, refresh, user, lang }) => {
-      localStorage.setItem('fos.access', access);
-      localStorage.setItem('fos.refresh', refresh);
-      localStorage.setItem('fos.user', user);
+    // Set language preference before any navigation
+    await page.addInitScript((lang) => {
       localStorage.setItem('fos.lang', lang);
-    }, { access: accessToken, refresh: refreshToken, user: userJson, lang: locale });
+    }, locale);
+
+    // Navigate to login page and log in through the UI
+    await page.goto('/login');
+    await page.waitForLoadState('networkidle');
+
+    await page.locator('#login-email').fill(email);
+    await page.locator('#login-password').fill(password);
+    await page.locator('button[type="submit"]').click();
+
+    // Wait for redirect after successful login (dashboard or wherever)
+    await page.waitForURL(/\/(dashboard|simulations)/, { timeout: 15_000 });
 
     await use();
   },
