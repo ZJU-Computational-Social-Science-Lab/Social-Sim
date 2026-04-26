@@ -10,6 +10,10 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Path from frontend/e2e/helpers/ to repo root test_results/
 const TEST_RESULTS_DIR = path.resolve(__dirname, '../../../../test_results');
