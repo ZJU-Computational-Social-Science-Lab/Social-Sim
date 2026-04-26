@@ -672,6 +672,9 @@
         "proposal": "The proposal under discussion is: \"{proposal}\"",
         "deliberation_rounds": "There will be {rounds} round(s) of deliberation before voting begins.",
         "no_vote_yet": "You cannot vote until the deliberation period is complete."
+      },
+      "open_discussion": {
+        "topic": "The discussion topic is: \"{topic}\""
       }
     },
     "reduce_description": "Reduce another agent's resources",

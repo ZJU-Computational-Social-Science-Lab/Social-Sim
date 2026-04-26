@@ -672,6 +672,9 @@
         "proposal": "正在讨论的提案是：\"{proposal}\"",
         "deliberation_rounds": "在投票开始前将有 {rounds} 轮审议。",
         "no_vote_yet": "在审议期结束前你不能投票。"
+      },
+      "open_discussion": {
+        "topic": "讨论主题是：\"{topic}\""
       }
     },
     "reduce_description": "减少另一名智能体的资源",

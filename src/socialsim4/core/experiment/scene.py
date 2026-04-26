@@ -145,6 +145,14 @@ class ExperimentScene:
 
         logger.debug(f"Created {len(self.agents)} ExperimentAgents with LLM distribution")
 
+        # Write scenario start marker to shared debug log
+        from socialsim4.core.experiment.debug_log import write_scenario_header
+        write_scenario_header(
+            scenario_id=self.config.scenario_id,
+            agent_names=[a.name for a in self.agents],
+            params=dict(self.config.parameters or {}),
+        )
+
         logger.debug(f"Created {len(self.agents)} ExperimentAgents")
 
         # Initialize experiment state only for fresh scenes.
@@ -813,7 +821,12 @@ class ExperimentScene:
                 dist_key = f"experiment.scenario.resource_scarcity.dist_{initial_distribution}"
                 lines.append(T(dist_key, locale=locale))
 
-        elif scenario_id == "council":
+        elif scenario_id == "open_discussion":
+            topic = params.get("topic", "")
+            if topic:
+                lines.append(T("experiment.scenario.open_discussion.topic", locale=locale, topic=topic))
+
+        elif scenario_id in ("council", "council_chamber"):
             # GAP-CLOSURE-01: Include deliberation rounds info for council scenarios
             deliberation_rounds = params.get("deliberation_rounds")
             proposal_text = params.get("proposal_text", "")

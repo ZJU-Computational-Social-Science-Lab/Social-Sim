@@ -50,6 +50,9 @@ export async function runScenario(
       scenario.id,
       scenario.agentNames,
       scenario.agentRolePrompts,
+      scenario.zhAgentRolePrompts,
+      scenario.parameters,
+      scenario.providerIds,
     );
 
     const workspace = new SimulationWorkspace(page, locale);
