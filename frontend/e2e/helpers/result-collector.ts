@@ -1,0 +1,55 @@
+/**
+ * Result collector for E2E health-check tests.
+ *
+ * Reads LLM debug log files from test_results/ (written by the backend
+ * during simulation runs) and copies them to organized output directories
+ * grouped by scenario ID.
+ *
+ * Exports: ResultCollector
+ */
+
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Path from frontend/e2e/helpers/ to repo root test_results/
+const TEST_RESULTS_DIR = path.resolve(__dirname, '../../../../test_results');
+const OUTPUT_DIR = path.resolve(__dirname, '../collected-results');
+
+export class ResultCollector {
+  private scenarioId: string;
+  private runStartTime: Date;
+
+  constructor(scenarioId: string) {
+    this.scenarioId = scenarioId;
+    this.runStartTime = new Date();
+  }
+
+  /**
+   * Called after scenario finishes.
+   * Grabs any .txt files modified since this.runStartTime.
+   * Copies them to collected-results/<scenarioId>/
+   */
+  collect(): string[] {
+    const scenarioOutputDir = path.join(OUTPUT_DIR, this.scenarioId);
+    fs.mkdirSync(scenarioOutputDir, { recursive: true });
+
+    if (!fs.existsSync(TEST_RESULTS_DIR)) {
+      return [`WARNING: test_results dir not found at ${TEST_RESULTS_DIR}`];
+    }
+
+    const files = fs.readdirSync(TEST_RESULTS_DIR)
+      .filter(f => f.endsWith('.txt'))
+      .filter(f => {
+        const stat = fs.statSync(path.join(TEST_RESULTS_DIR, f));
+        return stat.mtime >= this.runStartTime;
+      });
+
+    for (const file of files) {
+      const src = path.join(TEST_RESULTS_DIR, file);
+      const dest = path.join(scenarioOutputDir, file);
+      fs.copyFileSync(src, dest);
+    }
+
+    return files.map(f => path.join(scenarioOutputDir, f));
+  }
+}
