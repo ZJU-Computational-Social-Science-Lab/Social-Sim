@@ -5,6 +5,9 @@
  * to bypass login and set the UI language. Keeps health-check
  * tests focused on the experiment builder flow.
  *
+ * Uses addInitScript to set localStorage before the page loads,
+ * so the auth store's restoreSession() picks up the tokens.
+ *
  * Auth keys: fos.access, fos.refresh, fos.user
  * Language key: fos.lang
  *
@@ -21,9 +24,6 @@ type E2EFixtures = {
 export const test = base.extend<E2EFixtures>({
   locale: ['en', { option: true }],
   authedPage: async ({ page, locale }, use) => {
-    // Navigate to any page to set localStorage
-    await page.goto('/');
-
     const accessToken = process.env.E2E_ACCESS_TOKEN || '';
     const refreshToken = process.env.E2E_REFRESH_TOKEN || '';
     const userJson = process.env.E2E_USER_JSON || '{}';
@@ -35,15 +35,13 @@ export const test = base.extend<E2EFixtures>({
       );
     }
 
-    await page.evaluate(
-      ({ access, refresh, user, lang }) => {
-        localStorage.setItem('fos.access', access);
-        localStorage.setItem('fos.refresh', refresh);
-        localStorage.setItem('fos.user', user);
-        localStorage.setItem('fos.lang', lang);
-      },
-      { access: accessToken, refresh: refreshToken, user: userJson, lang: locale }
-    );
+    // Set localStorage BEFORE the page loads so restoreSession() finds the tokens
+    await page.addInitScript(({ access, refresh, user, lang }) => {
+      localStorage.setItem('fos.access', access);
+      localStorage.setItem('fos.refresh', refresh);
+      localStorage.setItem('fos.user', user);
+      localStorage.setItem('fos.lang', lang);
+    }, { access: accessToken, refresh: refreshToken, user: userJson, lang: locale });
 
     await use();
   },

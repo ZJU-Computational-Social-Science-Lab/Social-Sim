@@ -16,7 +16,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Path from frontend/e2e/helpers/ to repo root test_results/
-const TEST_RESULTS_DIR = path.resolve(__dirname, '../../../../test_results');
+const TEST_RESULTS_DIR = path.resolve(__dirname, '../../../test_results');
 const OUTPUT_DIR = path.resolve(__dirname, '../collected-results');
 
 export class ResultCollector {
