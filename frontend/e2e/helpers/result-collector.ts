@@ -5,6 +5,9 @@
  * during simulation runs) and copies them to organized output directories
  * grouped by scenario ID.
  *
+ * Cleans up stale files from previous runs before each collection to
+ * prevent old debug logs from contaminating current results.
+ *
  * Exports: ResultCollector
  */
 
@@ -37,6 +40,9 @@ export class ResultCollector {
     const scenarioOutputDir = path.join(OUTPUT_DIR, this.scenarioId);
     fs.mkdirSync(scenarioOutputDir, { recursive: true });
 
+    // Clean up any stale files from a previous run in this scenario's dir
+    this.cleanStaleFiles(scenarioOutputDir);
+
     if (!fs.existsSync(TEST_RESULTS_DIR)) {
       return [`WARNING: test_results dir not found at ${TEST_RESULTS_DIR}`];
     }
@@ -55,5 +61,22 @@ export class ResultCollector {
     }
 
     return files.map(f => path.join(scenarioOutputDir, f));
+  }
+
+  /**
+   * Remove files from a previous run that would contaminate results.
+   * Only deletes files older than this run's start time.
+   */
+  private cleanStaleFiles(dir: string): void {
+    if (!fs.existsSync(dir)) return;
+
+    const files = fs.readdirSync(dir);
+    for (const file of files) {
+      const filePath = path.join(dir, file);
+      const stat = fs.statSync(filePath);
+      if (stat.mtime < this.runStartTime) {
+        fs.unlinkSync(filePath);
+      }
+    }
   }
 }

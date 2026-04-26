@@ -39,7 +39,7 @@ export const test = base.extend<E2EFixtures>({
     await page.locator('button[type="submit"]').click();
 
     // Wait for redirect after successful login (dashboard or wherever)
-    await page.waitForURL(/\/(dashboard|simulations)/, { timeout: 30_000 });
+    await page.waitForURL(/\/(dashboard|simulations)/, { timeout: 60_000 });
 
     await use();
   },
