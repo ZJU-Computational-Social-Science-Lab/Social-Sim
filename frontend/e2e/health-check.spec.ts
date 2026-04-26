@@ -6,6 +6,7 @@
  * debug logs. Never hard-fails — the diagnostic report is the output.
  *
  * Output: frontend/e2e/collected-results/run-report-{en,zh}.json
+ *         frontend/e2e/collected-results/health-check-review.txt
  *
  * Scenarios: prisoners_dilemma, battle_of_the_sexes, stag_hunt,
  *            public_goods, coordination_game, open_discussion,
@@ -64,4 +65,84 @@ test.afterAll(async () => {
     const passed = results.filter(r => r.status === 'passed').length;
     console.log(`\n${passed}/${results.length} scenarios passed (${locale}).`);
   }
+
+  // Generate health-check-review.txt automatically
+  generateReviewFile(outputDir, resultsByLocale);
 });
+
+/**
+ * Generate a combined health-check-review.txt from run reports and debug logs.
+ * Concatenates run reports and per-scenario debug logs into a single
+ * reviewable file.
+ */
+function generateReviewFile(
+  outputDir: string,
+  allResults: Record<string, ScenarioResult[]>,
+) {
+  const now = new Date();
+  const dateStr = now.toLocaleString();
+  const lines: string[] = [];
+
+  const allLocaleResults = Object.values(allResults).flat();
+  const total = allLocaleResults.length;
+  const passed = allLocaleResults.filter(r => r.status === 'passed').length;
+
+  lines.push('======================================================');
+  lines.push(`E2E Health-Check Review — All 13 Scenarios (EN + ZH)`);
+  lines.push(`Generated: ${dateStr}`);
+  lines.push(`Result: ${passed}/${total} tests passed`);
+  lines.push('======================================================');
+  lines.push('');
+
+  // Run reports
+  lines.push('## RUN REPORTS');
+  lines.push('');
+
+  for (const [locale, results] of Object.entries(allResults)) {
+    if (results.length === 0) continue;
+    lines.push(`### ${locale === 'en' ? 'English' : 'Chinese'}`);
+
+    const reportPath = path.join(outputDir, `run-report-${locale}.json`);
+    if (fs.existsSync(reportPath)) {
+      lines.push(fs.readFileSync(reportPath, 'utf-8'));
+    }
+  }
+
+  // Per-scenario debug logs
+  const seenScenarios = new Set<string>();
+  for (const result of allLocaleResults) {
+    if (seenScenarios.has(result.id)) continue;
+    seenScenarios.add(result.id);
+
+    lines.push('');
+    lines.push('======================================================');
+    lines.push(`SCENARIO: ${result.name}`);
+    lines.push('======================================================');
+
+    // Find the scenario's collected-results directory
+    const scenarioDir = path.join(outputDir, result.id);
+    if (!fs.existsSync(scenarioDir)) continue;
+
+    const debugFiles = fs.readdirSync(scenarioDir)
+      .filter(f => f.endsWith('.txt'))
+      .sort();
+
+    for (const file of debugFiles) {
+      const filePath = path.join(scenarioDir, file);
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const maxLines = 200;
+      const contentLines = content.split('\n');
+      const truncated = contentLines.length > maxLines
+        ? contentLines.slice(0, maxLines).join('\n') + `\n... (truncated, ${contentLines.length - maxLines} more lines)`
+        : content;
+
+      lines.push('');
+      lines.push(`--- ${file} ---`);
+      lines.push(truncated);
+    }
+  }
+
+  const reviewPath = path.join(outputDir, 'health-check-review.txt');
+  fs.writeFileSync(reviewPath, lines.join('\n'));
+  console.log(`\nHealth check review: ${reviewPath}`);
+}
