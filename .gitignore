@@ -182,3 +182,9 @@ experiment_debug_*.txt
 
 # Temporary files
 nul
+
+# E2E health-check output
+frontend/e2e/collected-results/
+frontend/e2e/videos/
+frontend/e2e/screenshots/
+frontend/test-results/
