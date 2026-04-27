@@ -9,9 +9,14 @@
  */
 
 import { defineConfig } from '@playwright/test';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default defineConfig({
-  globalSetup: require.resolve('./e2e/global-setup.ts'),
+  globalSetup: resolve(__dirname, 'e2e/global-setup.ts'),
   testDir: './e2e',
   fullyParallel: false,        // Sequential — LLM backend can't handle parallel
   retries: 0,                  // No retries — see failures as-is
