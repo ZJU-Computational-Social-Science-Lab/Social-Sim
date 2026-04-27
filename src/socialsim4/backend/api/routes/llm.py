@@ -89,7 +89,7 @@ async def _select_provider(
         )
         provider = result.scalars().first()
         if provider is None:
-            raise RuntimeError("指定的 LLM 提供商不存在或不属于当前用户")
+            raise RuntimeError(T("api.errors.llm.provider_not_found"))
     else:
         # 否则找 config.active 的那个；都没标 active 就随便挑一个
         result = await session.execute(
@@ -100,15 +100,15 @@ async def _select_provider(
         provider = active[0] if len(active) == 1 else (items[0] if items else None)
 
     if provider is None:
-            raise RuntimeError("LLM provider not configured")
+            raise RuntimeError(T("api.errors.provider_not_configured"))
 
     dialect = normalize_provider_dialect(provider.provider)
     if dialect not in {"openai", "gemini", "mock", "ollama"}:
-        raise RuntimeError("Invalid LLM provider dialect")
+        raise RuntimeError(T("api.errors.provider_invalid"))
     if dialect in {"openai", "gemini"} and not provider.api_key:
-        raise RuntimeError("LLM API key required")
+        raise RuntimeError(T("api.errors.provider_api_key_required"))
     if not provider.model:
-        raise RuntimeError("LLM model required")
+        raise RuntimeError(T("api.errors.provider_model_required"))
 
     return provider
 @post("/generate_agents")
@@ -386,13 +386,13 @@ async def generate_agents_demographics(
                 )
             except ValueError as ve:
                 # Re-raise ValueError with more context
-                raise ValueError(f"Agent generation validation failed: {ve}")
+                raise ValueError(T("api.errors.llm.agent_generation_validation_failed", error=str(ve)))
             except RuntimeError as re:
                 # LLM or JSON parsing error
-                raise RuntimeError(f"LLM agent generation failed: {re}")
+                raise RuntimeError(T("api.errors.llm.llm_agent_generation_failed", error=str(re)))
             except Exception as e:
                 # Unexpected error during generation
-                raise RuntimeError(f"Unexpected error during agent generation: {e}")
+                raise RuntimeError(T("api.errors.llm.unexpected_agent_generation_error", error=str(e)))
 
             provider_assignment = {}
             assigned_provider = provider
@@ -465,7 +465,7 @@ async def generate_agents_demographics(
     except Exception as e:
         # Unexpected errors
         logger.error(f"Unexpected error in generate_agents_demographics: {e}", exc_info=True)
-        raise RuntimeError(f"Failed to generate agents: {e}")
+        raise RuntimeError(T("api.errors.llm.failed_to_generate_agents", error=str(e)))
 
 
 # 暴露 /llm 前缀的 Router

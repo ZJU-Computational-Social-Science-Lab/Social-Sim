@@ -18,7 +18,7 @@ from socialsim4.core.experiment.config import ExperimentConfig
 from socialsim4.core.experiment.scene import ExperimentScene
 from socialsim4.core.experiment.game_configs import create_council_config
 from socialsim4.core.experiment.scenes.council_experiment import CouncilExperimentScene
-from socialsim4.i18n import get_request_locale
+from socialsim4.i18n import T, get_request_locale
 
 
 logger = logging.getLogger(__name__)
@@ -195,7 +195,7 @@ def _build_tree_for_scene(scene_type: str, clients: dict | None = None) -> SimTr
     scene_key = scene_type if scene_type in SCENE_MAP else f"{scene_type}_scene"
     scene_cls = get_scene_class(scene_key)
     if scene_cls is None:
-        raise ValueError(f"Unsupported scene type: {scene_type}")
+        raise ValueError(T("api.errors.simtree.unsupported_scene_type", scene_type=scene_type))
     active = clients or make_clients_from_env()
     scene = scene_cls("preview", "")
     agents = [
@@ -312,7 +312,7 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
     scene_key = scene_type if scene_type in SCENE_MAP else f"{scene_type}_scene"
     scene_cls = get_scene_class(scene_key)
     if scene_cls is None:
-        raise ValueError(f"Unsupported scene type: {scene_type}")
+        raise ValueError(T("api.errors.simtree.unsupported_scene_type", scene_type=scene_type))
 
     cfg = getattr(sim_record, "scene_config", {}) or {}
     name = getattr(sim_record, "name", scene_type)
@@ -436,11 +436,11 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
                 logger.info(f"[PARAMETER MAPPING] Mapped max_rounds={params['max_rounds']} to deliberation_rounds")
 
             if "deliberation_rounds" not in params:
-                raise ValueError(f"deliberation_rounds parameter is required for council experiment. Got parameters: {params}")
+                raise ValueError(T("api.errors.simtree.deliberation_rounds_required", params=params))
             if "voting_threshold" not in params:
-                raise ValueError(f"voting_threshold parameter is required for council experiment. Got parameters: {params}")
+                raise ValueError(T("api.errors.simtree.voting_threshold_required", params=params))
             if "proposal_text" not in params:
-                raise ValueError(f"proposal_text parameter is required for council experiment. Got parameters: {params}")
+                raise ValueError(T("api.errors.simtree.proposal_text_required", params=params))
 
             council_game_config = create_council_config(
                 proposal_text=params["proposal_text"],
@@ -494,11 +494,11 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
             logger.info(f"[PARAMETER MAPPING] Mapped max_rounds={cfg['max_rounds']} to deliberation_rounds")
 
         if "deliberation_rounds" not in cfg:
-            raise ValueError(f"deliberation_rounds parameter is required for council experiment. Got config keys: {list(cfg.keys())}")
+            raise ValueError(T("api.errors.simtree.deliberation_rounds_required_keys", keys=list(cfg.keys())))
         if "voting_threshold" not in cfg:
-            raise ValueError(f"voting_threshold parameter is required for council experiment. Got config keys: {list(cfg.keys())}")
+            raise ValueError(T("api.errors.simtree.voting_threshold_required_keys", keys=list(cfg.keys())))
         if "proposal_text" not in cfg:
-            raise ValueError(f"proposal_text parameter is required for council experiment. Got config keys: {list(cfg.keys())}")
+            raise ValueError(T("api.errors.simtree.proposal_text_required_keys", keys=list(cfg.keys())))
 
         # Create CouncilConfig with council-specific parameters
         council_game_config = create_council_config(

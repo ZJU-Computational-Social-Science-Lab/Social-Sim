@@ -378,7 +378,7 @@ async def delete_upload(request: Request, file_id: str) -> dict:
             path.unlink()
             deleted_count += 1
         except OSError as e:
-            raise HTTPException(status_code=500, detail=f"Failed to delete file: {e}")
+            raise HTTPException(status_code=500, detail=T("api.errors.uploads.failed_to_delete", error=str(e)))
 
     return {
         "deleted": deleted_count,

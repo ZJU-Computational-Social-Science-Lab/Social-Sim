@@ -246,4 +246,4 @@ async def rehydrate_simulation(
         if record and record.tree:
             return record.tree.serialize()
 
-        raise HTTPException(status_code=404, detail="No persisted state for simulation")
+        raise HTTPException(status_code=404, detail=T("api.errors.simtree.no_persisted_state"))
