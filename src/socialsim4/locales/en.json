@@ -130,7 +130,42 @@
       "provider_api_key_required": "LLM API key required",
       "provider_model_required": "LLM model required",
       "missing_bearer_token": "Missing bearer token",
-      "tree_node_not_found": "Tree node not found"
+      "tree_node_not_found": "Tree node not found",
+      "uploads": {
+        "invalid_data_url": "Invalid data URL",
+        "invalid_base64_payload": "Invalid base64 payload",
+        "pdfplumber_not_installed": "pdfplumber not installed for PDF extraction",
+        "tesseract_not_available": "Tesseract not available for OCR",
+        "pytesseract_not_installed": "pytesseract not installed for OCR",
+        "python_docx_not_installed": "python-docx not installed for DOC/DOCX extraction",
+        "rate_limit_exceeded": "Rate limit exceeded: maximum {max_requests} uploads per {window} seconds",
+        "invalid_upload_backend": "Invalid upload_backend",
+        "file_or_data_url_required": "file or data_url required",
+        "content_type_not_allowed": "Only JPEG/PNG/GIF/WEBP/MP3/WAV/OGG/MP4/WEBM/PDF/DOC/DOCX are allowed",
+        "file_signature_mismatch": "File content does not match declared type {content_type}",
+        "file_exceeds_size_limit": "File exceeds {limit_mb}MB limit",
+        "empty_file": "Empty file",
+        "upload_directory_not_found": "Upload directory not found",
+        "file_not_found": "File not found",
+        "failed_to_delete": "Failed to delete file: {error}"
+      },
+      "llm": {
+        "provider_not_found": "LLM provider not found or does not belong to current user",
+        "agent_generation_validation_failed": "Agent generation validation failed: {error}",
+        "llm_agent_generation_failed": "LLM agent generation failed: {error}",
+        "unexpected_agent_generation_error": "Unexpected error during agent generation: {error}",
+        "failed_to_generate_agents": "Failed to generate agents: {error}"
+      },
+      "simtree": {
+        "unsupported_scene_type": "Unsupported scene type: {scene_type}",
+        "deliberation_rounds_required": "deliberation_rounds parameter is required for council experiment. Got parameters: {params}",
+        "voting_threshold_required": "voting_threshold parameter is required for council experiment. Got parameters: {params}",
+        "proposal_text_required": "proposal_text parameter is required for council experiment. Got parameters: {params}",
+        "deliberation_rounds_required_keys": "deliberation_rounds parameter is required for council experiment. Got config keys: {keys}",
+        "voting_threshold_required_keys": "voting_threshold parameter is required for council experiment. Got config keys: {keys}",
+        "proposal_text_required_keys": "proposal_text parameter is required for council experiment. Got config keys: {keys}",
+        "no_persisted_state": "No persisted state for simulation"
+      }
     },
     "compare": {
       "node_unique_events": "Node {{node}} has {{count}} unique events.",

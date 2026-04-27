@@ -130,7 +130,42 @@
       "provider_api_key_required": "需要LLM API密钥",
       "provider_model_required": "需要指定LLM模型",
       "missing_bearer_token": "缺少Bearer令牌",
-      "tree_node_not_found": "树节点未找到"
+      "tree_node_not_found": "树节点未找到",
+      "uploads": {
+        "invalid_data_url": "无效的数据URL",
+        "invalid_base64_payload": "无效的base64数据",
+        "pdfplumber_not_installed": "未安装pdfplumber，无法提取PDF",
+        "tesseract_not_available": "Tesseract不可用，无法进行OCR",
+        "pytesseract_not_installed": "未安装pytesseract，无法进行OCR",
+        "python_docx_not_installed": "未安装python-docx，无法提取DOC/DOCX",
+        "rate_limit_exceeded": "请求过于频繁：每{window}秒最多上传{max_requests}个文件",
+        "invalid_upload_backend": "无效的上传后端配置",
+        "file_or_data_url_required": "需要提供file或data_url",
+        "content_type_not_allowed": "仅支持JPEG/PNG/GIF/WEBP/MP3/WAV/OGG/MP4/WEBM/PDF/DOC/DOCX格式",
+        "file_signature_mismatch": "文件内容与声明的类型{content_type}不匹配",
+        "file_exceeds_size_limit": "文件超过{limit_mb}MB限制",
+        "empty_file": "空文件",
+        "upload_directory_not_found": "上传目录未找到",
+        "file_not_found": "文件未找到",
+        "failed_to_delete": "删除文件失败：{error}"
+      },
+      "llm": {
+        "provider_not_found": "指定的LLM提供商不存在或不属于当前用户",
+        "agent_generation_validation_failed": "智能体生成验证失败：{error}",
+        "llm_agent_generation_failed": "LLM智能体生成失败：{error}",
+        "unexpected_agent_generation_error": "智能体生成过程中出现意外错误：{error}",
+        "failed_to_generate_agents": "生成智能体失败：{error}"
+      },
+      "simtree": {
+        "unsupported_scene_type": "不支持的场景类型：{scene_type}",
+        "deliberation_rounds_required": "议会实验需要deliberation_rounds参数。当前参数：{params}",
+        "voting_threshold_required": "议会实验需要voting_threshold参数。当前参数：{params}",
+        "proposal_text_required": "议会实验需要proposal_text参数。当前参数：{params}",
+        "deliberation_rounds_required_keys": "议会实验需要deliberation_rounds参数。当前配置键：{keys}",
+        "voting_threshold_required_keys": "议会实验需要voting_threshold参数。当前配置键：{keys}",
+        "proposal_text_required_keys": "议会实验需要proposal_text参数。当前配置键：{keys}",
+        "no_persisted_state": "模拟没有已持久化的状态"
+      }
     },
     "compare": {
       "node_unique_events": "节点 {{node}} 有 {{count}} 条独有事件。",

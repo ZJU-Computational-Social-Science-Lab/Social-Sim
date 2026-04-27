@@ -22,6 +22,7 @@ from litestar.params import Body
 from ...core.config import get_settings
 from ...core.database import get_session
 from ...dependencies import extract_bearer_token, resolve_current_user
+from ....i18n import T
 
 
 # Rate limiting: Track upload requests per user (in-memory)
@@ -134,12 +135,12 @@ def _validate_file_signature(content: bytes, content_type: str) -> bool:
 def _decode_data_url(data_url: str):
     match = re.match(r"data:([a-zA-Z0-9./+-]+);base64,(.+)", data_url)
     if not match:
-        raise HTTPException(status_code=400, detail="Invalid data URL")
+        raise HTTPException(status_code=400, detail=T("api.errors.uploads.invalid_data_url"))
     mime, b64 = match.groups()
     try:
         data = base64.b64decode(b64)
     except Exception:
-        raise HTTPException(status_code=400, detail="Invalid base64 payload")
+        raise HTTPException(status_code=400, detail=T("api.errors.uploads.invalid_base64_payload"))
     return mime.lower(), data
 
 
@@ -148,7 +149,7 @@ def _extract_doc_text(path: Path, content_type: str, enable_ocr: bool, ocr_lang:
         try:
             import pdfplumber
         except Exception as exc:
-            raise HTTPException(status_code=500, detail="pdfplumber not installed for PDF extraction") from exc
+            raise HTTPException(status_code=500, detail=T("api.errors.uploads.pdfplumber_not_installed")) from exc
 
         with pdfplumber.open(path) as pdf:
             pages = [page.extract_text() or "" for page in pdf.pages]
@@ -158,11 +159,11 @@ def _extract_doc_text(path: Path, content_type: str, enable_ocr: bool, ocr_lang:
         if not enable_ocr:
             return ""
         if shutil.which("tesseract") is None:
-            raise HTTPException(status_code=500, detail="Tesseract not available for OCR")
+            raise HTTPException(status_code=500, detail=T("api.errors.uploads.tesseract_not_available"))
         try:
             import pytesseract
         except Exception as exc:
-            raise HTTPException(status_code=500, detail="pytesseract not installed for OCR") from exc
+            raise HTTPException(status_code=500, detail=T("api.errors.uploads.pytesseract_not_installed")) from exc
         # OCR every page as an image at a modest DPI to avoid huge memory use
         with pdfplumber.open(path) as pdf:
             texts: list[str] = []
@@ -178,7 +179,7 @@ def _extract_doc_text(path: Path, content_type: str, enable_ocr: bool, ocr_lang:
         try:
             import docx
         except Exception as exc:
-            raise HTTPException(status_code=500, detail="python-docx not installed for DOC/DOCX extraction") from exc
+            raise HTTPException(status_code=500, detail=T("api.errors.uploads.python_docx_not_installed")) from exc
         doc = docx.Document(path)
         paragraphs = [p.text for p in doc.paragraphs if p.text]
         return "\n".join(paragraphs).strip()
@@ -202,12 +203,12 @@ async def upload_image(
     if not _check_rate_limit(user_id):
         raise HTTPException(
             status_code=429,
-            detail=f"Rate limit exceeded: maximum {_RATE_LIMIT_REQUESTS} uploads per {_RATE_LIMIT_WINDOW} seconds"
+            detail=T("api.errors.uploads.rate_limit_exceeded", max_requests=_RATE_LIMIT_REQUESTS, window=_RATE_LIMIT_WINDOW)
         )
 
     settings = get_settings()
     if settings.upload_backend not in {"local", "cloud"}:
-        raise HTTPException(status_code=400, detail="Invalid upload_backend")
+        raise HTTPException(status_code=400, detail=T("api.errors.uploads.invalid_upload_backend"))
     media_max_bytes = int(settings.upload_max_mb) * 1024 * 1024
     doc_max_bytes = int(settings.upload_docs_max_mb) * 1024 * 1024
 
@@ -230,19 +231,19 @@ async def upload_image(
             raw = form.get("data_url")
             data_url = raw if isinstance(raw, str) else None
     if file is None and data_url is None:
-        raise HTTPException(status_code=400, detail="file or data_url required")
+        raise HTTPException(status_code=400, detail=T("api.errors.uploads.file_or_data_url_required"))
 
     if data_url:
         content_type, raw = _decode_data_url(data_url)
         if content_type not in ALLOWED_CONTENT_TYPES:
-            raise HTTPException(status_code=400, detail="Only JPEG/PNG/GIF/WEBP/MP3/WAV/OGG/MP4/WEBM/PDF/DOC/DOCX are allowed")
+            raise HTTPException(status_code=400, detail=T("api.errors.uploads.content_type_not_allowed"))
         # Validate file signature
         if not _validate_file_signature(raw, content_type):
-            raise HTTPException(status_code=400, detail=f"File content does not match declared type {content_type}")
+            raise HTTPException(status_code=400, detail=T("api.errors.uploads.file_signature_mismatch", content_type=content_type))
         max_bytes = doc_max_bytes if content_type in DOC_CONTENT_TYPES else media_max_bytes
         if len(raw) > max_bytes:
             limit_mb = settings.upload_docs_max_mb if content_type in DOC_CONTENT_TYPES else settings.upload_max_mb
-            raise HTTPException(status_code=413, detail=f"File exceeds {limit_mb}MB limit")
+            raise HTTPException(status_code=413, detail=T("api.errors.uploads.file_exceeds_size_limit", limit_mb=limit_mb))
         filename = f"{uuid4().hex}{_safe_suffix(None)}"
         dest = upload_root / f"{filename or uuid4().hex}{_safe_suffix('data.' + content_type.split('/')[-1])}"
         dest.write_bytes(raw)
@@ -250,7 +251,7 @@ async def upload_image(
     else:
         content_type = (file.content_type or "").lower()
         if content_type not in ALLOWED_CONTENT_TYPES:
-            raise HTTPException(status_code=400, detail="Only JPEG/PNG/GIF/WEBP/MP3/WAV/OGG/MP4/WEBM/PDF/DOC/DOCX are allowed")
+            raise HTTPException(status_code=400, detail=T("api.errors.uploads.content_type_not_allowed"))
         max_bytes = doc_max_bytes if content_type in DOC_CONTENT_TYPES else media_max_bytes
         filename = f"{uuid4().hex}{_safe_suffix(file.filename)}"
         dest = upload_root / filename
@@ -266,20 +267,20 @@ async def upload_image(
                     if not _validate_file_signature(chunk, content_type):
                         out.close()
                         dest.unlink(missing_ok=True)
-                        raise HTTPException(status_code=400, detail=f"File content does not match declared type {content_type}")
+                        raise HTTPException(status_code=400, detail=T("api.errors.uploads.file_signature_mismatch", content_type=content_type))
                     signature_checked = True
                 if written + len(chunk) > max_bytes:
                     out.close()
                     dest.unlink(missing_ok=True)
                     limit_mb = settings.upload_docs_max_mb if content_type in DOC_CONTENT_TYPES else settings.upload_max_mb
-                    raise HTTPException(status_code=413, detail=f"File exceeds {limit_mb}MB limit")
+                    raise HTTPException(status_code=413, detail=T("api.errors.uploads.file_exceeds_size_limit", limit_mb=limit_mb))
                 out.write(chunk)
                 written += len(chunk)
         await file.close()
 
         if written == 0:
             dest.unlink(missing_ok=True)
-            raise HTTPException(status_code=400, detail="Empty file")
+            raise HTTPException(status_code=400, detail=T("api.errors.uploads.empty_file"))
 
     public_url = f"{public_base.rstrip('/')}/{dest.name}"
 
@@ -359,7 +360,7 @@ async def delete_upload(request: Request, file_id: str) -> dict:
     upload_root = _get_upload_root()
 
     if not upload_root.exists():
-        raise HTTPException(status_code=404, detail="Upload directory not found")
+        raise HTTPException(status_code=404, detail=T("api.errors.uploads.upload_directory_not_found"))
 
     # Find file matching the UUID (any extension)
     matching_files = [
@@ -368,7 +369,7 @@ async def delete_upload(request: Request, file_id: str) -> dict:
     ]
 
     if not matching_files:
-        raise HTTPException(status_code=404, detail="File not found")
+        raise HTTPException(status_code=404, detail=T("api.errors.uploads.file_not_found"))
 
     # Delete all matching files (should be at most one)
     deleted_count = 0
