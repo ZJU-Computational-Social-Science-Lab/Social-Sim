@@ -213,12 +213,13 @@ def build_structured_context(
 
         if info_model.payoff_template and my_event is not None:
             # Template IS the complete line — no round prefix added separately
-            partner_action = other_events[0].action_name if other_events else ""
+            partner_action = other_events[0].action_name if other_events else "unknown"
+            payoff_val = my_event.payoff if my_event.payoff is not None else "?"
             line = info_model.payoff_template.format(
                 N=r,
                 my_action=my_event.action_name,
                 partner_action=partner_action,
-                payoff=my_event.payoff if my_event.payoff is not None else "",
+                payoff=payoff_val,
             )
         elif my_event is not None and my_event.feedback is not None:
             # Feedback-type games: show action + coordination feedback

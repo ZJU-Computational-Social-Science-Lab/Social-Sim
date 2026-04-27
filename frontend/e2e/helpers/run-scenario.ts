@@ -12,6 +12,7 @@ import { Page } from '@playwright/test';
 import { ExperimentBuilder } from './experiment-builder';
 import { SimulationWorkspace } from './simulation-workspace';
 import { ResultCollector } from './result-collector';
+import { resolveProviderIds } from './providers';
 import { ScenarioConfig } from '../fixtures/scenario-fixtures';
 
 export interface ScenarioResult {
@@ -46,13 +47,17 @@ export async function runScenario(
 
   try {
     const builder = new ExperimentBuilder(page, locale);
+
+    // Resolve providers dynamically from the API (portable across systems)
+    const providerIds = await resolveProviderIds(page, scenario.agentNames.length);
+
     await builder.createSimulationWithDefaults(
       scenario.id,
       scenario.agentNames,
       scenario.agentRolePrompts,
       scenario.zhAgentRolePrompts,
       scenario.parameters,
-      scenario.providerIds,
+      providerIds,
     );
 
     const workspace = new SimulationWorkspace(page, locale);

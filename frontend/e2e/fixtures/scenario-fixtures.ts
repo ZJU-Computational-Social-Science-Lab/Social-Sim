@@ -2,8 +2,10 @@
  * Per-scenario test data for E2E health-check tests.
  *
  * Centralizes agent names, role prompts (EN + ZH), round counts,
- * parameter overrides, and per-agent LLM provider assignments
- * for all 13 user-visible scenarios.
+ * and parameter overrides for all 14 user-visible scenarios.
+ *
+ * Provider IDs are resolved dynamically at runtime via resolveProviderIds()
+ * so tests work on any system with configured LLM providers.
  *
  * Exports: SCENARIOS, ScenarioConfig, getAllScenarios, getScenariosByCategory
  */
@@ -19,8 +21,6 @@ export interface ScenarioConfig {
   rounds: number;
   /** Optional parameter overrides for Step 2 (keyed by param.key from registry). */
   parameters?: Record<string, string | number>;
-  /** Per-agent LLM provider IDs from the test account's provider configs. */
-  providerIds?: number[];
 }
 
 export const SCENARIOS: Record<string, ScenarioConfig> = {
@@ -40,7 +40,6 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
       '你是 Bob，一个务实理性的人。你会仔细权衡利弊再做出决定，不会盲目信任他人。',
     ],
     rounds: 3,
-    providerIds: [16, 17],  // qwen3, gemma3
   },
 
   battle_of_the_sexes: {
@@ -57,7 +56,6 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
       '你是 Partner2，你更喜欢去看足球比赛。(You prefer football.)',
     ],
     rounds: 3,
-    providerIds: [18, 19],  // ministral, granite
   },
 
   stag_hunt: {
@@ -76,7 +74,6 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
       '你是 Hunter3，一个敢于冒险的人。(A risk-taker.)',
     ],
     rounds: 3,
-    providerIds: [20, 16, 17],  // phi4, qwen3, gemma3
   },
 
   public_goods: {
@@ -95,7 +92,6 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
       '你是 Player3，你是条件合作者，会根据上轮他人的贡献来决定自己的投入。(Conditional cooperator — match others.)',
     ],
     rounds: 3,
-    providerIds: [18, 19, 20],  // ministral, granite, phi4
   },
 
   coordination_game: {
@@ -114,7 +110,6 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
       '你是 Player3，一个果断的领导者。(A decisive leader.)',
     ],
     rounds: 3,
-    providerIds: [16, 17],  // qwen3, gemma3
   },
 
   // ── Discussion ───────────────────────────────────────────────
@@ -140,7 +135,6 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
     parameters: {
       topic: 'Should universities require all students to learn programming regardless of their major?',
     },
-    providerIds: [18, 19, 20, 16],  // ministral, granite, phi4, qwen3
   },
 
   council_chamber: {
@@ -166,7 +160,6 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
     parameters: {
       proposal_text: 'Proposal: Implement a four-day work week for all city employees on a six-month trial basis, with 10% salary reduction.',
     },
-    providerIds: [17, 18, 19, 20, 16],  // gemma3, ministral, granite, phi4, qwen3
   },
 
   // ── Spatial ──────────────────────────────────────────────────
@@ -189,7 +182,6 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
       '你是 Explorer4，谨慎的规划者。你先观察周围，再向最近可见资源移动。(Careful planner observing then moving.)',
     ],
     rounds: 3,
-    providerIds: [17, 18, 19, 20],  // gemma3, ministral, granite, phi4
   },
 
   contagion: {
@@ -212,7 +204,6 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
       '你是 Person5，社区领袖。你与他人协调，传播防疫信息。(Community leader spreading awareness.)',
     ],
     rounds: 3,
-    providerIds: [16, 17, 18, 19, 20],  // qwen3, gemma3, ministral, granite, phi4
   },
 
   // ── Sociology ────────────────────────────────────────────────
@@ -235,7 +226,6 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
       '你是 Citizen4，一个观察者。你静静旁观，根据所见决定支持哪一方。(Observer deciding based on evidence.)',
     ],
     rounds: 3,
-    providerIds: [16, 17, 18, 19],  // qwen3, gemma3, ministral, granite
   },
 
   policy_erosion: {
@@ -256,7 +246,6 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
       '你是 Official4，基层公务员。你关注实际执行而非字面合规。(Public servant focused on practical implementation.)',
     ],
     rounds: 3,
-    providerIds: [20, 16, 17, 18],  // phi4, qwen3, gemma3, ministral
   },
 
   echo_chamber: {
@@ -279,7 +268,6 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
       '你是 Member5，放大群体声音。你使用 reinforce_ingroup 来推高主流意见。(Amplifying group views.)',
     ],
     rounds: 3,
-    providerIds: [19, 20, 16, 17, 18],  // granite, phi4, qwen3, gemma3, ministral
   },
 
   resource_scarcity: {
@@ -300,7 +288,29 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
       '你是 Survivor4，为安全而囤积。你使用 hoard 来保护个人储备。(Hoarding for safety.)',
     ],
     rounds: 3,
-    providerIds: [18, 19, 20, 16],  // ministral, granite, phi4, qwen3
+  },
+
+  xihu_yilianbao: {
+    id: 'xihu_yilianbao',
+    name: 'Xihu Yilianbao Enrollment Diffusion',
+    category: 'sociology',
+    agentNames: ['Resident1', 'Resident2', 'Resident3', 'Resident4'],
+    agentRolePrompts: [
+      'You are Resident1, risk-averse and family-oriented. You weigh medical costs carefully and prefer government-backed plans.',
+      'You are Resident2, young and healthy. You feel insurance is unnecessary and would rather spend money elsewhere.',
+      'You are Resident3, influenced by neighbors. You watch what others do before making your own enrollment decision.',
+      'You are Resident4, a community volunteer. You help neighbors understand policy details and encourage enrollment.',
+    ],
+    zhAgentRolePrompts: [
+      '你是 Resident1，规避风险、以家庭为重。你仔细权衡医疗费用，偏好政府背书的保险方案。(Risk-averse, prefers government-backed plans.)',
+      '你是 Resident2，年轻健康。你觉得保险没必要，宁愿把钱花在别处。(Young and healthy, skeptical of insurance.)',
+      '你是 Resident3，受邻居影响。你先观察别人的做法再做参保决定。(Influenced by neighbors, watches others first.)',
+      '你是 Resident4，社区志愿者。你帮助邻居了解政策细节并鼓励参保。(Community volunteer encouraging enrollment.)',
+    ],
+    rounds: 3,
+    parameters: {
+      intervention_arm: 'A2',
+    },
   },
 };
 

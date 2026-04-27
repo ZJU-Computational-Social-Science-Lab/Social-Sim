@@ -74,7 +74,7 @@ export function launchExperimentFromBuilderState({
         id: agentType.id + idSuffix,
         role: rolePrompt || '',
         role_prompt: rolePrompt,
-        profile: userProfile || rolePrompt || '',
+        profile: userProfile || '',
         user_profile: userProfile || '',
         avatarUrl,
         llm_config: llmConfig,
@@ -242,7 +242,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
           id: agentType.id + idSuffix,
           role: rolePrompt || '',
           role_prompt: rolePrompt,  // snake_case for backend
-          profile: userProfile || rolePrompt || '',  // backend expects 'profile' or 'user_profile'
+          profile: userProfile || '',  // Don't fall back to rolePrompt — avoids duplication with role_prompt
           user_profile: userProfile || '',  // snake_case for backend
           avatarUrl: avatarUrl,
           llmConfig: llmConfig,

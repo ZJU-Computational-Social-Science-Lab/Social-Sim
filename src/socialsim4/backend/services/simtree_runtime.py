@@ -555,6 +555,12 @@ def _build_tree_for_sim(sim_record, clients: dict | None = None) -> SimTree:
             cfg_agent.get("profile") or cfg_agent.get("user_profile") or cfg_agent.get("userProfile") or ""
         )
         role_prompt = str(cfg_agent.get("role_prompt") or cfg_agent.get("rolePrompt") or cfg_agent.get("role") or "")
+
+        # Avoid triplication: legacy Agent.system_prompt() renders both user_profile and role_prompt.
+        # If they contain the same text, clear profile so it doesn't duplicate in user_profile.
+        if profile and role_prompt and profile.strip() == role_prompt.strip():
+            profile = ""
+
         selected = [str(a) for a in (cfg_agent.get("action_space") or [])]
         props = dict(cfg_agent.get("properties") or {})
         llm_config = cfg_agent.get("llm_config") or cfg_agent.get("llmConfig") or {}
