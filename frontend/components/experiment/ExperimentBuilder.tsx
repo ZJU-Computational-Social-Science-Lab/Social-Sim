@@ -90,8 +90,13 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
 
   const isLastStep = currentStep === 6;
 
+  // Scroll to top when step changes (previous step may leave page scrolled)
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentStep]);
+
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className={`mx-auto p-6 ${currentStep === 5 ? 'max-w-full' : 'max-w-4xl'}`}>
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold" style={{ color: 'var(--ss-heading)' }}>
@@ -113,7 +118,7 @@ export const ExperimentBuilder: React.FC<ExperimentBuilderProps> = ({
       </div>
 
       {/* Step Content */}
-      <Card className="mb-6 p-6">
+      <Card className={`mb-6 ${currentStep === 5 ? 'p-0' : 'p-6'}`}>
         {currentStep === 1 && (
           <Step1InteractionType />
         )}

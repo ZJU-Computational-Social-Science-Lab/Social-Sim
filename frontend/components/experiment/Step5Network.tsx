@@ -454,9 +454,9 @@ export const Step5Network: React.FC = () => {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-full">
+    <div className="flex flex-col lg:flex-row gap-0 h-full min-h-[500px]">
       {/* Sidebar Tools */}
-      <div className="lg:col-span-1 border-r p-4 space-y-4 overflow-y-auto max-h-full" style={{ background: 'var(--ss-page-surface-muted)' }}>
+      <div className="w-full lg:w-80 shrink-0 border-r p-4 space-y-4 overflow-y-auto" style={{ background: 'var(--ss-page-surface-muted)' }}>
         <div>
           <label className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--ss-text-muted)' }}>
             {t('experimentBuilder.step5.networkPresets')}
@@ -578,7 +578,7 @@ export const Step5Network: React.FC = () => {
           </Button>
 
           {edges.length > 0 ? (
-            <div className="max-h-32 overflow-y-auto pt-2 space-y-1 text-[11px]" style={{ borderTop: '1px solid var(--ss-border)', color: 'var(--ss-text-muted)' }}>
+            <div className="max-h-60 overflow-y-auto pt-2 space-y-1 text-[11px]" style={{ borderTop: '1px solid var(--ss-border)', color: 'var(--ss-text-muted)' }}>
               {edges.map(({ key, source, target }) => (
                 <div key={key} className="flex items-center justify-between px-2 py-1 rounded" style={{ background: 'var(--ss-page-surface-muted)' }}>
                   <span className="truncate">
@@ -615,7 +615,7 @@ export const Step5Network: React.FC = () => {
       </div>
 
       {/* Canvas */}
-      <div className="lg:col-span-3 relative overflow-hidden group" style={{ background: 'var(--ss-page-surface-muted)' }}>
+      <div className="flex-1 relative overflow-hidden group min-h-[400px]" style={{ background: 'var(--ss-page-surface-muted)' }}>
         <NetworkGraph
           network={socialNetwork}
           agents={agents}
