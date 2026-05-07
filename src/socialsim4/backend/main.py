@@ -15,6 +15,7 @@ from .core.config import get_settings
 from .core.database import engine
 from .db.base import Base
 from .middleware import LocaleMiddleware
+from .api.routes.health import set_app_start_time
 
 
 async def _prepare_database() -> None:
@@ -118,7 +119,7 @@ def create_app() -> Litestar:
 
     app_kwargs: dict = {
         "route_handlers": [base_router],
-        "on_startup": [_prepare_database, _initialize_vector_store, _log_routes],
+        "on_startup": [set_app_start_time, _prepare_database, _initialize_vector_store, _log_routes],
         "cors_config": cors_config,
         "debug": settings.debug,
         "openapi_config": OpenAPIConfig(title=settings.app_name, version="1.0.0"),

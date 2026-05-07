@@ -837,6 +837,22 @@ class SimTreeRegistry:
 
         return True
 
+    def metrics(self) -> dict:
+        """
+        Return a snapshot of registry health metrics for the /api/health endpoint.
+
+        Exposes only the data the health check needs, keeping internal state private.
+        Called by the health route — do not access _records directly from outside this class.
+        """
+        active_simulations = len(self._records)
+        active_websocket_connections = sum(
+            len(record.subs) for record in self._records.values()
+        )
+        return {
+            "active_simulations": active_simulations,
+            "active_websocket_connections": active_websocket_connections,
+        }
+
     def update_global_knowledge(self, simulation_id: str, global_knowledge: dict) -> bool:
         """
         Update global knowledge reference in all agents of an existing tree.

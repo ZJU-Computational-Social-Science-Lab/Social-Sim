@@ -16,6 +16,7 @@ from . import (
     uploads,
     environment,  # Dynamic environment routes
     xihu_round1,  # Xihu Yilianbao experiment scenario routes
+    health,  # Health check and metrics endpoints
 )
 
 router = Router(
@@ -35,5 +36,6 @@ router = Router(
         admin.router,
         environment.router,
         xihu_round1.router,  # Xihu Yilianbao scenario API
+        health.router,  # Health check and metrics
     ],
 )
