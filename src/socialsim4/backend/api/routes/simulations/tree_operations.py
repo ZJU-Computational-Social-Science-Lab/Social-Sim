@@ -27,6 +27,8 @@ from typing import Any
 from litestar import get, post, delete
 from litestar.connection import Request
 from litestar.exceptions import HTTPException
+
+from socialsim4.backend.core.timing import log_time
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from socialsim4.backend.core.database import get_session
@@ -198,7 +200,8 @@ async def simulation_tree_advance_frontier(
             child_id = allocations[parent_id]
             simulator = tree.nodes[child_id]["sim"]
             total_turns = max(1, turns) * max(1, len(simulator.agents))
-            await asyncio.to_thread(simulator.run, max_turns=total_turns)
+            with log_time("SIM", sim_id=simulation_id, node=child_id, turns=total_turns, op="advance_frontier"):
+                await asyncio.to_thread(simulator.run, max_turns=total_turns)
             return parent_id, child_id, False
 
         results = await asyncio.gather(*[_run(pid) for pid in parents])
@@ -278,7 +281,8 @@ async def simulation_tree_advance_multi(
         async def _run(child_id: int) -> tuple[int, bool]:
             simulator = tree.nodes[child_id]["sim"]
             total_turns = max(1, turns) * max(1, len(simulator.agents))
-            await asyncio.to_thread(simulator.run, max_turns=total_turns)
+            with log_time("SIM", sim_id=simulation_id, node=child_id, turns=total_turns, op="advance_multi"):
+                await asyncio.to_thread(simulator.run, max_turns=total_turns)
             return child_id, False
 
         finished = await asyncio.gather(*[_run(cid) for cid in children])
@@ -355,7 +359,8 @@ async def simulation_tree_advance_chain(
                     total_turns = 1 * max(1, len(simulator.agents))
                     logger.info(f"[ADVANCE_CHAIN] Running simulator for node {cid}, max_turns={total_turns}")
                     try:
-                        await asyncio.to_thread(simulator.run, max_turns=total_turns)
+                        with log_time("SIM", sim_id=simulation_id, node=cid, turns=total_turns, step=_, op="advance_chain"):
+                            await asyncio.to_thread(simulator.run, max_turns=total_turns)
                         logger.info(f"[ADVANCE_CHAIN] Simulator run complete for node {cid}")
 
                         from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
@@ -561,6 +566,16 @@ async def simulation_tree_state(
 
                 logger.debug(f"Agent '{agent.name}' has {len(kb)} KB items, {len(docs)} documents, {len(action_history)} actions, score={score}")
 
+                # Serialize LLM config from the agent attribute, not properties.
+                # llm_config is a top-level attribute (LLMConfig dataclass), not stored in props.
+                llm_cfg = getattr(agent, "llm_config", None)
+                if llm_cfg and hasattr(llm_cfg, "dialect"):
+                    llm_config_out = {"provider": llm_cfg.dialect, "model": llm_cfg.model}
+                elif isinstance(llm_cfg, dict):
+                    llm_config_out = llm_cfg
+                else:
+                    llm_config_out = {}
+
                 agents.append({
                     "name": agent.name,
                     "profile": profile,
@@ -570,7 +585,8 @@ async def simulation_tree_state(
                     "knowledgeBase": kb,
                     "documents": docs,
                     "score": score,
-                    "llmConfig": props.get("llm_config") or {},
+                    "provider_id": getattr(agent, "provider_id", None),
+                    "llmConfig": llm_config_out,
                 })
             turns = simulator.scene.current_round
         else:
@@ -585,6 +601,15 @@ async def simulation_tree_state(
 
                 logger.debug(f"Agent '{name}' has {len(kb)} KB items, {len(docs)} documents")
 
+                # Serialize LLM config from the agent attribute, not properties.
+                llm_cfg = getattr(agent, "llm_config", None)
+                if llm_cfg and hasattr(llm_cfg, "dialect"):
+                    llm_config_out = {"provider": llm_cfg.dialect, "model": llm_cfg.model}
+                elif isinstance(llm_cfg, dict):
+                    llm_config_out = llm_cfg
+                else:
+                    llm_config_out = {}
+
                 agents.append(
                     {
                         "name": name,
@@ -594,7 +619,8 @@ async def simulation_tree_state(
                         "short_memory": agent.short_memory.get_all(),
                         "knowledgeBase": kb,
                         "documents": docs,
-                        "llmConfig": props.get("llm_config") or {},
+                        "provider_id": getattr(agent, "provider_id", None),
+                        "llmConfig": llm_config_out,
                     }
                 )
             turns = simulator.turns
