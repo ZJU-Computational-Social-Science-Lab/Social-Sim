@@ -27,6 +27,8 @@ from copy import deepcopy
 from threading import BoundedSemaphore
 from typing import List, Dict, Any
 
+from socialsim4.backend.core.timing import log_time
+
 from .llm_config import LLMConfig
 from .validation import validate_media_url
 from .providers import _MockModel, _import_openai, _import_gemini, _import_ollama
@@ -189,15 +191,21 @@ class LLMClient:
 
         for attempt in range(self.max_retries + 1):
             try:
-                with self._sem:
-                    if self.provider.dialect == "openai":
-                        # OpenAI: direct call, timeout via SDK parameter
-                        result = fn()
-                    else:
-                        # Others: use thread executor for timeout
-                        with ThreadPoolExecutor(max_workers=1) as ex:
-                            fut = ex.submit(fn)
-                            result = fut.result(timeout=self.timeout_s)
+                with log_time(
+                    "LLM",
+                    provider=self.provider.dialect,
+                    model=self.provider.model,
+                    attempt=attempt,
+                ):
+                    with self._sem:
+                        if self.provider.dialect == "openai":
+                            # OpenAI: direct call, timeout via SDK parameter
+                            result = fn()
+                        else:
+                            # Others: use thread executor for timeout
+                            with ThreadPoolExecutor(max_workers=1) as ex:
+                                fut = ex.submit(fn)
+                                result = fut.result(timeout=self.timeout_s)
                 return result
             except (FutTimeout, Exception) as e:
                 last_err = e
