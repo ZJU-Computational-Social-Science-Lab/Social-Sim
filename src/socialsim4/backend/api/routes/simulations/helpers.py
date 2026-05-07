@@ -27,6 +27,7 @@ from socialsim4.core.search_config import SearchConfig
 from socialsim4.core.llm import create_llm_client
 from socialsim4.core.tools.web.search import create_search_client
 from socialsim4.backend.core.database import get_session
+from socialsim4.backend.core.timing import log_event
 from socialsim4.backend.dependencies import settings
 
 from socialsim4.backend.models.simulation import Simulation
@@ -295,8 +296,10 @@ def broadcast_tree_event(
         record: SimTreeRecord with subscribers
         event: Event dictionary to broadcast
     """
+    event_type = event.get("type", "unknown")
     for queue in list(record.subs):
         try:
             queue.put_nowait(event)
         except Exception:
             logger.exception("failed to enqueue tree-level broadcast event")
+    log_event("WS", event="broadcast", type=event_type, clients=len(record.subs))

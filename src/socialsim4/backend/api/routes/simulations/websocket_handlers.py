@@ -24,6 +24,7 @@ from litestar.connection import WebSocket
 from litestar.exceptions import WebSocketDisconnect
 
 from socialsim4.backend.core.database import get_session
+from socialsim4.backend.core.timing import log_event
 
 from .helpers import (
     get_simulation_for_owner,
@@ -74,6 +75,7 @@ async def simulation_tree_events_ws(
     await socket.accept()
     queue: asyncio.Queue = asyncio.Queue()
     record.subs.append(queue)
+    log_event("WS", sim_id=simulation_id, event="connected", clients=len(record.subs), level="tree")
 
     logger.debug("WS tree events subscribed: sim=%s", simulation_id)
 
@@ -95,6 +97,7 @@ async def simulation_tree_events_ws(
     finally:
         if queue in record.subs:
             record.subs.remove(queue)
+            log_event("WS", sim_id=simulation_id, event="disconnected", clients=len(record.subs), level="tree")
         logger.debug("WS tree events unsubscribed: sim=%s", simulation_id)
 
 
@@ -158,6 +161,7 @@ async def simulation_tree_node_events_ws(
     await socket.accept()
     queue: asyncio.Queue = asyncio.Queue()
     record.tree.add_node_sub(int(node_id), queue)
+    log_event("WS", sim_id=simulation_id, event="connected", node=node_id, level="node")
 
     logger.debug("WS node events subscribed: sim=%s node=%s", simulation_id, node_id)
 
@@ -183,4 +187,5 @@ async def simulation_tree_node_events_ws(
                 break
     finally:
         record.tree.remove_node_sub(int(node_id), queue)
+        log_event("WS", sim_id=simulation_id, event="disconnected", node=node_id, level="node")
         logger.debug("WS node events unsubscribed: sim=%s node=%s", simulation_id, node_id)
