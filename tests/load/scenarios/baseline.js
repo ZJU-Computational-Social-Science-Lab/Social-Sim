@@ -2,7 +2,7 @@
  * Baseline load test: single user creates and runs a simulation.
  * Establishes performance baselines for comparison with concurrent tests.
  *
- * Run: k6 run -e BASE_URL=http://your-server:8090 tests/load/scenarios/baseline.js
+ * Run: k6 run -e BASE_URL=http://localhost:8000 tests/load/scenarios/baseline.js
  */
 
 import http from "k6/http";
@@ -10,7 +10,6 @@ import { check, group } from "k6";
 import { Trend } from "k6/metrics";
 import { authenticate, createSimulation, advanceChain, checkHealth } from "../lib/helpers.js";
 
-// Custom metrics
 const createSimDuration = new Trend("create_simulation_duration", true);
 const advanceDuration = new Trend("advance_chain_duration", true);
 
@@ -24,7 +23,7 @@ export const options = {
   },
 };
 
-const BASE_URL = __ENV.BASE_URL || "http://localhost:8090";
+const BASE_URL = __ENV.BASE_URL || "http://localhost:8000";
 
 export default function () {
   group("Baseline: Single User", () => {
@@ -35,21 +34,31 @@ export default function () {
     });
 
     // Auth
-    const token = authenticate(BASE_URL, "baseline@test.com", "testpass123");
+    const token = authenticate(BASE_URL);
+    if (!token) {
+      console.error("Auth failed — cannot continue");
+      return;
+    }
 
     // Create simulation
+    let sim;
     group("Create Simulation", () => {
       const start = Date.now();
-      const sim = createSimulation(BASE_URL, token, "Baseline Test Sim");
+      sim = createSimulation(BASE_URL, token, "Baseline Test Sim");
       createSimDuration.add(Date.now() - start);
-      console.log(`Created sim: ${sim.id}`);
+      console.log(`Created sim: ${sim?.id}`);
+    });
 
-      // Advance tree
-      group("Advance Chain (1 turn)", () => {
-        const start = Date.now();
-        advanceChain(BASE_URL, token, sim.id, 1);
-        advanceDuration.add(Date.now() - start);
-      });
+    if (!sim?.id) {
+      console.error(`Sim creation failed or missing id. Response: ${JSON.stringify(sim)}`);
+      return;
+    }
+
+    // Advance tree
+    group("Advance Chain (1 turn)", () => {
+      const start = Date.now();
+      advanceChain(BASE_URL, token, sim.id, 1);
+      advanceDuration.add(Date.now() - start);
     });
 
     // Final health check

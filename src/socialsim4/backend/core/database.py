@@ -30,6 +30,18 @@ settings = get_settings()
 # Configure engine with optional pool tuning from settings. Only include values
 # explicitly provided to avoid passing unsupported args for some dialects.
 engine_kwargs: dict = {"echo": settings.debug}
+
+# SQLite-specific tuning for concurrent access.
+if settings.database_url.startswith("sqlite"):
+    engine_kwargs["connect_args"] = {"timeout": 60}
+    # Sensible defaults for SQLite under concurrent load (overridable via settings).
+    if settings.db_pool_size is None:
+        engine_kwargs["pool_size"] = 20
+    if settings.db_max_overflow is None:
+        engine_kwargs["max_overflow"] = 10
+    if settings.db_pool_timeout is None:
+        engine_kwargs["pool_timeout"] = 60
+
 if settings.db_pool_size is not None:
     engine_kwargs["pool_size"] = settings.db_pool_size
 if settings.db_max_overflow is not None:
@@ -43,6 +55,16 @@ if settings.db_pool_pre_ping is not None:
 
 engine = create_async_engine(settings.database_url, **engine_kwargs)
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
+
+
+# Enable WAL mode for SQLite — allows concurrent reads during writes.
+if settings.database_url.startswith("sqlite"):
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def _set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.close()
 
 
 # Slow query logging

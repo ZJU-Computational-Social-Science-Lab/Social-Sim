@@ -1,9 +1,9 @@
 /**
- * Concurrent load test: 20 users running game theory experiments simultaneously.
+ * Concurrent load test: 50 users running game theory experiments simultaneously.
  * Uses three real experiment scenarios with LLM-backed agents.
  *
  * Scenarios: Prisoner's Dilemma, Public Goods Game, Open Discussion
- * Run: k6 run -e BASE_URL=http://localhost:8000 tests/load/scenarios/concurrent-20.js
+ * Run: k6 run -e BASE_URL=http://localhost:8000 tests/load/scenarios/concurrent-50.js
  */
 
 import http from "k6/http";
@@ -20,13 +20,13 @@ const scenarioKeys = Object.keys(SCENARIOS);
 
 export const options = {
   stages: [
-    { duration: "40s", target: 20 },  // Ramp to 20 users over 40s (2s stagger)
-    { duration: "60s", target: 20 },  // Hold 20 users for 60s
-    { duration: "20s", target: 0 },   // Ramp down
+    { duration: "60s", target: 50 },  // Ramp to 50 users over 60s
+    { duration: "120s", target: 50 }, // Hold 50 users for 2 min
+    { duration: "30s", target: 0 },   // Ramp down
   ],
   thresholds: {
     http_req_duration: ["p(90)<300000"],       // 5 min for LLM calls
-    http_req_failed: ["rate<0.2"],             // Allow 20% failure under load
+    http_req_failed: ["rate<0.3"],             // Allow 30% failure under heavier load
     create_simulation_duration: ["p(90)<10000"],
     advance_chain_duration: ["p(90)<300000"],  // 5 min for advance with real LLM
   },

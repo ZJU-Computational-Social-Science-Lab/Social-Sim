@@ -124,6 +124,7 @@ def create_app() -> Litestar:
         "debug": settings.debug,
         "openapi_config": OpenAPIConfig(title=settings.app_name, version="1.0.0"),
         "middleware": [LocaleMiddleware],
+        "exception_handlers": {Exception: internal_error_handler},
     }
 
     return Litestar(**app_kwargs)

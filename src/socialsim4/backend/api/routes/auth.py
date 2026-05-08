@@ -4,7 +4,7 @@ from jose import JWTError, jwt
 from litestar import Router, get, post
 from litestar.connection import Request
 from litestar.exceptions import HTTPException
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from socialsim4.i18n import T
 from ...core.config import get_settings
@@ -83,6 +83,11 @@ async def login(data: LoginRequest) -> TokenPair:
 
         access_token, access_exp = create_access_token(str(user.id))
         refresh_token, refresh_exp = create_refresh_token(str(user.id))
+
+        # Remove old refresh tokens for this user to prevent accumulation
+        await session.execute(
+            delete(RefreshToken).where(RefreshToken.user_id == user.id)
+        )
 
         session.add(
             RefreshToken(
