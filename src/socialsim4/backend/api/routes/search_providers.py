@@ -1,5 +1,6 @@
 from litestar import Router, delete, get, patch, post
 from litestar.connection import Request
+from litestar.exceptions import HTTPException
 from sqlalchemy import select
 
 from ...core.database import get_session
@@ -52,7 +53,8 @@ async def update_search_provider(request: Request, provider_id: int, data: Searc
     async with get_session() as session:
         current_user = await resolve_current_user(session, token)
         provider = await session.get(SearchProviderConfig, provider_id)
-        assert provider is not None and provider.user_id == current_user.id
+        if provider is None or provider.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to access this provider")
 
         if data.provider is not None:
             provider.provider = data.provider
@@ -74,7 +76,8 @@ async def delete_search_provider(request: Request, provider_id: int) -> None:
     async with get_session() as session:
         current_user = await resolve_current_user(session, token)
         provider = await session.get(SearchProviderConfig, provider_id)
-        assert provider is not None and provider.user_id == current_user.id
+        if provider is None or provider.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to access this provider")
         await session.delete(provider)
         await session.commit()
 

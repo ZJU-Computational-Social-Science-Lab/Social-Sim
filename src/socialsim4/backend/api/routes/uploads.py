@@ -222,6 +222,10 @@ async def upload_image(
         public_base = f"{settings.backend_root_path.rstrip('/')}{settings.upload_base_url}"
     upload_root.mkdir(parents=True, exist_ok=True)
 
+    # Scope uploads by user
+    user_upload_dir = upload_root / user_id
+    user_upload_dir.mkdir(parents=True, exist_ok=True)
+
     # Resolve payload: file upload or data URL. Some Litestar versions don't bind UploadFile automatically; fallback to parsing form.
     if file is None and data_url is None:
         form = await request.form()
@@ -245,7 +249,7 @@ async def upload_image(
             limit_mb = settings.upload_docs_max_mb if content_type in DOC_CONTENT_TYPES else settings.upload_max_mb
             raise HTTPException(status_code=413, detail=T("api.errors.uploads.file_exceeds_size_limit", limit_mb=limit_mb))
         filename = f"{uuid4().hex}{_safe_suffix(None)}"
-        dest = upload_root / f"{filename or uuid4().hex}{_safe_suffix('data.' + content_type.split('/')[-1])}"
+        dest = user_upload_dir / f"{filename or uuid4().hex}{_safe_suffix('data.' + content_type.split('/')[-1])}"
         dest.write_bytes(raw)
         written = len(raw)
     else:
@@ -254,7 +258,7 @@ async def upload_image(
             raise HTTPException(status_code=400, detail=T("api.errors.uploads.content_type_not_allowed"))
         max_bytes = doc_max_bytes if content_type in DOC_CONTENT_TYPES else media_max_bytes
         filename = f"{uuid4().hex}{_safe_suffix(file.filename)}"
-        dest = upload_root / filename
+        dest = user_upload_dir / filename
         written = 0
         signature_checked = False
         with dest.open("wb") as out:
@@ -311,22 +315,24 @@ def _get_upload_root() -> Path:
 @get("/", tags=["uploads"])
 async def list_uploads(request: Request) -> list[dict]:
     """
-    List all uploaded files with metadata.
+    List uploaded files for the current user.
 
     Returns a list of files with id, filename, size, created timestamp, and type.
+    Only shows files uploaded by the authenticated user.
     """
     # Require authentication
     token = extract_bearer_token(request)
     async with get_session() as session:
-        await resolve_current_user(session, token)
+        user = await resolve_current_user(session, token)
 
     upload_root = _get_upload_root()
+    user_dir = upload_root / str(user.id)
     files = []
 
-    if not upload_root.exists():
+    if not user_dir.exists():
         return []
 
-    for path in upload_root.iterdir():
+    for path in user_dir.iterdir():
         if path.is_file():
             try:
                 stat = path.stat()
@@ -351,20 +357,26 @@ async def delete_upload(request: Request, file_id: str) -> dict:
 
     The file_id is the UUID without the extension - the endpoint will
     find and delete the file matching this ID regardless of extension.
+    Only deletes files belonging to the authenticated user.
     """
     # Require authentication
     token = extract_bearer_token(request)
     async with get_session() as session:
-        await resolve_current_user(session, token)
+        user = await resolve_current_user(session, token)
 
     upload_root = _get_upload_root()
 
     if not upload_root.exists():
         raise HTTPException(status_code=404, detail=T("api.errors.uploads.upload_directory_not_found"))
 
-    # Find file matching the UUID (any extension)
+    # Scope to user's directory
+    user_dir = upload_root / str(user.id)
+    if not user_dir.exists():
+        raise HTTPException(status_code=404, detail=T("api.errors.uploads.file_not_found"))
+
+    # Find file matching the UUID (any extension) in user's directory
     matching_files = [
-        p for p in upload_root.iterdir()
+        p for p in user_dir.iterdir()
         if p.is_file() and p.stem == file_id
     ]
 

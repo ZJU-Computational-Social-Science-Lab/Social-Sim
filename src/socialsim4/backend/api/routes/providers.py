@@ -20,6 +20,8 @@ from litestar.exceptions import HTTPException
 from litestar.connection import Request
 from sqlalchemy import select
 
+import re
+
 from socialsim4.core.llm import create_llm_client
 from socialsim4.core.llm_config import LLMConfig, guess_supports_vision
 from socialsim4.i18n import T
@@ -31,6 +33,16 @@ from ...schemas.common import Message
 from ...schemas.provider import ProviderBase, ProviderCreate, ProviderUpdate
 from ...services.default_providers import ensure_default_ollama_providers
 from ...services.provider_dialect import normalize_provider_dialect
+
+
+def _redact_secret(value: str) -> str:
+    """Redact potential API keys and secrets from error messages.
+
+    Replaces long alphanumeric strings (likely API keys) with [REDACTED].
+    """
+    # Redact common API key patterns: 20+ consecutive hex/base64 chars
+    value = re.sub(r'[A-Za-z0-9+/=_-]{20,}', '[REDACTED]', value)
+    return value
 
 
 def _normalize_dialect(raw: str, base_url: str | None) -> tuple[str, str | None]:
@@ -137,7 +149,8 @@ async def update_provider(
     async with get_session() as session:
         current_user = await resolve_current_user(session, token)
         provider = await session.get(ProviderConfig, provider_id)
-        assert provider is not None and provider.user_id == current_user.id
+        if provider is None or provider.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to access this provider")
 
         if data.name is not None:
             provider.name = data.name
@@ -163,7 +176,8 @@ async def delete_provider(request: Request, provider_id: int) -> None:
     async with get_session() as session:
         current_user = await resolve_current_user(session, token)
         provider = await session.get(ProviderConfig, provider_id)
-        assert provider is not None and provider.user_id == current_user.id
+        if provider is None or provider.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to access this provider")
         await session.delete(provider)
         await session.commit()
 
@@ -174,7 +188,8 @@ async def test_provider(request: Request, provider_id: int) -> Message:
     async with get_session() as session:
         current_user = await resolve_current_user(session, token)
         provider = await session.get(ProviderConfig, provider_id)
-        assert provider is not None and provider.user_id == current_user.id
+        if provider is None or provider.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to access this provider")
 
         dialect, normalized_base_url = _normalize_dialect(provider.provider, provider.base_url)
         cfg = LLMConfig(
@@ -207,9 +222,9 @@ async def test_provider(request: Request, provider_id: int) -> Message:
                 return Message(message=T('api.providers.connectivity_verified'))
 
             provider.last_test_status = "failed"
-            provider.last_error = str(exc)
+            provider.last_error = _redact_secret(str(exc))
             await session.commit()
-            raise HTTPException(status_code=502, detail=f"Provider test failed: {exc}")
+            raise HTTPException(status_code=502, detail="Provider test failed. Check your configuration and credentials.")
 
 
 @post("/{provider_id:int}/activate")
@@ -218,7 +233,8 @@ async def activate_provider(request: Request, provider_id: int) -> Message:
     async with get_session() as session:
         current_user = await resolve_current_user(session, token)
         provider = await session.get(ProviderConfig, provider_id)
-        assert provider is not None and provider.user_id == current_user.id
+        if provider is None or provider.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to access this provider")
 
         result = await session.execute(
             select(ProviderConfig).where(ProviderConfig.user_id == current_user.id)

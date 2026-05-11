@@ -31,11 +31,11 @@ async def _dummy_session():
     yield None
 
 
-def _patch_auth(monkeypatch):
+def _patch_auth(monkeypatch, user_id: int = 1):
     monkeypatch.setattr(uploads, "extract_bearer_token", lambda req: "token")
 
     async def _resolve_current_user(session, token):
-        return None
+        return SimpleNamespace(id=user_id)
 
     monkeypatch.setattr(uploads, "resolve_current_user", _resolve_current_user)
     monkeypatch.setattr(uploads, "get_session", _dummy_session)
@@ -354,8 +354,10 @@ async def test_list_uploads_returns_file_metadata(monkeypatch, tmp_path):
     monkeypatch.setattr(uploads, "get_settings", lambda: settings)
     _patch_auth(monkeypatch)
 
-    # Create a test file
-    test_file = tmp_path / "test_upload.png"
+    # Create a test file in user-specific directory
+    user_dir = tmp_path / "1"  # user_id=1
+    user_dir.mkdir(parents=True, exist_ok=True)
+    test_file = user_dir / "test_upload.png"
     test_file.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 100)
 
     result = await uploads.list_uploads.fn(None)
@@ -385,9 +387,11 @@ async def test_delete_upload_removes_file(monkeypatch, tmp_path):
     monkeypatch.setattr(uploads, "get_settings", lambda: settings)
     _patch_auth(monkeypatch)
 
-    # Create a test file with known UUID
+    # Create a test file with known UUID in user-specific directory
     file_id = "abc123test"
-    test_file = tmp_path / f"{file_id}.png"
+    user_dir = tmp_path / "1"  # user_id=1
+    user_dir.mkdir(parents=True, exist_ok=True)
+    test_file = user_dir / f"{file_id}.png"
     test_file.write_bytes(b"test content")
 
     # Delete the file

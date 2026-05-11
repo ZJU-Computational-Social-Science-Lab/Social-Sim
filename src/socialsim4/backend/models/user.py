@@ -38,6 +38,11 @@ class User(TimestampMixin, Base):
 
 
 class ProviderConfig(TimestampMixin, Base):
+    """LLM provider configuration for a user.
+
+    TODO: For hosted multi-user deployments, encrypt provider API keys at rest.
+    Currently stored as plaintext in the database.
+    """
     __tablename__ = "provider_configs"
     __table_args__ = (UniqueConstraint("user_id", "name", name="uq_provider_user_name"),)
 

@@ -4,12 +4,21 @@ from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+# Dangerous default values that must not be used in production
+_DANGEROUS_JWT_KEYS = {"change-me", "please-change-me", "secret", "jwt-secret", "your-secret-key"}
+_DANGEROUS_ADMIN_PASSWORDS = {"zjucss107", "admin", "password", "changeme"}
+_DANGEROUS_DB_PASSWORDS = {"socialsim4", "postgres", "password", "admin"}
+
+
 class Settings(BaseSettings):
     debug: bool = False
     app_name: str = "SocialSim4 Backend"
     api_prefix: str = "/api"
     backend_root_path: str = ""
     frontend_dist_path: str | None = None
+
+    # Environment mode: "development", "test", or "production"
+    app_env: str = "development"
 
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000
@@ -42,6 +51,16 @@ class Settings(BaseSettings):
     allowed_origins: list[str] = []
     admin_emails: list[str] = []
 
+    # Admin bootstrap credentials (used by ensure_admin script)
+    admin_email: str = ""
+    admin_username: str = ""
+    admin_password: str = ""
+
+    # Simulation cost controls
+    max_advance_multi_count: int = 20
+    max_advance_turns_per_request: int = 50
+    max_frontier_nodes_per_request: int = 50
+
     # File upload configuration
     upload_dir: str = "uploads"
     upload_base_url: str = "/uploads"
@@ -67,6 +86,53 @@ class Settings(BaseSettings):
     @property
     def email_enabled(self) -> bool:
         return self.email_smtp_host is not None and self.email_smtp_port is not None and self.email_from is not None
+
+    @property
+    def is_production(self) -> bool:
+        return self.app_env.lower() in ("production", "prod")
+
+    def validate_production_secrets(self) -> list[str]:
+        """Validate that production-critical secrets are not using defaults.
+
+        Returns a list of error messages. Empty list means all checks passed.
+        Only runs checks when app_env is production.
+        """
+        if not self.is_production:
+            return []
+
+        errors: list[str] = []
+
+        # JWT signing key
+        jwt_key = self.jwt_signing_key.get_secret_value()
+        if jwt_key.lower() in _DANGEROUS_JWT_KEYS:
+            errors.append(
+                "JWT_SIGNING_KEY is set to a known default value. "
+                "Generate a secure key (e.g., openssl rand -hex 32) and set SOCIALSIM4_JWT_SIGNING_KEY."
+            )
+        elif len(jwt_key) < 32:
+            errors.append(
+                "JWT_SIGNING_KEY is too short (< 32 characters). "
+                "Use a longer key for production."
+            )
+
+        # Admin password
+        if self.admin_password and self.admin_password.lower() in _DANGEROUS_ADMIN_PASSWORDS:
+            errors.append(
+                "ADMIN_PASSWORD is set to a known default. "
+                "Set ADMIN_PASSWORD to a strong, unique password."
+            )
+
+        # Database password (check PostgreSQL URLs)
+        db_url = self.database_url.lower()
+        for dangerous in _DANGEROUS_DB_PASSWORDS:
+            if f":{dangerous}@" in db_url:
+                errors.append(
+                    "Database password in DATABASE_URL appears to be a default value. "
+                    "Set a strong database password for production."
+                )
+                break
+
+        return errors
 
 
 @lru_cache

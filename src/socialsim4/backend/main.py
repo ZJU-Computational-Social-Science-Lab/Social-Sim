@@ -6,6 +6,8 @@ from litestar import Litestar, Router, get
 from litestar.config.cors import CORSConfig
 from litestar.connection import Request
 from litestar.enums import MediaType
+from litestar.exceptions import HTTPException
+from sqlalchemy.exc import NoResultFound
 from litestar.openapi import OpenAPIConfig
 from litestar.response import File, Response
 from litestar.static_files import create_static_files_router
@@ -31,6 +33,15 @@ async def _initialize_vector_store() -> None:
     from .services.vector_store import initialize_vector_store
 
     settings = get_settings()
+
+    # Validate production secrets before starting
+    errors = settings.validate_production_secrets()
+    if errors:
+        print("[FATAL] Production secret validation failed:")
+        for err in errors:
+            print(f"  - {err}")
+        raise SystemExit(1)
+
     if settings.use_chromadb:
         initialize_vector_store(
             use_chromadb=True,
@@ -44,8 +55,21 @@ async def _initialize_vector_store() -> None:
 
 
 def internal_error_handler(request: Request, exc: Exception) -> Response:
-    # Return JSON error for any unhandled exception (HTTP 500)
-    # Note: 4xx HTTPException responses will continue to use Litestar's default handling.
+    # Let HTTPExceptions (4xx auth errors, etc.) pass through with their own status code.
+    if isinstance(exc, HTTPException):
+        return Response(
+            content={"detail": exc.detail},
+            media_type=MediaType.JSON,
+            status_code=exc.status_code,
+        )
+    # SQLAlchemy NoResultFound → 404 (e.g., ownership check fails).
+    # Litestar normally handles this, but our Exception handler intercepts first.
+    if isinstance(exc, NoResultFound):
+        return Response(
+            content={"detail": "Not found"},
+            media_type=MediaType.JSON,
+            status_code=404,
+        )
     return Response(content={"error": str(exc)}, media_type=MediaType.JSON, status_code=500)
 
 

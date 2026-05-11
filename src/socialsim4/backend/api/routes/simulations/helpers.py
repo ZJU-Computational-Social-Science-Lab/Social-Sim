@@ -9,7 +9,8 @@ Contains:
     - get_simulation_for_owner: Fetch simulation with ownership check
     - get_tree_record: Get or create SimTreeRecord for a simulation
     - get_simulation_and_tree: Get both simulation and tree record
-    - get_simulation_and_tree_any: Get simulation/tree without owner check
+    - get_simulation_and_tree_for_owner: Get simulation/tree with ownership check
+    - get_simulation_and_tree_any: Get simulation/tree without owner check (INTERNAL ONLY)
     - resolve_user_from_token: Resolve user from JWT token
     - broadcast_tree_event: Broadcast event to all tree subscribers
 """
@@ -218,15 +219,45 @@ async def get_simulation_and_tree(
     return sim, record
 
 
+async def get_simulation_and_tree_for_owner(
+    session: AsyncSession,
+    owner_id: int,
+    simulation_id: str,
+) -> tuple[Simulation, SimTreeRecord]:
+    """
+    Get simulation and tree with ownership check.
+
+    Fetches the simulation by ID and verifies the requesting user
+    is the owner. Use this in all request handlers that access
+    simulation trees.
+
+    Args:
+        session: Database session
+        owner_id: User ID who must own the simulation
+        simulation_id: Simulation identifier
+
+    Returns:
+        Tuple of (Simulation, SimTreeRecord)
+
+    Raises:
+        HTTPException: 404 if simulation not found or not owned by user
+    """
+    sim = await get_simulation_for_owner(session, owner_id, simulation_id)
+    record = await get_tree_record(sim, session, owner_id)
+    return sim, record
+
+
 async def get_simulation_and_tree_any(
     session: AsyncSession,
     simulation_id: str,
 ) -> tuple[Simulation, SimTreeRecord]:
     """
-    Get simulation and tree without ownership check.
+    Get simulation and tree WITHOUT ownership check.
 
-    Used for endpoints that don't require authentication (e.g.,
-    tree operations that use the simulation's owner_id directly).
+    WARNING: Does not enforce ownership. Do NOT use in request handlers
+    that serve external API requests. Use get_simulation_and_tree_for_owner()
+    instead. This function exists only for internal/trusted paths where
+    ownership has already been verified.
 
     Args:
         session: Database session

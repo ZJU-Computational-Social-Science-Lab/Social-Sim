@@ -17,11 +17,17 @@ import { listProviders, Provider } from '../services/providers';
 import { MultimodalInput } from './MultimodalInput';
 
 const renderProfileHtml = (text: string) => {
-  const escape = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const escape = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
   const escaped = escape(text || '');
   const withImages = escaped.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_m, alt, url) => {
     const safeAlt = escape(alt || 'image');
-    const safeUrl = url.replace(/"/g, '&quot;');
+    // Only allow safe URL protocols (http, https, relative paths)
+    const trimmedUrl = (url || '').trim();
+    const isSafeUrl = /^(https?:\/\/|\/[^/]|\.\/|[^:/?#][^?#]*)$/i.test(trimmedUrl) && !trimmedUrl.toLowerCase().startsWith('javascript:') && !trimmedUrl.toLowerCase().startsWith('data:text/html');
+    if (!isSafeUrl) {
+      return `[${safeAlt}]`;
+    }
+    const safeUrl = escape(trimmedUrl);
     return `<img src="${safeUrl}" alt="${safeAlt}" class="inline-block max-h-32 rounded border mr-2 mb-2" style="border-color:var(--ss-workspace-border)" />`;
   });
   return withImages.replace(/\n/g, '<br />');

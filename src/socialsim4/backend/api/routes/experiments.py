@@ -13,7 +13,8 @@ from socialsim4.i18n import T
 from socialsim4.backend.core.database import get_session
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from socialsim4.backend.api.routes.simulations.helpers import get_simulation_and_tree_any, broadcast_tree_event
+from socialsim4.backend.api.routes.simulations.helpers import get_simulation_and_tree_for_owner, broadcast_tree_event
+from socialsim4.backend.dependencies import extract_bearer_token, resolve_current_user
 from socialsim4.backend.models.simulation import Simulation
 from socialsim4.backend.models.user import ProviderConfig
 from socialsim4.backend.models.llm_usage import LLMUsage
@@ -51,12 +52,16 @@ class CompareRequest(BaseModel):
 
 @post("/{simulation_id:str}/experiments")
 async def create_experiment(request: Request, simulation_id: str, data: CreateExperimentRequest) -> dict:
-    async with get_session() as session:  # validate simulation exists and tree built
-        sim, record = await get_simulation_and_tree_any(session, simulation_id)
+    # Authenticate and verify ownership
+    token = extract_bearer_token(request)
+    async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
+        await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
     # persist experiment to DB
     # coerce base_node to int (floor) to tolerate frontend float inputs like 2.1
     exp_id = await create_experiment_db(simulation_id, int(data.base_node), data.name, None, [v.dict() for v in data.variants])
     async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
         sim = await session.get(Simulation, simulation_id.upper())
         stmt = select(Experiment).options(selectinload(Experiment.variants)).where(Experiment.id == exp_id)
         res = await session.execute(stmt)
@@ -64,7 +69,7 @@ async def create_experiment(request: Request, simulation_id: str, data: CreateEx
         if exp is None:
             raise HTTPException(status_code=404, detail="Experiment not found after creation")
 
-        _, record = await get_simulation_and_tree_any(session, simulation_id)
+        _, record = await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
         tree = record.tree
         node_mapping = []
         for v in exp.variants or []:
@@ -99,8 +104,10 @@ async def run_experiment(request: Request, simulation_id: str, exp_id: str, data
         exp_id,
         int(data.turns),
     )
+    token = extract_bearer_token(request)
     async with get_session() as session:
-        _, record = await get_simulation_and_tree_any(session, simulation_id)
+        current_user = await resolve_current_user(session, token)
+        _, record = await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
         # broadcast run starts for visibility
         broadcast_tree_event(record, {"type": "experiment_run_start", "data": {"experiment": exp_id}})
     # start background run (Celery if configured)
@@ -108,6 +115,7 @@ async def run_experiment(request: Request, simulation_id: str, exp_id: str, data
     # attempt to return any already-assigned variant->node mapping if available
     node_mapping = []
     async with get_session() as session:
+        current_user = await resolve_current_user(session, token)
         # Eager-load variants to avoid lazy loading side-effects
         from sqlalchemy.orm import selectinload
         stmt = select(Experiment).options(selectinload(Experiment.variants)).where(Experiment.id == exp_id)
@@ -127,15 +135,18 @@ async def run_experiment(request: Request, simulation_id: str, exp_id: str, data
         node_mapping,
     )
     async with get_session() as session:
-        _, record = await get_simulation_and_tree_any(session, simulation_id)
+        current_user = await resolve_current_user(session, token)
+        _, record = await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
         broadcast_tree_event(record, {"type": "experiment_run_finish", "data": {"experiment": exp_id, "nodes": res.get("finished", [])}})
     return res
 
 
 @get("/{simulation_id:str}/experiments")
 async def list_experiments(request: Request, simulation_id: str) -> dict:
+    token = extract_bearer_token(request)
     async with get_session() as session:
-        await get_simulation_and_tree_any(session, simulation_id)
+        current_user = await resolve_current_user(session, token)
+        await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
         result = await session.execute(
             select(Experiment).where(Experiment.simulation_id == simulation_id.upper())
         )
@@ -155,8 +166,10 @@ async def list_experiments(request: Request, simulation_id: str) -> dict:
 
 @get("/{simulation_id:str}/experiments/{exp_id:str}")
 async def get_experiment(request: Request, simulation_id: str, exp_id: str) -> dict:
+    token = extract_bearer_token(request)
     async with get_session() as session:
-        await get_simulation_and_tree_any(session, simulation_id)
+        current_user = await resolve_current_user(session, token)
+        await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
         # Eager-load variants and runs to avoid lazy-loading outside session
         stmt = select(Experiment).options(selectinload(Experiment.variants), selectinload(Experiment.runs)).where(Experiment.id == exp_id)
         res = await session.execute(stmt)
@@ -197,7 +210,9 @@ async def compare_nodes(request: Request, simulation_id: str, data: dict) -> dic
         raise HTTPException(status_code=400, detail=T('api.errors.invalid_node_ids'))
 
     async with get_session() as session:
-        sim, record = await get_simulation_and_tree_any(session, simulation_id)
+        token = extract_bearer_token(request)
+        current_user = await resolve_current_user(session, token)
+        sim, record = await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
         tree = record.tree
 
     a = tree.nodes.get(int(node_a))

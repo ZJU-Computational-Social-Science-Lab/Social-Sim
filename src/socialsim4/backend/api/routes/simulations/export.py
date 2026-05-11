@@ -15,7 +15,7 @@ from socialsim4.backend.services.export_service import export_events, generate_e
 from socialsim4.core.scenarios.registry import get_scenario
 from socialsim4.i18n import T
 
-from .helpers import get_simulation_and_tree_any
+from .helpers import get_simulation_and_tree_for_owner
 
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,7 @@ async def export_simulation(
         current_user = await resolve_current_user(session, token)
 
         # Fetch simulation and tree from memory (logs are stored in SimTree, not database)
-        sim, record = await get_simulation_and_tree_any(session, simulation_id)
+        sim, record = await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
         logger.info(f"Found simulation: {sim.id}, owner_id={current_user.id}")
 
         if not sim:

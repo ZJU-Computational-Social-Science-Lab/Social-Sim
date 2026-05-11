@@ -31,6 +31,7 @@ from litestar.exceptions import HTTPException
 from socialsim4.backend.core.timing import log_time
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from socialsim4.backend.core.config import get_settings
 from socialsim4.backend.core.database import get_session
 from socialsim4.backend.models.simulation import Simulation
 from socialsim4.backend.schemas.simtree import (
@@ -42,11 +43,12 @@ from socialsim4.backend.schemas.simtree import (
 )
 
 from .helpers import (
-    get_simulation_and_tree_any,
+    get_simulation_and_tree_for_owner,
     broadcast_tree_event,
 )
 from socialsim4.backend.services.simtree_runtime import SIM_TREE_REGISTRY
 from socialsim4.backend.services.documents import composite_rag_retrieval, format_rag_context
+from socialsim4.backend.dependencies import extract_bearer_token, resolve_current_user
 
 
 logger = logging.getLogger(__name__)
@@ -80,8 +82,10 @@ async def simulation_tree_graph(
         HTTPException: If simulation not found
     """
     try:
+        token = extract_bearer_token(request)
         async with get_session() as session:
-            sim, record = await get_simulation_and_tree_any(session, simulation_id)
+            current_user = await resolve_current_user(session, token)
+            sim, record = await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
             tree = record.tree
 
             logger.debug(f"[TREE_GRAPH] sim={simulation_id} tree.root={tree.root} nodes.count={len(tree.nodes)}")
@@ -167,11 +171,26 @@ async def simulation_tree_advance_frontier(
         HTTPException: If simulation not found
     """
     async with get_session() as session:
-        sim, record = await get_simulation_and_tree_any(session, simulation_id)
+        token = extract_bearer_token(request)
+        current_user = await resolve_current_user(session, token)
+        sim, record = await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
         tree = record.tree
 
         parents = tree.frontier(True) if data.only_max_depth else tree.leaves()
         turns = int(data.turns)
+
+        # Enforce runaway simulation controls
+        settings = get_settings()
+        if len(parents) > settings.max_frontier_nodes_per_request:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Too many frontier nodes ({len(parents)}). Maximum is {settings.max_frontier_nodes_per_request}.",
+            )
+        if turns > settings.max_advance_turns_per_request:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Too many turns ({turns}). Maximum is {settings.max_advance_turns_per_request}.",
+            )
 
         # Create copies for each parent
         allocations = {pid: tree.copy_sim(pid) for pid in parents}
@@ -246,7 +265,9 @@ async def simulation_tree_advance_multi(
         HTTPException: If simulation not found
     """
     async with get_session() as session:
-        sim, record = await get_simulation_and_tree_any(session, simulation_id)
+        token = extract_bearer_token(request)
+        current_user = await resolve_current_user(session, token)
+        sim, record = await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
         tree = record.tree
 
         parent = int(data.parent)
@@ -256,6 +277,20 @@ async def simulation_tree_advance_multi(
             return {"children": []}
 
         turns = int(data.turns)
+
+        # Enforce runaway simulation controls
+        settings = get_settings()
+        if count > settings.max_advance_multi_count:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Too many parallel advances ({count}). Maximum is {settings.max_advance_multi_count}.",
+            )
+        if turns > settings.max_advance_turns_per_request:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Too many turns ({turns}). Maximum is {settings.max_advance_turns_per_request}.",
+            )
+
         children = [tree.copy_sim(parent) for _ in range(count)]
 
         for cid in children:
@@ -327,14 +362,25 @@ async def simulation_tree_advance_chain(
     """
     try:
         # Phase 1: Load simulation and tree record (short DB session)
+        token = extract_bearer_token(request)
         async with get_session() as session:
-            sim, record = await get_simulation_and_tree_any(session, simulation_id)
+            current_user = await resolve_current_user(session, token)
+            sim, record = await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
         # DB session released — simulation and tree are in-memory objects.
 
         tree = record.tree
 
         parent = int(data.parent)
         steps = max(1, int(data.turns))
+
+        # Enforce runaway simulation controls
+        settings = get_settings()
+        if steps > settings.max_advance_turns_per_request:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Too many chain steps ({steps}). Maximum is {settings.max_advance_turns_per_request}.",
+            )
+
         last = parent
 
         async with record._advance_lock:
@@ -424,7 +470,9 @@ async def simulation_tree_branch(
         HTTPException: If simulation not found
     """
     async with get_session() as session:
-        sim, record = await get_simulation_and_tree_any(session, simulation_id)
+        token = extract_bearer_token(request)
+        current_user = await resolve_current_user(session, token)
+        sim, record = await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
         tree = record.tree
 
         try:
@@ -478,7 +526,9 @@ async def simulation_tree_delete_subtree(
         HTTPException: If simulation not found or trying to delete root
     """
     async with get_session() as session:
-        sim, record = await get_simulation_and_tree_any(session, simulation_id)
+        token = extract_bearer_token(request)
+        current_user = await resolve_current_user(session, token)
+        sim, record = await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
         record.tree.delete_subtree(int(node_id))
         sim.latest_state = record.tree.serialize()
         await session.commit()
@@ -510,7 +560,9 @@ async def simulation_tree_events(
         HTTPException: If simulation or node not found
     """
     async with get_session() as session:
-        _, record = await get_simulation_and_tree_any(session, simulation_id)
+        token = extract_bearer_token(request)
+        current_user = await resolve_current_user(session, token)
+        _, record = await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
         node = record.tree.nodes.get(int(node_id))
 
         if node is None:
@@ -549,7 +601,9 @@ async def simulation_tree_state(
     logger.debug(f"simulation_tree_state: Fetching state for sim={simulation_id}, node={node_id}")
 
     async with get_session() as session:
-        sim, record = await get_simulation_and_tree_any(session, simulation_id)
+        token = extract_bearer_token(request)
+        current_user = await resolve_current_user(session, token)
+        sim, record = await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
         node = record.tree.nodes.get(int(node_id))
 
         if node is None:
@@ -654,7 +708,9 @@ async def simulation_tree_apply_overrides(
     data: SimulationTreeAgentOverridePayload,
 ) -> dict:
     async with get_session() as session:
-        sim, record = await get_simulation_and_tree_any(session, simulation_id)
+        token = extract_bearer_token(request)
+        current_user = await resolve_current_user(session, token)
+        sim, record = await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
         tree = record.tree
 
         tree.apply_agent_overrides(int(node_id), [ov.model_dump() for ov in data.overrides])
@@ -690,7 +746,9 @@ async def test_agent_knowledge(
     logger.debug(f"test_agent_knowledge: sim={simulation_id}, node={node_id}, agent={agent_name}, query={query}")
 
     async with get_session() as session:
-        _, record = await get_simulation_and_tree_any(session, simulation_id)
+        token = extract_bearer_token(request)
+        current_user = await resolve_current_user(session, token)
+        _, record = await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
         node = record.tree.nodes.get(int(node_id))
 
         if node is None:
@@ -762,7 +820,9 @@ async def ask_agents_question(
     logger.debug(f"Target agent: {target_agent or 'ALL'}")
 
     async with get_session() as session:
-        sim, record = await get_simulation_and_tree_any(session, simulation_id)
+        token = extract_bearer_token(request)
+        current_user = await resolve_current_user(session, token)
+        sim, record = await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
         node = record.tree.nodes.get(int(node_id))
 
         if node is None:
@@ -920,7 +980,9 @@ async def inject_host_message(
         raise HTTPException(status_code=400, detail="message is required")
 
     async with get_session() as session:
-        _, record = await get_simulation_and_tree_any(session, simulation_id)
+        token = extract_bearer_token(request)
+        current_user = await resolve_current_user(session, token)
+        _, record = await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
         node = record.tree.nodes.get(int(node_id))
 
         if node is None:

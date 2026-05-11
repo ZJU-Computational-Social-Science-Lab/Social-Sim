@@ -186,6 +186,12 @@ export const SimulationControlPanel: React.FC<SimulationControlPanelProps> = ({
               />
             ) : null}
           </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
+            <p className="text-xs text-amber-700">
+              {t("controlRoom.researchNote")}
+            </p>
+          </div>
         </section>
 
         {!isObservationMode ? (
