@@ -1,0 +1,140 @@
+
+Running 28 tests using 2 workers
+
+[en] [prisoners_dilemma] status=passed ui_errors=0 duration=24701ms
+  ok  2 [en] › e2e\health-check.spec.ts:32:3 › health-check (Prisoner's Dilemma) (33.1s)
+[zh] [prisoners_dilemma] status=passed ui_errors=0 duration=24470ms
+  ok  1 [zh] › e2e\health-check.spec.ts:32:3 › health-check (Prisoner's Dilemma) (33.6s)
+[en] [battle_of_the_sexes] status=passed ui_errors=0 duration=21379ms
+  ok  3 [en] › e2e\health-check.spec.ts:32:3 › health-check (Battle of the Sexes) (25.9s)
+[zh] [battle_of_the_sexes] status=passed ui_errors=0 duration=23519ms
+  ok  4 [zh] › e2e\health-check.spec.ts:32:3 › health-check (Battle of the Sexes) (28.9s)
+[en] [stag_hunt] status=passed ui_errors=0 duration=24538ms
+  ok  5 [en] › e2e\health-check.spec.ts:32:3 › health-check (Stag Hunt) (29.7s)
+[zh] [stag_hunt] status=passed ui_errors=0 duration=24743ms
+  ok  6 [zh] › e2e\health-check.spec.ts:32:3 › health-check (Stag Hunt) (32.8s)
+[en] [public_goods] status=passed ui_errors=0 duration=25171ms
+  ok  7 [en] › e2e\health-check.spec.ts:32:3 › health-check (Public Goods Game) (29.7s)
+[zh] [public_goods] status=passed ui_errors=0 duration=24500ms
+  ok  8 [zh] › e2e\health-check.spec.ts:32:3 › health-check (Public Goods Game) (29.8s)
+[en] [coordination_game] status=passed ui_errors=0 duration=24450ms
+  ok  9 [en] › e2e\health-check.spec.ts:32:3 › health-check (Coordination Game) (29.1s)
+[zh] [coordination_game] status=passed ui_errors=0 duration=24554ms
+  ok 10 [zh] › e2e\health-check.spec.ts:32:3 › health-check (Coordination Game) (30.0s)
+[en] [open_discussion] status=passed ui_errors=0 duration=74785ms
+  ok 11 [en] › e2e\health-check.spec.ts:32:3 › health-check (Open Discussion) (1.3m)
+[zh] [open_discussion] status=passed ui_errors=0 duration=78760ms
+  ok 12 [zh] › e2e\health-check.spec.ts:32:3 › health-check (Open Discussion) (1.4m)
+[en] [council_chamber] status=passed ui_errors=0 duration=42947ms
+  ok 13 [en] › e2e\health-check.spec.ts:32:3 › health-check (Council Chamber) (47.8s)
+[zh] [council_chamber] status=passed ui_errors=0 duration=37680ms
+  ok 14 [zh] › e2e\health-check.spec.ts:32:3 › health-check (Council Chamber) (43.1s)
+[en] [grid_world] status=passed ui_errors=0 duration=25739ms
+  ok 15 [en] › e2e\health-check.spec.ts:32:3 › health-check (Grid World) (30.7s)
+[zh] [grid_world] status=passed ui_errors=0 duration=25572ms
+  ok 16 [zh] › e2e\health-check.spec.ts:32:3 › health-check (Grid World) (31.0s)
+[en] [contagion] status=passed ui_errors=0 duration=88999ms
+  ok 17 [en] › e2e\health-check.spec.ts:32:3 › health-check (Contagion Spread) (1.6m)
+[zh] [contagion] status=passed ui_errors=0 duration=93197ms
+  ok 18 [zh] › e2e\health-check.spec.ts:32:3 › health-check (Contagion Spread) (1.6m)
+[en] [social_norm_disruption] status=passed ui_errors=0 duration=32845ms
+  ok 19 [en] › e2e\health-check.spec.ts:32:3 › health-check (Social Norm Disruption) (38.1s)
+[zh] [social_norm_disruption] status=passed ui_errors=0 duration=26204ms
+  ok 20 [zh] › e2e\health-check.spec.ts:32:3 › health-check (Social Norm Disruption) (31.7s)
+[en] [policy_erosion] status=passed ui_errors=0 duration=99762ms
+  ok 21 [en] › e2e\health-check.spec.ts:32:3 › health-check (Policy Meaning Erosion) (1.7m)
+[zh] [policy_erosion] status=passed ui_errors=0 duration=103920ms
+  ok 22 [zh] › e2e\health-check.spec.ts:32:3 › health-check (Policy Meaning Erosion) (1.8m)
+[en] [echo_chamber] status=passed ui_errors=0 duration=29776ms
+  ok 23 [en] › e2e\health-check.spec.ts:32:3 › health-check (Echo Chamber) (34.4s)
+[zh] [echo_chamber] status=passed ui_errors=0 duration=26626ms
+  ok 24 [zh] › e2e\health-check.spec.ts:32:3 › health-check (Echo Chamber) (32.1s)
+[en] [resource_scarcity] status=passed ui_errors=0 duration=25435ms
+  ok 25 [en] › e2e\health-check.spec.ts:32:3 › health-check (Resource Sccarcity) (30.2s)
+[zh] [resource_scarcity] status=passed ui_errors=0 duration=25605ms
+  ok 26 [zh] › e2e\health-check.spec.ts:32:3 › health-check (Resource Sccarcity) (30.9s)
+[en] [xihu_yilianbao] status=crashed ui_errors=1 duration=301316ms
+
+Health check (en) complete. Report: C:\Users\Justin\Documents\ZJU_Work\Social-Sim\frontend\e2e\collected-results\run-report-en.json
+  [OK] Prisoner's Dilemma (passed) — 24701ms
+  [OK] Battle of the Sexes (passed) — 21379ms
+  [OK] Stag Hunt (passed) — 24538ms
+  [OK] Public Goods Game (passed) — 25171ms
+  [OK] Coordination Game (passed) — 24450ms
+  [OK] Open Discussion (passed) — 74785ms
+  [OK] Council Chamber (passed) — 42947ms
+  [OK] Grid World (passed) — 25739ms
+  [OK] Contagion Spread (passed) — 88999ms
+  [OK] Social Norm Disruption (passed) — 32845ms
+  [OK] Policy Meaning Erosion (passed) — 99762ms
+  [OK] Echo Chamber (passed) — 29776ms
+  [OK] Resource Sccarcity (passed) — 25435ms
+  [FAIL] Xihu Yilianbao Enrollment Diffusion (crashed) — 301316ms
+
+13/14 scenarios passed (en).
+
+Health check review: C:\Users\Justin\Documents\ZJU_Work\Social-Sim\frontend\e2e\collected-results\health-check-review.txt
+  x  27 [en] › e2e\health-check.spec.ts:32:3 › health-check (Xihu Yilianbao Enrollment Diffusion) (5.1m)
+[zh] [xihu_yilianbao] status=crashed ui_errors=1 duration=301060ms
+
+Health check (zh) complete. Report: C:\Users\Justin\Documents\ZJU_Work\Social-Sim\frontend\e2e\collected-results\run-report-zh.json
+  [OK] Prisoner's Dilemma (passed) — 24470ms
+  [OK] Battle of the Sexes (passed) — 23519ms
+  [OK] Stag Hunt (passed) — 24743ms
+  [OK] Public Goods Game (passed) — 24500ms
+  [OK] Coordination Game (passed) — 24554ms
+  [OK] Open Discussion (passed) — 78760ms
+  [OK] Council Chamber (passed) — 37680ms
+  [OK] Grid World (passed) — 25572ms
+  [OK] Contagion Spread (passed) — 93197ms
+  [OK] Social Norm Disruption (passed) — 26204ms
+  [OK] Policy Meaning Erosion (passed) — 103920ms
+  [OK] Echo Chamber (passed) — 26626ms
+  [OK] Resource Sccarcity (passed) — 25605ms
+  [FAIL] Xihu Yilianbao Enrollment Diffusion (crashed) — 301060ms
+
+13/14 scenarios passed (zh).
+
+Health check review: C:\Users\Justin\Documents\ZJU_Work\Social-Sim\frontend\e2e\collected-results\health-check-review.txt
+  x  28 [zh] › e2e\health-check.spec.ts:32:3 › health-check (Xihu Yilianbao Enrollment Diffusion) (5.1m)
+
+
+  1) [en] › e2e\health-check.spec.ts:32:3 › health-check (Xihu Yilianbao Enrollment Diffusion) ─────
+
+    [31mTest timeout of 300000ms exceeded.[39m
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\health-check-health-check--11c66-anbao-Enrollment-Diffusion--en\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\health-check-health-check--11c66-anbao-Enrollment-Diffusion--en\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\health-check-health-check--11c66-anbao-Enrollment-Diffusion--en\error-context.md
+
+    Error Context: test-results\health-check-health-check--11c66-anbao-Enrollment-Diffusion--en\error-context.md
+
+  2) [zh] › e2e\health-check.spec.ts:32:3 › health-check (Xihu Yilianbao Enrollment Diffusion) ─────
+
+    [31mTest timeout of 300000ms exceeded.[39m
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\health-check-health-check--11c66-anbao-Enrollment-Diffusion--zh\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\health-check-health-check--11c66-anbao-Enrollment-Diffusion--zh\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\health-check-health-check--11c66-anbao-Enrollment-Diffusion--zh\error-context.md
+
+    Error Context: test-results\health-check-health-check--11c66-anbao-Enrollment-Diffusion--zh\error-context.md
+
+  Slow test file: [zh] › e2e\health-check.spec.ts (15.4m)
+  Slow test file: [en] › e2e\health-check.spec.ts (15.2m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  2 failed
+    [en] › e2e\health-check.spec.ts:32:3 › health-check (Xihu Yilianbao Enrollment Diffusion) ──────
+    [zh] › e2e\health-check.spec.ts:32:3 › health-check (Xihu Yilianbao Enrollment Diffusion) ──────
+  26 passed (15.4m)

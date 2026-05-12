@@ -1,0 +1,1610 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend[39m
+
+ [2m[90m↓[39m[22m components/__tests__/SimTree.i18n.test.tsx [2m([22m[2m3 tests[22m[2m | [22m[33m3 skipped[39m[2m)[22m
+ [31m❯[39m components/experiment/__tests__/Step2StarterTemplate.punishment.test.tsx [2m([22m[2m6 tests[22m[2m | [22m[31m6 failed[39m[2m)[22m[32m 9[2mms[22m[39m
+[31m       [31m×[31m should render punishment section when scenario is PUBLIC_GOODS[39m[32m 3[2mms[22m[39m
+[31m       [31m×[31m should have punishment section collapsed by default[39m[32m 1[2mms[22m[39m
+[31m       [31m×[31m should expand punishment section on click[39m[32m 1[2mms[22m[39m
+[31m       [31m×[31m should show budget input with default 0[39m[32m 1[2mms[22m[39m
+[31m       [31m×[31m should show cost ratio input with default 3.0[39m[32m 1[2mms[22m[39m
+[31m       [31m×[31m should show anonymous mode toggle[39m[32m 1[2mms[22m[39m
+ [32m✓[39m utils/parseScenarioParams.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m utils/networkTopologies.test.ts [2m([22m[2m20 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m utils/llmDistribution.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+[90mstdout[2m | test/auth.proactiveRefresh.test.ts[2m > [22m[2mProactive Token Refresh[2m > [22m[2msetWebSocketConnected[2m > [22m[2mshould setup refresh timer when WebSocket connects
+[22m[39mProactive refresh scheduled in 15 minutes
+
+[90mstdout[2m | test/auth.proactiveRefresh.test.ts[2m > [22m[2mProactive Token Refresh[2m > [22m[2msetWebSocketConnected[2m > [22m[2mshould clear timer when WebSocket disconnects
+[22m[39mProactive refresh scheduled in 15 minutes
+
+[90mstdout[2m | test/auth.proactiveRefresh.test.ts[2m > [22m[2mProactive Token Refresh[2m > [22m[2mclearSession[2m > [22m[2mshould clear timer when session is cleared
+[22m[39mProactive refresh scheduled in 15 minutes
+
+ [32m✓[39m test/auth.proactiveRefresh.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m components/__tests__/SimTree.keys.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+[90mstdout[2m | store/experiment-builder.test.ts
+[22m[39m[experiment-builder.ts] STORE MODULE LOADED
+
+ [31m❯[39m components/__tests__/i18n.test.ts [2m([22m[2m4 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[32m 20[2mms[22m[39m
+[31m     [31m×[31m all English keys exist in Chinese locale[39m[32m 9[2mms[22m[39m
+[31m     [31m×[31m all Chinese keys exist in English locale[39m[32m 3[2mms[22m[39m
+     [32m✓[39m interpolation variables match between EN and ZH[32m 4[2mms[22m[39m
+[31m     [31m×[31m no empty translation values[39m[32m 4[2mms[22m[39m
+[90mstdout[2m | components/experiment/__tests__/Step1InteractionType.test.tsx
+[22m[39m[experiment-builder.ts] STORE MODULE LOADED
+
+ [32m✓[39m store/experiment-builder.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [31m❯[39m components/experiment/__tests__/Step1InteractionType.test.tsx [2m([22m[2m5 tests[22m[2m | [22m[31m5 failed[39m[2m)[22m[32m 5[2mms[22m[39m
+[31m       [31m×[31m should render loading state initially[39m[32m 3[2mms[22m[39m
+[31m       [31m×[31m should render scenarios after loading[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should render category accordions[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should expand accordion on click[39m[32m 0[2mms[22m[39m
+[31m       [31m×[31m should call setSelectedScenarioId when scenario is clicked[39m[32m 0[2mms[22m[39m
+ [31m❯[39m store/helpers.experimentAction.test.ts [2m([22m[2m1 test[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 7[2mms[22m[39m
+[31m     [31m×[31m includes summary and payoff in mapped action logs[39m[32m 6[2mms[22m[39m
+ [31m❯[39m store/__tests__/helpers.punishment.test.ts [2m([22m[2m5 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 10[2mms[22m[39m
+[31m       [31m×[31m should handle punishment_action event type[39m[32m 7[2mms[22m[39m
+[31m       [31m×[31m should display punisher name, target name, amount, and deduction[39m[32m 1[2mms[22m[39m
+       [32m✓[39m should use i18n.t() for runtime language switching[32m 0[2mms[22m[39m
+       [32m✓[39m should use event round if provided, fallback to parameter round[32m 0[2mms[22m[39m
+       [32m✓[39m should handle missing punisher gracefully[32m 0[2mms[22m[39m
+ [31m❯[39m components/__tests__/LogViewer.i18n.test.tsx [2m([22m[2m6 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 167[2mms[22m[39m
+     [32m✓[39m all keys used in mapBackendEventsToLogs exist in English locale[32m 3[2mms[22m[39m
+     [32m✓[39m all keys used in mapBackendEventsToLogs exist in Chinese locale[32m 4[2mms[22m[39m
+     [32m✓[39m interpolation variables match between EN and ZH for keys with variables[32m 54[2mms[22m[39m
+     [32m✓[39m returns content in English when i18n.language is en[32m 77[2mms[22m[39m
+[31m     [31m×[31m returns content in Chinese when i18n.language is zh[39m[32m 17[2mms[22m[39m
+[31m     [31m×[31m produces different content when language changes[39m[32m 11[2mms[22m[39m
+[90mstderr[2m | store/__tests__/experiments-autoadvance.test.ts[2m > [22m[2mAuto-advance state management[2m > [22m[2mstartAutoAdvance should guard against missing simulation
+[22m[39m[startAutoAdvance] No simulation or node selected
+
+[90mstderr[2m | store/__tests__/experiments-autoadvance.test.ts[2m > [22m[2mAuto-advance state management[2m > [22m[2mstartAutoAdvance should not start if already auto-advancing
+[22m[39m[startAutoAdvance] Already in progress
+
+ [32m✓[39m store/index.test.ts [2m([22m[2m41 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m store/simulation.connected.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 40[2mms[22m[39m
+ [31m❯[39m components/experiment/__tests__/ParameterField.test.tsx [2m([22m[2m6 tests[22m[2m | [22m[31m6 failed[39m[2m)[22m[32m 20[2mms[22m[39m
+[31m       [31m×[31m should render SliderField for ui_hint="slider"[39m[32m 13[2mms[22m[39m
+[31m       [31m×[31m should render PercentageField for ui_hint="percentage"[39m[32m 1[2mms[22m[39m
+[31m       [31m×[31m should render TextAreaField for ui_hint="textarea"[39m[32m 1[2mms[22m[39m
+[31m       [31m×[31m should render ToggleField for ui_hint="toggle"[39m[32m 1[2mms[22m[39m
+[31m       [31m×[31m should call onChange when slider value changes[39m[32m 1[2mms[22m[39m
+[31m       [31m×[31m should call onChange when toggle is clicked[39m[32m 1[2mms[22m[39m
+[90mstdout[2m | __tests__/integration/auto-advance.test.tsx
+[22m[39m[experiment-builder.ts] STORE MODULE LOADED
+
+ [31m❯[39m e2e/health-check.spec.ts [2m([22m[2m0 test[22m[2m)[22m
+[90mstdout[2m | __tests__/integration/auto-open-builder.test.tsx[2m > [22m[2mWorkbench entry on /simulations/new[2m > [22m[2mrenders the builder when no current simulation exists
+[22m[39m[loadProviders] Starting to load providers...
+
+[90mstdout[2m | __tests__/integration/auto-open-builder.test.tsx[2m > [22m[2mWorkbench entry on /simulations/new[2m > [22m[2mrenders the builder when no current simulation exists
+[22m[39m[loadProviders] Loaded providers: []
+[loadProviders] Providers count: [33m0[39m
+[loadProviders] State updated successfully
+
+[90mstderr[2m | __tests__/integration/auto-advance.test.tsx[2m > [22m[2mAuto-advance — full integration flow[2m > [22m[2mshould stop mid-run when stop is clicked
+[22m[39mFailed to check environment suggestions TypeError: Cannot read properties of undefined (reading 'data')
+    at getSuggestionStatus (C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/services/environmentSuggestions.ts:21:19)
+[90m    at processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at checkEnvironmentSuggestions (C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/store/environment.ts:51:22)
+
+[90mstderr[2m | __tests__/integration/auto-advance.test.tsx[2m > [22m[2mAuto-advance — full integration flow
+[22m[39mFailed to check environment suggestions TypeError: Cannot read properties of undefined (reading 'data')
+    at getSuggestionStatus (C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/services/environmentSuggestions.ts:21:19)
+[90m    at processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at checkEnvironmentSuggestions (C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/store/environment.ts:51:22)
+
+ [31m❯[39m __tests__/integration/auto-advance.test.tsx [2m([22m[2m2 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 93[2mms[22m[39m
+[31m     [31m×[31m should complete a full auto-advance run of 3 steps[39m[32m 69[2mms[22m[39m
+[31m     [31m×[31m should stop mid-run when stop is clicked[39m[32m 23[2mms[22m[39m
+[90mstdout[2m | __tests__/integration/auto-open-builder.test.tsx[2m > [22m[2mWorkbench entry on /simulations/new[2m > [22m[2mredirects to the current simulation instead of opening a new builder
+[22m[39m[loadProviders] Starting to load providers...
+
+[90mstdout[2m | __tests__/integration/auto-open-builder.test.tsx[2m > [22m[2mWorkbench entry on /simulations/new
+[22m[39m[loadProviders] Loaded providers: []
+[loadProviders] Providers count: [33m0[39m
+[loadProviders] State updated successfully
+
+[90mstdout[2m | __tests__/integration/auto-open-builder.test.tsx[2m > [22m[2mWorkbench entry on /simulations/new[2m > [22m[2mdoes NOT render the builder when a simulation ID is present
+[22m[39m[loadProviders] Starting to load providers...
+
+[90mstderr[2m | __tests__/integration/auto-open-builder.test.tsx[2m > [22m[2mWorkbench entry on /simulations/new[2m > [22m[2mdoes NOT render the builder when a simulation ID is present
+[22m[39mFailed to check environment suggestions TypeError: Cannot read properties of undefined (reading 'data')
+    at getSuggestionStatus (C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/services/environmentSuggestions.ts:21:19)
+    at checkEnvironmentSuggestions (C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/store/environment.ts:51:22)
+
+[90mstdout[2m | __tests__/integration/auto-open-builder.test.tsx[2m > [22m[2mWorkbench entry on /simulations/new[2m > [22m[2mdoes NOT render the builder when a simulation ID is present
+[22m[39m[loadProviders] Loaded providers: []
+[loadProviders] Providers count: [33m0[39m
+[loadProviders] State updated successfully
+
+[90mstderr[2m | __tests__/integration/auto-open-builder.test.tsx[2m > [22m[2mWorkbench entry on /simulations/new[2m > [22m[2mdoes NOT render the builder when a simulation ID is present
+[22m[39mFailed to load simulation by id TypeError: Cannot read properties of undefined (reading 'catch')
+    at Object.loadSimulationById (C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/store/simulation.ts:144:55)
+    at C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/pages/SimulationPage.tsx:56:7
+
+ [31m❯[39m __tests__/integration/auto-open-builder.test.tsx [2m([22m[2m3 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[33m 1217[2mms[22m[39m
+[31m     [31m×[31m renders the builder when no current simulation exists[39m[33m 1069[2mms[22m[39m
+[31m     [31m×[31m redirects to the current simulation instead of opening a new builder[39m[32m 57[2mms[22m[39m
+[31m     [31m×[31m does NOT render the builder when a simulation ID is present[39m[32m 90[2mms[22m[39m
+[90mstderr[2m | components/experiment/__tests__/Step3Scenario.test.tsx[2m > [22m[2mStep3Scenario - Dynamic Actions[2m > [22m[2mInfo Message Display[2m > [22m[2mshould show dynamic actions info message when actions are generated
+[22m[39mA suspended resource finished loading inside a test, but the event was not wrapped in act(...).
+
+When testing, code that resolves suspended data should be wrapped into act(...):
+
+act(() => {
+  /* finish loading suspended data */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+A suspended resource finished loading inside a test, but the event was not wrapped in act(...).
+
+When testing, code that resolves suspended data should be wrapped into act(...):
+
+act(() => {
+  /* finish loading suspended data */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | components/experiment/__tests__/Step3Scenario.test.tsx[2m > [22m[2mStep3Scenario - Dynamic Actions[2m > [22m[2mInfo Message Display[2m > [22m[2mshould NOT show dynamic actions info message when no generates_actions parameter
+[22m[39mA suspended resource finished loading inside a test, but the event was not wrapped in act(...).
+
+When testing, code that resolves suspended data should be wrapped into act(...):
+
+act(() => {
+  /* finish loading suspended data */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+A suspended resource finished loading inside a test, but the event was not wrapped in act(...).
+
+When testing, code that resolves suspended data should be wrapped into act(...):
+
+act(() => {
+  /* finish loading suspended data */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | components/experiment/__tests__/Step3Scenario.test.tsx[2m > [22m[2mStep3Scenario - Dynamic Actions[2m > [22m[2mRendering[2m > [22m[2mshould render action toggle cards
+[22m[39mA suspended resource finished loading inside a test, but the event was not wrapped in act(...).
+
+When testing, code that resolves suspended data should be wrapped into act(...):
+
+act(() => {
+  /* finish loading suspended data */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+A suspended resource finished loading inside a test, but the event was not wrapped in act(...).
+
+When testing, code that resolves suspended data should be wrapped into act(...):
+
+act(() => {
+  /* finish loading suspended data */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | components/experiment/__tests__/Step3Scenario.test.tsx[2m > [22m[2mStep3Scenario - Dynamic Actions[2m > [22m[2mRendering[2m > [22m[2mshould show empty state when no actions available
+[22m[39mA suspended resource finished loading inside a test, but the event was not wrapped in act(...).
+
+When testing, code that resolves suspended data should be wrapped into act(...):
+
+act(() => {
+  /* finish loading suspended data */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+A suspended resource finished loading inside a test, but the event was not wrapped in act(...).
+
+When testing, code that resolves suspended data should be wrapped into act(...):
+
+act(() => {
+  /* finish loading suspended data */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+[90mstderr[2m | components/experiment/__tests__/Step3Scenario.test.tsx[2m > [22m[2mStep3Scenario - Dynamic Actions[2m > [22m[2mRendering[2m > [22m[2mshould show validation error when present
+[22m[39mA suspended resource finished loading inside a test, but the event was not wrapped in act(...).
+
+When testing, code that resolves suspended data should be wrapped into act(...):
+
+act(() => {
+  /* finish loading suspended data */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+A suspended resource finished loading inside a test, but the event was not wrapped in act(...).
+
+When testing, code that resolves suspended data should be wrapped into act(...):
+
+act(() => {
+  /* finish loading suspended data */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [31m❯[39m components/experiment/__tests__/Step3Scenario.test.tsx [2m([22m[2m13 tests[22m[2m | [22m[31m12 failed[39m[2m)[22m[33m 8744[2mms[22m[39m
+[31m       [31m×[31m should generate actions from choices parameter when generates_actions is true[39m[33m 1019[2mms[22m[39m
+[31m       [31m×[31m should generate actions from default value when scenarioParams is empty[39m[33m 1010[2mms[22m[39m
+[31m       [31m×[31m should handle empty choices string gracefully[39m[33m 1026[2mms[22m[39m
+[31m       [31m×[31m should show dynamic actions info message when actions are generated[39m[32m 28[2mms[22m[39m
+       [32m✓[39m should NOT show dynamic actions info message when no generates_actions parameter[32m 23[2mms[22m[39m
+[31m       [31m×[31m should use static actions when no generates_actions parameter exists[39m[33m 1023[2mms[22m[39m
+[31m       [31m×[31m should use category_actions when available[39m[33m 1056[2mms[22m[39m
+[31m       [31m×[31m should replace policy scene actions with policy-specific action set[39m[33m 1066[2mms[22m[39m
+[31m       [31m×[31m should detect backend policy_erosion scenario and use policy-specific action set[39m[33m 1081[2mms[22m[39m
+[31m       [31m×[31m should select all generated actions by default[39m[33m 1093[2mms[22m[39m
+[31m       [31m×[31m should render action toggle cards[39m[32m 113[2mms[22m[39m
+[31m       [31m×[31m should show empty state when no actions available[39m[32m 94[2mms[22m[39m
+[31m       [31m×[31m should show validation error when present[39m[32m 109[2mms[22m[39m
+[90mstderr[2m | store/__tests__/experiments-autoadvance.test.ts[2m > [22m[2mAuto-advance state management[2m > [22m[2mshould stop on advanceSimulation error
+[22m[39m[startAutoAdvance] Step failed: Error: Backend timeout
+    at C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/store/__tests__/experiments-autoadvance.test.ts:121:30
+    at [90mfile:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+    at [90mfile:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:915:26
+    at [90mfile:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/[39mnode_modules/[4mvitest[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1653:12[90m)[39m
+
+ [32m✓[39m store/__tests__/experiments-autoadvance.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 10883[2mms[22m[39m
+     [33m[2m✓[22m[39m startAutoAdvance should clamp steps to 1–100 [33m 10654[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Suites 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m e2e/health-check.spec.ts[2m [ e2e/health-check.spec.ts ][22m
+[31m[1mError[22m: Playwright Test did not expect test() to be called here.
+Most common reasons include:
+- You are calling test() in a configuration file.
+- You are calling test() in a file that is imported by the configuration file.
+- You have two different versions of @playwright/test. This usually happens
+  when one of the dependencies in your package.json depends on @playwright/test.[39m
+[90m [2m❯[22m TestTypeImpl._currentSuite node_modules/playwright/lib/common/testType.js:[2m75:13[22m[39m
+[90m [2m❯[22m TestTypeImpl._createTest node_modules/playwright/lib/common/testType.js:[2m88:24[22m[39m
+[90m [2m❯[22m node_modules/playwright/lib/transform/transform.js:[2m275:12[22m[39m
+[36m [2m❯[22m e2e/health-check.spec.ts:[2m32:3[22m[39m
+    [90m 30| [39m
+    [90m 31| [39m[35mfor[39m ([35mconst[39m scenario [35mof[39m allScenarios) {
+    [90m 32| [39m  test(`health-check (${scenario.name})`, async ({ page, authedPage, l…
+    [90m   | [39m  [31m^[39m
+    [90m 33| [39m    [35mconst[39m result [33m=[39m [35mawait[39m [34mrunScenario[39m(page[33m,[39m scenario[33m,[39m locale)[33m;[39m
+    [90m 34| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/43]⎯[22m[39m
+
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 42 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m store/helpers.experimentAction.test.ts[2m > [22mmapBackendEventsToLogs - experiment_action[2m > [22mincludes summary and payoff in mapped action logs
+[31m[1mAssertionError[22m: expected 'Alice chose Contribute (amount=7, poo…' to be 'Alice chose contribute (amount=7, poo…' // Object.is equality[39m
+
+Expected: [32m"Alice chose [7mc[27montribute (amount=7, pool=main) -> payoff=18.25"[39m
+Received: [31m"Alice chose [7mC[27montribute (amount=7, pool=main) -> payoff=18.25"[39m
+
+[36m [2m❯[22m store/helpers.experimentAction.test.ts:[2m26:29[22m[39m
+    [90m 24| [39m
+    [90m 25| [39m    [34mexpect[39m(logs)[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m 26| [39m    expect(logs[0].content).toBe('Alice chose contribute (amount=7, po…
+    [90m   | [39m                            [31m^[39m
+    [90m 27| [39m  })[33m;[39m
+    [90m 28| [39m})[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/__tests__/i18n.test.ts[2m > [22mi18n validation[2m > [22mall English keys exist in Chinese locale
+[31m[1mAssertionError[22m: expected [ 'store.localDemoComparison', …(9) ] to deeply equal [][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   "store.localDemoComparison",[39m
+[31m+   "store.timeAdvancedTo",[39m
+[31m+   "store.offlineModeNoAction",[39m
+[31m+   "store.parallelRun",[39m
+[31m+   "store.createdBranch",[39m
+[31m+   "store.parallelScenario",[39m
+[31m+   "store.branchCreatedLocalMode",[39m
+[31m+   "store.cannotBranchFromRoot",[39m
+[31m+   "store.cannotFindParentNode",[39m
+[31m+   "experimentBuilder.step1.noScenariosAvailable",[39m
+[31m+ ][39m
+
+[36m [2m❯[22m components/__tests__/i18n.test.ts:[2m44:21[22m[39m
+    [90m 42| [39m    [35mconst[39m missing [33m=[39m [[33m...[39menKeys][33m.[39m[34mfilter[39m(key [33m=>[39m [33m![39mzhKeys[33m.[39m[34mhas[39m(key))[33m;[39m
+    [90m 43| [39m
+    [90m 44| [39m    [34mexpect[39m(missing)[33m.[39m[34mtoEqual[39m([])[33m;[39m
+    [90m   | [39m                    [31m^[39m
+    [90m 45| [39m  })[33m;[39m
+    [90m 46| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/__tests__/i18n.test.ts[2m > [22mi18n validation[2m > [22mall Chinese keys exist in English locale
+[31m[1mAssertionError[22m: expected [ …(2) ] to deeply equal [][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   "experimentBuilder.step3.selectionMode",[39m
+[31m+   "experimentBuilder.step3.manualSelection",[39m
+[31m+ ][39m
+
+[36m [2m❯[22m components/__tests__/i18n.test.ts:[2m53:21[22m[39m
+    [90m 51| [39m    [35mconst[39m missing [33m=[39m [[33m...[39mzhKeys][33m.[39m[34mfilter[39m(key [33m=>[39m [33m![39menKeys[33m.[39m[34mhas[39m(key))[33m;[39m
+    [90m 52| [39m
+    [90m 53| [39m    [34mexpect[39m(missing)[33m.[39m[34mtoEqual[39m([])[33m;[39m
+    [90m   | [39m                    [31m^[39m
+    [90m 54| [39m  })[33m;[39m
+    [90m 55| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/__tests__/i18n.test.ts[2m > [22mi18n validation[2m > [22mno empty translation values
+[31m[1mAssertionError[22m: expected [ 'landing.hero.line2', …(1) ] to deeply equal [][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   "landing.hero.line2",[39m
+[31m+   "landing.hero.accent",[39m
+[31m+ ][39m
+
+[36m [2m❯[22m components/__tests__/i18n.test.ts:[2m93:21[22m[39m
+    [90m 91| [39m
+    [90m 92| [39m    [34mexpect[39m(emptyEn)[33m.[39m[34mtoEqual[39m([])[33m;[39m
+    [90m 93| [39m    [34mexpect[39m(emptyZh)[33m.[39m[34mtoEqual[39m([])[33m;[39m
+    [90m   | [39m                    [31m^[39m
+    [90m 94| [39m  })[33m;[39m
+    [90m 95| [39m})[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/__tests__/LogViewer.i18n.test.tsx[2m > [22mLogViewer i18n - mapBackendEventsToLogs[2m > [22mreturns content in Chinese when i18n.language is zh
+[31m[1mAssertionError[22m: expected 'Plan updated' to be '更新计划' // Object.is equality[39m
+
+Expected: [32m"更新计划"[39m
+Received: [31m"Plan updated"[39m
+
+[36m [2m❯[22m components/__tests__/LogViewer.i18n.test.tsx:[2m268:30[22m[39m
+    [90m266| [39m
+    [90m267| [39m    // plan_update uses labels.planUpdate which is i18n.t('log.planUpd…
+    [90m268| [39m    [34mexpect[39m(logs[[34m0[39m][33m?.[39mcontent)[33m.[39m[34mtoBe[39m([32m'更新计划'[39m)[33m;[39m
+    [90m   | [39m                             [31m^[39m
+    [90m269| [39m  })[33m;[39m
+    [90m270| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/__tests__/LogViewer.i18n.test.tsx[2m > [22mLogViewer i18n - mapBackendEventsToLogs[2m > [22mproduces different content when language changes
+[31m[1mAssertionError[22m: expected 'Plan updated' not to be 'Plan updated' // Object.is equality[39m
+[36m [2m❯[22m components/__tests__/LogViewer.i18n.test.tsx:[2m289:36[22m[39m
+    [90m287| [39m
+    [90m288| [39m    [90m// Content should be different between languages[39m
+    [90m289| [39m    [34mexpect[39m(enLogs[[34m0[39m][33m?.[39mcontent)[33m.[39mnot[33m.[39m[34mtoBe[39m(zhLogs[[34m0[39m][33m?.[39mcontent)[33m;[39m
+    [90m   | [39m                                   [31m^[39m
+    [90m290| [39m
+    [90m291| [39m    [90m// English should have English text[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m store/__tests__/helpers.punishment.test.ts[2m > [22mmapBackendEventsToLogs - punishment_action[2m > [22mPunishment Event Mapping[2m > [22mshould handle punishment_action event type
+[31m[1mAssertionError[22m: expected 'SYSTEM' to be 'AGENT_ACTION' // Object.is equality[39m
+
+Expected: [32m"AGENT_ACTION"[39m
+Received: [31m"SYSTEM"[39m
+
+[36m [2m❯[22m store/__tests__/helpers.punishment.test.ts:[2m49:28[22m[39m
+    [90m 47| [39m
+    [90m 48| [39m      [34mexpect[39m(logs)[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m 49| [39m      [34mexpect[39m(logs[[34m0[39m][33m.[39mtype)[33m.[39m[34mtoBe[39m([32m'AGENT_ACTION'[39m)[33m;[39m
+    [90m   | [39m                           [31m^[39m
+    [90m 50| [39m      [34mexpect[39m(logs[[34m0[39m][33m.[39magentId)[33m.[39m[34mtoBe[39m([32m'agent-1'[39m)[33m;[39m
+    [90m 51| [39m    })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m store/__tests__/helpers.punishment.test.ts[2m > [22mmapBackendEventsToLogs - punishment_action[2m > [22mPunishment Event Mapping[2m > [22mshould display punisher name, target name, amount, and deduction
+[31m[1mAssertionError[22m: expected 'punishment_action' to contain 'Alice'[39m
+
+Expected: [32m"Alice"[39m
+Received: [31m"punishment_action"[39m
+
+[36m [2m❯[22m store/__tests__/helpers.punishment.test.ts:[2m69:31[22m[39m
+    [90m 67| [39m      const logs = mapBackendEventsToLogs(events, 'node-1', 1, mockAge…
+    [90m 68| [39m
+    [90m 69| [39m      [34mexpect[39m(logs[[34m0[39m][33m.[39mcontent)[33m.[39m[34mtoContain[39m([32m'Alice'[39m)[33m;[39m
+    [90m   | [39m                              [31m^[39m
+    [90m 70| [39m      [34mexpect[39m(logs[[34m0[39m][33m.[39mcontent)[33m.[39m[34mtoContain[39m([32m'Bob'[39m)[33m;[39m
+    [90m 71| [39m      [34mexpect[39m(logs[[34m0[39m][33m.[39mcontent)[33m.[39m[34mtoContain[39m([32m'3'[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m __tests__/integration/auto-advance.test.tsx[2m > [22mAuto-advance — full integration flow[2m > [22mshould complete a full auto-advance run of 3 steps
+{
+  stack: 'AggregateError: \n' +
+    '    at aggregateErrors (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react\\cjs\\react.development.js:551:11)\n' +
+    '    at process.env.NODE_ENV.exports.act (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react\\cjs\\react.development.js:897:24)\n' +
+    '    at C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\@testing-library\\react\\dist\\act-compat.js:46:25\n' +
+    '    at renderRoot (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\@testing-library\\react\\dist\\pure.js:189:26)\n' +
+    '    at Proxy.render (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\@testing-library\\react\\dist\\pure.js:291:10)\n' +
+    '    at renderPage (C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/__tests__/integration/auto-advance.test.tsx:31:26)\n' +
+    '    at C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/__tests__/integration/auto-advance.test.tsx:59:5\n' +
+    '    at file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/@vitest/runner/dist/index.js:145:11\n' +
+    '    at file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/@vitest/runner/dist/index.js:915:26\n' +
+    '    at file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/@vitest/runner/dist/index.js:1243:20',
+  errors: [
+    {
+      stack: "TypeError: Cannot read properties of undefined (reading 'baseVal')\n" +
+        '    at SVGSVGElement.defaultExtent (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:25:30)\n' +
+        '    at new Gesture (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:186:26)\n' +
+        '    at gesture (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:178:42)\n' +
+        '    at SVGSVGElement.<anonymous> (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:92:9)\n' +
+        '    at Selection.default [as each] (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-selection/src/selection/each.js:5:37)\n' +
+        '    at zoom.transform (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:91:29)\n' +
+        '    at Selection.default [as call] (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-selection/src/selection/call.js:4:12)\n' +
+        '    at C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/components/SimTree.tsx:188:9\n' +
+        '    at Object.react_stack_bottom_frame (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:25989:20)\n' +
+        '    at runWithFiberInDEV (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:874:13)',
+      message: "Cannot read properties of undefined (reading 'baseVal')",
+      constructor: 'Function<TypeError>',
+      name: 'TypeError',
+      toString: 'Function<toString>'
+    },
+    {
+      stack: "TypeError: Cannot read properties of undefined (reading 'baseVal')\n" +
+        '    at SVGSVGElement.defaultExtent (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:25:30)\n' +
+        '    at new Gesture (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:186:26)\n' +
+        '    at gesture (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:178:42)\n' +
+        '    at SVGSVGElement.<anonymous> (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:92:9)\n' +
+        '    at Selection.default [as each] (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-selection/src/selection/each.js:5:37)\n' +
+        '    at zoom.transform (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:91:29)\n' +
+        '    at Selection.default [as call] (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-selection/src/selection/call.js:4:12)\n' +
+        '    at C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/components/SimTree.tsx:188:9\n' +
+        '    at Object.react_stack_bottom_frame (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:25989:20)\n' +
+        '    at runWithFiberInDEV (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:874:13)',
+      message: "Cannot read properties of undefined (reading 'baseVal')",
+      constructor: 'Function<TypeError>',
+      name: 'TypeError',
+      toString: 'Function<toString>'
+    }
+  ],
+  constructor: 'Function<AggregateError>',
+  name: 'AggregateError',
+  message: '',
+  toString: 'Function<toString>',
+  stacks: [
+    {
+      method: 'aggregateErrors',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/react/cjs/react.development.js',
+      line: 551,
+      column: 11
+    },
+    {
+      method: 'process.env.NODE_ENV.exports.act',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/react/cjs/react.development.js',
+      line: 897,
+      column: 24
+    },
+    {
+      method: '',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/@testing-library/react/dist/act-compat.js',
+      line: 46,
+      column: 25
+    },
+    {
+      method: 'renderRoot',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/@testing-library/react/dist/pure.js',
+      line: 189,
+      column: 26
+    },
+    {
+      method: 'Proxy.render',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/@testing-library/react/dist/pure.js',
+      line: 291,
+      column: 10
+    },
+    {
+      method: 'renderPage',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/__tests__/integration/auto-advance.test.tsx',
+      line: 31,
+      column: 26
+    },
+    {
+      method: '',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/__tests__/integration/auto-advance.test.tsx',
+      line: 59,
+      column: 5
+    }
+  ]
+}
+[90m [2m❯[22m aggregateErrors node_modules/react/cjs/react.development.js:[2m551:11[22m[39m
+[90m [2m❯[22m process.env.NODE_ENV.exports.act node_modules/react/cjs/react.development.js:[2m897:24[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m46:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m189:26[22m[39m
+[90m [2m❯[22m Proxy.render node_modules/@testing-library/react/dist/pure.js:[2m291:10[22m[39m
+[36m [2m❯[22m renderPage __tests__/integration/auto-advance.test.tsx:[2m31:26[22m[39m
+    [90m 29| [39m}))[33m;[39m
+    [90m 30| [39m
+    [90m 31| [39m[35mconst[39m renderPage [33m=[39m () [33m=>[39m [34mrender[39m(
+    [90m   | [39m                         [31m^[39m
+    [90m 32| [39m  [33m<[39m[33mMemoryRouter[39m[33m>[39m
+    [90m 33| [39m    [33m<[39m[33mSimulationPage[39m [33m/[39m[33m>[39m
+[90m [2m❯[22m __tests__/integration/auto-advance.test.tsx:[2m59:5[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m __tests__/integration/auto-advance.test.tsx[2m > [22mAuto-advance — full integration flow[2m > [22mshould stop mid-run when stop is clicked
+{
+  stack: 'AggregateError: \n' +
+    '    at aggregateErrors (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react\\cjs\\react.development.js:551:11)\n' +
+    '    at process.env.NODE_ENV.exports.act (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react\\cjs\\react.development.js:897:24)\n' +
+    '    at C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\@testing-library\\react\\dist\\act-compat.js:46:25\n' +
+    '    at renderRoot (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\@testing-library\\react\\dist\\pure.js:189:26)\n' +
+    '    at Proxy.render (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\@testing-library\\react\\dist\\pure.js:291:10)\n' +
+    '    at renderPage (C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/__tests__/integration/auto-advance.test.tsx:31:26)\n' +
+    '    at C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/__tests__/integration/auto-advance.test.tsx:94:5\n' +
+    '    at file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/@vitest/runner/dist/index.js:145:11\n' +
+    '    at file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/@vitest/runner/dist/index.js:915:26\n' +
+    '    at file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/@vitest/runner/dist/index.js:1243:20',
+  errors: [
+    {
+      stack: "TypeError: Cannot read properties of undefined (reading 'baseVal')\n" +
+        '    at SVGSVGElement.defaultExtent (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:25:30)\n' +
+        '    at new Gesture (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:186:26)\n' +
+        '    at gesture (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:178:42)\n' +
+        '    at SVGSVGElement.<anonymous> (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:92:9)\n' +
+        '    at Selection.default [as each] (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-selection/src/selection/each.js:5:37)\n' +
+        '    at zoom.transform (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:91:29)\n' +
+        '    at Selection.default [as call] (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-selection/src/selection/call.js:4:12)\n' +
+        '    at C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/components/SimTree.tsx:188:9\n' +
+        '    at Object.react_stack_bottom_frame (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:25989:20)\n' +
+        '    at runWithFiberInDEV (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:874:13)',
+      message: "Cannot read properties of undefined (reading 'baseVal')",
+      constructor: 'Function<TypeError>',
+      name: 'TypeError',
+      toString: 'Function<toString>'
+    },
+    {
+      stack: "TypeError: Cannot read properties of undefined (reading 'baseVal')\n" +
+        '    at SVGSVGElement.defaultExtent (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:25:30)\n' +
+        '    at new Gesture (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:186:26)\n' +
+        '    at gesture (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:178:42)\n' +
+        '    at SVGSVGElement.<anonymous> (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:92:9)\n' +
+        '    at Selection.default [as each] (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-selection/src/selection/each.js:5:37)\n' +
+        '    at zoom.transform (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:91:29)\n' +
+        '    at Selection.default [as call] (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-selection/src/selection/call.js:4:12)\n' +
+        '    at C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/components/SimTree.tsx:188:9\n' +
+        '    at Object.react_stack_bottom_frame (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:25989:20)\n' +
+        '    at runWithFiberInDEV (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:874:13)',
+      message: "Cannot read properties of undefined (reading 'baseVal')",
+      constructor: 'Function<TypeError>',
+      name: 'TypeError',
+      toString: 'Function<toString>'
+    }
+  ],
+  constructor: 'Function<AggregateError>',
+  name: 'AggregateError',
+  message: '',
+  toString: 'Function<toString>',
+  stacks: [
+    {
+      method: 'aggregateErrors',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/react/cjs/react.development.js',
+      line: 551,
+      column: 11
+    },
+    {
+      method: 'process.env.NODE_ENV.exports.act',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/react/cjs/react.development.js',
+      line: 897,
+      column: 24
+    },
+    {
+      method: '',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/@testing-library/react/dist/act-compat.js',
+      line: 46,
+      column: 25
+    },
+    {
+      method: 'renderRoot',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/@testing-library/react/dist/pure.js',
+      line: 189,
+      column: 26
+    },
+    {
+      method: 'Proxy.render',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/@testing-library/react/dist/pure.js',
+      line: 291,
+      column: 10
+    },
+    {
+      method: 'renderPage',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/__tests__/integration/auto-advance.test.tsx',
+      line: 31,
+      column: 26
+    },
+    {
+      method: '',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/__tests__/integration/auto-advance.test.tsx',
+      line: 94,
+      column: 5
+    }
+  ]
+}
+[90m [2m❯[22m aggregateErrors node_modules/react/cjs/react.development.js:[2m551:11[22m[39m
+[90m [2m❯[22m process.env.NODE_ENV.exports.act node_modules/react/cjs/react.development.js:[2m897:24[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m46:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m189:26[22m[39m
+[90m [2m❯[22m Proxy.render node_modules/@testing-library/react/dist/pure.js:[2m291:10[22m[39m
+[36m [2m❯[22m renderPage __tests__/integration/auto-advance.test.tsx:[2m31:26[22m[39m
+    [90m 29| [39m}))[33m;[39m
+    [90m 30| [39m
+    [90m 31| [39m[35mconst[39m renderPage [33m=[39m () [33m=>[39m [34mrender[39m(
+    [90m   | [39m                         [31m^[39m
+    [90m 32| [39m  [33m<[39m[33mMemoryRouter[39m[33m>[39m
+    [90m 33| [39m    [33m<[39m[33mSimulationPage[39m [33m/[39m[33m>[39m
+[90m [2m❯[22m __tests__/integration/auto-advance.test.tsx:[2m94:5[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m __tests__/integration/auto-open-builder.test.tsx[2m > [22mWorkbench entry on /simulations/new[2m > [22mrenders the builder when no current simulation exists
+[31m[1mTestingLibraryElementError[22m[39m: Unable to find an element by: [data-testid="experiment-builder"]
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex flex-col h-screen"[39m
+      [33mstyle[39m=[32m"background: var(--ss-workspace-bg);"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex items-center gap-1 px-4 py-1 border-b"[39m
+        [33mstyle[39m=[32m"background: var(--ss-workspace-surface); border-color: var(--ss-workspace-border);"[39m
+      [36m>[39m
+        [36m<button[39m
+          [33mclass[39m=[32m"
+              flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-md
+              transition-all duration-150
+              shadow-sm
+            "[39m
+          [33mstyle[39m=[32m"background: var(--ss-brand-soft); color: var(--ss-brand-primary);"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"lucide lucide-clock"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mheight[39m=[32m"14"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"14"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M12 6v6l4 2"[39m
+            [36m/>[39m
+            [36m<circle[39m
+              [33mcx[39m=[32m"12"[39m
+              [33mcy[39m=[32m"12"[39m
+              [33mr[39m=[32m"10"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [0msimPage.tabs.timeline[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33mclass[39m=[32m"
+              flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-md
+              transition-all duration-150
+              hover:text-slate-700 hover:bg-slate-50
+            "[39m
+          [33mstyle[39m=[32m"color: var(--ss-workspace-muted);"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"lucide lucide-users"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mheight[39m=[32m"14"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"14"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M16 3.128a4 4 0 0 1 0 7.744"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M22 21v-2a4 4 0 0 0-3-3.87"[39m
+            [36m/>[39m
+            [36m<circle[39m
+              [33mcx[39m=[32m"9"[39m
+              [33mcy[39m=[32m"7"[39m
+              [33mr[39m=[32m"4"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [0msimPage.tabs.agents[0m
+        [36m</button>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex items-center gap-2 px-4 py-2 border-b min-h-[44px]"[39m
+        [33mstyle[39m=[32m"background: var(--ss-workspace-toolbar); border-color: var(--ss-border);"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex items-center gap-2 border-r pr-4"[39m
+          [33mstyle[39m=[32m"border-color: var(--ss-border);"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"inline-flex items-center justify-center gap-2 rounded-full font-medium tracking-[0.01em] whitespace-nowrap transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none bg-[var(--ss-brand-primary)] text-[var(--ss-brand-on)] shadow-[0_16px_40px_rgba(212,162,78,0.16)] hover:-translate-y-0.5 hover:brightness-110 focus:ring-[var(--ss-brand-primary)] px-5 py-2 text-sm"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-play"[39m
+              [33mfill[39m=[32m"currentColor"[39m
+              [33mheight[39m=[32m"14"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"14"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [0msimPage.advance[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"inline-flex items-center justify-center gap-2 rounded-full font-medium tracking-[0.01em] whitespace-nowrap transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none border border-[var(--ss-border)] bg-[var(--ss-surface)] text-[var(--ss-text)] hover:-translate-y-0.5 hover:border-[var(--ss-border-strong)] focus:ring-[var(--ss-border-strong)] px-5 py-2 text-sm"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-git-fork"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"14"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"14"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<circle[39m
+                [33mcx[39m=[32m"12"[39m
+                [33mcy[39m=[32m"18"[39m
+                [33mr[39m=[32m"3"[39m
+              [36m/>[39m
+              [36m<circle[39m
+                [33mcx[39m=[32m"6"[39m
+                [33mcy[39m=[32m"6"[39m
+                [33mr[39m=[32m"3"[39m
+              [36m/>[39m
+              [36m<circle[39m
+                [33mcx[39m=[32m"18"[39m
+                [33mcy[39m=[32m"6"[39m
+                [33mr[39m=[32m"3"[39m
+              [36m/>[39m
+  ...
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-col h-screen"[39m
+        [33mstyle[39m=[32m"background: var(--ss-workspace-bg);"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex items-center gap-1 px-4 py-1 border-b"[39m
+          [33mstyle[39m=[32m"background: var(--ss-workspace-surface); border-color: var(--ss-workspace-border);"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"
+              flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-md
+              transition-all duration-150
+              shadow-sm
+            "[39m
+            [33mstyle[39m=[32m"background: var(--ss-brand-soft); color: var(--ss-brand-primary);"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-clock"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"14"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"14"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12 6v6l4 2"[39m
+              [36m/>[39m
+              [36m<circle[39m
+                [33mcx[39m=[32m"12"[39m
+                [33mcy[39m=[32m"12"[39m
+                [33mr[39m=[32m"10"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [0msimPage.tabs.timeline[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"
+              flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-md
+              transition-all duration-150
+              hover:text-slate-700 hover:bg-slate-50
+            "[39m
+            [33mstyle[39m=[32m"color: var(--ss-workspace-muted);"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-users"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"14"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"14"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M16 3.128a4 4 0 0 1 0 7.744"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M22 21v-2a4 4 0 0 0-3-3.87"[39m
+              [36m/>[39m
+              [36m<circle[39m
+                [33mcx[39m=[32m"9"[39m
+                [33mcy[39m=[32m"7"[39m
+                [33mr[39m=[32m"4"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [0msimPage.tabs.agents[0m
+          [36m</button>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex items-center gap-2 px-4 py-2 border-b min-h-[44px]"[39m
+          [33mstyle[39m=[32m"background: var(--ss-workspace-toolbar); border-color: var(--ss-border);"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-2 border-r pr-4"[39m
+            [33mstyle[39m=[32m"border-color: var(--ss-border);"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"inline-flex items-center justify-center gap-2 rounded-full font-medium tracking-[0.01em] whitespace-nowrap transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none bg-[var(--ss-brand-primary)] text-[var(--ss-brand-on)] shadow-[0_16px_40px_rgba(212,162,78,0.16)] hover:-translate-y-0.5 hover:brightness-110 focus:ring-[var(--ss-brand-primary)] px-5 py-2 text-sm"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-play"[39m
+                [33mfill[39m=[32m"currentColor"[39m
+                [33mheight[39m=[32m"14"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"14"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [0msimPage.advance[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"inline-flex items-center justify-center gap-2 rounded-full font-medium tracking-[0.01em] whitespace-nowrap transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none border border-[var(--ss-border)] bg-[var(--ss-surface)] text-[var(--ss-text)] hover:-translate-y-0.5 hover:border-[var(--ss-border-strong)] focus:ring-[var(--ss-border-strong)] px-5 py-2 text-sm"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-git-fork"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"14"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"14"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<circle[39m
+                  [33mcx[39m=[32m"12"[39m
+                  [33mcy[39m=[32m"18"[39m
+                  [33mr[39m=[32m"3"[39m
+                [36m/>[39m
+                [36m<circle[39m
+                  [33mcx[39m=[32m"6"[39m
+            ...
+[90m [2m❯[22m Proxy.waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:[2m163:27[22m[39m
+[36m [2m❯[22m __tests__/integration/auto-open-builder.test.tsx:[2m92:11[22m[39m
+    [90m 90| [39m    )[33m;[39m
+    [90m 91| [39m
+    [90m 92| [39m    [35mawait[39m [34mwaitFor[39m(() [33m=>[39m {
+    [90m   | [39m          [31m^[39m
+    [90m 93| [39m      expect(screen.getByTestId('experiment-builder')).toBeInTheDocume…
+    [90m 94| [39m    })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m __tests__/integration/auto-open-builder.test.tsx[2m > [22mWorkbench entry on /simulations/new[2m > [22mredirects to the current simulation instead of opening a new builder
+{
+  stack: 'AggregateError: \n' +
+    '    at aggregateErrors (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react\\cjs\\react.development.js:551:11)\n' +
+    '    at process.env.NODE_ENV.exports.act (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react\\cjs\\react.development.js:897:24)\n' +
+    '    at C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\@testing-library\\react\\dist\\act-compat.js:46:25\n' +
+    '    at renderRoot (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\@testing-library\\react\\dist\\pure.js:189:26)\n' +
+    '    at Proxy.render (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\@testing-library\\react\\dist\\pure.js:291:10)\n' +
+    '    at C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/__tests__/integration/auto-open-builder.test.tsx:104:5\n' +
+    '    at file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/@vitest/runner/dist/index.js:145:11\n' +
+    '    at file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/@vitest/runner/dist/index.js:915:26\n' +
+    '    at file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/@vitest/runner/dist/index.js:1243:20\n' +
+    '    at new Promise (<anonymous>)',
+  errors: [
+    {
+      stack: "TypeError: Cannot read properties of undefined (reading 'baseVal')\n" +
+        '    at SVGSVGElement.defaultExtent (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:25:30)\n' +
+        '    at new Gesture (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:186:26)\n' +
+        '    at gesture (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:178:42)\n' +
+        '    at SVGSVGElement.<anonymous> (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:92:9)\n' +
+        '    at Selection.default [as each] (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-selection/src/selection/each.js:5:37)\n' +
+        '    at zoom.transform (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:91:29)\n' +
+        '    at Selection.default [as call] (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-selection/src/selection/call.js:4:12)\n' +
+        '    at C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/components/SimTree.tsx:188:9\n' +
+        '    at Object.react_stack_bottom_frame (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:25989:20)\n' +
+        '    at runWithFiberInDEV (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:874:13)',
+      message: "Cannot read properties of undefined (reading 'baseVal')",
+      constructor: 'Function<TypeError>',
+      name: 'TypeError',
+      toString: 'Function<toString>'
+    },
+    {
+      stack: "TypeError: Cannot read properties of undefined (reading 'baseVal')\n" +
+        '    at SVGSVGElement.defaultExtent (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:25:30)\n' +
+        '    at new Gesture (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:186:26)\n' +
+        '    at gesture (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:178:42)\n' +
+        '    at SVGSVGElement.<anonymous> (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:92:9)\n' +
+        '    at Selection.default [as each] (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-selection/src/selection/each.js:5:37)\n' +
+        '    at zoom.transform (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:91:29)\n' +
+        '    at Selection.default [as call] (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-selection/src/selection/call.js:4:12)\n' +
+        '    at C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/components/SimTree.tsx:188:9\n' +
+        '    at Object.react_stack_bottom_frame (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:25989:20)\n' +
+        '    at runWithFiberInDEV (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:874:13)',
+      message: "Cannot read properties of undefined (reading 'baseVal')",
+      constructor: 'Function<TypeError>',
+      name: 'TypeError',
+      toString: 'Function<toString>'
+    }
+  ],
+  constructor: 'Function<AggregateError>',
+  name: 'AggregateError',
+  message: '',
+  toString: 'Function<toString>',
+  stacks: [
+    {
+      method: 'aggregateErrors',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/react/cjs/react.development.js',
+      line: 551,
+      column: 11
+    },
+    {
+      method: 'process.env.NODE_ENV.exports.act',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/react/cjs/react.development.js',
+      line: 897,
+      column: 24
+    },
+    {
+      method: '',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/@testing-library/react/dist/act-compat.js',
+      line: 46,
+      column: 25
+    },
+    {
+      method: 'renderRoot',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/@testing-library/react/dist/pure.js',
+      line: 189,
+      column: 26
+    },
+    {
+      method: 'Proxy.render',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/@testing-library/react/dist/pure.js',
+      line: 291,
+      column: 10
+    },
+    {
+      method: '',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/__tests__/integration/auto-open-builder.test.tsx',
+      line: 104,
+      column: 5
+    }
+  ]
+}
+[90m [2m❯[22m aggregateErrors node_modules/react/cjs/react.development.js:[2m551:11[22m[39m
+[90m [2m❯[22m process.env.NODE_ENV.exports.act node_modules/react/cjs/react.development.js:[2m897:24[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m46:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m189:26[22m[39m
+[90m [2m❯[22m Proxy.render node_modules/@testing-library/react/dist/pure.js:[2m291:10[22m[39m
+[36m [2m❯[22m __tests__/integration/auto-open-builder.test.tsx:[2m104:5[22m[39m
+    [90m102| [39m    } [35mas[39m any)[33m;[39m
+    [90m103| [39m
+    [90m104| [39m    [34mrender[39m(
+    [90m   | [39m    [31m^[39m
+    [90m105| [39m      [33m<[39m[33mMemoryRouter[39m [33minitialEntries[39m[33m=[39m[33m{[39m[[32m'/simulations/new'[39m][33m}[39m[33m>[39m
+    [90m106| [39m        [33m<[39m[33mLocationProbe[39m [33m/[39m[33m>[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m __tests__/integration/auto-open-builder.test.tsx[2m > [22mWorkbench entry on /simulations/new[2m > [22mdoes NOT render the builder when a simulation ID is present
+{
+  stack: 'AggregateError: \n' +
+    '    at aggregateErrors (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react\\cjs\\react.development.js:551:11)\n' +
+    '    at C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react\\cjs\\react.development.js:859:40',
+  errors: [
+    {
+      stack: "TypeError: Cannot read properties of undefined (reading 'baseVal')\n" +
+        '    at SVGSVGElement.defaultExtent (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:25:30)\n' +
+        '    at new Gesture (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:186:26)\n' +
+        '    at gesture (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:178:42)\n' +
+        '    at SVGSVGElement.<anonymous> (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:92:9)\n' +
+        '    at Selection.default [as each] (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-selection/src/selection/each.js:5:37)\n' +
+        '    at zoom.transform (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:91:29)\n' +
+        '    at Selection.default [as call] (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-selection/src/selection/call.js:4:12)\n' +
+        '    at C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/components/SimTree.tsx:188:9\n' +
+        '    at Object.react_stack_bottom_frame (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:25989:20)\n' +
+        '    at runWithFiberInDEV (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:874:13)',
+      message: "Cannot read properties of undefined (reading 'baseVal')",
+      constructor: 'Function<TypeError>',
+      name: 'TypeError',
+      toString: 'Function<toString>'
+    },
+    {
+      stack: "TypeError: Cannot read properties of undefined (reading 'baseVal')\n" +
+        '    at SVGSVGElement.defaultExtent (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:25:30)\n' +
+        '    at new Gesture (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:186:26)\n' +
+        '    at gesture (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:178:42)\n' +
+        '    at SVGSVGElement.<anonymous> (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:92:9)\n' +
+        '    at Selection.default [as each] (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-selection/src/selection/each.js:5:37)\n' +
+        '    at zoom.transform (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-zoom/src/zoom.js:91:29)\n' +
+        '    at Selection.default [as call] (file:///C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/d3-selection/src/selection/call.js:4:12)\n' +
+        '    at C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/components/SimTree.tsx:188:9\n' +
+        '    at Object.react_stack_bottom_frame (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:25989:20)\n' +
+        '    at runWithFiberInDEV (C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\frontend\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:874:13)',
+      message: "Cannot read properties of undefined (reading 'baseVal')",
+      constructor: 'Function<TypeError>',
+      name: 'TypeError',
+      toString: 'Function<toString>'
+    }
+  ],
+  constructor: 'Function<AggregateError>',
+  name: 'AggregateError',
+  message: '',
+  toString: 'Function<toString>',
+  stacks: [
+    {
+      method: 'aggregateErrors',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/react/cjs/react.development.js',
+      line: 551,
+      column: 11
+    },
+    {
+      method: '',
+      file: 'C:/Users/Justin/Documents/ZJU_Work/Social-Sim/frontend/node_modules/react/cjs/react.development.js',
+      line: 859,
+      column: 40
+    }
+  ]
+}
+[90m [2m❯[22m aggregateErrors node_modules/react/cjs/react.development.js:[2m551:11[22m[39m
+[90m [2m❯[22m node_modules/react/cjs/react.development.js:[2m859:40[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/ParameterField.test.tsx[2m > [22mParameterField[2m > [22mWidget Routing[2m > [22mshould render SliderField for ui_hint="slider"
+[41m[1m FAIL [22m[49m components/experiment/__tests__/ParameterField.test.tsx[2m > [22mParameterField[2m > [22mWidget Routing[2m > [22mshould render PercentageField for ui_hint="percentage"
+[41m[1m FAIL [22m[49m components/experiment/__tests__/ParameterField.test.tsx[2m > [22mParameterField[2m > [22mWidget Routing[2m > [22mshould render TextAreaField for ui_hint="textarea"
+[41m[1m FAIL [22m[49m components/experiment/__tests__/ParameterField.test.tsx[2m > [22mParameterField[2m > [22mWidget Routing[2m > [22mshould render ToggleField for ui_hint="toggle"
+[41m[1m FAIL [22m[49m components/experiment/__tests__/ParameterField.test.tsx[2m > [22mParameterField[2m > [22mValue Changes[2m > [22mshould call onChange when slider value changes
+[41m[1m FAIL [22m[49m components/experiment/__tests__/ParameterField.test.tsx[2m > [22mParameterField[2m > [22mValue Changes[2m > [22mshould call onChange when toggle is clicked
+[31m[1mTypeError[22m: i18n.getFixedT is not a function[39m
+[90m [2m❯[22m node_modules/react-i18next/dist/es/useTranslation.js:[2m71:30[22m[39m
+[90m [2m❯[22m mountSyncExternalStore node_modules/react-dom/cjs/react-dom-client.development.js:[2m8125:24[22m[39m
+[90m [2m❯[22m Object.useSyncExternalStore node_modules/react-dom/cjs/react-dom-client.development.js:[2m26269:16[22m[39m
+[90m [2m❯[22m process.env.NODE_ENV.exports.useSyncExternalStore node_modules/react/cjs/react.development.js:[2m1270:34[22m[39m
+[90m [2m❯[22m useTranslation node_modules/react-i18next/dist/es/useTranslation.js:[2m86:7[22m[39m
+[36m [2m❯[22m ParameterField components/experiment/ParameterField.tsx:[2m38:17[22m[39m
+    [90m 36| [39m  disabled [33m=[39m [35mfalse[39m
+    [90m 37| [39m}[33m:[39m [33mParameterFieldProps[39m) {
+    [90m 38| [39m  [35mconst[39m { t } [33m=[39m [34museTranslation[39m()[33m;[39m
+    [90m   | [39m                [31m^[39m
+    [90m 39| [39m
+    [90m 40| [39m  [35mconst[39m commonProps [33m=[39m { value[33m,[39m onChange[33m,[39m disabled }[33m;[39m
+[90m [2m❯[22m Object.react_stack_bottom_frame node_modules/react-dom/cjs/react-dom-client.development.js:[2m25904:20[22m[39m
+[90m [2m❯[22m renderWithHooks node_modules/react-dom/cjs/react-dom-client.development.js:[2m7662:22[22m[39m
+[90m [2m❯[22m updateFunctionComponent node_modules/react-dom/cjs/react-dom-client.development.js:[2m10166:19[22m[39m
+[90m [2m❯[22m beginWork node_modules/react-dom/cjs/react-dom-client.development.js:[2m11778:18[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step1InteractionType.test.tsx[2m > [22mStep1InteractionType[2m > [22mRendering[2m > [22mshould render loading state initially
+[31m[1mTypeError[22m: __vite_ssr_import_0__.vi.mocked(...).mockImplementation is not a function[39m
+[36m [2m❯[22m components/experiment/__tests__/Step1InteractionType.test.tsx:[2m84:39[22m[39m
+    [90m 82| [39m      }[33m;[39m
+    [90m 83| [39m
+    [90m 84| [39m      vi.mocked(useExperimentBuilder).mockImplementation((selector) =>…
+    [90m   | [39m                                      [31m^[39m
+    [90m 85| [39m
+    [90m 86| [39m      [34mrender[39m([33m<[39m[33mStep1InteractionType[39m [33m/[39m[33m>[39m[33m,[39m { wrapper })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step1InteractionType.test.tsx[2m > [22mStep1InteractionType[2m > [22mRendering[2m > [22mshould render scenarios after loading
+[31m[1mTypeError[22m: __vite_ssr_import_0__.vi.mocked(...).mockImplementation is not a function[39m
+[36m [2m❯[22m components/experiment/__tests__/Step1InteractionType.test.tsx:[2m99:39[22m[39m
+    [90m 97| [39m      }[33m;[39m
+    [90m 98| [39m
+    [90m 99| [39m      vi.mocked(useExperimentBuilder).mockImplementation((selector) =>…
+    [90m   | [39m                                      [31m^[39m
+    [90m100| [39m
+    [90m101| [39m      [34mrender[39m([33m<[39m[33mStep1InteractionType[39m [33m/[39m[33m>[39m[33m,[39m { wrapper })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step1InteractionType.test.tsx[2m > [22mStep1InteractionType[2m > [22mRendering[2m > [22mshould render category accordions
+[31m[1mTypeError[22m: __vite_ssr_import_0__.vi.mocked(...).mockImplementation is not a function[39m
+[36m [2m❯[22m components/experiment/__tests__/Step1InteractionType.test.tsx:[2m117:39[22m[39m
+    [90m115| [39m      }[33m;[39m
+    [90m116| [39m
+    [90m117| [39m      vi.mocked(useExperimentBuilder).mockImplementation((selector) =>…
+    [90m   | [39m                                      [31m^[39m
+    [90m118| [39m
+    [90m119| [39m      [34mrender[39m([33m<[39m[33mStep1InteractionType[39m [33m/[39m[33m>[39m[33m,[39m { wrapper })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step1InteractionType.test.tsx[2m > [22mStep1InteractionType[2m > [22mCategory Accordions[2m > [22mshould expand accordion on click
+[31m[1mTypeError[22m: __vite_ssr_import_0__.vi.mocked(...).mockImplementation is not a function[39m
+[36m [2m❯[22m components/experiment/__tests__/Step1InteractionType.test.tsx:[2m141:39[22m[39m
+    [90m139| [39m      }[33m;[39m
+    [90m140| [39m
+    [90m141| [39m      vi.mocked(useExperimentBuilder).mockImplementation((selector) =>…
+    [90m   | [39m                                      [31m^[39m
+    [90m142| [39m
+    [90m143| [39m      [34mrender[39m([33m<[39m[33mStep1InteractionType[39m [33m/[39m[33m>[39m[33m,[39m { wrapper })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step1InteractionType.test.tsx[2m > [22mStep1InteractionType[2m > [22mScenario Selection[2m > [22mshould call setSelectedScenarioId when scenario is clicked
+[31m[1mTypeError[22m: __vite_ssr_import_0__.vi.mocked(...).mockImplementation is not a function[39m
+[36m [2m❯[22m components/experiment/__tests__/Step1InteractionType.test.tsx:[2m169:39[22m[39m
+    [90m167| [39m      }[33m;[39m
+    [90m168| [39m
+    [90m169| [39m      vi.mocked(useExperimentBuilder).mockImplementation((selector) =>…
+    [90m   | [39m                                      [31m^[39m
+    [90m170| [39m
+    [90m171| [39m      [34mrender[39m([33m<[39m[33mStep1InteractionType[39m [33m/[39m[33m>[39m[33m,[39m { wrapper })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step2StarterTemplate.punishment.test.tsx[2m > [22mStep2StarterTemplate - Punishment Configuration[2m > [22mPunishment Section Rendering[2m > [22mshould render punishment section when scenario is PUBLIC_GOODS
+[31m[1mError[22m: Cannot find module '../Step2StarterTemplate'
+Require stack:
+- C:\Users\Justin\Documents\ZJU_Work\Social-Sim\frontend\components\experiment\__tests__\Step2StarterTemplate.punishment.test.tsx[39m
+[36m [2m❯[22m components/experiment/__tests__/Step2StarterTemplate.punishment.test.tsx:[2m99:40[22m[39m
+    [90m 97| [39m      })[33m;[39m
+    [90m 98| [39m
+    [90m 99| [39m      const { Step2StarterTemplate } = require('../Step2StarterTemplat…
+    [90m   | [39m                                       [31m^[39m
+    [90m100| [39m      [34mrender[39m([33m<[39m[33mStep2StarterTemplate[39m [33m/[39m[33m>[39m[33m,[39m { wrapper })[33m;[39m
+    [90m101| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step2StarterTemplate.punishment.test.tsx[2m > [22mStep2StarterTemplate - Punishment Configuration[2m > [22mPunishment Section Rendering[2m > [22mshould have punishment section collapsed by default
+[31m[1mError[22m: Cannot find module '../Step2StarterTemplate'
+Require stack:
+- C:\Users\Justin\Documents\ZJU_Work\Social-Sim\frontend\components\experiment\__tests__\Step2StarterTemplate.punishment.test.tsx[39m
+[36m [2m❯[22m components/experiment/__tests__/Step2StarterTemplate.punishment.test.tsx:[2m133:40[22m[39m
+    [90m131| [39m      })[33m;[39m
+    [90m132| [39m
+    [90m133| [39m      const { Step2StarterTemplate } = require('../Step2StarterTemplat…
+    [90m   | [39m                                       [31m^[39m
+    [90m134| [39m      [34mrender[39m([33m<[39m[33mStep2StarterTemplate[39m [33m/[39m[33m>[39m[33m,[39m { wrapper })[33m;[39m
+    [90m135| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step2StarterTemplate.punishment.test.tsx[2m > [22mStep2StarterTemplate - Punishment Configuration[2m > [22mPunishment Section Rendering[2m > [22mshould expand punishment section on click
+[31m[1mError[22m: Cannot find module '../Step2StarterTemplate'
+Require stack:
+- C:\Users\Justin\Documents\ZJU_Work\Social-Sim\frontend\components\experiment\__tests__\Step2StarterTemplate.punishment.test.tsx[39m
+[36m [2m❯[22m components/experiment/__tests__/Step2StarterTemplate.punishment.test.tsx:[2m167:40[22m[39m
+    [90m165| [39m      })[33m;[39m
+    [90m166| [39m
+    [90m167| [39m      const { Step2StarterTemplate } = require('../Step2StarterTemplat…
+    [90m   | [39m                                       [31m^[39m
+    [90m168| [39m      [34mrender[39m([33m<[39m[33mStep2StarterTemplate[39m [33m/[39m[33m>[39m[33m,[39m { wrapper })[33m;[39m
+    [90m169| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step2StarterTemplate.punishment.test.tsx[2m > [22mStep2StarterTemplate - Punishment Configuration[2m > [22mPunishment Section Rendering[2m > [22mshould show budget input with default 0
+[31m[1mError[22m: Cannot find module '../Step2StarterTemplate'
+Require stack:
+- C:\Users\Justin\Documents\ZJU_Work\Social-Sim\frontend\components\experiment\__tests__\Step2StarterTemplate.punishment.test.tsx[39m
+[36m [2m❯[22m components/experiment/__tests__/Step2StarterTemplate.punishment.test.tsx:[2m206:40[22m[39m
+    [90m204| [39m      })[33m;[39m
+    [90m205| [39m
+    [90m206| [39m      const { Step2StarterTemplate } = require('../Step2StarterTemplat…
+    [90m   | [39m                                       [31m^[39m
+    [90m207| [39m      [34mrender[39m([33m<[39m[33mStep2StarterTemplate[39m [33m/[39m[33m>[39m[33m,[39m { wrapper })[33m;[39m
+    [90m208| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step2StarterTemplate.punishment.test.tsx[2m > [22mStep2StarterTemplate - Punishment Configuration[2m > [22mPunishment Section Rendering[2m > [22mshould show cost ratio input with default 3.0
+[31m[1mError[22m: Cannot find module '../Step2StarterTemplate'
+Require stack:
+- C:\Users\Justin\Documents\ZJU_Work\Social-Sim\frontend\components\experiment\__tests__\Step2StarterTemplate.punishment.test.tsx[39m
+[36m [2m❯[22m components/experiment/__tests__/Step2StarterTemplate.punishment.test.tsx:[2m244:40[22m[39m
+    [90m242| [39m      })[33m;[39m
+    [90m243| [39m
+    [90m244| [39m      const { Step2StarterTemplate } = require('../Step2StarterTemplat…
+    [90m   | [39m                                       [31m^[39m
+    [90m245| [39m      [34mrender[39m([33m<[39m[33mStep2StarterTemplate[39m [33m/[39m[33m>[39m[33m,[39m { wrapper })[33m;[39m
+    [90m246| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step2StarterTemplate.punishment.test.tsx[2m > [22mStep2StarterTemplate - Punishment Configuration[2m > [22mPunishment Section Rendering[2m > [22mshould show anonymous mode toggle
+[31m[1mError[22m: Cannot find module '../Step2StarterTemplate'
+Require stack:
+- C:\Users\Justin\Documents\ZJU_Work\Social-Sim\frontend\components\experiment\__tests__\Step2StarterTemplate.punishment.test.tsx[39m
+[36m [2m❯[22m components/experiment/__tests__/Step2StarterTemplate.punishment.test.tsx:[2m282:40[22m[39m
+    [90m280| [39m      })[33m;[39m
+    [90m281| [39m
+    [90m282| [39m      const { Step2StarterTemplate } = require('../Step2StarterTemplat…
+    [90m   | [39m                                       [31m^[39m
+    [90m283| [39m      [34mrender[39m([33m<[39m[33mStep2StarterTemplate[39m [33m/[39m[33m>[39m[33m,[39m { wrapper })[33m;[39m
+    [90m284| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step3Scenario.test.tsx[2m > [22mStep3Scenario - Dynamic Actions[2m > [22mDynamic Actions Generation[2m > [22mshould generate actions from choices parameter when generates_actions is true
+[31m[1mAssertionError[22m: expected "vi.fn()" to be called with arguments: [ ArrayContaining{…} ][90m
+
+Number of calls: [1m0[22m
+[31m
+
+Ignored nodes: comments, script, style
+[36m<html>[31m
+  [36m<head />[31m
+  [36m<body>[31m
+    [36m<div />[31m
+  [36m</body>[31m
+[36m</html>[31m[39m
+[36m [2m❯[22m components/experiment/__tests__/Step3Scenario.test.tsx:[2m109:41[22m[39m
+    [90m107| [39m      [35mawait[39m [34mwaitFor[39m(() [33m=>[39m {
+    [90m108| [39m        [90m// Verify setAvailableActions was called with generated actions[39m
+    [90m109| [39m        [34mexpect[39m(mockSetAvailableActions)[33m.[39m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                                        [31m^[39m
+    [90m110| [39m          expect[33m.[39m[34marrayContaining[39m([
+    [90m111| [39m            expect.objectContaining({ name: 'yes', description: expect…
+[90m [2m❯[22m runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:[2m47:12[22m[39m
+[90m [2m❯[22m checkCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m124:77[22m[39m
+[90m [2m❯[22m Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m118:16[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step3Scenario.test.tsx[2m > [22mStep3Scenario - Dynamic Actions[2m > [22mDynamic Actions Generation[2m > [22mshould generate actions from default value when scenarioParams is empty
+[31m[1mAssertionError[22m: expected "vi.fn()" to be called with arguments: [ ArrayContaining{…} ][90m
+
+Number of calls: [1m0[22m
+[31m
+
+Ignored nodes: comments, script, style
+[36m<html>[31m
+  [36m<head />[31m
+  [36m<body>[31m
+    [36m<div />[31m
+  [36m</body>[31m
+[36m</html>[31m[39m
+[36m [2m❯[22m components/experiment/__tests__/Step3Scenario.test.tsx:[2m155:41[22m[39m
+    [90m153| [39m      [35mawait[39m [34mwaitFor[39m(() [33m=>[39m {
+    [90m154| [39m        // Verify setAvailableActions was called with default value ac…
+    [90m155| [39m        [34mexpect[39m(mockSetAvailableActions)[33m.[39m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                                        [31m^[39m
+    [90m156| [39m          expect[33m.[39m[34marrayContaining[39m([
+    [90m157| [39m            expect[33m.[39m[34mobjectContaining[39m({ name[33m:[39m [32m'A'[39m })[33m,[39m
+[90m [2m❯[22m runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:[2m47:12[22m[39m
+[90m [2m❯[22m checkCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m124:77[22m[39m
+[90m [2m❯[22m Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m118:16[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step3Scenario.test.tsx[2m > [22mStep3Scenario - Dynamic Actions[2m > [22mDynamic Actions Generation[2m > [22mshould handle empty choices string gracefully
+[31m[1mAssertionError[22m: expected "vi.fn()" to be called with arguments: [ [] ][90m
+
+Number of calls: [1m0[22m
+[31m
+
+Ignored nodes: comments, script, style
+[36m<html>[31m
+  [36m<head />[31m
+  [36m<body>[31m
+    [36m<div />[31m
+  [36m</body>[31m
+[36m</html>[31m[39m
+[36m [2m❯[22m components/experiment/__tests__/Step3Scenario.test.tsx:[2m201:41[22m[39m
+    [90m199| [39m      [35mawait[39m [34mwaitFor[39m(() [33m=>[39m {
+    [90m200| [39m        [90m// Should be called with empty array[39m
+    [90m201| [39m        [34mexpect[39m(mockSetAvailableActions)[33m.[39m[34mtoHaveBeenCalledWith[39m([])[33m;[39m
+    [90m   | [39m                                        [31m^[39m
+    [90m202| [39m      })[33m;[39m
+    [90m203| [39m    })[33m;[39m
+[90m [2m❯[22m runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:[2m47:12[22m[39m
+[90m [2m❯[22m checkCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m124:77[22m[39m
+[90m [2m❯[22m Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m118:16[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step3Scenario.test.tsx[2m > [22mStep3Scenario - Dynamic Actions[2m > [22mInfo Message Display[2m > [22mshould show dynamic actions info message when actions are generated
+[31m[1mTestingLibraryElementError[22m: Unable to find an element with the text: /Dynamic Actions:/i. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[31m
+  [36m<div />[31m
+[36m</body>[31m[39m
+[90m [2m❯[22m Object.getElementError node_modules/@testing-library/dom/dist/config.js:[2m37:19[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m76:38[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m52:17[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m95:19[22m[39m
+[36m [2m❯[22m components/experiment/__tests__/Step3Scenario.test.tsx:[2m246:21[22m[39m
+    [90m244| [39m
+    [90m245| [39m      [90m// Check for dynamic actions info message[39m
+    [90m246| [39m      expect(screen.getByText(/Dynamic Actions:/i)).toBeInTheDocument(…
+    [90m   | [39m                    [31m^[39m
+    [90m247| [39m    })[33m;[39m
+    [90m248| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step3Scenario.test.tsx[2m > [22mStep3Scenario - Dynamic Actions[2m > [22mStatic Actions Fallback[2m > [22mshould use static actions when no generates_actions parameter exists
+[31m[1mAssertionError[22m: expected "vi.fn()" to be called with arguments: [ ArrayContaining{…} ][90m
+
+Number of calls: [1m0[22m
+[31m
+
+Ignored nodes: comments, script, style
+[36m<html>[31m
+  [36m<head />[31m
+  [36m<body>[31m
+    [36m<div />[31m
+  [36m</body>[31m
+[36m</html>[31m[39m
+[36m [2m❯[22m components/experiment/__tests__/Step3Scenario.test.tsx:[2m315:41[22m[39m
+    [90m313| [39m      [35mawait[39m [34mwaitFor[39m(() [33m=>[39m {
+    [90m314| [39m        [90m// Should use static actions[39m
+    [90m315| [39m        [34mexpect[39m(mockSetAvailableActions)[33m.[39m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                                        [31m^[39m
+    [90m316| [39m          expect[33m.[39m[34marrayContaining[39m([
+    [90m317| [39m            expect[33m.[39m[34mobjectContaining[39m({ name[33m:[39m [32m'Cooperate'[39m })[33m,[39m
+[90m [2m❯[22m runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:[2m47:12[22m[39m
+[90m [2m❯[22m checkCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m124:77[22m[39m
+[90m [2m❯[22m Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m118:16[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step3Scenario.test.tsx[2m > [22mStep3Scenario - Dynamic Actions[2m > [22mStatic Actions Fallback[2m > [22mshould use category_actions when available
+[31m[1mAssertionError[22m: expected "vi.fn()" to be called with arguments: [ ArrayContaining{…} ][90m
+
+Number of calls: [1m0[22m
+[31m
+
+Ignored nodes: comments, script, style
+[36m<html>[31m
+  [36m<head />[31m
+  [36m<body>[31m
+    [36m<div />[31m
+  [36m</body>[31m
+[36m</html>[31m[39m
+[36m [2m❯[22m components/experiment/__tests__/Step3Scenario.test.tsx:[2m357:41[22m[39m
+    [90m355| [39m      [35mawait[39m [34mwaitFor[39m(() [33m=>[39m {
+    [90m356| [39m        [90m// Should use category_actions, not scenario.actions[39m
+    [90m357| [39m        [34mexpect[39m(mockSetAvailableActions)[33m.[39m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                                        [31m^[39m
+    [90m358| [39m          expect[33m.[39m[34marrayContaining[39m([
+    [90m359| [39m            expect[33m.[39m[34mobjectContaining[39m({ name[33m:[39m [32m'Category Action 1'[39m })[33m,[39m
+[90m [2m❯[22m runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:[2m47:12[22m[39m
+[90m [2m❯[22m checkCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m124:77[22m[39m
+[90m [2m❯[22m Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m118:16[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step3Scenario.test.tsx[2m > [22mStep3Scenario - Dynamic Actions[2m > [22mStatic Actions Fallback[2m > [22mshould replace policy scene actions with policy-specific action set
+[31m[1mAssertionError[22m: expected "vi.fn()" to be called with arguments: [ ArrayContaining{…} ][90m
+
+Number of calls: [1m0[22m
+[31m
+
+Ignored nodes: comments, script, style
+[36m<html>[31m
+  [36m<head />[31m
+  [36m<body>[31m
+    [36m<div />[31m
+  [36m</body>[31m
+[36m</html>[31m[39m
+[36m [2m❯[22m components/experiment/__tests__/Step3Scenario.test.tsx:[2m395:41[22m[39m
+    [90m393| [39m
+    [90m394| [39m      [35mawait[39m [34mwaitFor[39m(() [33m=>[39m {
+    [90m395| [39m        [34mexpect[39m(mockSetAvailableActions)[33m.[39m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                                        [31m^[39m
+    [90m396| [39m          expect[33m.[39m[34marrayContaining[39m([
+    [90m397| [39m            expect[33m.[39m[34mobjectContaining[39m({ name[33m:[39m [32m'send_message'[39m })[33m,[39m
+[90m [2m❯[22m runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:[2m47:12[22m[39m
+[90m [2m❯[22m checkCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m124:77[22m[39m
+[90m [2m❯[22m Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m118:16[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step3Scenario.test.tsx[2m > [22mStep3Scenario - Dynamic Actions[2m > [22mStatic Actions Fallback[2m > [22mshould detect backend policy_erosion scenario and use policy-specific action set
+[31m[1mAssertionError[22m: expected "vi.fn()" to be called with arguments: [ ArrayContaining{…} ][90m
+
+Number of calls: [1m0[22m
+[31m
+
+Ignored nodes: comments, script, style
+[36m<html>[31m
+  [36m<head />[31m
+  [36m<body>[31m
+    [36m<div />[31m
+  [36m</body>[31m
+[36m</html>[31m[39m
+[36m [2m❯[22m components/experiment/__tests__/Step3Scenario.test.tsx:[2m451:41[22m[39m
+    [90m449| [39m
+    [90m450| [39m      [35mawait[39m [34mwaitFor[39m(() [33m=>[39m {
+    [90m451| [39m        [34mexpect[39m(mockSetAvailableActions)[33m.[39m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                                        [31m^[39m
+    [90m452| [39m          expect[33m.[39m[34marrayContaining[39m([
+    [90m453| [39m            expect[33m.[39m[34mobjectContaining[39m({ name[33m:[39m [32m'report_upward'[39m })[33m,[39m
+[90m [2m❯[22m runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:[2m47:12[22m[39m
+[90m [2m❯[22m checkCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m124:77[22m[39m
+[90m [2m❯[22m Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m118:16[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step3Scenario.test.tsx[2m > [22mStep3Scenario - Dynamic Actions[2m > [22mAction Selection[2m > [22mshould select all generated actions by default
+[31m[1mAssertionError[22m: expected "vi.fn()" to be called with arguments: [ ArrayContaining{…} ][90m
+
+Number of calls: [1m0[22m
+[31m
+
+Ignored nodes: comments, script, style
+[36m<html>[31m
+  [36m<head />[31m
+  [36m<body>[31m
+    [36m<div />[31m
+  [36m</body>[31m
+[36m</html>[31m[39m
+[36m [2m❯[22m components/experiment/__tests__/Step3Scenario.test.tsx:[2m503:42[22m[39m
+    [90m501| [39m      [35mawait[39m [34mwaitFor[39m(() [33m=>[39m {
+    [90m502| [39m        [90m// All actions should be selected by default[39m
+    [90m503| [39m        [34mexpect[39m(mockSetSelectedActionIds)[33m.[39m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                                         [31m^[39m
+    [90m504| [39m          expect[33m.[39m[34marrayContaining[39m([[32m'Option1'[39m[33m,[39m [32m'Option2'[39m[33m,[39m [32m'Option3'[39m])
+    [90m505| [39m        )[33m;[39m
+[90m [2m❯[22m runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:[2m47:12[22m[39m
+[90m [2m❯[22m checkCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m124:77[22m[39m
+[90m [2m❯[22m Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m118:16[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step3Scenario.test.tsx[2m > [22mStep3Scenario - Dynamic Actions[2m > [22mRendering[2m > [22mshould render action toggle cards
+[31m[1mTestingLibraryElementError[22m: Unable to find an element with the text: Action One. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[31m
+  [36m<div />[31m
+[36m</body>[31m[39m
+[90m [2m❯[22m Object.getElementError node_modules/@testing-library/dom/dist/config.js:[2m37:19[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m76:38[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m52:17[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m95:19[22m[39m
+[36m [2m❯[22m components/experiment/__tests__/Step3Scenario.test.tsx:[2m542:21[22m[39m
+    [90m540| [39m      [34mrender[39m([33m<[39m[33mStep3Scenario[39m [33m/[39m[33m>[39m[33m,[39m { wrapper })[33m;[39m
+    [90m541| [39m
+    [90m542| [39m      [34mexpect[39m(screen[33m.[39m[34mgetByText[39m([32m'Action One'[39m))[33m.[39m[34mtoBeInTheDocument[39m()[33m;[39m
+    [90m   | [39m                    [31m^[39m
+    [90m543| [39m      [34mexpect[39m(screen[33m.[39m[34mgetByText[39m([32m'Action Two'[39m))[33m.[39m[34mtoBeInTheDocument[39m()[33m;[39m
+    [90m544| [39m    })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step3Scenario.test.tsx[2m > [22mStep3Scenario - Dynamic Actions[2m > [22mRendering[2m > [22mshould show empty state when no actions available
+[31m[1mTestingLibraryElementError[22m: Unable to find an element with the text: /No actions available. Please select a scenario first/. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[31m
+  [36m<div />[31m
+[36m</body>[31m[39m
+[90m [2m❯[22m Object.getElementError node_modules/@testing-library/dom/dist/config.js:[2m37:19[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m76:38[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m52:17[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m95:19[22m[39m
+[36m [2m❯[22m components/experiment/__tests__/Step3Scenario.test.tsx:[2m563:16[22m[39m
+    [90m561| [39m
+    [90m562| [39m      [34mexpect[39m(
+    [90m563| [39m        screen.getByText(/No actions available. Please select a scenar…
+    [90m   | [39m               [31m^[39m
+    [90m564| [39m      )[33m.[39m[34mtoBeInTheDocument[39m()[33m;[39m
+    [90m565| [39m    })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/43]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m components/experiment/__tests__/Step3Scenario.test.tsx[2m > [22mStep3Scenario - Dynamic Actions[2m > [22mRendering[2m > [22mshould show validation error when present
+[31m[1mTestingLibraryElementError[22m: Unable to find an element with the text: Please select at least one action. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[31m
+  [36m<div />[31m
+[36m</body>[31m[39m
+[90m [2m❯[22m Object.getElementError node_modules/@testing-library/dom/dist/config.js:[2m37:19[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m76:38[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m52:17[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m95:19[22m[39m
+[36m [2m❯[22m components/experiment/__tests__/Step3Scenario.test.tsx:[2m588:21[22m[39m
+    [90m586| [39m      [34mrender[39m([33m<[39m[33mStep3Scenario[39m [33m/[39m[33m>[39m[33m,[39m { wrapper })[33m;[39m
+    [90m587| [39m
+    [90m588| [39m      expect(screen.getByText('Please select at least one action')).to…
+    [90m   | [39m                    [31m^[39m
+    [90m589| [39m    })[33m;[39m
+    [90m590| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/43]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m11 failed[39m[22m[2m | [22m[1m[32m9 passed[39m[22m[2m | [22m[33m1 skipped[39m[90m (21)[39m
+[2m      Tests [22m [1m[31m42 failed[39m[22m[2m | [22m[1m[32m115 passed[39m[22m[2m | [22m[90m3 todo[39m[90m (160)[39m
+[2m   Start at [22m 13:09:16
+[2m   Duration [22m 12.69s[2m (transform 3.85s, setup 4.28s, import 5.75s, tests 21.26s, environment 18.08s)[22m
+

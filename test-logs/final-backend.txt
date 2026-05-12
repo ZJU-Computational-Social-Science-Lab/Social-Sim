@@ -1,0 +1,1182 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.12, pytest-9.0.2, pluggy-1.6.0
+rootdir: C:\Users\Justin\Documents\ZJU_Work\Social-Sim
+configfile: pyproject.toml
+plugins: anyio-4.12.1, Faker-40.5.1, asyncio-1.3.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 1086 items
+
+tests\backend\api\test_scenarios_routes.py F........                     [  0%]
+tests\backend\test_agent.py ...............................FFF...F.FFsss [  4%]
+sssssssss.F..FF.F...ssF                                                  [  6%]
+tests\backend\test_auth_verification.py EEE                              [  7%]
+tests\backend\test_compare_endpoint.py F                                 [  7%]
+tests\backend\test_error_events_and_logging.py ...                       [  7%]
+tests\backend\test_experiment_templates_route.py .                       [  7%]
+tests\backend\test_llm.py ..................F........................... [ 11%]
+.......................F....F..FFFF........                              [ 15%]
+tests\backend\test_llm_concurrency_and_retry.py ...FF                    [ 16%]
+tests\backend\test_multimodal_flow.py F                                  [ 16%]
+tests\backend\test_node_subscriptions_lifecycle.py ....                  [ 16%]
+tests\backend\test_scene_templates.py .                                  [ 16%]
+tests\backend\test_security.py ...................................       [ 20%]
+tests\backend\test_simtree_clone_stability.py .F..s.F..sFFFFFs.F..ss..F  [ 22%]
+tests\backend\test_simulations_routes.py .EEEE.EEEEEEEEEEEEEEEEEEEEE.... [ 25%]
+EEEEEEEE                                                                 [ 25%]
+tests\backend\test_smoke.py .                                            [ 25%]
+tests\backend\test_templates_api.py FFFFFFFFFFFFFFF.....                 [ 27%]
+tests\backend\test_uploads.py FF....F.........                           [ 29%]
+tests\unit\backend\services\test_export_service.py .....FFFF.            [ 30%]
+tests\unit\contagion\test_actions.py ..................                  [ 31%]
+tests\unit\core\prompts\test_game_theory_prompts.py ..........           [ 32%]
+tests\unit\core\prompts\test_prompt_dispatcher.py ......                 [ 33%]
+tests\unit\core\scenarios\test_helpers.py ........                       [ 34%]
+tests\unit\core\scenarios\test_registry.py .......FFFFFFF.               [ 35%]
+tests\unit\core\simulation\test_logs.py FFFF                             [ 35%]
+tests\unit\experiment\test_action_definitions.py .........               [ 36%]
+tests\unit\experiment\test_action_handler.py .........                   [ 37%]
+tests\unit\experiment\test_action_registry.py ......                     [ 38%]
+tests\unit\experiment\test_coordination_feedback.py ........             [ 38%]
+tests\unit\experiment\test_experiment_scene_game_config.py .......       [ 39%]
+tests\unit\experiment\test_experiment_scene_state.py .....FFFF.....      [ 40%]
+tests\unit\experiment\test_payoff_engine.py .........................    [ 43%]
+tests\unit\experiment\test_runner_actions.py ...                         [ 43%]
+tests\unit\experiment\test_state.py ..........                           [ 44%]
+tests\unit\test_contagion_actions.py .                                   [ 44%]
+tests\unit\test_contagion_rules.py ......                                [ 44%]
+tests\unit\test_contagion_scene.py ..................................    [ 47%]
+tests\unit\test_contagion_states.py .....                                [ 48%]
+tests\unit\test_contagion_statistics.py ..............                   [ 49%]
+tests\unit\test_contagion_transmission.py ........                       [ 50%]
+tests\unit\test_context_builder_structured.py ........                   [ 51%]
+tests\unit\test_context_builder_visibility.py F                          [ 51%]
+tests\unit\test_controller_no_recording.py FFFF                          [ 51%]
+tests\unit\test_debug_log_format.py FFF                                  [ 51%]
+tests\unit\test_information_model.py ........                            [ 52%]
+tests\unit\test_prompt_builder_budget.py ......                          [ 53%]
+tests\unit\test_registry_information_model.py ..........                 [ 54%]
+tests\unit\test_round_context_observers.py ........                      [ 54%]
+tests\unit\test_runner_information_model.py .FFFF                        [ 55%]
+tests\unit\test_score_display.py ...                                     [ 55%]
+tests\unit\test_xihu_round1.py ....                                      [ 55%]
+tests\core\agent\test_parsing.py ......FF...........                     [ 57%]
+tests\core\agent\test_provider_routing.py ..                             [ 57%]
+tests\core\experiment\scenes\test_council_cycle_phase.py ..........FF... [ 59%]
+....                                                                     [ 59%]
+tests\core\experiment\test_agent.py ...                                  [ 59%]
+tests\core\experiment\test_controller.py ......                          [ 60%]
+tests\core\experiment\test_information_model_average.py ....             [ 60%]
+tests\core\experiment\test_kernel.py ........                            [ 61%]
+tests\core\experiment\test_pgg_handlers.py ........                      [ 62%]
+tests\core\experiment\test_pgg_payoff.py .......                         [ 62%]
+tests\core\experiment\test_pgg_phases.py .....F....                      [ 63%]
+tests\core\experiment\test_prompt_builder.py ...FFFFFF.F..F....          [ 65%]
+tests\core\experiment\test_round_context.py ...........                  [ 66%]
+tests\core\experiment\test_round_context_manager.py F                    [ 66%]
+tests\core\experiment\test_runner.py ...........F......                  [ 68%]
+tests\core\experiment\test_scene_average_param.py ..                     [ 68%]
+tests\core\experiment\test_schema_builder.py ..                          [ 68%]
+tests\core\experiment\test_validation.py ............................... [ 71%]
+...                                                                      [ 71%]
+tests\core\llm\test_json_mode.py ...                                     [ 72%]
+tests\core\test_agent_distribution.py ...........F...                    [ 73%]
+tests\core\test_agent_parsing.py F.....F                                 [ 74%]
+tests\core\test_context_builder.py .................                     [ 75%]
+tests\core\test_context_builder_average.py ...                           [ 75%]
+tests\core\test_debug_logger.py ......                                   [ 76%]
+tests\core\test_phase_controller.py ........                             [ 77%]
+tests\core\test_policy_cascade_follow_up.py ............................ [ 79%]
+.........F..F......................                                      [ 83%]
+tests\core\test_policy_cascade_network.py ...                            [ 83%]
+tests\core\test_policy_cascade_scene.py ..                               [ 83%]
+tests\core\test_policy_cascade_tuning.py ...                             [ 83%]
+tests\core\test_scenario_registry.py ....                                [ 84%]
+tests\core\test_scenarios.py .F.....F........                            [ 85%]
+tests\core\test_simtree_experiment_ops.py ................               [ 87%]
+tests\core\test_voting_phase_filtering.py ..........                     [ 88%]
+tests\smoke_tests\test_coordination.py ....                              [ 88%]
+tests\smoke_tests\test_discussion.py FF                                  [ 88%]
+tests\smoke_tests\test_game_theory.py ......                             [ 89%]
+tests\smoke_tests\test_grid_world.py ..                                  [ 89%]
+tests\smoke_tests\test_sociology.py ..F.                                 [ 89%]
+tests\smoke_tests\test_ui_reliability.py ......                          [ 90%]
+tests\smoke_tests\test_werewolf.py ..                                    [ 90%]
+tests\integration\test_configurable_actions.py FFF.                      [ 90%]
+tests\integration\test_contagion_grid.py ....                            [ 91%]
+tests\integration\test_council_cycle_integration.py ...                  [ 91%]
+tests\integration\test_council_experiment.py ......................      [ 93%]
+tests\integration\test_council_experiment_parity.py .........            [ 94%]
+tests\integration\test_experiment_flow.py .                              [ 94%]
+tests\integration\test_experiment_knowledge_scope.py FFFF                [ 94%]
+tests\integration\test_llm_action_selection.py .........                 [ 95%]
+tests\integration\test_llm_distribution.py F                             [ 95%]
+tests\integration\test_llm_distribution_smoke.py FF                      [ 95%]
+tests\integration\test_pgg_average_contribution.py .....                 [ 96%]
+tests\integration\test_pgg_contribution_smoketest.py .........           [ 97%]
+tests\integration\test_pgg_punishment_smoketest.py .....FFFF...FFF...FF. [ 99%]
+Fsssssss                                                                 [ 99%]
+tests\integration\test_pgg_token_reset.py ..                             [100%]
+
+=================================== ERRORS ====================================
+______ ERROR at setup of test_registration_with_email_verification_flow _______
+ScopeMismatch: You tried to access the function scoped fixture monkeypatch with a module scoped request object. Requesting fixture stack:
+tests\backend\test_auth_verification.py:48:  def override_db_session(monkeypatch) -> None
+Requested fixture:
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\_pytest\monkeypatch.py:32:  def monkeypatch() -> 'Generator[MonkeyPatch]'
+__________ ERROR at setup of test_registration_without_verification ___________
+ScopeMismatch: You tried to access the function scoped fixture monkeypatch with a module scoped request object. Requesting fixture stack:
+tests\backend\test_auth_verification.py:48:  def override_db_session(monkeypatch) -> None
+Requested fixture:
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\_pytest\monkeypatch.py:32:  def monkeypatch() -> 'Generator[MonkeyPatch]'
+_________ ERROR at teardown of test_registration_without_verification _________
+E   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'test_auth.db'
+____ ERROR at setup of TestSimulationCRUD.test_list_simulations_with_data _____
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_____ ERROR at setup of TestSimulationCRUD.test_create_simulation_success _____
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_ ERROR at setup of TestSimulationCRUD.test_create_simulation_invalid_provider _
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+______ ERROR at setup of TestSimulationCRUD.test_read_simulation_success ______
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_ ERROR at setup of TestSimulationCRUD.test_update_agent_llm_config_persists_provider_id _
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+______ ERROR at setup of TestSimulationCRUD.test_update_simulation_name _______
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_____ ERROR at setup of TestSimulationCRUD.test_update_simulation_status ______
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_____ ERROR at setup of TestSimulationCRUD.test_delete_simulation_success _____
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+___ ERROR at setup of TestSimulationLifecycle.test_start_simulation_success ___
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+___ ERROR at setup of TestSimulationLifecycle.test_reset_simulation_success ___
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+___ ERROR at setup of TestSimulationLifecycle.test_copy_simulation_success ____
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+___ ERROR at setup of TestSimulationSnapshots.test_create_snapshot_success ____
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_____ ERROR at setup of TestSimulationSnapshots.test_list_snapshots_empty _____
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+___ ERROR at setup of TestSimulationSnapshots.test_list_snapshots_with_data ___
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_______ ERROR at setup of TestTreeOperations.test_get_tree_graph_empty ________
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_______ ERROR at setup of TestTreeOperations.test_tree_branch_creation ________
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+________ ERROR at setup of TestTreeOperations.test_tree_delete_subtree ________
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_ ERROR at setup of TestDocumentManagement.test_upload_agent_document_success _
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+__ ERROR at setup of TestDocumentManagement.test_list_agent_documents_empty ___
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_ ERROR at setup of TestDocumentManagement.test_list_agent_documents_with_data _
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_ ERROR at setup of TestDocumentManagement.test_delete_agent_document_success _
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+____ ERROR at setup of TestGlobalKnowledge.test_add_global_knowledge_text _____
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+___ ERROR at setup of TestGlobalKnowledge.test_list_global_knowledge_empty ____
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_ ERROR at setup of TestGlobalKnowledge.test_list_global_knowledge_with_data __
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_ ERROR at setup of TestGlobalKnowledge.test_delete_global_knowledge_success __
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_ ERROR at setup of TestSimulationIntegration.test_full_simulation_lifecycle __
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+___ ERROR at setup of TestSimulationIntegration.test_simulation_with_agents ___
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_ ERROR at setup of TestSimulationIntegration.test_simulation_with_social_network _
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_____ ERROR at setup of TestEdgeCases.test_simulation_id_case_insensitive _____
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+___________ ERROR at setup of TestEdgeCases.test_empty_agent_config ___________
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+___________ ERROR at setup of TestEdgeCases.test_large_scene_config ___________
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_______ ERROR at setup of TestEdgeCases.test_special_characters_in_name _______
+E   sqlite3.IntegrityError: NOT NULL constraint failed: users.username
+
+The above exception was the direct cause of the following exception:
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: users.username
+    [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+    [parameters: (1, None, 'test@example.com', None, None, None, 'user', 'hashed_password', 1, 0, None)]
+    (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_____ ERROR at teardown of TestEdgeCases.test_special_characters_in_name ______
+E   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'test_simulations.db'
+================================== FAILURES ===================================
+E   AssertionError: assert 16 == 13
+     +  where 16 = len([{'actions': [{'description': 'Work together with your partner', 'id': 'cooperate', 'name': 'Cooperate'}, {'descriptio...fully'}, ...], 'default_action_ids': ['express_opinion', 'reinforce_ingroup', 'share_content', 'disengage'], ...}, ...])
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 12:28:41,394 - httpx - _client - HTTP Request: GET http://testserver.local/api/scenarios "HTTP/1.1 200 OK"
+------------------------------ Captured log call ------------------------------
+INFO     httpx:_client.py:1025 HTTP Request: GET http://testserver.local/api/scenarios "HTTP/1.1 200 OK"
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\api\test_scenarios_routes.py:14: AssertionError: assert 16 == 13
+E   RuntimeError: SOCIALSIM4_EMBEDDING_DEVICE=cuda but CUDA is not available
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\services\documents.py:43: RuntimeError: SOCIALSIM4_EMBEDDING_DEVICE=cuda but CUDA is not available
+E   RuntimeError: SOCIALSIM4_EMBEDDING_DEVICE=cuda but CUDA is not available
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\services\documents.py:43: RuntimeError: SOCIALSIM4_EMBEDDING_DEVICE=cuda but CUDA is not available
+E   RuntimeError: SOCIALSIM4_EMBEDDING_DEVICE=cuda but CUDA is not available
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\services\documents.py:43: RuntimeError: SOCIALSIM4_EMBEDDING_DEVICE=cuda but CUDA is not available
+E   ValueError: LLM response action is missing a valid 'name' from the Action Space.
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\agent\parsing.py:384: ValueError: LLM response action is missing a valid 'name' from the Action Space.
+E   ValueError: LLM response is missing the required JSON object with an action.
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\agent\parsing.py:369: ValueError: LLM response is missing the required JSON object with an action.
+E   ValueError: LLM response is missing the required JSON object with an action.
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\agent\parsing.py:369: ValueError: LLM response is missing the required JSON object with an action.
+E   ValueError: LLM client 'chat' not found.
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\agent\agent.py:393: ValueError: LLM client 'chat' not found.
+E   assert 0 == 1
+     +  where 0 = <socialsim4.core.agent.agent.Agent object at 0x000002048C9E4980>.consecutive_llm_errors
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_agent.py:817: assert 0 == 1
+E   assert False is True
+     +  where False = <socialsim4.core.agent.agent.Agent object at 0x000002048C9E70E0>.is_offline
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_agent.py:834: assert False is True
+E   AttributeError: 'dict' object has no attribute 'chat'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\agent\agent.py:419: AttributeError: 'dict' object has no attribute 'chat'
+E   assert False is True
+     +  where False = <socialsim4.core.agent.agent.Agent object at 0x000002048C9E5550>.is_offline
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_agent.py:979: assert False is True
+E   ValueError: Unsupported scene type: preview
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\services\simtree_runtime.py:198: ValueError: Unsupported scene type: preview
+E   AttributeError: module 'google.genai' has no attribute 'configure'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\llm\providers\gemini.py:31: AttributeError: module 'google.genai' has no attribute 'configure'
+E   AssertionError: assert 'You are a Do...s: 42 (0-100)' == 'A test agent'
+      
+      - A test agent
+      + You are a Doctor. A test agent When responding, think and react as this person would — not as a neutral assistant.
+      + Gender: Male | openness: 42 (0-100)
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_llm.py:935: AssertionError: assert 'You are a Do...s: 42 (0-100)' == 'A test agent'
+E   AssertionError: assert '\u4f60\u662f\u4e00\u4e2a\u533b\u751f\u3002\u6d4b\u8bd5\u4ee3\u7406 ...s: 44 (0-100)' == '\u6d4b\u8bd5\u4ee3\u7406'
+      
+      - \u6d4b\u8bd5\u4ee3\u7406
+      + \u4f60\u662f\u4e00\u4e2a\u533b\u751f\u3002\u6d4b\u8bd5\u4ee3\u7406 \u5728\u56de\u5e94\u65f6\uff0c\u8bf7\u4ee5\u8fd9\u4e2a\u4eba\u7684\u8eab\u4efd\u601d\u8003\u548c\u53cd\u5e94\uff0c\u800c\u4e0d\u662f\u4f5c\u4e3a\u4e2d\u7acb\u7684\u52a9\u624b\u3002
+      + Gender: Male | openness: 44 (0-100)
+C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\tests\\backend\\test_llm.py:1057: AssertionError: assert '\u4f60\u662f\u4e00\u4e2a\u533b\u751f\u3002\u6d4b\u8bd5\u4ee3\u7406 ...s: 44 (0-100)' == '\u6d4b\u8bd5\u4ee3\u7406'
+E   Failed: DID NOT RAISE <class 'RuntimeError'>
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_llm.py:1120: Failed: DID NOT RAISE <class 'RuntimeError'>
+E   Failed: DID NOT RAISE <class 'RuntimeError'>
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_llm.py:1137: Failed: DID NOT RAISE <class 'RuntimeError'>
+E   Failed: DID NOT RAISE <class 'RuntimeError'>
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_llm.py:1154: Failed: DID NOT RAISE <class 'RuntimeError'>
+E   Failed: DID NOT RAISE <class 'RuntimeError'>
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_llm.py:1171: Failed: DID NOT RAISE <class 'RuntimeError'>
+E   assert DummyClient(id=2218563378864, state={}) is not DummyClient(id=2218563378864, state={})
+------------------------------ Captured log call ------------------------------
+INFO     socialsim4.services.llm_client_pool:llm_client_pool.py:717 LLMClientPool initialized with mode=shared
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_llm_concurrency_and_retry.py:224: assert DummyClient(id=2218563378864, state={}) is not DummyClient(id=2218563378864, state={})
+E   assert True is False
+     +  where True = <test_llm_concurrency_and_retry.test_llm_client_pool_does_not_mutate_base_clients.<locals>.DummyClient object at 0x000002048CB33E60>.flag
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 12:28:53,638 - socialsim4.services.llm_client_pool - llm_client_pool - LLMClientPool initialized with mode=shared
+------------------------------ Captured log call ------------------------------
+INFO     socialsim4.services.llm_client_pool:llm_client_pool.py:717 LLMClientPool initialized with mode=shared
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_llm_concurrency_and_retry.py:259: assert True is False
+E   AttributeError: '_DummyScene' object has no attribute 'on_event'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\simulator.py:243: AttributeError: '_DummyScene' object has no attribute 'on_event'
+E   TypeError: build_council_sim() missing 1 required positional argument: 'agents'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_simtree_clone_stability.py:92: TypeError: build_council_sim() missing 1 required positional argument: 'agents'
+E   TypeError: build_council_sim() missing 1 required positional argument: 'agents'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_simtree_clone_stability.py:92: TypeError: build_council_sim() missing 1 required positional argument: 'agents'
+E   assert True is False
+     +  where True = <socialsim4.core.agent.agent.Agent object at 0x000002048CB16390>.is_offline
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 12:28:53,860 - socialsim4.services.llm_client_pool - llm_client_pool - LLMClientPool initialized with mode=shared
+------------------------------ Captured log call ------------------------------
+INFO     socialsim4.services.llm_client_pool:llm_client_pool.py:717 LLMClientPool initialized with mode=shared
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_simtree_clone_stability.py:216: assert True is False
+E   AttributeError: 'Agent' object has no attribute 'plan_state'
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 12:28:53,860 - socialsim4.services.llm_client_pool - llm_client_pool - LLMClientPool initialized with mode=shared
+------------------------------ Captured log call ------------------------------
+INFO     socialsim4.services.llm_client_pool:llm_client_pool.py:717 LLMClientPool initialized with mode=shared
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_simtree_clone_stability.py:237: AttributeError: 'Agent' object has no attribute 'plan_state'
+E   TypeError: build_council_sim() missing 1 required positional argument: 'agents'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_simtree_clone_stability.py:92: TypeError: build_council_sim() missing 1 required positional argument: 'agents'
+E   AttributeError: 'Agent' object has no attribute 'plan_state'
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 12:28:53,860 - socialsim4.services.llm_client_pool - llm_client_pool - LLMClientPool initialized with mode=shared
+------------------------------ Captured log call ------------------------------
+INFO     socialsim4.services.llm_client_pool:llm_client_pool.py:717 LLMClientPool initialized with mode=shared
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_simtree_clone_stability.py:237: AttributeError: 'Agent' object has no attribute 'plan_state'
+E   AttributeError: 'Agent' object has no attribute 'plan_state'
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 12:28:53,860 - socialsim4.services.llm_client_pool - llm_client_pool - LLMClientPool initialized with mode=shared
+------------------------------ Captured log call ------------------------------
+INFO     socialsim4.services.llm_client_pool:llm_client_pool.py:717 LLMClientPool initialized with mode=shared
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_simtree_clone_stability.py:237: AttributeError: 'Agent' object has no attribute 'plan_state'
+E   TypeError: build_council_sim() missing 1 required positional argument: 'agents'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_simtree_clone_stability.py:92: TypeError: build_council_sim() missing 1 required positional argument: 'agents'
+E   TypeError: build_council_sim() missing 1 required positional argument: 'agents'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_simtree_clone_stability.py:92: TypeError: build_council_sim() missing 1 required positional argument: 'agents'
+E   TypeError: HTTPRouteHandler.__call__() missing 1 required positional argument: 'fn'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:26: TypeError: HTTPRouteHandler.__call__() missing 1 required positional argument: 'fn'
+E   TypeError: HTTPRouteHandler.__call__() missing 1 required positional argument: 'fn'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:35: TypeError: HTTPRouteHandler.__call__() missing 1 required positional argument: 'fn'
+E   TypeError: 'post' object is not subscriptable
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:52: TypeError: 'post' object is not subscriptable
+E   TypeError: 'post' object is not subscriptable
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:82: TypeError: 'post' object is not subscriptable
+E   TypeError: 'post' object is not subscriptable
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:94: TypeError: 'post' object is not subscriptable
+E   TypeError: 'post' object is not subscriptable
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:109: TypeError: 'post' object is not subscriptable
+E   TypeError: 'post' object is not subscriptable
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:127: TypeError: 'post' object is not subscriptable
+E   TypeError: 'post' object is not subscriptable
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:142: TypeError: 'post' object is not subscriptable
+E   TypeError: 'post' object is not subscriptable
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:157: TypeError: 'post' object is not subscriptable
+E   TypeError: 'post' object is not subscriptable
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:184: TypeError: 'post' object is not subscriptable
+E   TypeError: 'post' object is not subscriptable
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:201: TypeError: 'post' object is not subscriptable
+E   TypeError: 'post' object is not subscriptable
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:233: TypeError: 'post' object is not subscriptable
+E   TypeError: HTTPRouteHandler.__call__() missing 1 required positional argument: 'fn'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:245: TypeError: HTTPRouteHandler.__call__() missing 1 required positional argument: 'fn'
+E   TypeError: HTTPRouteHandler.__call__() missing 1 required positional argument: 'fn'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:250: TypeError: HTTPRouteHandler.__call__() missing 1 required positional argument: 'fn'
+E   TypeError: HTTPRouteHandler.__call__() missing 1 required positional argument: 'fn'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:256: TypeError: HTTPRouteHandler.__call__() missing 1 required positional argument: 'fn'
+E   litestar.exceptions.http_exceptions.HTTPException: 400: File content does not match declared type image/png
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\api\routes\uploads.py:274: litestar.exceptions.http_exceptions.HTTPException: 400: File content does not match declared type image/png
+E   assert 400 == 413
+     +  where 400 = 400 - HTTPException - File content does not match declared type image/png.status_code
+     +    where 400 - HTTPException - File content does not match declared type image/png = <ExceptionInfo 400 - HTTPException - File content does not match declared type image/png tblen=2>.value
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_uploads.py:93: assert 400 == 413
+E   assert 400 == 413
+     +  where 400 = 400 - HTTPException - File content does not match declared type application/pdf.status_code
+     +    where 400 - HTTPException - File content does not match declared type application/pdf = <ExceptionInfo 400 - HTTPException - File content does not match declared type application/pdf tblen=2>.value
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_uploads.py:230: assert 400 == 413
+E   AssertionError: assert 'agent_1' == 'Agent 1'
+      
+      - Agent 1
+      + agent_1
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\backend\services\test_export_service.py:87: AssertionError: assert 'agent_1' == 'Agent 1'
+E   AssertionError: assert 'Agent 1' in 'sequence,timestamp,node_id,round,agent_id,type,action,follow_up,tokens_per_round,multiplier\r\n1,2026-03-30T14:30:00,1,,agent_1,AGENT_ACTION,allocate,12,10,1.3\r\n'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\backend\services\test_export_service.py:117: AssertionError: assert 'Agent 1' in 'sequence,timestamp,node_id,round,agent_id,type,action,follow_up,tokens_per_round,multiplier\r\n1,2026-03-30T14:30:00,1,,agent_1,AGENT_ACTION,allocate,12,10,1.3\r\n'
+E   AssertionError: assert 'agent_1' == 'Agent 1'
+      
+      - Agent 1
+      + agent_1
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\backend\services\test_export_service.py:148: AssertionError: assert 'agent_1' == 'Agent 1'
+E   AssertionError: Expected 3 unique events, got 6
+    assert 6 == 3
+     +  where 6 = len([{'action': 'allocate', 'agent_id': 'agent_1', 'follow_up': '6', 'node_id': '1', ...}, {'action': 'allocate', 'agent_i...w_up': '5', 'node_id': '3', ...}, {'action': 'allocate', 'agent_id': 'agent_1', 'follow_up': '4', 'node_id': '3', ...}])
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\backend\services\test_export_service.py:247: AssertionError: Expected 3 unique events, got 6
+E   AssertionError: assert 'resource_name_custom' in ['resource_name', 'tokens_per_round', 'multiplier', 'deduction_budget_per_phase', 'deduction_cost_ratio', 'deduction_anonymous']
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\core\scenarios\test_registry.py:66: AssertionError: assert 'resource_name_custom' in ['resource_name', 'tokens_per_round', 'multiplier', 'deduction_budget_per_phase', 'deduction_cost_ratio', 'deduction_anonymous']
+E   AssertionError: assert 'action_name' in ['resource_name', 'tokens_per_round', 'multiplier', 'deduction_budget_per_phase', 'deduction_cost_ratio', 'deduction_anonymous']
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\core\scenarios\test_registry.py:71: AssertionError: assert 'action_name' in ['resource_name', 'tokens_per_round', 'multiplier', 'deduction_budget_per_phase', 'deduction_cost_ratio', 'deduction_anonymous']
+E   AssertionError: assert 'initial_amount' in ['resource_name', 'tokens_per_round', 'multiplier', 'deduction_budget_per_phase', 'deduction_cost_ratio', 'deduction_anonymous']
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\core\scenarios\test_registry.py:77: AssertionError: assert 'initial_amount' in ['resource_name', 'tokens_per_round', 'multiplier', 'deduction_budget_per_phase', 'deduction_cost_ratio', 'deduction_anonymous']
+E   AssertionError: assert 'punishment_budget_per_round' in ['resource_name', 'tokens_per_round', 'multiplier', 'deduction_budget_per_phase', 'deduction_cost_ratio', 'deduction_anonymous']
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\core\scenarios\test_registry.py:84: AssertionError: assert 'punishment_budget_per_round' in ['resource_name', 'tokens_per_round', 'multiplier', 'deduction_budget_per_phase', 'deduction_cost_ratio', 'deduction_anonymous']
+E   KeyError: 'punishment_cost_ratio'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\core\scenarios\test_registry.py:91: KeyError: 'punishment_cost_ratio'
+E   KeyError: 'punishment_budget_per_round'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\core\scenarios\test_registry.py:96: KeyError: 'punishment_budget_per_round'
+E   KeyError: 'punishment_anonymous'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\core\scenarios\test_registry.py:101: KeyError: 'punishment_anonymous'
+E   TypeError: format_action_log() got an unexpected keyword argument 'scenario_id'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\core\simulation\test_logs.py:21: TypeError: format_action_log() got an unexpected keyword argument 'scenario_id'
+E   TypeError: format_action_log() got an unexpected keyword argument 'amount'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\core\simulation\test_logs.py:37: TypeError: format_action_log() got an unexpected keyword argument 'amount'
+E   TypeError: format_action_log() got an unexpected keyword argument 'scenario_id'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\core\simulation\test_logs.py:54: TypeError: format_action_log() got an unexpected keyword argument 'scenario_id'
+E   TypeError: format_action_log() got an unexpected keyword argument 'scenario_id'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\core\simulation\test_logs.py:66: TypeError: format_action_log() got an unexpected keyword argument 'scenario_id'
+E   AssertionError: assert ['', ''] == ['red', 'blue']
+      
+      At index 0 diff: '' != 'red'
+      Use -v to get more diff
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 12:28:56,499 - socialsim4.core.experiment.scene - scene - [GAME_CONFIG] scenario_id='coordination_game', action_names=['red', 'blue'], followup_modes={}
+INFO - 2026-05-11 12:28:56,499 - socialsim4.core.experiment.scene - scene - Running round 1
+INFO - 2026-05-11 12:28:56,499 - socialsim4.core.experiment.runner - runner - Starting round 1
+INFO - 2026-05-11 12:28:56,500 - socialsim4.timing - timing - [LLM] provider=mock model= attempt=0 duration_ms=0 status=ok
+ERROR - 2026-05-11 12:28:56,501 - socialsim4.core.experiment.controller - controller - Failed to parse JSON from Node1: Expecting value: line 1 column 1 (char 0)
+INFO - 2026-05-11 12:28:56,502 - socialsim4.timing - timing - [LLM] provider=mock model= attempt=0 duration_ms=0 status=ok
+ERROR - 2026-05-11 12:28:56,503 - socialsim4.core.experiment.controller - controller - Failed to parse JSON from Node2: Expecting value: line 1 column 1 (char 0)
+INFO - 2026-05-11 12:28:56,503 - socialsim4.core.experiment.runner - runner - [PGG] Phase advanced: allocate -> allocate (round 1 complete)
+INFO - 2026-05-11 12:28:56,503 - socialsim4.core.experiment.runner - runner - Round 1 complete: 2 actions
+INFO - 2026-05-11 12:28:56,503 - socialsim4.core.experiment.scene - scene - Round 1 complete: 2 actions
+------------------------------ Captured log call ------------------------------
+INFO     socialsim4.core.experiment.scene:scene.py:624 [GAME_CONFIG] scenario_id='coordination_game', action_names=['red', 'blue'], followup_modes={}
+INFO     socialsim4.core.experiment.scene:scene.py:272 Running round 1
+INFO     socialsim4.core.experiment.runner:runner.py:765 Starting round 1
+INFO     socialsim4.timing:timing.py:51 [LLM] provider=mock model= attempt=0 duration_ms=0 status=ok
+ERROR    socialsim4.core.experiment.controller:controller.py:153 Failed to parse JSON from Node1: Expecting value: line 1 column 1 (char 0)
+INFO     socialsim4.timing:timing.py:51 [LLM] provider=mock model= attempt=0 duration_ms=0 status=ok
+ERROR    socialsim4.core.experiment.controller:controller.py:153 Failed to parse JSON from Node2: Expecting value: line 1 column 1 (char 0)
+INFO     socialsim4.core.experiment.runner:runner.py:802 [PGG] Phase advanced: allocate -> allocate (round 1 complete)
+INFO     socialsim4.core.experiment.runner:runner.py:807 Round 1 complete: 2 actions
+INFO     socialsim4.core.experiment.scene:scene.py:341 Round 1 complete: 2 actions
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\experiment\test_experiment_scene_state.py:154: AssertionError: assert ['', ''] == ['red', 'blue']
+E   IndexError: list index out of range
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 12:28:56,506 - socialsim4.core.experiment.scene - scene - [GAME_CONFIG] scenario_id='coordination_game', action_names=['red', 'blue'], followup_modes={}
+INFO - 2026-05-11 12:28:56,506 - socialsim4.core.experiment.scene - scene - Running round 1
+INFO - 2026-05-11 12:28:56,506 - socialsim4.core.experiment.runner - runner - Starting round 1
+INFO - 2026-05-11 12:28:56,507 - socialsim4.timing - timing - [LLM] provider=mock model= attempt=0 duration_ms=0 status=ok
+ERROR - 2026-05-11 12:28:56,507 - socialsim4.core.experiment.controller - controller - Failed to parse JSON from Node1: Expecting value: line 1 column 1 (char 0)
+INFO - 2026-05-11 12:28:56,508 - socialsim4.timing - timing - [LLM] provider=mock model= attempt=0 duration_ms=0 status=ok
+ERROR - 2026-05-11 12:28:56,508 - socialsim4.core.experiment.controller - controller - Failed to parse JSON from Node2: Expecting value: line 1 column 1 (char 0)
+INFO - 2026-05-11 12:28:56,508 - socialsim4.core.experiment.runner - runner - [PGG] Phase advanced: allocate -> allocate (round 1 complete)
+INFO - 2026-05-11 12:28:56,509 - socialsim4.core.experiment.runner - runner - Round 1 complete: 2 actions
+INFO - 2026-05-11 12:28:56,509 - socialsim4.core.experiment.scene - scene - Round 1 complete: 2 actions
+INFO - 2026-05-11 12:28:56,510 - socialsim4.core.experiment.scene - scene - Running round 2
+INFO - 2026-05-11 12:28:56,510 - socialsim4.core.experiment.runner - runner - Starting round 2
+INFO - 2026-05-11 12:28:56,510 - socialsim4.timing - timing - [LLM] provider=mock model= attempt=0 duration_ms=0 status=ok
+ERROR - 2026-05-11 12:28:56,510 - socialsim4.core.experiment.controller - controller - Failed to parse JSON from Node1: Expecting value: line 1 column 1 (char 0)
+INFO - 2026-05-11 12:28:56,511 - socialsim4.timing - timing - [LLM] provider=mock model= attempt=0 duration_ms=0 status=ok
+ERROR - 2026-05-11 12:28:56,511 - socialsim4.core.experiment.controller - controller - Failed to parse JSON from Node2: Expecting value: line 1 column 1 (char 0)
+INFO - 2026-05-11 12:28:56,512 - socialsim4.core.experiment.runner - runner - [PGG] Phase advanced: allocate -> allocate (round 2 complete)
+INFO - 2026-05-11 12:28:56,512 - socialsim4.core.experiment.runner - runner - Round 2 complete: 2 actions
+INFO - 2026-05-11 12:28:56,512 - socialsim4.core.experiment.scene - scene - Round 2 complete: 2 actions
+------------------------------ Captured log call ------------------------------
+INFO     socialsim4.core.experiment.scene:scene.py:624 [GAME_CONFIG] scenario_id='coordination_game', action_names=['red', 'blue'], followup_modes={}
+INFO     socialsim4.core.experiment.scene:scene.py:272 Running round 1
+INFO     socialsim4.core.experiment.runner:runner.py:765 Starting round 1
+INFO     socialsim4.timing:timing.py:51 [LLM] provider=mock model= attempt=0 duration_ms=0 status=ok
+ERROR    socialsim4.core.experiment.controller:controller.py:153 Failed to parse JSON from Node1: Expecting value: line 1 column 1 (char 0)
+INFO     socialsim4.timing:timing.py:51 [LLM] provider=mock model= attempt=0 duration_ms=0 status=ok
+ERROR    socialsim4.core.experiment.controller:controller.py:153 Failed to parse JSON from Node2: Expecting value: line 1 column 1 (char 0)
+INFO     socialsim4.core.experiment.runner:runner.py:802 [PGG] Phase advanced: allocate -> allocate (round 1 complete)
+INFO     socialsim4.core.experiment.runner:runner.py:807 Round 1 complete: 2 actions
+INFO     socialsim4.core.experiment.scene:scene.py:341 Round 1 complete: 2 actions
+INFO     socialsim4.core.experiment.scene:scene.py:272 Running round 2
+INFO     socialsim4.core.experiment.runner:runner.py:765 Starting round 2
+INFO     socialsim4.timing:timing.py:51 [LLM] provider=mock model= attempt=0 duration_ms=0 status=ok
+ERROR    socialsim4.core.experiment.controller:controller.py:153 Failed to parse JSON from Node1: Expecting value: line 1 column 1 (char 0)
+INFO     socialsim4.timing:timing.py:51 [LLM] provider=mock model= attempt=0 duration_ms=0 status=ok
+ERROR    socialsim4.core.experiment.controller:controller.py:153 Failed to parse JSON from Node2: Expecting value: line 1 column 1 (char 0)
+INFO     socialsim4.core.experiment.runner:runner.py:802 [PGG] Phase advanced: allocate -> allocate (round 2 complete)
+INFO     socialsim4.core.experiment.runner:runner.py:807 Round 2 complete: 2 actions
+INFO     socialsim4.core.experiment.scene:scene.py:341 Round 2 complete: 2 actions
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\experiment\test_experiment_scene_state.py:195: IndexError: list index out of range
+E   AssertionError: assert '' == 'invest'
+      
+      - invest
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 12:28:56,515 - socialsim4.core.experiment.scene - scene - [GAME_CONFIG] scenario_id='custom', action_names=['invest'], followup_modes={}
+WARNING - 2026-05-11 12:28:56,515 - socialsim4.core.experiment.scene - scene - No social network configured for this experiment
+INFO - 2026-05-11 12:28:56,515 - socialsim4.core.experiment.scene - scene - Running round 1
+INFO - 2026-05-11 12:28:56,515 - socialsim4.core.experiment.runner - runner - Starting round 1
+INFO - 2026-05-11 12:28:56,516 - socialsim4.timing - timing - [LLM] provider=mock model= attempt=0 duration_ms=0 status=ok
+ERROR - 2026-05-11 12:28:56,516 - socialsim4.core.experiment.controller - controller - Failed to parse JSON from Alice: Expecting value: line 1 column 1 (char 0)
+INFO - 2026-05-11 12:28:56,517 - socialsim4.core.experiment.runner - runner - [PGG] Phase advanced: allocate -> allocate (round 1 complete)
+INFO - 2026-05-11 12:28:56,517 - socialsim4.core.experiment.runner - runner - Round 1 complete: 1 actions
+INFO - 2026-05-11 12:28:56,517 - socialsim4.core.experiment.scene - scene - Round 1 complete: 1 actions
+------------------------------ Captured log call ------------------------------
+INFO     socialsim4.core.experiment.scene:scene.py:624 [GAME_CONFIG] scenario_id='custom', action_names=['invest'], followup_modes={}
+WARNING  socialsim4.core.experiment.scene:scene.py:239 No social network configured for this experiment
+INFO     socialsim4.core.experiment.scene:scene.py:272 Running round 1
+INFO     socialsim4.core.experiment.runner:runner.py:765 Starting round 1
+INFO     socialsim4.timing:timing.py:51 [LLM] provider=mock model= attempt=0 duration_ms=0 status=ok
+ERROR    socialsim4.core.experiment.controller:controller.py:153 Failed to parse JSON from Alice: Expecting value: line 1 column 1 (char 0)
+INFO     socialsim4.core.experiment.runner:runner.py:802 [PGG] Phase advanced: allocate -> allocate (round 1 complete)
+INFO     socialsim4.core.experiment.runner:runner.py:807 Round 1 complete: 1 actions
+INFO     socialsim4.core.experiment.scene:scene.py:341 Round 1 complete: 1 actions
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\experiment\test_experiment_scene_state.py:245: AssertionError: assert '' == 'invest'
+E   assert 20 == 13
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 12:28:56,520 - socialsim4.core.experiment.scene - scene - [GAME_CONFIG] scenario_id='custom', action_names=['contribute'], followup_modes={}
+INFO - 2026-05-11 12:28:56,520 - socialsim4.core.experiment.scene - scene - Running round 1
+INFO - 2026-05-11 12:28:56,520 - socialsim4.core.experiment.runner - runner - Starting round 1
+INFO - 2026-05-11 12:28:56,521 - socialsim4.timing - timing - [LLM] provider=mock model= attempt=0 duration_ms=0 status=ok
+ERROR - 2026-05-11 12:28:56,521 - socialsim4.core.experiment.controller - controller - Failed to parse JSON from Alice: Expecting value: line 1 column 1 (char 0)
+INFO - 2026-05-11 12:28:56,521 - socialsim4.core.experiment.runner - runner - [PGG] Phase advanced: allocate -> allocate (round 1 complete)
+INFO - 2026-05-11 12:28:56,522 - socialsim4.core.experiment.runner - runner - Round 1 complete: 1 actions
+INFO - 2026-05-11 12:28:56,522 - socialsim4.core.experiment.scene - scene - Round 1 complete: 1 actions
+------------------------------ Captured log call ------------------------------
+INFO     socialsim4.core.experiment.scene:scene.py:624 [GAME_CONFIG] scenario_id='custom', action_names=['contribute'], followup_modes={}
+INFO     socialsim4.core.experiment.scene:scene.py:272 Running round 1
+INFO     socialsim4.core.experiment.runner:runner.py:765 Starting round 1
+INFO     socialsim4.timing:timing.py:51 [LLM] provider=mock model= attempt=0 duration_ms=0 status=ok
+ERROR    socialsim4.core.experiment.controller:controller.py:153 Failed to parse JSON from Alice: Expecting value: line 1 column 1 (char 0)
+INFO     socialsim4.core.experiment.runner:runner.py:802 [PGG] Phase advanced: allocate -> allocate (round 1 complete)
+INFO     socialsim4.core.experiment.runner:runner.py:807 Round 1 complete: 1 actions
+INFO     socialsim4.core.experiment.scene:scene.py:341 Round 1 complete: 1 actions
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\experiment\test_experiment_scene_state.py:303: assert 20 == 13
+E   AssertionError: assert 'Agent 3' not in 'Round 1: I ...ent 3 green.'
+      
+      'Agent 3' is contained here:
+        Round 1: I red, Agent 2 blue, Agent 3 green.
+      ?                               +++++++
+---------------------------- Captured stdout call -----------------------------
+
+Context for Agent 1: Round 1: I red, Agent 2 blue, Agent 3 green.
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\unit\test_context_builder_visibility.py:66: AssertionError: assert 'Agent 3' not in 'Round 1: I ...ent 3 green.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+C:\Users\Justin\anaconda3\envs\socialsim\Lib\asyncio\events.py:702: RuntimeError: There is no current event loop in thread 'MainThread'.
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+C:\Users\Justin\anaconda3\envs\socialsim\Lib\asyncio\events.py:702: RuntimeError: There is no current event loop in thread 'MainThread'.
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+C:\Users\Justin\anaconda3\envs\socialsim\Lib\asyncio\events.py:702: RuntimeError: There is no current event loop in thread 'MainThread'.
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+C:\Users\Justin\anaconda3\envs\socialsim\Lib\asyncio\events.py:702: RuntimeError: There is no current event loop in thread 'MainThread'.
+E   AttributeError: <module 'socialsim4.core.experiment.runner' from 'C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\src\\socialsim4\\core\\experiment\\runner.py'> does not have the attribute '_debug_file'
+C:\Users\Justin\anaconda3\envs\socialsim\Lib\unittest\mock.py:1437: AttributeError: <module 'socialsim4.core.experiment.runner' from 'C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\src\\socialsim4\\core\\experiment\\runner.py'> does not have the attribute '_debug_file'
+E   AttributeError: <module 'socialsim4.core.experiment.runner' from 'C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\src\\socialsim4\\core\\experiment\\runner.py'> does not have the attribute '_debug_file'
+C:\Users\Justin\anaconda3\envs\socialsim\Lib\unittest\mock.py:1437: AttributeError: <module 'socialsim4.core.experiment.runner' from 'C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\src\\socialsim4\\core\\experiment\\runner.py'> does not have the attribute '_debug_file'
+E   AttributeError: <module 'socialsim4.core.experiment.runner' from 'C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\src\\socialsim4\\core\\experiment\\runner.py'> does not have the attribute '_debug_file'
+C:\Users\Justin\anaconda3\envs\socialsim\Lib\unittest\mock.py:1437: AttributeError: <module 'socialsim4.core.experiment.runner' from 'C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\src\\socialsim4\\core\\experiment\\runner.py'> does not have the attribute '_debug_file'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+C:\Users\Justin\anaconda3\envs\socialsim\Lib\asyncio\events.py:702: RuntimeError: There is no current event loop in thread 'MainThread'.
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+C:\Users\Justin\anaconda3\envs\socialsim\Lib\asyncio\events.py:702: RuntimeError: There is no current event loop in thread 'MainThread'.
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+C:\Users\Justin\anaconda3\envs\socialsim\Lib\asyncio\events.py:702: RuntimeError: There is no current event loop in thread 'MainThread'.
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+C:\Users\Justin\anaconda3\envs\socialsim\Lib\asyncio\events.py:702: RuntimeError: There is no current event loop in thread 'MainThread'.
+E   ValueError: LLM response must include an 'action' field with a valid name.
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\agent\parsing.py:374: ValueError: LLM response must include an 'action' field with a valid name.
+E   ValueError: LLM response is missing the required JSON object with an action.
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\agent\parsing.py:369: ValueError: LLM response is missing the required JSON object with an action.
+E   ValueError: deliberation_rounds parameter is required. Got parameters: {'voting_threshold': 0.5}
+------------------------------ Captured log call ------------------------------
+INFO     socialsim4.core.experiment.scenes.council_experiment:council_experiment.py:72 [INIT] config.parameters = {'voting_threshold': 0.5}
+INFO     socialsim4.core.experiment.scenes.council_experiment:council_experiment.py:73 [INIT] deliberation_rounds from config = None
+INFO     socialsim4.core.experiment.scenes.council_experiment:council_experiment.py:107 CouncilExperimentScene initialized with 0 agents
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\experiment\scenes\council_experiment.py:277: ValueError: deliberation_rounds parameter is required. Got parameters: {'voting_threshold': 0.5}
+E   ValueError: deliberation_rounds parameter is required. Got parameters: {'voting_threshold': 0.6}
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 12:28:56,741 - socialsim4.core.experiment.scenes.council_experiment - council_experiment - [INIT] config.parameters = {'voting_threshold': 0.6}
+INFO - 2026-05-11 12:28:56,741 - socialsim4.core.experiment.scenes.council_experiment - council_experiment - [INIT] deliberation_rounds from config = None
+------------------------------ Captured log call ------------------------------
+INFO     socialsim4.core.experiment.scenes.council_experiment:council_experiment.py:72 [INIT] config.parameters = {'voting_threshold': 0.6}
+INFO     socialsim4.core.experiment.scenes.council_experiment:council_experiment.py:73 [INIT] deliberation_rounds from config = None
+INFO     socialsim4.core.experiment.scenes.council_experiment:council_experiment.py:107 CouncilExperimentScene initialized with 0 agents
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\experiment\scenes\council_experiment.py:277: ValueError: deliberation_rounds parameter is required. Got parameters: {'voting_threshold': 0.6}
+E   AssertionError: assert ['allocate', 'keep'] == []
+      
+      Left contains 2 more items, first extra item: 'allocate'
+      Use -v to get more diff
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 12:28:56,787 - socialsim4.core.experiment.scene - scene - [PGG] get_scene_actions called: phase=allocate, deduction_budget=0
+------------------------------ Captured log call ------------------------------
+INFO     socialsim4.core.experiment.scene:scene.py:942 [PGG] get_scene_actions called: phase=allocate, deduction_budget=0
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\core\experiment\test_pgg_phases.py:73: AssertionError: assert ['allocate', 'keep'] == []
+E   TypeError: T() got multiple values for argument 'key'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\experiment\prompt_builder.py:162: TypeError: T() got multiple values for argument 'key'
+E   TypeError: T() got multiple values for argument 'key'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\experiment\prompt_builder.py:162: TypeError: T() got multiple values for argument 'key'
+E   TypeError: T() got multiple values for argument 'key'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\experiment\prompt_builder.py:162: TypeError: T() got multiple values for argument 'key'
+E   TypeError: T() got multiple values for argument 'key'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\experiment\prompt_builder.py:162: TypeError: T() got multiple values for argument 'key'
+E   assert 'Respond ONLY with valid JSON' in '=== EMBODY THIS PERSON ===\nYou are an adult teacher.\n\n## Scenario\nTwo suspects are arrested and held separately. ...ions: "cooperate", "defect"\nRespond with ONLY JSON: {"action": "<action>"}\n\nNo markdown. No explanation. Only JSON.'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\core\experiment\test_prompt_builder.py:132: assert 'Respond ONLY with valid JSON' in '=== EMBODY THIS PERSON ===\nYou are an adult teacher.\n\n## Scenario\nTwo suspects are arrested and held separately. ...ions: "cooperate", "defect"\nRespond with ONLY JSON: {"action": "<action>"}\n\nNo markdown. No explanation. Only JSON.'
+E   assert 'integer from 1-7' in '=== EMBODY THIS PERSON ===\nYou are an adult engineer.\n\n## Scenario\nTeam members choose effort levels from 1-7. Yo...nChoose a number from 1 to 7.\nRespond with ONLY JSON: {"effort": <number>}\n\nNo markdown. No explanation. Only JSON.'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\core\experiment\test_prompt_builder.py:165: assert 'integer from 1-7' in '=== EMBODY THIS PERSON ===\nYou are an adult engineer.\n\n## Scenario\nTeam members choose effort levels from 1-7. Yo...nChoose a number from 1 to 7.\nRespond with ONLY JSON: {"effort": <number>}\n\nNo markdown. No explanation. Only JSON.'
+E   TypeError: T() got multiple values for argument 'key'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\experiment\prompt_builder.py:162: TypeError: T() got multiple values for argument 'key'
+E   TypeError: T() got multiple values for argument 'key'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\experiment\prompt_builder.py:164: TypeError: T() got multiple values for argument 'key'
+E   AssertionError: assert ('Average contribution from 2 neighbors' in 'This is the first round.' or '7.5' in 'This is the first round.' or '7.50' in 'This is the first round.')
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\core\experiment\test_round_context_manager.py:58: AssertionError: assert ('Average contribution from 2 neighbors' in 'This is the first round.' or '7.5' in 'This is the first round.' or '7.50' in 'This is the first round.')
+E   assert 2 == 1
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\core\experiment\test_runner.py:376: assert 2 == 1
+E   TypeError: T() got multiple values for argument 'key'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\experiment\prompt_builder.py:162: TypeError: T() got multiple values for argument 'key'
+E   AssertionError: assert 'x' == 'ok'
+      
+      - ok
+      + x
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\core\test_agent_parsing.py:25: AssertionError: assert 'x' == 'ok'
+E   ValueError: LLM client 'chat' not found.
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\agent\agent.py:393: ValueError: LLM client 'chat' not found.
+E   AssertionError: assert '\u7b49\u5f85 mid \u5c42\u5148\u5904\u7406' in 'Low A \u5f53\u524d\u7b49\u5f85 mid \u5c42\u5148\u5b8c\u6210\u672c\u8f6e\u4f20\u8fbe\u3002'
+     +  where 'Low A \u5f53\u524d\u7b49\u5f85 mid \u5c42\u5148\u5b8c\u6210\u672c\u8f6e\u4f20\u8fbe\u3002' = get_skip_reason(<socialsim4.core.agent.agent.Agent object at 0x000002048CEAD610>, <socialsim4.core.simulator.Simulator object at 0x000002048CEAD760>)
+     +    where get_skip_reason = <socialsim4.core.scenes.policy_cascade.scene.PolicyCascadeScene object at 0x000002048CEAD370>.get_skip_reason
+C:\\Users\\Justin\\Documents\\ZJU_Work\\Social-Sim\\tests\\core\\test_policy_cascade_follow_up.py:1425: AssertionError: assert '\u7b49\u5f85 mid \u5c42\u5148\u5904\u7406' in 'Low A \u5f53\u524d\u7b49\u5f85 mid \u5c42\u5148\u5b8c\u6210\u672c\u8f6e\u4f20\u8fbe\u3002'
+E   assert []
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\core\test_policy_cascade_follow_up.py:1500: assert []
+E   AssertionError: assert 16 == 13
+     +  where 16 = len([{'actions': [{'description': 'Work together with your partner', 'id': 'cooperate', 'name': 'Cooperate'}, {'descriptio...fully'}, ...], 'default_action_ids': ['express_opinion', 'reinforce_ingroup', 'share_content', 'disengage'], ...}, ...])
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\core\test_scenarios.py:20: AssertionError: assert 16 == 13
+E   AssertionError: assert 6 == 3
+     +  where 6 = len([{'default': 3, 'description': 'Reward when both prisoners cooperate', 'id': 'cooperate_reward', 'key': 'cooperate_rew...bel': 'Action 1 Name', ...}, {'default': 'Defect', 'id': 'action_2', 'key': 'action_2', 'label': 'Action 2 Name', ...}])
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\core\test_scenarios.py:68: AssertionError: assert 6 == 3
+E   AttributeError: 'ExperimentKernel' object has no attribute 'register_action'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\smoke_tests\test_discussion.py:64: AttributeError: 'ExperimentKernel' object has no attribute 'register_action'
+E   AttributeError: 'ExperimentKernel' object has no attribute 'register_action'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\smoke_tests\test_discussion.py:119: AttributeError: 'ExperimentKernel' object has no attribute 'register_action'
+E   ValueError: scope_type must be one of {'self', 'role_based', 'neighborhood', 'pair', 'all'}, got 'neighbor'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\experiment\information_model.py:50: ValueError: scope_type must be one of {'self', 'role_based', 'neighborhood', 'pair', 'all'}, got 'neighbor'
+E   TypeError: format_action_log() got an unexpected keyword argument 'scenario_id'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_configurable_actions.py:34: TypeError: format_action_log() got an unexpected keyword argument 'scenario_id'
+E   TypeError: format_action_log() got an unexpected keyword argument 'amount'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_configurable_actions.py:62: TypeError: format_action_log() got an unexpected keyword argument 'amount'
+E   TypeError: format_action_log() got an unexpected keyword argument 'scenario_id'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_configurable_actions.py:86: TypeError: format_action_log() got an unexpected keyword argument 'scenario_id'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+C:\Users\Justin\anaconda3\envs\socialsim\Lib\asyncio\events.py:702: RuntimeError: There is no current event loop in thread 'MainThread'.
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+C:\Users\Justin\anaconda3\envs\socialsim\Lib\asyncio\events.py:702: RuntimeError: There is no current event loop in thread 'MainThread'.
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+C:\Users\Justin\anaconda3\envs\socialsim\Lib\asyncio\events.py:702: RuntimeError: There is no current event loop in thread 'MainThread'.
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+C:\Users\Justin\anaconda3\envs\socialsim\Lib\asyncio\events.py:702: RuntimeError: There is no current event loop in thread 'MainThread'.
+E   IndexError: list index out of range
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_llm_distribution.py:39: IndexError: list index out of range
+E   TypeError: ExperimentScene.run_round() missing 1 required positional argument: 'event_emitter'
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 12:31:17,314 - socialsim4.core.experiment.scene - scene - [GAME_CONFIG] scenario_id='test', action_names=['cooperate', 'defect'], followup_modes={}
+WARNING - 2026-05-11 12:31:17,314 - socialsim4.core.experiment.scene - scene - No social network configured for this experiment
+------------------------------ Captured log call ------------------------------
+INFO     socialsim4.core.experiment.scene:scene.py:624 [GAME_CONFIG] scenario_id='test', action_names=['cooperate', 'defect'], followup_modes={}
+WARNING  socialsim4.core.experiment.scene:scene.py:239 No social network configured for this experiment
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_llm_distribution_smoke.py:66: TypeError: ExperimentScene.run_round() missing 1 required positional argument: 'event_emitter'
+E   TypeError: __init__() should return None, not 'MagicMock'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\experiment\scene.py:140: TypeError: __init__() should return None, not 'MagicMock'
+E   assert False is True
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_pgg_punishment_smoketest.py:167: assert False is True
+E   AssertionError: assert 'self' in 'deductions are disabled (budget=0)'
+     +  where 'deductions are disabled (budget=0)' = <built-in method lower of str object at 0x00000204CDCF6B50>()
+     +    where <built-in method lower of str object at 0x00000204CDCF6B50> = 'Deductions are disabled (budget=0)'.lower
+     +      where 'Deductions are disabled (budget=0)' = <built-in method get of dict object at 0x000002048E115380>('error', '')
+     +        where <built-in method get of dict object at 0x000002048E115380> = {'error': 'Deductions are disabled (budget=0)', 'success': False}.get
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_pgg_punishment_smoketest.py:183: AssertionError: assert 'self' in 'deductions are disabled (budget=0)'
+E   AssertionError: assert 'unknown' in 'deductions are disabled (budget=0)'
+     +  where 'deductions are disabled (budget=0)' = <built-in method lower of str object at 0x00000204CDCF6B50>()
+     +    where <built-in method lower of str object at 0x00000204CDCF6B50> = 'Deductions are disabled (budget=0)'.lower
+     +      where 'Deductions are disabled (budget=0)' = <built-in method get of dict object at 0x000002048E162C40>('error', '')
+     +        where <built-in method get of dict object at 0x000002048E162C40> = {'error': 'Deductions are disabled (budget=0)', 'success': False}.get
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_pgg_punishment_smoketest.py:197: AssertionError: assert 'unknown' in 'deductions are disabled (budget=0)'
+E   assert False is True
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_pgg_punishment_smoketest.py:211: assert False is True
+E   AssertionError: assert 'punishments' in {}
+     +  where {} = ExperimentState(round=0, agents={'Alice': AgentState(score=0, position=None, resources={'tokens': 20, 'punishment_budg...e(score=0, position=None, resources={'tokens': 20, 'punishment_budget': 5}, properties={})}, history=[], extensions={}).extensions
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_pgg_punishment_smoketest.py:271: AssertionError: assert 'punishments' in {}
+E   KeyError: 'punishments'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_pgg_punishment_smoketest.py:304: KeyError: 'punishments'
+E   KeyError: 'amount'
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_pgg_punishment_smoketest.py:320: KeyError: 'amount'
+E   AssertionError: With punishment disabled, Bob should get 25, got 19.0
+    assert 19.0 == 25.0
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 12:31:17,379 - socialsim4.core.experiment.payoff.engine - engine - Applied deduction effects (cost_ratio=3)
+------------------------------ Captured log call ------------------------------
+INFO     socialsim4.core.experiment.payoff.engine:engine.py:341 Applied deduction effects (cost_ratio=3)
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_pgg_punishment_smoketest.py:492: AssertionError: With punishment disabled, Bob should get 25, got 19.0
+E   AssertionError: Alice should have 5 punishment tokens
+    assert None == 5
+     +  where None = <built-in method get of dict object at 0x000002048CDAFAC0>('punishment_budget')
+     +    where <built-in method get of dict object at 0x000002048CDAFAC0> = {'tokens': 20}.get
+     +      where {'tokens': 20} = AgentState(score=0, position=None, resources={'tokens': 20}, properties={}).resources
+------------------------------ Captured log call ------------------------------
+INFO     socialsim4.core.experiment.scene:scene.py:624 [GAME_CONFIG] scenario_id='public_goods_game', action_names=['contribute', 'punish'], followup_modes={}
+WARNING  socialsim4.core.experiment.scene:scene.py:239 No social network configured for this experiment
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_pgg_punishment_smoketest.py:530: AssertionError: Alice should have 5 punishment tokens
+E   assert False is True
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 12:31:17,393 - socialsim4.core.experiment.scene - scene - [GAME_CONFIG] scenario_id='public_goods_game', action_names=['contribute', 'punish'], followup_modes={}
+WARNING - 2026-05-11 12:31:17,393 - socialsim4.core.experiment.scene - scene - No social network configured for this experiment
+------------------------------ Captured log call ------------------------------
+INFO     socialsim4.core.experiment.scene:scene.py:624 [GAME_CONFIG] scenario_id='public_goods_game', action_names=['contribute', 'punish'], followup_modes={}
+WARNING  socialsim4.core.experiment.scene:scene.py:239 No social network configured for this experiment
+C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_pgg_punishment_smoketest.py:572: assert False is True
+============================== warnings summary ===============================
+src\socialsim4\backend\schemas\user.py:5
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\schemas\user.py:5: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class UserBase(BaseModel):
+
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\pydantic\_internal\_generate_schema.py:319: 10 warnings
+  C:\Users\Justin\anaconda3\envs\socialsim\Lib\site-packages\pydantic\_internal\_generate_schema.py:319: PydanticDeprecatedSince20: `json_encoders` is deprecated. See https://docs.pydantic.dev/2.12/concepts/serialization/#custom-serializers for alternatives. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    warnings.warn(
+
+src\socialsim4\backend\schemas\simulation.py:42
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\schemas\simulation.py:42: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class SnapshotBase(BaseModel):
+
+src\socialsim4\backend\schemas\simulation.py:58
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\schemas\simulation.py:58: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class SimulationLogEntry(BaseModel):
+
+src\socialsim4\backend\schemas\provider.py:6
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\schemas\provider.py:6: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ProviderBase(BaseModel):
+
+src\socialsim4\core\registry.py:45
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\registry.py:45: DeprecationWarning: CouncilScene is deprecated. Use CouncilExperimentScene from socialsim4.core.experiment.scenes.council_experiment instead. This module will be removed in a future version (see MIGRATION.md for timeline).
+    from .scenes.council_scene import CouncilScene
+
+src\socialsim4\backend\schemas\search_provider.py:4
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\schemas\search_provider.py:4: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class SearchProviderBase(BaseModel):
+
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\litestar\middleware\base.py:129
+  C:\Users\Justin\anaconda3\envs\socialsim\Lib\site-packages\litestar\middleware\base.py:129: DeprecationWarning: Use of deprecated class 'AbstractMiddleware'. Deprecated in litestar 2.15. This class will be removed in the next major version. Use 'litestar.middleware.ASGIMiddleware' instead
+    warn_deprecation(
+
+tests\integration\test_llm_action_selection.py:73
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_llm_action_selection.py:73: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+tests\integration\test_llm_action_selection.py:122
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_llm_action_selection.py:122: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+tests\integration\test_llm_action_selection.py:165
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_llm_action_selection.py:165: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+tests\integration\test_llm_action_selection.py:250
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_llm_action_selection.py:250: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+tests\integration\test_llm_action_selection.py:276
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\integration\test_llm_action_selection.py:276: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+tests/backend/test_llm.py::TestGenerateArchetypeTemplate::test_generate_archetype_template_missing_description_raises
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\llm\generation.py:238: UserWarning: Missing 'description' for archetype 'type: A'. Using fallback.
+    warnings.warn(f"Missing 'description' for archetype '{attrs_str}'. Using fallback.")
+
+tests/backend/test_llm.py::TestGenerateArchetypeTemplate::test_generate_archetype_template_missing_roles_raises
+tests/backend/test_llm.py::TestGenerateArchetypeTemplate::test_generate_archetype_template_empty_roles_raises
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\llm\generation.py:243: UserWarning: Missing or invalid 'roles' for archetype 'type: A'. Using fallback.
+    warnings.warn(f"Missing or invalid 'roles' for archetype '{attrs_str}'. Using fallback.")
+
+tests/backend/test_llm.py::TestGenerateArchetypeTemplate::test_generate_archetype_template_non_string_role_raises
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\llm\generation.py:253: UserWarning: Role 1 is not a valid string for archetype 'type: A'. Skipping.
+    warnings.warn(f"Role {i} is not a valid string for archetype '{attrs_str}'. Skipping.")
+
+tests/backend/test_templates_api.py::TestValidateTemplate::test_validate_minimal_template
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:51: LitestarWarning: Use of a synchronous callable {'id': 'test_template', 'name': 'Test Template', 'description': 'A test template'} without setting sync_to_thread is discouraged since synchronous callables can block the main thread if they perform blocking operations. If the callable is guaranteed to be non-blocking, you can set sync_to_thread=False to skip this warning, or set the environmentvariable LITESTAR_WARN_IMPLICIT_SYNC_TO_THREAD=0 to disable warnings of this type entirely.
+    result = validate_template(data)
+
+tests/backend/test_templates_api.py::TestValidateTemplate::test_validate_full_template
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:81: LitestarWarning: Use of a synchronous callable {'id': 'full_template', 'name': 'Full Template', 'description': 'A complete template', 'version': '1.0.0', 'author': 'Test Author', 'core_mechanics': [{'type': 'grid', 'config': {'width': 10, 'height': 10}}, {'type': 'voting', 'config': {'method': 'majority'}}], 'semantic_actions': [{'name': 'cast_vote', 'description': 'Cast a vote', 'instruction': 'Cast your vote', 'parameters': []}], 'environment': {'description': 'A test environment', 'rules': ['Rule 1', 'Rule 2']}} without setting sync_to_thread is discouraged since synchronous callables can block the main thread if they perform blocking operations. If the callable is guaranteed to be non-blocking, you can set sync_to_thread=False to skip this warning, or set the environmentvariable LITESTAR_WARN_IMPLICIT_SYNC_TO_THREAD=0 to disable warnings of this type entirely.
+    result = validate_template(data)
+
+tests/backend/test_templates_api.py::TestValidateTemplate::test_validate_missing_required_fields
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:93: LitestarWarning: Use of a synchronous callable {'name': 'Incomplete Template'} without setting sync_to_thread is discouraged since synchronous callables can block the main thread if they perform blocking operations. If the callable is guaranteed to be non-blocking, you can set sync_to_thread=False to skip this warning, or set the environmentvariable LITESTAR_WARN_IMPLICIT_SYNC_TO_THREAD=0 to disable warnings of this type entirely.
+    result = validate_template(data)
+
+tests/backend/test_templates_api.py::TestValidateTemplate::test_validate_invalid_mechanic_type
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:108: LitestarWarning: Use of a synchronous callable {'id': 'invalid_mechanic', 'name': 'Invalid Mechanic', 'description': 'Template with invalid mechanic', 'core_mechanics': [{'type': 'invalid_type', 'config': {}}]} without setting sync_to_thread is discouraged since synchronous callables can block the main thread if they perform blocking operations. If the callable is guaranteed to be non-blocking, you can set sync_to_thread=False to skip this warning, or set the environmentvariable LITESTAR_WARN_IMPLICIT_SYNC_TO_THREAD=0 to disable warnings of this type entirely.
+    result = validate_template(data)
+
+tests/backend/test_templates_api.py::TestValidateTemplate::test_validate_invalid_action_name
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:126: LitestarWarning: Use of a synchronous callable {'id': 'invalid_action', 'name': 'Invalid Action', 'description': 'Template with invalid action name', 'semantic_actions': [{'name': 'InvalidName', 'description': 'Invalid', 'instruction': 'Invalid'}]} without setting sync_to_thread is discouraged since synchronous callables can block the main thread if they perform blocking operations. If the callable is guaranteed to be non-blocking, you can set sync_to_thread=False to skip this warning, or set the environmentvariable LITESTAR_WARN_IMPLICIT_SYNC_TO_THREAD=0 to disable warnings of this type entirely.
+    result = validate_template(data)
+
+tests/backend/test_templates_api.py::TestBuildSceneFromTemplate::test_build_scene_minimal_template
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:141: LitestarWarning: Use of a synchronous callable {'id': 'minimal_scene', 'name': 'Minimal Scene', 'description': 'A minimal scene for testing'} without setting sync_to_thread is discouraged since synchronous callables can block the main thread if they perform blocking operations. If the callable is guaranteed to be non-blocking, you can set sync_to_thread=False to skip this warning, or set the environmentvariable LITESTAR_WARN_IMPLICIT_SYNC_TO_THREAD=0 to disable warnings of this type entirely.
+    result = build_scene_from_template(data)
+
+tests/backend/test_templates_api.py::TestBuildSceneFromTemplate::test_build_scene_with_mechanics
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:156: LitestarWarning: Use of a synchronous callable {'id': 'mechanics_scene', 'name': 'Mechanics Scene', 'description': 'Scene with mechanics', 'core_mechanics': [{'type': 'grid', 'config': {'width': 15, 'height': 20}}]} without setting sync_to_thread is discouraged since synchronous callables can block the main thread if they perform blocking operations. If the callable is guaranteed to be non-blocking, you can set sync_to_thread=False to skip this warning, or set the environmentvariable LITESTAR_WARN_IMPLICIT_SYNC_TO_THREAD=0 to disable warnings of this type entirely.
+    result = build_scene_from_template(data)
+
+tests/backend/test_templates_api.py::TestBuildSceneFromTemplate::test_build_scene_with_semantic_actions
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:183: LitestarWarning: Use of a synchronous callable {'id': 'actions_scene', 'name': 'Actions Scene', 'description': 'Scene with semantic actions', 'semantic_actions': [{'name': 'custom_action', 'description': 'A custom action', 'instruction': 'Perform this action', 'parameters': [{'name': 'target', 'type': 'str', 'description': 'Target of the action', 'required': True}]}]} without setting sync_to_thread is discouraged since synchronous callables can block the main thread if they perform blocking operations. If the callable is guaranteed to be non-blocking, you can set sync_to_thread=False to skip this warning, or set the environmentvariable LITESTAR_WARN_IMPLICIT_SYNC_TO_THREAD=0 to disable warnings of this type entirely.
+    result = build_scene_from_template(data)
+
+tests/backend/test_templates_api.py::TestBuildSceneFromTemplate::test_build_scene_with_environment
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:200: LitestarWarning: Use of a synchronous callable {'id': 'env_scene', 'name': 'Environment Scene', 'description': 'Scene with environment', 'environment': {'description': 'A custom environment', 'rules': ['Rule 1', 'Rule 2'], 'time_config': {'start': '2024-01-01', 'step': '1h'}}} without setting sync_to_thread is discouraged since synchronous callables can block the main thread if they perform blocking operations. If the callable is guaranteed to be non-blocking, you can set sync_to_thread=False to skip this warning, or set the environmentvariable LITESTAR_WARN_IMPLICIT_SYNC_TO_THREAD=0 to disable warnings of this type entirely.
+    result = build_scene_from_template(data)
+
+tests/backend/test_templates_api.py::TestBuildSceneFromTemplate::test_build_full_scene
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\tests\backend\test_templates_api.py:232: LitestarWarning: Use of a synchronous callable {'id': 'full_scene', 'name': 'Full Scene', 'description': 'A complete scene', 'version': '1.0.0', 'core_mechanics': [{'type': 'grid', 'config': {'width': 10, 'height': 10}}, {'type': 'voting', 'config': {'method': 'majority'}}], 'semantic_actions': [{'name': 'cast_vote', 'description': 'Cast a vote', 'instruction': 'Cast your vote on a proposal', 'parameters': [{'name': 'proposal_id', 'type': 'str', 'required': True}, {'name': 'vote', 'type': 'str', 'required': True}]}], 'environment': {'description': 'A town hall meeting', 'time_config': {'start': '2024-01-01', 'step': '30m'}}} without setting sync_to_thread is discouraged since synchronous callables can block the main thread if they perform blocking operations. If the callable is guaranteed to be non-blocking, you can set sync_to_thread=False to skip this warning, or set the environmentvariable LITESTAR_WARN_IMPLICIT_SYNC_TO_THREAD=0 to disable warnings of this type entirely.
+    result = build_scene_from_template(data)
+
+tests/unit/test_controller_no_recording.py::test_process_response_with_followup_no_recording
+  C:\Users\Justin\anaconda3\envs\socialsim\Lib\unittest\mock.py:469: RuntimeWarning: coroutine 'ExperimentController.process_response' was never awaited
+    __dict__['_mock_call_args_list'] = _CallList()
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/unit/test_controller_no_recording.py::test_followup_prompt_reuses_main_prompt_context
+  C:\Users\Justin\anaconda3\envs\socialsim\Lib\pathlib.py:404: RuntimeWarning: coroutine 'ExperimentController.process_response_with_followup' was never awaited
+    parsed = [sys.intern(str(x)) for x in rel.split(sep) if x and x != '.']
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/unit/test_information_model.py::test_get_observers_neighborhood_scope_via_state
+  C:\Users\Justin\anaconda3\envs\socialsim\Lib\site-packages\pluggy\_callers.py:45: RuntimeWarning: coroutine 'ExperimentController.process_response_with_followup' was never awaited
+    pass
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/unit/test_runner_information_model.py::test_runner_records_events_with_all_scope_simultaneous
+tests/integration/test_llm_distribution_smoke.py::test_llm_distribution_runtime
+  C:\Users\Justin\anaconda3\envs\socialsim\Lib\site-packages\_pytest\nodes.py:294: RuntimeWarning: coroutine 'ExperimentRunner.run' was never awaited
+    def iter_parents(self) -> Iterator[Node]:
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/unit/test_xihu_round1.py::test_enrich_xihu_simulation_payload_normalizes_arm_labels[A0 \u63a7\u5236\u7ec4-A0-1]
+  C:\Users\Justin\anaconda3\envs\socialsim\Lib\pathlib.py:404: RuntimeWarning: coroutine 'ExperimentRunner.run' was never awaited
+    parsed = [sys.intern(str(x)) for x in rel.split(sep) if x and x != '.']
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/core/experiment/test_runner.py::test_runner_initialization_with_default_kernel
+  <string>:10: RuntimeWarning: coroutine 'ExperimentRunner.run' was never awaited
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/core/test_agent_distribution.py::TestAgentGeneration::test_fallback_detection_when_llm_fails
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\llm\generation.py:200: UserWarning: LLM returned empty response for archetype 'Age: Young'. Using fallback.
+    warnings.warn(f"LLM returned empty response for archetype '{attrs_str}'. Using fallback.")
+
+tests/integration/test_experiment_knowledge_scope.py::test_self_scope_agents_see_only_own_history
+  C:\Users\Justin\anaconda3\envs\socialsim\Lib\site-packages\_pytest\stash.py:86: RuntimeWarning: coroutine 'ExperimentRunner.run' was never awaited
+    def get(self, key: StashKey[T], default: D) -> T | D:
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/backend/api/test_scenarios_routes.py::test_get_scenarios_returns_list
+FAILED tests/backend/test_agent.py::TestAgentDocuments::test_composite_rag_retrieve_empty
+FAILED tests/backend/test_agent.py::TestAgentDocuments::test_composite_rag_retrieve_with_private_only
+FAILED tests/backend/test_agent.py::TestAgentDocuments::test_composite_rag_retrieve_with_global_only
+FAILED tests/backend/test_agent.py::TestActionParsing::test_parse_action_json_without_action
+FAILED tests/backend/test_agent.py::TestActionParsing::test_parse_action_empty_response
+FAILED tests/backend/test_agent.py::TestActionParsing::test_parse_action_invalid_json
+FAILED tests/backend/test_agent.py::TestAgentProcess::test_process_with_initiative
+FAILED tests/backend/test_agent.py::TestAgentLLMErrors::test_record_llm_error_first_error
+FAILED tests/backend/test_agent.py::TestAgentLLMErrors::test_record_llm_error_reaches_threshold
+FAILED tests/backend/test_agent.py::TestAgentSummary::test_summarize_history_empty
+FAILED tests/backend/test_agent.py::TestAgentIntegration::test_offline_recovery_workflow
+FAILED tests/backend/test_compare_endpoint.py::test_compare_endpoint_http - V...
+FAILED tests/backend/test_llm.py::TestLLMClientInit::test_gemini_client_init
+FAILED tests/backend/test_llm.py::TestGenerateAgentsWithArchetypes::test_generate_agents_basic
+FAILED tests/backend/test_llm.py::TestGenerateAgentsWithArchetypes::test_generate_agents_language_chinese
+FAILED tests/backend/test_llm.py::TestGenerateArchetypeTemplate::test_generate_archetype_template_missing_description_raises
+FAILED tests/backend/test_llm.py::TestGenerateArchetypeTemplate::test_generate_archetype_template_missing_roles_raises
+FAILED tests/backend/test_llm.py::TestGenerateArchetypeTemplate::test_generate_archetype_template_empty_roles_raises
+FAILED tests/backend/test_llm.py::TestGenerateArchetypeTemplate::test_generate_archetype_template_non_string_role_raises
+FAILED tests/backend/test_llm_concurrency_and_retry.py::test_llm_client_pool_returns_isolated_clients
+FAILED tests/backend/test_llm_concurrency_and_retry.py::test_llm_client_pool_does_not_mutate_base_clients
+FAILED tests/backend/test_multimodal_flow.py::test_initial_event_media_is_logged_and_injected
+FAILED tests/backend/test_simtree_clone_stability.py::test_simtree_clone_independent_and_consistent[council]
+FAILED tests/backend/test_simtree_clone_stability.py::test_simtree_clone_event_queue_cleared_and_not_shared[council]
+FAILED tests/backend/test_simtree_clone_stability.py::test_simtree_clone_resets_transient_offline_state
+FAILED tests/backend/test_simtree_clone_stability.py::test_simtree_clone_deepcopy_of_agent_and_scene_state[simple_chat_zh]
+FAILED tests/backend/test_simtree_clone_stability.py::test_simtree_clone_deepcopy_of_agent_and_scene_state[council]
+FAILED tests/backend/test_simtree_clone_stability.py::test_simtree_clone_deepcopy_of_agent_and_scene_state[landlord]
+FAILED tests/backend/test_simtree_clone_stability.py::test_simtree_clone_deepcopy_of_agent_and_scene_state[werewolf]
+FAILED tests/backend/test_simtree_clone_stability.py::test_simtree_new_does_not_raise_simcloneerror[council]
+FAILED tests/backend/test_simtree_clone_stability.py::test_clone_check_raises_on_shared_ordering_object
+FAILED tests/backend/test_templates_api.py::TestListTemplates::test_list_templates_returns_dict
+FAILED tests/backend/test_templates_api.py::TestListTemplates::test_list_templates_empty_initially
+FAILED tests/backend/test_templates_api.py::TestValidateTemplate::test_validate_minimal_template
+FAILED tests/backend/test_templates_api.py::TestValidateTemplate::test_validate_full_template
+FAILED tests/backend/test_templates_api.py::TestValidateTemplate::test_validate_missing_required_fields
+FAILED tests/backend/test_templates_api.py::TestValidateTemplate::test_validate_invalid_mechanic_type
+FAILED tests/backend/test_templates_api.py::TestValidateTemplate::test_validate_invalid_action_name
+FAILED tests/backend/test_templates_api.py::TestBuildSceneFromTemplate::test_build_scene_minimal_template
+FAILED tests/backend/test_templates_api.py::TestBuildSceneFromTemplate::test_build_scene_with_mechanics
+FAILED tests/backend/test_templates_api.py::TestBuildSceneFromTemplate::test_build_scene_with_semantic_actions
+FAILED tests/backend/test_templates_api.py::TestBuildSceneFromTemplate::test_build_scene_with_environment
+FAILED tests/backend/test_templates_api.py::TestBuildSceneFromTemplate::test_build_full_scene
+FAILED tests/backend/test_templates_api.py::TestGetTemplateSchema::test_schema_returns_dict
+FAILED tests/backend/test_templates_api.py::TestGetTemplateSchema::test_schema_has_required_fields
+FAILED tests/backend/test_templates_api.py::TestGetTemplateSchema::test_schema_contains_template_properties
+FAILED tests/backend/test_uploads.py::test_upload_cloud_backend_returns_cloud_url
+FAILED tests/backend/test_uploads.py::test_upload_enforces_size_limit - asser...
+FAILED tests/backend/test_uploads.py::test_upload_doc_respects_doc_limit - as...
+FAILED tests/unit/backend/services/test_export_service.py::test_transform_event_for_export
+FAILED tests/unit/backend/services/test_export_service.py::test_export_events_to_csv
+FAILED tests/unit/backend/services/test_export_service.py::test_export_events_to_json
+FAILED tests/unit/backend/services/test_export_service.py::test_export_events_deduplication
+FAILED tests/unit/core/scenarios/test_registry.py::TestPublicGoodsParameters::test_has_custom_resource_parameter
+FAILED tests/unit/core/scenarios/test_registry.py::TestPublicGoodsParameters::test_has_action_parameters
+FAILED tests/unit/core/scenarios/test_registry.py::TestPublicGoodsParameters::test_initial_amount_replaces_initial_tokens
+FAILED tests/unit/core/scenarios/test_registry.py::TestPublicGoodsParameters::test_pgg_punishment_params
+FAILED tests/unit/core/scenarios/test_registry.py::TestPublicGoodsParameters::test_pgg_cost_ratio_default
+FAILED tests/unit/core/scenarios/test_registry.py::TestPublicGoodsParameters::test_pgg_budget_param
+FAILED tests/unit/core/scenarios/test_registry.py::TestPublicGoodsParameters::test_pgg_anonymous_param
+FAILED tests/unit/core/simulation/test_logs.py::TestCustomActionNames::test_log_uses_custom_action_name_battle_of_the_sexes
+FAILED tests/unit/core/simulation/test_logs.py::TestCustomActionNames::test_log_uses_custom_resource_name_public_goods
+FAILED tests/unit/core/simulation/test_logs.py::TestCustomActionNames::test_log_supports_chinese
+FAILED tests/unit/core/simulation/test_logs.py::TestCustomActionNames::test_log_default_action_format
+FAILED tests/unit/experiment/test_experiment_scene_state.py::TestExperimentSceneState::test_coordination_game_runs_with_neighbor_visibility
+FAILED tests/unit/experiment/test_experiment_scene_state.py::TestExperimentSceneState::test_coordination_game_replays_feedback_into_next_round_prompt
+FAILED tests/unit/experiment/test_experiment_scene_state.py::TestExperimentSceneState::test_custom_action_parameters_trigger_followup
+FAILED tests/unit/experiment/test_experiment_scene_state.py::TestExperimentSceneState::test_custom_contribute_action_writes_state_and_survives_serialize
+FAILED tests/unit/test_context_builder_visibility.py::test_visibility_filtering
+FAILED tests/unit/test_controller_no_recording.py::test_process_response_does_not_record_to_context_manager
+FAILED tests/unit/test_controller_no_recording.py::test_process_response_with_followup_no_recording
+FAILED tests/unit/test_controller_no_recording.py::test_process_response_with_followup_collects_contribute_amount
+FAILED tests/unit/test_controller_no_recording.py::test_followup_prompt_reuses_main_prompt_context
+FAILED tests/unit/test_debug_log_format.py::test_debug_log_sequential_format_per_agent
+FAILED tests/unit/test_debug_log_format.py::test_debug_log_atomic_writes_no_interleaving
+FAILED tests/unit/test_debug_log_format.py::test_debug_log_includes_all_components
+FAILED tests/unit/test_runner_information_model.py::test_runner_without_information_model_still_works
+FAILED tests/unit/test_runner_information_model.py::test_runner_records_events_with_all_scope_simultaneous
+FAILED tests/unit/test_runner_information_model.py::test_runner_pair_scope_no_knowledge_leak_simultaneous
+FAILED tests/unit/test_runner_information_model.py::test_runner_sequential_records_immediately
+FAILED tests/core/agent/test_parsing.py::test_parse_actions_without_action_key
+FAILED tests/core/agent/test_parsing.py::test_parse_actions_invalid_json - Va...
+FAILED tests/core/experiment/scenes/test_council_cycle_phase.py::test_transition_voting_to_post_vote_when_threshold_met
+FAILED tests/core/experiment/scenes/test_council_cycle_phase.py::test_transition_voting_to_deliberation_when_threshold_not_met
+FAILED tests/core/experiment/test_pgg_phases.py::TestPGGPhaseManagement::test_get_scene_actions_deductions_disabled
+FAILED tests/core/experiment/test_prompt_builder.py::test_build_agent_description_with_numeric_traits
+FAILED tests/core/experiment/test_prompt_builder.py::test_build_agent_description_low_score
+FAILED tests/core/experiment/test_prompt_builder.py::test_build_agent_description_defaults
+FAILED tests/core/experiment/test_prompt_builder.py::test_build_agent_description_uses_name_when_no_identity
+FAILED tests/core/experiment/test_prompt_builder.py::test_build_prompt_discrete
+FAILED tests/core/experiment/test_prompt_builder.py::test_build_prompt_integer
+FAILED tests/core/experiment/test_prompt_builder.py::test_build_prompt_with_numeric_traits
+FAILED tests/core/experiment/test_prompt_builder.py::test_build_agent_description_string_properties
+FAILED tests/core/experiment/test_round_context_manager.py::test_round_context_passes_state_and_graph
+FAILED tests/core/experiment/test_runner.py::test_simultaneous_round_with_followups_prompts_agents_serially_without_context_leak
+FAILED tests/core/test_agent_distribution.py::TestRolePromptPreservation::test_fallback_to_properties_without_role_prompt
+FAILED tests/core/test_agent_parsing.py::test_parse_actions_skips_conflicting_duplicate_action_and_uses_later_valid_json
+FAILED tests/core/test_agent_parsing.py::test_agent_only_counts_final_parse_failure_per_turn
+FAILED tests/core/test_policy_cascade_follow_up.py::test_cascade_downstream_private_targets_do_not_block_current_tier_agents
+FAILED tests/core/test_policy_cascade_follow_up.py::test_protest_environment_event_triggers_follow_up_threads_on_next_run
+FAILED tests/core/test_scenarios.py::test_get_all_contains_expected_count - A...
+FAILED tests/core/test_scenarios.py::test_prisoners_dilemma_structure - Asser...
+FAILED tests/smoke_tests/test_discussion.py::test_open_discussion_basic - Att...
+FAILED tests/smoke_tests/test_discussion.py::test_open_discussion_no_scores
+FAILED tests/smoke_tests/test_sociology.py::test_echo_chamber_neighbor_visibility
+FAILED tests/integration/test_configurable_actions.py::TestEndToEndConfigurableActions::test_battle_of_the_sexes_full_flow
+FAILED tests/integration/test_configurable_actions.py::TestEndToEndConfigurableActions::test_public_goods_full_flow
+FAILED tests/integration/test_configurable_actions.py::TestEndToEndConfigurableActions::test_chinese_localization_flow
+FAILED tests/integration/test_experiment_knowledge_scope.py::test_all_scope_agents_see_everyone
+FAILED tests/integration/test_experiment_knowledge_scope.py::test_pair_scope_no_cross_pair_knowledge_leak
+FAILED tests/integration/test_experiment_knowledge_scope.py::test_self_scope_agents_see_only_own_history
+FAILED tests/integration/test_experiment_knowledge_scope.py::test_context_budget_enforced_in_prompt
+FAILED tests/integration/test_llm_distribution.py::test_llm_distribution - In...
+FAILED tests/integration/test_llm_distribution_smoke.py::test_llm_distribution_runtime
+FAILED tests/integration/test_llm_distribution_smoke.py::test_llm_client_selection
+FAILED tests/integration/test_pgg_punishment_smoketest.py::TestPunishAction::test_valid_punish_action
+FAILED tests/integration/test_pgg_punishment_smoketest.py::TestPunishAction::test_cannot_punish_self
+FAILED tests/integration/test_pgg_punishment_smoketest.py::TestPunishAction::test_cannot_punish_unknown_agent
+FAILED tests/integration/test_pgg_punishment_smoketest.py::TestPunishAction::test_cannot_exceed_budget
+FAILED tests/integration/test_pgg_punishment_smoketest.py::TestPunishmentStateTracking::test_punishment_stored_in_extensions
+FAILED tests/integration/test_pgg_punishment_smoketest.py::TestPunishmentStateTracking::test_multiple_punishments_tracked
+FAILED tests/integration/test_pgg_punishment_smoketest.py::TestPunishmentStateTracking::test_clamped_amount_stored_not_requested
+FAILED tests/integration/test_pgg_punishment_smoketest.py::TestPunishmentPayoffEffect::test_punishment_disabled_no_effect
+FAILED tests/integration/test_pgg_punishment_smoketest.py::TestPunishmentBudget::test_budget_allocated_per_round
+FAILED tests/integration/test_pgg_punishment_smoketest.py::TestPunishmentBudget::test_over_budget_clamped
+ERROR tests/backend/test_auth_verification.py::test_registration_with_email_verification_flow
+ERROR tests/backend/test_auth_verification.py::test_registration_without_verification
+ERROR tests/backend/test_auth_verification.py::test_registration_without_verification
+ERROR tests/backend/test_simulations_routes.py::TestSimulationCRUD::test_list_simulations_with_data
+ERROR tests/backend/test_simulations_routes.py::TestSimulationCRUD::test_create_simulation_success
+ERROR tests/backend/test_simulations_routes.py::TestSimulationCRUD::test_create_simulation_invalid_provider
+ERROR tests/backend/test_simulations_routes.py::TestSimulationCRUD::test_read_simulation_success
+ERROR tests/backend/test_simulations_routes.py::TestSimulationCRUD::test_update_agent_llm_config_persists_provider_id
+ERROR tests/backend/test_simulations_routes.py::TestSimulationCRUD::test_update_simulation_name
+ERROR tests/backend/test_simulations_routes.py::TestSimulationCRUD::test_update_simulation_status
+ERROR tests/backend/test_simulations_routes.py::TestSimulationCRUD::test_delete_simulation_success
+ERROR tests/backend/test_simulations_routes.py::TestSimulationLifecycle::test_start_simulation_success
+ERROR tests/backend/test_simulations_routes.py::TestSimulationLifecycle::test_reset_simulation_success
+ERROR tests/backend/test_simulations_routes.py::TestSimulationLifecycle::test_copy_simulation_success
+ERROR tests/backend/test_simulations_routes.py::TestSimulationSnapshots::test_create_snapshot_success
+ERROR tests/backend/test_simulations_routes.py::TestSimulationSnapshots::test_list_snapshots_empty
+ERROR tests/backend/test_simulations_routes.py::TestSimulationSnapshots::test_list_snapshots_with_data
+ERROR tests/backend/test_simulations_routes.py::TestTreeOperations::test_get_tree_graph_empty
+ERROR tests/backend/test_simulations_routes.py::TestTreeOperations::test_tree_branch_creation
+ERROR tests/backend/test_simulations_routes.py::TestTreeOperations::test_tree_delete_subtree
+ERROR tests/backend/test_simulations_routes.py::TestDocumentManagement::test_upload_agent_document_success
+ERROR tests/backend/test_simulations_routes.py::TestDocumentManagement::test_list_agent_documents_empty
+ERROR tests/backend/test_simulations_routes.py::TestDocumentManagement::test_list_agent_documents_with_data
+ERROR tests/backend/test_simulations_routes.py::TestDocumentManagement::test_delete_agent_document_success
+ERROR tests/backend/test_simulations_routes.py::TestGlobalKnowledge::test_add_global_knowledge_text
+ERROR tests/backend/test_simulations_routes.py::TestGlobalKnowledge::test_list_global_knowledge_empty
+ERROR tests/backend/test_simulations_routes.py::TestGlobalKnowledge::test_list_global_knowledge_with_data
+ERROR tests/backend/test_simulations_routes.py::TestGlobalKnowledge::test_delete_global_knowledge_success
+ERROR tests/backend/test_simulations_routes.py::TestSimulationIntegration::test_full_simulation_lifecycle
+ERROR tests/backend/test_simulations_routes.py::TestSimulationIntegration::test_simulation_with_agents
+ERROR tests/backend/test_simulations_routes.py::TestSimulationIntegration::test_simulation_with_social_network
+ERROR tests/backend/test_simulations_routes.py::TestEdgeCases::test_simulation_id_case_insensitive
+ERROR tests/backend/test_simulations_routes.py::TestEdgeCases::test_empty_agent_config
+ERROR tests/backend/test_simulations_routes.py::TestEdgeCases::test_large_scene_config
+ERROR tests/backend/test_simulations_routes.py::TestEdgeCases::test_special_characters_in_name
+ERROR tests/backend/test_simulations_routes.py::TestEdgeCases::test_special_characters_in_name
+= 126 failed, 900 passed, 26 skipped, 45 warnings, 36 errors in 167.75s (0:02:47) =

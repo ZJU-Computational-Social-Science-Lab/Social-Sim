@@ -1,0 +1,129 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.12, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\Justin\anaconda3\envs\socialsim\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\Justin\Documents\ZJU_Work\Social-Sim
+configfile: pyproject.toml
+plugins: anyio-4.12.1, Faker-40.5.1, asyncio-1.3.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 55 items
+
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_tree_graph_no_auth PASSED [  1%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_export_no_auth PASSED [  3%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_advance_multi_no_auth PASSED [  5%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_advance_chain_no_auth PASSED [  7%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_advance_frontier_no_auth PASSED [  9%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_branch_no_auth PASSED [ 10%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_delete_subtree_no_auth PASSED [ 12%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_tree_events_no_auth PASSED [ 14%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_tree_state_no_auth PASSED [ 16%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_inject_message_no_auth PASSED [ 18%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_overrides_no_auth PASSED [ 20%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_create_experiment_no_auth PASSED [ 21%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_compare_no_auth PASSED [ 23%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_update_provider_no_auth PASSED [ 25%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_delete_provider_no_auth PASSED [ 27%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_test_provider_no_auth PASSED [ 29%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_activate_provider_no_auth PASSED [ 30%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_update_search_provider_no_auth PASSED [ 32%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_delete_search_provider_no_auth PASSED [ 34%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_list_uploads_no_auth PASSED [ 36%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_delete_upload_no_auth PASSED [ 38%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_get_user_b_tree_graph PASSED [ 40%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_get_user_b_tree_state PASSED [ 41%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_advance_user_b_multi PASSED [ 43%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_advance_user_b_chain PASSED [ 45%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_branch_user_b PASSED [ 47%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_delete_user_b_subtree PASSED [ 49%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_inject_user_b_message PASSED [ 50%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_export_user_b PASSED [ 52%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_get_user_b_events PASSED [ 54%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_override_user_b PASSED [ 56%]
+tests/backend/test_security.py::TestCrossUserProviderAccess::test_user_a_cannot_update_user_b_provider PASSED [ 58%]
+tests/backend/test_security.py::TestCrossUserProviderAccess::test_user_a_cannot_delete_user_b_provider PASSED [ 60%]
+tests/backend/test_security.py::TestCrossUserProviderAccess::test_user_a_cannot_test_user_b_provider PASSED [ 61%]
+tests/backend/test_security.py::TestCrossUserProviderAccess::test_user_a_cannot_activate_user_b_provider PASSED [ 63%]
+tests/backend/test_security.py::TestProviderApiKeyExposure::test_serialize_provider_uses_has_api_key_not_raw_key FAILED [ 65%]
+tests/backend/test_security.py::TestProviderApiKeyExposure::test_serialize_provider_with_no_key FAILED [ 67%]
+tests/backend/test_security.py::TestProviderApiKeyExposure::test_provider_test_error_does_not_expose_key PASSED [ 69%]
+tests/backend/test_security.py::TestProductionConfigValidation::test_development_allows_defaults PASSED [ 70%]
+tests/backend/test_security.py::TestProductionConfigValidation::test_production_rejects_change_me PASSED [ 72%]
+tests/backend/test_security.py::TestProductionConfigValidation::test_production_rejects_please_change_me PASSED [ 74%]
+tests/backend/test_security.py::TestProductionConfigValidation::test_production_rejects_short_key PASSED [ 76%]
+tests/backend/test_security.py::TestProductionConfigValidation::test_production_accepts_strong_config PASSED [ 78%]
+tests/backend/test_security.py::TestProductionConfigValidation::test_production_rejects_default_admin_password PASSED [ 80%]
+tests/backend/test_security.py::TestProductionConfigValidation::test_production_rejects_default_db_password PASSED [ 81%]
+tests/backend/test_security.py::TestProductionConfigValidation::test_test_mode_skips_validation PASSED [ 83%]
+tests/backend/test_security.py::TestProductionConfigValidation::test_is_production_property PASSED [ 85%]
+tests/backend/test_security.py::TestApiKeyRedaction::test_redact_long_hex_string PASSED [ 87%]
+tests/backend/test_security.py::TestApiKeyRedaction::test_preserves_short_strings PASSED [ 89%]
+tests/backend/test_security.py::TestApiKeyRedaction::test_empty_string PASSED [ 90%]
+tests/backend/test_security.py::TestApiKeyRedaction::test_embedded_key_in_error PASSED [ 92%]
+tests/backend/test_security.py::TestRunawayControls::test_config_has_default_limits PASSED [ 94%]
+tests/backend/test_security.py::TestRunawayControls::test_limits_are_configurable PASSED [ 96%]
+tests/backend/test_security.py::TestUploadIsolation::test_list_uploads_requires_auth PASSED [ 98%]
+tests/backend/test_security.py::TestUploadIsolation::test_delete_upload_requires_auth PASSED [100%]
+tests/backend/test_security.py::TestUploadIsolation::test_delete_upload_requires_auth ERROR [100%]
+
+=================================== ERRORS ====================================
+__ ERROR at teardown of TestUploadIsolation.test_delete_upload_requires_auth __
+tests\backend\test_security.py:75: in _prepare_sec_db
+    os.remove(_SEC_DB_PATH)
+E   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'test_security.db'
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 12:57:20,739 - httpx - _client - HTTP Request: DELETE http://testserver.local/api/uploads/nonexistent "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+INFO     httpx:_client.py:1025 HTTP Request: DELETE http://testserver.local/api/uploads/nonexistent "HTTP/1.1 401 Unauthorized"
+================================== FAILURES ===================================
+_ TestProviderApiKeyExposure.test_serialize_provider_uses_has_api_key_not_raw_key _
+tests\backend\test_security.py:478: in test_serialize_provider_uses_has_api_key_not_raw_key
+    assert result.get("has_api_key") is True
+           ^^^^^^^^^^
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\pydantic\main.py:1026: in __getattr__
+    raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')
+E   AttributeError: 'ProviderBase' object has no attribute 'get'
+_______ TestProviderApiKeyExposure.test_serialize_provider_with_no_key ________
+tests\backend\test_security.py:490: in test_serialize_provider_with_no_key
+    assert result.get("has_api_key") is False
+           ^^^^^^^^^^
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\pydantic\main.py:1026: in __getattr__
+    raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')
+E   AttributeError: 'ProviderBase' object has no attribute 'get'
+============================== warnings summary ===============================
+src\socialsim4\backend\schemas\user.py:5
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\schemas\user.py:5: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class UserBase(BaseModel):
+
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\pydantic\_internal\_generate_schema.py:319: 10 warnings
+  C:\Users\Justin\anaconda3\envs\socialsim\Lib\site-packages\pydantic\_internal\_generate_schema.py:319: PydanticDeprecatedSince20: `json_encoders` is deprecated. See https://docs.pydantic.dev/2.12/concepts/serialization/#custom-serializers for alternatives. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    warnings.warn(
+
+src\socialsim4\backend\schemas\simulation.py:42
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\schemas\simulation.py:42: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class SnapshotBase(BaseModel):
+
+src\socialsim4\backend\schemas\simulation.py:58
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\schemas\simulation.py:58: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class SimulationLogEntry(BaseModel):
+
+src\socialsim4\backend\schemas\provider.py:6
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\schemas\provider.py:6: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ProviderBase(BaseModel):
+
+src\socialsim4\core\registry.py:45
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\registry.py:45: DeprecationWarning: CouncilScene is deprecated. Use CouncilExperimentScene from socialsim4.core.experiment.scenes.council_experiment instead. This module will be removed in a future version (see MIGRATION.md for timeline).
+    from .scenes.council_scene import CouncilScene
+
+src\socialsim4\backend\schemas\search_provider.py:4
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\schemas\search_provider.py:4: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class SearchProviderBase(BaseModel):
+
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\litestar\middleware\base.py:129
+  C:\Users\Justin\anaconda3\envs\socialsim\Lib\site-packages\litestar\middleware\base.py:129: DeprecationWarning: Use of deprecated class 'AbstractMiddleware'. Deprecated in litestar 2.15. This class will be removed in the next major version. Use 'litestar.middleware.ASGIMiddleware' instead
+    warn_deprecation(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/backend/test_security.py::TestProviderApiKeyExposure::test_serialize_provider_uses_has_api_key_not_raw_key
+FAILED tests/backend/test_security.py::TestProviderApiKeyExposure::test_serialize_provider_with_no_key
+ERROR tests/backend/test_security.py::TestUploadIsolation::test_delete_upload_requires_auth
+============= 2 failed, 53 passed, 17 warnings, 1 error in 2.43s ==============

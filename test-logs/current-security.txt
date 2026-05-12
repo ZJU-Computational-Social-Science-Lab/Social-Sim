@@ -1,0 +1,426 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.12, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\Justin\anaconda3\envs\socialsim\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\Justin\Documents\ZJU_Work\Social-Sim
+configfile: pyproject.toml
+plugins: anyio-4.12.1, Faker-40.5.1, asyncio-1.3.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 72 items
+
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_tree_graph_no_auth PASSED [  1%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_export_no_auth PASSED [  2%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_advance_multi_no_auth PASSED [  4%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_advance_chain_no_auth PASSED [  5%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_advance_frontier_no_auth PASSED [  6%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_branch_no_auth PASSED [  8%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_delete_subtree_no_auth PASSED [  9%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_tree_events_no_auth PASSED [ 11%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_tree_state_no_auth PASSED [ 12%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_inject_message_no_auth PASSED [ 13%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_overrides_no_auth PASSED [ 15%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_create_experiment_no_auth PASSED [ 16%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_compare_no_auth PASSED [ 18%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_update_provider_no_auth PASSED [ 19%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_delete_provider_no_auth PASSED [ 20%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_test_provider_no_auth PASSED [ 22%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_activate_provider_no_auth PASSED [ 23%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_update_search_provider_no_auth PASSED [ 25%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_delete_search_provider_no_auth PASSED [ 26%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_list_uploads_no_auth PASSED [ 27%]
+tests/backend/test_security.py::TestUnauthenticatedAccess::test_delete_upload_no_auth PASSED [ 29%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_get_user_b_tree_graph PASSED [ 30%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_get_user_b_tree_state PASSED [ 31%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_advance_user_b_multi PASSED [ 33%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_advance_user_b_chain PASSED [ 34%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_branch_user_b PASSED [ 36%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_delete_user_b_subtree PASSED [ 37%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_inject_user_b_message PASSED [ 38%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_export_user_b PASSED [ 40%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_get_user_b_events PASSED [ 41%]
+tests/backend/test_security.py::TestCrossUserTreeAccess::test_user_a_cannot_override_user_b PASSED [ 43%]
+tests/backend/test_security.py::TestCrossUserProviderAccess::test_user_a_cannot_update_user_b_provider PASSED [ 44%]
+tests/backend/test_security.py::TestCrossUserProviderAccess::test_user_a_cannot_delete_user_b_provider PASSED [ 45%]
+tests/backend/test_security.py::TestCrossUserProviderAccess::test_user_a_cannot_test_user_b_provider PASSED [ 47%]
+tests/backend/test_security.py::TestCrossUserProviderAccess::test_user_a_cannot_activate_user_b_provider PASSED [ 48%]
+tests/backend/test_security.py::TestProviderApiKeyExposure::test_serialize_provider_uses_has_api_key_not_raw_key PASSED [ 50%]
+tests/backend/test_security.py::TestProviderApiKeyExposure::test_serialize_provider_with_no_key PASSED [ 51%]
+tests/backend/test_security.py::TestProviderApiKeyExposure::test_provider_test_error_does_not_expose_key PASSED [ 52%]
+tests/backend/test_security.py::TestProductionConfigValidation::test_development_allows_defaults PASSED [ 54%]
+tests/backend/test_security.py::TestProductionConfigValidation::test_production_rejects_change_me PASSED [ 55%]
+tests/backend/test_security.py::TestProductionConfigValidation::test_production_rejects_please_change_me PASSED [ 56%]
+tests/backend/test_security.py::TestProductionConfigValidation::test_production_rejects_short_key PASSED [ 58%]
+tests/backend/test_security.py::TestProductionConfigValidation::test_production_accepts_strong_config PASSED [ 59%]
+tests/backend/test_security.py::TestProductionConfigValidation::test_production_rejects_default_admin_password PASSED [ 61%]
+tests/backend/test_security.py::TestProductionConfigValidation::test_production_rejects_default_db_password PASSED [ 62%]
+tests/backend/test_security.py::TestProductionConfigValidation::test_test_mode_skips_validation PASSED [ 63%]
+tests/backend/test_security.py::TestProductionConfigValidation::test_is_production_property PASSED [ 65%]
+tests/backend/test_security.py::TestApiKeyRedaction::test_redact_long_hex_string PASSED [ 66%]
+tests/backend/test_security.py::TestApiKeyRedaction::test_preserves_short_strings PASSED [ 68%]
+tests/backend/test_security.py::TestApiKeyRedaction::test_empty_string PASSED [ 69%]
+tests/backend/test_security.py::TestApiKeyRedaction::test_embedded_key_in_error PASSED [ 70%]
+tests/backend/test_security.py::TestRunawayControls::test_config_has_default_limits PASSED [ 72%]
+tests/backend/test_security.py::TestRunawayControls::test_limits_are_configurable PASSED [ 73%]
+tests/backend/test_security.py::TestUploadIsolation::test_list_uploads_requires_auth PASSED [ 75%]
+tests/backend/test_security.py::TestUploadIsolation::test_delete_upload_requires_auth PASSED [ 76%]
+tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_alice_cannot_get_bob_tree_graph FAILED [ 77%]
+tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_alice_cannot_get_bob_tree_state FAILED [ 79%]
+tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_alice_cannot_advance_bob_tree FAILED [ 80%]
+tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_alice_cannot_branch_bob_tree FAILED [ 81%]
+tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_alice_cannot_delete_bob_subtree FAILED [ 83%]
+tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_alice_cannot_export_bob_simulation FAILED [ 84%]
+tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_alice_cannot_inject_bob_message FAILED [ 86%]
+tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_alice_cannot_list_bob_experiments FAILED [ 87%]
+tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_bob_can_get_own_tree_graph FAILED [ 88%]
+tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_bob_can_get_own_tree_state FAILED [ 90%]
+tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_bob_can_list_own_experiments FAILED [ 91%]
+tests/backend/test_security.py::TestRealCrossUserProviderAccess::test_alice_cannot_update_bob_provider FAILED [ 93%]
+tests/backend/test_security.py::TestRealCrossUserProviderAccess::test_alice_cannot_delete_bob_provider FAILED [ 94%]
+tests/backend/test_security.py::TestRealCrossUserProviderAccess::test_alice_cannot_test_bob_provider FAILED [ 95%]
+tests/backend/test_security.py::TestRealCrossUserProviderAccess::test_alice_cannot_activate_bob_provider FAILED [ 97%]
+tests/backend/test_security.py::TestRealCrossUserProviderAccess::test_bob_can_update_own_provider FAILED [ 98%]
+tests/backend/test_security.py::TestRealCrossUserProviderAccess::test_bob_can_delete_own_provider FAILED [100%]
+
+================================== FAILURES ===================================
+______ TestRealCrossUserTreeAccess.test_alice_cannot_get_bob_tree_graph _______
+tests\backend\test_security.py:747: in test_alice_cannot_get_bob_tree_graph
+    assert r.status_code == 404
+E   assert 401 == 404
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stderr call -----------------------------
+ERROR - 2026-05-11 13:22:48,937 - socialsim4.backend.api.routes.simulations.tree_operations - tree_operations - [TREE_GRAPH] Error building graph for sim BOBINTEG01: 401: Inactive user
+Traceback (most recent call last):
+  File "C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\api\routes\simulations\tree_operations.py", line 87, in simulation_tree_graph
+    current_user = await resolve_current_user(session, token)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\dependencies.py", line 48, in resolve_current_user
+    raise HTTPException(status_code=401, detail="Inactive user")
+litestar.exceptions.http_exceptions.HTTPException: 401: Inactive user
+INFO - 2026-05-11 13:22:48,937 - httpx - _client - HTTP Request: GET http://testserver.local/api/simulations/BOBINTEG01/tree/graph "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+ERROR    socialsim4.backend.api.routes.simulations.tree_operations:tree_operations.py:145 [TREE_GRAPH] Error building graph for sim BOBINTEG01: 401: Inactive user
+Traceback (most recent call last):
+  File "C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\api\routes\simulations\tree_operations.py", line 87, in simulation_tree_graph
+    current_user = await resolve_current_user(session, token)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\dependencies.py", line 48, in resolve_current_user
+    raise HTTPException(status_code=401, detail="Inactive user")
+litestar.exceptions.http_exceptions.HTTPException: 401: Inactive user
+INFO     httpx:_client.py:1025 HTTP Request: GET http://testserver.local/api/simulations/BOBINTEG01/tree/graph "HTTP/1.1 401 Unauthorized"
+______ TestRealCrossUserTreeAccess.test_alice_cannot_get_bob_tree_state _______
+tests\backend\test_security.py:753: in test_alice_cannot_get_bob_tree_state
+    assert r.status_code == 404
+E   assert 401 == 404
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     httpx:_client.py:1025 HTTP Request: GET http://testserver.local/api/simulations/BOBINTEG01/tree/sim/0/state "HTTP/1.1 401 Unauthorized"
+-------------------------- Captured stderr teardown ---------------------------
+INFO - 2026-05-11 13:22:49,574 - httpx - _client - HTTP Request: GET http://testserver.local/api/simulations/BOBINTEG01/tree/sim/0/state "HTTP/1.1 401 Unauthorized"
+_______ TestRealCrossUserTreeAccess.test_alice_cannot_advance_bob_tree ________
+tests\backend\test_security.py:763: in test_alice_cannot_advance_bob_tree
+    assert r.status_code == 404
+E   assert 401 == 404
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 13:22:50,048 - httpx - _client - HTTP Request: POST http://testserver.local/api/simulations/BOBINTEG01/tree/advance_multi "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver.local/api/simulations/BOBINTEG01/tree/advance_multi "HTTP/1.1 401 Unauthorized"
+________ TestRealCrossUserTreeAccess.test_alice_cannot_branch_bob_tree ________
+tests\backend\test_security.py:773: in test_alice_cannot_branch_bob_tree
+    assert r.status_code == 404
+E   assert 401 == 404
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 13:22:50,528 - httpx - _client - HTTP Request: POST http://testserver.local/api/simulations/BOBINTEG01/tree/branch "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver.local/api/simulations/BOBINTEG01/tree/branch "HTTP/1.1 401 Unauthorized"
+______ TestRealCrossUserTreeAccess.test_alice_cannot_delete_bob_subtree _______
+tests\backend\test_security.py:779: in test_alice_cannot_delete_bob_subtree
+    assert r.status_code == 404
+E   assert 401 == 404
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 13:22:50,991 - httpx - _client - HTTP Request: DELETE http://testserver.local/api/simulations/BOBINTEG01/tree/node/0 "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+INFO     httpx:_client.py:1025 HTTP Request: DELETE http://testserver.local/api/simulations/BOBINTEG01/tree/node/0 "HTTP/1.1 401 Unauthorized"
+_____ TestRealCrossUserTreeAccess.test_alice_cannot_export_bob_simulation _____
+tests\backend\test_security.py:785: in test_alice_cannot_export_bob_simulation
+    assert r.status_code == 404
+E   assert 401 == 404
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 13:22:51,506 - socialsim4.backend.api.routes.simulations.export - export - Export request - simulation_id=BOBINTEG01, format=csv, node_id=None
+INFO - 2026-05-11 13:22:51,508 - httpx - _client - HTTP Request: GET http://testserver.local/api/simulations/BOBINTEG01/export "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+INFO     socialsim4.backend.api.routes.simulations.export:export.py:42 Export request - simulation_id=BOBINTEG01, format=csv, node_id=None
+INFO     httpx:_client.py:1025 HTTP Request: GET http://testserver.local/api/simulations/BOBINTEG01/export "HTTP/1.1 401 Unauthorized"
+______ TestRealCrossUserTreeAccess.test_alice_cannot_inject_bob_message _______
+tests\backend\test_security.py:795: in test_alice_cannot_inject_bob_message
+    assert r.status_code == 404
+E   assert 401 == 404
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 13:22:51,966 - httpx - _client - HTTP Request: POST http://testserver.local/api/simulations/BOBINTEG01/tree/sim/0/inject-message "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver.local/api/simulations/BOBINTEG01/tree/sim/0/inject-message "HTTP/1.1 401 Unauthorized"
+_____ TestRealCrossUserTreeAccess.test_alice_cannot_list_bob_experiments ______
+tests\backend\test_security.py:801: in test_alice_cannot_list_bob_experiments
+    assert r.status_code == 404
+E   assert 401 == 404
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     httpx:_client.py:1025 HTTP Request: GET http://testserver.local/api/simulations/BOBINTEG01/experiments "HTTP/1.1 401 Unauthorized"
+-------------------------- Captured stderr teardown ---------------------------
+INFO - 2026-05-11 13:22:52,446 - httpx - _client - HTTP Request: GET http://testserver.local/api/simulations/BOBINTEG01/experiments "HTTP/1.1 401 Unauthorized"
+_________ TestRealCrossUserTreeAccess.test_bob_can_get_own_tree_graph _________
+tests\backend\test_security.py:817: in test_bob_can_get_own_tree_graph
+    assert r.status_code not in (401, 404)
+E   assert 401 not in (401, 404)
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stderr call -----------------------------
+ERROR - 2026-05-11 13:22:52,928 - socialsim4.backend.api.routes.simulations.tree_operations - tree_operations - [TREE_GRAPH] Error building graph for sim BOBINTEG01: 401: Inactive user
+Traceback (most recent call last):
+  File "C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\api\routes\simulations\tree_operations.py", line 87, in simulation_tree_graph
+    current_user = await resolve_current_user(session, token)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\dependencies.py", line 48, in resolve_current_user
+    raise HTTPException(status_code=401, detail="Inactive user")
+litestar.exceptions.http_exceptions.HTTPException: 401: Inactive user
+INFO - 2026-05-11 13:22:52,928 - httpx - _client - HTTP Request: GET http://testserver.local/api/simulations/BOBINTEG01/tree/graph "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+ERROR    socialsim4.backend.api.routes.simulations.tree_operations:tree_operations.py:145 [TREE_GRAPH] Error building graph for sim BOBINTEG01: 401: Inactive user
+Traceback (most recent call last):
+  File "C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\api\routes\simulations\tree_operations.py", line 87, in simulation_tree_graph
+    current_user = await resolve_current_user(session, token)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\dependencies.py", line 48, in resolve_current_user
+    raise HTTPException(status_code=401, detail="Inactive user")
+litestar.exceptions.http_exceptions.HTTPException: 401: Inactive user
+INFO     httpx:_client.py:1025 HTTP Request: GET http://testserver.local/api/simulations/BOBINTEG01/tree/graph "HTTP/1.1 401 Unauthorized"
+_________ TestRealCrossUserTreeAccess.test_bob_can_get_own_tree_state _________
+tests\backend\test_security.py:823: in test_bob_can_get_own_tree_state
+    assert r.status_code not in (401, 404)
+E   assert 401 not in (401, 404)
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 13:22:53,402 - httpx - _client - HTTP Request: GET http://testserver.local/api/simulations/BOBINTEG01/tree/sim/0/state "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+INFO     httpx:_client.py:1025 HTTP Request: GET http://testserver.local/api/simulations/BOBINTEG01/tree/sim/0/state "HTTP/1.1 401 Unauthorized"
+________ TestRealCrossUserTreeAccess.test_bob_can_list_own_experiments ________
+tests\backend\test_security.py:829: in test_bob_can_list_own_experiments
+    assert r.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 13:22:53,873 - httpx - _client - HTTP Request: GET http://testserver.local/api/simulations/BOBINTEG01/experiments "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+INFO     httpx:_client.py:1025 HTTP Request: GET http://testserver.local/api/simulations/BOBINTEG01/experiments "HTTP/1.1 401 Unauthorized"
+____ TestRealCrossUserProviderAccess.test_alice_cannot_update_bob_provider ____
+tests\backend\test_security.py:853: in test_alice_cannot_update_bob_provider
+    assert r.status_code == 403
+E   assert 401 == 403
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 13:22:54,356 - httpx - _client - HTTP Request: PATCH http://testserver.local/api/providers/999 "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+INFO     httpx:_client.py:1025 HTTP Request: PATCH http://testserver.local/api/providers/999 "HTTP/1.1 401 Unauthorized"
+____ TestRealCrossUserProviderAccess.test_alice_cannot_delete_bob_provider ____
+tests\backend\test_security.py:859: in test_alice_cannot_delete_bob_provider
+    assert r.status_code == 403
+E   assert 401 == 403
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 13:22:54,858 - httpx - _client - HTTP Request: DELETE http://testserver.local/api/providers/999 "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+INFO     httpx:_client.py:1025 HTTP Request: DELETE http://testserver.local/api/providers/999 "HTTP/1.1 401 Unauthorized"
+_____ TestRealCrossUserProviderAccess.test_alice_cannot_test_bob_provider _____
+tests\backend\test_security.py:865: in test_alice_cannot_test_bob_provider
+    assert r.status_code == 403
+E   assert 401 == 403
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 13:22:55,354 - httpx - _client - HTTP Request: POST http://testserver.local/api/providers/999/test "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver.local/api/providers/999/test "HTTP/1.1 401 Unauthorized"
+___ TestRealCrossUserProviderAccess.test_alice_cannot_activate_bob_provider ___
+tests\backend\test_security.py:871: in test_alice_cannot_activate_bob_provider
+    assert r.status_code == 403
+E   assert 401 == 403
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 13:22:55,842 - httpx - _client - HTTP Request: POST http://testserver.local/api/providers/999/activate "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver.local/api/providers/999/activate "HTTP/1.1 401 Unauthorized"
+______ TestRealCrossUserProviderAccess.test_bob_can_update_own_provider _______
+tests\backend\test_security.py:884: in test_bob_can_update_own_provider
+    assert r.status_code not in (401, 403)
+E   assert 401 not in (401, 403)
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stderr call -----------------------------
+INFO - 2026-05-11 13:22:56,318 - httpx - _client - HTTP Request: PATCH http://testserver.local/api/providers/999 "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+INFO     httpx:_client.py:1025 HTTP Request: PATCH http://testserver.local/api/providers/999 "HTTP/1.1 401 Unauthorized"
+______ TestRealCrossUserProviderAccess.test_bob_can_delete_own_provider _______
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\engine\base.py:2125: in _exec_insertmany_context
+    dialect.do_execute(
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\engine\default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:182: in execute
+    self._adapt_connection._handle_exception(error)
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:342: in _handle_exception
+    raise error
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:164: in execute
+    self.await_(_cursor.execute(operation, parameters))
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:132: in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:196: in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\aiosqlite\cursor.py:48: in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\aiosqlite\cursor.py:40: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\aiosqlite\core.py:132: in _execute
+    return await future
+           ^^^^^^^^^^^^
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\aiosqlite\core.py:115: in run
+    result = function()
+             ^^^^^^^^^^
+E   sqlite3.IntegrityError: UNIQUE constraint failed: users.id
+
+The above exception was the direct cause of the following exception:
+tests\backend\test_security.py:889: in test_bob_can_delete_own_provider
+    _setup_integration_data()
+tests\backend\test_security.py:712: in _setup_integration_data
+    asyncio.run(_setup())
+..\..\..\anaconda3\envs\socialsim\Lib\asyncio\runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+..\..\..\anaconda3\envs\socialsim\Lib\asyncio\runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\anaconda3\envs\socialsim\Lib\asyncio\base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+tests\backend\test_security.py:674: in _setup
+    await session.flush()
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\ext\asyncio\session.py:787: in flush
+    await greenlet_spawn(self.sync_session.flush, objects=objects)
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:203: in greenlet_spawn
+    result = context.switch(value)
+             ^^^^^^^^^^^^^^^^^^^^^
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\orm\session.py:4331: in flush
+    self._flush(objects)
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\orm\session.py:4466: in _flush
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\util\langhelpers.py:121: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\orm\session.py:4427: in _flush
+    flush_context.execute()
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\orm\unitofwork.py:466: in execute
+    rec.execute(self)
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\orm\unitofwork.py:642: in execute
+    util.preloaded.orm_persistence.save_obj(
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\orm\persistence.py:93: in save_obj
+    _emit_insert_statements(
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\orm\persistence.py:1143: in _emit_insert_statements
+    result = connection.execute(
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\engine\base.py:1419: in execute
+    return meth(
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\sql\elements.py:527: in _execute_on_connection
+    return connection._execute_clauseelement(
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\engine\base.py:1641: in _execute_clauseelement
+    ret = self._execute_context(
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\engine\base.py:1844: in _execute_context
+    return self._exec_insertmany_context(dialect, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\engine\base.py:2133: in _exec_insertmany_context
+    self._handle_dbapi_exception(
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\engine\base.py:2363: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\engine\base.py:2125: in _exec_insertmany_context
+    dialect.do_execute(
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\engine\default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:182: in execute
+    self._adapt_connection._handle_exception(error)
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:342: in _handle_exception
+    raise error
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:164: in execute
+    self.await_(_cursor.execute(operation, parameters))
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:132: in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:196: in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\aiosqlite\cursor.py:48: in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\aiosqlite\cursor.py:40: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\aiosqlite\core.py:132: in _execute
+    return await future
+           ^^^^^^^^^^^^
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\aiosqlite\core.py:115: in run
+    result = function()
+             ^^^^^^^^^^
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed: users.id
+E   [SQL: INSERT INTO users (id, organization, email, username, full_name, phone_number, role, hashed_password, is_active, is_verified, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at]
+E   [parameters: (100, None, 'alice-integ@test.com', 'alice_integ', None, None, 'user', '$2b$12$xlHOgNO75fZ6oW12tXDcbukNAVE.pp73APcyebqAR6OkV10JiJv7C', 1, 1, None)]
+E   (Background on this error at: https://sqlalche.me/e/20/gkpj)
+============================== warnings summary ===============================
+src\socialsim4\backend\schemas\user.py:5
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\schemas\user.py:5: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class UserBase(BaseModel):
+
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\pydantic\_internal\_generate_schema.py:319: 10 warnings
+  C:\Users\Justin\anaconda3\envs\socialsim\Lib\site-packages\pydantic\_internal\_generate_schema.py:319: PydanticDeprecatedSince20: `json_encoders` is deprecated. See https://docs.pydantic.dev/2.12/concepts/serialization/#custom-serializers for alternatives. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    warnings.warn(
+
+src\socialsim4\backend\schemas\simulation.py:42
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\schemas\simulation.py:42: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class SnapshotBase(BaseModel):
+
+src\socialsim4\backend\schemas\simulation.py:58
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\schemas\simulation.py:58: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class SimulationLogEntry(BaseModel):
+
+src\socialsim4\backend\schemas\provider.py:6
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\schemas\provider.py:6: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ProviderBase(BaseModel):
+
+src\socialsim4\core\registry.py:45
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\core\registry.py:45: DeprecationWarning: CouncilScene is deprecated. Use CouncilExperimentScene from socialsim4.core.experiment.scenes.council_experiment instead. This module will be removed in a future version (see MIGRATION.md for timeline).
+    from .scenes.council_scene import CouncilScene
+
+src\socialsim4\backend\schemas\search_provider.py:4
+  C:\Users\Justin\Documents\ZJU_Work\Social-Sim\src\socialsim4\backend\schemas\search_provider.py:4: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class SearchProviderBase(BaseModel):
+
+..\..\..\anaconda3\envs\socialsim\Lib\site-packages\litestar\middleware\base.py:129
+  C:\Users\Justin\anaconda3\envs\socialsim\Lib\site-packages\litestar\middleware\base.py:129: DeprecationWarning: Use of deprecated class 'AbstractMiddleware'. Deprecated in litestar 2.15. This class will be removed in the next major version. Use 'litestar.middleware.ASGIMiddleware' instead
+    warn_deprecation(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_alice_cannot_get_bob_tree_graph
+FAILED tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_alice_cannot_get_bob_tree_state
+FAILED tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_alice_cannot_advance_bob_tree
+FAILED tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_alice_cannot_branch_bob_tree
+FAILED tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_alice_cannot_delete_bob_subtree
+FAILED tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_alice_cannot_export_bob_simulation
+FAILED tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_alice_cannot_inject_bob_message
+FAILED tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_alice_cannot_list_bob_experiments
+FAILED tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_bob_can_get_own_tree_graph
+FAILED tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_bob_can_get_own_tree_state
+FAILED tests/backend/test_security.py::TestRealCrossUserTreeAccess::test_bob_can_list_own_experiments
+FAILED tests/backend/test_security.py::TestRealCrossUserProviderAccess::test_alice_cannot_update_bob_provider
+FAILED tests/backend/test_security.py::TestRealCrossUserProviderAccess::test_alice_cannot_delete_bob_provider
+FAILED tests/backend/test_security.py::TestRealCrossUserProviderAccess::test_alice_cannot_test_bob_provider
+FAILED tests/backend/test_security.py::TestRealCrossUserProviderAccess::test_alice_cannot_activate_bob_provider
+FAILED tests/backend/test_security.py::TestRealCrossUserProviderAccess::test_bob_can_update_own_provider
+FAILED tests/backend/test_security.py::TestRealCrossUserProviderAccess::test_bob_can_delete_own_provider
+================= 17 failed, 55 passed, 17 warnings in 11.81s =================
