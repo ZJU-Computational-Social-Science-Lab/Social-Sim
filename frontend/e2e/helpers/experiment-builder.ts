@@ -15,6 +15,7 @@ import { t } from './locale-helper';
 
 /** Maps scenario IDs to their UI category */
 const SCENARIO_CATEGORY: Record<string, string> = {
+  custom: 'custom',
   prisoners_dilemma: 'game_theory',
   battle_of_the_sexes: 'game_theory',
   stag_hunt: 'game_theory',
@@ -98,8 +99,16 @@ export class ExperimentBuilder {
 
     // Fallback labels for params without i18n entries
     const fallbackLabels: Record<string, Record<string, string>> = {
-      en: { proposal_text: 'Proposal Text', topic: 'Discussion Topic' },
-      zh: { proposal_text: '提案文本', topic: '讨论主题' },
+      en: {
+        proposal_text: 'Proposal Text',
+        topic: 'Discussion Topic',
+        custom_prompt: 'Custom Scenario Prompt',
+      },
+      zh: {
+        proposal_text: '提案文本',
+        topic: '讨论主题',
+        custom_prompt: '自定义场景提示',
+      },
     };
 
     for (const [key, value] of Object.entries(params)) {
