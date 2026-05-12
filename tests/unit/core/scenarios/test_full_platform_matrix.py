@@ -23,7 +23,6 @@ KNOWN_BROKEN_ACTIONS = {
     "echo_chamber",
     "resource_scarcity",
     "xihu_yilianbao",
-    "grid_world",
     "werewolf",
     "public_goods",
 }
@@ -57,7 +56,10 @@ def classify_scenario_action(scenario_id: str, action_id: str) -> str | None:
             return "executable"
 
     if scenario_id == "grid_world":
-        return "broken"
+        if action_id == "move":
+            return "executable"
+        if action_id in {"look_around", "rest"}:
+            return "record_only"
 
     if scenario_id == "werewolf":
         if action_id == "speak":

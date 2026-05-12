@@ -594,9 +594,8 @@ GRID_WORLD: Dict[str, Any] = {
         },
     ],
     "actions": [
-        {"id": "move_to_location", "name": "Move", "description": "Move to a location"},
-        {"id": "look_around", "name": "Look Around", "description": "Observe surroundings"},
-        {"id": "gather_resource", "name": "Gather", "description": "Collect a resource"},
+        {"id": "move", "name": "Move", "description": "Move to an adjacent tile (north/south/east/west)"},
+        {"id": "look_around", "name": "Look Around", "description": "Observe surroundings (observation only)"},
         {"id": "rest", "name": "Rest", "description": "Do nothing this turn"},
     ],
 }

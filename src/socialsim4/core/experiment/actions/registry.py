@@ -262,6 +262,14 @@ HONOR_CONTRACT_ACTION = _make_record_only("honor_contract", "Fulfill an existing
 DEFECT_FROM_CONTRACT_ACTION = _make_record_only("defect_from_contract", "Break an agreement for personal gain")
 
 
+# === Grid World Record-Only Actions ===
+# look_around: observation, no state mutation. Honest record-only.
+# rest: explicit no-op. Honest record-only.
+
+LOOK_AROUND_ACTION = _make_record_only("look_around", "Observe your surroundings")
+REST_ACTION = _make_record_only("rest", "Do nothing this turn")
+
+
 # The registry dictionary
 ACTION_REGISTRY: dict[str, ActionDefinition] = {
     "choose": CHOOSE_ACTION,
@@ -307,6 +315,9 @@ ACTION_REGISTRY: dict[str, ActionDefinition] = {
     "form_contract": FORM_CONTRACT_ACTION,
     "honor_contract": HONOR_CONTRACT_ACTION,
     "defect_from_contract": DEFECT_FROM_CONTRACT_ACTION,
+    # Grid World record-only actions
+    "look_around": LOOK_AROUND_ACTION,
+    "rest": REST_ACTION,
 }
 
 
