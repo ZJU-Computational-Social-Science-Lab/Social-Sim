@@ -651,7 +651,7 @@ CUSTOM: Dict[str, Any] = {
     "name": "Custom Scenario",
     "category": "custom",
     "description": "Open-ended networked conversation driven by a researcher-provided scenario prompt.",
-    "grouping_mode": "individual",
+    "grouping_mode": "neighbor",
     "payoff_type": "none",
     "interaction_mode": "simultaneous",
     "display_type": "params",

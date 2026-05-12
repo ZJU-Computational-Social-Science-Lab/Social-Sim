@@ -39,6 +39,10 @@ class ActionHandler:
         if action is None:
             return {"success": False, "error": f"Unknown action: {action_name}"}
 
+        # Record-only actions are logged but do not mutate state
+        if action.record_only:
+            return {"success": True, "effect_applied": False, "record_only": True}
+
         # Check requirements
         if action.requires:
             for req in action.requires:
@@ -55,10 +59,14 @@ class ActionHandler:
 
             if param_count >= 4 and scene is not None:
                 # Council-style handler: (action_data, agent_name, state, scene)
-                return action.handler(params, agent_name, state, scene)
+                handler_result = action.handler(params, agent_name, state, scene)
             else:
                 # Standard handler: (agent_name, params, state)
-                return action.handler(agent_name, params, state)
+                handler_result = action.handler(agent_name, params, state)
+            # Ensure effect_applied is set for successful handler execution
+            if handler_result.get("success", True):
+                handler_result["effect_applied"] = True
+            return handler_result
         else:
             return self._apply_effects(action.effects, agent_name, params, state)
 
@@ -113,7 +121,7 @@ class ActionHandler:
         for effect in effects:
             self._apply_single_effect(effect, agent_name, params, state)
 
-        return {"success": True}
+        return {"success": True, "effect_applied": True}
 
     def _apply_single_effect(
         self,

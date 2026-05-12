@@ -287,16 +287,23 @@ class ExperimentScene:
         }
 
         # Apply action effects to durable experiment state.
+        # Capture execution results so failures are surfaced.
+        exec_results: dict[str, dict] = {}
         for action in result.actions:
             if action.skipped and not action.success:
                 continue
-            self.runner.execute_action(
+            exec_result = self.runner.execute_action(
                 action.action_name,
                 action.agent_name,
                 action.parameters,
                 self.state,
                 self,  # Pass scene for council action handlers
             )
+            exec_results[action.agent_name] = exec_result
+            # If execution failed, mark the action as unsuccessful
+            if not exec_result.get("success", False):
+                action.success = False
+                action.error = exec_result.get("error", "")
 
         # Update history for next round's context
         completed_actions = [action for action in result.actions if action.success]
@@ -327,7 +334,8 @@ class ExperimentScene:
         # Emit events for frontend
         for action in result.actions:
             payoff = result.payoffs.get(action.agent_name) if result.payoffs else None
-            event_emitter("experiment_action", {
+            exec_result = exec_results.get(action.agent_name, {})
+            event_data = {
                 "agent": action.agent_name,
                 "action": action.action_name,
                 "parameters": action.parameters,
@@ -336,7 +344,16 @@ class ExperimentScene:
                 "round": round_num,
                 "success": action.success,
                 "skipped": action.skipped,
-            })
+            }
+            # Include execution-level metadata
+            if exec_result.get("record_only"):
+                event_data["record_only"] = True
+                event_data["effect_applied"] = False
+            elif action.success and exec_result.get("effect_applied", False):
+                event_data["effect_applied"] = True
+            if not action.success and action.error:
+                event_data["error"] = action.error
+            event_emitter("experiment_action", event_data)
 
         logger.info(f"Round {round_num} complete: {len(result.actions)} actions")
 
@@ -954,10 +971,8 @@ class ExperimentScene:
             # Only show reduce/skip if deduction is enabled
             if deduction_budget and deduction_budget > 0:
                 return ["reduce", "skip"]
-            # SAFETY: If we somehow reach deduct phase with no budget,
-            # return None to use all configured actions (shouldn't happen with advance_pgg_phase fix)
-            logger.warning(f"[PGG] Deduct phase reached but deduction_budget={deduction_budget} <= 0, returning None as fallback")
-            return None  # None = use all configured actions (safety fallback)
+            # Deductions disabled: no actions available in deduct phase
+            return []
 
     def inject_host_message(self, message: str) -> None:
         """Queue a host message to be injected into all agents' context on the next round."""

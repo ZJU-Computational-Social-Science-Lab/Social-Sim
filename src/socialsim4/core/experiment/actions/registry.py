@@ -183,21 +183,83 @@ ABSTAIN_ACTION = ActionDefinition(
 )
 
 
-# === PGG Punishment Action ===
+# === PGG Actions ===
+# "allocate" and "keep" are record-only: token deduction and pool
+# contributions are handled by the payoff engine, not action effects.
 
-PUNISH_ACTION = ActionDefinition(
-    name="punish",
-    description="Spend punishment tokens to reduce another agent's payoff",
+ALLOCATE_ACTION = ActionDefinition(
+    name="allocate",
+    description="Allocate resources to the group account",
+    parameters=[],
+    effects=[],
+    requires=None,
+    handler=None,
+    record_only=True,
+)
+KEEP_ACTION = ActionDefinition(
+    name="keep",
+    description="Keep all your resources this round",
+    parameters=[],
+    effects=[],
+    requires=None,
+    handler=None,
+    record_only=True,
+)
+
+REDUCE_ACTION = ActionDefinition(
+    name="reduce",
+    description="Spend deduction tokens to reduce another agent's payoff",
     parameters=[
         ParameterSpec("target", "agent", [], required=True),
         ParameterSpec("amount", "number", [], required=True),
     ],
     effects=[
-        EffectSpec("agent.resources.punishment_budget", "subtract", "amount"),
+        EffectSpec("agent.resources.deduction_budget", "subtract", "amount"),
     ],
     requires=["resources"],
     handler=None,  # Will be bound in _bind_handlers
 )
+
+
+# === Sociology Record-Only Actions ===
+# These actions are valid for logging/observation but do not mutate state.
+# They have no handler and no effects — they record agent choices only.
+
+def _make_record_only(name: str, description: str) -> ActionDefinition:
+    """Create a record-only action definition."""
+    return ActionDefinition(
+        name=name,
+        description=description,
+        parameters=[],
+        effects=[],
+        requires=None,
+        handler=None,
+        record_only=True,
+    )
+
+EXPRESS_OPINION_ACTION = _make_record_only("express_opinion", "Share your current viewpoint on the topic")
+SHARE_CONTENT_ACTION = _make_record_only("share_content", "Share information reinforcing your position")
+DISENGAGE_ACTION = _make_record_only("disengage", "Withdraw from engagement with opposing views")
+REINFORCE_INGROUP_ACTION = _make_record_only("reinforce_ingroup", "Engage with and amplify similar viewpoints")
+CHALLENGE_OUTGROUP_ACTION = _make_record_only("challenge_outgroup", "Actively argue against opposing views")
+SEEK_COMMON_GROUND_ACTION = _make_record_only("seek_common_ground", "Find shared values across opinion divides")
+COMPLY_PUBLICLY_ACTION = _make_record_only("comply_publicly", "Visibly accept and follow the norm or directive")
+COMPLY_COVERTLY_RESIST_ACTION = _make_record_only("comply_covertly_resist", "Formally comply but privately circumvent or ignore")
+RESIST_OPENLY_ACTION = _make_record_only("resist_openly", "Openly refuse or challenge the norm or directive")
+PERSUADE_OTHERS_ACTION = _make_record_only("persuade_others", "Convince others to adopt your position or action")
+FORM_COALITION_ACTION = _make_record_only("form_coalition", "Organize with like-minded others for collective action")
+TRANSMIT_FAITHFULLY_ACTION = _make_record_only("transmit_faithfully", "Pass the policy on exactly as received without changes")
+REINTERPRET_DOWNWARD_ACTION = _make_record_only("reinterpret_downward", "Adapt or modify the policy when passing it down the chain")
+COMPLY_DIRECTIVE_ACTION = _make_record_only("comply_directive", "Accept and implement the instruction from above")
+RESIST_QUIETLY_ACTION = _make_record_only("resist_quietly", "Formally comply but avoid real implementation")
+REPORT_UP_ACTION = _make_record_only("report_up", "Escalate an obstacle or issue to a higher authority")
+CREATE_WORKAROUND_ACTION = _make_record_only("create_workaround", "Build an informal path around the official rule")
+SHARE_RESOURCES_ACTION = _make_record_only("share_resources", "Give some of your resources to another agent")
+HOARD_ACTION = _make_record_only("hoard", "Keep all resources for yourself")
+PROPOSE_TRADE_ACTION = _make_record_only("propose_trade", "Offer to exchange resources")
+FORM_CONTRACT_ACTION = _make_record_only("form_contract", "Propose a formal cooperative agreement")
+HONOR_CONTRACT_ACTION = _make_record_only("honor_contract", "Fulfill an existing agreement")
+DEFECT_FROM_CONTRACT_ACTION = _make_record_only("defect_from_contract", "Break an agreement for personal gain")
 
 
 # The registry dictionary
@@ -217,8 +279,34 @@ ACTION_REGISTRY: dict[str, ActionDefinition] = {
     "vote_no": VOTE_NO_ACTION,    # NEW - explicit vote action
     "abstain": ABSTAIN_ACTION,    # NEW - explicit vote action
     "conclude": CONCLUDE_ACTION,  # Keep for backward compatibility
-    # PGG punishment action
-    "punish": PUNISH_ACTION,
+    # PGG actions
+    "allocate": ALLOCATE_ACTION,
+    "keep": KEEP_ACTION,
+    "reduce": REDUCE_ACTION,
+    # Sociology record-only actions
+    "express_opinion": EXPRESS_OPINION_ACTION,
+    "share_content": SHARE_CONTENT_ACTION,
+    "disengage": DISENGAGE_ACTION,
+    "reinforce_ingroup": REINFORCE_INGROUP_ACTION,
+    "challenge_outgroup": CHALLENGE_OUTGROUP_ACTION,
+    "seek_common_ground": SEEK_COMMON_GROUND_ACTION,
+    "comply_publicly": COMPLY_PUBLICLY_ACTION,
+    "comply_covertly_resist": COMPLY_COVERTLY_RESIST_ACTION,
+    "resist_openly": RESIST_OPENLY_ACTION,
+    "persuade_others": PERSUADE_OTHERS_ACTION,
+    "form_coalition": FORM_COALITION_ACTION,
+    "transmit_faithfully": TRANSMIT_FAITHFULLY_ACTION,
+    "reinterpret_downward": REINTERPRET_DOWNWARD_ACTION,
+    "comply_directive": COMPLY_DIRECTIVE_ACTION,
+    "resist_quietly": RESIST_QUIETLY_ACTION,
+    "report_up": REPORT_UP_ACTION,
+    "create_workaround": CREATE_WORKAROUND_ACTION,
+    "share_resources": SHARE_RESOURCES_ACTION,
+    "hoard": HOARD_ACTION,
+    "propose_trade": PROPOSE_TRADE_ACTION,
+    "form_contract": FORM_CONTRACT_ACTION,
+    "honor_contract": HONOR_CONTRACT_ACTION,
+    "defect_from_contract": DEFECT_FROM_CONTRACT_ACTION,
 }
 
 
@@ -256,7 +344,7 @@ def _bind_handlers():
         handle_vote_no,
         handle_abstain,
         handle_conclude,
-        handle_punish,
+        handle_reduce,
     )
     ACTION_REGISTRY["move"].handler = handle_move
     ACTION_REGISTRY["talk"].handler = handle_talk
@@ -268,8 +356,8 @@ def _bind_handlers():
     ACTION_REGISTRY["vote_no"].handler = handle_vote_no
     ACTION_REGISTRY["abstain"].handler = handle_abstain
     ACTION_REGISTRY["conclude"].handler = handle_conclude
-    # PGG punishment action handler
-    ACTION_REGISTRY["punish"].handler = handle_punish
+    # PGG reduction action handler
+    ACTION_REGISTRY["reduce"].handler = handle_reduce
 
 
 # Bind handlers on first import

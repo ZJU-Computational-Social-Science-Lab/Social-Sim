@@ -51,6 +51,7 @@ class ActionDefinition:
         effects: State changes to apply
         requires: Scenario features required (e.g., ["spatial"])
         handler: Optional Python function for complex logic
+        record_only: If True, action is logged but does not mutate state
     """
     name: str
     description: str
@@ -58,6 +59,7 @@ class ActionDefinition:
     effects: list[EffectSpec]
     requires: Optional[list[str]]
     handler: Optional[Callable] = None
+    record_only: bool = False
 
     def needs_followup(self) -> bool:
         """Returns True if action needs parameter follow-up prompt."""

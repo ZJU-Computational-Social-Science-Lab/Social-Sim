@@ -41,6 +41,9 @@ socialsim4 = "socialsim4.cli:main"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 pythonpath = "src"
+markers = [
+    "real_llm: tests that call a real configured LLM provider; require SOCIALSIM_TEST_REAL_LLM=1",
+]
 
 [build-system]
 requires = ["poetry-core>=1.6.0"]

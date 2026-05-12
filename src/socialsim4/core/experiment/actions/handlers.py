@@ -7,7 +7,7 @@ those handlers.
 
 Contains: handle_move, handle_talk, handle_council_speak,
           handle_start_voting, handle_vote, handle_conclude,
-          handle_punish
+          handle_reduce
 """
 import logging
 from typing import Any
@@ -406,9 +406,3 @@ def handle_reduce(action_data: dict, agent_name: str, state: ExperimentState, sc
         "target": target,
         "deduction": deduction,
     }
-
-
-# Backward compatibility alias for serialized experiments and old action names
-# Note: Runtime calls work via this alias, but serialized experiment data
-# referencing "punish" action names may need migration depending on use case
-handle_punish = handle_reduce

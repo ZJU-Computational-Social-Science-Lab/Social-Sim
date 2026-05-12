@@ -323,13 +323,13 @@ class PayoffEngine:
         if not deduction_config:
             deduction_config = config.get("punishment", {})
 
-        # Check if enabled: explicit flag, OR any reductions/punishments recorded this round.
-        # Note: do NOT read deduction_budget_per_phase from state.extensions["parameters"] —
-        # parameters live in scene.config.parameters, not in state extensions.
-        # Instead, check whether agents actually submitted any deductions this round,
-        # which is the reliable signal that the mechanism is active.
-        is_enabled = deduction_config.get("enabled", False)
-        if not is_enabled and state is not None:
+        # Check if enabled: explicit flag takes priority.
+        # enabled=True  → always apply deductions
+        # enabled=False → never apply deductions (even if stale data exists)
+        # no enabled key → infer from data presence (backward compat)
+        is_enabled = deduction_config.get("enabled")
+        if is_enabled is None and state is not None:
+            # No explicit flag — infer from whether agents recorded deductions
             has_reductions = bool(
                 state.extensions.get("reductions") or
                 state.extensions.get("punishments")

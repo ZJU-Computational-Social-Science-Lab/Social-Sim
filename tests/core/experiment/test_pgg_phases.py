@@ -66,11 +66,16 @@ class TestPGGPhaseManagement:
         assert "allocate" not in actions
 
     def test_get_scene_actions_deductions_disabled(self, scene):
-        """No reduce/skip when deduction_budget is 0."""
+        """Deduct phase is skipped when deduction_budget is 0 — stays in allocate."""
         scene.config.parameters["deduction_budget_per_phase"] = 0
         scene.advance_pgg_phase()
+        # Phase stays "allocate" because deduct phase is skipped
+        assert scene.get_pgg_phase() == "allocate"
         actions = scene.get_scene_actions("Alice")
-        assert actions == []
+        assert "reduce" not in actions
+        assert "skip" not in actions
+        assert "allocate" in actions
+        assert "keep" in actions
 
     def test_get_scene_actions_non_pgg(self):
         """Non-PGG scenarios return None (no filtering)."""

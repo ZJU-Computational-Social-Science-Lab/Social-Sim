@@ -1,15 +1,18 @@
 """
-Smoketest for Public Goods Game punishment phase features.
+Smoketest for Public Goods Game deduction/reduction phase features.
 
 Tests FEAT-PGG-01 (Network Visibility):
 - Agents only see contributions from agents they're connected to
 - Isolated agents (no edges) see no contributions from others
 - Visibility respects graph edges in both directions
 
-Tests FEAT-PGG-03 (Punish Action):
-- Agents can allocate punishment tokens to specific other agents
+Tests FEAT-PGG-03 (Reduce Action):
+- Agents can allocate deduction tokens to reduce other agents' payoff
 - Over-budget amounts are clamped to available budget
-- Allocations stored in state.extensions["punishments"]
+- Allocations stored in state.extensions["reductions"]
+
+Legacy backward compatibility:
+- Payoff engine reads state.extensions["punishments"] as fallback for old data
 """
 
 import pytest
@@ -136,192 +139,343 @@ class TestPunishmentVisibility:
         assert bob_visible == {"Alice": 0}
 
 
-class TestPunishAction:
-    """Unit tests for punish action handler validation."""
+class MockScene:
+    """Mock scene with deduction config for testing reduce handler."""
+
+    def __init__(self, deduction_budget=10, cost_ratio=3.0):
+        self.config = type('obj', (object,), {
+            'parameters': {
+                'deduction_budget_per_phase': deduction_budget,
+                'deduction_cost_ratio': cost_ratio,
+            }
+        })()
+        self.emitted_events = []
+
+    def _emit_event(self, event_type: str, data: dict):
+        self.emitted_events.append({'type': event_type, 'data': data})
+
+
+class TestReduceAction:
+    """Unit tests for reduce action handler validation."""
 
     @pytest.fixture
     def state_with_budget(self):
-        """Create state with two agents having punishment budgets."""
+        """Create state with two agents having deduction budgets."""
         return ExperimentState(
             agents={
-                "Alice": AgentState(resources={"tokens": 20, "punishment_budget": 5}),
-                "Bob": AgentState(resources={"tokens": 20, "punishment_budget": 5}),
+                "Alice": AgentState(resources={"tokens": 20, "deduction_budget": 5}),
+                "Bob": AgentState(resources={"tokens": 20, "deduction_budget": 5}),
             }
         )
 
-    def test_valid_punish_action(self, state_with_budget):
-        """Valid punish action with sufficient budget succeeds."""
+    @pytest.fixture
+    def mock_scene(self):
+        """Create mock scene with deduction enabled."""
+        return MockScene(deduction_budget=10, cost_ratio=3.0)
+
+    def test_valid_reduce_action(self, state_with_budget, mock_scene):
+        """Valid reduce action with sufficient budget succeeds."""
         from socialsim4.core.experiment.actions.registry import get_action
-        from socialsim4.core.experiment.actions.handlers import handle_punish
+        from socialsim4.core.experiment.actions.handlers import handle_reduce
 
-        action = get_action("punish")
-        assert action is not None, "PUNISH_ACTION not registered"
+        action = get_action("reduce")
+        assert action is not None, "REDUCE_ACTION not registered"
 
-        result = handle_punish(
+        result = handle_reduce(
             {"target": "Bob", "amount": 3},
             "Alice",
             state_with_budget,
-            None  # scene
+            mock_scene
         )
 
         assert result["success"] is True
         assert result["amount"] == 3
         assert result["target"] == "Bob"
+        assert result.get("effect_applied") is not False
 
-    def test_cannot_punish_self(self, state_with_budget):
-        """Agent cannot punish themselves."""
-        from socialsim4.core.experiment.actions.handlers import handle_punish
+    def test_cannot_reduce_self(self, state_with_budget, mock_scene):
+        """Agent cannot reduce themselves."""
+        from socialsim4.core.experiment.actions.handlers import handle_reduce
 
-        result = handle_punish(
+        result = handle_reduce(
             {"target": "Alice", "amount": 3},
             "Alice",
             state_with_budget,
-            None
+            mock_scene
         )
 
         assert result["success"] is False
-        assert "self" in result.get("error", "").lower()
+        assert "own" in result.get("error", "").lower()
 
-    def test_cannot_punish_unknown_agent(self, state_with_budget):
-        """Cannot punish agent that doesn't exist."""
-        from socialsim4.core.experiment.actions.handlers import handle_punish
+    def test_cannot_reduce_unknown_agent(self, state_with_budget, mock_scene):
+        """Cannot reduce agent that doesn't exist."""
+        from socialsim4.core.experiment.actions.handlers import handle_reduce
 
-        result = handle_punish(
+        result = handle_reduce(
             {"target": "Charlie", "amount": 3},
             "Alice",
             state_with_budget,
-            None
+            mock_scene
         )
 
         assert result["success"] is False
         assert "unknown" in result.get("error", "").lower()
 
-    def test_cannot_exceed_budget(self, state_with_budget):
+    def test_cannot_exceed_budget(self, state_with_budget, mock_scene):
         """Over-budget amount is clamped to available budget."""
-        from socialsim4.core.experiment.actions.handlers import handle_punish
+        from socialsim4.core.experiment.actions.handlers import handle_reduce
 
         # Alice has 5 budget, attempts 10
-        result = handle_punish(
+        result = handle_reduce(
             {"target": "Bob", "amount": 10},
             "Alice",
             state_with_budget,
-            None
+            mock_scene
         )
 
         assert result["success"] is True
         assert result["amount"] == 5  # Clamped to budget
         assert result["target"] == "Bob"
 
+    def test_reduce_emits_effect_applied(self, state_with_budget, mock_scene):
+        """Reduce action returns effect_applied=true via ActionHandler."""
+        from socialsim4.core.experiment.action_handler import ActionHandler
 
-class TestPunishActionRegistry:
-    """Tests for punish action registration in ACTION_REGISTRY."""
+        handler = ActionHandler()
+        result = handler.execute("reduce", "Alice", {"target": "Bob", "amount": 3}, state_with_budget, mock_scene)
 
-    def test_punish_action_in_registry(self):
-        """PUNISH_ACTION is registered in ACTION_REGISTRY."""
+        assert result["success"] is True
+        assert result.get("effect_applied") is True
+
+
+class TestReduceActionRegistry:
+    """Tests for reduce action registration in ACTION_REGISTRY."""
+
+    def test_reduce_action_in_registry(self):
+        """REDUCE_ACTION is registered in ACTION_REGISTRY."""
         from socialsim4.core.experiment.actions.registry import ACTION_REGISTRY
 
-        assert "punish" in ACTION_REGISTRY, "punish action not in ACTION_REGISTRY"
-        action = ACTION_REGISTRY["punish"]
-        assert action.name == "punish"
+        assert "reduce" in ACTION_REGISTRY, "reduce action not in ACTION_REGISTRY"
+        action = ACTION_REGISTRY["reduce"]
+        assert action.name == "reduce"
 
-    def test_punish_action_has_required_parameters(self):
-        """PUNISH_ACTION has target and amount parameters."""
+    def test_reduce_action_has_required_parameters(self):
+        """REDUCE_ACTION has target and amount parameters."""
         from socialsim4.core.experiment.actions.registry import get_action
 
-        action = get_action("punish")
+        action = get_action("reduce")
         assert action is not None
 
         param_names = [p.name for p in action.parameters]
-        assert "target" in param_names, "punish action missing 'target' parameter"
-        assert "amount" in param_names, "punish action missing 'amount' parameter"
+        assert "target" in param_names, "reduce action missing 'target' parameter"
+        assert "amount" in param_names, "reduce action missing 'amount' parameter"
 
-    def test_punish_action_handler_bound(self):
-        """PUNISH_ACTION has handler bound."""
+    def test_reduce_action_handler_bound(self):
+        """REDUCE_ACTION has handler bound."""
         from socialsim4.core.experiment.actions.registry import get_action
 
-        action = get_action("punish")
+        action = get_action("reduce")
         assert action is not None
-        assert action.handler is not None, "punish action handler not bound"
+        assert action.handler is not None, "reduce action handler not bound"
+
+    def test_punish_not_in_registry(self):
+        """Punish action should not be in ACTION_REGISTRY."""
+        from socialsim4.core.experiment.actions.registry import ACTION_REGISTRY
+
+        assert "punish" not in ACTION_REGISTRY, "punish should be removed from ACTION_REGISTRY"
+
+    def test_public_goods_scenario_has_reduce_action(self):
+        """Public Goods scenario actions include 'reduce'."""
+        from socialsim4.core.scenarios.registry import PUBLIC_GOODS
+
+        action_ids = [a["id"] for a in PUBLIC_GOODS["actions"]]
+        assert "reduce" in action_ids, f"Public Goods should have 'reduce' action, got: {action_ids}"
+
+    def test_public_goods_scenario_no_punish_action(self):
+        """Public Goods scenario actions do not include 'punish'."""
+        from socialsim4.core.scenarios.registry import PUBLIC_GOODS
+
+        action_ids = [a["id"] for a in PUBLIC_GOODS["actions"]]
+        assert "punish" not in action_ids, f"Public Goods should not have 'punish' action, got: {action_ids}"
 
 
-class TestPunishmentStateTracking:
-    """Tests for punishment allocation storage in state.extensions."""
+class TestReduceDisabledExecution:
+    """Tests for reduce action behavior when deductions are disabled."""
 
-    @pytest.fixture
-    def state_with_budget(self):
-        """Create state with two agents having punishment budgets."""
-        return ExperimentState(
+    def test_reduce_rejected_when_deductions_disabled(self):
+        """Reduce action fails when deduction_budget_per_phase is 0."""
+        from socialsim4.core.experiment.action_handler import ActionHandler
+
+        handler = ActionHandler()
+        state = ExperimentState()
+        state.agents["Alice"] = AgentState(resources={"tokens": 20})
+        state.agents["Bob"] = AgentState(resources={"tokens": 20})
+
+        # Scene with deductions disabled (budget=0)
+        disabled_scene = MockScene(deduction_budget=0, cost_ratio=3.0)
+
+        result = handler.execute("reduce", "Alice", {"target": "Bob", "amount": 5}, state, disabled_scene)
+
+        assert result["success"] is False
+        assert result.get("effect_applied") is not True
+
+    def test_reduce_not_offered_when_disabled(self):
+        """get_scene_actions does not include reduce when budget is 0."""
+        from socialsim4.core.experiment.scene import ExperimentScene
+        from socialsim4.core.experiment.config import ExperimentConfig
+
+        config = ExperimentConfig(
+            scenario_id="public_goods",
+            agents=[
+                {"name": "Alice", "properties": {}},
+                {"name": "Bob", "properties": {}},
+            ],
+            actions=[{"name": "allocate"}, {"name": "keep"}],
+            parameters={
+                "deduction_budget_per_phase": 0,
+                "resource_name": "tokens",
+                "tokens_per_round": 20,
+            },
+        )
+        scene = ExperimentScene(config)
+        scene._initialize_state()
+
+        # Advance to deduct phase — but budget=0, so phase stays allocate
+        scene.advance_pgg_phase()
+        actions = scene.get_scene_actions("Alice")
+
+        assert "reduce" not in actions, f"reduce should not appear when disabled, got: {actions}"
+
+    def test_no_deduction_effect_when_disabled(self):
+        """Payoff engine does not apply deductions when enabled=False."""
+        from socialsim4.core.experiment.payoff.engine import PayoffEngine
+        from socialsim4.core.experiment.controller import ActionResult
+
+        engine = PayoffEngine()
+
+        state = ExperimentState(
             agents={
-                "Alice": AgentState(resources={"tokens": 20, "punishment_budget": 5}),
-                "Bob": AgentState(resources={"tokens": 20, "punishment_budget": 5}),
+                "Alice": AgentState(resources={"tokens": 20}),
+                "Bob": AgentState(resources={"tokens": 20}),
+            },
+            extensions={
+                "reductions": {
+                    "Alice": [{"target": "Bob", "amount": 2}]
+                }
             }
         )
 
-    def test_punishment_stored_in_extensions(self, state_with_budget):
-        """Punishment allocation is stored in state.extensions['punishments']."""
-        from socialsim4.core.experiment.actions.handlers import handle_punish
+        config = {
+            "multiplier": 1.5,
+            "initial_tokens": 20,
+            "deduction": {
+                "enabled": False,
+                "cost_ratio": 3,
+            }
+        }
 
-        handle_punish(
+        actions = [
+            ActionResult(success=True, action_name="contribute", parameters={"amount": 10}, summary="", agent_name="Alice", round_num=1),
+            ActionResult(success=True, action_name="contribute", parameters={"amount": 10}, summary="", agent_name="Bob", round_num=1),
+        ]
+
+        payoffs = engine.calculate_round_payoffs(
+            payoff_type="pool",
+            actions=actions,
+            config=config,
+            grouping_mode="group",
+            state=state,
+        )
+
+        # Base payoff: (20 - 10) + (20 * 1.5 / 2) = 25
+        # Deductions disabled — no deduction applied
+        assert payoffs["Bob"] == 25.0, \
+            f"Bob should get 25 (no deduction when disabled), got {payoffs['Bob']}"
+
+
+class TestReductionStateTracking:
+    """Tests for reduction allocation storage in state.extensions."""
+
+    @pytest.fixture
+    def state_with_budget(self):
+        """Create state with two agents having deduction budgets."""
+        return ExperimentState(
+            agents={
+                "Alice": AgentState(resources={"tokens": 20, "deduction_budget": 5}),
+                "Bob": AgentState(resources={"tokens": 20, "deduction_budget": 5}),
+            }
+        )
+
+    @pytest.fixture
+    def mock_scene(self):
+        """Create mock scene with deduction enabled."""
+        return MockScene(deduction_budget=10, cost_ratio=3.0)
+
+    def test_reduction_stored_in_extensions(self, state_with_budget, mock_scene):
+        """Reduction allocation is stored in state.extensions['reductions']."""
+        from socialsim4.core.experiment.actions.handlers import handle_reduce
+
+        handle_reduce(
             {"target": "Bob", "amount": 3},
             "Alice",
             state_with_budget,
-            None
+            mock_scene
         )
 
-        assert "punishments" in state_with_budget.extensions
-        assert "Alice" in state_with_budget.extensions["punishments"]
+        assert "reductions" in state_with_budget.extensions
+        assert "Alice" in state_with_budget.extensions["reductions"]
 
-        punishments = state_with_budget.extensions["punishments"]["Alice"]
-        assert len(punishments) == 1
-        assert punishments[0]["target"] == "Bob"
-        assert punishments[0]["amount"] == 3
+        reductions = state_with_budget.extensions["reductions"]["Alice"]
+        assert len(reductions) == 1
+        assert reductions[0]["target"] == "Bob"
+        assert reductions[0]["amount"] == 3
 
-    def test_multiple_punishments_tracked(self, state_with_budget):
-        """Multiple punishments from same agent are tracked."""
-        from socialsim4.core.experiment.actions.handlers import handle_punish
+    def test_multiple_reductions_tracked(self, state_with_budget, mock_scene):
+        """Multiple reductions from same agent are tracked."""
+        from socialsim4.core.experiment.actions.handlers import handle_reduce
 
-        # First punishment
-        handle_punish(
+        # First reduction
+        handle_reduce(
             {"target": "Bob", "amount": 2},
             "Alice",
             state_with_budget,
-            None
+            mock_scene
         )
 
-        # Second punishment (different target would need another agent)
+        # Second reduction (different target would need another agent)
         # Add Charlie to state
         state_with_budget.agents["Charlie"] = AgentState(
-            resources={"tokens": 20, "punishment_budget": 5}
+            resources={"tokens": 20, "deduction_budget": 5}
         )
 
-        handle_punish(
+        handle_reduce(
             {"target": "Charlie", "amount": 2},
             "Alice",
             state_with_budget,
-            None
+            mock_scene
         )
 
-        punishments = state_with_budget.extensions["punishments"]["Alice"]
-        assert len(punishments) == 2
+        reductions = state_with_budget.extensions["reductions"]["Alice"]
+        assert len(reductions) == 2
 
-    def test_clamped_amount_stored_not_requested(self, state_with_budget):
+    def test_clamped_amount_stored_not_requested(self, state_with_budget, mock_scene):
         """Clamped amount is stored, not requested amount."""
-        from socialsim4.core.experiment.actions.handlers import handle_punish
+        from socialsim4.core.experiment.actions.handlers import handle_reduce
 
         # Alice has 5 budget, requests 10
-        result = handle_punish(
+        result = handle_reduce(
             {"target": "Bob", "amount": 10},
             "Alice",
             state_with_budget,
-            None
+            mock_scene
         )
 
         # Result shows clamped amount
         assert result["amount"] == 5
 
         # State also stores clamped amount
-        punishments = state_with_budget.extensions["punishments"]["Alice"]
-        assert punishments[0]["amount"] == 5  # Not 10
+        reductions = state_with_budget.extensions["reductions"]["Alice"]
+        assert reductions[0]["amount"] == 5  # Not 10
 
 
 class TestPunishmentPayoffEffect:
@@ -493,12 +647,12 @@ class TestPunishmentPayoffEffect:
             f"With punishment disabled, Bob should get 25, got {payoffs['Bob']}"
 
 
-class TestPunishmentBudget:
-    """Tests for FEAT-PGG-02: Per-round punishment budget allocation."""
+class TestDeductionBudget:
+    """Tests for FEAT-PGG-02: Per-phase deduction budget allocation."""
 
     @pytest.fixture
-    def pgg_config_with_punishment(self):
-        """PGG config with punishment enabled."""
+    def pgg_config_with_deduction(self):
+        """PGG config with deduction enabled."""
         from socialsim4.core.experiment.config import ExperimentConfig
         return ExperimentConfig(
             scenario_id="public_goods_game",
@@ -506,63 +660,63 @@ class TestPunishmentBudget:
                 {"name": "Alice", "resources": {"tokens": 20}},
                 {"name": "Bob", "resources": {"tokens": 20}},
             ],
-            actions=[{"name": "contribute"}, {"name": "punish"}],
+            actions=[{"name": "contribute"}, {"name": "reduce"}],
             parameters={
                 "payoff_type": "pool",
                 "multiplier": 1.5,
                 "initial_tokens": 20,
-                "punishment_budget_per_round": 5,
+                "deduction_budget_per_phase": 5,
             },
         )
 
-    def test_budget_allocated_per_round(self, pgg_config_with_punishment):
-        """Each agent receives punishment budget at initialization."""
+    def test_budget_allocated_per_phase(self, pgg_config_with_deduction):
+        """Each agent receives deduction budget at initialization."""
         from socialsim4.core.experiment.scene import ExperimentScene
         from unittest.mock import MagicMock
 
-        scene = ExperimentScene(pgg_config_with_punishment)
+        scene = ExperimentScene(pgg_config_with_deduction)
         mock_client = MagicMock()
         mock_client.chat = MagicMock(return_value='{"action": "contribute", "amount": 10}')
 
         scene.initialize(mock_client)
 
         # Check budget was allocated
-        assert scene.state.agents["Alice"].resources.get("punishment_budget") == 5, \
-            "Alice should have 5 punishment tokens"
-        assert scene.state.agents["Bob"].resources.get("punishment_budget") == 5, \
-            "Bob should have 5 punishment tokens"
+        assert scene.state.agents["Alice"].resources.get("deduction_budget") == 5, \
+            "Alice should have 5 deduction points"
+        assert scene.state.agents["Bob"].resources.get("deduction_budget") == 5, \
+            "Bob should have 5 deduction points"
 
-    def test_budget_does_not_carry_over(self, pgg_config_with_punishment):
+    def test_budget_does_not_carry_over(self, pgg_config_with_deduction):
         """Budget resets each round (fresh allocation)."""
         # This test verifies the reset mechanism exists
         # The actual reset happens in round setup, not initialization
         from socialsim4.core.experiment.scene import ExperimentScene
         from unittest.mock import MagicMock
 
-        scene = ExperimentScene(pgg_config_with_punishment)
+        scene = ExperimentScene(pgg_config_with_deduction)
         mock_client = MagicMock()
         scene.initialize(mock_client)
 
         # Simulate budget being spent
-        scene.state.agents["Alice"].resources["punishment_budget"] = 2
+        scene.state.agents["Alice"].resources["deduction_budget"] = 2
 
-        # In a real round, budget would be reset before punishment phase
+        # In a real round, budget would be reset before deduct phase
         # For now, just verify the mechanism exists
-        initial_budget = pgg_config_with_punishment.parameters.get("punishment_budget_per_round", 5)
-        assert initial_budget == 5, "Config should specify budget per round"
+        initial_budget = pgg_config_with_deduction.parameters.get("deduction_budget_per_phase", 5)
+        assert initial_budget == 5, "Config should specify budget per phase"
 
-    def test_over_budget_clamped(self, pgg_config_with_punishment):
-        """Over-budget punishment amount is clamped to available budget."""
+    def test_over_budget_clamped(self, pgg_config_with_deduction):
+        """Over-budget reduction amount is clamped to available budget."""
         from socialsim4.core.experiment.scene import ExperimentScene
-        from socialsim4.core.experiment.actions.handlers import handle_punish
+        from socialsim4.core.experiment.actions.handlers import handle_reduce
         from unittest.mock import MagicMock
 
-        scene = ExperimentScene(pgg_config_with_punishment)
+        scene = ExperimentScene(pgg_config_with_deduction)
         mock_client = MagicMock()
         scene.initialize(mock_client)
 
-        # Alice has 5 budget, attempts to punish with 10
-        result = handle_punish(
+        # Alice has 5 budget, attempts to reduce with 10
+        result = handle_reduce(
             {"target": "Bob", "amount": 10},
             "Alice",
             scene.state,
@@ -573,8 +727,8 @@ class TestPunishmentBudget:
         assert result["amount"] == 5, "Amount should be clamped to 5 (budget)"
 
 
-class TestPGGPunishmentIntegration:
-    """Integration tests for full PGG punishment flow (all requirements)."""
+class TestPGGDeductionIntegration:
+    """Integration tests for full PGG deduction flow (all requirements)."""
 
     @pytest.fixture
     def engine(self):
@@ -584,14 +738,14 @@ class TestPGGPunishmentIntegration:
 
     @pytest.fixture
     def full_config(self):
-        """Full PGG configuration with punishment enabled."""
+        """Full PGG configuration with deduction enabled."""
         return {
             "payoff_type": "pool",
             "multiplier": 1.5,
             "initial_tokens": 20,
-            "punishment_enabled": True,
-            "punishment_budget": 10,
-            "punishment_ratio": 3,
+            "deduction_enabled": True,
+            "deduction_budget": 10,
+            "deduction_ratio": 3,
             "network": {
                 "Alice": ["Bob", "Charlie"],
                 "Bob": ["Alice", "Charlie"],
@@ -600,36 +754,36 @@ class TestPGGPunishmentIntegration:
             "information_scope": "neighborhood",
         }
 
-    def test_full_round_flow_with_punishment(self, engine, full_config):
+    def test_full_round_flow_with_deduction(self, engine, full_config):
         """
-        Smoketest: Complete round with contributions and punishment.
+        Smoketest: Complete round with contributions and deductions.
 
         Expected behavior:
         - Round 1: Agents contribute to pool
         - Pool payoffs calculated
-        - Agents can punish based on observed contributions
-        - Punishment deductions applied to final payoff
+        - Agents can reduce based on observed contributions
+        - Deduction effects applied to final payoff
         """
         pytest.skip("Stub - implement in Wave 1-3")
 
-    def test_punishment_optional_disabled_by_default(self, engine, full_config):
+    def test_deduction_optional_disabled_by_default(self, engine, full_config):
         """
-        Smoketest: Punishment is optional and disabled by default.
+        Smoketest: Deduction is optional and disabled by default.
 
         Expected behavior:
-        - Default config has punishment_enabled=False
-        - Game runs normally without punishment
-        - Punish action not available when disabled
+        - Default config has deduction_enabled=False
+        - Game runs normally without deduction
+        - Reduce action not available when disabled
         """
         pytest.skip("Stub - implement in Wave 1-3")
 
 
-class TestPGGPunishmentWithScene:
+class TestPGGDeductionWithScene:
     """Integration tests using ExperimentScene for realistic flow (same as GUI)."""
 
     @pytest.fixture
-    def pgg_punishment_config(self):
-        """Create PGG configuration with punishment for ExperimentScene."""
+    def pgg_deduction_config(self):
+        """Create PGG configuration with deduction for ExperimentScene."""
         from socialsim4.core.experiment.config import ExperimentConfig
 
         return ExperimentConfig(
@@ -641,15 +795,14 @@ class TestPGGPunishmentWithScene:
             ],
             actions=[
                 {"name": "contribute"},
-                {"name": "punish"},
+                {"name": "reduce"},
             ],
             parameters={
                 "payoff_type": "pool",
                 "multiplier": 1.5,
                 "initial_tokens": 20,
-                "punishment_enabled": True,
-                "punishment_budget": 10,
-                "punishment_ratio": 3,
+                "deduction_budget_per_phase": 10,
+                "deduction_cost_ratio": 3,
                 "network": {
                     "Alice": ["Bob", "Charlie"],
                     "Bob": ["Alice", "Charlie"],
@@ -659,41 +812,41 @@ class TestPGGPunishmentWithScene:
             },
         )
 
-    def test_scene_initializes_punishment_budget(self, pgg_punishment_config):
+    def test_scene_initializes_deduction_budget(self, pgg_deduction_config):
         """
-        Smoketest: ExperimentScene initializes punishment budget per agent.
+        Smoketest: ExperimentScene initializes deduction budget per agent.
 
         Expected behavior:
-        - Scene.state tracks punishment_budget for each agent
+        - Scene.state tracks deduction_budget for each agent
         - Budget resets each round
         - Budget separate from main token balance
         """
         pytest.skip("Stub - implement in Wave 1-3")
 
-    def test_scene_punish_action_available_when_enabled(self, pgg_punishment_config):
+    def test_scene_reduce_action_available_when_enabled(self, pgg_deduction_config):
         """
-        Smoketest: Punish action is available when punishment enabled.
+        Smoketest: Reduce action is available when deduction enabled.
 
         Expected behavior:
-        - Agent's available actions include 'punish'
-        - Punish action shows target and cost parameters
-        - Action list excludes punish when punishment_enabled=False
+        - Agent's available actions include 'reduce'
+        - Reduce action shows target and cost parameters
+        - Action list excludes reduce when deduction is disabled
         """
         pytest.skip("Stub - implement in Wave 1-3")
 
-    def test_full_round_flow_with_scene(self, pgg_punishment_config):
+    def test_full_round_flow_with_scene(self, pgg_deduction_config):
         """
-        Smoketest: Complete round through ExperimentScene with punishment.
+        Smoketest: Complete round through ExperimentScene with deduction.
 
         Expected behavior:
         - Agents contribute via contribute action
-        - Agents punish via punish action
-        - Scene calculates final payoffs including punishment
+        - Agents reduce via reduce action
+        - Scene calculates final payoffs including deduction effects
         - State reflects all deductions correctly
         """
         pytest.skip("Stub - implement in Wave 1-3")
 
-    def test_network_visibility_in_agent_prompts(self, pgg_punishment_config):
+    def test_network_visibility_in_agent_prompts(self, pgg_deduction_config):
         """
         Smoketest: Agent prompts show only visible contributions based on network.
 
@@ -704,14 +857,14 @@ class TestPGGPunishmentWithScene:
         """
         pytest.skip("Stub - implement in Wave 1-3")
 
-    def test_payoff_reflects_punishment_deductions(self, pgg_punishment_config):
+    def test_payoff_reflects_deduction_effects(self, pgg_deduction_config):
         """
-        Smoketest: Final payoff reflects all punishment deductions.
+        Smoketest: Final payoff reflects all deduction effects.
 
         Expected behavior:
         - Pool payoff calculated first
-        - Punishment costs deducted from punishers
-        - Punishment damage deducted from targets
-        - Final payoff = pool_payoff - punishment_cost - punishment_damage
+        - Deduction costs deducted from reducers
+        - Deduction damage deducted from targets
+        - Final payoff = pool_payoff - deduction_cost - deduction_damage
         """
         pytest.skip("Stub - implement in Wave 1-3")

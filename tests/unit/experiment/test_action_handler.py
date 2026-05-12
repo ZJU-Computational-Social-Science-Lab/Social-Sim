@@ -1,11 +1,15 @@
 """
-Tests for ActionHandler.
+Tests for ActionHandler and action registry.
 
-Covers action execution, declarative effects, and handler dispatch
-for experiment actions including punishment event emission.
+Covers action execution, declarative effects, handler dispatch
+for experiment actions including reduction event emission, and
+PGG record-only action registration.
+
+Contains: TestActionHandler, TestPGGActionRegistry
 """
 import pytest
 from socialsim4.core.experiment.action_handler import ActionHandler
+from socialsim4.core.experiment.actions.registry import ACTION_REGISTRY, get_action
 from socialsim4.core.experiment.state import ExperimentState, AgentState
 
 
@@ -79,9 +83,9 @@ class TestActionHandler:
         assert self.state.agents["Alice"].resources["tokens"] == 15
         assert self.state.extensions["pools"]["main"] == 5
 
-    # Wave 1: Punishment event emission tests (FEAT-PGG-09 through FEAT-PGG-11)
-    def test_punish_emits_event(self):
-        """Punish action should emit reduction_action event."""
+    # Wave 1: Reduction event emission tests (FEAT-PGG-09 through FEAT-PGG-11)
+    def test_reduce_emits_event(self):
+        """Reduce action should emit reduction_action event."""
         handler = ActionHandler()
         state = ExperimentState()
         state.agents["Alice"] = AgentState(
@@ -93,7 +97,7 @@ class TestActionHandler:
 
         mock_scene = MockScene()
 
-        result = handler.execute("punish", "Alice", {"target": "Bob", "amount": 5}, state, mock_scene)
+        result = handler.execute("reduce", "Alice", {"target": "Bob", "amount": 5}, state, mock_scene)
 
         assert result["success"] is True
         assert len(mock_scene.emitted_events) == 1
@@ -101,8 +105,8 @@ class TestActionHandler:
         assert mock_scene.emitted_events[0]["data"]["reducer"] == "Alice"
         assert mock_scene.emitted_events[0]["data"]["target"] == "Bob"
 
-    def test_punish_event_includes_amount(self):
-        """Punishment event should include amount spent."""
+    def test_reduce_event_includes_amount(self):
+        """Reduction event should include amount spent."""
         handler = ActionHandler()
         state = ExperimentState()
         state.agents["Alice"] = AgentState(
@@ -114,13 +118,13 @@ class TestActionHandler:
 
         mock_scene = MockScene()
 
-        result = handler.execute("punish", "Alice", {"target": "Bob", "amount": 5}, state, mock_scene)
+        result = handler.execute("reduce", "Alice", {"target": "Bob", "amount": 5}, state, mock_scene)
 
         assert result["success"] is True
         assert mock_scene.emitted_events[0]["data"]["amount"] == 5
 
-    def test_punish_event_includes_deduction(self):
-        """Punishment event should include deduction (amount × cost_ratio)."""
+    def test_reduce_event_includes_deduction(self):
+        """Reduction event should include deduction (amount × cost_ratio)."""
         handler = ActionHandler()
         state = ExperimentState()
         state.agents["Alice"] = AgentState(
@@ -132,9 +136,69 @@ class TestActionHandler:
 
         mock_scene = MockScene()
 
-        result = handler.execute("punish", "Alice", {"target": "Bob", "amount": 5}, state, mock_scene)
+        result = handler.execute("reduce", "Alice", {"target": "Bob", "amount": 5}, state, mock_scene)
 
         assert result["success"] is True
         # deduction = amount × cost_ratio = 5 × 3.0 = 15.0
         assert mock_scene.emitted_events[0]["data"]["deduction"] == 15.0
         assert mock_scene.emitted_events[0]["data"]["cost_ratio"] == 3.0
+
+
+class TestPGGActionRegistry:
+    """Regression: allocate and keep must be registered record-only actions.
+
+    Bug: scene.py now checks execute_action results. Unregistered actions
+    return success=False, which clears history and breaks round context.
+    """
+
+    def test_allocate_registered(self):
+        """'allocate' is in ACTION_REGISTRY."""
+        assert "allocate" in ACTION_REGISTRY
+        assert get_action("allocate") is not None
+
+    def test_keep_registered(self):
+        """'keep' is in ACTION_REGISTRY."""
+        assert "keep" in ACTION_REGISTRY
+        assert get_action("keep") is not None
+
+    def test_allocate_is_record_only(self):
+        """'allocate' is record_only — payoff handled by payoff engine."""
+        action = get_action("allocate")
+        assert action.record_only is True
+
+    def test_keep_is_record_only(self):
+        """'keep' is record_only — no state mutation needed."""
+        action = get_action("keep")
+        assert action.record_only is True
+
+    def test_allocate_no_effects_no_handler(self):
+        """Record-only actions have no effects or handler."""
+        action = get_action("allocate")
+        assert action.effects == []
+        assert action.handler is None
+
+    def test_keep_no_effects_no_handler(self):
+        """Record-only actions have no effects or handler."""
+        action = get_action("keep")
+        assert action.effects == []
+        assert action.handler is None
+
+    def test_execute_allocate_succeeds(self):
+        """Allocating through ActionHandler returns success."""
+        handler = ActionHandler()
+        state = ExperimentState()
+        state.agents["Alice"] = AgentState(resources={"tokens": 20})
+        result = handler.execute("allocate", "Alice", {}, state)
+        assert result["success"] is True
+        assert result.get("record_only") is True
+        assert result.get("effect_applied") is False
+
+    def test_execute_keep_succeeds(self):
+        """Keep through ActionHandler returns success."""
+        handler = ActionHandler()
+        state = ExperimentState()
+        state.agents["Alice"] = AgentState(resources={"tokens": 20})
+        result = handler.execute("keep", "Alice", {}, state)
+        assert result["success"] is True
+        assert result.get("record_only") is True
+        assert result.get("effect_applied") is False

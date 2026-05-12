@@ -233,9 +233,29 @@ def build_structured_context(
         else:
             # CRITICAL: Only apply during allocate phase, not deduct
             if info_model.show_average_contribution and other_events and state:
-                # Calculate average based on scope_type
-                if info_model.scope_type == "all":
-                    # For "all" scope, calculate average from ALL other agents' contributions
+                # CRITICAL: Check graph FIRST — when a network graph is present,
+                # neighbor-scoped averaging must be used regardless of scope_type.
+                # The scope_type=="all" path is only for experiments without a graph.
+                if graph:
+                    # Graph present: use neighbor-scoped average from visible connections
+                    visible = info_model.get_visible_contributions(for_agent, state, graph)
+                    if visible:
+                        # CRITICAL: Use len(visible) for neighbor count, NOT len(other_events)
+                        # This ensures count matches average source
+                        neighbor_count = len(visible)
+                        avg = sum(visible.values()) / neighbor_count
+                        # Keep own action, show average for neighbors
+                        parts = []
+                        if my_event:
+                            parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))
+                        parts.append(f"Average contribution from {neighbor_count} neighbors: {avg:.1f}")
+                    else:
+                        # No visible neighbors — show only own action (no global fallback)
+                        parts = []
+                        if my_event:
+                            parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))
+                elif info_model.scope_type == "all":
+                    # No graph: calculate average from ALL other agents' contributions
                     all_contributions = {}
                     for agent_name, agent_state in state.agents.items():
                         if agent_name != for_agent:
@@ -255,26 +275,6 @@ def build_structured_context(
                         parts = []
                         if my_event:
                             parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))
-                elif graph:
-                    # For neighborhood scope, calculate from visible neighbors
-                    visible = info_model.get_visible_contributions(for_agent, state, graph)
-                    if visible:
-                        # CRITICAL: Use len(visible) for neighbor count, NOT len(other_events)
-                        # This ensures count matches average source
-                        neighbor_count = len(visible)
-                        avg = sum(visible.values()) / neighbor_count
-                        # Keep own action, show average for neighbors
-                        parts = []
-                        if my_event:
-                            parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))
-                        parts.append(f"Average contribution from {neighbor_count} neighbors: {avg:.1f}")
-                    else:
-                        # No visible contributions - fall back to original behavior
-                        parts = []
-                        if my_event:
-                            parts.append(_format_action_with_parameters("I", my_event.action_name, my_event.parameters))
-                        for e in other_events:
-                            parts.append(_format_action_with_parameters(e.agent_name, e.action_name, e.parameters))
                 else:
                     # No graph available - fall back to showing individuals
                     parts = []

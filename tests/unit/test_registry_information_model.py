@@ -53,6 +53,16 @@ def test_get_information_model_derives_contagion_neighborhood_scope():
     assert model.include_scores is False
 
 
+def test_get_information_model_derives_custom_neighborhood_scope():
+    from socialsim4.core.registry import get_information_model
+
+    model = get_information_model("custom")
+
+    assert isinstance(model, InformationModel)
+    assert model.scope_type == "neighborhood"
+    assert model.include_scores is False
+
+
 def test_pair_agents_randomly_is_deterministic():
     from socialsim4.core.registry import pair_agents_randomly
 
