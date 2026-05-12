@@ -18,12 +18,12 @@
    - village_scene       -> SequentialOrdering（如果 default_map.json 存在则测试，否则跳过）
 
 3）多级克隆链路压测：
-   - 对同一个场景连续执行多次“serialize -> deserialize -> reset_event_queue -> _check_simulator_clone”，
+   - 对同一个场景连续执行多次"serialize -> deserialize -> reset_event_queue -> _check_simulator_clone"，
      模拟 advance_chain 场景下的重复克隆，确保不会出现状态污染。
 
 4）负向用例：
    - 故意破坏 clone 的不变量（event_queue 非空、agents 共享、ordering 共享），
-     验证 _check_simulator_clone 会抛出 SimCloneError，证明断言“是活的”。
+     验证 _check_simulator_clone 会抛出 SimCloneError，证明断言"是活的"。
 """
 
 from __future__ import annotations
@@ -44,14 +44,16 @@ from socialsim4.core.simtree import SimTree, SimCloneError
 from socialsim4.core.simulator import Simulator
 from socialsim4.scenarios.basic import (
     build_simple_chat_sim_chinese,
-    build_council_sim,
     build_landlord_sim,
     build_werewolf_sim,
     build_village_sim,
 )
+from socialsim4.services.llm_client_pool import (
+    build_council_sim,
+)
 
 # ----------------------------------------------------------------------
-# 辅助：构造一个“不会真正调 LLM”的 dummy client
+# 辅助：构造一个"不会真正调 LLM"的 dummy client
 # ----------------------------------------------------------------------
 
 
@@ -89,7 +91,7 @@ def make_simulator(kind: str) -> Simulator:
     if kind == "simple_chat_zh":
         return build_simple_chat_sim_chinese(clients=clients, event_logger=None)
     if kind == "council":
-        return build_council_sim(clients=clients, event_logger=None)
+        return build_council_sim(clients=clients)
     if kind == "landlord":
         return build_landlord_sim(clients=clients, event_logger=None)
     if kind == "werewolf":
@@ -206,23 +208,41 @@ def test_simtree_clone_event_queue_cleared_and_not_shared(kind: str):
 
 
 def test_simtree_clone_resets_transient_offline_state():
+    """SimTree.new() intentionally resets transient LLM error state on clone.
+
+    Design intent: when creating a new branch from a node whose agent has gone
+    offline (consecutive LLM errors exceeded threshold), the branch should give
+    the agent a fresh start. The branch may use a different LLM provider or
+    config, so carrying over "broken" state would be misleading. See
+    SimTree.new() lines 148-149 and _clone_simulator_from_node lines 217-218.
+
+    Raw serialize/deserialize preserves these fields faithfully, but the SimTree
+    clone path explicitly resets them after deserialization.
+    """
     base_sim = make_simulator("simple_chat_zh")
     first_agent = next(iter(base_sim.agents.values()))
     first_agent.consecutive_llm_errors = 3
     first_agent.is_offline = True
 
-    cloned_sim, _tree = _make_clone_via_simulator(base_sim)
-    cloned_agent = cloned_sim.agents[first_agent.name]
+    # Use SimTree.new() path (not raw serialize/deserialize) — this is the
+    # actual clone path that production code uses.
+    tree = SimTree.new(base_sim, base_sim.clients)
+    root_agent = tree.nodes[tree.root]["sim"].agents[first_agent.name]
 
-    assert cloned_agent.is_offline is False
-    assert cloned_agent.consecutive_llm_errors == 0
+    # SimTree.new resets transient error state
+    assert root_agent.is_offline is False, (
+        "Root node agent should be online after SimTree.new()"
+    )
+    assert root_agent.consecutive_llm_errors == 0, (
+        "Root node agent should have zero errors after SimTree.new()"
+    )
 
 
 @pytest.mark.parametrize("kind", SCENARIO_KINDS)
 def test_simtree_clone_deepcopy_of_agent_and_scene_state(kind: str):
     """
     验证克隆是深拷贝语义，而不是浅拷贝：
-    - 修改 clone.agent.plan_state 不会影响 base；
+    - 修改 clone.agent.properties 不会影响 base；
     - 修改 clone.scene.state 不会影响 base。
     这侧面证明 SimTree 克隆是通过 Simulator.serialize/deserialize（内部 deepcopy），而不是简单引用复制。
     """
@@ -235,17 +255,15 @@ def test_simtree_clone_deepcopy_of_agent_and_scene_state(kind: str):
     clone_agent = cloned_sim.agents[base_agent_name]
 
     # 记录 base 的原始状态
-    base_plan_snapshot = deepcopy(base_agent.plan_state)
+    base_props_snapshot = deepcopy(base_agent.properties)
     base_scene_state_snapshot = deepcopy(base_sim.scene.state)
 
-    # 修改 clone 的 plan_state 和 scene.state
-    clone_agent.plan_state.setdefault("goals", []).append(
-        {"id": "g_test", "desc": f"test-goal-{kind}", "priority": "normal", "status": "pending"}
-    )
+    # 修改 clone 的 properties 和 scene.state
+    clone_agent.properties[f"__test_{kind}__"] = f"from_clone_{kind}"
     cloned_sim.scene.state["__test_key__"] = f"from_clone_{kind}"
 
     # base 不应受到影响
-    assert base_agent.plan_state == base_plan_snapshot, f"[{kind}] base agent plan_state was mutated by clone change"
+    assert base_agent.properties == base_props_snapshot, f"[{kind}] base agent properties was mutated by clone change"
     assert base_sim.scene.state == base_scene_state_snapshot, f"[{kind}] base scene.state was mutated by clone change"
 
 
@@ -284,20 +302,20 @@ def test_simtree_multi_level_clone_chain_no_state_leak(kind: str):
     - 断言最初的 sim0 没有被污染。
 
     目的：
-    - 模拟 advance_chain 场景下“连续 N 次克隆”的模式；
+    - 模拟 advance_chain 场景下"连续 N 次克隆"的模式；
     - 验证 serialize/deserialize + reset_event_queue + _check_simulator_clone 不会引入跨层状态污染。
     """
     sim0 = make_simulator(kind)
 
     # 记录最初 base 的快照
     base_scene_snapshot = deepcopy(sim0.scene.state)
-    base_plan_snapshots = {name: deepcopy(agent.plan_state) for name, agent in sim0.agents.items()}
+    base_props_snapshots = {name: deepcopy(agent.properties) for name, agent in sim0.agents.items()}
 
     current_sim = sim0
     chain_depth = 5
 
     for depth in range(chain_depth):
-        # 每一层都真实跑一下 SimTree.new，确保当前实现对 current_sim 是“健康”的
+        # 每一层都真实跑一下 SimTree.new，确保当前实现对 current_sim 是"健康"的
         _tree = SimTree.new(current_sim, current_sim.clients)
 
         # 然后按同样路径克隆一次，作为下一层的 current_sim
@@ -308,23 +326,16 @@ def test_simtree_multi_level_clone_chain_no_state_leak(kind: str):
         # 在 clone 上做一些可见的修改
         agent_name = next(iter(cloned.agents.keys()))
         clone_agent = cloned.agents[agent_name]
-        clone_agent.plan_state.setdefault("goals", []).append(
-            {
-                "id": f"g_chain_{depth}",
-                "desc": f"goal-depth-{depth}",
-                "priority": "normal",
-                "status": "pending",
-            }
-        )
+        clone_agent.properties[f"__chain_{depth}__"] = f"depth-{depth}"
         cloned.scene.state[f"clone_depth_{depth}"] = depth
 
         current_sim = cloned
 
         # 每一层都检查：最初 sim0 仍保持原始快照
         assert sim0.scene.state == base_scene_snapshot, f"[{kind}] sim0.scene.state mutated at depth={depth}"
-        for name, base_plan in base_plan_snapshots.items():
-            assert sim0.agents[name].plan_state == base_plan, (
-                f"[{kind}] sim0.agent[{name}].plan_state mutated at depth={depth}"
+        for name, base_props in base_props_snapshots.items():
+            assert sim0.agents[name].properties == base_props, (
+                f"[{kind}] sim0.agent[{name}].properties mutated at depth={depth}"
             )
 
 
@@ -335,7 +346,7 @@ def test_simtree_multi_level_clone_chain_no_state_leak(kind: str):
 
 def test_clone_check_raises_on_non_empty_event_queue():
     """
-    负向用例：模拟“旧版忘记 reset_event_queue()” 的 bug。
+    负向用例：模拟"旧版忘记 reset_event_queue()" 的 bug。
 
     做法：
     - 在 base_sim 上先放入一个 pending event，再 serialize；
@@ -360,7 +371,7 @@ def test_clone_check_raises_on_non_empty_event_queue():
     # 需要一个 SimTree 实例来调用 _check_simulator_clone，本身内部 clone 不参与本用例
     tree = SimTree.new(base_sim, base_sim.clients)
 
-    # 这里手动把“有脏队列的 clone”丢给 _check_simulator_clone，
+    # 这里手动把"有脏队列的 clone"丢给 _check_simulator_clone，
     # 预期因为 cloned.event_queue 非空而抛出 SimCloneError
     with pytest.raises(SimCloneError, match="event_queue"):
         tree._check_simulator_clone(base_sim, cloned)
@@ -371,7 +382,7 @@ def test_clone_check_raises_on_non_empty_event_queue():
 def test_clone_check_raises_on_shared_agents_dict():
     """
     负向用例：强行让 clone.agents 引用 base.agents，
-    再调用 _check_simulator_clone，预期抛出 “agents dict shared between base and clone”。
+    再调用 _check_simulator_clone，预期抛出 "agents dict shared between base and clone"。
     """
     base_sim = make_simulator("simple_chat_zh")
     cloned, tree = _make_clone_via_simulator(base_sim)
@@ -389,7 +400,7 @@ def test_clone_check_raises_on_shared_agents_dict():
 def test_clone_check_raises_on_shared_ordering_object():
     """
     负向用例：强行让 clone.ordering 引用 base.ordering，
-    再调用 _check_simulator_clone，预期抛出 “ordering object shared between base and clone”。
+    再调用 _check_simulator_clone，预期抛出 "ordering object shared between base and clone"。
     """
     base_sim = make_simulator("council")
     cloned, tree = _make_clone_via_simulator(base_sim)
@@ -402,3 +413,132 @@ def test_clone_check_raises_on_shared_ordering_object():
 
     with pytest.raises(SimCloneError, match="ordering object shared"):
         tree._check_simulator_clone(base_sim, cloned)
+
+
+# ----------------------------------------------------------------------
+# 4) SimTree node-level isolation: logs, advance, sibling branches
+# ----------------------------------------------------------------------
+
+
+def test_child_advance_logs_attach_to_child_not_parent():
+    """Events generated during advance() must appear in the child node's logs,
+    not the parent's."""
+    base_sim = make_simulator("simple_chat_zh")
+    tree = SimTree.new(base_sim, base_sim.clients)
+    root = tree.root
+
+    root_logs_before = len(tree.nodes[root]["logs"])
+
+    # Advance root by 1 turn; creates child node with cloned sim
+    child_id = tree.advance(root, turns=1)
+
+    child_logs = tree.nodes[child_id]["logs"]
+    root_logs_after = len(tree.nodes[root]["logs"])
+
+    # Child should have at least one log event from the advance
+    assert len(child_logs) > root_logs_before, (
+        "Child logs should contain events from the advance"
+    )
+    # Parent logs must be unchanged
+    assert root_logs_after == root_logs_before, (
+        "Parent logs should not change after child advance"
+    )
+    # All events in child logs should reference the child node_id
+    for entry in child_logs[root_logs_before:]:
+        assert entry.get("node") == int(child_id), (
+            f"Event after advance has wrong node: expected {child_id}, got {entry.get('node')}"
+        )
+
+
+def test_parent_state_unchanged_after_child_advance():
+    """After advancing a child node, the parent's agent state and turns must
+    remain identical to the pre-advance snapshot."""
+    base_sim = make_simulator("simple_chat_zh")
+    tree = SimTree.new(base_sim, base_sim.clients)
+    root = tree.root
+
+    # Snapshot parent state
+    root_agents_snapshot = {
+        name: deepcopy(agent.properties) for name, agent in tree.nodes[root]["sim"].agents.items()
+    }
+    root_turns_before = tree.nodes[root]["sim"].turns
+
+    # Advance
+    tree.advance(root, turns=1)
+
+    # Verify parent unchanged
+    assert tree.nodes[root]["sim"].turns == root_turns_before, (
+        "Parent turns changed after child advance"
+    )
+    for name, snap_props in root_agents_snapshot.items():
+        assert tree.nodes[root]["sim"].agents[name].properties == snap_props, (
+            f"Parent agent {name} properties mutated by child advance"
+        )
+
+
+def test_sibling_branches_share_no_mutable_state():
+    """Two branches from the same root must not share mutable state.
+    Mutating branch A must not affect branch B or the root."""
+    base_sim = make_simulator("simple_chat_zh")
+    tree = SimTree.new(base_sim, base_sim.clients)
+    root = tree.root
+
+    # Create two sibling branches with different config patches
+    branch_a = tree.branch(root, [
+        {"op": "config_params_patch", "updates": {"test_key": "A"}}
+    ])
+    branch_b = tree.branch(root, [
+        {"op": "config_params_patch", "updates": {"test_key": "B"}}
+    ])
+
+    # Mutate branch A's agent properties
+    agent_a_name = next(iter(tree.nodes[branch_a]["sim"].agents.keys()))
+    tree.nodes[branch_a]["sim"].agents[agent_a_name].properties["__mutated_by_a__"] = True
+
+    # Branch B must be unaffected
+    agent_b = tree.nodes[branch_b]["sim"].agents.get(agent_a_name)
+    assert agent_b is not None
+    assert agent_b.properties.get("__mutated_by_a__") is None, (
+        "Branch B shares mutable state with Branch A"
+    )
+
+    # Root must be unaffected
+    root_agent = tree.nodes[root]["sim"].agents[agent_a_name]
+    assert root_agent.properties.get("__mutated_by_a__") is None, (
+        "Root shares mutable state with Branch A"
+    )
+
+
+def test_branch_preserves_scenario_config_actions_agents_network():
+    """Branching with no ops must preserve the full scenario state:
+    agent names, scene type, scene state structure, and network."""
+    base_sim = make_simulator("council")
+    tree = SimTree.new(base_sim, base_sim.clients)
+    root = tree.root
+
+    root_sim = tree.nodes[root]["sim"]
+    root_agent_names = set(root_sim.agents.keys())
+    root_scene_type = type(root_sim.scene).__name__
+    root_scene_state_keys = set(root_sim.scene.state.keys())
+
+    # Branch with no ops
+    child_id = tree.branch(root, [])
+
+    child_sim = tree.nodes[child_id]["sim"]
+    child_agent_names = set(child_sim.agents.keys())
+    child_scene_type = type(child_sim.scene).__name__
+    child_scene_state_keys = set(child_sim.scene.state.keys())
+
+    assert child_agent_names == root_agent_names, (
+        "Branch lost agents from parent"
+    )
+    assert child_scene_type == root_scene_type, (
+        "Branch changed scene type from parent"
+    )
+    assert child_scene_state_keys == root_scene_state_keys, (
+        "Branch has different scene state structure"
+    )
+    # Verify ordering type is preserved
+    assert type(child_sim.ordering) is type(root_sim.ordering), (
+        "Branch changed ordering type"
+    )

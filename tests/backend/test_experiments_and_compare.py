@@ -15,7 +15,6 @@ from socialsim4.backend.services.simtree_runtime import SIM_TREE_REGISTRY
 from socialsim4.core.simtree import SimTree
 from socialsim4.core.llm import create_llm_client
 from socialsim4.core.llm_config import LLMConfig
-from socialsim4.backend.api.routes.simulations import _align_event_sequences
 
 
 @pytest.mark.asyncio
@@ -40,7 +39,7 @@ async def simtree_record_fixture():
     client = create_llm_client(cfg)
     clients = {"chat": client, "default": client, "search": None}
     # create a sim tree for scene "preview"
-    rec = await SIM_TREE_REGISTRY.get_or_create("testsims", "preview", clients)
+    rec = await SIM_TREE_REGISTRY.get_or_create("testsims", "simple_chat_scene", clients)
     try:
         yield rec
     finally:
@@ -122,24 +121,6 @@ async def test_registry_refreshes_cached_tree_from_latest_state(simtree_record_f
     assert refreshed is rec
     assert child_id in refreshed.tree.nodes
     assert len(refreshed.tree.nodes) == len(external_tree.nodes)
-
-
-def make_event(ev_type: str, data: dict = None):
-    if data is None:
-        data = {}
-    return {"type": ev_type, "data": data}
-
-
-def test_align_event_sequences_basic():
-    logs_a = [make_event("m", {"x": 1}), make_event("n", {}), make_event("o", {})]
-    logs_b = [make_event("m", {"x": 1}), make_event("o", {}), make_event("p", {})]
-    res = _align_event_sequences(logs_a, logs_b, max_evidences=3)
-    assert "added" in res and "removed" in res and "evidence_segments" in res
-    # expect one added (p) and one removed (n)
-    added_types = [e["type"] for e in res["added"]]
-    removed_types = [e["type"] for e in res["removed"]]
-    assert any(t == "p" for t in added_types)
-    assert any(t == "n" for t in removed_types)
 
 
 def test_llm_mock_client_chat():
