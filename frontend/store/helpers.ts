@@ -572,6 +572,23 @@ export const mapBackendEventsToLogs = (
       return { ...base, type: 'AGENT_ACTION', agentId, content: label, actionLabel: readableAction };
     }
 
+    // Reduction action — PGG deduction events emitted by the reduce handler
+    if (evType === 'reduction_action') {
+      const agentName: string = data.reducer || '';
+      const targetName: string = data.target || '';
+      const amount: number = data.amount || 0;
+      const deduction: number = data.deduction || 0;
+      const agentId = agentName ? nameToId.get(agentName) : undefined;
+      const displayAgentName = getDisplayAgentName(agentName);
+      const displayTargetName = getDisplayAgentName(targetName);
+
+      const content = pickText(
+        `${displayAgentName} reduced ${displayTargetName} by ${amount} (deduction: ${deduction})`,
+        `${displayAgentName} 对 ${displayTargetName} 施加了 ${amount} 点扣减（实际扣除: ${deduction}）`
+      );
+      return { ...base, type: 'AGENT_ACTION', agentId, content, actionLabel: translateActionName('reduce') };
+    }
+
     const text = data.text || data.message || evType || labels.systemEvent;
     return { ...base, type: 'SYSTEM', content: text };
   }).filter((entry): entry is LogEntry => entry !== null);

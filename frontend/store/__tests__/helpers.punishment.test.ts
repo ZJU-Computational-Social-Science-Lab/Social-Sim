@@ -1,19 +1,19 @@
 /**
- * Tests for punishment event mapping in helpers.ts.
+ * Tests for reduction event mapping in helpers.ts.
  *
  * Tests for:
- * - mapBackendEventsToLogs handling punishment_action events
- * - Event display with punisher, target, amount, deduction
+ * - mapBackendEventsToLogs handling reduction_action events
+ * - Event display with reducer, target, amount, deduction
  * - i18n support for runtime language switching
  *
- * Wave 1 implementation - tests verify punishment event mapping (FEAT-PGG-09 through FEAT-PGG-11)
+ * Updated to match backend terminology: reduction_action / reducer / deduction_*
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mapBackendEventsToLogs } from '../helpers';
 import type { Agent } from '../../types';
 
-describe('mapBackendEventsToLogs - punishment_action', () => {
+describe('mapBackendEventsToLogs - reduction_action', () => {
   let mockAgents: Agent[];
 
   beforeEach(() => {
@@ -24,17 +24,13 @@ describe('mapBackendEventsToLogs - punishment_action', () => {
     ] as Agent[];
   });
 
-  // =========================================================================
-  // Wave 1: Punishment Event Mapping Tests (FEAT-PGG-09 through FEAT-PGG-11)
-  // =========================================================================
-
-  describe('Punishment Event Mapping', () => {
-    it('should handle punishment_action event type', () => {
+  describe('Reduction Event Mapping', () => {
+    it('should handle reduction_action event type', () => {
       const events = [
         {
-          type: 'punishment_action',
+          type: 'reduction_action',
           data: {
-            punisher: 'Alice',
+            reducer: 'Alice',
             target: 'Bob',
             amount: 3,
             deduction: 9,
@@ -50,12 +46,12 @@ describe('mapBackendEventsToLogs - punishment_action', () => {
       expect(logs[0].agentId).toBe('agent-1');
     });
 
-    it('should display punisher name, target name, amount, and deduction', () => {
+    it('should display reducer name, target name, amount, and deduction', () => {
       const events = [
         {
-          type: 'punishment_action',
+          type: 'reduction_action',
           data: {
-            punisher: 'Alice',
+            reducer: 'Alice',
             target: 'Bob',
             amount: 3,
             deduction: 9,
@@ -72,12 +68,12 @@ describe('mapBackendEventsToLogs - punishment_action', () => {
       expect(logs[0].content).toContain('9');
     });
 
-    it('should use i18n.t() for runtime language switching', () => {
+    it('should use i18n for runtime language switching', () => {
       const events = [
         {
-          type: 'punishment_action',
+          type: 'reduction_action',
           data: {
-            punisher: 'Alice',
+            reducer: 'Alice',
             target: 'Bob',
             amount: 3,
             deduction: 9,
@@ -88,8 +84,6 @@ describe('mapBackendEventsToLogs - punishment_action', () => {
 
       const logs = mapBackendEventsToLogs(events, 'node-1', 1, mockAgents, true);
 
-      // Content should use i18n translation (will be in English or Chinese depending on current locale)
-      // The key point is that it uses i18n.t() which enables runtime switching
       expect(logs[0].content).toBeDefined();
       expect(logs[0].content).toBeTruthy();
     });
@@ -97,9 +91,9 @@ describe('mapBackendEventsToLogs - punishment_action', () => {
     it('should use event round if provided, fallback to parameter round', () => {
       const events = [
         {
-          type: 'punishment_action',
+          type: 'reduction_action',
           data: {
-            punisher: 'Alice',
+            reducer: 'Alice',
             target: 'Bob',
             amount: 3,
             deduction: 9,
@@ -113,10 +107,10 @@ describe('mapBackendEventsToLogs - punishment_action', () => {
       expect(logs[0].round).toBe(5);
     });
 
-    it('should handle missing punisher gracefully', () => {
+    it('should handle missing reducer gracefully', () => {
       const events = [
         {
-          type: 'punishment_action',
+          type: 'reduction_action',
           data: {
             target: 'Bob',
             amount: 3,

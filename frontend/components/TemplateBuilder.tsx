@@ -89,12 +89,12 @@ const SYSTEM_ACTIONS = [
   { id: 'speak', category: 'communication' },
   { id: 'yield', category: 'communication' },
   // Movement
-  { id: 'move_to_location', category: 'movement' },
+  { id: 'move', category: 'movement' },
+  { id: 'move_to_location', category: 'movement' },  // legacy alias
   // Observation
   { id: 'look_around', category: 'observation' },
-  // Resources
-  { id: 'gather_resource', category: 'resources' },
-  { id: 'rest', category: 'resources' },
+  // Rest / idle (record-only in active scenarios)
+  { id: 'rest', category: 'observation' },
   // Tools
   { id: 'web_search', category: 'tools' },
   { id: 'view_page', category: 'tools' },
@@ -124,17 +124,15 @@ const SYSTEM_ACTIONS = [
   { id: 'no_double', category: 'landlord' },
 ];
 
-const ACTION_CATEGORIES = ['communication', 'movement', 'observation', 'resources', 'tools', 'council', 'werewolf', 'landlord'] as const;
+const ACTION_CATEGORIES = ['communication', 'movement', 'observation', 'tools', 'council', 'werewolf', 'landlord'] as const;
 
 // Action to required mechanic mapping
 // When these actions are selected, the corresponding mechanic will be auto-enabled
 const ACTION_MECHANIC_REQUIREMENTS: Record<string, CoreMechanicType[]> = {
   // Movement & Observation actions require Grid
-  move_to_location: ['grid'],
+  move: ['grid'],
   look_around: ['grid'],
-  // Resources actions require Resources
-  gather_resource: ['resources'],
-  rest: ['grid', 'resources'],  // Rest works with both, prefer grid
+  rest: ['grid'],  // Rest is record-only, needs grid for context
   // Voting actions require Voting
   start_voting: ['voting'],
   vote: ['voting'],

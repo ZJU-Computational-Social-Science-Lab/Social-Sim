@@ -375,7 +375,7 @@ describe('Step3Scenario - Dynamic Actions', () => {
           parameters: [],
           actions: [
             { id: 'talk_to', name: 'talk_to', description: 'Irrelevant action' },
-            { id: 'move_to_location', name: 'move_to_location', description: 'Irrelevant action' },
+            { id: 'move', name: 'move', description: 'Irrelevant action' },
           ],
         },
         scenarioParams: {},
