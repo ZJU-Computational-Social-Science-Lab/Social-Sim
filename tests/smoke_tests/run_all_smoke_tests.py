@@ -135,7 +135,8 @@ SCENARIO_BUILDERS = {
     "echo_chamber": "build_echo_chamber_test",
     "resource_scarcity": "build_resource_scarcity_test",
     "grid_world": "build_grid_world_test",
-    "werewolf": "build_werewolf_test",
+    # NOTE: werewolf removed — scenario is unsupported/inactive
+    # To re-enable: add "werewolf": "build_werewolf_test" back
 }
 
 

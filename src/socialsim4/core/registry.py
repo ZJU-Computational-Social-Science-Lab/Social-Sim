@@ -108,7 +108,7 @@ SCENE_MAP = {
     "council_scene": CouncilScene,
     "council_experiment": CouncilExperimentScene,  # REFACTOR-COUNCIL-06: New experiment-based council scene
     "village_scene": VillageScene,
-    "werewolf_scene": WerewolfScene,
+    "werewolf_scene": WerewolfScene,  # LEGACY: unsupported — kept for backward compat
     "landlord_scene": LandlordPokerScene,
     "generic_scene": GenericScene,
     "policy_cascade_scene": PolicyCascadeScene,
@@ -161,6 +161,7 @@ SCENE_ACTIONS: dict[str, dict[str, list[str]]] = {
         "allowed": ["query_knowledge", "list_knowledge"],
     },
     "werewolf_scene": {
+        # LEGACY: unsupported — Werewolf is inactive, requires dedicated role/phase runtime
         "basic": ["speak", "vote_lynch", "yield"],
         "allowed": ["open_voting", "close_voting", "night_kill", "inspect", "witch_save", "witch_poison"],
     },
@@ -244,7 +245,7 @@ INFORMATION_MODEL_MAP: dict = {
         # by the runtime. Defaults to social_network fallback until that is wired.
         recent_window=5,
     ),
-    "werewolf_scene": InformationModel(
+    "werewolf_scene": InformationModel(  # LEGACY: unsupported
         scope_type="role_based",
         scope_fn=werewolf_visibility_scope,
         recent_window=5,
@@ -296,7 +297,7 @@ INFORMATION_MODEL_MAP: dict = {
     "echo_chamber": InformationModel(scope_type="neighborhood", recent_window=3, include_scores=False),
     "resource_scarcity": InformationModel(scope_type="all", recent_window=3, include_scores=False),
     "open_discussion": InformationModel(scope_type="all", recent_window=3, include_scores=False),
-    "werewolf": InformationModel(scope_type="all", recent_window=3, include_scores=False),
+    "werewolf": InformationModel(scope_type="all", recent_window=3, include_scores=False),  # LEGACY: unsupported
     "grid_world": InformationModel(scope_type="neighborhood", recent_window=3, include_scores=False),
     # Fallback for unknown scene types
     "_default": InformationModel(scope_type="all", recent_window=3),
@@ -343,7 +344,7 @@ SCENE_DESCRIPTIONS: dict[str, str] = {
     "council_scene": "Legislative council debate and voting around a draft text; supports voting and status actions.",
     "council_experiment": "Council experiment using experiment framework with multi-round deliberation context and phase-based action filtering.",
     "village_scene": "Grid-based village simulation with movement, looking around, gathering, and resting.",
-    "werewolf_scene": "Social deduction game with night/day phases and role-specific actions (moderated flow).",
+    "werewolf_scene": "Social deduction game with night/day phases and role-specific actions (UNSUPPORTED — requires dedicated role/phase runtime).",
     "landlord_scene": "Dou Dizhu (Landlord) card game flow with bidding, playing, and scoring stages.",
     "generic_scene": "A flexible scene type composed from template configuration. Supports custom mechanics and semantic actions.",
     "experiment_template": "Social science experiment using Three-Layer Architecture (constrained decoding, structured prompts, validation). Supports custom actions and simultaneous/sequential rounds.",

@@ -613,6 +613,11 @@ WEREWOLF: Dict[str, Any] = {
     "payoff_type": "none",
     "interaction_mode": "sequential",
     "display_type": "params",
+    "supported": False,
+    "unsupported_reason": (
+        "Werewolf requires a dedicated role/phase runtime before being re-enabled. "
+        "Do not include in active regression expectations."
+    ),
     "parameters": [
         {
             "id": "num_werewolves",
@@ -1014,6 +1019,9 @@ def get_all_scenarios(locale: str | None = None) -> List[Dict[str, Any]]:
     effective_locale = locale or get_request_locale()
     scenarios = []
     for scenario in ALL_SCENARIOS:
+        # Skip unsupported scenarios (e.g., Werewolf)
+        if scenario.get("supported") is False:
+            continue
         # Copy scenario to avoid mutating original
         scenario_copy = scenario.copy()
 

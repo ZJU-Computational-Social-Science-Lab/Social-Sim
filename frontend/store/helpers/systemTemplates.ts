@@ -214,17 +214,10 @@ export const SYSTEM_TEMPLATES: SimulationTemplate[] = [
       step: 2,
     },
   },
-  {
-    id: 'werewolf',
-    name: '狼人杀',
-    description: '9人标准狼人杀局。',
-    category: 'system',
-    sceneType: 'werewolf',
-    agents: [],
-    defaultTimeConfig: {
-      baseTime: new Date().toISOString(),
-      unit: 'minute',
-      step: 30,
-    },
-  },
+  // NOTE: Werewolf template removed from active templates.
+  // Scenario is unsupported/inactive — requires dedicated role/phase runtime.
+  // Template definition kept in git history for future re-enablement.
 ];
+
+// Filter: only expose supported templates (exclude any future unsupported ones)
+export const SUPPORTED_SYSTEM_TEMPLATES = SYSTEM_TEMPLATES;

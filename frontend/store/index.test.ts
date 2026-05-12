@@ -107,7 +107,7 @@ describe('Store - Simulation Slice', () => {
       expect(store.savedTemplates.length).toBeGreaterThan(0);
       expect(store.savedTemplates.find((t: any) => t.id === 'village')).toBeDefined();
       expect(store.savedTemplates.find((t: any) => t.id === 'council')).toBeDefined();
-      expect(store.savedTemplates.find((t: any) => t.id === 'werewolf')).toBeDefined();
+      // NOTE: werewolf template removed — scenario is unsupported/inactive
     });
   });
 
@@ -571,7 +571,7 @@ describe('Store - Helper Functions', () => {
       expect(templateIds).toContain('resource_scarcity');
       expect(templateIds).toContain('village');
       expect(templateIds).toContain('council');
-      expect(templateIds).toContain('werewolf');
+      // NOTE: werewolf removed — scenario is unsupported/inactive
     });
   });
 

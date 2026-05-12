@@ -1,13 +1,19 @@
 """
 Smoke tests for Werewolf scenario with real Ollama LLM.
 
-Tests voting and speaking actions in a social deduction game.
+NOTE: Werewolf is currently unsupported/inactive. These tests are skipped
+because the scenario requires a dedicated role/phase runtime.
+Do not remove — they serve as a regression baseline for future re-enablement.
 """
 
 import asyncio
 import pytest
 from pathlib import Path
 from typing import Dict, Any, List
+
+pytestmark = pytest.mark.skip(
+    reason="Werewolf is currently unsupported/inactive — requires dedicated role/phase runtime"
+)
 
 from socialsim4.core.llm_config import LLMConfig
 from socialsim4.core.experiment.agent import ExperimentAgent

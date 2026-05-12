@@ -105,7 +105,8 @@ def make_simulator(kind: str) -> Simulator:
     raise ValueError(f"Unknown simulator kind for test: {kind}")
 
 
-SCENARIO_KINDS = ["simple_chat_zh", "council", "landlord", "werewolf", "village"]
+SCENARIO_KINDS = ["simple_chat_zh", "council", "landlord", "village"]
+# NOTE: "werewolf" removed from active clone stability tests — scenario is unsupported/inactive
 
 
 def _make_clone_via_simulator(base_sim: Simulator) -> tuple[Simulator, SimTree]:

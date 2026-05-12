@@ -2,10 +2,24 @@
 
 This module keeps the registry-wide action surface explicit. The goal is not
 to silently "fix" legacy mismatches, but to force them to stay documented.
+
+Unsupported scenarios (supported=False) are excluded from active surface tests.
+They remain in ALL_SCENARIOS for metadata checks but are filtered from the
+active matrix and broken-action expectations.
 """
 
 from socialsim4.core.registry import get_information_model
 from socialsim4.core.scenarios.registry import ALL_SCENARIOS, get_scenario_actions
+
+
+def _active_scenarios():
+    """Return only supported scenarios."""
+    return [s for s in ALL_SCENARIOS if s.get("supported") is not False]
+
+
+def _unsupported_scenario_ids():
+    """Return IDs of scenarios marked supported=False."""
+    return {s["id"] for s in ALL_SCENARIOS if s.get("supported") is False}
 
 
 SOCIOLOGY_SCENARIOS = {
@@ -23,7 +37,6 @@ KNOWN_BROKEN_ACTIONS = {
     "echo_chamber",
     "resource_scarcity",
     "xihu_yilianbao",
-    "werewolf",
     "public_goods",
 }
 
@@ -61,12 +74,6 @@ def classify_scenario_action(scenario_id: str, action_id: str) -> str | None:
         if action_id in {"look_around", "rest"}:
             return "record_only"
 
-    if scenario_id == "werewolf":
-        if action_id == "speak":
-            return "record_only"
-        if action_id == "vote":
-            return "broken"
-
     if scenario_id == "coordination_game":
         return None
 
@@ -86,6 +93,7 @@ def classify_scenario_action(scenario_id: str, action_id: str) -> str | None:
 
 
 def test_every_registered_scenario_has_stable_core_metadata():
+    """All scenarios (including unsupported) must have valid metadata."""
     for scenario in ALL_SCENARIOS:
         assert scenario["id"]
         assert scenario["name"]
@@ -97,6 +105,7 @@ def test_every_registered_scenario_has_stable_core_metadata():
 
 
 def test_every_registered_action_has_stable_id_and_name():
+    """All scenarios (including unsupported) must have valid action metadata."""
     for scenario in ALL_SCENARIOS:
         actions = get_scenario_actions(scenario["id"])
         ids = [action["id"] for action in actions]
@@ -108,6 +117,7 @@ def test_every_registered_action_has_stable_id_and_name():
 
 
 def test_default_selected_actions_are_valid_for_their_scenarios():
+    """All scenarios (including unsupported) must have valid default actions."""
     for scenario in ALL_SCENARIOS:
         default_action_ids = scenario.get("default_action_ids") or []
         exposed = {action["id"] for action in get_scenario_actions(scenario["id"])}
@@ -122,8 +132,25 @@ def test_custom_scenario_exposes_only_speak_and_skip():
     assert [action["id"] for action in custom_actions] == ["speak", "skip"]
 
 
+def test_unsupported_scenarios_are_not_in_active_surface():
+    """Scenarios marked supported=False must not appear in active listings."""
+    active_ids = {s["id"] for s in _active_scenarios()}
+    for unsupported_id in _unsupported_scenario_ids():
+        assert unsupported_id not in active_ids, (
+            f"Unsupported scenario {unsupported_id!r} should not appear in active scenarios"
+        )
+
+
+def test_werewolf_is_explicitly_unsupported():
+    """Werewolf must be marked as unsupported with a reason."""
+    werewolf = next(s for s in ALL_SCENARIOS if s["id"] == "werewolf")
+    assert werewolf.get("supported") is False
+    assert werewolf.get("unsupported_reason")
+
+
 def test_every_exposed_action_is_classified_or_explicitly_known_dynamic():
-    for scenario in ALL_SCENARIOS:
+    """Active scenarios must have all actions classified."""
+    for scenario in _active_scenarios():
         actions = get_scenario_actions(scenario["id"])
         if scenario["id"] == "coordination_game":
             assert actions == []
@@ -137,8 +164,9 @@ def test_every_exposed_action_is_classified_or_explicitly_known_dynamic():
 
 
 def test_known_broken_action_surfaces_are_explicit():
+    """Only expected scenarios should have broken actions (excludes unsupported)."""
     broken_by_scenario = {}
-    for scenario in ALL_SCENARIOS:
+    for scenario in _active_scenarios():
         broken_ids = [
             action["id"]
             for action in get_scenario_actions(scenario["id"])
@@ -151,6 +179,7 @@ def test_known_broken_action_surfaces_are_explicit():
 
 
 def test_information_model_matches_registry_shape_for_full_matrix():
+    """Active scenarios must have correct information model scopes."""
     expected_scopes = {
         "prisoners_dilemma": "pair",
         "battle_of_the_sexes": "pair",
@@ -163,13 +192,12 @@ def test_information_model_matches_registry_shape_for_full_matrix():
         "open_discussion": "all",
         "council_chamber": "all",
         "grid_world": "neighborhood",
-        "werewolf": "all",
         "public_goods": "all",
         "coordination_game": "neighborhood",
         "contagion": "neighborhood",
         "custom": "neighborhood",
     }
 
-    for scenario in ALL_SCENARIOS:
+    for scenario in _active_scenarios():
         model = get_information_model(scenario["id"])
         assert model.scope_type == expected_scopes[scenario["id"]]

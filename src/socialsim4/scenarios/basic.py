@@ -780,7 +780,7 @@ SCENES: Dict[str, SceneSpec] = {
         builder=lambda clients, logger=console_logger: build_landlord_sim(clients, event_logger=logger),
         default_turns=200,
     ),
-    "werewolf_scene": SceneSpec(
+    "werewolf_scene": SceneSpec(  # LEGACY: unsupported — kept for backward compat
         builder=lambda clients, logger=console_logger: build_werewolf_sim(clients, event_logger=logger),
         default_turns=400,
     ),
