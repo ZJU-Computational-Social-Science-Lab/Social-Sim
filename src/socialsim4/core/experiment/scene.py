@@ -288,7 +288,7 @@ class ExperimentScene:
 
         # Apply action effects to durable experiment state.
         for action in result.actions:
-            if action.skipped:
+            if action.skipped and not action.success:
                 continue
             self.runner.execute_action(
                 action.action_name,
@@ -299,7 +299,7 @@ class ExperimentScene:
             )
 
         # Update history for next round's context
-        completed_actions = [action for action in result.actions if not action.skipped]
+        completed_actions = [action for action in result.actions if action.success]
 
         history_entry: dict = {
             "round": round_num,
@@ -530,6 +530,8 @@ class ExperimentScene:
         # Build description: use description_template if present on the scenario
         # For PUBLIC_GOODS, we handle description in _build_payoff_summary instead
         description = self.config.description
+        if self.config.scenario_id == "custom":
+            description = str(params.get("custom_prompt") or self.config.description)
         if self.config.scenario_id == "public_goods":
             # For PUBLIC_GOODS, description is handled entirely by _build_payoff_summary
             description = ""
@@ -670,6 +672,9 @@ class ExperimentScene:
         logger.debug(f"[FOLLOWUP] scenario_id={self.config.scenario_id}, action_names={action_names}")
         logger.debug(f"[FOLLOWUP] is_discussion={self.config.scenario_id in discussion_scenarios}")
 
+        if self.config.scenario_id == "custom":
+            return followup_modes
+
         if self.config.scenario_id in discussion_scenarios:
             # Map any speak-like action to plain_text mode
             for action_name in action_names:
@@ -701,6 +706,8 @@ class ExperimentScene:
 
         if not params:
             logger.debug("[PAYOFF] No parameters, returning empty")
+            return ""
+        if self.config.scenario_id == "custom":
             return ""
 
         # PUBLIC_GOODS: Use intertwined format with "person" language

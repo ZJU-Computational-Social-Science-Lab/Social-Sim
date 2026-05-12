@@ -4,7 +4,7 @@ Tests for ExperimentController (Layer 3 validation and execution).
 
 import pytest
 from socialsim4.core.experiment.controller import ExperimentController, ActionResult
-from socialsim4.core.experiment.game_configs import PRISONERS_DILEMMA
+from socialsim4.core.experiment.game_configs import GameConfig, PRISONERS_DILEMMA
 from socialsim4.core.experiment.kernel import ExperimentKernel
 from socialsim4.core.experiment.round_context import RoundContextManager
 from socialsim4.core.experiment.agent import ExperimentAgent
@@ -155,3 +155,61 @@ async def test_action_result_contains_required_fields():
     assert result.round_num == 2
     assert result.summary == "Frank chose defect"
     assert result.skipped is False
+
+
+@pytest.mark.asyncio
+async def test_custom_speak_accepts_message_in_initial_json():
+    kernel = ExperimentKernel()
+    context_manager = RoundContextManager()
+    controller = ExperimentController(kernel, context_manager)
+    agent = ExperimentAgent(name="Alice", properties={}, llm_config=LLMConfig(dialect="mock"))
+    custom_config = GameConfig(
+        name="custom",
+        description="Open discussion",
+        action_type="discrete",
+        actions=["speak", "skip"],
+        payoff_type="none",
+        grouping_mode="individual",
+    )
+
+    result = await controller.process_response(
+        '{"action": "speak", "message": "I support starting with a pilot."}',
+        agent,
+        custom_config,
+        None,
+        round_num=1,
+    )
+
+    assert result.success is True
+    assert result.action_name == "speak"
+    assert result.parameters == {"message": "I support starting with a pilot."}
+    assert result.skipped is False
+
+
+@pytest.mark.asyncio
+async def test_custom_skip_is_successful_recordable_skip():
+    kernel = ExperimentKernel()
+    context_manager = RoundContextManager()
+    controller = ExperimentController(kernel, context_manager)
+    agent = ExperimentAgent(name="Bob", properties={}, llm_config=LLMConfig(dialect="mock"))
+    custom_config = GameConfig(
+        name="custom",
+        description="Open discussion",
+        action_type="discrete",
+        actions=["speak", "skip"],
+        payoff_type="none",
+        grouping_mode="individual",
+    )
+
+    result = await controller.process_response(
+        '{"action": "skip", "message": null}',
+        agent,
+        custom_config,
+        None,
+        round_num=1,
+    )
+
+    assert result.success is True
+    assert result.action_name == "skip"
+    assert result.parameters == {"message": None}
+    assert result.skipped is True

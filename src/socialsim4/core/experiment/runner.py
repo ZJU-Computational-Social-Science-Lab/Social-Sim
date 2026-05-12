@@ -490,7 +490,7 @@ class ExperimentRunner:
         # Record to context with observers and payoffs (done after scores are known
         # so payoff can be stored with the event; simultaneous = no mid-round visibility)
         for result in actions:
-            if not result.skipped:
+            if result.success:
                 self.context_manager.record_action_with_observers(
                     agent_name=result.agent_name,
                     action_name=result.action_name,
@@ -524,7 +524,7 @@ class ExperimentRunner:
             # Record action to agent's history
             self._record_action_to_agent(result)
             # Record to context immediately so the next agent can observe it
-            if not result.skipped:
+            if result.success:
                 self.context_manager.record_action_with_observers(
                     agent_name=result.agent_name,
                     action_name=result.action_name,
@@ -579,7 +579,7 @@ class ExperimentRunner:
             # Record action to agent's history
             self._record_action_to_agent(result)
             # Record to context immediately so the next agent can observe it
-            if not result.skipped:
+            if result.success:
                 self.context_manager.record_action_with_observers(
                     agent_name=result.agent_name,
                     action_name=result.action_name,
@@ -716,7 +716,7 @@ class ExperimentRunner:
 
         # Record to context with observers and payoffs (after scores are known)
         for result in all_actions:
-            if not result.skipped:
+            if result.success:
                 self.context_manager.record_action_with_observers(
                     agent_name=result.agent_name,
                     action_name=result.action_name,
@@ -1010,6 +1010,8 @@ class ExperimentRunner:
             # 1. Kernel action types (e.g., "speak", "vote")
             # 2. Game config's action_followup_modes mapping (e.g., "Speak" -> "plain_text")
             action_schemas = self.kernel.get_action_schemas() if self.kernel else {}
+            if self.scene and getattr(getattr(self.scene, "config", None), "scenario_id", None) == "custom":
+                action_schemas.pop("speak", None)
             # Merge in schemas from game config (from scenario action parameters)
             action_schemas.update(self.game_config.action_schemas)
 

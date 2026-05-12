@@ -5,7 +5,7 @@ Tests scenario metadata and parameter definitions.
 """
 
 import pytest
-from socialsim4.core.scenarios.registry import BATTLE_OF_THE_SEXES, STAG_HUNT, PUBLIC_GOODS
+from socialsim4.core.scenarios.registry import BATTLE_OF_THE_SEXES, STAG_HUNT, PUBLIC_GOODS, CUSTOM
 
 
 class TestBattleOfTheSexesParameters:
@@ -110,3 +110,22 @@ class TestPublicGoodsParameters:
             assert param.get("category") == "punishment", (
                 f"{param['key']} should have category='punishment'"
             )
+
+
+class TestCustomScenario:
+    """Tests for Custom Scenario v1 metadata."""
+
+    def test_custom_has_prompt_and_turn_ordering_parameters(self):
+        param_keys = [p["key"] for p in CUSTOM["parameters"]]
+        assert param_keys == ["custom_prompt", "turn_ordering"]
+
+    def test_custom_turn_ordering_options_are_v1_set(self):
+        params = {p["key"]: p for p in CUSTOM["parameters"]}
+        assert params["turn_ordering"]["options"] == [
+            "sequential",
+            "random_sequential",
+            "simultaneous",
+        ]
+
+    def test_custom_actions_are_speak_and_skip_only(self):
+        assert [a["id"] for a in CUSTOM["actions"]] == ["speak", "skip"]

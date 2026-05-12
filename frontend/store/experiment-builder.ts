@@ -54,7 +54,7 @@ export interface ExperimentBuilderState {
   // Step 2: Scenario configuration
   scenarioDescription: string;
   scenarioParams: Record<string, unknown>;
-  roundVisibility: 'simultaneous' | 'sequential';
+  roundVisibility: 'simultaneous' | 'sequential' | 'random';
   turnOrder: 'fixed' | 'random';
   successCondition?: { type: string; maxRounds?: number };
   interRoundUpdate?: { type: string };
@@ -93,7 +93,7 @@ interface ExperimentBuilderActions {
   // Step 2: Scenario configuration
   setScenarioDescription: (description: string) => void;
   setScenarioParams: (params: Record<string, unknown>) => void;
-  setRoundVisibility: (visibility: 'simultaneous' | 'sequential') => void;
+  setRoundVisibility: (visibility: 'simultaneous' | 'sequential' | 'random') => void;
   setTurnOrder: (order: 'fixed' | 'random') => void;
 
   // Step 3: Actions
@@ -196,7 +196,11 @@ export const useExperimentBuilder = create<ExperimentBuilderState & ExperimentBu
 
   setSelectedScenarioData: (data) => set((state) => ({
     selectedScenarioData: data,
-    roundVisibility: data?.interaction_mode === 'sequential' ? 'sequential' : 'simultaneous',
+    roundVisibility: data?.id === 'custom'
+      ? 'sequential'
+      : data?.interaction_mode === 'sequential'
+        ? 'sequential'
+        : 'simultaneous',
     turnOrder: data?.interaction_mode === 'sequential' ? state.turnOrder : 'fixed',
     scenarioDescription: '',
     scenarioParams: {},

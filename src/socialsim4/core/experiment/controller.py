@@ -186,17 +186,39 @@ class ExperimentController:
 
         debug_log.append(f"  extracted action: {action_value}\n")
 
+        parameters = {
+            key: value
+            for key, value in validated.items()
+            if key != game_config.output_field
+        }
 
         summary = f"{agent.name} chose {action_value}"
+        skipped = str(action_value).lower() == "skip"
+        if game_config.name == "custom" and str(action_value).lower() == "speak":
+            message = parameters.get("message")
+            if message is None or str(message).strip() == "":
+                return ActionResult(
+                    success=False,
+                    action_name=action_value,
+                    parameters={},
+                    summary="",
+                    agent_name=agent.name,
+                    round_num=round_num,
+                    skipped=True,
+                    error="Speak requires message",
+                    debug_log=debug_log,
+                )
+        if skipped:
+            summary = f"{agent.name} skipped"
 
         return ActionResult(
             success=True,
             action_name=action_value,
-            parameters={},
+            parameters=parameters,
             summary=summary,
             agent_name=agent.name,
             round_num=round_num,
-            skipped=False,
+            skipped=skipped,
             debug_log=debug_log
         )
 

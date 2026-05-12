@@ -650,13 +650,38 @@ CUSTOM: Dict[str, Any] = {
     "id": "custom",
     "name": "Custom Scenario",
     "category": "custom",
-    "description": "Build your own custom experiment from scratch.",
+    "description": "Open-ended networked conversation driven by a researcher-provided scenario prompt.",
     "grouping_mode": "individual",
     "payoff_type": "none",
     "interaction_mode": "simultaneous",
     "display_type": "params",
-    "parameters": [],
-    "actions": [],
+    "parameters": [
+        {
+            "id": "custom_prompt",
+            "key": "custom_prompt",
+            "label": "Custom Scenario Prompt",
+            "type": "string",
+            "default": "",
+            "ui_hint": "textarea",
+            "placeholder": "Describe the situation, roles, constraints, and what agents should discuss.",
+            "description": "The scenario/context prompt shown to every agent.",
+        },
+        {
+            "id": "turn_ordering",
+            "key": "turn_ordering",
+            "label": "Turn Ordering",
+            "type": "string",
+            "default": "sequential",
+            "ui_hint": "select",
+            "options": ["sequential", "random_sequential", "simultaneous"],
+            "description": "How agents take turns in this open-ended conversation.",
+        },
+    ],
+    "actions": [
+        {"id": "speak", "name": "Speak", "description": "Say something to the group"},
+        {"id": "skip", "name": "Skip", "description": "Pass without speaking this turn"},
+    ],
+    "default_action_ids": ["speak", "skip"],
 }
 
 # ============================================================================

@@ -100,7 +100,7 @@ describe('Step3Scenario - Dynamic Actions', () => {
         validationErrors: {},
       };
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore as any));
+      vi.mocked(useExperimentBuilder).mockImplementation((selector?: any) => selector ? selector(mockStore as any) : mockStore as any);
 
       render(<Step3Scenario />, { wrapper });
 
@@ -146,7 +146,7 @@ describe('Step3Scenario - Dynamic Actions', () => {
         validationErrors: {},
       };
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore as any));
+      vi.mocked(useExperimentBuilder).mockImplementation((selector?: any) => selector ? selector(mockStore as any) : mockStore as any);
 
       render(<Step3Scenario />, { wrapper });
 
@@ -192,7 +192,7 @@ describe('Step3Scenario - Dynamic Actions', () => {
         validationErrors: {},
       };
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore as any));
+      vi.mocked(useExperimentBuilder).mockImplementation((selector?: any) => selector ? selector(mockStore as any) : mockStore as any);
 
       render(<Step3Scenario />, { wrapper });
 
@@ -238,7 +238,7 @@ describe('Step3Scenario - Dynamic Actions', () => {
         validationErrors: {},
       };
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore as any));
+      vi.mocked(useExperimentBuilder).mockImplementation((selector?: any) => selector ? selector(mockStore as any) : mockStore as any);
 
       render(<Step3Scenario />, { wrapper });
 
@@ -269,7 +269,7 @@ describe('Step3Scenario - Dynamic Actions', () => {
         validationErrors: {},
       };
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore as any));
+      vi.mocked(useExperimentBuilder).mockImplementation((selector?: any) => selector ? selector(mockStore as any) : mockStore as any);
 
       render(<Step3Scenario />, { wrapper });
 
@@ -306,7 +306,7 @@ describe('Step3Scenario - Dynamic Actions', () => {
         validationErrors: {},
       };
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore as any));
+      vi.mocked(useExperimentBuilder).mockImplementation((selector?: any) => selector ? selector(mockStore as any) : mockStore as any);
 
       render(<Step3Scenario />, { wrapper });
 
@@ -348,7 +348,7 @@ describe('Step3Scenario - Dynamic Actions', () => {
         validationErrors: {},
       };
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore as any));
+      vi.mocked(useExperimentBuilder).mockImplementation((selector?: any) => selector ? selector(mockStore as any) : mockStore as any);
 
       render(<Step3Scenario />, { wrapper });
 
@@ -387,7 +387,7 @@ describe('Step3Scenario - Dynamic Actions', () => {
         validationErrors: {},
       };
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore as any));
+      vi.mocked(useExperimentBuilder).mockImplementation((selector?: any) => selector ? selector(mockStore as any) : mockStore as any);
 
       render(<Step3Scenario />, { wrapper });
 
@@ -443,7 +443,7 @@ describe('Step3Scenario - Dynamic Actions', () => {
         validationErrors: {},
       };
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore as any));
+      vi.mocked(useExperimentBuilder).mockImplementation((selector?: any) => selector ? selector(mockStore as any) : mockStore as any);
 
       render(<Step3Scenario />, { wrapper });
 
@@ -456,6 +456,49 @@ describe('Step3Scenario - Dynamic Actions', () => {
           ])
         );
       });
+    });
+
+    test('should only expose speak and skip for custom scenario', async () => {
+      const mockSetAvailableActions = vi.fn();
+      const mockSetSelectedActionIds = vi.fn();
+
+      const mockStore = {
+        selectedScenarioData: {
+          id: 'custom',
+          name: 'Custom Scenario',
+          category: 'custom',
+          parameters: [],
+          actions: [
+            { id: 'speak', name: 'Speak', description: 'Say something to the group' },
+            { id: 'skip', name: 'Skip', description: 'Pass without speaking this turn' },
+          ],
+          default_action_ids: ['speak', 'skip'],
+        },
+        scenarioParams: {},
+        availableActions: [],
+        selectedActionIds: [],
+        setAvailableActions: mockSetAvailableActions,
+        setSelectedActionIds: mockSetSelectedActionIds,
+        toggleActionId: vi.fn(),
+        validationErrors: {},
+      };
+
+      vi.mocked(useExperimentBuilder).mockImplementation((selector?: any) => selector ? selector(mockStore as any) : mockStore as any);
+
+      render(<Step3Scenario />, { wrapper });
+
+      await waitFor(() => {
+        expect(mockSetAvailableActions).toHaveBeenCalledWith([
+          { id: 'speak', name: 'Speak', description: 'Say something to the group' },
+          { id: 'skip', name: 'Skip', description: 'Pass without speaking this turn' },
+        ]);
+      });
+
+      await waitFor(() => {
+        expect(mockSetSelectedActionIds).toHaveBeenCalledWith(['Speak', 'Skip']);
+      });
+
+      expect(screen.queryByText('experimentBuilder.step3.addCustomAction')).not.toBeInTheDocument();
     });
   });
 
@@ -494,7 +537,7 @@ describe('Step3Scenario - Dynamic Actions', () => {
         validationErrors: {},
       };
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore as any));
+      vi.mocked(useExperimentBuilder).mockImplementation((selector?: any) => selector ? selector(mockStore as any) : mockStore as any);
 
       render(<Step3Scenario />, { wrapper });
 
@@ -535,7 +578,7 @@ describe('Step3Scenario - Dynamic Actions', () => {
         validationErrors: {},
       };
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore as any));
+      vi.mocked(useExperimentBuilder).mockImplementation((selector?: any) => selector ? selector(mockStore as any) : mockStore as any);
 
       render(<Step3Scenario />, { wrapper });
 
@@ -555,7 +598,7 @@ describe('Step3Scenario - Dynamic Actions', () => {
         validationErrors: {},
       };
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore as any));
+      vi.mocked(useExperimentBuilder).mockImplementation((selector?: any) => selector ? selector(mockStore as any) : mockStore as any);
 
       render(<Step3Scenario />, { wrapper });
 
@@ -581,7 +624,7 @@ describe('Step3Scenario - Dynamic Actions', () => {
         validationErrors: { actions: 'Please select at least one action' },
       };
 
-      vi.mocked(useExperimentBuilder).mockImplementation((selector) => selector(mockStore as any));
+      vi.mocked(useExperimentBuilder).mockImplementation((selector?: any) => selector ? selector(mockStore as any) : mockStore as any);
 
       render(<Step3Scenario />, { wrapper });
 

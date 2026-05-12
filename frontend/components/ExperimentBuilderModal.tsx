@@ -16,6 +16,7 @@ import {
   getLocalizedScenarioDescription,
   getLocalizedScenarioName,
 } from '../utils/scenarioLocalization';
+import i18n from '../i18n';
 
 interface ExperimentBuilderModalProps {
   isOpen?: boolean;
@@ -104,6 +105,17 @@ export function launchExperimentFromBuilderState({
     scenarioDescription && scenarioDescription.trim().length > 0
       ? scenarioDescription
       : localizedScenarioDescription || t('experimentBuilder.customExperiment');
+  const isCustomScenario = state.selectedScenarioId === 'custom';
+  const customTurnOrdering =
+    state.roundVisibility === 'random'
+      ? 'random_sequential'
+      : state.roundVisibility === 'simultaneous'
+        ? 'simultaneous'
+        : 'sequential';
+  const scenarioParameters = {
+    ...(state.scenarioParams || {}),
+    ...(isCustomScenario ? { custom_prompt: resolvedDescription, turn_ordering: customTurnOrdering } : {}),
+  };
 
   const name = buildScenarioTitle(scenarioName, resolvedDescription);
   const genericConfig: any = {
@@ -113,7 +125,7 @@ export function launchExperimentFromBuilderState({
       name: action.name,
       description: action.description || action.name,
     })),
-    parameters: state.scenarioParams || {},
+    parameters: scenarioParameters,
     round_visibility: state.roundVisibility || 'simultaneous',
   };
 
@@ -128,7 +140,8 @@ export function launchExperimentFromBuilderState({
     scenarioData?.category === 'grid' ||
     scenarioData?.category === 'sociology' ||
     scenarioData?.category === 'social_deduction' ||
-    scenarioData?.category === 'spatial';
+    scenarioData?.category === 'spatial' ||
+    scenarioData?.category === 'custom';
 
   addSimulation(
     name,
@@ -278,6 +291,17 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
       scenarioDescription && scenarioDescription.trim().length > 0
         ? scenarioDescription
         : scenarioData?.description || t('experimentBuilder.customExperiment');
+    const isCustomScenario = state.selectedScenarioId === 'custom';
+    const customTurnOrdering =
+      state.roundVisibility === 'random'
+        ? 'random_sequential'
+        : state.roundVisibility === 'simultaneous'
+          ? 'simultaneous'
+          : 'sequential';
+    const scenarioParameters = {
+      ...(state.scenarioParams || {}),
+      ...(isCustomScenario ? { custom_prompt: resolvedDescription, turn_ordering: customTurnOrdering } : {}),
+    };
 
     // Build generic config with full action objects and parameters
     const genericConfig: any = {
@@ -287,7 +311,7 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
         name: a.name,
         description: a.description || a.name,
       })),
-      parameters: state.scenarioParams || {},
+      parameters: scenarioParameters,
       round_visibility: state.roundVisibility || 'simultaneous',
       locale: i18n.language?.startsWith('zh') ? 'zh' : 'en',
     };
@@ -306,7 +330,8 @@ export const ExperimentBuilderModal: React.FC<ExperimentBuilderModalProps> = ({
                              scenarioData?.category === 'grid' ||
                              scenarioData?.category === 'sociology' ||
                              scenarioData?.category === 'social_deduction' ||
-                             scenarioData?.category === 'spatial';
+                             scenarioData?.category === 'spatial' ||
+                             scenarioData?.category === 'custom';
 
     addSimulation(
       name,

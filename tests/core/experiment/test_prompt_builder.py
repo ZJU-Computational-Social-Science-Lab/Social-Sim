@@ -4,7 +4,7 @@ Tests for ExperimentPromptBuilder.
 
 import pytest
 from socialsim4.core.experiment.agent import ExperimentAgent
-from socialsim4.core.experiment.game_configs import PRISONERS_DILEMMA, MINIMUM_EFFORT
+from socialsim4.core.experiment.game_configs import GameConfig, PRISONERS_DILEMMA, MINIMUM_EFFORT
 from socialsim4.core.experiment.prompt_builder import (
     _get_article,
     build_agent_description,
@@ -163,6 +163,29 @@ def test_build_prompt_integer():
     assert "## Your Response" in prompt
     assert '"effort"' in prompt
     assert "integer from 1-7" in prompt
+
+
+def test_build_prompt_custom_uses_one_shot_message_json():
+    agent = ExperimentAgent(
+        name="Alice",
+        properties={},
+        llm_config=None,
+    )
+    custom_config = GameConfig(
+        name="custom",
+        description="Discuss whether the neighborhood should start a tool library.",
+        action_type="discrete",
+        actions=["speak", "skip"],
+        action_descriptions={"speak": "Say something", "skip": "Pass"},
+        payoff_type="none",
+        grouping_mode="individual",
+    )
+
+    prompt = build_prompt(agent, custom_config, "")
+
+    assert "Discuss whether the neighborhood should start a tool library." in prompt
+    assert '{"action": "speak", "message": "..."}' in prompt
+    assert '{"action": "skip", "message": null}' in prompt
 
 
 def test_build_prompt_first_round():

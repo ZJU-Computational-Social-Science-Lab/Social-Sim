@@ -3,14 +3,14 @@
  *
  * Displays available actions as toggle cards.
  * Shows all category actions when scenario has category_actions.
- * Users can enable/disable actions and add custom actions for custom scenarios.
+ * Users can enable/disable actions for the selected scenario.
  * At least one action must be selected.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useExperimentBuilder } from '../../store/experiment-builder';
-import { Circle, Plus, X } from 'lucide-react';
+import { Circle, X } from 'lucide-react';
 import { ActionDef } from '../../services/scenarios';
 
 const POLICY_SCENE_ACTION_IDS = [
@@ -116,11 +116,6 @@ const ActionToggleCard: React.FC<ActionToggleCardProps> = ({
   );
 };
 
-interface CustomAction {
-  name: string;
-  description: string;
-}
-
 export const Step3Scenario: React.FC = () => {
   const { t } = useTranslation();
   const {
@@ -133,11 +128,6 @@ export const Step3Scenario: React.FC = () => {
     toggleActionId,
     validationErrors,
   } = useExperimentBuilder();
-
-  const [customActions, setCustomActions] = useState<CustomAction[]>([]);
-  const [showAddAction, setShowAddAction] = useState(false);
-  const [newActionName, setNewActionName] = useState('');
-  const [newActionDescription, setNewActionDescription] = useState('');
 
   const buildPolicySceneActions = (): ActionDef[] => [
     {
@@ -258,14 +248,15 @@ export const Step3Scenario: React.FC = () => {
         const preferredIds = isPolicyCascadeScenario
           ? POLICY_SCENE_ACTION_IDS
           : (selectedScenarioData.default_action_ids || actionsToShow.map((a) => a.name));
-        const defaultIds = preferredIds.filter((id) => actionsToShow.some((action) => action.name === id));
+        const defaultIds = preferredIds
+          .map((id) => actionsToShow.find((action) => action.name === id || action.id === id)?.name)
+          .filter((id): id is string => Boolean(id));
         setSelectedActionIds(defaultIds);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedScenarioData, scenarioParams, setAvailableActions, setSelectedActionIds]);
 
-  const isCustom = selectedScenarioData?.id === 'custom';
   const isPolicyCascadeScenario = isPolicyCascadeScenarioData(selectedScenarioData);
 
   // Combine preset and custom actions
@@ -291,28 +282,7 @@ export const Step3Scenario: React.FC = () => {
     toggleActionId(actionName);
   };
 
-  const handleAddCustomAction = () => {
-    if (!newActionName.trim() || !newActionDescription.trim()) {
-      return;
-    }
-
-    const newAction: CustomAction = {
-      name: newActionName.trim(),
-      description: newActionDescription.trim(),
-    };
-
-    setCustomActions([...customActions, newAction]);
-    setAvailableActions([...availableActions, newAction]);
-    setSelectedActionIds([...selectedActionIds, newAction.name]);
-
-    // Reset form
-    setNewActionName('');
-    setNewActionDescription('');
-    setShowAddAction(false);
-  };
-
   const handleRemoveCustomAction = (actionName: string) => {
-    setCustomActions(customActions.filter((a) => a.name !== actionName));
     setAvailableActions(availableActions.filter((a) => a.name !== actionName));
     setSelectedActionIds(selectedActionIds.filter((id) => id !== actionName));
   };
@@ -377,76 +347,6 @@ export const Step3Scenario: React.FC = () => {
           ))
         )}
       </div>
-
-      {/* Add Custom Action Button (only for custom scenario) */}
-      {isCustom && (
-        <div>
-          {!showAddAction ? (
-            <button
-              onClick={() => setShowAddAction(true)}
-              className="flex items-center gap-2 px-4 py-2 border-2 border-dashed rounded-lg transition-colors"
-              style={{ borderColor: 'var(--ss-border-strong)', color: 'var(--ss-text)' }}
-              type="button"
-            >
-              <Plus size={16} />
-              <span className="text-sm font-medium">{t('experimentBuilder.step3.addCustomAction')}</span>
-            </button>
-          ) : (
-            <div className="p-4 border rounded-lg space-y-3" style={{ background: 'var(--ss-page-surface-muted)', borderColor: 'var(--ss-border)' }}>
-              <h4 className="text-sm font-medium" style={{ color: 'var(--ss-heading)' }}>{t('experimentBuilder.step3.customActionTitle')}</h4>
-              <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--ss-heading)' }}>
-                  {t('experimentBuilder.step3.actionName')}
-                </label>
-                <input
-                  type="text"
-                  value={newActionName}
-                  onChange={(e) => setNewActionName(e.target.value)}
-                  placeholder={t('experimentBuilder.step3.actionNamePlaceholder')}
-                  className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  style={{ borderColor: 'var(--ss-border-strong)', background: 'var(--ss-page-surface)' }}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--ss-heading)' }}>
-                  {t('experimentBuilder.step3.description')}
-                </label>
-                <textarea
-                  value={newActionDescription}
-                  onChange={(e) => setNewActionDescription(e.target.value)}
-                  placeholder={t('experimentBuilder.step3.descriptionPlaceholder')}
-                  rows={2}
-                  className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
-                  style={{ borderColor: 'var(--ss-border-strong)', background: 'var(--ss-page-surface)' }}
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleAddCustomAction}
-                  disabled={!newActionName.trim() || !newActionDescription.trim()}
-                  className="px-4 py-2 text-white rounded-md text-sm font-medium disabled:cursor-not-allowed transition-colors"
-                  style={{ background: 'var(--ss-brand-primary)', opacity: (!newActionName.trim() || !newActionDescription.trim()) ? 0.5 : 1 }}
-                  type="button"
-                >
-                  {t('experimentBuilder.step3.addAction')}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowAddAction(false);
-                    setNewActionName('');
-                    setNewActionDescription('');
-                  }}
-                  className="px-4 py-2 border rounded-md text-sm font-medium transition-colors"
-                  style={{ borderColor: 'var(--ss-border-strong)', color: 'var(--ss-text)' }}
-                  type="button"
-                >
-                  {t('common.cancel')}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Selected Count */}
       {allActions.length > 0 && (

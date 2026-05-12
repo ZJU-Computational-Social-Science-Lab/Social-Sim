@@ -33,6 +33,7 @@ export interface ScenarioParam {
 }
 
 export interface ActionDef {
+  id?: string;
   name: string;
   description: string;
 }

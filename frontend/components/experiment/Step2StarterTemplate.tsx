@@ -144,6 +144,7 @@ export const Step2StarterTemplate: React.FC = () => {
 
   const [localRoundVisibility, setLocalRoundVisibility] = useState<'simultaneous' | 'sequential'>('simultaneous');
   const [localTurnOrder, setLocalTurnOrder] = useState<'fixed' | 'random'>('fixed');
+  const isCustomScenario = selectedScenarioData?.id === 'custom';
 
   // Helper to get translated scenario name/description based on scenario ID and category
   const getScenarioName = () => {
@@ -165,13 +166,18 @@ export const Step2StarterTemplate: React.FC = () => {
 
   // Update local state when store changes
   useEffect(() => {
-    if (roundVisibility) setLocalRoundVisibility(roundVisibility);
+    if (roundVisibility === 'simultaneous' || roundVisibility === 'sequential') {
+      setLocalRoundVisibility(roundVisibility);
+    }
     if (turnOrder) setLocalTurnOrder(turnOrder);
   }, [roundVisibility, turnOrder]);
 
   // Initialize scenario description from selected scenario (use translated version)
   useEffect(() => {
     if (selectedScenarioData && !scenarioDescription) {
+      if (selectedScenarioData.id === 'custom') {
+        return;
+      }
       setScenarioDescription(getScenarioDescription());
     }
   }, [selectedScenarioData, scenarioDescription, setScenarioDescription]);
@@ -189,6 +195,9 @@ export const Step2StarterTemplate: React.FC = () => {
 
   const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setScenarioDescription(e.target.value);
+    if (isCustomScenario) {
+      setScenarioParams({ ...scenarioParams, custom_prompt: e.target.value });
+    }
   };
 
   const handleParamChange = (key: string, value: string | number) => {
@@ -214,6 +223,29 @@ export const Step2StarterTemplate: React.FC = () => {
     return scenarioParams[param.key] !== undefined
       ? scenarioParams[param.key]
       : param.default;
+  };
+
+  const getCustomTurnOrdering = () => {
+    if (roundVisibility === 'random') {
+      return 'random_sequential';
+    }
+    return roundVisibility === 'simultaneous' ? 'simultaneous' : 'sequential';
+  };
+
+  const handleCustomTurnOrderingChange = (value: string) => {
+    setScenarioParams({ ...scenarioParams, turn_ordering: value });
+    if (value === 'random_sequential') {
+      setRoundVisibility('random');
+      setTurnOrder('random');
+      return;
+    }
+    if (value === 'simultaneous') {
+      setRoundVisibility('simultaneous');
+      setTurnOrder('fixed');
+      return;
+    }
+    setRoundVisibility('sequential');
+    setTurnOrder('fixed');
   };
 
   const getParamLabel = (param: { key: string; label: string }) => {
@@ -286,6 +318,61 @@ export const Step2StarterTemplate: React.FC = () => {
     return (
       <div className="p-4 text-center" style={{ color: 'var(--ss-text-muted)' }}>
         {t('experimentBuilder.step2.selectScenarioFirst')}
+      </div>
+    );
+  }
+
+  if (isCustomScenario) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-xl font-semibold" style={{ color: 'var(--ss-heading)' }}>
+            {t('experimentBuilder.step2.configureTitle', { name: getScenarioName() })}
+          </h2>
+          <p className="text-sm mt-1" style={{ color: 'var(--ss-text)' }}>
+            {t('experimentBuilder.step2.configureSubtitle')}
+          </p>
+        </div>
+
+        <div>
+          <label
+            htmlFor="custom-scenario-prompt"
+            className="block text-sm font-medium mb-2"
+            style={{ color: 'var(--ss-heading)' }}
+          >
+            Custom Scenario Prompt
+          </label>
+          <textarea
+            id="custom-scenario-prompt"
+            value={scenarioDescription}
+            onChange={handleDescriptionChange}
+            rows={8}
+            className="w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 resize-y"
+            style={{ borderColor: 'var(--ss-border-strong)', background: 'var(--ss-page-surface)', color: 'var(--ss-text)' }}
+            placeholder="Describe the situation, roles, constraints, and what agents should discuss."
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="custom-turn-ordering"
+            className="block text-sm font-medium mb-2"
+            style={{ color: 'var(--ss-heading)' }}
+          >
+            Turn Ordering
+          </label>
+          <select
+            id="custom-turn-ordering"
+            value={String(scenarioParams.turn_ordering || getCustomTurnOrdering())}
+            onChange={(e) => handleCustomTurnOrderingChange(e.target.value)}
+            className="w-full px-3 py-2 border rounded-lg"
+            style={{ borderColor: 'var(--ss-border-strong)', background: 'var(--ss-page-surface)', color: 'var(--ss-text)' }}
+          >
+            <option value="sequential">sequential</option>
+            <option value="random_sequential">random_sequential</option>
+            <option value="simultaneous">simultaneous</option>
+          </select>
+        </div>
       </div>
     );
   }

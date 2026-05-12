@@ -226,7 +226,7 @@ export interface Intervention {
   parsedParams?: Record<string, string | number | boolean>; // parsed for type coercion
   unknownKeys?: string[]; // unknown keys warnings
   scenarioDescription?: string; // scenario description override
-  roundVisibility?: 'simultaneous' | 'sequential'; // round visibility override
+  roundVisibility?: 'simultaneous' | 'sequential' | 'random'; // round visibility override
   // NETWORK_TOPOLOGY fields
   networkPreset?: NetworkPreset;
   networkParams?: Partial<NetworkParams>;
@@ -303,7 +303,7 @@ export interface GenericTemplateConfig {
   actions?: Array<string | Record<string, any>>;
   parameters?: Record<string, any>;
   scenario_id?: string;
-  round_visibility?: 'simultaneous' | 'sequential';
+  round_visibility?: 'simultaneous' | 'sequential' | 'random';
   environment: {
     description: string;
     rules?: string[];

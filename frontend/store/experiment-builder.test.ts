@@ -35,4 +35,18 @@ describe('Experiment Builder Store', () => {
 
     expect(useExperimentBuilder.getState().roundVisibility).toBe('simultaneous');
   });
+
+  it('starts custom scenario with sequential ordering for v1', () => {
+    useExperimentBuilder.getState().setSelectedScenarioData({
+      id: 'custom',
+      name: 'Custom Scenario',
+      category: 'custom',
+      description: 'Open ended conversation.',
+      interaction_mode: 'simultaneous',
+      parameters: [],
+      actions: [],
+    });
+
+    expect(useExperimentBuilder.getState().roundVisibility).toBe('sequential');
+  });
 });

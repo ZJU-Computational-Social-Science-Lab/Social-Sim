@@ -59,3 +59,28 @@ def test_scene_defaults_show_average_to_false():
 
     # Verify InformationModel defaults to False
     assert scene.runner.information_model.show_average_contribution is False
+
+
+def test_custom_scene_uses_custom_prompt_and_actions_without_followup():
+    config = ExperimentConfig(
+        scenario_id="custom",
+        description="fallback prompt",
+        agents=[
+            {"name": "Alice", "role_prompt": "You are Alice."},
+        ],
+        actions=[{"name": "Speak"}, {"name": "Skip"}],
+        parameters={
+            "custom_prompt": "Discuss a neighborhood tool library.",
+            "turn_ordering": "sequential",
+        },
+        round_visibility="sequential",
+    )
+
+    scene = ExperimentScene(config)
+    mock_client = MagicMock()
+    mock_client.chat = MagicMock(return_value='{"action": "skip", "message": null}')
+    scene.initialize(mock_client)
+
+    assert scene.runner.game_config.description == "Discuss a neighborhood tool library."
+    assert scene.runner.game_config.actions == ["speak", "skip"]
+    assert scene.runner.game_config.action_followup_modes == {}

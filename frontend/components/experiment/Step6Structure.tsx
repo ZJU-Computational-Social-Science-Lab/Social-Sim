@@ -29,6 +29,8 @@ interface PromptPreviewPanelProps {
   availableActions: Array<{ name: string; description: string }>;
   selectedActionIds: string[];
   totalAgents: number;
+  roundVisibility: string;
+  socialNetwork: Record<string, unknown>;
 }
 
 /**
@@ -51,6 +53,8 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
   availableActions,
   selectedActionIds,
   totalAgents,
+  roundVisibility,
+  socialNetwork,
 }) => {
   const { t } = useTranslation();
 
@@ -113,6 +117,9 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
 
   // Determine which parameters to show
   const getDisplayParams = () => {
+    if (scenarioId === 'custom') {
+      return [];
+    }
     if (scenarioId === 'public_goods') {
       const excludedKeys = [
         'resource_name',
@@ -130,6 +137,15 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
 
   const displayParams = getDisplayParams();
   const formattedScenario = getFormattedScenario();
+  const customTurnOrdering =
+    roundVisibility === 'random'
+      ? 'random_sequential'
+      : roundVisibility === 'simultaneous'
+        ? 'simultaneous'
+        : 'sequential';
+  const networkEdges = Array.isArray((socialNetwork as { edges?: unknown }).edges)
+    ? ((socialNetwork as { edges: unknown[] }).edges.length)
+    : 0;
 
   return (
     <div
@@ -196,6 +212,15 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
           </div>
         )}
 
+        {scenarioId === 'custom' && (
+          <div className="mb-4">
+            <div className="font-semibold mb-1" style={{ color: 'var(--ss-heading)' }}>Turn Ordering:</div>
+            <div className="pl-2">{customTurnOrdering}</div>
+            <div className="font-semibold mt-3 mb-1" style={{ color: 'var(--ss-heading)' }}>Network:</div>
+            <div className="pl-2">{networkEdges} connection{networkEdges === 1 ? '' : 's'}</div>
+          </div>
+        )}
+
         {/* Section 3: Available Actions */}
         <div className="mb-4">
           <div className="font-semibold mb-1" style={{ color: 'var(--ss-heading)' }}>Available actions:</div>
@@ -219,9 +244,17 @@ const PromptPreviewPanel: React.FC<PromptPreviewPanelProps> = ({
         >
           <div className="font-semibold mb-1" style={{ color: 'var(--ss-heading)' }}>Your Response:</div>
           {displayActions.length > 0 ? (
-            <div className="pl-2">
-              Respond with only JSON: {`{{"action": <${actionsForResponse}>}}`}
-            </div>
+            scenarioId === 'custom' ? (
+              <div className="pl-2">
+                {`{"action": "speak", "message": "..."}`}
+                <br />
+                {`{"action": "skip", "message": null}`}
+              </div>
+            ) : (
+              <div className="pl-2">
+                Respond with only JSON: {`{{"action": <${actionsForResponse}>}}`}
+              </div>
+            )
           ) : (
             <div className="pl-2 italic" style={{ color: 'var(--ss-text-subtle)' }}>
               Add actions in Step 3 to see the response format
@@ -242,6 +275,8 @@ export const Step6Structure: React.FC = () => {
     scenarioParams,
     availableActions,
     selectedActionIds,
+    roundVisibility,
+    socialNetwork,
   } = useExperimentBuilder();
 
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
@@ -397,6 +432,8 @@ export const Step6Structure: React.FC = () => {
               availableActions={availableActions}
               selectedActionIds={selectedActionIds}
               totalAgents={totalAgents}
+              roundVisibility={roundVisibility}
+              socialNetwork={socialNetwork}
             />
           ) : (
             <div
