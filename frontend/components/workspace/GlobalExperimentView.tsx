@@ -1,3 +1,11 @@
+/**
+ * Global experiment view shell for workspace.
+ *
+ * Wraps the main content area with a header showing branch comparison
+ * or event/content view depending on compare mode state.
+ *
+ * Exports: GlobalExperimentView (default)
+ */
 import React from "react";
 import { Activity, GitCompareArrows, GitCommit } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -13,8 +21,7 @@ export const GlobalExperimentView: React.FC<GlobalExperimentViewProps> = ({
   isCompareMode,
   children,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
   const logs = useSimulationStore((state) => state.logs);
   const rawEvents = useSimulationStore((state) => state.rawEvents);
   const nodes = useSimulationStore((state) => state.nodes);
@@ -30,16 +37,12 @@ export const GlobalExperimentView: React.FC<GlobalExperimentViewProps> = ({
       <div className="ss-global-view-shell__header">
         <div>
           <div className="ss-kicker">
-            {isCompareMode ? (isZh ? "分支对比视图" : "Branch comparison") : t("controlRoom.globalStageTitle")}
+            {isCompareMode ? t("components.workspace.globalExperiment.branchComparison") : t("controlRoom.globalStageTitle")}
           </div>
           <h2>
             {isCompareMode
-              ? isZh
-                ? "分支对比"
-                : "Branch comparison"
-              : isZh
-                ? "事件与内容"
-                : "Events and content"}
+              ? t("components.workspace.globalExperiment.branchComparison")
+              : t("components.workspace.globalExperiment.eventsAndContent")}
           </h2>
         </div>
 

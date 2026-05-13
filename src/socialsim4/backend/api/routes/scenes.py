@@ -7,6 +7,7 @@ from litestar.response import Response
 from pydantic import ValidationError
 
 from socialsim4.core.agent import Agent
+from socialsim4.i18n import T
 from socialsim4.core.experiment.game_configs import create_council_config
 from socialsim4.core.registry import SCENE_ACTIONS, SCENE_DESCRIPTIONS, SCENE_MAP, get_scene_class
 from socialsim4.templates.loader import TemplateLoader
@@ -282,10 +283,10 @@ async def build_scene_from_template(data: dict) -> dict:
     except ValidationError as e:
         raise HTTPException(
             status_code=400,
-            detail=f"Template validation failed: {json.loads(e.json())}",
+            detail=T("api.errors.template_validation_failed", error=json.loads(e.json())),
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to build scene: {str(e)}")
+        raise HTTPException(status_code=500, detail=T("api.errors.scene_build_failed", error=str(e)))
 
 
 @get("/templates/schema")

@@ -6,6 +6,7 @@ from socialsim4.core.environment_config import EnvironmentConfig
 from socialsim4.backend.models.simulation import Simulation
 from socialsim4.backend.models.user import ProviderConfig
 from socialsim4.backend.services.simtree_runtime import SIM_TREE_REGISTRY
+from socialsim4.i18n import T
 
 logger = logging.getLogger(__name__)
 
@@ -171,7 +172,7 @@ async def generate_environment_suggestions(
     """Generate environmental event suggestions for a simulation."""
     state = await get_simulation_state(simulation_id, db, user_id, node_id)
     if not state:
-        raise ValueError("Simulation not found")
+        raise ValueError(T("api.errors.simulation_not_found"))
 
     # Get LLM clients
     clients = state.get("clients")
@@ -180,7 +181,7 @@ async def generate_environment_suggestions(
         clients = await get_user_llm_clients(db, user_id)
 
     if not clients:
-        raise ValueError("No LLM provider configured")
+        raise ValueError(T("api.errors.no_llm_provider_configured"))
 
     # Get recent events from simulation logs
     result = await db.execute(
@@ -191,7 +192,7 @@ async def generate_environment_suggestions(
     )
     sim = result.scalar_one_or_none()
     if not sim:
-        raise ValueError("Simulation not found")
+        raise ValueError(T("api.errors.simulation_not_found"))
 
     # For now, build minimal context from state
     context = {
@@ -222,7 +223,7 @@ async def broadcast_environment_event(
         int(requested_node_id) if requested_node_id is not None else None,
     )
     if not state:
-        raise ValueError("Simulation not found")
+        raise ValueError(T("api.errors.simulation_not_found"))
 
     result = await db.execute(
         select(Simulation).where(
@@ -232,11 +233,11 @@ async def broadcast_environment_event(
     )
     sim_record = result.scalar_one_or_none()
     if sim_record is None:
-        raise ValueError("Simulation not found")
+        raise ValueError(T("api.errors.simulation_not_found"))
 
     simulator = state.get("tree").nodes[state["node_id"]].get("sim")
     if not simulator:
-        raise ValueError("Simulator not found")
+        raise ValueError(T("api.errors.simulator_not_found"))
 
     # Decide mode: honor explicit `notice_only` if present; otherwise
     # explicit "broadcast" causes a system broadcast. All other
@@ -257,10 +258,10 @@ async def broadcast_environment_event(
     if "receivers" in event_data:
         raw = event_data.get("receivers")
         if not raw:
-            raise ValueError("receivers cannot be empty when provided")
+            raise ValueError(T("api.errors.receivers_empty"))
         receivers = [str(r).strip() for r in raw if str(r).strip()]
         if not receivers:
-            raise ValueError("receivers cannot be empty when provided")
+            raise ValueError(T("api.errors.receivers_empty"))
 
     if not notice_only_flag and mode == "broadcast":
         # Explicit system broadcast: create a PublicEvent and broadcast
@@ -332,7 +333,7 @@ async def dismiss_suggestions(
     """Dismiss environment suggestions for the current interval."""
     state = await get_simulation_state(simulation_id, db, user_id)
     if not state:
-        raise ValueError("Simulation not found")
+        raise ValueError(T("api.errors.simulation_not_found"))
 
     # Mark suggestions as viewed at the tree level
     record = SIM_TREE_REGISTRY.get(simulation_id)

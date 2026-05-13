@@ -99,21 +99,21 @@ export const AnalysisContextPanel: React.FC<AnalysisContextPanelProps> = ({
 
   const metaRows = [
     {
-      label: isZh ? "当前实验" : "Experiment",
+      label: t("components.workspace.analysisContext.experiment"),
       value: currentSimulation?.name || t("simulationWorkspace.titleFallback"),
     },
     {
-      label: isZh ? "当前路径" : "Path",
+      label: t("components.workspace.analysisContext.path"),
       value: currentPath.length
         ? currentPath.map((node) => getWorkspaceNodeLabel(node, t)).join(" / ")
         : "—",
     },
     {
-      label: isZh ? "世界时间" : "World time",
+      label: t("components.workspace.analysisContext.worldTime"),
       value: selectedNode?.worldTime || "—",
     },
     {
-      label: isZh ? "行动空间" : "Action space",
+      label: t("components.workspace.analysisContext.actionSpace"),
       value: String(actionSpace || "—"),
     },
   ];
@@ -121,22 +121,20 @@ export const AnalysisContextPanel: React.FC<AnalysisContextPanelProps> = ({
   return (
     <aside className="ss-analysis-panel" id="workspace-analysis">
       <div className="ss-analysis-panel__header">
-        <div className="ss-kicker">{isZh ? "分析上下文" : "Analysis context"}</div>
-        <h2>{isZh ? "分析面板" : "Analysis panel"}</h2>
+        <div className="ss-kicker">{t("components.workspace.analysisContext.title")}</div>
+        <h2>{t("components.workspace.analysisContext.subtitle")}</h2>
         <p>
-          {isZh
-            ? "把分支、配置、日志与输出收进右侧。"
-            : "Keep branch details, configuration, logs, and outputs in a focused side context."}
+          {t("components.workspace.analysisContext.description")}
         </p>
       </div>
 
       <div className="ss-analysis-panel__body">
         <CollapsibleInsightSection
-          title={isZh ? "分支详情" : "Branch details"}
-          subtitle={isZh ? "默认关注当前节点与近邻分支" : "Keep the current node and nearby branches visible first."}
+          title={t("components.workspace.analysisContext.branchDetailsTitle")}
+          subtitle={t("components.workspace.analysisContext.branchDetailsSubtitle")}
           badge={
             <span>
-              {isZh ? "父" : "P"} {parentNode ? 1 : 0} / {isZh ? "兄" : "S"} {siblingNodes.length} / {isZh ? "子" : "C"}{" "}
+              {t("components.workspace.analysisContext.parentShort")} {parentNode ? 1 : 0} / {t("components.workspace.analysisContext.siblingShort")} {siblingNodes.length} / {t("components.workspace.analysisContext.childShort")}{" "}
               {childNodes.length}
             </span>
           }
@@ -146,17 +144,15 @@ export const AnalysisContextPanel: React.FC<AnalysisContextPanelProps> = ({
         >
           <div className="ss-analysis-panel__meta-grid">
             <div className="ss-analysis-panel__meta-chip">
-              <span>{isZh ? "当前节点" : "Current"}</span>
+              <span>{t("components.workspace.analysisContext.current")}</span>
               <strong>{getWorkspaceNodeLabel(selectedNode, t)}</strong>
             </div>
             <div className="ss-analysis-panel__meta-chip">
-              <span>{isZh ? "对比分支" : "Compare"}</span>
+              <span>{t("components.workspace.analysisContext.compare")}</span>
               <strong>
                 {compareTargetNodeId
                   ? getWorkspaceNodeLabel(nodes.find((node) => node.id === compareTargetNodeId) || null, t)
-                  : isZh
-                    ? "未选择"
-                    : "None"}
+                  : t("components.workspace.analysisContext.noneSelected")}
               </strong>
             </div>
           </div>
@@ -219,8 +215,8 @@ export const AnalysisContextPanel: React.FC<AnalysisContextPanelProps> = ({
         </CollapsibleInsightSection>
 
         <CollapsibleInsightSection
-          title={isZh ? "配置详情" : "Configuration"}
-          subtitle={isZh ? "高频配置直接可达，深度配置仍走原有弹窗。" : "Keep frequent configuration one click away while preserving the existing modals."}
+          title={t("components.workspace.analysisContext.configTitle")}
+          subtitle={t("components.workspace.analysisContext.configSubtitle")}
           defaultOpen
           tone="details"
         >
@@ -228,14 +224,14 @@ export const AnalysisContextPanel: React.FC<AnalysisContextPanelProps> = ({
             {llmProviders.length === 0 ? (
               <div className="ss-analysis-panel__empty">
                 <div>
-                  {isZh ? "当前还没有可用的 LLM 提供商，请先到设置里完成 provider 配置。" : "There is no available LLM provider yet. Configure a provider in Settings first."}
+                  {t("components.workspace.analysisContext.noLlmProvider")}
                 </div>
                 <button
                   type="button"
                   onClick={() => navigate("/settings?tab=providers_llm")}
                   className="ss-button-secondary mt-3"
                 >
-                  {isZh ? "前往设置" : "Open settings"}
+                  {t("components.workspace.analysisContext.openSettings")}
                 </button>
               </div>
             ) : null}
@@ -289,8 +285,8 @@ export const AnalysisContextPanel: React.FC<AnalysisContextPanelProps> = ({
         </CollapsibleInsightSection>
 
         <CollapsibleInsightSection
-          title={isZh ? "世界规则与元数据" : "World rules and metadata"}
-          subtitle={isZh ? "保留真实字段，只把它们收成更轻的摘要。" : "Keep the real fields and condense them into a lighter summary."}
+          title={t("components.workspace.analysisContext.worldRulesTitle")}
+          subtitle={t("components.workspace.analysisContext.worldRulesSubtitle")}
           defaultOpen
           tone="metrics"
         >
@@ -305,27 +301,27 @@ export const AnalysisContextPanel: React.FC<AnalysisContextPanelProps> = ({
 
           <div className="ss-analysis-panel__metrics">
             <div className="ss-analysis-panel__metric">
-              <span>{isZh ? "角色" : "Agents"}</span>
+              <span>{t("components.workspace.analysisContext.agentsLabel")}</span>
               <strong>{agents.length}</strong>
             </div>
             <div className="ss-analysis-panel__metric">
-              <span>{isZh ? "日志" : "Logs"}</span>
+              <span>{t("components.workspace.analysisContext.logsLabel")}</span>
               <strong>{logs.length}</strong>
             </div>
             <div className="ss-analysis-panel__metric">
-              <span>{isZh ? "事件" : "Events"}</span>
+              <span>{t("components.workspace.analysisContext.eventsLabel")}</span>
               <strong>{rawEvents.length}</strong>
             </div>
             <div className="ss-analysis-panel__metric">
-              <span>{isZh ? "模式" : "Mode"}</span>
-              <strong>{isCompareMode ? t("simulationWorkspace.compare") : isZh ? "高级控制" : "Control"}</strong>
+              <span>{t("components.workspace.analysisContext.modeLabel")}</span>
+              <strong>{isCompareMode ? t("simulationWorkspace.compare") : t("components.workspace.analysisContext.controlMode")}</strong>
             </div>
           </div>
         </CollapsibleInsightSection>
 
         <CollapsibleInsightSection
-          title={isZh ? "研究日志" : "Research logs"}
-          subtitle={isZh ? "默认只看最近几条，避免日志直接吞掉右侧。" : "Show only the latest few entries so logs stop taking over the side panel."}
+          title={t("components.workspace.analysisContext.researchLogsTitle")}
+          subtitle={t("components.workspace.analysisContext.researchLogsSubtitle")}
           tone="logs"
         >
           {recentLogs.length ? (
@@ -333,7 +329,7 @@ export const AnalysisContextPanel: React.FC<AnalysisContextPanelProps> = ({
               {recentLogs.map((entry) => (
                 <div key={entry.id} className="ss-analysis-panel__log-item">
                   <div className="ss-analysis-panel__log-meta">
-                    <span>{entry.agentId || (isZh ? "系统" : "System")}</span>
+                    <span>{entry.agentId || t("components.workspace.analysisContext.systemLabel")}</span>
                     <strong>{entry.round ? `R${entry.round}` : "—"}</strong>
                   </div>
                   <p>{entry.content}</p>
@@ -342,14 +338,14 @@ export const AnalysisContextPanel: React.FC<AnalysisContextPanelProps> = ({
             </div>
           ) : (
             <div className="ss-analysis-panel__empty">
-              {isZh ? "当前还没有研究日志，继续推演后这里会出现最近事件摘要。" : "No research logs yet. Continue the simulation to populate recent event summaries here."}
+              {t("components.workspace.analysisContext.noLogsYet")}
             </div>
           )}
         </CollapsibleInsightSection>
 
         <CollapsibleInsightSection
-          title={isZh ? "导出与报告" : "Exports and reports"}
-          subtitle={isZh ? "输出能力保留，但不再占据左侧主列。" : "Keep export capabilities without letting them occupy the main navigation column."}
+          title={t("components.workspace.analysisContext.exportsTitle")}
+          subtitle={t("components.workspace.analysisContext.exportsSubtitle")}
           tone="outputs"
         >
           <OutputActionsPanel />

@@ -1,4 +1,5 @@
 from socialsim4.core.action import Action
+from socialsim4.i18n import T
 from socialsim4.core.agent import Agent
 from socialsim4.core.scene import Scene
 from socialsim4.core.simulator import Simulator
@@ -14,15 +15,12 @@ def _localized(agent: Agent, en_text: str, zh_text: str) -> str:
 
 
 class MoveToLocationAction(Action):
-    NAME = "move_to_location"
-    DESC = "Move to a named location or coordinates."
-    INSTRUCTION = """- move_to_location: Go to a place
-  <Action name="move_to_location"><location>market</location></Action>
-  Or: <Action name="move_to_location"><x>10</x><y>10</y></Action>
-"""
+    NAME = T("prompts.actions.move_to_location.name", locale=None)
+    DESC = T("prompts.actions.move_to_location.desc", locale=None)
+    INSTRUCTION = T("prompts.actions.move_to_location.instruction", locale=None)
 
     def handle(self, action_data, agent: Agent, simulator: Simulator, scene: Scene):
-        """Move to a location or coordinates using grid pathfinding and terrain costs."""
+        # Move to a location or coordinates using grid pathfinding and terrain costs.
         # Resolve start
         start_xy = agent.properties.get("map_xy")
         target_xy = None
@@ -103,7 +101,7 @@ class MoveToLocationAction(Action):
             if oxy:
                 dist = abs(oxy[0] - target_xy[0]) + abs(oxy[1] - target_xy[1])
                 if dist <= scene.chat_range:
-                    nearby.append(f"{other.name} (distance {dist})")
+                    nearby.append(_localized(agent, f"{other.name} (distance {dist})", f"{other.name}(距离 {dist})"))
         if nearby:
             agent.add_env_feedback(
                 _localized(agent, "Nearby agents: " + ", ".join(nearby), "附近的智能体：" + "，".join(nearby))
@@ -116,20 +114,18 @@ class MoveToLocationAction(Action):
 
 
 class LookAroundAction(Action):
-    NAME = "look_around"
-    DESC = "Survey nearby tiles, locations, and agents."
-    INSTRUCTION = """- look_around: See who and what is nearby
-  <Action name="look_around"/>
-"""
+    NAME = T("prompts.actions.look_around.name", locale=None)
+    DESC = T("prompts.actions.look_around.desc", locale=None)
+    INSTRUCTION = T("prompts.actions.look_around.instruction", locale=None)
 
     def handle(self, action_data, agent: Agent, simulator: Simulator, scene: Scene):
-        """Look around: list nearby locations, resources, and agents."""
+        # Look around: list nearby locations, resources, and agents.
         xy = agent.properties.get("map_xy")
         if not xy:
             pos_name = agent.properties.get("map_position")
             loc = scene.game_map.get_location(pos_name) if pos_name else None
             if not loc:
-                return False, {"error": "unknown_position"}, f"{agent.name} look failed", {}, False
+                return False, {"error": "unknown_position"}, _localized(agent, f"{agent.name} look failed", f"{agent.name} 观察失败"), {}, False
             xy = [loc.x, loc.y]
 
         radius = int(action_data.get("radius", max(3, min(7, scene.chat_range))))
@@ -202,14 +198,12 @@ class LookAroundAction(Action):
 
 
 class GatherResourceAction(Action):
-    NAME = "gather_resource"
-    DESC = "Collect a resource at current tile/location."
-    INSTRUCTION = """- gather_resource: Collect food, wood, or water
-  <Action name="gather_resource"><resource>food</resource></Action>
-"""
+    NAME = T("prompts.actions.gather_resource.name", locale=None)
+    DESC = T("prompts.actions.gather_resource.desc", locale=None)
+    INSTRUCTION = T("prompts.actions.gather_resource.instruction", locale=None)
 
     def handle(self, action_data, agent: Agent, simulator: Simulator, scene: Scene):
-        """Gather resources, preferring tile resources at current position."""
+        # Gather resources, preferring tile resources at current position.
         resource_type = action_data.get("resource")
         amount = int(action_data.get("amount", 1))
 
@@ -268,14 +262,12 @@ class GatherResourceAction(Action):
 
 
 class RestAction(Action):
-    NAME = "rest"
-    DESC = "Recover energy; more in buildings."
-    INSTRUCTION = """- rest: Recover energy
-  <Action name="rest"/>
-"""
+    NAME = T("prompts.actions.rest.name", locale=None)
+    DESC = T("prompts.actions.rest.desc", locale=None)
+    INSTRUCTION = T("prompts.actions.rest.instruction", locale=None)
 
     def handle(self, action_data, agent: Agent, simulator: Simulator, scene: Scene):
-        """Rest to regain energy."""
+        # Rest to regain energy.
         current_location = scene.game_map.get_location(agent.properties["map_position"])
 
         # Resting in a building is more effective

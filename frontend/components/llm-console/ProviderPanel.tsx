@@ -23,8 +23,7 @@ export function ProviderPanel({
   onTestProvider,
   onSetDefault,
 }: ProviderPanelProps) {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
   const [hoveredId, setHoveredId] = useState<number | null>(null);
 
   const getProviderTypeLabel = (provider: string) => {
@@ -39,7 +38,7 @@ export function ProviderPanel({
     <div className="llm-provider-panel">
       <div className="llm-panel-header">
         <h3 className="llm-panel-title">
-          {isZh ? "Provider 管理" : "Provider Management"}
+          {t("components.llmConsole.providerPanel.title")}
         </h3>
         <span className="llm-panel-badge">{providers.length}</span>
       </div>
@@ -47,11 +46,9 @@ export function ProviderPanel({
       <div className="llm-provider-list">
         {providers.length === 0 ? (
           <div className="llm-empty-state">
-            <p>{isZh ? "未配置任何 Provider" : "No providers configured"}</p>
+            <p>{t("components.llmConsole.providerPanel.noProviders")}</p>
             <p className="llm-empty-hint">
-              {isZh
-                ? '点击顶部“新增 Provider”开始'
-                : 'Click "New Provider" above'}
+              {t("components.llmConsole.providerPanel.noProvidersHint")}
             </p>
           </div>
         ) : (
@@ -70,7 +67,7 @@ export function ProviderPanel({
                   <h4 className="llm-provider-card__name">{provider.name}</h4>
                   {provider.is_default && (
                     <span className="llm-badge llm-badge--default">
-                      {isZh ? "默认" : "Default"}
+                      {t("components.llmConsole.providerPanel.default")}
                     </span>
                   )}
                 </div>
@@ -109,7 +106,7 @@ export function ProviderPanel({
                       e.stopPropagation();
                       onTestProvider(provider.id);
                     }}
-                    title={isZh ? "测试连接" : "Test connection"}
+                    title={t("components.llmConsole.providerPanel.testConnectionTitle")}
                   >
                     <Play size={14} />
                   </button>
@@ -119,7 +116,7 @@ export function ProviderPanel({
                       e.stopPropagation();
                       onEditProvider(provider.id);
                     }}
-                    title={isZh ? "编辑" : "Edit"}
+                    title={t("components.llmConsole.providerPanel.editTitle")}
                   >
                     <Edit2 size={14} />
                   </button>
@@ -129,7 +126,7 @@ export function ProviderPanel({
                       e.stopPropagation();
                       onSetDefault(provider.id);
                     }}
-                    title={isZh ? "设为默认" : "Set as default"}
+                    title={t("components.llmConsole.providerPanel.setDefaultTitle")}
                   >
                     <Settings size={14} />
                   </button>
@@ -139,15 +136,13 @@ export function ProviderPanel({
                       e.stopPropagation();
                       if (
                         window.confirm(
-                          isZh
-                            ? "确定删除此 Provider？"
-                            : "Delete this provider?"
+                          t("components.llmConsole.providerPanel.confirmDelete")
                         )
                       ) {
                         onDeleteProvider(provider.id);
                       }
                     }}
-                    title={isZh ? "删除" : "Delete"}
+                    title={t("components.llmConsole.providerPanel.deleteTitle")}
                   >
                     <Trash2 size={14} />
                   </button>

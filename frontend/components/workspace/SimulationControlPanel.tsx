@@ -1,7 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { isZh } from "../../store/helpers";
 import {
   BarChart2,
   Beaker,
@@ -76,9 +75,8 @@ export const SimulationControlPanel: React.FC<SimulationControlPanelProps> = ({
   branchDetailsOpen,
   workspaceMode,
 }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  i18n.language.startsWith("zh");
   const currentSimulation = useSimulationStore((state) => state.currentSimulation);
   const selectedNodeId = useSimulationStore((state) => state.selectedNodeId);
   const selectedNode = useSimulationStore((state) =>
@@ -224,14 +222,14 @@ export const SimulationControlPanel: React.FC<SimulationControlPanelProps> = ({
             <div className="ss-config-panel__meta">
               <span>{t("controlRoom.activeProvider")}</span>
               <strong>
-                {isZh ? "还没有可用的 LLM 提供商" : "No LLM provider is available yet"}
+                {t("components.workspace.simulationControl.noLlmProvider")}
               </strong>
               <button
                 type="button"
                 className="ss-button-secondary mt-3"
                 onClick={() => navigate("/settings?tab=providers_llm")}
               >
-                {isZh ? "前往设置配置提供商" : "Open settings to configure providers"}
+                {t("components.workspace.simulationControl.openSettings")}
               </button>
             </div>
           ) : null}

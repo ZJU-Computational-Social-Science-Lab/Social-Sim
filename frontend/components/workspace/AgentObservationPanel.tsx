@@ -1,3 +1,11 @@
+/**
+ * Agent observation panel for workspace view.
+ *
+ * Displays agent list with status, latest activity, memory/knowledge counts,
+ * and a detail drawer for the selected agent.
+ *
+ * Exports: AgentObservationPanel (default)
+ */
 import React from "react";
 import { ArrowRight, Brain, BookOpen, ChevronLeft, Sparkles, UserRound, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -36,12 +44,12 @@ export const AgentObservationPanel: React.FC<AgentObservationPanelProps> = ({
         continue;
       }
       map.set(entry.agentId, {
-        content: summarizeText(entry.content, isZh ? "暂无最新活动。" : "No recent activity."),
+        content: summarizeText(entry.content, t("components.workspace.agentObservation.noRecentActivity")),
         round: entry.round,
       });
     }
     return map;
-  }, [isZh, logs]);
+  }, [t, logs]);
 
   const activeAgentId = React.useMemo(() => {
     for (let index = logs.length - 1; index >= 0; index -= 1) {
@@ -61,36 +69,36 @@ export const AgentObservationPanel: React.FC<AgentObservationPanelProps> = ({
   const getAgentStatus = React.useCallback(
     (agentId: string): { label: string; tone: AgentStatusTone } => {
       if (selectedAgentId === agentId) {
-        return { label: isZh ? "观察中" : "Focused", tone: "active" };
+        return { label: t("components.workspace.agentObservation.statusFocused"), tone: "active" };
       }
       if (activeAgentId === agentId) {
-        return { label: isZh ? "处理中" : "Processing", tone: "processing" };
+        return { label: t("components.workspace.agentObservation.statusProcessing"), tone: "processing" };
       }
       if (latestByAgent.has(agentId)) {
-        return { label: isZh ? "已完成" : "Complete", tone: "complete" };
+        return { label: t("components.workspace.agentObservation.statusComplete"), tone: "complete" };
       }
-      return { label: isZh ? "空闲" : "Idle", tone: "idle" };
+      return { label: t("components.workspace.agentObservation.statusIdle"), tone: "idle" };
     },
-    [activeAgentId, isZh, latestByAgent, selectedAgentId],
+    [activeAgentId, t, latestByAgent, selectedAgentId],
   );
 
   return (
     <section className="ss-agent-observation" id="workspace-agents">
       <div className="ss-agent-observation__header">
         <div>
-          <div className="ss-kicker">{isZh ? "参与者观察" : "Agent observation"}</div>
-          <h2>{isZh ? "默认可见的参与者观察面板" : "Default-visible participant observation"}</h2>
+          <div className="ss-kicker">{t("components.workspace.agentObservation.title")}</div>
+          <h2>{t("components.workspace.agentObservation.subtitle")}</h2>
         </div>
         <div className="ss-agent-observation__header-actions">
           <span className="ss-agent-observation__count">
             {agents.length}
-            <small>{isZh ? "位参与者" : "agents"}</small>
+            <small>{t("components.workspace.agentObservation.agentsLabel")}</small>
           </span>
           <button
             type="button"
             className="ss-icon-button"
             onClick={onHide}
-            title={isZh ? "隐藏参与者观察" : "Hide agent observation"}
+            title={t("components.workspace.agentObservation.hideTitle")}
           >
             <ChevronLeft size={16} />
           </button>
@@ -121,18 +129,18 @@ export const AgentObservationPanel: React.FC<AgentObservationPanelProps> = ({
                 </div>
 
                 <p className="ss-agent-observation__copy">
-                  {latest?.content || summarizeText(agent.profile, isZh ? "等待新的推演结果。" : "Waiting for new simulation output.")}
+                  {latest?.content || summarizeText(agent.profile, t("components.workspace.agentObservation.waitingForOutput"))}
                 </p>
 
                 <div className="ss-agent-observation__footer">
                   <span>
-                    {isZh ? "记忆" : "Memory"} {agent.memory.length}
+                    {t("components.workspace.agentObservation.memory")} {agent.memory.length}
                   </span>
                   <span>
-                    {isZh ? "知识" : "Knowledge"} {agent.knowledgeBase.length}
+                    {t("components.workspace.agentObservation.knowledge")} {agent.knowledgeBase.length}
                   </span>
                   <span className="ss-agent-observation__detail-link">
-                    {isZh ? "查看详情" : "View details"}
+                    {t("components.workspace.agentObservation.viewDetails")}
                     <ArrowRight size={14} />
                   </span>
                 </div>
@@ -141,8 +149,7 @@ export const AgentObservationPanel: React.FC<AgentObservationPanelProps> = ({
           })
         ) : (
               <div className="ss-agent-observation__empty">
-            {isZh ? "当前还没有可观察的参与者，继续推演或加载实验后会显示参与者。"
-            : "No agents are visible yet. Continue the simulation or load an experiment to populate this panel."}
+            {t("components.workspace.agentObservation.emptyHint")}
           </div>
         )}
       </div>
@@ -153,7 +160,7 @@ export const AgentObservationPanel: React.FC<AgentObservationPanelProps> = ({
           <aside className="ss-agent-drawer__panel">
             <div className="ss-agent-drawer__header">
                 <div>
-                  <div className="ss-kicker">{isZh ? "参与者详情" : "Agent details"}</div>
+                  <div className="ss-kicker">{t("components.workspace.agentObservation.detailsTitle")}</div>
                 <h3>{getAgentDisplayName(selectedAgent)}</h3>
                 <p>{getAgentDisplayRole(selectedAgent)}</p>
                 </div>
@@ -167,45 +174,45 @@ export const AgentObservationPanel: React.FC<AgentObservationPanelProps> = ({
                 <div className="ss-agent-drawer__metric">
                   <UserRound size={15} />
                   <div>
-                    <span>{isZh ? "状态" : "State"}</span>
+                    <span>{t("components.workspace.agentObservation.state")}</span>
                     <strong>{getAgentStatus(selectedAgent.id).label}</strong>
                   </div>
                 </div>
                 <div className="ss-agent-drawer__metric">
                   <Brain size={15} />
                   <div>
-                    <span>{isZh ? "记忆条目" : "Memory items"}</span>
+                    <span>{t("components.workspace.agentObservation.memoryItems")}</span>
                     <strong>{selectedAgent.memory.length}</strong>
                   </div>
                 </div>
                 <div className="ss-agent-drawer__metric">
                   <BookOpen size={15} />
                   <div>
-                    <span>{isZh ? "知识条目" : "Knowledge items"}</span>
+                    <span>{t("components.workspace.agentObservation.knowledgeItems")}</span>
                     <strong>{selectedAgent.knowledgeBase.length}</strong>
                   </div>
                 </div>
                 <div className="ss-agent-drawer__metric">
                   <Sparkles size={15} />
                   <div>
-                    <span>{isZh ? "模型" : "Model"}</span>
+                    <span>{t("components.workspace.agentObservation.model")}</span>
                     <strong>{selectedAgent.llmConfig.model || "—"}</strong>
                   </div>
                 </div>
               </div>
 
               <div className="ss-agent-drawer__section">
-                <span>{isZh ? "职责摘要" : "Role summary"}</span>
-                <p>{selectedAgent.profile || (isZh ? "暂无额外职责描述。" : "No additional role summary yet.")}</p>
+                <span>{t("components.workspace.agentObservation.roleSummary")}</span>
+                <p>{selectedAgent.profile || t("components.workspace.agentObservation.noRoleSummary")}</p>
               </div>
 
               <div className="ss-agent-drawer__section">
-                <span>{isZh ? "最新活动" : "Latest activity"}</span>
-                <p>{latestByAgent.get(selectedAgent.id)?.content || (isZh ? "还没有新的事件记录。" : "No recent event yet.")}</p>
+                <span>{t("components.workspace.agentObservation.latestActivity")}</span>
+                <p>{latestByAgent.get(selectedAgent.id)?.content || t("components.workspace.agentObservation.noRecentEvent")}</p>
               </div>
 
               <div className="ss-agent-drawer__section">
-                <span>{isZh ? "关键属性" : "Key properties"}</span>
+                <span>{t("components.workspace.agentObservation.keyProperties")}</span>
                 <div className="ss-agent-drawer__property-list">
                   {Object.entries(selectedAgent.properties || {}).slice(0, 6).map(([key, value]) => (
                     <div key={key} className="ss-agent-drawer__property">
@@ -215,7 +222,7 @@ export const AgentObservationPanel: React.FC<AgentObservationPanelProps> = ({
                   ))}
                   {!Object.keys(selectedAgent.properties || {}).length ? (
                     <div className="ss-agent-drawer__property is-empty">
-                      {isZh ? "当前没有额外属性。" : "No additional properties yet."}
+                      {t("components.workspace.agentObservation.noAdditionalProperties")}
                     </div>
                   ) : null}
                 </div>

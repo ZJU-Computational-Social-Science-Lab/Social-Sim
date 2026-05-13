@@ -30,8 +30,7 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
   selectedAgentId,
   onClearSelectedAgent,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
   const nodes = useSimulationStore((state) => state.nodes);
   const logs = useSimulationStore((state) => state.logs);
   const rawEvents = useSimulationStore((state) => state.rawEvents);
@@ -81,12 +80,12 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
 
   const tabLabel = React.useCallback(
     (tab: NodeDetailTab) => {
-      if (tab === "events") return isZh ? "事件内容" : "Events";
-      if (tab === "branches") return isZh ? "分支说明" : "Branches";
-      if (tab === "logs") return isZh ? "研究日志" : "Logs";
-      return isZh ? "原始内容" : "Raw";
+      if (tab === "events") return t("components.workspace.nodeDetail.eventsTab");
+      if (tab === "branches") return t("components.workspace.nodeDetail.branchesTab");
+      if (tab === "logs") return t("components.workspace.nodeDetail.logsTab");
+      return t("components.workspace.nodeDetail.rawTab");
     },
-    [isZh],
+    [t],
   );
 
   const handleActivateNode = (nodeId: string) => {
@@ -101,8 +100,8 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
     ? t("simulationWorkspace.running")
     : t(`topologyExplorer.status.${selectedNode?.status || "pending"}`);
   const roundLabel = selectedNode?.depth != null && selectedNode.depth > 0
-    ? `${isZh ? "第" : ""}${selectedNode.depth}${isZh ? "轮" : ""}`
-    : isZh ? "初始设定" : "Start";
+    ? t("components.workspace.nodeDetail.roundN", { n: selectedNode.depth })
+    : t("components.workspace.nodeDetail.start");
 
   return (
     <section className="ss-node-detail" id="workspace-detail">
@@ -126,15 +125,15 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
 
         <div className="ss-node-detail__meta-strip">
           <div className="ss-node-detail__meta-item">
-            <span>{isZh ? "轮次" : "Round"}</span>
+            <span>{t("components.workspace.nodeDetail.round")}</span>
             <strong>{roundLabel}</strong>
           </div>
           <div className="ss-node-detail__meta-item">
-            <span>{isZh ? "状态" : "Status"}</span>
+            <span>{t("components.workspace.nodeDetail.status")}</span>
             <strong>{runStatus}</strong>
           </div>
           <div className="ss-node-detail__meta-item">
-            <span>{isZh ? "节点" : "Node"}</span>
+            <span>{t("components.workspace.nodeDetail.node")}</span>
             <strong>{getWorkspaceNodeLabel(selectedNode, t)}</strong>
           </div>
         </div>
@@ -154,7 +153,7 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
         {activeTab === "branches" ? (
           <div className="ss-node-detail__grid">
             <div className="ss-node-detail__card">
-              <span>{isZh ? "当前路径" : "Current path"}</span>
+              <span>{t("components.workspace.nodeDetail.currentPath")}</span>
               <strong>
                 {currentPath.length
                   ? currentPath.map((node) => getWorkspaceNodeLabel(node, t)).join(" / ")
@@ -162,20 +161,20 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
               </strong>
             </div>
             <div className="ss-node-detail__card">
-              <span>{isZh ? "父分支" : "Parent branch"}</span>
-              <strong>{parentNode ? getWorkspaceNodeLabel(parentNode, t) : (isZh ? "无父分支" : "No parent branch")}</strong>
+              <span>{t("components.workspace.nodeDetail.parentBranch")}</span>
+              <strong>{parentNode ? getWorkspaceNodeLabel(parentNode, t) : t("components.workspace.nodeDetail.noParentBranch")}</strong>
             </div>
             <div className="ss-node-detail__card">
-              <span>{isZh ? "并行分支" : "Sibling branches"}</span>
+              <span>{t("components.workspace.nodeDetail.siblingBranches")}</span>
               <strong>{String(siblingNodes.length)}</strong>
             </div>
             <div className="ss-node-detail__card">
-              <span>{isZh ? "后续节点" : "Child nodes"}</span>
+              <span>{t("components.workspace.nodeDetail.childNodes")}</span>
               <strong>{String(childNodes.length)}</strong>
             </div>
 
             <div className="ss-node-detail__list-card">
-              <span>{isZh ? "可切换的并行分支" : "Switchable sibling branches"}</span>
+              <span>{t("components.workspace.nodeDetail.switchableBranches")}</span>
               {siblingNodes.length ? (
                 siblingNodes.map((node) => (
                   <button
@@ -189,12 +188,12 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
                   </button>
                 ))
               ) : (
-                <div className="ss-node-detail__empty">{isZh ? "当前没有并行分支。" : "There are no sibling branches for this node."}</div>
+                <div className="ss-node-detail__empty">{t("components.workspace.nodeDetail.noSiblings")}</div>
               )}
             </div>
 
             <div className="ss-node-detail__list-card">
-              <span>{isZh ? "当前节点展开出的后续路径" : "Child paths from this node"}</span>
+              <span>{t("components.workspace.nodeDetail.childPaths")}</span>
               {childNodes.length ? (
                 childNodes.map((node) => (
                   <button
@@ -208,7 +207,7 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
                   </button>
                 ))
               ) : (
-                <div className="ss-node-detail__empty">{isZh ? "当前节点还没有新的子分支。" : "No child paths have been generated from this node yet."}</div>
+                <div className="ss-node-detail__empty">{t("components.workspace.nodeDetail.noChildren")}</div>
               )}
             </div>
           </div>
@@ -216,12 +215,12 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
 
         {activeTab === "logs" ? (
           <div className="ss-node-detail__list-card is-tall">
-            <span>{isZh ? "当前节点研究日志" : "Research logs for this node"}</span>
+            <span>{t("components.workspace.nodeDetail.researchLogs")}</span>
             {selectedNodeLogs.length ? (
               selectedNodeLogs.map((entry) => (
                 <div key={entry.id} className="ss-node-detail__log-item">
                   <div className="ss-node-detail__log-top">
-                    <strong>{entry.agentId ? resolveAgentDisplayName(entry.agentId, agents) : (isZh ? "系统" : "System")}</strong>
+                    <strong>{entry.agentId ? resolveAgentDisplayName(entry.agentId, agents) : t("components.workspace.nodeDetail.systemLabel")}</strong>
                     <span>{entry.timestamp}</span>
                   </div>
                   <p>{entry.content}</p>
@@ -229,7 +228,7 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
               ))
             ) : (
               <div className="ss-node-detail__empty">
-                {isZh ? "当前节点还没有日志记录，继续推演后这里会更新。" : "There are no logs for this node yet. Continue the simulation to populate this area."}
+                {t("components.workspace.nodeDetail.noLogs")}
               </div>
             )}
           </div>
@@ -237,12 +236,12 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
 
         {activeTab === "raw" ? (
           <div className="ss-node-detail__raw-card">
-            <span>{isZh ? "原始事件数据" : "Raw event data"}</span>
+            <span>{t("components.workspace.nodeDetail.rawEventData")}</span>
             {selectedNodeRawEvents.length ? (
               <pre>{JSON.stringify(selectedNodeRawEvents, null, 2)}</pre>
             ) : (
               <div className="ss-node-detail__empty">
-                {isZh ? "当前节点还没有原始事件数据。" : "There is no raw event data for this node yet."}
+                {t("components.workspace.nodeDetail.noRawData")}
               </div>
             )}
           </div>

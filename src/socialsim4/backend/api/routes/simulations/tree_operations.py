@@ -49,6 +49,7 @@ from .helpers import (
 from socialsim4.backend.services.simtree_runtime import SIM_TREE_REGISTRY
 from socialsim4.backend.services.documents import composite_rag_retrieval, format_rag_context
 from socialsim4.backend.dependencies import extract_bearer_token, resolve_current_user
+from socialsim4.i18n import T
 
 
 logger = logging.getLogger(__name__)
@@ -184,12 +185,12 @@ async def simulation_tree_advance_frontier(
         if len(parents) > settings.max_frontier_nodes_per_request:
             raise HTTPException(
                 status_code=400,
-                detail=f"Too many frontier nodes ({len(parents)}). Maximum is {settings.max_frontier_nodes_per_request}.",
+                detail=T("api.errors.too_many_frontier_nodes", count=len(parents), max=settings.max_frontier_nodes_per_request),
             )
         if turns > settings.max_advance_turns_per_request:
             raise HTTPException(
                 status_code=400,
-                detail=f"Too many turns ({turns}). Maximum is {settings.max_advance_turns_per_request}.",
+                detail=T("api.errors.too_many_turns", turns=turns, max=settings.max_advance_turns_per_request),
             )
 
         # Create copies for each parent
@@ -283,12 +284,12 @@ async def simulation_tree_advance_multi(
         if count > settings.max_advance_multi_count:
             raise HTTPException(
                 status_code=400,
-                detail=f"Too many parallel advances ({count}). Maximum is {settings.max_advance_multi_count}.",
+                detail=T("api.errors.too_many_parallel_advances", count=count, max=settings.max_advance_multi_count),
             )
         if turns > settings.max_advance_turns_per_request:
             raise HTTPException(
                 status_code=400,
-                detail=f"Too many turns ({turns}). Maximum is {settings.max_advance_turns_per_request}.",
+                detail=T("api.errors.too_many_turns", turns=turns, max=settings.max_advance_turns_per_request),
             )
 
         children = [tree.copy_sim(parent) for _ in range(count)]
@@ -378,7 +379,7 @@ async def simulation_tree_advance_chain(
         if steps > settings.max_advance_turns_per_request:
             raise HTTPException(
                 status_code=400,
-                detail=f"Too many chain steps ({steps}). Maximum is {settings.max_advance_turns_per_request}.",
+                detail=T("api.errors.too_many_chain_steps", steps=steps, max=settings.max_advance_turns_per_request),
             )
 
         last = parent
@@ -479,10 +480,10 @@ async def simulation_tree_branch(
             cid = tree.branch(int(data.parent), [dict(op) for op in data.ops])
         except KeyError as e:
             logger.warning(f"Branch failed - node not found: {e}")
-            raise HTTPException(status_code=404, detail="Tree node not found")
+            raise HTTPException(status_code=404, detail=T("api.errors.tree_node_not_found"))
         except Exception as e:
             logger.exception(f"Branch failed with unexpected error: {e}")
-            raise HTTPException(status_code=500, detail=f"Branch operation failed: {e}")
+            raise HTTPException(status_code=500, detail=T("api.errors.branch_operation_failed", error=str(e)))
         node = tree.nodes[cid]
 
         broadcast_tree_event(
@@ -566,7 +567,7 @@ async def simulation_tree_events(
         node = record.tree.nodes.get(int(node_id))
 
         if node is None:
-            raise HTTPException(status_code=404, detail="Tree node not found")
+            raise HTTPException(status_code=404, detail=T("api.errors.tree_node_not_found"))
 
         return node.get("logs", [])
 
@@ -607,7 +608,7 @@ async def simulation_tree_state(
         node = record.tree.nodes.get(int(node_id))
 
         if node is None:
-            raise HTTPException(status_code=404, detail="Tree node not found")
+            raise HTTPException(status_code=404, detail=T("api.errors.tree_node_not_found"))
 
         simulator = node["sim"]
         agents = []
@@ -752,7 +753,7 @@ async def test_agent_knowledge(
         node = record.tree.nodes.get(int(node_id))
 
         if node is None:
-            raise HTTPException(status_code=404, detail="Tree node not found")
+            raise HTTPException(status_code=404, detail=T("api.errors.tree_node_not_found"))
 
         simulator = node["sim"]
         results = []
@@ -826,13 +827,13 @@ async def ask_agents_question(
         node = record.tree.nodes.get(int(node_id))
 
         if node is None:
-            raise HTTPException(status_code=404, detail="Tree node not found")
+            raise HTTPException(status_code=404, detail=T("api.errors.tree_node_not_found"))
 
         simulator = node["sim"]
         llm_client = simulator.clients.get("chat") or simulator.clients.get("default")
 
         if llm_client is None:
-            raise HTTPException(status_code=500, detail="No LLM client available")
+            raise HTTPException(status_code=500, detail=T("api.errors.no_llm_client_available"))
 
         # Get global knowledge from scene_config
         scene_config = sim.scene_config or {}
@@ -977,7 +978,7 @@ async def inject_host_message(
     """
     message = data.get("message", "").strip()
     if not message:
-        raise HTTPException(status_code=400, detail="message is required")
+        raise HTTPException(status_code=400, detail=T("api.errors.message_required"))
 
     async with get_session() as session:
         token = extract_bearer_token(request)
@@ -986,12 +987,12 @@ async def inject_host_message(
         node = record.tree.nodes.get(int(node_id))
 
         if node is None:
-            raise HTTPException(status_code=404, detail="Tree node not found")
+            raise HTTPException(status_code=404, detail=T("api.errors.tree_node_not_found"))
 
         simulator = node["sim"]
         from socialsim4.backend.services.simtree_runtime import ExperimentRunnerAdapter
         if not isinstance(simulator, ExperimentRunnerAdapter):
-            raise HTTPException(status_code=400, detail="inject-message only supported for experiment simulations")
+            raise HTTPException(status_code=400, detail=T("api.errors.inject_message_experiment_only"))
 
         simulator.inject_host_message(message)
 

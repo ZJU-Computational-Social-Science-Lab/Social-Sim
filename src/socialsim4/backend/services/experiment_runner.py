@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from socialsim4.backend.models.simulation import Simulation
+from socialsim4.i18n import T
 from socialsim4.backend.models.user import ProviderConfig
 
 from socialsim4.backend.core.database import get_session
@@ -41,10 +42,10 @@ async def run_experiment_db(simulation_id: str, exp_id: str, turns: int) -> List
     async with get_session() as session:
         sim = await session.get(Simulation, simulation_id.upper())
         if sim is None:
-            raise RuntimeError("Simulation not found")
+            raise RuntimeError(T("api.errors.simulation_not_found"))
         exp = await session.get(Experiment, exp_id)
         if exp is None:
-            raise RuntimeError("Experiment not found")
+            raise RuntimeError(T("api.errors.experiment_not_found"))
         # load variants
         await session.refresh(exp)
         variants = list(exp.variants or [])
@@ -52,7 +53,7 @@ async def run_experiment_db(simulation_id: str, exp_id: str, turns: int) -> List
         # ensure SimTree is loaded
         rec: SimTreeRecord = SIM_TREE_REGISTRY.get(simulation_id.upper())
         if rec is None:
-            raise RuntimeError("Simulation tree not loaded")
+            raise RuntimeError(T("api.errors.simulation_tree_not_loaded"))
         tree = rec.tree
 
         # Create a run record
@@ -184,7 +185,7 @@ async def create_and_branch(simulation_id: str, base_node: int, variants: List[d
     """
     rec: SimTreeRecord = SIM_TREE_REGISTRY.get(simulation_id.upper())
     if rec is None:
-        raise RuntimeError("Simulation tree not loaded")
+        raise RuntimeError(T("api.errors.simulation_tree_not_loaded"))
     tree = rec.tree
     mapping = {}
     for v in variants:
@@ -202,7 +203,7 @@ async def run_variants_parallel(simulation_id: str, node_ids: List[int], turns: 
     """
     rec: SimTreeRecord = SIM_TREE_REGISTRY.get(simulation_id.upper())
     if rec is None:
-        raise RuntimeError("Simulation tree not loaded")
+        raise RuntimeError(T("api.errors.simulation_tree_not_loaded"))
     tree = rec.tree
     loop = asyncio.get_running_loop()
 
@@ -238,7 +239,7 @@ async def start_experiment_run_background(simulation_id: str, exp_id: str, turns
         res = await session.execute(stmt)
         exp = res.scalars().first()
         if exp is None:
-            raise RuntimeError("Experiment not found")
+            raise RuntimeError(T("api.errors.experiment_not_found"))
         run = ExperimentRun(experiment_id=exp.id, turns=int(turns), status="queued", result_meta={})
         session.add(run)
         await session.flush()
@@ -321,13 +322,13 @@ async def _run_experiment_worker(simulation_id: str, exp_id: str, run_id: int, t
             res = await session.execute(stmt)
             exp = res.scalars().first()
             if exp is None:
-                raise RuntimeError("Experiment not found")
+                raise RuntimeError(T("api.errors.experiment_not_found"))
             # Convert variant DB objects to plain dicts for safe background processing
             variants = [{"id": v.id, "name": v.name, "ops": (v.ops or []), "node_id": v.node_id} for v in (exp.variants or [])]
 
             rec: SimTreeRecord = SIM_TREE_REGISTRY.get(simulation_id.upper())
             if rec is None:
-                raise RuntimeError("Simulation tree not loaded")
+                raise RuntimeError(T("api.errors.simulation_tree_not_loaded"))
             tree = rec.tree
 
             # ensure each variant has node_id; branch if missing

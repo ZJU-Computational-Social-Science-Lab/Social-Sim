@@ -8,6 +8,7 @@ from socialsim4.backend.celery_app import celery_app
 from socialsim4.core.database import get_session
 from socialsim4.backend.models.experiment import Experiment, ExperimentVariant, ExperimentRun
 from socialsim4.backend.models.simulation import Simulation
+from socialsim4.i18n import T
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from socialsim4.backend.services.simtree_runtime import SimTree
@@ -38,12 +39,12 @@ def run_experiment_task(self, simulation_id: str, exp_id: str, run_id: int, turn
             res = await session.execute(stmt)
             exp = res.scalars().first()
             if exp is None:
-                raise RuntimeError("Experiment not found")
+                raise RuntimeError(T("api.errors.experiment_not_found"))
 
             # Load simulation to determine owner and provider configs
             sim = await session.get(Simulation, simulation_id.upper())
             if sim is None:
-                raise RuntimeError("Simulation not found")
+                raise RuntimeError(T("api.errors.simulation_not_found"))
 
             # Build clients (LLM + search) from provider configs for the sim owner
             result = await session.execute(

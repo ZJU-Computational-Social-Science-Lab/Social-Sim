@@ -9,8 +9,7 @@ interface NodeHeroCardProps {
 }
 
 export const NodeHeroCard: React.FC<NodeHeroCardProps> = ({ observationMode }) => {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
   const nodes = useSimulationStore((state) => state.nodes);
   const selectedNodeId = useSimulationStore((state) => state.selectedNodeId);
   const currentSimulation = useSimulationStore((state) => state.currentSimulation);
@@ -68,7 +67,7 @@ export const NodeHeroCard: React.FC<NodeHeroCardProps> = ({ observationMode }) =
     <section className="ss-node-hero" id="workspace-node">
       <div className="ss-node-hero__content">
         <div className="ss-node-hero__headline">
-          <div className="ss-kicker">{isZh ? "当前节点总览" : "Current node overview"}</div>
+          <div className="ss-kicker">{t("components.workspace.nodeHero.overview")}</div>
           <div className="ss-node-hero__path">
             <span>{t("controlRoom.currentPath")}</span>
             <strong>
@@ -88,7 +87,7 @@ export const NodeHeroCard: React.FC<NodeHeroCardProps> = ({ observationMode }) =
           </span>
           <span className="ss-pill ss-pill--quiet">{observationLabel}</span>
           {isCompareMode ? <span className="ss-pill ss-pill--quiet">{t("controlRoom.compareActive")}</span> : null}
-          <span className="ss-pill ss-pill--quiet">{isZh ? "高级控制" : "Control mode"}</span>
+          <span className="ss-pill ss-pill--quiet">{t("components.workspace.nodeHero.controlMode")}</span>
         </div>
 
         <div className="ss-node-hero__config">

@@ -11,8 +11,7 @@ import {
 } from "../services/simulations";
 
 export const SnapshotModal: React.FC = () => {
-  const { i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
   const isOpen = useSimulationStore((state) => state.isSnapshotModalOpen);
   const close = useSimulationStore((state) => state.closeSnapshotModal);
   const currentSimulation = useSimulationStore((state) => state.currentSimulation);
@@ -57,7 +56,7 @@ export const SnapshotModal: React.FC = () => {
 
   const handleRestore = async (snapshotId: number) => {
     if (!simulationId) return;
-    const ok = window.confirm(isZh ? "确认恢复到这个快照？" : "Restore this snapshot?");
+    const ok = window.confirm(t("components.snapshotModal.confirmRestore"));
     if (!ok) return;
 
     setRestoringSnapshotId(snapshotId);
@@ -77,13 +76,13 @@ export const SnapshotModal: React.FC = () => {
               <Save size={18} />
             </div>
             <div className="ss-extension-modal__header-copy">
-              <div className="ss-kicker">{isZh ? "快照管理" : "Snapshot manager"}</div>
+              <div className="ss-kicker">{t("components.snapshotModal.title")}</div>
               <h2>
-                {currentSimulation?.name || (isZh ? "当前仿真" : "Current simulation")}
+                {currentSimulation?.name || t("components.snapshotModal.currentSimulation")}
               </h2>
             </div>
           </div>
-          <button type="button" className="ss-icon-button" onClick={close} aria-label={isZh ? "关闭" : "Close"}>
+          <button type="button" className="ss-icon-button" onClick={close} aria-label={t("a11y.close")}>
             <X size={16} />
           </button>
         </div>
@@ -93,14 +92,14 @@ export const SnapshotModal: React.FC = () => {
           <section className="ss-extension-modal__surface flex min-h-0 flex-col gap-3 p-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ss-workspace-heading)]">
               <Save size={15} />
-              <span>{isZh ? "保存当前快照" : "Save snapshot"}</span>
+              <span>{t("components.snapshotModal.saveCurrent")}</span>
             </div>
             <label className="space-y-2 text-sm text-[var(--ss-workspace-muted)]">
-              <span>{isZh ? "快照名称" : "Label"}</span>
+              <span>{t("components.snapshotModal.label")}</span>
               <input
                 value={label}
                 onChange={(event) => setLabel(event.target.value)}
-                placeholder={isZh ? "例如：第 3 轮前" : "e.g. Before round 3"}
+                placeholder={t("components.snapshotModal.labelPlaceholder")}
                 className="w-full rounded-xl border border-[var(--ss-workspace-border)] bg-transparent px-3 py-2 text-sm text-[var(--ss-workspace-heading)] outline-none"
               />
             </label>
@@ -111,13 +110,11 @@ export const SnapshotModal: React.FC = () => {
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--ss-workspace-node-selected)] px-4 py-2 text-sm font-semibold text-[#20170a] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSaving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-              <span>{isSaving ? (isZh ? "保存中..." : "Saving...") : (isZh ? "保存快照" : "Save snapshot")}</span>
+              <span>{isSaving ? t("components.snapshotModal.saving") : t("components.snapshotModal.save")}</span>
             </button>
 
             <div className="rounded-xl border border-dashed border-[var(--ss-workspace-border)] p-3 text-xs leading-6 text-[var(--ss-workspace-muted)]">
-              {isZh
-                ? "快照会保存完整树状态。恢复后页面会自动刷新到对应树状态。"
-                : "Snapshots save the full tree state. Restoring refreshes the page to that tree state."}
+              {t("components.snapshotModal.hint.snapshotDescription")}
             </div>
           </section>
 
@@ -125,7 +122,7 @@ export const SnapshotModal: React.FC = () => {
             <div className="flex items-center justify-between border-b border-[var(--ss-workspace-border)] px-4 py-3">
               <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ss-workspace-heading)]">
                 <Clock3 size={15} />
-                <span>{isZh ? "已有快照" : "Existing snapshots"}</span>
+                <span>{t("components.snapshotModal.existingSnapshots")}</span>
               </div>
               <button
                 type="button"
@@ -133,7 +130,7 @@ export const SnapshotModal: React.FC = () => {
                 className="inline-flex items-center gap-2 rounded-xl border border-[var(--ss-workspace-border)] px-3 py-2 text-xs font-semibold text-[var(--ss-workspace-heading)] transition-colors hover:bg-[var(--ss-workspace-surface)]"
               >
                 <RefreshCw size={14} />
-                <span>{isZh ? "刷新" : "Refresh"}</span>
+                <span>{t("components.snapshotModal.refresh")}</span>
               </button>
             </div>
 
@@ -141,7 +138,7 @@ export const SnapshotModal: React.FC = () => {
               {isLoading ? (
                 <div className="flex items-center justify-center py-16 text-sm text-[var(--ss-workspace-muted)]">
                   <Loader2 size={15} className="mr-2 animate-spin" />
-                  <span>{isZh ? "加载快照中..." : "Loading snapshots..."}</span>
+                  <span>{t("components.snapshotModal.loadingSnapshots")}</span>
                 </div>
               ) : snapshots.length ? (
                 <div className="space-y-3">
@@ -151,7 +148,7 @@ export const SnapshotModal: React.FC = () => {
                         <div>
                           <div className="text-sm font-semibold text-[var(--ss-workspace-heading)]">{snapshot.label}</div>
                           <div className="mt-1 text-xs text-[var(--ss-workspace-muted)]">
-                            {isZh ? "轮次" : "Turns"}: {snapshot.turns} · {snapshot.created_at}
+                            {t("components.snapshotModal.turns")}: {snapshot.turns} · {snapshot.created_at}
                           </div>
                         </div>
                         <button
@@ -161,7 +158,7 @@ export const SnapshotModal: React.FC = () => {
                           className="inline-flex items-center gap-2 rounded-xl border border-[var(--ss-workspace-border)] px-3 py-2 text-xs font-semibold text-[var(--ss-workspace-heading)] transition-colors hover:bg-[var(--ss-workspace-surface-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {restoringSnapshotId === snapshot.id ? <Loader2 size={14} className="animate-spin" /> : <ChevronRight size={14} />}
-                          <span>{restoringSnapshotId === snapshot.id ? (isZh ? "恢复中..." : "Restoring...") : (isZh ? "恢复" : "Restore")}</span>
+                          <span>{restoringSnapshotId === snapshot.id ? t("components.snapshotModal.restoring") : t("components.snapshotModal.restore")}</span>
                         </button>
                       </div>
                     </article>
@@ -169,7 +166,7 @@ export const SnapshotModal: React.FC = () => {
                 </div>
               ) : (
                 <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-[var(--ss-workspace-border)] p-8 text-center text-sm text-[var(--ss-workspace-muted)]">
-                  {isZh ? "当前还没有快照。先保存一个快照。" : "No snapshots yet. Save one to get started."}
+                  {t("components.snapshotModal.noSnapshots")}
                 </div>
               )}
             </div>

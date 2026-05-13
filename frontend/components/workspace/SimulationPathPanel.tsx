@@ -18,8 +18,7 @@ export const SimulationPathPanel: React.FC<SimulationPathPanelProps> = ({
   onToggleDetails,
   onRequestCreateBranch,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const currentSimulation = useSimulationStore((state) => state.currentSimulation);
   const nodes = useSimulationStore((state) => state.nodes);
@@ -76,8 +75,8 @@ export const SimulationPathPanel: React.FC<SimulationPathPanelProps> = ({
     <section className="ss-path-strip">
       <div className="ss-path-strip__copy">
         <div className="ss-kicker">{t("controlRoom.pathManagerTitle")}</div>
-        <h2>{isZh ? "路径导航" : "Path navigation"}</h2>
-        <p>{isZh ? "保留 breadcrumb 与快速切换。" : "Keep the breadcrumb and quick switches close by."}</p>
+        <h2>{t("components.workspace.simulationPath.title")}</h2>
+        <p>{t("components.workspace.simulationPath.subtitle")}</p>
       </div>
 
       <div className="ss-path-strip__trail" role="navigation" aria-label={t("controlRoom.currentPath")}>

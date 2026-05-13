@@ -247,7 +247,7 @@ async def admin_update_user_role(
         _require_admin(current_user)
         role = (data.role or "").strip()
         if role not in {"user", "admin"}:
-            raise HTTPException(status_code=400, detail="Invalid role")
+            raise HTTPException(status_code=400, detail=T("api.errors.invalid_role"))
         db_user = await session.get(User, int(user_id))
         if db_user is None:
             raise HTTPException(status_code=404, detail=T("api.errors.user_not_found"))

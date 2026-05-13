@@ -22,8 +22,7 @@ export function StatusStrip({
   lastTestStatus,
   onAddProvider,
 }: StatusStripProps) {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
 
   const enabledModels = useMemo(() => models.filter((m) => m.enabled), [models]);
 
@@ -40,21 +39,21 @@ export function StatusStrip({
         <div className="llm-status-strip__metrics">
           <div className="llm-status-item">
             <span className="llm-status-label">
-              {isZh ? "Provider 数" : "Providers"}
+              {t("components.llmConsole.status.providers")}
             </span>
             <strong className="llm-status-value">{providers.length}</strong>
           </div>
 
           <div className="llm-status-item">
             <span className="llm-status-label">
-              {isZh ? "启用模型" : "Active Models"}
+              {t("components.llmConsole.status.activeModels")}
             </span>
             <strong className="llm-status-value">{enabledModels.length}</strong>
           </div>
 
           <div className="llm-status-item">
             <span className="llm-status-label">
-              {isZh ? "默认模型" : "Default Model"}
+              {t("components.llmConsole.status.defaultModel")}
             </span>
             <strong className="llm-status-value">
               {defaultModel?.displayName || "—"}
@@ -63,7 +62,7 @@ export function StatusStrip({
 
           <div className="llm-status-item">
             <span className="llm-status-label">
-              {isZh ? "当前活跃" : "Active"}
+              {t("components.llmConsole.status.active")}
             </span>
             <strong className="llm-status-value">
               {activeProvider?.name || "—"}
@@ -72,17 +71,13 @@ export function StatusStrip({
 
           <div className="llm-status-item">
             <span className="llm-status-label">
-              {isZh ? "最近测试" : "Last Test"}
+              {t("components.llmConsole.status.lastTest")}
             </span>
             <strong className={`llm-status-value ${statusColor}`}>
               {lastTestStatus === "success"
-                ? isZh
-                  ? "✓ 通过"
-                  : "✓ Pass"
+                ? t("components.llmConsole.status.testPass")
                 : lastTestStatus === "failed"
-                  ? isZh
-                    ? "✗ 失败"
-                    : "✗ Failed"
+                  ? t("components.llmConsole.status.testFailed")
                   : "—"}
             </strong>
           </div>
@@ -92,10 +87,10 @@ export function StatusStrip({
           <button
             className="llm-button llm-button--primary"
             onClick={onAddProvider}
-            title={isZh ? "添加新的Provider" : "Add new provider"}
+            title={t("components.llmConsole.status.addProviderTitle")}
           >
             <Plus size={16} />
-            <span>{isZh ? "新增 Provider" : "New Provider"}</span>
+            <span>{t("components.llmConsole.status.newProvider")}</span>
           </button>
         </div>
       </div>

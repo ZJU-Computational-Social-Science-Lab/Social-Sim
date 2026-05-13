@@ -5,6 +5,7 @@ from sqlalchemy import select
 
 from ...core.database import get_session
 from ...dependencies import extract_bearer_token, resolve_current_user
+from socialsim4.i18n import T
 from ...models.user import SearchProviderConfig
 from ...schemas.search_provider import SearchProviderBase, SearchProviderCreate, SearchProviderUpdate
 
@@ -54,7 +55,7 @@ async def update_search_provider(request: Request, provider_id: int, data: Searc
         current_user = await resolve_current_user(session, token)
         provider = await session.get(SearchProviderConfig, provider_id)
         if provider is None or provider.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Not authorized to access this provider")
+            raise HTTPException(status_code=403, detail=T("api.errors.provider_not_authorized"))
 
         if data.provider is not None:
             provider.provider = data.provider
@@ -77,7 +78,7 @@ async def delete_search_provider(request: Request, provider_id: int) -> None:
         current_user = await resolve_current_user(session, token)
         provider = await session.get(SearchProviderConfig, provider_id)
         if provider is None or provider.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Not authorized to access this provider")
+            raise HTTPException(status_code=403, detail=T("api.errors.provider_not_authorized"))
         await session.delete(provider)
         await session.commit()
 

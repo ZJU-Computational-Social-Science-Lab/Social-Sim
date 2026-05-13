@@ -440,7 +440,7 @@ async def update_agent_llm_config(
         if not agent_found:
             raise HTTPException(
                 status_code=404,
-                detail=f"Agent with id/name '{data.agent_id}' not found"
+                detail=T("api.errors.agent_id_not_found", agent_id=data.agent_id)
             )
 
         sim.agent_config = agent_config

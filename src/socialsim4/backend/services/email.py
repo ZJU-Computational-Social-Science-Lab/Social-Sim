@@ -8,6 +8,7 @@ from email.message import EmailMessage
 from typing import Iterable
 
 from ..core.config import Settings, get_settings
+from ..i18n import T
 
 
 class EmailSender:
@@ -56,7 +57,7 @@ class EmailSender:
         host = self._settings.email_smtp_host
         port = self._settings.email_smtp_port
         if host is None or port is None:
-            raise RuntimeError("SMTP host or port not configured")
+            raise RuntimeError(T("api.errors.smtp_not_configured"))
 
         if self._settings.email_smtp_use_ssl:
             context = smtplib.SMTP_SSL(host, port, timeout=30)

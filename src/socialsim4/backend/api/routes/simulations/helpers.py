@@ -109,7 +109,7 @@ async def get_tree_record(
     else:
         raise HTTPException(
             status_code=400,
-            detail="LLM provider not configured"
+            detail=T("api.errors.provider_not_configured")
         )
     dialect = normalize_provider_dialect(provider.provider)
     base_url = provider.base_url or (get_default_ollama_base_url() if dialect == "ollama" else None)

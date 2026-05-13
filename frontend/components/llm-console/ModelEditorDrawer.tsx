@@ -22,8 +22,7 @@ export function ModelEditorDrawer({
   onClose,
   onSubmit,
 }: ModelEditorDrawerProps) {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
   const [formData, setFormData] = useState<Omit<ModelRecord, "id">>({
     displayName: "",
     modelId: "",
@@ -88,12 +87,8 @@ export function ModelEditorDrawer({
         <div className="llm-drawer-header">
           <h2 className="llm-drawer-title">
             {editingModel
-              ? isZh
-                ? "编辑模型"
-                : "Edit Model"
-              : isZh
-                ? "新增模型"
-                : "New Model"}
+              ? t("components.llmConsole.modelEditor.editTitle")
+              : t("components.llmConsole.modelEditor.newTitle")}
           </h2>
           <button className="llm-drawer-close" onClick={onClose}>
             <X size={16} />
@@ -103,7 +98,7 @@ export function ModelEditorDrawer({
         <form onSubmit={handleSubmit} className="llm-drawer-form">
           <div className="llm-form-group">
             <label className="llm-form-label">
-              {isZh ? "显示名" : "Display Name"} *
+              {t("components.llmConsole.modelEditor.displayName")} *
             </label>
             <input
               type="text"
@@ -113,13 +108,13 @@ export function ModelEditorDrawer({
               onChange={(e) =>
                 setFormData({ ...formData, displayName: e.target.value })
               }
-              placeholder={isZh ? "如：GPT-4 Turbo" : "e.g. GPT-4 Turbo"}
+              placeholder={t("components.llmConsole.modelEditor.displayNamePlaceholder")}
             />
           </div>
 
           <div className="llm-form-group">
             <label className="llm-form-label">
-              {isZh ? "模型 ID" : "Model ID"} *
+              {t("components.llmConsole.modelEditor.modelId")} *
             </label>
             <input
               type="text"
@@ -129,13 +124,13 @@ export function ModelEditorDrawer({
               onChange={(e) =>
                 setFormData({ ...formData, modelId: e.target.value })
               }
-              placeholder={isZh ? "如：gpt-4-turbo" : "e.g. gpt-4-turbo"}
+              placeholder={t("components.llmConsole.modelEditor.modelIdPlaceholder")}
             />
           </div>
 
           <div className="llm-form-group">
             <label className="llm-form-label">
-              {isZh ? "Provider" : "Provider"} *
+              {t("components.llmConsole.modelEditor.provider")} *
             </label>
             <select
               required
@@ -155,7 +150,7 @@ export function ModelEditorDrawer({
 
           <div className="llm-form-group">
             <label className="llm-form-label">
-              {isZh ? "协议类型" : "Protocol Type"} *
+              {t("components.llmConsole.modelEditor.protocolType")} *
             </label>
             <select
               required
@@ -176,7 +171,7 @@ export function ModelEditorDrawer({
 
           <div className="llm-form-group">
             <label className="llm-form-label">
-              {isZh ? "能力标签" : "Capabilities"}
+              {t("components.llmConsole.modelEditor.capabilities")}
             </label>
             <div className="llm-capability-checkboxes">
               {CAPABILITY_OPTIONS.map((cap) => (
@@ -194,7 +189,7 @@ export function ModelEditorDrawer({
 
           <div className="llm-form-group">
             <label className="llm-form-label">
-              {isZh ? "上下文长度" : "Context Window"} *
+              {t("components.llmConsole.modelEditor.contextWindow")} *
             </label>
             <input
               type="number"
@@ -207,13 +202,13 @@ export function ModelEditorDrawer({
               placeholder="4096"
             />
             <span className="llm-form-hint">
-              {isZh ? "最大令牌数" : "Max tokens"}
+              {t("components.llmConsole.modelEditor.maxTokens")}
             </span>
           </div>
 
           <div className="llm-form-group">
             <label className="llm-form-label">
-              {isZh ? "输入价格" : "Input Price"} {isZh ? "（/1M）" : "(per 1M tokens)"}
+              {t("components.llmConsole.modelEditor.inputPrice")} {t("components.llmConsole.modelEditor.perMillionTokens")}
             </label>
             <input
               type="number"
@@ -232,7 +227,7 @@ export function ModelEditorDrawer({
 
           <div className="llm-form-group">
             <label className="llm-form-label">
-              {isZh ? "输出价格" : "Output Price"} {isZh ? "（/1M）" : "(per 1M tokens)"}
+              {t("components.llmConsole.modelEditor.outputPrice")} {t("components.llmConsole.modelEditor.perMillionTokens")}
             </label>
             <input
               type="number"
@@ -251,7 +246,7 @@ export function ModelEditorDrawer({
 
           <div className="llm-form-group">
             <label className="llm-form-label">
-              {isZh ? "标签" : "Tags"}
+              {t("components.llmConsole.modelEditor.tags")}
             </label>
             <div className="llm-tags-input">
               {formData.tags?.map((tag, idx) => (
@@ -272,7 +267,7 @@ export function ModelEditorDrawer({
               ))}
               <input
                 type="text"
-                placeholder={isZh ? "输入后回车添加标签" : "Type and press Enter"}
+                placeholder={t("components.llmConsole.modelEditor.tagsPlaceholder")}
                 onKeyPress={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -299,7 +294,7 @@ export function ModelEditorDrawer({
                   setFormData({ ...formData, enabled: e.target.checked })
                 }
               />
-              <span>{isZh ? "启用此模型" : "Enable this model"}</span>
+              <span>{t("components.llmConsole.modelEditor.enableModel")}</span>
             </label>
           </div>
 
@@ -312,7 +307,7 @@ export function ModelEditorDrawer({
                   setFormData({ ...formData, isDefault: e.target.checked })
                 }
               />
-              <span>{isZh ? "设为默认模型" : "Set as default model"}</span>
+              <span>{t("components.llmConsole.modelEditor.setDefault")}</span>
             </label>
           </div>
 
@@ -323,7 +318,7 @@ export function ModelEditorDrawer({
               onClick={onClose}
               disabled={isSubmitting}
             >
-              {isZh ? "取消" : "Cancel"}
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
@@ -331,12 +326,8 @@ export function ModelEditorDrawer({
               disabled={isSubmitting}
             >
               {isSubmitting
-                ? isZh
-                  ? "保存中..."
-                  : "Saving..."
-                : isZh
-                  ? "保存"
-                  : "Save"}
+                ? t("components.llmConsole.modelEditor.saving")
+                : t("components.llmConsole.modelEditor.save")}
             </button>
           </div>
         </form>

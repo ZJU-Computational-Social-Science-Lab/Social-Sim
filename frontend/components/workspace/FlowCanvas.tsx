@@ -1,6 +1,15 @@
+/**
+ * Flow canvas component for workspace view.
+ *
+ * Renders the simulation flow as a vertical timeline with branch visualization,
+ * showing node status, type labels, and branch navigation.
+ *
+ * Exports: FlowCanvas (default)
+ */
 import React from "react";
 import { GitBranchPlus, Lock, Radio, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 import { useSimulationStore } from "../../store";
 import type { SimNode } from "../../types";
@@ -20,35 +29,35 @@ const compareNodes = (left: SimNode, right: SimNode) =>
 const summarizeNode = (
   node: SimNode,
   latestContent: string | null,
-  isZh: boolean,
+  t: TFunction,
 ) => {
   if (latestContent) {
     return latestContent.replace(/\s+/g, " ").trim().slice(0, 120);
   }
   if (node.depth === 0) {
-    return isZh ? "仿真从这里启动，建立基础状态与参与者初始上下文。" : "The simulation starts here with the base state and initial participant context.";
+    return t("components.workspace.flowCanvas.startNodeDesc");
   }
   if (node.status === "pending") {
-    return isZh ? "该节点等待当前路径推进后解锁。" : "This node remains locked until the current path advances.";
+    return t("components.workspace.flowCanvas.lockedNodeDesc");
   }
   if (node.status === "running") {
-    return isZh ? "当前节点正在推演中，新的事件与分支即将写入。" : "This node is currently simulating and new events are about to be written.";
+    return t("components.workspace.flowCanvas.simulatingNodeDesc");
   }
   if (node.status === "failed") {
-    return isZh ? "该节点已中断，需要回到父分支查看约束。" : "This node was interrupted and may require revisiting the parent branch.";
+    return t("components.workspace.flowCanvas.interruptedNodeDesc");
   }
-  return isZh ? "该节点已完成，可在下方查看输出、日志与分支结果。" : "This node has completed. Review its outputs, logs, and branch results below.";
+  return t("components.workspace.flowCanvas.completedNodeDesc");
 };
 
 const getNodeTypeLabel = (
   node: SimNode,
   childCount: number,
-  isZh: boolean,
+  t: TFunction,
 ) => {
-  if (node.depth === 0) return isZh ? "起始" : "Start";
-  if (childCount > 1) return isZh ? "分支" : "Branch";
-  if (node.isLeaf && node.status === "completed") return isZh ? "结果" : "Outcome";
-  return isZh ? "决策" : "Decision";
+  if (node.depth === 0) return t("components.workspace.flowCanvas.startLabel");
+  if (childCount > 1) return t("components.workspace.flowCanvas.branchLabel");
+  if (node.isLeaf && node.status === "completed") return t("components.workspace.flowCanvas.outcomeLabel");
+  return t("components.workspace.flowCanvas.decisionLabel");
 };
 
 export const FlowCanvas: React.FC<FlowCanvasProps> = ({ onOpenDetails, onOpenTopology }) => {
@@ -124,31 +133,29 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({ onOpenDetails, onOpenTop
     <section className="ss-flow-canvas" id="workspace-flow">
       <div className="ss-flow-canvas__header">
         <div>
-          <div className="ss-kicker">{isZh ? "仿真流程" : "Simulation flow"}</div>
-          <h2>{isZh ? "决策链与分支路径主舞台" : "Decision chain and branch pathway"}</h2>
+          <div className="ss-kicker">{t("components.workspace.flowCanvas.title")}</div>
+          <h2>{t("components.workspace.flowCanvas.subtitle")}</h2>
           <p>
-            {isZh
-              ? "中央主舞台只负责流程、节点与分支，不再被长文本和配置卡抢走焦点。"
-              : "Keep the central stage focused on flow, nodes, and branches rather than long text or dense configuration blocks."}
+            {t("components.workspace.flowCanvas.description")}
           </p>
         </div>
 
         <div className="ss-flow-canvas__stats">
           <span className="ss-flow-canvas__stat">
             <Radio size={14} />
-            {isZh ? `节点 ${nodes.length}` : `${nodes.length} nodes`}
+            {t("components.workspace.flowCanvas.nodeCount", { count: nodes.length })}
           </span>
           <span className="ss-flow-canvas__stat">
             <GitBranchPlus size={14} />
-            {isZh ? `分支 ${Math.max(nodes.length - 1, 0)}` : `${Math.max(nodes.length - 1, 0)} branches`}
+            {t("components.workspace.flowCanvas.branchCount", { count: Math.max(nodes.length - 1, 0) })}
           </span>
           <button type="button" className="ss-flow-canvas__stat is-action" onClick={onOpenDetails}>
             <Sparkles size={14} />
-            {isZh ? "查看当前节点详情" : "Open node details"}
+            {t("components.workspace.flowCanvas.openNodeDetails")}
           </button>
           <button type="button" className="ss-flow-canvas__stat is-action" onClick={onOpenTopology}>
             <GitBranchPlus size={14} />
-            {isZh ? "打开完整拓扑结构" : "Open full topology"}
+            {t("components.workspace.flowCanvas.openTopology")}
           </button>
         </div>
       </div>
@@ -158,8 +165,8 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({ onOpenDetails, onOpenTop
           const nextPathNode = currentPath[index + 1] || null;
           const alternatives = (childMap.get(node.id) || []).filter((child) => child.id !== nextPathNode?.id);
           const childCount = (childMap.get(node.id) || []).length;
-          const nodeType = getNodeTypeLabel(node, childCount, isZh);
-          const summary = summarizeNode(node, latestByNode.get(node.id) || null, isZh);
+          const nodeType = getNodeTypeLabel(node, childCount, t);
+          const summary = summarizeNode(node, latestByNode.get(node.id) || null, t);
           const isCurrent = node.id === selectedNodeId;
           const isCompare = compareTargetNodeId === node.id;
 
@@ -185,7 +192,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({ onOpenDetails, onOpenTop
                     </div>
                     <div className="ss-flow-node__badges">
                       <span className={`ss-flow-node__status is-${node.status}`}>
-                        {isCurrent ? (isZh ? "当前" : "Current") : t(`topologyExplorer.status.${node.status}`)}
+                        {isCurrent ? t("components.workspace.flowCanvas.current") : t(`topologyExplorer.status.${node.status}`)}
                       </span>
                       <span className="ss-flow-node__display-id">{node.display_id || node.id}</span>
                     </div>
@@ -195,7 +202,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({ onOpenDetails, onOpenTop
 
                 {alternatives.length ? (
                   <div className="ss-flow-canvas__branch-strip">
-                    <span className="ss-flow-canvas__branch-label">{isZh ? "已产生分支" : "Available branches"}</span>
+                    <span className="ss-flow-canvas__branch-label">{t("components.workspace.flowCanvas.availableBranches")}</span>
                     <div className="ss-flow-canvas__branch-grid">
                       {alternatives.map((branch) => (
                         <button
@@ -205,7 +212,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({ onOpenDetails, onOpenTop
                           className={`ss-flow-branch${compareTargetNodeId === branch.id ? " is-compare" : ""}${branch.status === "pending" ? " is-pending" : ""}`}
                         >
                           <strong>{getWorkspaceNodeLabel(branch, t)}</strong>
-                          <span>{summarizeNode(branch, latestByNode.get(branch.id) || null, isZh)}</span>
+                          <span>{summarizeNode(branch, latestByNode.get(branch.id) || null, t)}</span>
                         </button>
                       ))}
                     </div>
@@ -221,7 +228,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({ onOpenDetails, onOpenTop
         <div className="ss-flow-canvas__nearby">
           {selectedSiblings.length ? (
             <div className="ss-flow-canvas__nearby-block">
-              <span>{isZh ? "当前节点的并行分支" : "Sibling branches"}</span>
+              <span>{t("components.workspace.flowCanvas.siblingBranches")}</span>
               <div className="ss-flow-canvas__branch-grid">
                 {selectedSiblings.map((node) => (
                   <button
@@ -231,7 +238,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({ onOpenDetails, onOpenTop
                     className={`ss-flow-branch${compareTargetNodeId === node.id ? " is-compare" : ""}${node.status === "pending" ? " is-pending" : ""}`}
                   >
                     <strong>{getWorkspaceNodeLabel(node, t)}</strong>
-                    <span>{summarizeNode(node, latestByNode.get(node.id) || null, isZh)}</span>
+                    <span>{summarizeNode(node, latestByNode.get(node.id) || null, t)}</span>
                   </button>
                 ))}
               </div>
@@ -240,7 +247,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({ onOpenDetails, onOpenTop
 
           {selectedChildren.length ? (
             <div className="ss-flow-canvas__nearby-block">
-              <span>{isZh ? "当前节点展开后的下一层" : "Next layer after this node"}</span>
+              <span>{t("components.workspace.flowCanvas.nextLayer")}</span>
               <div className="ss-flow-canvas__branch-grid">
                 {selectedChildren.map((node) => (
                   <button
@@ -250,7 +257,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({ onOpenDetails, onOpenTop
                     className={`ss-flow-branch${compareTargetNodeId === node.id ? " is-compare" : ""}${node.status === "pending" ? " is-pending" : ""}`}
                   >
                     <strong>{getWorkspaceNodeLabel(node, t)}</strong>
-                    <span>{summarizeNode(node, latestByNode.get(node.id) || null, isZh)}</span>
+                    <span>{summarizeNode(node, latestByNode.get(node.id) || null, t)}</span>
                   </button>
                 ))}
               </div>

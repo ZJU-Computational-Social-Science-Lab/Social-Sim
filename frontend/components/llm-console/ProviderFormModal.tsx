@@ -23,8 +23,7 @@ export function ProviderFormModal({
   onClose,
   onSubmit,
 }: ProviderFormModalProps) {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: "",
     provider: "openai-compatible",
@@ -74,12 +73,8 @@ export function ProviderFormModal({
         <div className="llm-modal-header">
           <h2 className="llm-modal-title">
             {editingProvider
-              ? isZh
-                ? "编辑 Provider"
-                : "Edit Provider"
-              : isZh
-                ? "新增 Provider"
-                : "New Provider"}
+              ? t("components.llmConsole.providerForm.editTitle")
+              : t("components.llmConsole.providerForm.newTitle")}
           </h2>
           <button className="llm-modal-close" onClick={onClose}>
             <X size={16} />
@@ -89,7 +84,7 @@ export function ProviderFormModal({
         <form onSubmit={handleSubmit} className="llm-modal-form">
           <div className="llm-form-group">
             <label className="llm-form-label">
-              {isZh ? "Provider 名称" : "Provider Name"} *
+              {t("components.llmConsole.providerForm.name")} *
             </label>
             <input
               type="text"
@@ -99,13 +94,13 @@ export function ProviderFormModal({
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              placeholder={isZh ? "如：My OpenAI" : "e.g. My OpenAI"}
+              placeholder={t("components.llmConsole.providerForm.namePlaceholder")}
             />
           </div>
 
           <div className="llm-form-group">
             <label className="llm-form-label">
-              {isZh ? "Provider 类型" : "Provider Type"} *
+              {t("components.llmConsole.providerForm.type")} *
             </label>
             <select
               className="llm-form-input"
@@ -125,7 +120,7 @@ export function ProviderFormModal({
 
           <div className="llm-form-group">
             <label className="llm-form-label">
-              {isZh ? "默认模型" : "Default Model"} *
+              {t("components.llmConsole.providerForm.defaultModel")} *
             </label>
             <input
               type="text"
@@ -135,16 +130,14 @@ export function ProviderFormModal({
               onChange={(e) =>
                 setFormData({ ...formData, model: e.target.value })
               }
-              placeholder={
-                isZh ? "如：gpt-4-turbo" : "e.g. gpt-4-turbo"
-              }
+              placeholder={t("components.llmConsole.providerForm.defaultModelPlaceholder")}
             />
           </div>
 
           {formData.provider !== "gemini" && (
             <div className="llm-form-group">
               <label className="llm-form-label">
-                {isZh ? "Base URL" : "Base URL"}
+                {t("components.llmConsole.providerForm.baseUrl")}
               </label>
               <input
                 type="url"
@@ -153,18 +146,14 @@ export function ProviderFormModal({
                 onChange={(e) =>
                   setFormData({ ...formData, base_url: e.target.value })
                 }
-                placeholder={
-                  isZh
-                    ? "如：https://api.openai.com/v1"
-                    : "e.g. https://api.openai.com/v1"
-                }
+                placeholder={t("components.llmConsole.providerForm.baseUrlPlaceholder")}
               />
             </div>
           )}
 
           <div className="llm-form-group">
             <label className="llm-form-label">
-              {isZh ? "API Key" : "API Key"} *
+              {t("components.llmConsole.providerForm.apiKey")} *
             </label>
             <div className="llm-form-input-group">
               <input
@@ -175,14 +164,14 @@ export function ProviderFormModal({
                 onChange={(e) =>
                   setFormData({ ...formData, api_key: e.target.value })
                 }
-                placeholder={isZh ? "粘贴你的API密钥" : "Paste your API key"}
+                placeholder={t("components.llmConsole.providerForm.apiKeyPlaceholder")}
               />
               <button
                 type="button"
                 className="llm-form-visibility"
                 onClick={() => setShowApiKey(!showApiKey)}
               >
-                {showApiKey ? "隐藏" : isZh ? "显示" : "Show"}
+                {showApiKey ? t("common.hide") : t("common.show")}
               </button>
             </div>
           </div>
@@ -194,7 +183,7 @@ export function ProviderFormModal({
               onClick={onClose}
               disabled={isSubmitting}
             >
-              {isZh ? "取消" : "Cancel"}
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
@@ -202,12 +191,8 @@ export function ProviderFormModal({
               disabled={isSubmitting}
             >
               {isSubmitting
-                ? isZh
-                  ? "保存中..."
-                  : "Saving..."
-                : isZh
-                  ? "保存"
-                  : "Save"}
+                ? t("components.llmConsole.providerForm.saving")
+                : t("components.llmConsole.providerForm.save")}
             </button>
           </div>
         </form>

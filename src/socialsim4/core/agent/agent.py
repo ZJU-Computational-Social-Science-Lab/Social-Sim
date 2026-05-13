@@ -103,15 +103,9 @@ class Agent:
     # -------------------------------------------------------------------------
 
     def system_prompt(self, scene=None, context_summary=None) -> str:
-        """Generate the system prompt for LLM calls.
-
-        Args:
-            scene: Optional scene object with scenario information
-            context_summary: Optional summary of recent context
-
-        Returns:
-            Complete system prompt string with 5-section JSON output format
-        """
+        # Generate the system prompt for LLM calls.
+        # Args: scene (optional scene object), context_summary (optional context)
+        # Returns: complete system prompt string with 5-section JSON output format
         # Build action catalog and usage instructions
         action_catalog = "\n".join([
             f"- {getattr(action, 'NAME', '')}: {getattr(action, 'DESC', '')}".strip()
@@ -135,13 +129,13 @@ class Agent:
                 kb_preview.append(f"  [{i}] {title}: {content_preview}")
             kb_list = "\n".join(kb_preview)
             if kb_count > 5:
-                kb_list += "\n  " + T('prompts.agent.knowledge_base_more', count=kb_count - 5)
+                kb_list += "\n  " + self._tr('prompts.agent.knowledge_base_more', count=kb_count - 5)
             knowledge_block = f"""
-{T('prompts.agent.knowledge_base_header')}
-{T('prompts.agent.knowledge_base_intro', count=kb_count)}
+{self._tr('prompts.agent.knowledge_base_header')}
+{self._tr('prompts.agent.knowledge_base_intro', count=kb_count)}
 {kb_list}
 
-{T('prompts.agent.query_instruction')}
+{self._tr('prompts.agent.query_instruction')}
 """
 
         # Identity line
@@ -167,38 +161,22 @@ class Agent:
         context_block = ""
         if context_summary:
             context_block = f"""
-Recent Context Summary:
+{self._tr('prompts.agent.context_summary_header')}
 {context_summary}
 """
 
-        default_example = """Example JSON response:
-    ```json
-    {
-        "thoughts": "I need to respond to the greeting and consider next steps",
-        "response": "Hello! Nice to meet you.",
-        "action": {
-        "name": "send_message",
-        "target": "other_agent",
-        "message": "Hello! Nice to meet you."
-        },
-        "context_update": "Met a new agent, should learn more about them",
-        "metadata": {}
-    }
-    ```
-
-    If you only want to speak without taking an action:
-    ```json
-    {
-        "thoughts": "Just responding to the question",
-        "response": "My opinion is...",
-        "action": {
-            "name": "send_message",
-            "message": "My opinion is..."
-        },
-        "context_update": "Shared my opinion on the topic",
-        "metadata": {}
-    }
-    ```"""
+        _ex_hdr = self._tr('prompts.agent.system.example_json_header')
+        _spk_hdr = self._tr('prompts.agent.system.speak_without_action_header')
+        _dflt_thoughts = self._tr('prompts.agent.system.default_example_thoughts')
+        _dflt_resp = self._tr('prompts.agent.system.default_example_response')
+        _dflt_update = self._tr('prompts.agent.system.default_example_update')
+        _spk_thoughts = self._tr('prompts.agent.system.default_speak_thoughts')
+        _spk_update = self._tr('prompts.agent.system.default_speak_update')
+        default_example = self._build_example_pair(
+            _ex_hdr, _spk_hdr,
+            _dflt_thoughts, _dflt_resp, _dflt_update,
+            _spk_thoughts, _spk_update,
+        )
 
         example_block = default_example
         if scene and getattr(scene, "TYPE", "") == "policy_cascade_scene":
@@ -208,7 +186,7 @@ Recent Context Summary:
                     if summary:
                         return summary
                 cleaned = str(text or "").strip()
-                return cleaned[:48] if cleaned else "逐级传达政策，并保留关键执行条款"
+                return cleaned[:48] if cleaned else self._tr('prompts.agent.examples.default_policy_summary')
 
             private_event = scene._private_event_for(self.name) if hasattr(scene, "_private_event_for") else {}
             has_private_source = bool(private_event)
@@ -221,156 +199,112 @@ Recent Context Summary:
             tier = str(getattr(scene, "_tier_map", {}).get(self.name, self.properties.get("tier", "")) or "").strip()
             role_kind = scene._tier_role_kind(tier) if hasattr(scene, "_tier_role_kind") else "mid"
             if task_mode == "cascade":
-                example_policy = policy_text or source_policy_text or "最新政策原文"
+                example_policy = policy_text or source_policy_text or self._tr('prompts.agent.examples.default_policy_summary')
                 example_policy_summary = _compact_policy_example(source_policy_text or example_policy)
                 if cascade_mode == "distortion_cascade":
                     if role_kind == "top":
                         if has_private_source:
-                            example_message = f"对于这条仅向我私下传达的政策，我决定先强调“{example_policy_summary}”，暂不展开全部资源承诺。"
+                            example_message = self._tr('prompts.agent.examples.cascade.top_private_source', policy_summary=example_policy_summary)
                         else:
-                            example_message = f"关于上级刚才的传达，我决定继续强调“{example_policy_summary}”，暂不展开全部资源承诺。"
-                        context_update = "已按本层利益重述政策重点，并保留部分信息"
+                            example_message = self._tr('prompts.agent.examples.cascade.top_no_private', policy_summary=example_policy_summary)
+                        context_update = self._tr('prompts.agent.examples.cascade.context_top_distortion')
                     elif role_kind == "mid":
                         if has_private_source:
-                            example_message = f"我会只向下传达可立即执行的部分，先保留“{example_policy_summary}”，其余内容暂缓。"
+                            example_message = self._tr('prompts.agent.examples.cascade.mid_private_source', policy_summary=example_policy_summary)
                         else:
-                            example_message = f"考虑到本部门考核压力，我只向下传达可立即执行的部分，先保留“{example_policy_summary}”。"
-                        context_update = "已结合中层压力选择性下传政策"
+                            example_message = self._tr('prompts.agent.examples.cascade.mid_no_private', policy_summary=example_policy_summary)
+                        context_update = self._tr('prompts.agent.examples.cascade.context_mid_distortion')
                     else:
                         if has_private_source:
-                            example_message = f"该政策与一线负担存在冲突，我会先按基层可执行口径保留“{example_policy_summary}”，并上报执行困难。"
+                            example_message = self._tr('prompts.agent.examples.cascade.low_private_source', policy_summary=example_policy_summary)
                         else:
-                            example_message = f"该政策与一线负担存在冲突，我会先保留“{example_policy_summary}”中的最低执行要求。"
-                        context_update = "已因基层执行冲突而弱化落实"
-                    distortion_note = (
-                        f"当前失真参数：失真强度={float(scene.state.get('distortion_strength', 0.6) or 0.6):.2f}，"
-                        f"利益冲突敏感度={float(scene.state.get('conflict_sensitivity', 0.5) or 0.5):.2f}，"
-                        f"截留概率={float(scene.state.get('block_probability', 0.25) or 0.25):.2f}。"
+                            example_message = self._tr('prompts.agent.examples.cascade.low_no_private', policy_summary=example_policy_summary)
+                        context_update = self._tr('prompts.agent.examples.cascade.context_low_distortion')
+                    distortion_note = self._tr(
+                        'prompts.agent.examples.cascade.distortion_note',
+                        strength=float(scene.state.get('distortion_strength', 0.6) or 0.6),
+                        sensitivity=float(scene.state.get('conflict_sensitivity', 0.5) or 0.5),
+                        probability=float(scene.state.get('block_probability', 0.25) or 0.25),
                     )
                 elif role_kind == "top":
-                    example_message = f"我会按原文继续传达“{example_policy_summary}”。态度：完全支持并按原文执行。补充：由我批准专项预算并建立月度问责机制。"
-                    context_update = "已按原文转发，并补充高层统筹与资源安排"
+                    example_message = self._tr('prompts.agent.examples.cascade.top_faithful', policy_summary=example_policy_summary)
+                    context_update = self._tr('prompts.agent.examples.cascade.context_top_faithful')
                 elif role_kind == "mid":
-                    example_message = f"我会按原文继续传达“{example_policy_summary}”。态度：完全支持并按原文执行。补充：我将在48小时内拆解任务到各部门并建立周报台账。"
-                    context_update = "已按原文转发，并补充中层协调与任务拆解"
+                    example_message = self._tr('prompts.agent.examples.cascade.mid_faithful', policy_summary=example_policy_summary)
+                    context_update = self._tr('prompts.agent.examples.cascade.context_mid_faithful')
                 else:
-                    example_message = f"我会按原文继续传达“{example_policy_summary}”。态度：完全支持并按原文执行。补充：我将按排查清单逐项核验，并在发现异常后24小时内上报。"
-                    context_update = "已按原文转发，并补充基层执行与异常上报"
+                    example_message = self._tr('prompts.agent.examples.cascade.low_faithful', policy_summary=example_policy_summary)
+                    context_update = self._tr('prompts.agent.examples.cascade.context_low_faithful')
                 message_json = json.dumps(example_message, ensure_ascii=False)
-                silent_context = "等待下一级反馈" if cascade_mode != "distortion_cascade" else "因本层利益冲突暂缓下传"
-                example_block = f"""Example JSON response:
-    ```json
-    {{
-        "thoughts": "转发最新政策，保持原文并附执行计划。",
-        "response": "",
-        "action": {{
-        "name": "send_message",
-        "message": {message_json}
-        }},
-        "context_update": "{context_update}",
-        "metadata": {{}}
-    }}
-    ```
-
-    If you only want to speak without taking an action:
-    ```json
-    {{
-        "thoughts": "无需转发时保持静默等待。",
-        "response": "",
-        "action": {{
-            "name": "yield"
-        }},
-        "context_update": "{silent_context}",
-        "metadata": {{}}
-    }}
-    ```"""
+                silent_context = self._tr('prompts.agent.examples.cascade.silent_context') if cascade_mode != "distortion_cascade" else self._tr('prompts.agent.examples.cascade.silent_context_distortion')
+                example_block = self._build_cascade_example(
+                    self._tr('prompts.agent.system.example_json_header'),
+                    self._tr('prompts.agent.system.speak_without_action_header'),
+                    self._tr('prompts.agent.system.cascade_example_thoughts'),
+                    context_update,
+                    message_json,
+                    self._tr('prompts.agent.system.cascade_silent_thoughts'),
+                    silent_context,
+                )
                 if cascade_mode == "distortion_cascade":
                     example_block = distortion_note + "\n\n" + example_block
             else:
                 if notice_kind == "analysis":
                     if role_kind == "top":
-                        notice_message = f"作为高层，我对“{notice_text or '最新任务'}”的看法是：优点在于有利于统一部署、压实责任和跟踪问效；缺点在于如果资源和配套制度不足，容易形成层层加码；建议同步明确牵头单位、预算安排和督促检查节奏。"
-                        context_update = "已从高层视角完成政策解读与优缺点分析"
+                        notice_message = self._tr('prompts.agent.examples.notice.analysis_top', notice_text=notice_text or self._tr('prompts.agent.examples.default_policy_summary'))
+                        context_update = self._tr('prompts.agent.examples.notice.context_analysis_top')
                     elif role_kind == "mid":
-                        notice_message = f"作为中层，我对“{notice_text or '最新任务'}”的看法是：优点在于便于分解任务、建立台账和协同推进；缺点在于若验收标准不清，容易造成重复报送和责任交叉；建议尽快细化举措、明确时间表和周报机制。"
-                        context_update = "已从中层视角完成政策解读与优缺点分析"
+                        notice_message = self._tr('prompts.agent.examples.notice.analysis_mid', notice_text=notice_text or self._tr('prompts.agent.examples.default_policy_summary'))
+                        context_update = self._tr('prompts.agent.examples.notice.context_analysis_mid')
                     else:
-                        notice_message = f"作为基层执行者，我对“{notice_text or '最新任务'}”的看法是：优点在于有助于逐项排查、现场核验和及时上报；缺点在于若模板过多、口径频繁变化，会增加执行负担；建议简化报送字段并明确整改、复查和销号标准。"
-                        context_update = "已从基层视角完成政策解读与优缺点分析"
+                        notice_message = self._tr('prompts.agent.examples.notice.analysis_low', notice_text=notice_text or self._tr('prompts.agent.examples.default_policy_summary'))
+                        context_update = self._tr('prompts.agent.examples.notice.context_analysis_low')
                 elif role_kind == "top":
-                    notice_message = f"关于系统公告“{notice_text or '最新任务'}”，作为高层，我将明确总体目标、资源投放、压实责任和考核机制，并指定牵头负责人。"
-                    context_update = "已从高层视角回应系统公告"
+                    notice_message = self._tr('prompts.agent.examples.notice.response_top', notice_text=notice_text or self._tr('prompts.agent.examples.default_policy_summary'))
+                    context_update = self._tr('prompts.agent.examples.notice.context_response_top')
                 elif role_kind == "mid":
-                    notice_message = f"关于系统公告“{notice_text or '最新任务'}”，作为中层，我将分解任务、协调相关单位、建立工作台账，并给出周度推进时间表。"
-                    context_update = "已从中层视角回应系统公告"
+                    notice_message = self._tr('prompts.agent.examples.notice.response_mid', notice_text=notice_text or self._tr('prompts.agent.examples.default_policy_summary'))
+                    context_update = self._tr('prompts.agent.examples.notice.context_response_mid')
                 else:
-                    notice_message = f"关于系统公告“{notice_text or '最新任务'}”，作为基层执行者，我将按清单落实排查步骤、现场核验问题、推进整改复查并及时上报反馈。"
-                    context_update = "已从基层视角回应系统公告"
+                    notice_message = self._tr('prompts.agent.examples.notice.response_low', notice_text=notice_text or self._tr('prompts.agent.examples.default_policy_summary'))
+                    context_update = self._tr('prompts.agent.examples.notice.context_response_low')
                 message_json = json.dumps(notice_message, ensure_ascii=False)
-                example_block = f"""Example JSON response:
-    ```json
-    {{
-        "thoughts": "需要直接回应最新系统公告，并给出符合本职位职责的解读。",
-        "response": "",
-        "action": {{
-        "name": "send_message",
-        "message": {message_json}
-        }},
-        "context_update": "{context_update}",
-        "metadata": {{}}
-    }}
-    ```
-
-    If you only want to speak without taking an action:
-    ```json
-    {{
-        "thoughts": "当前没有新增任务时可以结束回合。",
-        "response": "",
-        "action": {{
-            "name": "yield"
-        }},
-        "context_update": "等待下一条系统公告",
-        "metadata": {{}}
-    }}
-    ```"""
+                example_block = self._build_cascade_example(
+                    self._tr('prompts.agent.system.example_json_header'),
+                    self._tr('prompts.agent.system.speak_without_action_header'),
+                    self._tr('prompts.agent.system.notice_example_thoughts'),
+                    context_update,
+                    message_json,
+                    self._tr('prompts.agent.system.notice_silent_thoughts'),
+                    self._tr('prompts.agent.examples.notice.silent_context'),
+                )
 
         # Build the prompt with new JSON output format
-        prompt = f"""{identity_line}
-
-    {self.user_profile if len(self.user_profile) < 500 else self.user_profile[:500] + "..."}
-
-    {self.role_prompt if len(self.role_prompt or "") < 500 else ""}{knowledge_block}
-    Language: {self.language}. Respond in {self.language} for content; use English for action names.
-
-    {scene_block}
-    {context_block}
-    Action Space:
-    {action_catalog}
-
-    Usage:
-    {action_instructions}
-
-    {self.initial_instruction}
-
-    IMPORTANT - Output Format:
-    You MUST respond with a valid JSON object containing these 5 sections:
-
-    1. "thoughts": Your brief thinking about the current situation (1-2 sentences)
-
-    2. "response": What you want to communicate (can be empty string if no speech needed)
-
-    3. "action": The action you want to take, containing:
-       - "name": action name from the Action Space above
-       - Additional key-value pairs for action parameters (if required)
-
-    4. "context_update": Brief notes to remember for future (goals, observations, plans)
-
-    5. "metadata": Optional object with any additional metadata
-
-    {example_block}
-
-    You must always provide an "action" with a valid "name" from the Action Space. If you only want to speak, use "send_message" and include the text in the "message" field. Use "yield" when you are done with your turn.
-    """
+        output_format = self._build_output_format()
+        prompt = "\n".join([
+            identity_line,
+            "",
+            "    " + (self.user_profile if len(self.user_profile) < 500 else self.user_profile[:500] + "..."),
+            "",
+            "    " + (self.role_prompt if len(self.role_prompt or "") < 500 else "") + knowledge_block,
+            "    " + self._tr('prompts.agent.language_instruction', language=self.language),
+            "",
+            "    " + scene_block,
+            "    " + context_block,
+            "    " + self._tr('prompts.agent.action_space_header'),
+            "    " + action_catalog,
+            "",
+            "    " + self._tr('prompts.agent.usage_header'),
+            "    " + action_instructions,
+            "",
+            "    " + self.initial_instruction,
+            "",
+            "    " + output_format,
+            "",
+            "    " + example_block,
+            "",
+            "    " + self._tr('prompts.agent.system.closing_instruction'),
+        ])
         return prompt
 
     def _tr(self, key: str, **kwargs) -> str:
@@ -378,6 +312,82 @@ Recent Context Summary:
 
     def _json_retry_feedback(self, error) -> str:
         return self._tr("prompts.agent.json_retry_feedback", error=str(error))
+
+    def _build_example_pair(self, header, speak_header, thoughts,
+                            response, context_update, speak_thoughts,
+                            speak_update) -> str:
+        """Build the default JSON example block with two examples."""
+        return (
+            header
+            + "\n    ```json\n    {\n"
+            + '        "thoughts": "' + thoughts + '",\n'
+            + '        "response": "' + response + '",\n'
+            + '        "action": {\n'
+            + '        "name": "send_message",\n'
+            + '        "target": "other_agent",\n'
+            + '        "message": "' + response + '"\n'
+            + '        },\n'
+            + '        "context_update": "' + context_update + '",\n'
+            + '        "metadata": {}\n'
+            + '    }\n'
+            + '    ```\n\n'
+            + "    " + speak_header
+            + "\n    ```json\n    {\n"
+            + '        "thoughts": "' + speak_thoughts + '",\n'
+            + '        "response": "My opinion is...",\n'
+            + '        "action": {\n'
+            + '            "name": "send_message",\n'
+            + '            "message": "My opinion is..."\n'
+            + '        },\n'
+            + '        "context_update": "' + speak_update + '",\n'
+            + '        "metadata": {}\n'
+            + '    }\n'
+            + '    ```'
+        )
+
+    def _build_cascade_example(self, header, speak_header, thoughts,
+                               context_update, message_json,
+                               silent_thoughts, silent_context) -> str:
+        """Build the cascade/notice JSON example block."""
+        return (
+            header
+            + "\n    ```json\n    {\n"
+            + '        "thoughts": "' + thoughts + '",\n'
+            + '        "response": "",\n'
+            + '        "action": {\n'
+            + '        "name": "send_message",\n'
+            + '        "message": ' + message_json + '\n'
+            + '        },\n'
+            + '        "context_update": "' + context_update + '",\n'
+            + '        "metadata": {}\n'
+            + '    }\n'
+            + '    ```\n\n'
+            + "    " + speak_header
+            + "\n    ```json\n    {\n"
+            + '        "thoughts": "' + silent_thoughts + '",\n'
+            + '        "response": "",\n'
+            + '        "action": {\n'
+            + '            "name": "yield"\n'
+            + '        },\n'
+            + '        "context_update": "' + silent_context + '",\n'
+            + '        "metadata": {}\n'
+            + '    }\n'
+            + '    ```'
+        )
+
+    def _build_output_format(self) -> str:
+        """Build the output format numbered list section."""
+        return (
+            self._tr('prompts.agent.output_format_header') + "\n"
+            + self._tr('prompts.agent.output_format_intro') + "\n\n"
+            + '    1. "thoughts": ' + self._tr('prompts.agent.output_thoughts') + "\n\n"
+            + '    2. "response": ' + self._tr('prompts.agent.output_response') + "\n\n"
+            + '    3. "action": ' + self._tr('prompts.agent.output_action') + "\n"
+            + '       - "name": ' + self._tr('prompts.agent.output_action_name') + "\n"
+            + '       - ' + self._tr('prompts.agent.output_action_params') + "\n\n"
+            + '    4. "context_update": ' + self._tr('prompts.agent.output_context_update') + "\n\n"
+            + '    5. "metadata": ' + self._tr('prompts.agent.output_metadata')
+        )
 
     # -------------------------------------------------------------------------
     # LLM Interaction

@@ -7,7 +7,6 @@ import { treeAdvanceChain, treeAdvanceFrontier, treeAdvanceMulti } from "../serv
 
 export const AdvancedTreeOpsModal: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
   const isOpen = useSimulationStore((state) => state.isTreeOpsModalOpen);
   const close = useSimulationStore((state) => state.closeTreeOpsModal);
   const currentSimulation = useSimulationStore((state) => state.currentSimulation);
@@ -51,9 +50,9 @@ export const AdvancedTreeOpsModal: React.FC = () => {
     try {
       await treeAdvanceFrontier(getBase(), simulationId, turns, onlyMaxDepth, getToken());
       await refreshTree();
-      addNotification?.("success", isZh ? "前沿推进完成" : "Frontier advanced");
+      addNotification?.("success", t("components.advancedTreeOps.frontierAdvanced"));
     } catch (error: any) {
-      addNotification?.("error", error?.message || (isZh ? "前沿推进失败" : "Frontier advance failed"));
+      addNotification?.("error", error?.message || t("components.advancedTreeOps.frontierAdvanceFailed"));
     } finally {
       setIsBusy(false);
     }
@@ -65,9 +64,9 @@ export const AdvancedTreeOpsModal: React.FC = () => {
     try {
       await treeAdvanceMulti(getBase(), simulationId, parentNodeNumeric, turns, count, getToken());
       await refreshTree();
-      addNotification?.("success", isZh ? "多分支推进完成" : "Multi-advance completed");
+      addNotification?.("success", t("components.advancedTreeOps.multiAdvanceCompleted"));
     } catch (error: any) {
-      addNotification?.("error", error?.message || (isZh ? "多分支推进失败" : "Multi-advance failed"));
+      addNotification?.("error", error?.message || t("components.advancedTreeOps.multiAdvanceFailed"));
     } finally {
       setIsBusy(false);
     }
@@ -79,9 +78,9 @@ export const AdvancedTreeOpsModal: React.FC = () => {
     try {
       await treeAdvanceChain(getBase(), simulationId, parentNodeNumeric, turns, getToken());
       await refreshTree();
-      addNotification?.("success", isZh ? "链式推进完成" : "Chain advance completed");
+      addNotification?.("success", t("components.advancedTreeOps.chainAdvanceCompleted"));
     } catch (error: any) {
-      addNotification?.("error", error?.message || (isZh ? "链式推进失败" : "Chain advance failed"));
+      addNotification?.("error", error?.message || t("components.advancedTreeOps.chainAdvanceFailed"));
     } finally {
       setIsBusy(false);
     }
@@ -96,13 +95,13 @@ export const AdvancedTreeOpsModal: React.FC = () => {
               <GitBranchPlus size={18} />
             </div>
             <div className="ss-extension-modal__header-copy">
-              <div className="ss-kicker">{isZh ? "高级树推进" : "Advanced tree ops"}</div>
+              <div className="ss-kicker">{t("components.advancedTreeOps.title")}</div>
               <h2>
-                {currentSimulation?.name || (isZh ? "当前仿真" : "Current simulation")}
+                {currentSimulation?.name || t("components.advancedTreeOps.currentSimulation")}
               </h2>
             </div>
           </div>
-          <button type="button" className="ss-icon-button" onClick={close} aria-label={isZh ? "关闭" : "Close"}>
+          <button type="button" className="ss-icon-button" onClick={close} aria-label={t("a11y.close")}>
             <X size={16} />
           </button>
         </div>
@@ -112,12 +111,12 @@ export const AdvancedTreeOpsModal: React.FC = () => {
           <section className="ss-extension-modal__surface p-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ss-workspace-heading)]">
               <Play size={15} />
-              <span>{isZh ? "推进参数" : "Advance parameters"}</span>
+              <span>{t("components.advancedTreeOps.advanceParameters")}</span>
             </div>
 
             <div className="mt-4 space-y-4">
               <label className="block space-y-2 text-sm text-[var(--ss-workspace-muted)]">
-                <span>{isZh ? "推进轮数" : "Turns"}</span>
+                <span>{t("components.advancedTreeOps.turns")}</span>
                 <input
                   type="number"
                   min={1}
@@ -128,7 +127,7 @@ export const AdvancedTreeOpsModal: React.FC = () => {
               </label>
 
               <label className="block space-y-2 text-sm text-[var(--ss-workspace-muted)]">
-                <span>{isZh ? "分支数量" : "Count"}</span>
+                <span>{t("components.advancedTreeOps.count")}</span>
                 <input
                   type="number"
                   min={1}
@@ -144,21 +143,19 @@ export const AdvancedTreeOpsModal: React.FC = () => {
                   checked={onlyMaxDepth}
                   onChange={(event) => setOnlyMaxDepth(event.target.checked)}
                 />
-                <span>{isZh ? "仅推进最深前沿" : "Only max depth frontier"}</span>
+                <span>{t("components.advancedTreeOps.onlyMaxDepthFrontier")}</span>
               </label>
             </div>
 
             <div className="mt-4 rounded-xl border border-dashed border-[var(--ss-workspace-border)] p-3 text-xs leading-6 text-[var(--ss-workspace-muted)]">
-              {isZh
-                ? "前沿推进不需要选中节点；多分支和链式推进会以当前节点作为 parent。"
-                : "Frontier advance does not require a selected node; multi/chain use the current node as parent."}
+              {t("components.advancedTreeOps.hint.frontierRequirements")}
             </div>
           </section>
 
           <section className="ss-extension-modal__surface flex flex-col gap-3 p-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ss-workspace-heading)]">
               <Layers3 size={15} />
-              <span>{isZh ? "执行操作" : "Execute"}</span>
+              <span>{t("components.advancedTreeOps.execute")}</span>
             </div>
 
             <button
@@ -168,7 +165,7 @@ export const AdvancedTreeOpsModal: React.FC = () => {
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--ss-workspace-node-selected)] px-4 py-3 text-sm font-semibold text-[#20170a] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isBusy ? <Loader2 size={15} className="animate-spin" /> : <RefreshCcw size={15} />}
-              <span>{isZh ? "推进前沿" : "Advance frontier"}</span>
+              <span>{t("components.advancedTreeOps.advanceFrontier")}</span>
             </button>
 
             <button
@@ -178,7 +175,7 @@ export const AdvancedTreeOpsModal: React.FC = () => {
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--ss-workspace-border)] px-4 py-3 text-sm font-semibold text-[var(--ss-workspace-heading)] transition-colors hover:bg-[var(--ss-workspace-surface)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <GitBranchPlus size={15} />
-              <span>{isZh ? "多分支推进" : "Advance multi"}</span>
+              <span>{t("components.advancedTreeOps.advanceMulti")}</span>
             </button>
 
             <button
@@ -188,13 +185,11 @@ export const AdvancedTreeOpsModal: React.FC = () => {
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--ss-workspace-border)] px-4 py-3 text-sm font-semibold text-[var(--ss-workspace-heading)] transition-colors hover:bg-[var(--ss-workspace-surface)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Play size={15} />
-              <span>{isZh ? "链式推进" : "Advance chain"}</span>
+              <span>{t("components.advancedTreeOps.advanceChain")}</span>
             </button>
 
             <div className="mt-auto text-xs leading-6 text-[var(--ss-workspace-muted)]">
-              {isZh
-                ? "执行后会自动刷新当前树状态。"
-                : "The tree refreshes automatically after execution."}
+              {t("components.advancedTreeOps.hint.autoRefresh")}
             </div>
           </section>
         </div>

@@ -131,6 +131,61 @@
       "provider_model_required": "需要指定LLM模型",
       "missing_bearer_token": "缺少Bearer令牌",
       "tree_node_not_found": "树节点未找到",
+      "provider_not_authorized": "无权访问此提供商",
+      "provider_test_failed": "Provider测试失败，请检查您的配置和凭据。",
+      "template_not_found": "模板未找到",
+      "access_denied": "访问被拒绝",
+      "experiment_not_found": "实验未找到",
+      "experiment_not_found_after_creation": "实验创建后未找到",
+      "invalid_role": "无效的角色",
+      "no_llm_client_available": "无可用的LLM客户端",
+      "message_required": "message 为必填项",
+      "inject_message_experiment_only": "inject-message 仅支持实验类型的模拟",
+      "content_required": "内容为必填项",
+      "invalid_node_id_param": "无效的 'node_id' 查询参数：应为整数。",
+      "simulator_not_found": "模拟器未找到",
+      "simulation_tree_not_loaded": "模拟树未加载",
+      "receivers_empty": "提供 receivers 时不能为空",
+      "smtp_not_configured": "SMTP主机或端口未配置",
+      "cuda_not_available": "SOCIALSIM4_EMBEDDING_DEVICE=cuda 但 CUDA 不可用",
+      "ollama_embed_model_required": "Ollama 嵌入需要设置 SOCIALSIM4_OLLAMA_EMBED_MODEL",
+      "pdf_empty_text": "PDF提取返回了空文本",
+      "docx_empty_text": "DOCX提取返回了空文本",
+      "txt_empty_text": "TXT提取返回了空文本",
+      "no_llm_provider_configured": "未配置LLM提供商",
+      "template_validation_failed": "模板验证失败：{error}",
+      "scene_build_failed": "场景构建失败：{error}",
+      "branch_operation_failed": "分支操作失败：{error}",
+      "invalid_file_type": "无效的文件类型。允许：{extensions}",
+      "file_too_large": "文件过大。最大限制：{max_mb}MB",
+      "sentence_transformers_missing": "文档处理需要'sentence-transformers'包。请安装：pip install sentence-transformers",
+      "document_processing_failed": "文档处理失败：{error}",
+      "agent_not_found": "未找到代理 '{agent_name}'",
+      "document_not_found": "未找到文档 '{doc_id}'",
+      "agent_id_not_found": "未找到ID/名称为 '{agent_id}' 的代理",
+      "node_export_not_found": "未找到节点 {node_id}",
+      "global_knowledge_not_found": "未找到全局知识项 '{kw_id}'",
+      "too_many_frontier_nodes": "前沿节点过多（{count}）。最大限制为 {max}。",
+      "too_many_turns": "回合数过多（{turns}）。最大限制为 {max}。",
+      "too_many_parallel_advances": "并行推演数过多（{count}）。最大限制为 {max}。",
+      "too_many_chain_steps": "链式步骤过多（{steps}）。最大限制为 {max}。",
+      "auth": {
+        "smtp_missing": "邮箱验证已启用，但缺少SMTP配置",
+        "app_url_missing": "邮箱验证已启用，但缺少应用基础URL",
+        "email_registered": "该邮箱已注册",
+        "username_registered": "该用户名已注册",
+        "user_disabled": "用户已被禁用",
+        "email_not_verified": "邮箱地址未验证",
+        "invalid_expired_token": "无效或已过期的令牌",
+        "account_missing": "账户不存在",
+        "invalid_refresh_token": "无效的刷新令牌",
+        "invalid_token_type": "无效的令牌类型",
+        "invalid_token_subject": "无效的令牌主体",
+        "token_revoked": "令牌已被撤销",
+        "token_expired": "令牌已过期",
+        "could_not_validate": "无法验证凭据",
+        "inactive_user": "用户未激活"
+      },
       "uploads": {
         "invalid_data_url": "无效的数据URL",
         "invalid_base64_payload": "无效的base64数据",
@@ -220,132 +275,6 @@
     }
   },
   "prompts": {
-    "policy_cascade": {
-      "markers": {
-        "policy": ["原文", "不可改写条款", "报告要求", "执行要求", "目标："],
-        "line_types": {
-          "goal": ["政策目标", "目标", "总体要求", "工作要求"],
-          "scope": ["调整范围", "适用范围", "覆盖范围"],
-          "standard": ["调整标准", "下调", "比例", "薪酬标准", "固定薪酬"],
-          "support": ["配套要求", "稳岗安排", "心理支持", "申诉反馈渠道"],
-          "execution": ["执行要求", "落实", "整改", "排查", "培训", "核验", "完成"],
-          "report": ["报告要求", "报送", "汇总", "周报", "台账", "上报", "签到表", "填报"],
-          "resource": ["资源", "预算", "经费", "人员", "保障", "技术支持", "专项"],
-          "accountability": ["责任分工", "问责", "考核", "督办", "责任", "压实责任", "跟踪问效"],
-          "invariant": ["不可改写条款", "严禁", "不得", "必须", "一律"]
-        },
-        "agent_signals": {
-          "burden": ["负担", "压力", "成本", "加班", "重复", "繁琐", "一线", "基层", "执行难"],
-          "autonomy": ["灵活", "自主", "因地制宜", "协调", "平衡", "裁量", "缓行", "试点"],
-          "control": ["问责", "纪律", "考核", "刚性", "统一部署", "压实责任", "督办", "从严"],
-          "resource": ["预算", "人手", "资源", "经费", "设备", "支持", "保障", "条件"],
-          "stability": ["稳定", "风险", "舆情", "安全", "秩序", "审慎", "稳妥"]
-        },
-        "notice_analysis": ["解读", "评估", "合理性", "优点", "缺点", "优缺点", "利弊", "优势", "不足", "问题", "建议", "看法", "分析", "研判", "评论", "谈谈", "怎么看", "是否可行"],
-        "notice_execution": ["贯彻", "落实", "执行", "推进", "部署", "传达", "整改", "排查", "督办", "落实情况"]
-      },
-      "distortion": {
-        "reasons": {
-          "grassroots_burden": "基层执行负担高",
-          "resource_gap": "资源保障与任务要求不匹配",
-          "accountability_pressure": "考核问责压力触发本层自保",
-          "reporting_chain": "报送链条过重导致转述弱化"
-        },
-        "role_notes": {
-          "top": "高层优先保留统筹、问责和重点指标。",
-          "mid": "中层优先保留可操作任务，压缩跨部门协调成本。",
-          "low": "基层优先保留最低可执行动作，降低一线负担。"
-        },
-        "default_reason": "本层判断需要重新筛选政策重点"
-      }
-    },
-    "game_theory": {
-      "battle_of_the_sexes": {
-        "intro": "你正在玩性别博弈。",
-        "choose_instruction": "你可以选择：{action_1} 或 {action_2}。",
-        "action_format": "- {action_name}：{action_description}"
-      },
-      "stag_hunt": {
-        "intro": "你正在玩猎鹿博弈。",
-        "choose_instruction": "你可以选择：{action_1} 或 {action_2}。",
-        "action_format": "- {action_name}：{action_description}",
-        "payoff_context": "如果所有人都选择{action_1}，则获得{stag_reward}分，否则为0。{action_2}始终获得{hare_reward}分。"
-      },
-      "public_goods": {
-        "intro": "你有 {initial_amount} {resource}。",
-        "action_instruction": "你可以{action_name}一定数量到共享池中。",
-        "action_description": "{action_description}",
-        "pool_mechanics": "资金池将乘以 {multiplier} 并平均分配给所有参与者。",
-        "choose_instruction": "选择要{action_name}的数量（0 到 {initial_amount}）。"
-      }
-    },
-    "agent": {
-      "knowledge_base_header": "知识库：",
-      "knowledge_base_intro": "你有一个包含 {count} 个项目的个人知识库，其中包含你可以参考的信息：",
-      "knowledge_base_more": "... 还有 {count} 个项目",
-      "query_instruction": "使用query_knowledge动作在需要时搜索特定信息。知识库包含你应该在相关时用于指导回应的事实和信息。",
-      "json_retry_feedback": "你上一条回复无法被解析。错误：{error}。请只返回一个有效的 JSON 对象，并且顶层键必须严格为：\"thoughts\"、\"response\"、\"action\"、\"context_update\"、\"metadata\"。不要使用 Markdown 代码块，不要使用 [Action] 简写。action 字段必须填写动作空间中的有效动作名。",
-      "reprompt_instruction": "你选择了“{action_name}”动作。现在请直接写出你的 {reprompt_param}（纯文本，不要 JSON）：",
-      "context_summary_header": "近期上下文摘要：",
-      "language_instruction": "语言：{language}。内容请用{language}回复；动作名称请使用英文。",
-      "action_space_header": "动作空间：",
-      "usage_header": "用法：",
-      "output_format_header": "重要 - 输出格式：",
-      "output_format_intro": "你必须响应一个包含这5个部分的有效JSON对象：",
-      "output_thoughts": "你对当前情况的简要思考（1-2句话）",
-      "output_response": "你想要交流的内容（如果不需要说话可以是空字符串）",
-      "output_action": "你想要采取的动作，包含：",
-      "output_action_name": "来自上面动作空间的动作名称",
-      "output_action_params": "动作参数的附加键值对（如果需要）",
-      "output_context_update": "为将来记住的简要笔记（目标、观察、计划）",
-      "output_metadata": "包含任何附加元数据的可选对象",
-      "examples": {
-        "cascade": {
-          "distortion_note": "当前失真参数：失真强度={strength:.2f}，利益冲突敏感度={sensitivity:.2f}，截留概率={probability:.2f}。",
-          "top_private_source": "对于这条仅向我私下传达的政策，我决定先强调\"{policy_summary}\"，暂不展开全部资源承诺。",
-          "top_no_private": "关于上级刚才的传达，我决定继续强调\"{policy_summary}\"，暂不展开全部资源承诺。",
-          "top_faithful": "我会按原文继续传达\"{policy_summary}\"。态度：完全支持并按原文执行。补充：由我批准专项预算并建立月度问责机制。",
-          "mid_private_source": "我会只向下传达可立即执行的部分，先保留\"{policy_summary}\"，其余内容暂缓。",
-          "mid_no_private": "考虑到本部门考核压力，我只向下传达可立即执行的部分，先保留\"{policy_summary}\"。",
-          "mid_faithful": "我会按原文继续传达\"{policy_summary}\"。态度：完全支持并按原文执行。补充：我将在48小时内拆解任务到各部门并建立周报台账。",
-          "low_private_source": "该政策与一线负担存在冲突，我会先按基层可执行口径保留\"{policy_summary}\"，并上报执行困难。",
-          "low_no_private": "该政策与一线负担存在冲突，我会先保留\"{policy_summary}\"中的最低执行要求。",
-          "low_faithful": "我会按原文继续传达\"{policy_summary}\"。态度：完全支持并按原文执行。补充：我将按排查清单逐项核验，并在发现异常后24小时内上报。",
-          "context_top_distortion": "已按本层利益重述政策重点，并保留部分信息",
-          "context_mid_distortion": "已结合中层压力选择性下传政策",
-          "context_low_distortion": "已因基层执行冲突而弱化落实",
-          "context_top_faithful": "已按原文转发，并补充高层统筹与资源安排",
-          "context_mid_faithful": "已按原文转发，并补充中层协调与任务拆解",
-          "context_low_faithful": "已按原文转发，并补充基层执行与异常上报",
-          "silent_context": "等待下一级反馈",
-          "silent_context_distortion": "因本层利益冲突暂缓下传"
-        },
-        "notice": {
-          "analysis_top": "作为高层，我对\"{notice_text}\"的看法是：优点在于有利于统一部署、压实责任和跟踪问效；缺点在于如果资源和配套制度不足，容易形成层层加码；建议同步明确牵头单位、预算安排和督促检查节奏。",
-          "analysis_mid": "作为中层，我对\"{notice_text}\"的看法是：优点在于便于分解任务、建立台账和协同推进；缺点在于若验收标准不清，容易造成重复报送和责任交叉；建议尽快细化举措、明确时间表和周报机制。",
-          "analysis_low": "作为基层执行者，我对\"{notice_text}\"的看法是：优点在于有助于逐项排查、现场核验和及时上报；缺点在于若模板过多、口径频繁变化，会增加执行负担；建议简化报送字段并明确整改、复查和销号标准。",
-          "response_top": "关于系统公告\"{notice_text}\"，作为高层，我将明确总体目标、资源投放、压实责任和考核机制，并指定牵头负责人。",
-          "response_mid": "关于系统公告\"{notice_text}\"，作为中层，我将分解任务、协调相关单位、建立工作台账，并给出周度推进时间表。",
-          "response_low": "关于系统公告\"{notice_text}\"，作为基层执行者，我将按清单落实排查步骤、现场核验问题、推进整改复查并及时上报反馈。",
-          "context_analysis_top": "已从高层视角完成政策解读与优缺点分析",
-          "context_analysis_mid": "已从中层视角完成政策解读与优缺点分析",
-          "context_analysis_low": "已从基层视角完成政策解读与优缺点分析",
-          "context_response_top": "已从高层视角回应系统公告",
-          "context_response_mid": "已从中层视角回应系统公告",
-          "context_response_low": "已从基层视角回应系统公告",
-          "silent_context": "等待下一条系统公告"
-        },
-        "default_policy_summary": "逐级传达政策，并保留关键执行条款"
-      }
-    },
-    "werewolf": {
-      "moderator_hint": "你是主持人。玩家：{players}。角色：{roles_info}。"
-    },
-    "archetype": {
-      "prompt": "为具有以下属性的代理人创建一句第一人称简介:\n{attrs}\n\n句子必须:\n- 以\"我是\"开头\n- 反映这个人如何根据其属性思考和做决定\n- 不要只是重述人口统计数据\n\n返回JSON:\n{{\"description\": \"我是...\", \"roles\": [\"职业1\", \"职业2\", \"职业3\", \"职业4\", \"职业5\"]}}\n\n仅输出JSON，无其他文字。",
-      "fallback_roles": ["公民", "工人", "专业人士", "学生", "其他"],
-      "fallback_description": "具有以下背景的个人: {archetype_label}"
-    },
     "policy_cascade": {
       "shared": {
         "follow_up_no_action": "当前已没有任何动作倾向，建议注入新的环境事件或发布新的政策。",
@@ -497,6 +426,115 @@
         "expansion_exec_low_3": "对群众反馈、现场偏差和重复性问题，我会保留过程记录，确保后续复查时能够逐项闭环。"
       }
     },
+    "game_theory": {
+      "battle_of_the_sexes": {
+        "intro": "你正在玩性别博弈。",
+        "choose_instruction": "你可以选择：{action_1} 或 {action_2}。",
+        "action_format": "- {action_name}：{action_description}"
+      },
+      "stag_hunt": {
+        "intro": "你正在玩猎鹿博弈。",
+        "choose_instruction": "你可以选择：{action_1} 或 {action_2}。",
+        "action_format": "- {action_name}：{action_description}",
+        "payoff_context": "如果所有人都选择{action_1}，则获得{stag_reward}分，否则为0。{action_2}始终获得{hare_reward}分。"
+      },
+      "public_goods": {
+        "intro": "你有 {initial_amount} {resource}。",
+        "action_instruction": "你可以{action_name}一定数量到共享池中。",
+        "action_description": "{action_description}",
+        "pool_mechanics": "资金池将乘以 {multiplier} 并平均分配给所有参与者。",
+        "choose_instruction": "选择要{action_name}的数量（0 到 {initial_amount}）。"
+      }
+    },
+    "agent": {
+      "knowledge_base_header": "知识库：",
+      "knowledge_base_intro": "你有一个包含 {count} 个项目的个人知识库，其中包含你可以参考的信息：",
+      "knowledge_base_more": "... 还有 {count} 个项目",
+      "query_instruction": "使用query_knowledge动作在需要时搜索特定信息。知识库包含你应该在相关时用于指导回应的事实和信息。",
+      "json_retry_feedback": "你上一条回复无法被解析。错误：{error}。请只返回一个有效的 JSON 对象，并且顶层键必须严格为：\"thoughts\"、\"response\"、\"action\"、\"context_update\"、\"metadata\"。不要使用 Markdown 代码块，不要使用 [Action] 简写。action 字段必须填写动作空间中的有效动作名。",
+      "reprompt_instruction": "你选择了“{action_name}”动作。现在请直接写出你的 {reprompt_param}（纯文本，不要 JSON）：",
+      "context_summary_header": "近期上下文摘要：",
+      "language_instruction": "语言：{language}。内容请用{language}回复；动作名称请使用英文。",
+      "action_space_header": "动作空间：",
+      "usage_header": "用法：",
+      "output_format_header": "重要 - 输出格式：",
+      "output_format_intro": "你必须响应一个包含这5个部分的有效JSON对象：",
+      "output_thoughts": "你对当前情况的简要思考（1-2句话）",
+      "output_response": "你想要交流的内容（如果不需要说话可以是空字符串）",
+      "output_action": "你想要采取的动作，包含：",
+      "output_action_name": "来自上面动作空间的动作名称",
+      "output_action_params": "动作参数的附加键值对（如果需要）",
+      "output_context_update": "为将来记住的简要笔记（目标、观察、计划）",
+      "output_metadata": "包含任何附加元数据的可选对象",
+      "example_json_header": "JSON 响应示例：",
+      "speak_without_action_header": "如果你只想说话而不执行动作：",
+      "default_example_thoughts": "我需要回应问候并考虑下一步行动",
+      "default_example_response": "你好！很高兴见到你。",
+      "default_example_update": "遇到了一个新智能体，应该多了解它",
+      "default_speak_thoughts": "只是在回答问题",
+      "default_speak_update": "分享了我对这个话题的看法",
+      "closing_instruction": "你必须始终提供一个\"action\"，其\"name\"来自动作空间。如果你只想说话，使用\"send_message\"并将文本放在\"message\"字段中。完成回合时使用\"yield\"。",
+      "cascade_example_thoughts": "转发最新政策，保持原文并附执行计划。",
+      "cascade_silent_thoughts": "无需转发时保持静默等待。",
+      "notice_example_thoughts": "需要直接回应最新系统公告，并给出符合本职位职责的解读。",
+      "notice_silent_thoughts": "当前没有新增任务时可以结束回合。",
+      "default_example_template": "{header}\n    ```json\n    {{\n        \"thoughts\": \"{thoughts}\",\n        \"response\": \"{response}\",\n        \"action\": {{\n        \"name\": \"send_message\",\n        \"target\": \"other_agent\",\n        \"message\": \"{response}\"\n        }},\n        \"context_update\": \"{context_update}\",\n        \"metadata\": {{}}\n    }}\n    ```\n\n    {speak_header}\n    ```json\n    {{\n        \"thoughts\": \"{speak_thoughts}\",\n        \"response\": \"我的观点是...\",\n        \"action\": {{\n            \"name\": \"send_message\",\n            \"message\": \"我的观点是...\"\n        }},\n        \"context_update\": \"{speak_update}\",\n        \"metadata\": {{}}\n    }}\n    ```",
+      "cascade_example_template": "{header}\n    ```json\n    {{\n        \"thoughts\": \"{thoughts}\",\n        \"response\": \"\",\n        \"action\": {{\n        \"name\": \"send_message\",\n        \"message\": {message_json}\n        }},\n        \"context_update\": \"{context_update}\",\n        \"metadata\": {{}}\n    }}\n    ```\n\n    {speak_header}\n    ```json\n    {{\n        \"thoughts\": \"{silent_thoughts}\",\n        \"response\": \"\",\n        \"action\": {{\n            \"name\": \"yield\"\n        }},\n        \"context_update\": \"{silent_context}\",\n        \"metadata\": {{}}\n    }}\n    ```",
+      "notice_example_template": "{header}\n    ```json\n    {{\n        \"thoughts\": \"{thoughts}\",\n        \"response\": \"\",\n        \"action\": {{\n        \"name\": \"send_message\",\n        \"message\": {message_json}\n        }},\n        \"context_update\": \"{context_update}\",\n        \"metadata\": {{}}\n    }}\n    ```\n\n    {speak_header}\n    ```json\n    {{\n        \"thoughts\": \"{silent_thoughts}\",\n        \"response\": \"\",\n        \"action\": {{\n            \"name\": \"yield\"\n        }},\n        \"context_update\": \"{silent_context}\",\n        \"metadata\": {{}}\n    }}\n    ```",
+      "output_format_template": "{header}\n{intro}\n\n    1. \"thoughts\": {thoughts}\n\n    2. \"response\": {response}\n\n    3. \"action\": {action}\n       - \"name\": {action_name}\n       - {action_params}\n\n    4. \"context_update\": {context_update}\n\n    5. \"metadata\": {metadata}",
+      "examples": {
+        "cascade": {
+          "distortion_note": "当前失真参数：失真强度={strength:.2f}，利益冲突敏感度={sensitivity:.2f}，截留概率={probability:.2f}。",
+          "top_private_source": "对于这条仅向我私下传达的政策，我决定先强调\"{policy_summary}\"，暂不展开全部资源承诺。",
+          "top_no_private": "关于上级刚才的传达，我决定继续强调\"{policy_summary}\"，暂不展开全部资源承诺。",
+          "top_faithful": "我会按原文继续传达\"{policy_summary}\"。态度：完全支持并按原文执行。补充：由我批准专项预算并建立月度问责机制。",
+          "mid_private_source": "我会只向下传达可立即执行的部分，先保留\"{policy_summary}\"，其余内容暂缓。",
+          "mid_no_private": "考虑到本部门考核压力，我只向下传达可立即执行的部分，先保留\"{policy_summary}\"。",
+          "mid_faithful": "我会按原文继续传达\"{policy_summary}\"。态度：完全支持并按原文执行。补充：我将在48小时内拆解任务到各部门并建立周报台账。",
+          "low_private_source": "该政策与一线负担存在冲突，我会先按基层可执行口径保留\"{policy_summary}\"，并上报执行困难。",
+          "low_no_private": "该政策与一线负担存在冲突，我会先保留\"{policy_summary}\"中的最低执行要求。",
+          "low_faithful": "我会按原文继续传达\"{policy_summary}\"。态度：完全支持并按原文执行。补充：我将按排查清单逐项核验，并在发现异常后24小时内上报。",
+          "context_top_distortion": "已按本层利益重述政策重点，并保留部分信息",
+          "context_mid_distortion": "已结合中层压力选择性下传政策",
+          "context_low_distortion": "已因基层执行冲突而弱化落实",
+          "context_top_faithful": "已按原文转发，并补充高层统筹与资源安排",
+          "context_mid_faithful": "已按原文转发，并补充中层协调与任务拆解",
+          "context_low_faithful": "已按原文转发，并补充基层执行与异常上报",
+          "silent_context": "等待下一级反馈",
+          "silent_context_distortion": "因本层利益冲突暂缓下传"
+        },
+        "notice": {
+          "analysis_top": "作为高层，我对\"{notice_text}\"的看法是：优点在于有利于统一部署、压实责任和跟踪问效；缺点在于如果资源和配套制度不足，容易形成层层加码；建议同步明确牵头单位、预算安排和督促检查节奏。",
+          "analysis_mid": "作为中层，我对\"{notice_text}\"的看法是：优点在于便于分解任务、建立台账和协同推进；缺点在于若验收标准不清，容易造成重复报送和责任交叉；建议尽快细化举措、明确时间表和周报机制。",
+          "analysis_low": "作为基层执行者，我对\"{notice_text}\"的看法是：优点在于有助于逐项排查、现场核验和及时上报；缺点在于若模板过多、口径频繁变化，会增加执行负担；建议简化报送字段并明确整改、复查和销号标准。",
+          "response_top": "关于系统公告\"{notice_text}\"，作为高层，我将明确总体目标、资源投放、压实责任和考核机制，并指定牵头负责人。",
+          "response_mid": "关于系统公告\"{notice_text}\"，作为中层，我将分解任务、协调相关单位、建立工作台账，并给出周度推进时间表。",
+          "response_low": "关于系统公告\"{notice_text}\"，作为基层执行者，我将按清单落实排查步骤、现场核验问题、推进整改复查并及时上报反馈。",
+          "context_analysis_top": "已从高层视角完成政策解读与优缺点分析",
+          "context_analysis_mid": "已从中层视角完成政策解读与优缺点分析",
+          "context_analysis_low": "已从基层视角完成政策解读与优缺点分析",
+          "context_response_top": "已从高层视角回应系统公告",
+          "context_response_mid": "已从中层视角回应系统公告",
+          "context_response_low": "已从基层视角回应系统公告",
+          "silent_context": "等待下一条系统公告"
+        },
+        "default_policy_summary": "逐级传达政策，并保留关键执行条款"
+      }
+    },
+    "werewolf": {
+      "moderator_hint": "你是主持人。玩家：{players}。角色：{roles_info}。"
+    },
+    "archetype": {
+      "prompt": "为具有以下属性的代理人创建一句第一人称简介:\n{attrs}\n\n句子必须:\n- 以\"我是\"开头\n- 反映这个人如何根据其属性思考和做决定\n- 不要只是重述人口统计数据\n\n返回JSON:\n{{\"description\": \"我是...\", \"roles\": [\"职业1\", \"职业2\", \"职业3\", \"职业4\", \"职业5\"]}}\n\n仅输出JSON，无其他文字。",
+      "fallback_roles": [
+        "公民",
+        "工人",
+        "专业人士",
+        "学生",
+        "其他"
+      ],
+      "fallback_description": "具有以下背景的个人: {archetype_label}"
+    },
     "scenarios": {
       "social_norm_disruption": {
         "name": "社会规范破坏",
@@ -534,6 +572,357 @@
         "trait_mean_out_of_range": "特征 '{name}' 均值 {value} 超出有效范围 [0, 100]。",
         "trait_std_out_of_range": "特征 '{name}' 标准差 {value} 超出有效范围 [0, 50]。"
       }
+    },
+    "actions": {
+      "speak": {
+        "name": "speak",
+        "desc": "说话。",
+        "instruction": "- speak: 广播一条消息\n  <Action name=\"speak\" />\n  （选择此操作后，您将被提示输入消息内容。）",
+        "error_missing_message": "缺少消息内容。",
+        "summary_spoke": "{agent_name} 说道：{message}",
+        "summary_failed": "{agent_name} 说话失败"
+      },
+      "send_message": {
+        "name": "send_message",
+        "desc": "向所有参与者发送消息。",
+        "instruction": "- send_message: 发送给所有人\n  <Action name=\"send_message\" />\n  （选择此操作后，您将被提示输入消息内容。）",
+        "error_missing_message": "缺少消息内容。",
+        "summary_sent": "{agent_name}：{message}",
+        "summary_failed": "{agent_name} 发送消息失败"
+      },
+      "yield": {
+        "name": "yield",
+        "desc": "让出发言权并结束你的回合。",
+        "instruction": "- yield: 结束你的回合\n  <Action name=\"yield\"/>",
+        "summary_yielded": "{agent_name} 让出了发言权"
+      },
+      "talk_to": {
+        "name": "talk_to",
+        "desc": "按名字向附近的人说话。",
+        "instruction": "- talk_to: 与附近的智能体交谈\n  <Action name=\"talk_to\"><target>名字</target><message>你好！</message></Action>",
+        "error_missing_params": "请提供 'target'（名字）和 'message'（消息）。",
+        "error_no_such_person": "没有此人：{target_name}。",
+        "error_too_far": "{target_name} 距离太远，无法交谈。",
+        "summary_failed": "{agent_name} 交谈失败",
+        "summary_talked": "{agent_name} 对 {target_name} 说：{message}"
+      },
+      "schedule_order": {
+        "name": "schedule_order",
+        "desc": "主持人使用逗号分隔的列表安排接下来的几个智能体行动。",
+        "instruction": "- 安排接下来的发言者/行动者（仅限主持人）：\n  <Action name=\"schedule_order\"><order>Alice, Bob, Charlie</order></Action>",
+        "error_schedule_not_empty": "日程不为空；现在不应该进行安排。",
+        "summary_failed": "schedule_order 失败：日程不为空",
+        "feedback_scheduled": "已安排顺序：{names}",
+        "summary_scheduled": "{agent_name} 已安排：{names}"
+      },
+      "start_voting": {
+        "name": "start_voting",
+        "desc": "发起带标题的投票轮次。在讨论阶段，任何代理人都可以提出投票。",
+        "instruction": "- 要发起带标题的投票：\n<Action name=\"start_voting\"><title>[简短主题]</title></Action>",
+        "state_error": "无法发起投票：当前已有投票正在进行",
+        "event_voting_started": "{agent_name} 已发起投票轮次：{title}。请现在开始投票。",
+        "feedback_voting_started": "投票已开始：{title}",
+        "summary_voting_started": "{agent_name} 发起了投票：{title}"
+      },
+      "voting_status": {
+        "name": "voting_status",
+        "desc": "显示当前投票进展：票数统计和未投票成员。",
+        "instruction": "- 要查看投票状态：\n<Action name=\"voting_status\" />",
+        "feedback_not_started": "投票尚未开始。",
+        "summary_not_started": "投票尚未开始",
+        "feedback_status_header": "投票状态——{title}：",
+        "feedback_participants": "- 参与人数：{count}",
+        "feedback_tally": "- 赞成：{yes}，反对：{no}，弃权：{abstain}",
+        "feedback_pending": "- 待投票：{pending}（{names}）",
+        "feedback_pending_no_names": "- 待投票：{pending}",
+        "summary_status": "'{title}' 的投票状态：赞成 {yes}，反对 {no}，弃权 {abstain}，待投票 {pending}"
+      },
+      "request_brief": {
+        "name": "request_brief",
+        "desc": "当辩论陷入僵局、事实缺失或成员请求数据时，通过LLM获取简明中立的简报；请提供清晰的'desc'（主题+焦点）。任何代理人都可以请求。",
+        "instruction": "\n- 要请求简报（任何代理人）：\n<Action name=\"request_brief\"><desc>[主题+焦点]</desc></Action>",
+        "llm_system_prompt": "你是一位政策分析师，协助立法委员会辩论。生成一份中立、基于事实的简明简报以推动讨论。仅输出纯文本（不使用JSON或角色标签）。",
+        "llm_user_prompt": "提供5-7条简洁要点，包含具体事实、案例或先例。如有帮助请包含数据，并明确标注估计值。控制在180词以内。\n需求：{desc}",
+        "fallback_item_scope": "- 范围：{desc}",
+        "fallback_item_fact": "- 关键事实/定义",
+        "fallback_item_example": "- 可比案例（结果）",
+        "fallback_item_stakeholders": "- 利益相关方：谁受益/谁承担成本",
+        "fallback_item_cost": "- 大致成本或影响（估计值）",
+        "fallback_item_risk": "- 主要风险及缓解措施",
+        "fallback_item_question": "- 供议院讨论的开放性问题",
+        "feedback_brief": "关于 '{desc}' 的简报（私有）：\n{material}",
+        "summary_requested": "{agent_name} 请求了一份简报：{desc}"
+      },
+      "vote": {
+        "name": "vote",
+        "desc": "投票，可附加评论。在投票阶段可用。",
+        "instruction": "- 要投票（仅在投票开始后）：\n<Action name=\"vote\"><vote>yes|no|abstain</vote><comment>[可选]</comment></Action>",
+        "state_error": "无法投票：投票尚未开始",
+        "error_already_voted": "你已经投过票了。",
+        "summary_vote_failed": "{agent_name} 投票失败",
+        "message_vote": "我对 '{title}' 投 {vote} 票。",
+        "message_vote_with_comment": "我对 '{title}' 投 {vote} 票。评论：{comment}",
+        "summary_voted": "{agent_name} 投了 {vote} 票",
+        "event_concluded_passed": "'{title}' 的投票已结束。以 {yes} 票赞成、{no} 票反对、{abstain} 票弃权获得通过。",
+        "event_concluded_failed": "'{title}' 的投票已结束。以 {yes} 票赞成、{no} 票反对、{abstain} 票弃权未获通过。"
+      },
+      "finish_meeting": {
+        "name": "finish_meeting",
+        "desc": "结束委员会会议并终止场景。在没有投票进行时，任何代理人都可以提出。",
+        "instruction": "- 要结束委员会会议（投票未进行时）：\n<Action name=\"finish_meeting\" />",
+        "state_error": "无法结束会议：投票仍在进行中",
+        "event_adjourned": "{agent_name} 提出散会动议。本次会议到此结束。",
+        "feedback_finished": "会议已结束。",
+        "summary_finished": "{agent_name} 结束了会议"
+      },
+      "call_landlord": {
+        "name": "call_landlord",
+        "desc": "在叫牌阶段（叫地主阶段），叫地主。",
+        "instruction": "\n- 叫地主（叫牌）：\n<Action name=\"call_landlord\" />",
+        "error_wrong_stage": "你只能在叫地主阶段叫地主。",
+        "event_called": "{agent_name} 叫了地主。",
+        "summary_failed": "{agent_name} 叫地主失败",
+        "summary_called": "{agent_name} 叫了地主"
+      },
+      "rob_landlord": {
+        "name": "rob_landlord",
+        "desc": "在叫牌阶段（抢地主阶段），抢地主。积分翻倍。",
+        "instruction": "\n- 抢地主（有人叫地主之后）：\n<Action name=\"rob_landlord\" />",
+        "error_wrong_stage": "你只能在抢地主阶段抢地主。",
+        "error_already_acted": "你已经在抢地主阶段行动过了。",
+        "event_robbed": "{agent_name} 抢了地主。积分翻倍。",
+        "summary_failed": "{agent_name} 抢地主失败",
+        "summary_robbed": "{agent_name} 抢了地主"
+      },
+      "pass": {
+        "name": "pass",
+        "desc": "在当前情境下过牌（叫牌阶段：不叫/不抢；出牌阶段：跳过）。",
+        "instruction": "\n- 过牌（叫牌阶段：放弃；出牌阶段：跳过）：\n<Action name=\"pass\" />",
+        "error_bad_stage": "未知的叫牌阶段。",
+        "error_cannot_pass_lead": "你必须先出牌，不能过牌。",
+        "error_bad_phase": "现在不能过牌。",
+        "error_already_acted_rob": "你已经在抢地主阶段行动过了。",
+        "event_no_call": "{agent_name} 没有叫地主。",
+        "event_no_rob": "{agent_name} 没有抢地主。",
+        "event_passed": "{agent_name} 过牌。",
+        "summary_pass_call": "{agent_name} 没有叫地主",
+        "summary_pass_rob": "{agent_name} 没有抢地主",
+        "summary_pass_playing": "{agent_name} 过牌",
+        "summary_pass_failed": "{agent_name} 过牌失败"
+      },
+      "play_cards": {
+        "name": "play_cards",
+        "desc": "出牌（严格牌面）。必须大过当前领出牌型，除非是你领出。",
+        "instruction": "\n- 出牌（牌面之间用空格分隔）：\n<Action name=\"play_cards\"><cards>3 3 3</cards></Action>\n可用牌面：3 4 5 6 7 8 9 10 J Q K A 2 SJ BJ",
+        "error_wrong_phase": "你只能在出牌阶段出牌。",
+        "error_missing_cards": "请提供要出的牌。",
+        "error_not_in_hand": "你没有这些牌。",
+        "error_invalid_combo": "无效的牌型组合。",
+        "error_not_beating": "你的出牌大不过当前领出的牌。",
+        "event_played": "{agent_name} 出牌：{cards_str}（{combo_type}）。",
+        "summary_wrong_phase": "{agent_name} 尝试：{attempt_str} -> 阶段错误 | 剩余：{remaining_str}",
+        "summary_missing_cards": "{agent_name} 尝试：（无）-> 缺少牌 | 剩余：{remaining_str}",
+        "summary_not_in_hand": "{agent_name} 尝试：{attempt_str} -> 手中无此牌 | 剩余：{remaining_str}",
+        "summary_invalid_combo": "{agent_name} 尝试：{attempt_str} -> 无效牌型 | 剩余：{remaining_str}",
+        "summary_not_beating": "{agent_name} 尝试：{attempt_str} -> 管不上 | 剩余：{remaining_str}",
+        "summary_played": "{agent_name} 出牌：{attempt_str}（{combo_type}），剩余：{remaining_str}",
+        "summary_won": "{agent_name} 出牌：{attempt_str}（{combo_type}），剩余：{remaining_str} [胜利]"
+      },
+      "double": {
+        "name": "double",
+        "desc": "在加倍阶段，选择加倍，将全局积分倍数乘以2。",
+        "instruction": "\n- 在加倍阶段选择加倍：\n<Action name=\"double\" />",
+        "error_wrong_phase": "你只能在加倍阶段加倍。",
+        "error_already_acted": "你已经在加倍阶段行动过了。",
+        "event_doubled": "{agent_name} 加倍了。积分翻倍。",
+        "summary_failed": "{agent_name} 加倍失败",
+        "summary_doubled": "{agent_name} 加倍了"
+      },
+      "no_double": {
+        "name": "no_double",
+        "desc": "在加倍阶段，明确拒绝加倍。",
+        "instruction": "\n- 在加倍阶段拒绝加倍：\n<Action name=\"no_double\" />",
+        "error_wrong_phase": "你只能在加倍阶段操作。",
+        "error_already_acted": "你已经在加倍阶段行动过了。",
+        "event_declined": "{agent_name} 拒绝加倍。",
+        "summary_failed": "{agent_name} 拒绝加倍失败",
+        "summary_declined": "{agent_name} 拒绝加倍"
+      },
+      "report_upward": {
+        "name": "report_upward",
+        "desc": "私下向直属上级报告执行困难。",
+        "instruction": "- report_upward: 向直属上级报告执行困难\n  <Action name=\"report_upward\"><target>姓名</target><message>您的困难报告</message></Action>"
+      },
+      "escalate_complaint": {
+        "name": "escalate_complaint",
+        "desc": "将投诉或风险报告上报给更高级别的上级。",
+        "instruction": "- escalate_complaint: 向更高级别的上级上报投诉\n  <Action name=\"escalate_complaint\"><target>姓名</target><message>您的上报报告</message></Action>"
+      },
+      "consult_peer": {
+        "name": "consult_peer",
+        "desc": "私下咨询或与同级别的关联同事协调。",
+        "instruction": "- consult_peer: 私下咨询同级别的关联同事\n  <Action name=\"consult_peer\"><target>姓名</target><message>您的咨询消息</message></Action>"
+      },
+      "notify_subordinate": {
+        "name": "notify_subordinate",
+        "desc": "私下通知直属下级。",
+        "instruction": "- notify_subordinate: 私下通知直属下级\n  <Action name=\"notify_subordinate\"><target>姓名</target><message>您的通知内容</message></Action>"
+      },
+      "announce_policy_adjustment": {
+        "name": "announce_policy_adjustment",
+        "desc": "发布新的政策调整公告，重新开启级联传播。",
+        "instruction": "- announce_policy_adjustment: 发布政策调整公告\n  <Action name=\"announce_policy_adjustment\"><message>您的调整公告</message></Action>"
+      },
+      "query_knowledge": {
+        "name": "query_knowledge",
+        "desc": "查询您的知识库以获取有关某主题的相关信息。",
+        "instruction": "- 查询您的知识库：\n<Action name=\"query_knowledge\"><query>[您的搜索查询]</query><max_results>3</max_results></Action>",
+        "error_no_query": "query_knowledge: 未提供查询内容。",
+        "error_no_query_summary": "{agent_name} query_knowledge 失败：无查询内容",
+        "feedback_empty_kb": "知识库查询 '{query}'：您的知识库中没有知识条目。",
+        "summary_empty_kb": "{agent_name} 查询了知识库（为空）",
+        "feedback_no_matches": "知识库查询 '{query}'：未找到匹配结果。",
+        "summary_no_matches": "{agent_name} 查询了知识库（无匹配结果）",
+        "feedback_results_header": "知识库查询 '{query}' 的结果：",
+        "feedback_results_item": "[{i}] {title}: {content}",
+        "summary_success": "{agent_name} 查询了知识库：'{query}'（{count} 条结果）"
+      },
+      "list_knowledge": {
+        "name": "list_knowledge",
+        "desc": "列出您知识库中的所有条目。",
+        "instruction": "- 列出所有知识库条目：\n<Action name=\"list_knowledge\" />",
+        "feedback_empty": "您的知识库为空。",
+        "summary_empty": "{agent_name} 列出了知识库（为空）",
+        "feedback_list_header": "您的知识库（{count} 条）：",
+        "feedback_list_item": "[{i}] ({kb_type}) {title}: {content_preview}",
+        "summary_success": "{agent_name} 列出了知识库（{count} 条）",
+        "item_untitled": "无标题"
+      },
+      "web_search": {
+        "name": "web_search",
+        "desc": "搜索网络并返回最相关的结果（标题、URL、摘要）。使用此操作通过具体查询查找最新信息。",
+        "instruction": "- 搜索网络获取信息：\n<Action name=\"web_search\"><query>[关键词或问题]</query><max_results>5</max_results></Action>",
+        "error_no_results": "web_search: 无结果或网络不可用。",
+        "summary_failed": "{agent_name} web_search 失败",
+        "feedback_results_header": "'{query}' 的网络搜索结果：",
+        "summary_success": "{agent_name} 搜索了：'{query}'（{count} 条结果）"
+      },
+      "view_page": {
+        "name": "view_page",
+        "desc": "获取并预览网页的文本内容。",
+        "instruction": "- 查看网页的文本内容：\n<Action name=\"view_page\"><url>https://example.com/article</url><max_chars>4000</max_chars></Action>",
+        "error_http": "view_page HTTP 错误：{error}",
+        "error_general": "view_page 失败：{error}",
+        "summary_failed": "{agent_name} view_page 失败",
+        "feedback_header_with_title": "页面内容预览：{title}",
+        "feedback_header_no_title": "页面内容预览：",
+        "feedback_body": "{header}\nURL: {url}\n\n{text}",
+        "summary_success": "{agent_name} 查看了页面：{title_or_url}"
+      },
+      "vote_lynch": {
+        "name": "vote_lynch",
+        "desc": "在白天投票放逐一名玩家。每天只能投一票。",
+        "instruction": "- 在白天投票放逐某人：\n<Action name=\"vote_lynch\"><target>[player_name]</target></Action>",
+        "error_wrong_phase": "你只能在投票阶段进行投票。",
+        "error_dead": "你已经死亡，无法行动。",
+        "error_invalid_target": "请提供一个存活的投票目标。",
+        "event_vote_cast": "{agent_name} 投票放逐 {target}。",
+        "summary_vote_cast": "{agent_name} 投票放逐 {target}",
+        "summary_failed": "{agent_name} 投票失败：{action_data}"
+      },
+      "night_kill": {
+        "name": "night_kill",
+        "desc": "在夜晚，狼人投票选择要击杀的目标。",
+        "instruction": "- 狼人：投票选择夜晚击杀目标（仅限夜晚）：\n<Action name=\"night_kill\"><target>[player_name]</target></Action>",
+        "error_wrong_phase": "夜晚击杀只能在夜晚进行。",
+        "error_not_werewolf_or_dead": "只有存活的狼人才能投票进行夜晚击杀。",
+        "error_first_night": "第一夜没有击杀；与同伴狼人讨论吧。",
+        "error_invalid_target": "请提供一个存活的非狼人目标。",
+        "event_vote_cast": "{agent_name} 投票夜晚击杀 {target}。",
+        "summary_vote_cast": "{agent_name} 投票夜晚击杀：{target}",
+        "summary_failed": "{agent_name} 夜晚击杀失败"
+      },
+      "inspect": {
+        "name": "inspect",
+        "desc": "在夜晚，预言家查验一名玩家是否为狼人。",
+        "instruction": "- 预言家：在夜晚查验一名玩家：\n<Action name=\"inspect\"><target>[player_name]</target></Action>",
+        "error_wrong_phase": "你只能在夜晚进行查验。",
+        "error_not_seer_or_dead": "只有存活的预言家才能查验。",
+        "error_invalid_target": "请提供一个存活的查验目标。",
+        "result_werewolf": "狼人",
+        "result_not_werewolf": "不是狼人",
+        "feedback_result": "查验结果：{target} 是 {result}。",
+        "event_inspected_werewolf": "{agent_name} 查验了 {target}（狼人）",
+        "event_inspected_not_werewolf": "{agent_name} 查验了 {target}（非狼人）",
+        "summary_inspected_werewolf": "{agent_name} 查验了 {target}（狼人）",
+        "summary_inspected_not_werewolf": "{agent_name} 查验了 {target}（非狼人）",
+        "summary_failed": "{agent_name} 查验失败"
+      },
+      "witch_save": {
+        "name": "witch_save",
+        "desc": "在夜晚，女巫可以拯救被选中的受害者，每局游戏只能使用一次。",
+        "instruction": "- 女巫：拯救今晚的受害者（每局游戏只能使用一次）：\n<Action name=\"witch_save\" />",
+        "error_wrong_phase": "你只能在夜晚使用解药。",
+        "error_not_witch_or_dead": "只有存活的女巫才能使用解药。",
+        "error_no_heal_left": "你已经用过解药了。",
+        "feedback_save_prepared": "你为今晚的受害者准备了解药。",
+        "event_save_prepared": "{agent_name} 准备了解药。",
+        "summary_used": "{agent_name} 使用了女巫解药",
+        "summary_failed": "{agent_name} 女巫解药使用失败"
+      },
+      "witch_poison": {
+        "name": "witch_poison",
+        "desc": "在夜晚，女巫可以毒杀一名玩家，每局游戏只能使用一次。",
+        "instruction": "- 女巫：在夜晚毒杀一名玩家（每局游戏只能使用一次）：\n<Action name=\"witch_poison\"><target>[player_name]</target></Action>",
+        "error_wrong_phase": "你只能在夜晚使用毒药。",
+        "error_not_witch_or_dead": "只有存活的女巫才能使用毒药。",
+        "error_invalid_target": "请提供一个存活的其他玩家作为目标。",
+        "error_no_poison_left": "你已经用过毒药了。",
+        "feedback_poison_prepared": "你准备了毒药，目标是 {target}。",
+        "event_poison_prepared": "{agent_name} 准备了毒药，目标是 {target}。",
+        "summary_prepared": "{agent_name} 为 {target} 准备了毒药",
+        "summary_failed": "{agent_name} 女巫毒药使用失败"
+      },
+      "open_voting": {
+        "name": "open_voting",
+        "desc": "主持人应在讨论结束后使用此操作开启投票。",
+        "instruction": "- 主持人：在讨论结束后开启投票：\n<Action name=\"open_voting\" />",
+        "error_not_moderator": "只有主持人才能开启投票。",
+        "error_wrong_phase": "只能在讨论阶段开启投票。",
+        "event_voting_open": "投票现在开始。",
+        "summary_opened": "{agent_name} 开启了投票",
+        "summary_failed": "{agent_name} 开启投票失败"
+      },
+      "close_voting": {
+        "name": "close_voting",
+        "desc": "主持人关闭投票，结算放逐结果，结束白天。",
+        "instruction": "- 主持人：关闭投票并结束白天：\n<Action name=\"close_voting\" />",
+        "error_not_moderator": "只有主持人才能关闭投票。",
+        "error_wrong_phase": "只能在投票阶段关闭投票。",
+        "event_game_over": "游戏结束：{winner} 获胜。",
+        "summary_closed": "{agent_name} 关闭了投票",
+        "summary_failed": "{agent_name} 关闭投票失败"
+      },
+      "move_to_location": {
+        "name": "move_to_location",
+        "desc": "移动到指定地点或坐标。",
+        "instruction": "- move_to_location: 前往某个地点\n  <Action name=\"move_to_location\"><location>market</location></Action>\n  或：<Action name=\"move_to_location\"><x>10</x><y>10</y></Action>"
+      },
+      "look_around": {
+        "name": "look_around",
+        "desc": "观察附近的区块、地点和其他智能体。",
+        "instruction": "- look_around: 查看附近有谁和什么\n  <Action name=\"look_around\"/>"
+      },
+      "gather_resource": {
+        "name": "gather_resource",
+        "desc": "在当前区块/地点采集资源。",
+        "instruction": "- gather_resource: 采集食物、木材或水源\n  <Action name=\"gather_resource\"><resource>food</resource></Action>"
+      },
+      "rest": {
+        "name": "rest",
+        "desc": "恢复能量；在建筑中恢复更多。",
+        "instruction": "- rest: 恢复能量\n  <Action name=\"rest\"/>"
+      }
     }
   },
   "scenario_templates": {
@@ -542,14 +931,32 @@
       "description": "两名嫌疑人被分别关押。每个人必须决定是背叛对方还是保持沉默。你的收益取决于你和伙伴的选择。",
       "description_template": "两个智能体在{action_1}或{action_2}之间做出选择。收益取决于双方的选择。",
       "parameters": {
-        "cooperate_reward": {"label": "双方合作", "description": "两名囚徒都合作时的奖励"},
-        "sucker_penalty": {"label": "你合作对方背叛", "description": "在伙伴背叛时合作的惩罚"},
-        "temptation_reward": {"label": "你背叛对方合作", "description": "在伙伴合作时背叛的奖励"},
-        "defect_penalty": {"label": "双方背叛", "description": "两名囚徒都背叛时的惩罚"}
+        "cooperate_reward": {
+          "label": "双方合作",
+          "description": "两名囚徒都合作时的奖励"
+        },
+        "sucker_penalty": {
+          "label": "你合作对方背叛",
+          "description": "在伙伴背叛时合作的惩罚"
+        },
+        "temptation_reward": {
+          "label": "你背叛对方合作",
+          "description": "在伙伴合作时背叛的奖励"
+        },
+        "defect_penalty": {
+          "label": "双方背叛",
+          "description": "两名囚徒都背叛时的惩罚"
+        }
       },
       "actions": {
-        "cooperate": {"name": "合作", "description": "与伙伴合作"},
-        "defect": {"name": "背叛", "description": "追求自身利益"}
+        "cooperate": {
+          "name": "合作",
+          "description": "与伙伴合作"
+        },
+        "defect": {
+          "name": "背叛",
+          "description": "追求自身利益"
+        }
       }
     },
     "battle_of_the_sexes": {
@@ -557,12 +964,24 @@
       "description": "一对情侣想协调一个晚间活动。一人偏好歌剧，另一人偏好足球。如果两人协调一致则获得正收益，但各自更偏好自己的活动。",
       "description_template": "两个智能体协调选择。一人偏好{action_1}，另一人偏好{action_2}。",
       "parameters": {
-        "preferred_mispreferred": {"label": "偏好/非偏好收益", "description": "在自己偏好的活动上协调时的收益"},
-        "mispreferred_payoff": {"label": "非偏好单独收益", "description": "未能协调时的收益"}
+        "preferred_mispreferred": {
+          "label": "偏好/非偏好收益",
+          "description": "在自己偏好的活动上协调时的收益"
+        },
+        "mispreferred_payoff": {
+          "label": "非偏好单独收益",
+          "description": "未能协调时的收益"
+        }
       },
       "actions": {
-        "opera": {"name": "歌剧", "description": "去看歌剧"},
-        "football": {"name": "足球", "description": "去看足球比赛"}
+        "opera": {
+          "name": "歌剧",
+          "description": "去看歌剧"
+        },
+        "football": {
+          "name": "足球",
+          "description": "去看足球比赛"
+        }
       }
     },
     "stag_hunt": {
@@ -570,25 +989,52 @@
       "description": "猎人必须全部选择猎鹿（高回报）或猎兔（安全但低回报）。猎鹿需要所有人合作。只要有一人选择猎兔，鹿就会逃跑，猎鹿者什么也得不到。",
       "description_template": "群体选择{action_1}（高风险，全员合作则高回报）或{action_2}（安全，较低回报）。",
       "parameters": {
-        "stag_reward": {"label": "猎鹿奖励（全员选择时）", "description": "所有猎人都选择猎鹿时的奖励"},
-        "hare_reward": {"label": "猎兔奖励（始终获得）", "description": "选择猎兔的奖励（有保障但较低）"}
+        "stag_reward": {
+          "label": "猎鹿奖励（全员选择时）",
+          "description": "所有猎人都选择猎鹿时的奖励"
+        },
+        "hare_reward": {
+          "label": "猎兔奖励（始终获得）",
+          "description": "选择猎兔的奖励（有保障但较低）"
+        }
       },
       "actions": {
-        "stag": {"name": "猎鹿", "description": "猎鹿（需要所有人合作）"},
-        "hare": {"name": "猎兔", "description": "猎兔（安全但回报较低）"}
+        "stag": {
+          "name": "猎鹿",
+          "description": "猎鹿（需要所有人合作）"
+        },
+        "hare": {
+          "name": "猎兔",
+          "description": "猎兔（安全但回报较低）"
+        }
       }
     },
     "public_goods": {
       "name": "公共物品博弈",
       "description": "每个玩家获得初始资源，并决定向公共池投入多少。公共池被乘以倍数后平均分配给所有玩家。",
       "parameters": {
-        "resource_name": {"label": "资源名称", "description": "资源的名称"},
-        "tokens_per_round": {"label": "每轮数量", "description": "每个智能体每轮获得的资源数量"},
-        "multiplier": {"label": "池乘数", "description": "公共池在分配前被乘以的倍数"}
+        "resource_name": {
+          "label": "资源名称",
+          "description": "资源的名称"
+        },
+        "tokens_per_round": {
+          "label": "每轮数量",
+          "description": "每个智能体每轮获得的资源数量"
+        },
+        "multiplier": {
+          "label": "池乘数",
+          "description": "公共池在分配前被乘以的倍数"
+        }
       },
       "actions": {
-        "allocate": {"name": "投入", "description": "将资源投入公共账户"},
-        "keep": {"name": "保留", "description": "本轮保留所有资源"}
+        "allocate": {
+          "name": "投入",
+          "description": "将资源投入公共账户"
+        },
+        "keep": {
+          "name": "保留",
+          "description": "本轮保留所有资源"
+        }
       }
     }
   },

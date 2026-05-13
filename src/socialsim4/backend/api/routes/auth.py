@@ -33,15 +33,15 @@ settings = get_settings()
 async def register(data: RegisterRequest) -> UserPublic:
     if settings.require_email_verification:
         if not settings.email_enabled:
-            raise HTTPException(status_code=500, detail="Email verification enabled but SMTP settings are missing")
+            raise HTTPException(status_code=500, detail=T("api.errors.auth.smtp_missing"))
         if not settings.app_base_url:
-            raise HTTPException(status_code=500, detail="Email verification enabled but APP base URL is missing")
+            raise HTTPException(status_code=500, detail=T("api.errors.auth.app_url_missing"))
 
     async with get_session() as session:
         if (await session.execute(select(User).where(User.email == data.email))).scalar_one_or_none():
-            raise HTTPException(status_code=400, detail="Email already registered")
+            raise HTTPException(status_code=400, detail=T("api.errors.auth.email_registered"))
         if (await session.execute(select(User).where(User.username == data.username))).scalar_one_or_none():
-            raise HTTPException(status_code=400, detail="Username already registered")
+            raise HTTPException(status_code=400, detail=T("api.errors.auth.username_registered"))
 
         user = User(
             organization=data.organization,
@@ -77,9 +77,9 @@ async def login(data: LoginRequest) -> TokenPair:
         if user is None or not verify_password(data.password, user.hashed_password):
             raise HTTPException(status_code=401, detail=T("api.errors.invalid_credentials"))
         if not user.is_active:
-            raise HTTPException(status_code=403, detail="User disabled")
+            raise HTTPException(status_code=403, detail=T("api.errors.auth.user_disabled"))
         if settings.require_email_verification and not user.is_verified:
-            raise HTTPException(status_code=403, detail="Email address not verified")
+            raise HTTPException(status_code=403, detail=T("api.errors.auth.email_not_verified"))
 
         access_token, access_exp = create_access_token(str(user.id))
         refresh_token, refresh_exp = create_refresh_token(str(user.id))
@@ -113,7 +113,7 @@ async def verify_email(data: VerificationRequest) -> Message:
     async with get_session() as session:
         token = await get_verification_token(session, data.token)
         if token is None:
-            raise HTTPException(status_code=400, detail="Invalid or expired token")
+            raise HTTPException(status_code=400, detail=T("api.errors.auth.invalid_expired_token"))
 
         expiry = token.expires_at
         if expiry.tzinfo is None:
@@ -121,13 +121,13 @@ async def verify_email(data: VerificationRequest) -> Message:
         if expiry < datetime.now(timezone.utc):
             await session.delete(token)
             await session.commit()
-            raise HTTPException(status_code=400, detail="Invalid or expired token")
+            raise HTTPException(status_code=400, detail=T("api.errors.auth.invalid_expired_token"))
 
         user = await session.get(User, token.user_id)
         if user is None:
             await session.delete(token)
             await session.commit()
-            raise HTTPException(status_code=400, detail="Account missing")
+            raise HTTPException(status_code=400, detail=T("api.errors.auth.account_missing"))
 
         user.is_verified = True
         user.updated_at = datetime.now(timezone.utc)
@@ -153,27 +153,27 @@ async def refresh_token(data: RefreshRequest) -> TokenPair:
             algorithms=[settings.jwt_algorithm],
         )
     except JWTError as exc:
-        raise HTTPException(status_code=401, detail="Invalid refresh token") from exc
+        raise HTTPException(status_code=401, detail=T("api.errors.auth.invalid_refresh_token")) from exc
 
     if decoded.get("type") != "refresh":
-        raise HTTPException(status_code=401, detail="Invalid token type")
+        raise HTTPException(status_code=401, detail=T("api.errors.auth.invalid_token_type"))
 
     subject = decoded.get("sub")
     if subject is None:
-        raise HTTPException(status_code=401, detail="Invalid token subject")
+        raise HTTPException(status_code=401, detail=T("api.errors.auth.invalid_token_subject"))
 
     async with get_session() as session:
         token_q = await session.execute(select(RefreshToken).where(RefreshToken.token == data.refresh_token))
         token_db = token_q.scalar_one_or_none()
         if token_db is None or token_db.revoked_at is not None:
-            raise HTTPException(status_code=401, detail="Token revoked")
+            raise HTTPException(status_code=401, detail=T("api.errors.auth.token_revoked"))
 
         # Handle timezone-aware and naive datetimes
         expires_at = token_db.expires_at
         if expires_at.tzinfo is None:
             expires_at = expires_at.replace(tzinfo=timezone.utc)
         if expires_at < datetime.now(timezone.utc):
-            raise HTTPException(status_code=401, detail="Token expired")
+            raise HTTPException(status_code=401, detail=T("api.errors.auth.token_expired"))
 
         access_token, access_exp = create_access_token(subject)
         refresh_token, refresh_exp = create_refresh_token(subject)

@@ -54,10 +54,10 @@ async def get_template_for_owner(
     """
     template = await session.get(ExperimentTemplate, template_id)
     if template is None:
-        raise HTTPException(status_code=404, detail="Template not found")
+        raise HTTPException(status_code=404, detail=T("api.errors.template_not_found"))
 
     if template.created_by != user_id:
-        raise HTTPException(status_code=403, detail="Access denied")
+        raise HTTPException(status_code=403, detail=T("api.errors.access_denied"))
 
     return template
 

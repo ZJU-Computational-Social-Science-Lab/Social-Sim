@@ -29,8 +29,7 @@ import { BatchImportModal } from "./BatchImportModal";
 import { ModelEditorDrawer } from "./ModelEditorDrawer";
 
 export function LlmConsoleContainer() {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   // 从Zustand store获取状态
@@ -164,7 +163,7 @@ export function LlmConsoleContainer() {
       setTestResult({
         status: "error",
         responseTime: 0,
-        errorMessage: error.message || (isZh ? "测试失败" : "Test failed"),
+        errorMessage: error.message || t("components.llmConsole.testFailed"),
       });
     },
   });
@@ -227,13 +226,13 @@ export function LlmConsoleContainer() {
       setTestResult({
         status: "success",
         responseTime: 100,
-        content: isZh ? "连接成功" : "Connection successful",
+        content: t("components.llmConsole.connectionSuccessful"),
       });
     } catch (error: any) {
       setTestResult({
         status: "error",
         responseTime: 0,
-        errorMessage: error.message || (isZh ? "连接失败" : "Connection failed"),
+        errorMessage: error.message || t("components.llmConsole.connectionFailed"),
       });
     }
   };

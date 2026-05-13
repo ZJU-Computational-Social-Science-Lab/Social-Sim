@@ -150,7 +150,7 @@ async def update_provider(
         current_user = await resolve_current_user(session, token)
         provider = await session.get(ProviderConfig, provider_id)
         if provider is None or provider.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Not authorized to access this provider")
+            raise HTTPException(status_code=403, detail=T("api.errors.provider_not_authorized"))
 
         if data.name is not None:
             provider.name = data.name
@@ -177,7 +177,7 @@ async def delete_provider(request: Request, provider_id: int) -> None:
         current_user = await resolve_current_user(session, token)
         provider = await session.get(ProviderConfig, provider_id)
         if provider is None or provider.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Not authorized to access this provider")
+            raise HTTPException(status_code=403, detail=T("api.errors.provider_not_authorized"))
         await session.delete(provider)
         await session.commit()
 
@@ -189,7 +189,7 @@ async def test_provider(request: Request, provider_id: int) -> Message:
         current_user = await resolve_current_user(session, token)
         provider = await session.get(ProviderConfig, provider_id)
         if provider is None or provider.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Not authorized to access this provider")
+            raise HTTPException(status_code=403, detail=T("api.errors.provider_not_authorized"))
 
         dialect, normalized_base_url = _normalize_dialect(provider.provider, provider.base_url)
         cfg = LLMConfig(
@@ -224,7 +224,7 @@ async def test_provider(request: Request, provider_id: int) -> Message:
             provider.last_test_status = "failed"
             provider.last_error = _redact_secret(str(exc))
             await session.commit()
-            raise HTTPException(status_code=502, detail="Provider test failed. Check your configuration and credentials.")
+            raise HTTPException(status_code=502, detail=T("api.errors.provider_test_failed"))
 
 
 @post("/{provider_id:int}/activate")
@@ -234,7 +234,7 @@ async def activate_provider(request: Request, provider_id: int) -> Message:
         current_user = await resolve_current_user(session, token)
         provider = await session.get(ProviderConfig, provider_id)
         if provider is None or provider.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Not authorized to access this provider")
+            raise HTTPException(status_code=403, detail=T("api.errors.provider_not_authorized"))
 
         result = await session.execute(
             select(ProviderConfig).where(ProviderConfig.user_id == current_user.id)

@@ -37,6 +37,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from socialsim4.backend.core.database import get_session
 from socialsim4.backend.dependencies import extract_bearer_token, resolve_current_user
 from socialsim4.backend.services.documents import process_document
+from socialsim4.i18n import T
 from socialsim4.backend.services.simtree_runtime import SIM_TREE_REGISTRY
 from socialsim4.i18n import T
 
@@ -98,7 +99,7 @@ async def upload_agent_document(
             logger.error(f"Upload failed - sim_id={simulation_id}, agent={agent_name}, reason=Invalid file type {ext}")
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
+                detail=T("api.errors.invalid_file_type", extensions=", ".join(ALLOWED_EXTENSIONS))
             )
 
         # Validate file size
@@ -106,7 +107,7 @@ async def upload_agent_document(
             logger.error(f"Upload failed - sim_id={simulation_id}, agent={agent_name}, reason=File too large ({file_size} bytes)")
             raise HTTPException(
                 status_code=400,
-                detail=f"File too large. Max size: {MAX_FILE_SIZE // (1024*1024)}MB"
+                detail=T("api.errors.file_too_large", max_mb=MAX_FILE_SIZE // (1024*1024))
             )
 
         logger.debug(f"File validation - type={ext}, size_ok={file_size <= MAX_FILE_SIZE}")
@@ -123,13 +124,13 @@ async def upload_agent_document(
             logger.error(f"Upload failed - sim_id={simulation_id}, agent={agent_name}, reason=Missing dependency: {e}")
             raise HTTPException(
                 status_code=500,
-                detail="Document processing requires 'sentence-transformers' package. Please install it: pip install sentence-transformers"
+                detail=T("api.errors.sentence_transformers_missing")
             )
         except Exception as e:
             logger.exception(f"Upload failed - sim_id={simulation_id}, agent={agent_name}, reason={e}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Document processing failed: {str(e)}"
+                detail=T("api.errors.document_processing_failed", error=str(e))
             )
 
         # Update simulation agent_config with the new document
@@ -147,7 +148,7 @@ async def upload_agent_document(
                 break
 
         if not agent_found:
-            raise HTTPException(status_code=404, detail=f"Agent '{agent_name}' not found")
+            raise HTTPException(status_code=404, detail=T("api.errors.agent_not_found", agent_name=agent_name))
 
         agent_config["agents"] = agents
         sim.agent_config = agent_config
@@ -294,7 +295,7 @@ async def delete_agent_document(
             if agent.get("name") == agent_name:
                 documents = agent.get("documents", {})
                 if doc_id not in documents:
-                    raise HTTPException(status_code=404, detail=f"Document '{doc_id}' not found")
+                    raise HTTPException(status_code=404, detail=T("api.errors.document_not_found", doc_id=doc_id))
 
                 del documents[doc_id]
                 agent["documents"] = documents
@@ -311,7 +312,7 @@ async def delete_agent_document(
 
                 return {"success": True, "deleted_doc_id": doc_id}
 
-        raise HTTPException(status_code=404, detail=f"Agent '{agent_name}' not found")
+        raise HTTPException(status_code=404, detail=T("api.errors.agent_not_found", agent_name=agent_name))
 
 
 @get("/{simulation_id:str}/agents/{agent_name:str}/memory")

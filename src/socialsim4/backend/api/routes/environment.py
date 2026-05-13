@@ -25,7 +25,7 @@ def _parse_node_id_param(request: Request) -> int | None:
     try:
         return int(node_id_param)
     except (TypeError, ValueError):
-        raise HTTPException(status_code=400, detail="Invalid 'node_id' query parameter: expected an integer.")
+        raise HTTPException(status_code=400, detail=T("api.errors.invalid_node_id_param"))
 
 
 @get("/simulations/{simulation_id:str}/suggestions/status")

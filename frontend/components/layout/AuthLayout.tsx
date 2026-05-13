@@ -7,19 +7,14 @@ import { BrandLogo } from "../BrandLogo";
 import { useThemeStore } from "../../store/theme";
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const mode = useThemeStore((state) => state.mode);
   const toggle = useThemeStore((state) => state.toggle);
-  const isZh = i18n.language.startsWith("zh");
   const themeClass = mode === "dark" ? "is-dark" : "is-light";
   const themeToggleLabel =
     mode === "dark"
-      ? isZh
-        ? "切换到日间模式"
-        : "Switch to light mode"
-      : isZh
-        ? "切换到夜间模式"
-        : "Switch to dark mode";
+      ? t("a11y.switchToLight")
+      : t("a11y.switchToDark");
   const heroTags = [
     t("landing.hero.tag1"),
     t("landing.hero.tag2"),
@@ -34,10 +29,10 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
             <BrandLogo layout="stacked" />
           </Link>
 
-          <nav className="ss-auth__topbar-nav" aria-label={isZh ? "主导航" : "Primary"}>
-            <Link to="/simulations/new">{isZh ? "EXHIBITS" : "EXHIBITS"}</Link>
-            <Link to="/simulations/saved">{isZh ? "JOURNALS" : "JOURNALS"}</Link>
-            <Link to="/docs">{isZh ? "INDEX" : "INDEX"}</Link>
+          <nav className="ss-auth__topbar-nav" aria-label={t("a11y.primaryNav")}>
+            <Link to="/simulations/new">{t("auth.layout.exhibits")}</Link>
+            <Link to="/simulations/saved">{t("auth.layout.journals")}</Link>
+            <Link to="/docs">{t("auth.layout.index")}</Link>
           </nav>
 
           <div className="ss-auth__topbar-controls">

@@ -53,17 +53,16 @@ export const LeftExperimentRail: React.FC<LeftExperimentRailProps> = ({
   onOpenReports,
   onOpenSettings,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
 
   const labelMap: Record<RailSection, string> = {
-    overview: isZh ? "总览" : "Overview",
-    flow: isZh ? "仿真流程" : "Flow",
-    branches: isZh ? "分支节点" : "Branches",
-    agents: isZh ? "参与者观察" : "Agents",
-    logs: isZh ? "研究日志" : "Logs",
-    reports: isZh ? "导出报告" : "Reports",
+    overview: t("components.workspace.leftRail.overview"),
+    flow: t("components.workspace.leftRail.flow"),
+    branches: t("components.workspace.leftRail.branches"),
+    agents: t("components.workspace.leftRail.agents"),
+    logs: t("components.workspace.leftRail.logs"),
+    reports: t("components.workspace.leftRail.reports"),
     settings: t("nav.settings"),
   };
 
@@ -109,8 +108,8 @@ export const LeftExperimentRail: React.FC<LeftExperimentRailProps> = ({
         <button type="button" onClick={onOpenSettings} className="ss-cockpit-rail__account">
           <div className="ss-cockpit-rail__avatar">{String(user?.email || "S").slice(0, 1).toUpperCase()}</div>
           <div>
-            <strong>{isZh ? "账户入口" : "Account"}</strong>
-            <span>{String(user?.email || (isZh ? "系统设置" : "System settings"))}</span>
+            <strong>{t("components.workspace.leftRail.account")}</strong>
+            <span>{String(user?.email || t("components.workspace.leftRail.systemSettings"))}</span>
           </div>
         </button>
       </div>

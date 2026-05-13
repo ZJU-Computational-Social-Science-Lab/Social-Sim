@@ -8,6 +8,8 @@ Uses sentence-transformers with MiniLM for fast local embeddings.
 """
 
 import logging
+
+from socialsim4.i18n import T
 import os
 import uuid
 from datetime import datetime, timezone
@@ -40,7 +42,7 @@ def _resolve_embedding_device() -> str:
     requested = (os.getenv("SOCIALSIM4_EMBEDDING_DEVICE") or "cuda").strip().lower()
     if requested == "cuda":
         if not torch.cuda.is_available():
-            raise RuntimeError("SOCIALSIM4_EMBEDDING_DEVICE=cuda but CUDA is not available")
+            raise RuntimeError(T("api.errors.cuda_not_available"))
         return "cuda"
     if requested == "cpu":
         return "cpu"
@@ -59,7 +61,7 @@ def _resolve_embedding_model_source() -> str:
 def _resolve_ollama_embedding_model() -> str:
     model = (os.getenv("SOCIALSIM4_OLLAMA_EMBED_MODEL") or "nomic-embed-text:latest").strip()
     if not model:
-        raise RuntimeError("SOCIALSIM4_OLLAMA_EMBED_MODEL is required for Ollama embeddings")
+        raise RuntimeError(T("api.errors.ollama_embed_model_required"))
     return model
 
 
@@ -142,7 +144,7 @@ def extract_text_from_pdf(file_content: bytes) -> str:
 
     full_text = "\n\n".join(pages)
     if not full_text.strip():
-        raise ValueError("PDF extraction returned empty text")
+        raise ValueError(T("api.errors.pdf_empty_text"))
 
     logger.info(f"Text extraction complete - chars={len(full_text)}")
     return full_text
@@ -157,7 +159,7 @@ def extract_text_from_docx(file_content: bytes) -> str:
 
     full_text = "\n\n".join(paragraphs)
     if not full_text.strip():
-        raise ValueError("DOCX extraction returned empty text")
+        raise ValueError(T("api.errors.docx_empty_text"))
 
     logger.info(f"Text extraction complete - chars={len(full_text)}")
     return full_text
@@ -167,7 +169,7 @@ def extract_text_from_txt(file_content: bytes) -> str:
     """Extract text from TXT/MD file."""
     full_text = file_content.decode("utf-8")
     if not full_text.strip():
-        raise ValueError("TXT extraction returned empty text")
+        raise ValueError(T("api.errors.txt_empty_text"))
 
     logger.info(f"Text extraction complete - chars={len(full_text)}")
     return full_text

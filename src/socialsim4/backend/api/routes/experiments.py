@@ -67,7 +67,7 @@ async def create_experiment(request: Request, simulation_id: str, data: CreateEx
         res = await session.execute(stmt)
         exp = res.scalars().first()
         if exp is None:
-            raise HTTPException(status_code=404, detail="Experiment not found after creation")
+            raise HTTPException(status_code=404, detail=T("api.errors.experiment_not_found_after_creation"))
 
         _, record = await get_simulation_and_tree_for_owner(session, current_user.id, simulation_id)
         tree = record.tree

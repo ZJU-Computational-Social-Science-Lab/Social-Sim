@@ -18,8 +18,7 @@ export function BatchImportModal({
   onClose,
   onImport,
 }: BatchImportModalProps) {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
   const [importFormat, setImportFormat] = useState<"text" | "json">("text");
   const [importText, setImportText] = useState("");
   const [selectedProviderId, setSelectedProviderId] = useState<number | null>(
@@ -31,7 +30,7 @@ export function BatchImportModal({
   const handleImport = async () => {
     setError("");
     if (!selectedProviderId || !importText.trim()) {
-      setError(isZh ? "请填写所有必要信息" : "Fill in all required fields");
+      setError(t("components.llmConsole.batchImport.fillRequired"));
       return;
     }
 
@@ -60,7 +59,7 @@ export function BatchImportModal({
         try {
           const parsed = JSON.parse(importText);
           if (!Array.isArray(parsed)) {
-            setError(isZh ? "JSON 必须是数组格式" : "JSON must be an array");
+            setError(t("components.llmConsole.batchImport.mustBeArray"));
             return;
           }
           models = parsed.map((item) => ({
@@ -77,13 +76,13 @@ export function BatchImportModal({
             isDefault: item.isDefault || false,
           }));
         } catch (e) {
-          setError(isZh ? "JSON 解析失败" : "JSON parse error");
+          setError(t("components.llmConsole.batchImport.jsonParseError"));
           return;
         }
       }
 
       if (models.length === 0) {
-        setError(isZh ? "没有识别到有效模型" : "No valid models found");
+        setError(t("components.llmConsole.batchImport.noValidModels"));
         return;
       }
 
@@ -92,7 +91,7 @@ export function BatchImportModal({
       setImportText("");
       onClose();
     } catch (e: any) {
-      setError(e.message || (isZh ? "导入失败" : "Import failed"));
+      setError(e.message || t("components.llmConsole.batchImport.importFailed"));
     } finally {
       setIsImporting(false);
     }
@@ -128,7 +127,7 @@ gemini-1.5-pro`;
       <div className="llm-modal llm-modal--large">
         <div className="llm-modal-header">
           <h2 className="llm-modal-title">
-            {isZh ? "批量导入模型" : "Batch Import Models"}
+            {t("components.llmConsole.batchImport.title")}
           </h2>
           <button className="llm-modal-close" onClick={onClose}>
             <X size={16} />
@@ -138,7 +137,7 @@ gemini-1.5-pro`;
         <div className="llm-modal-form">
           <div className="llm-form-group">
             <label className="llm-form-label">
-              {isZh ? "导入格式" : "Import Format"}
+              {t("components.llmConsole.batchImport.importFormat")}
             </label>
             <div className="llm-format-tabs">
               {["text", "json"].map((fmt) => (
@@ -158,7 +157,7 @@ gemini-1.5-pro`;
 
           <div className="llm-form-group">
             <label className="llm-form-label">
-              {isZh ? "选择 Provider" : "Select Provider"} *
+              {t("components.llmConsole.batchImport.selectProvider")} *
             </label>
             <select
               className="llm-form-input"
@@ -177,7 +176,7 @@ gemini-1.5-pro`;
             <div className="llm-import-split">
               <div className="llm-import-input">
                 <label className="llm-form-label">
-                  {isZh ? "输入数据" : "Input Data"} *
+                  {t("components.llmConsole.batchImport.inputData")} *
                 </label>
                 <textarea
                   className="llm-form-input llm-import-textarea"
@@ -185,19 +184,15 @@ gemini-1.5-pro`;
                   onChange={(e) => setImportText(e.target.value)}
                   placeholder={
                     importFormat === "text"
-                      ? isZh
-                        ? "每行一个模型名称或ID..."
-                        : "One model name/ID per line..."
-                      : isZh
-                        ? "粘贴 JSON 数据..."
-                        : "Paste JSON data..."
+                      ? t("components.llmConsole.batchImport.textPlaceholder")
+                      : t("components.llmConsole.batchImport.jsonPlaceholder")
                   }
                 />
               </div>
 
               <div className="llm-import-example">
                 <label className="llm-form-label">
-                  {isZh ? "示例" : "Example"}
+                  {t("components.llmConsole.batchImport.example")}
                 </label>
                 <pre className="llm-example-code">
                   {importFormat === "text" ? exampleText : exampleJson}
@@ -208,7 +203,7 @@ gemini-1.5-pro`;
 
           {error && (
             <div className="llm-form-error">
-              <strong>{isZh ? "错误:" : "Error:"}</strong> {error}
+              <strong>{t("components.llmConsole.batchImport.errorLabel")}</strong> {error}
             </div>
           )}
 
@@ -219,7 +214,7 @@ gemini-1.5-pro`;
               onClick={onClose}
               disabled={isImporting}
             >
-              {isZh ? "取消" : "Cancel"}
+              {t("common.cancel")}
             </button>
             <button
               type="button"
@@ -228,12 +223,8 @@ gemini-1.5-pro`;
               disabled={isImporting || !importText.trim()}
             >
               {isImporting
-                ? isZh
-                  ? "导入中..."
-                  : "Importing..."
-                : isZh
-                  ? "导入"
-                  : "Import"}
+                ? t("components.llmConsole.batchImport.importing")
+                : t("components.llmConsole.batchImport.importButton")}
             </button>
           </div>
         </div>

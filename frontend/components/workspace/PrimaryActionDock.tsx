@@ -27,19 +27,16 @@ export const PrimaryActionDock: React.FC<PrimaryActionDockProps> = ({
   onReturnToParent,
   onToggleCompare,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
 
   return (
     <section className="ss-primary-dock">
       <div className="ss-primary-dock__content">
         <div className="ss-primary-dock__copy">
-          <div className="ss-kicker">{isZh ? "主操作区" : "Primary actions"}</div>
-          <h2>{isZh ? "继续推进实验" : "Continue the experiment"}</h2>
+          <div className="ss-kicker">{t("components.workspace.primaryAction.title")}</div>
+          <h2>{t("components.workspace.primaryAction.subtitle")}</h2>
           <p>
-            {isZh
-              ? "主线只保留推进，分支、详情与对比保持次级。"
-              : "Keep advancing as the primary action while branch, details, and compare stay secondary."}
+            {t("controlRoom.primaryActionsCopy")}
           </p>
         </div>
 

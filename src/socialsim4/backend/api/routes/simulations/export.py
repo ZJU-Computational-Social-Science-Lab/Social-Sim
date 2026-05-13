@@ -107,7 +107,7 @@ async def export_simulation(
             target_node_id = int(node_id)
             node = record.tree.nodes.get(target_node_id)
             if node is None:
-                raise HTTPException(status_code=404, detail=f"Node {node_id} not found")
+                raise HTTPException(status_code=404, detail=T("api.errors.node_export_not_found", node_id=node_id))
             node_logs = node.get("logs", [])
             all_logs.extend(node_logs)
             logger.info(f"Found {len(node_logs)} logs for node {node_id}")

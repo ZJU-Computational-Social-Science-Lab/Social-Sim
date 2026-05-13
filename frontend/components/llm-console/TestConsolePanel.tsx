@@ -46,8 +46,7 @@ export function TestConsolePanel({
   isTestConnecting = false,
   isTestSending = false,
 }: TestConsolePanelProps) {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
   const [expandSystemPrompt, setExpandSystemPrompt] = useState(false);
   const [expandErrorLog, setExpandErrorLog] = useState(false);
 
@@ -66,7 +65,7 @@ export function TestConsolePanel({
     <div className="llm-test-console">
       <div className="llm-console-header">
         <h3 className="llm-console-title">
-          {isZh ? "测试控制台" : "Test Console"}
+          {t("components.llmConsole.testConsole.title")}
         </h3>
         <div className="llm-console-model-badge">
           {activeModel ? (
@@ -75,7 +74,7 @@ export function TestConsolePanel({
             </>
           ) : (
             <span className="llm-badge-text llm-text-muted">
-              {isZh ? "未选择模型" : "No model selected"}
+              {t("components.llmConsole.testConsole.noModelSelected")}
             </span>
           )}
         </div>
@@ -84,7 +83,7 @@ export function TestConsolePanel({
       {/* 模型选择 */}
       <div className="llm-console-section">
         <label className="llm-console-label">
-          {isZh ? "选择模型" : "Select Model"}
+          {t("components.llmConsole.testConsole.selectModel")}
         </label>
         <select
           className="llm-console-select"
@@ -92,7 +91,7 @@ export function TestConsolePanel({
           onChange={(e) => onSetActiveModel(e.target.value)}
         >
           <option value="">
-            {isZh ? "选择要测试的模型..." : "Choose a model to test..."}
+            {t("components.llmConsole.testConsole.modelPlaceholder")}
           </option>
           {models.filter((m) => m.enabled).map((model) => (
             <option key={model.id} value={model.id || ""}>
@@ -114,7 +113,7 @@ export function TestConsolePanel({
               transform: expandSystemPrompt ? "rotate(180deg)" : "none",
             }}
           />
-          <span>{isZh ? "系统提示词" : "System Prompt"}</span>
+          <span>{t("components.llmConsole.testConsole.systemPrompt")}</span>
         </button>
         {expandSystemPrompt && (
           <textarea
@@ -124,11 +123,7 @@ export function TestConsolePanel({
               onUpdateTestInput({ systemPrompt: e.target.value })
             }
             rows={4}
-            placeholder={
-              isZh
-                ? "输入系统提示词..."
-                : "Enter system prompt..."
-            }
+            placeholder={t("components.llmConsole.testConsole.promptPlaceholder")}
           />
         )}
       </div>
@@ -136,7 +131,7 @@ export function TestConsolePanel({
       {/* User Prompt */}
       <div className="llm-console-section">
         <label className="llm-console-label">
-          {isZh ? "用户提示词" : "User Prompt"} *
+          {t("components.llmConsole.testConsole.userPrompt")} *
         </label>
         <textarea
           className="llm-console-textarea"
@@ -145,9 +140,7 @@ export function TestConsolePanel({
             onUpdateTestInput({ userPrompt: e.target.value })
           }
           rows={5}
-          placeholder={
-            isZh ? "输入测试提示词..." : "Enter test prompt..."
-          }
+          placeholder={t("components.llmConsole.testConsole.userPromptPlaceholder")}
         />
       </div>
 
@@ -155,7 +148,7 @@ export function TestConsolePanel({
       <div className="llm-console-params">
         <div className="llm-param-group">
           <label className="llm-param-label">
-            {isZh ? "Temperature" : "Temperature"}
+            {t("components.llmConsole.testConsole.temperature")}
           </label>
           <input
             type="range"
@@ -173,7 +166,7 @@ export function TestConsolePanel({
 
         <div className="llm-param-group">
           <label className="llm-param-label">
-            {isZh ? "最大 Tokens" : "Max Tokens"}
+            {t("components.llmConsole.testConsole.maxTokens")}
           </label>
           <input
             type="number"
@@ -189,7 +182,7 @@ export function TestConsolePanel({
 
         <div className="llm-param-group">
           <label className="llm-param-label">
-            {isZh ? "响应格式" : "Response Format"}
+            {t("components.llmConsole.testConsole.responseFormat")}
           </label>
           <select
             value={testInput.responseFormat}
@@ -212,17 +205,17 @@ export function TestConsolePanel({
           className="llm-button llm-button--secondary llm-button--sm"
           onClick={onTestConnection}
           disabled={isTestConnecting || !activeProvider}
-          title={isZh ? "测试 Provider 连接" : "Test provider connection"}
+          title={t("components.llmConsole.testConsole.testConnectionTitle")}
         >
           {isTestConnecting ? (
             <>
               <span className="llm-spinner" />
-              <span>{isZh ? "连接中..." : "Testing..."}</span>
+              <span>{t("components.llmConsole.testConsole.testing")}</span>
             </>
           ) : (
             <>
               <Play size={12} />
-              <span>{isZh ? "测试连接" : "Test Connection"}</span>
+              <span>{t("components.llmConsole.testConsole.testConnection")}</span>
             </>
           )}
         </button>
@@ -231,17 +224,17 @@ export function TestConsolePanel({
           className="llm-button llm-button--primary llm-button--sm"
           onClick={onSendTest}
           disabled={isTestSending || !activeModel || !testInput.userPrompt}
-          title={isZh ? "发送测试" : "Send test"}
+          title={t("components.llmConsole.testConsole.sendTestTitle")}
         >
           {isTestSending ? (
             <>
               <span className="llm-spinner" />
-              <span>{isZh ? "发送中..." : "Sending..."}</span>
+              <span>{t("components.llmConsole.testConsole.sending")}</span>
             </>
           ) : (
             <>
               <Play size={12} />
-              <span>{isZh ? "发送测试" : "Send Test"}</span>
+              <span>{t("components.llmConsole.testConsole.sendTest")}</span>
             </>
           )}
         </button>
@@ -250,10 +243,10 @@ export function TestConsolePanel({
           className="llm-button llm-button--secondary llm-button--sm"
           onClick={onClear}
           disabled={!testInput.userPrompt && testResult.status === "idle"}
-          title={isZh ? "清空" : "Clear"}
+          title={t("components.llmConsole.testConsole.clearTitle")}
         >
           <Trash2 size={12} />
-          <span>{isZh ? "清空" : "Clear"}</span>
+          <span>{t("components.llmConsole.testConsole.clear")}</span>
         </button>
       </div>
 
@@ -265,16 +258,10 @@ export function TestConsolePanel({
           >
             <span className="llm-result-status">
               {testResult.status === "loading"
-                ? isZh
-                  ? "处理中..."
-                  : "Processing..."
+                ? t("components.llmConsole.testConsole.processing")
                 : testResult.status === "success"
-                  ? isZh
-                    ? "✓ 成功"
-                    : "✓ Success"
-                  : isZh
-                    ? "✗ 失败"
-                    : "✗ Failed"}
+                  ? t("components.llmConsole.testConsole.success")
+                  : t("components.llmConsole.testConsole.failed")}
             </span>
             <span className="llm-result-time">
               {testResult.responseTime.toFixed(2)}ms
@@ -294,7 +281,7 @@ export function TestConsolePanel({
                 <button
                   className="llm-icon-button llm-icon-button--sm"
                   onClick={handleCopyResult}
-                  title={isZh ? "复制" : "Copy"}
+                  title={t("components.llmConsole.testConsole.copyTitle")}
                 >
                   <Copy size={12} />
                 </button>
@@ -315,7 +302,7 @@ export function TestConsolePanel({
                     transform: expandErrorLog ? "rotate(180deg)" : "none",
                   }}
                 />
-                <span>{isZh ? "错误日志" : "Error Log"}</span>
+                <span>{t("components.llmConsole.testConsole.errorLog")}</span>
               </button>
               {expandErrorLog && (
                 <pre className="llm-error-log">{testResult.errorMessage}</pre>
@@ -329,9 +316,7 @@ export function TestConsolePanel({
       {!activeModel && (
         <div className="llm-console-hint">
           <p>
-            {isZh
-              ? "请先选择一个模型进行测试"
-              : "Select a model to start testing"}
+            {t("components.llmConsole.testConsole.hint")}
           </p>
         </div>
       )}

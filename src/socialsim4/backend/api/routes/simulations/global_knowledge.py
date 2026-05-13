@@ -31,6 +31,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from socialsim4.backend.core.database import get_session
 from socialsim4.backend.dependencies import extract_bearer_token, resolve_current_user
 from socialsim4.backend.services.documents import process_document, generate_embedding
+from socialsim4.i18n import T
 from socialsim4.backend.services.simtree_runtime import SIM_TREE_REGISTRY
 
 from .helpers import get_simulation_for_owner
@@ -82,7 +83,7 @@ async def add_global_knowledge(
         title = data.get("title", "")
 
         if not content:
-            raise HTTPException(status_code=400, detail="Content is required")
+            raise HTTPException(status_code=400, detail=T("api.errors.content_required"))
 
         logger.info(f"Global knowledge add initiated - sim_id={simulation_id}, source=manual_text")
 
@@ -169,14 +170,14 @@ async def upload_global_document(
         if ext not in ALLOWED_EXTENSIONS:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
+                detail=T("api.errors.invalid_file_type", extensions=", ".join(ALLOWED_EXTENSIONS))
             )
 
         # Validate file size
         if file_size > MAX_FILE_SIZE:
             raise HTTPException(
                 status_code=400,
-                detail=f"File too large. Max size: {MAX_FILE_SIZE // (1024*1024)}MB"
+                detail=T("api.errors.file_too_large", max_mb=MAX_FILE_SIZE // (1024*1024))
             )
 
         # Process document
@@ -191,13 +192,13 @@ async def upload_global_document(
             logger.error(f"Global upload failed - sim_id={simulation_id}, reason=Missing dependency: {e}")
             raise HTTPException(
                 status_code=500,
-                detail="Document processing requires 'sentence-transformers' package. Please install it: pip install sentence-transformers"
+                detail=T("api.errors.sentence_transformers_missing")
             )
         except Exception as e:
             logger.exception(f"Global upload failed - sim_id={simulation_id}, reason={e}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Document processing failed: {str(e)}"
+                detail=T("api.errors.document_processing_failed", error=str(e))
             )
 
         kw_id = f"gk_{uuid.uuid4().hex[:8]}"
@@ -317,7 +318,7 @@ async def delete_global_knowledge(
         if kw_id not in global_knowledge:
             raise HTTPException(
                 status_code=404,
-                detail=f"Global knowledge item '{kw_id}' not found"
+                detail=T("api.errors.global_knowledge_not_found", kw_id=kw_id)
             )
 
         del global_knowledge[kw_id]

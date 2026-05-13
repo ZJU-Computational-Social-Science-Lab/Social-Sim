@@ -16,18 +16,17 @@ export const RoleObservationPanel: React.FC<RoleObservationPanelProps> = ({
   open,
   onToggle,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
 
   return (
     <section className="ss-role-observation" id="workspace-role">
       <button type="button" onClick={onToggle} className="ss-role-observation__summary">
         <div>
           <div className="ss-kicker">{t("controlRoom.roleObservation")}</div>
-          <h2>{isZh ? "角色观测与主持干预" : "Role observation and host intervention"}</h2>
+          <h2>{t("components.workspace.roleObservation.title")}</h2>
           <p>{t("controlRoom.observationSecondaryCopy")}</p>
         </div>
-        <span className="ss-role-observation__toggle">{open ? (isZh ? "收起" : "Hide") : (isZh ? "展开" : "Open")}</span>
+        <span className="ss-role-observation__toggle">{open ? t("components.workspace.roleObservation.hide") : t("components.workspace.roleObservation.open")}</span>
       </button>
 
       {open ? (

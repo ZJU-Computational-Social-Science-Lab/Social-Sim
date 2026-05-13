@@ -50,8 +50,7 @@ export function ModelRegistryPanel({
   onBatchImport,
   onExport,
 }: ModelRegistryPanelProps) {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
   const [hoveredModelId, setHoveredModelId] = useState<string | null>(null);
 
   const allCapabilities = useMemo(() => {
@@ -62,21 +61,14 @@ export function ModelRegistryPanel({
 
   const filteredModels = useMemo(() => {
     return models.filter((model) => {
-      // 启用状态过滤
       if (onlyEnabled && !model.enabled) return false;
-
-      // Provider 过滤
       if (providerFilter && model.providerId !== providerFilter) return false;
-
-      // 能力过滤
       if (
         capabilityFilter.length > 0 &&
         !capabilityFilter.some((cap) => model.capabilities.includes(cap as any))
       ) {
         return false;
       }
-
-      // 搜索过滤
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         return (
@@ -84,7 +76,6 @@ export function ModelRegistryPanel({
           model.modelId.toLowerCase().includes(q)
         );
       }
-
       return true;
     });
   }, [models, onlyEnabled, providerFilter, capabilityFilter, searchQuery]);
@@ -100,9 +91,7 @@ export function ModelRegistryPanel({
           <input
             type="text"
             className="llm-search-input"
-            placeholder={
-              isZh ? "搜索模型名称或ID..." : "Search model name or ID..."
-            }
+            placeholder={t("components.llmConsole.registry.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => onSearch(e.target.value)}
           />
@@ -117,7 +106,7 @@ export function ModelRegistryPanel({
             }
           >
             <option value="">
-              {isZh ? "所有 Provider" : "All Providers"}
+              {t("components.llmConsole.registry.allProviders")}
             </option>
             {providers.map((p) => (
               <option key={p.id} value={p.id}>
@@ -153,7 +142,7 @@ export function ModelRegistryPanel({
               checked={onlyEnabled}
               onChange={(e) => onToggleOnlyEnabled(e.target.checked)}
             />
-            <span>{isZh ? "仅显示启用" : "Enabled only"}</span>
+            <span>{t("components.llmConsole.registry.enabledOnly")}</span>
           </label>
         </div>
 
@@ -161,26 +150,26 @@ export function ModelRegistryPanel({
           <button
             className="llm-button llm-button--secondary"
             onClick={onBatchImport}
-            title={isZh ? "批量导入模型" : "Batch import models"}
+            title={t("components.llmConsole.registry.batchImportTitle")}
           >
             <Upload size={14} />
-            <span>{isZh ? "批量导入" : "Import"}</span>
+            <span>{t("components.llmConsole.registry.batchImport")}</span>
           </button>
           <button
             className="llm-button llm-button--secondary"
             onClick={onExport}
-            title={isZh ? "导出配置" : "Export configuration"}
+            title={t("components.llmConsole.registry.exportTitle")}
           >
             <Download size={14} />
-            <span>{isZh ? "导出" : "Export"}</span>
+            <span>{t("components.llmConsole.registry.export")}</span>
           </button>
           <button
             className="llm-button llm-button--primary"
             onClick={onAddModel}
-            title={isZh ? "新增模型" : "Add new model"}
+            title={t("components.llmConsole.registry.newModelTitle")}
           >
             <Plus size={14} />
-            <span>{isZh ? "新增模型" : "New Model"}</span>
+            <span>{t("components.llmConsole.registry.newModel")}</span>
           </button>
         </div>
       </div>
@@ -191,30 +180,30 @@ export function ModelRegistryPanel({
           <thead>
             <tr>
               <th style={{ width: "200px" }}>
-                {isZh ? "模型显示名" : "Model Name"}
+                {t("components.llmConsole.registry.modelName")}
               </th>
               <th style={{ width: "150px" }}>Model ID</th>
               <th style={{ width: "120px" }}>Provider</th>
               <th style={{ width: "100px" }}>
-                {isZh ? "协议" : "Protocol"}
+                {t("components.llmConsole.registry.protocol")}
               </th>
               <th style={{ width: "150px" }}>
-                {isZh ? "能力" : "Capabilities"}
+                {t("components.llmConsole.registry.capabilities")}
               </th>
               <th style={{ width: "100px" }}>
-                {isZh ? "上下文" : "Context"}
+                {t("components.llmConsole.registry.context")}
               </th>
               <th style={{ width: "100px" }}>
-                {isZh ? "价格 (I/O)" : "Price"}
+                {t("components.llmConsole.registry.price")}
               </th>
               <th style={{ width: "60px" }}>
-                {isZh ? "状态" : "Status"}
+                {t("components.llmConsole.registry.status")}
               </th>
               <th style={{ width: "120px" }}>
-                {isZh ? "最近测试" : "Last Test"}
+                {t("components.llmConsole.registry.lastTest")}
               </th>
               <th style={{ width: "180px" }}>
-                {isZh ? "操作" : "Actions"}
+                {t("components.llmConsole.registry.actions")}
               </th>
             </tr>
           </thead>
@@ -222,7 +211,7 @@ export function ModelRegistryPanel({
             {filteredModels.length === 0 ? (
               <tr>
                 <td colSpan={10} className="llm-table-empty">
-                  {isZh ? "没有匹配的模型" : "No matching models"}
+                  {t("components.llmConsole.registry.noMatching")}
                 </td>
               </tr>
             ) : (
@@ -241,7 +230,7 @@ export function ModelRegistryPanel({
                       <strong>{model.displayName}</strong>
                       {model.isDefault && (
                         <span className="llm-badge llm-badge--small">
-                          {isZh ? "默认" : "Default"}
+                          {t("components.llmConsole.registry.default")}
                         </span>
                       )}
                     </div>
@@ -291,7 +280,7 @@ export function ModelRegistryPanel({
                         e.stopPropagation();
                         onToggleEnabled(model.id || "", e.target.checked);
                       }}
-                      title={isZh ? "启用/停用" : "Enable/disable"}
+                      title={t("components.llmConsole.registry.enableDisableTitle")}
                     />
                   </td>
                   <td className="llm-cell-test">
@@ -320,7 +309,7 @@ export function ModelRegistryPanel({
                             e.stopPropagation();
                             onEditModel(model.id || "");
                           }}
-                          title={isZh ? "编辑" : "Edit"}
+                          title={t("components.llmConsole.registry.editTitle")}
                         >
                           <Edit2 size={12} />
                         </button>
@@ -330,7 +319,7 @@ export function ModelRegistryPanel({
                             e.stopPropagation();
                             onDuplicateModel(model.id || "");
                           }}
-                          title={isZh ? "复制" : "Duplicate"}
+                          title={t("components.llmConsole.registry.duplicateTitle")}
                         >
                           <Copy size={12} />
                         </button>
@@ -340,7 +329,7 @@ export function ModelRegistryPanel({
                             e.stopPropagation();
                             onSetDefault(model.id || "");
                           }}
-                          title={isZh ? "设为默认" : "Set as default"}
+                          title={t("components.llmConsole.registry.setDefaultTitle")}
                         >
                           <CheckCircle size={12} />
                         </button>
@@ -350,13 +339,13 @@ export function ModelRegistryPanel({
                             e.stopPropagation();
                             if (
                               window.confirm(
-                                isZh ? "确定删除此模型？" : "Delete this model?"
+                                t("components.llmConsole.registry.confirmDelete")
                               )
                             ) {
                               onDeleteModel(model.id || "");
                             }
                           }}
-                          title={isZh ? "删除" : "Delete"}
+                          title={t("components.llmConsole.registry.deleteTitle")}
                         >
                           <Trash2 size={12} />
                         </button>
@@ -371,9 +360,7 @@ export function ModelRegistryPanel({
       </div>
 
       <div className="llm-table-footer">
-        {isZh
-          ? `显示 ${filteredModels.length} / ${models.length} 个模型`
-          : `Showing ${filteredModels.length} / ${models.length} models`}
+        {t("components.llmConsole.registry.showingCount", { filtered: filteredModels.length, total: models.length })}
       </div>
     </div>
   );
