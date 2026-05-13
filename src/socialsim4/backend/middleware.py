@@ -11,7 +11,7 @@ Contains: LocaleMiddleware
 from litestar.middleware.base import AbstractMiddleware
 from litestar.types import ASGIApp, Receive, Scope, Send
 
-from ..i18n import set_request_locale
+from socialsim4.i18n import set_request_locale
 
 
 class LocaleMiddleware(AbstractMiddleware):

@@ -8,7 +8,7 @@ from email.message import EmailMessage
 from typing import Iterable
 
 from ..core.config import Settings, get_settings
-from ..i18n import T
+from socialsim4.i18n import T
 
 
 class EmailSender:

@@ -355,7 +355,7 @@ ALL_SCENARIOS: Dict[str, Dict[str, Action]] = {
 }
 
 
-def get_scenario(scenario_id: str) -> ALL_SCENARIOS.get(scenario_id):
+def get_scenario(scenario_id: str):
     """Get any scenario configuration by ID across all patterns."""
     for pattern_scenarios in ALL_SCENARIOS.values():
         if scenario_id in pattern_scenarios:
