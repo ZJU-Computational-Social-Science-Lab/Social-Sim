@@ -48,7 +48,6 @@ const countAgentFields = (agentDiffs: Record<string, Record<string, unknown>>) =
 
 export const ComparisonView: React.FC = () => {
    const { t, i18n } = useTranslation();
-   const isZh = i18n.language.startsWith('zh');
    const selectedNodeId = useSimulationStore(state => state.selectedNodeId);
    const compareTargetNodeId = useSimulationStore(state => state.compareTargetNodeId);
    const nodes = useSimulationStore(state => state.nodes);
@@ -114,7 +113,7 @@ export const ComparisonView: React.FC = () => {
                setIsLoadingComparison(false);
                return;
             }
-            const locale = isZh ? 'zh' : 'en';
+            const locale = i18n.language.startsWith('zh') ? 'zh' : 'en';
             const res = await experimentsApi.compareNodes(simId, a, b, useLLM, locale);
             if (!mounted) return;
             setCompareData(res || null);

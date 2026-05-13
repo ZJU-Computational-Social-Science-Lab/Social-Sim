@@ -61,8 +61,7 @@ const getNodeTypeLabel = (
 };
 
 export const FlowCanvas: React.FC<FlowCanvasProps> = ({ onOpenDetails, onOpenTopology }) => {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
   const nodes = useSimulationStore((state) => state.nodes);
   const logs = useSimulationStore((state) => state.logs);
   const selectedNodeId = useSimulationStore((state) => state.selectedNodeId);

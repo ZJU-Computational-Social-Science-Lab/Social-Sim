@@ -18,11 +18,11 @@ interface SimulationHeroProps {
   onReturnToParent: () => void;
 }
 
-const getRoundLabel = (depth: number, isZh: boolean) => {
+const getRoundLabel = (depth: number, t: (key: string, params?: Record<string, unknown>) => string) => {
   if (depth <= 0) {
-    return isZh ? "初始设定" : "Initial setup";
+    return t("components.workspace.simulationHero.initialSetup");
   }
-  return isZh ? `第 ${depth} 轮` : `Round ${depth}`;
+  return t("components.workspace.simulationHero.roundN", { n: depth });
 };
 
 export const SimulationHero: React.FC<SimulationHeroProps> = ({
@@ -36,8 +36,7 @@ export const SimulationHero: React.FC<SimulationHeroProps> = ({
   onOpenNode,
   onReturnToParent,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
   const currentSimulation = useSimulationStore((state) => state.currentSimulation);
   const nodes = useSimulationStore((state) => state.nodes);
   const selectedNodeId = useSimulationStore((state) => state.selectedNodeId);
@@ -66,13 +65,13 @@ export const SimulationHero: React.FC<SimulationHeroProps> = ({
   const compactSummary = React.useMemo(() => {
     const normalized = String(summary || "").replace(/\s+/g, " ").trim();
     if (!normalized) {
-      return isZh ? "继续当前实验并观察节点与分支变化" : "Continue the current run and inspect node and branch changes";
+      return t("components.workspace.simulationHero.continueHint");
     }
     if (normalized.length <= 72) {
       return normalized;
     }
     return `${normalized.slice(0, 72).trim()}…`;
-  }, [isZh, summary]);
+  }, [t, summary]);
 
   const runStatus = isGenerating
     ? t("simulationWorkspace.running")
@@ -83,27 +82,27 @@ export const SimulationHero: React.FC<SimulationHeroProps> = ({
     llmProviders.find((provider) => provider.id === providerSelection) || null;
 
   return (
-    <section className="ss-sim-hero" id="workspace-hero" aria-label={isZh ? "仿真主控制区" : "Simulation control bar"}>
+    <section className="ss-sim-hero" id="workspace-hero" aria-label={t("components.workspace.simulationHero.heroAriaLabel")}>
       <div className="ss-sim-hero__identity">
         <h1 className="ss-sim-hero__title">{workspaceTitle}</h1>
         <p className="ss-sim-hero__summary">{compactSummary}</p>
       </div>
 
-      <div className="ss-sim-hero__key-facts" aria-label={isZh ? "关键状态" : "Key facts"}>
+      <div className="ss-sim-hero__key-facts" aria-label={t("components.workspace.simulationHero.keyFactsAriaLabel")}>
         <div className="ss-sim-hero__fact">
-          <span>{isZh ? "轮次" : "Round"}</span>
-          <strong>{getRoundLabel(selectedNode?.depth || 0, isZh)}</strong>
+          <span>{t("components.workspace.simulationHero.round")}</span>
+          <strong>{getRoundLabel(selectedNode?.depth || 0, t)}</strong>
         </div>
         <div className="ss-sim-hero__fact">
-          <span>{isZh ? "状态" : "Status"}</span>
+          <span>{t("components.workspace.simulationHero.status")}</span>
           <strong>{runStatus}</strong>
         </div>
         <div className="ss-sim-hero__fact">
-          <span>{isZh ? "节点" : "Node"}</span>
+          <span>{t("components.workspace.simulationHero.node")}</span>
           <strong>{getWorkspaceNodeLabel(selectedNode, t)}</strong>
         </div>
         <div className="ss-sim-hero__fact">
-          <span>{isZh ? "模型" : "Model"}</span>
+          <span>{t("components.workspace.simulationHero.model")}</span>
           <strong>
             {selectedProvider
               ? `${selectedProvider.name || selectedProvider.provider}${selectedProvider.model ? ` · ${selectedProvider.model}` : ""}`
@@ -119,7 +118,7 @@ export const SimulationHero: React.FC<SimulationHeroProps> = ({
         </button>
 
         <details className="ss-sim-hero__menu">
-          <summary className="ss-sim-hero__menu-trigger" aria-label={isZh ? "更多操作" : "More actions"}>
+          <summary className="ss-sim-hero__menu-trigger" aria-label={t("components.workspace.simulationHero.moreActions")}>
             <MoreHorizontal size={16} />
           </summary>
           <div className="ss-sim-hero__menu-panel">
@@ -137,7 +136,7 @@ export const SimulationHero: React.FC<SimulationHeroProps> = ({
             </button>
             <button type="button" className="ss-button-secondary" onClick={onOpenNode}>
               <Eye size={15} />
-              {isZh ? "打开节点" : "Open node"}
+              {t("components.workspace.simulationHero.openNode")}
             </button>
             <button type="button" className="ss-button-secondary" onClick={onReturnToParent} disabled={!canReturnToParent}>
               <ArrowUpLeft size={15} />

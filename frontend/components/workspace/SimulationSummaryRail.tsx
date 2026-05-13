@@ -57,59 +57,59 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
 
   const summaryFacts = [
     {
-      label: isZh ? "世界模型" : "World model",
+      label: t("components.workspace.summaryRail.worldModel"),
       value: sceneConfig.name || sceneConfig.scene_type || currentSimulation?.name || "—",
     },
     {
-      label: isZh ? "推理模型" : "Reasoning model",
+      label: t("components.workspace.summaryRail.reasoningModel"),
       value: selectedProvider
         ? `${selectedProvider.name || selectedProvider.provider}${selectedProvider.model ? ` · ${selectedProvider.model}` : ""}`
         : t("simulationWorkspace.noProvider"),
     },
     {
-      label: isZh ? "模式" : "Mode",
+      label: t("components.workspace.summaryRail.mode"),
       value: t("simPage.socialSim4Engine"),
     },
     {
-      label: isZh ? "当前轮次" : "Current round",
+      label: t("components.workspace.summaryRail.currentRound"),
       value: selectedNode?.depth != null ? String(selectedNode.depth) : "0",
     },
     {
-      label: isZh ? "时间戳" : "Timestamp",
+      label: t("components.workspace.summaryRail.timestamp"),
       value: selectedNode?.worldTime || "—",
     },
     {
-      label: isZh ? "当前主分支" : "Primary branch",
+      label: t("components.workspace.summaryRail.primaryBranch"),
       value: selectedNode?.display_id || selectedNode?.id || "—",
     },
   ];
 
   const worldRules = [
     {
-      label: isZh ? "世界观摘要" : "World summary",
-      value: sceneConfig.description || sceneConfig.initial_event || (isZh ? "当前实验尚未写入世界摘要。" : "No world summary yet."),
+      label: t("components.workspace.summaryRail.worldSummary"),
+      value: sceneConfig.description || sceneConfig.initial_event || t("components.workspace.summaryRail.noWorldSummary"),
     },
     {
-      label: isZh ? "核心约束" : "Core constraints",
-      value: sceneConfig.constraints || sceneConfig.rules || (isZh ? "默认遵循当前场景设定与参与者行为空间。" : "The current scene setup and agent action space define the active constraints."),
+      label: t("components.workspace.summaryRail.coreConstraints"),
+      value: sceneConfig.constraints || sceneConfig.rules || t("components.workspace.summaryRail.defaultConstraints"),
     },
     {
-      label: isZh ? "实验目标" : "Experiment goal",
-      value: sceneConfig.goal || sceneConfig.objective || currentSimulation?.description || (isZh ? "围绕当前场景观察分支、节点和参与者变化。" : "Observe how branches, nodes, and agents evolve inside the current scene."),
+      label: t("components.workspace.summaryRail.experimentGoal"),
+      value: sceneConfig.goal || sceneConfig.objective || currentSimulation?.description || t("components.workspace.summaryRail.defaultGoal"),
     },
     {
-      label: isZh ? "终止条件" : "Termination",
-      value: sceneConfig.termination || sceneConfig.stop_condition || (isZh ? "达到最大轮次或场景完成条件后结束。" : "The run ends when the max turns or scene completion criteria are reached."),
+      label: t("components.workspace.summaryRail.termination"),
+      value: sceneConfig.termination || sceneConfig.stop_condition || t("components.workspace.summaryRail.defaultTermination"),
     },
   ];
 
   const metrics = [
-    { label: isZh ? "分支数量" : "Branches", value: Math.max(nodes.length - 1, 0) },
-    { label: isZh ? "节点数量" : "Nodes", value: nodes.length },
-    { label: isZh ? "参与者数" : "Agents", value: agents.length },
-    { label: isZh ? "当前事件数" : "Current events", value: selectedNodeLogCount },
-    { label: isZh ? "日志数" : "Logs", value: logs.length },
-    { label: isZh ? "原始事件" : "Raw events", value: rawEvents.length },
+    { label: t("components.workspace.summaryRail.branches"), value: Math.max(nodes.length - 1, 0) },
+    { label: t("components.workspace.summaryRail.nodesCount"), value: nodes.length },
+    { label: t("components.workspace.summaryRail.agentsCount"), value: agents.length },
+    { label: t("components.workspace.summaryRail.currentEvents"), value: selectedNodeLogCount },
+    { label: t("components.workspace.summaryRail.logsCount"), value: logs.length },
+    { label: t("components.workspace.summaryRail.rawEvents"), value: rawEvents.length },
   ];
 
   return (
@@ -117,7 +117,7 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
       <div className="ss-summary-rail__header">
         <div>
           <div className="ss-kicker">{isZh ? "状态摘要" : "Status summary"}</div>
-          <h2>{isZh ? "右侧摘要栏" : "Summary rail"}</h2>
+          <h2>{t("components.workspace.summaryRail.title")}</h2>
           <p>
             {isZh
               ? "只保留最关键配置与操作入口。"
@@ -128,7 +128,7 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
           type="button"
           className="ss-icon-button"
           onClick={onHide}
-          title={isZh ? "收起右侧摘要" : "Hide summary rail"}
+          title={t("components.workspace.summaryRail.hideTitle")}
         >
           <ChevronRight size={16} />
         </button>
@@ -136,7 +136,7 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
 
       <div className="ss-summary-rail__body">
         <CollapsibleInsightSection
-          title={isZh ? "实验配置摘要" : "Simulation configuration"}
+          title={t("components.workspace.summaryRail.simConfigTitle")}
           subtitle={currentPath.length ? currentPath.map((node) => getWorkspaceNodeLabel(node, t)).join(" / ") : "—"}
           defaultOpen={false}
           tone="details"
@@ -152,8 +152,8 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
         </CollapsibleInsightSection>
 
         <CollapsibleInsightSection
-          title={isZh ? "世界规则 / 元配置" : "World rules"}
-          subtitle={isZh ? "只在需要时展开查看。" : "Expand only when needed."}
+          title={t("components.workspace.summaryRail.worldRulesTitle")}
+          subtitle={t("components.workspace.summaryRail.worldRulesSubtitle")}
           defaultOpen={false}
           tone="details"
         >
@@ -169,18 +169,18 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
 
         {sceneConfig.xihu_arm_id ? (
           <CollapsibleInsightSection
-            title={isZh ? "西湖实验臂" : "Xihu intervention arm"}
+            title={t("components.workspace.summaryRail.xihuArm")}
             subtitle={sceneConfig.xihu_arm_label || sceneConfig.xihu_arm_id}
             defaultOpen={false}
             tone="details"
           >
             <div className="ss-summary-rail__rule-list">
               <div className="ss-summary-rail__rule">
-                <span>{isZh ? "材料框架" : "Arm framing"}</span>
+                <span>{t("components.workspace.summaryRail.armFraming")}</span>
                 <p>{sceneConfig.xihu_arm_summary || "—"}</p>
               </div>
               <div className="ss-summary-rail__rule">
-                <span>{isZh ? "导入包" : "Imported package"}</span>
+                <span>{t("components.workspace.summaryRail.importedPackage")}</span>
                 <p>{sceneConfig.xihu_package_title || sceneConfig.xihu_package_id || "—"}</p>
               </div>
             </div>
@@ -199,7 +199,7 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
                         rel="noreferrer"
                         className="text-xs font-semibold text-blue-600 hover:text-blue-800"
                       >
-                        {isZh ? "打开原始材料" : "Open source file"}
+                        {t("components.workspace.summaryRail.openSourceFile")}
                       </a>
                     ) : null}
                   </div>
@@ -221,8 +221,8 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
         ) : null}
 
         <CollapsibleInsightSection
-          title={isZh ? "系统指标" : "System metrics"}
-          subtitle={isZh ? "保留关键数字，其余默认收起。" : "Keep the key numbers collapsed by default."}
+          title={t("components.workspace.summaryRail.systemMetrics")}
+          subtitle={t("components.workspace.summaryRail.metricsSubtitle")}
           defaultOpen={false}
           tone="metrics"
         >
@@ -237,35 +237,35 @@ export const SimulationSummaryRail: React.FC<SimulationSummaryRailProps> = ({ on
         </CollapsibleInsightSection>
 
         <CollapsibleInsightSection
-          title={isZh ? "操作区" : "Actions"}
-          subtitle={isZh ? "保留必要快捷入口。" : "Keep only the most useful shortcuts."}
+          title={t("components.workspace.summaryRail.actions")}
+          subtitle={t("components.workspace.summaryRail.actionsSubtitle")}
           defaultOpen={false}
           tone="outputs"
         >
           <div className="ss-summary-rail__action-grid">
             <button type="button" className="ss-summary-rail__action" onClick={() => toggleSaveTemplate(true)}>
               <Save size={15} />
-              <span>{isZh ? "保存模板" : "Save template"}</span>
+              <span>{t("components.workspace.summaryRail.saveTemplate")}</span>
             </button>
             <button type="button" className="ss-summary-rail__action" onClick={() => toggleTimeSettings(true)}>
               <Clock3 size={15} />
-              <span>{isZh ? "时间设置" : "Time settings"}</span>
+              <span>{t("components.workspace.summaryRail.timeSettings")}</span>
             </button>
             <button type="button" className="ss-summary-rail__action" onClick={() => toggleReportModal(true)}>
               <FileText size={15} />
-              <span>{isZh ? "导出报告" : "Open report"}</span>
+              <span>{t("components.workspace.summaryRail.openReport")}</span>
             </button>
             <button type="button" className="ss-summary-rail__action" onClick={() => toggleExport(true)}>
               <BarChart2 size={15} />
-              <span>{isZh ? "导出结果" : "Export results"}</span>
+              <span>{t("components.workspace.summaryRail.exportResults")}</span>
             </button>
             <button type="button" className="ss-summary-rail__action" onClick={onOpenLogs}>
               <Globe size={15} />
-              <span>{isZh ? "打开研究日志" : "Open research logs"}</span>
+              <span>{t("components.workspace.summaryRail.openResearchLogs")}</span>
             </button>
             <button type="button" className="ss-summary-rail__action is-danger" onClick={() => navigate("/settings")}>
               <Settings2 size={15} />
-              <span>{isZh ? "系统设置" : "Settings"}</span>
+              <span>{t("components.workspace.summaryRail.settings")}</span>
             </button>
           </div>
 

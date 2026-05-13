@@ -58,7 +58,7 @@ export const TopologyStructureModal: React.FC<TopologyStructureModalProps> = ({
           <div>
             <div className="ss-kicker">{isZh ? "完整拓扑结构" : "Full topology"}</div>
             <h2 id="ss-topology-modal-title">
-              {currentSimulation?.name || (isZh ? "实验拓扑结构" : "Simulation topology")}
+              {currentSimulation?.name || t("components.workspace.topologyModal.title")}
             </h2>
             <p>
               {isZh
@@ -79,7 +79,7 @@ export const TopologyStructureModal: React.FC<TopologyStructureModalProps> = ({
 
           <aside className="ss-topology-modal__side">
             <div className="ss-topology-modal__summary">
-              <span>{isZh ? "当前路径" : "Current path"}</span>
+              <span>{t("components.workspace.topologyModal.currentPath")}</span>
               <strong>
                 {currentPath.length
                   ? currentPath.map((node) => getWorkspaceNodeLabel(node, t)).join(" / ")
@@ -89,20 +89,20 @@ export const TopologyStructureModal: React.FC<TopologyStructureModalProps> = ({
 
             <div className="ss-topology-modal__summary-grid">
               <div className="ss-topology-modal__summary-card">
-                <span>{isZh ? "当前节点" : "Current node"}</span>
+                <span>{t("components.workspace.topologyModal.currentNode")}</span>
                 <strong>{getWorkspaceNodeLabel(selectedNode, t)}</strong>
               </div>
               <div className="ss-topology-modal__summary-card">
-                <span>{isZh ? "分支数量" : "Branches"}</span>
+                <span>{t("components.workspace.topologyModal.branches")}</span>
                 <strong>{Math.max(nodes.length - 1, 0)}</strong>
               </div>
               <div className="ss-topology-modal__summary-card">
-                <span>{isZh ? "节点数量" : "Nodes"}</span>
+                <span>{t("components.workspace.topologyModal.nodesCount")}</span>
                 <strong>{nodes.length}</strong>
               </div>
               <div className="ss-topology-modal__summary-card">
-                <span>{isZh ? "对比状态" : "Compare"}</span>
-                <strong>{isCompareMode && compareTargetNodeId ? (isZh ? "已开启" : "Active") : (isZh ? "未开启" : "Off")}</strong>
+                <span>{t("components.workspace.topologyModal.compareStatus")}</span>
+                <strong>{isCompareMode && compareTargetNodeId ? t("components.workspace.topologyModal.compareActive") : t("components.workspace.topologyModal.compareOff")}</strong>
               </div>
             </div>
 
@@ -116,13 +116,13 @@ export const TopologyStructureModal: React.FC<TopologyStructureModalProps> = ({
                 <Play size={16} />
                 <span>
                   {isGenerating
-                    ? (isZh ? "正在推进当前节点…" : "Advancing current node...")
-                    : (isZh ? "继续推演当前节点" : "Continue from current node")}
+                    ? t("components.workspace.topologyModal.advancingNode")
+                    : t("components.workspace.topologyModal.continueNode")}
                 </span>
               </button>
               <button type="button" className="ss-summary-rail__action" onClick={onOpenNodeDetails}>
                 <Eye size={15} />
-                <span>{isZh ? "查看当前节点详情" : "Open current node details"}</span>
+                <span>{t("components.workspace.topologyModal.openNodeDetails")}</span>
               </button>
               <button
                 type="button"
@@ -130,7 +130,7 @@ export const TopologyStructureModal: React.FC<TopologyStructureModalProps> = ({
                 onClick={() => toggleExperimentDesigner(true)}
               >
                 <Sparkles size={15} />
-                <span>{isZh ? "实验配置" : "Experiment config"}</span>
+                <span>{t("components.workspace.topologyModal.experimentConfig")}</span>
               </button>
               <button
                 type="button"
@@ -138,7 +138,7 @@ export const TopologyStructureModal: React.FC<TopologyStructureModalProps> = ({
                 onClick={() => toggleNetworkEditor(true)}
               >
                 <Network size={15} />
-                <span>{isZh ? "关系网络配置" : "Network config"}</span>
+                <span>{t("components.workspace.topologyModal.networkConfig")}</span>
               </button>
               <button
                 type="button"
@@ -147,7 +147,7 @@ export const TopologyStructureModal: React.FC<TopologyStructureModalProps> = ({
                 disabled={!selectedNodeId || isGenerating || isCompareMode}
               >
                 <GitBranchPlus size={15} />
-                <span>{isZh ? "从当前节点创建分支" : "Branch from current node"}</span>
+                <span>{t("components.workspace.topologyModal.branchFromNode")}</span>
               </button>
               <button
                 type="button"
@@ -162,7 +162,7 @@ export const TopologyStructureModal: React.FC<TopologyStructureModalProps> = ({
                 }}
               >
                 <Settings2 size={15} />
-                <span>{isCompareMode ? (isZh ? "退出对比模式" : "Exit compare") : (isZh ? "进入对比模式" : "Enter compare")}</span>
+                <span>{isCompareMode ? t("components.workspace.topologyModal.exitCompare") : t("components.workspace.topologyModal.enterCompare")}</span>
               </button>
             </div>
           </aside>

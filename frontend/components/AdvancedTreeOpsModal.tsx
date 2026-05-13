@@ -6,7 +6,7 @@ import { useSimulationStore } from "../store";
 import { treeAdvanceChain, treeAdvanceFrontier, treeAdvanceMulti } from "../services/simulationTree";
 
 export const AdvancedTreeOpsModal: React.FC = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const isOpen = useSimulationStore((state) => state.isTreeOpsModalOpen);
   const close = useSimulationStore((state) => state.closeTreeOpsModal);
   const currentSimulation = useSimulationStore((state) => state.currentSimulation);

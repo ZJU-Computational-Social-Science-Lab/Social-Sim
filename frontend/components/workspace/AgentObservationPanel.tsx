@@ -31,8 +31,7 @@ export const AgentObservationPanel: React.FC<AgentObservationPanelProps> = ({
   onSelectAgent,
   onHide,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
   const agents = useSimulationStore((state) => state.agents);
   const logs = useSimulationStore((state) => state.logs);
 

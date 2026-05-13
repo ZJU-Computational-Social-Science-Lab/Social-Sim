@@ -49,8 +49,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
   onDeleteSimulation,
   onOpenTreeOps,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
   const currentSimulation = useSimulationStore((state) => state.currentSimulation);
   const selectedProviderId = useSimulationStore((state) => state.selectedProviderId);
   const currentProviderId = useSimulationStore((state) => state.currentProviderId);
@@ -81,16 +80,16 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
             <h1 className="ss-top-control-bar__title">{workspaceTitle}</h1>
           </div>
 
-          <div className="ss-top-control-bar__quick-actions" aria-label={isZh ? "核心功能" : "Core actions"}>
+          <div className="ss-top-control-bar__quick-actions" aria-label={t("components.workspace.topControlBar.coreActions")}>
             <button
               type="button"
               className={`ss-top-control-bar__quick-chip${workspaceMode === "timeline" ? " is-active" : ""}`}
               onClick={onShowTimeline}
               disabled={!hasSimulation}
-              title={isZh ? "查看时间轴与节点详情" : "Open timeline and node details"}
+              title={t("components.workspace.topControlBar.openTimelineTitle")}
             >
               <Play size={15} />
-              <span>{isZh ? "时间轴" : "Timeline"}</span>
+              <span>{t("components.workspace.topControlBar.timeline")}</span>
             </button>
 
             <button
@@ -98,10 +97,10 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
               className={`ss-top-control-bar__quick-chip${workspaceMode === "agents" ? " is-active" : ""}`}
               onClick={onShowAgents}
               disabled={!hasSimulation}
-              title={isZh ? "查看角色观察面板" : "Open role observation"}
+              title={t("components.workspace.topControlBar.openRoleObsTitle")}
             >
               <UserRound size={15} />
-              <span>{isZh ? "智能体" : "Agents"}</span>
+              <span>{t("components.workspace.topControlBar.agents")}</span>
             </button>
 
             <button
@@ -109,10 +108,10 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
               className={`ss-top-control-bar__quick-chip${workspaceMode === "host" ? " is-active" : ""}`}
               onClick={onShowHostIntervention}
               disabled={!hasSimulation}
-              title={isZh ? "打开主持干预面板" : "Open host intervention"}
+              title={t("components.workspace.topControlBar.openHostTitle")}
             >
               <Zap size={15} />
-              <span>{isZh ? "主持干预" : "Host"}</span>
+              <span>{t("components.workspace.topControlBar.host")}</span>
             </button>
 
             <button
@@ -120,10 +119,10 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
               className="ss-top-control-bar__quick-chip"
               onClick={onOpenSimulationIntervention}
               disabled={!hasSimulation}
-              title={isZh ? "打开仿真干预" : "Open interventions"}
+              title={t("components.workspace.topControlBar.openInterventionTitle")}
             >
               <Beaker size={15} />
-              <span>{isZh ? "仿真干预" : "Intervention"}</span>
+              <span>{t("components.workspace.topControlBar.intervention")}</span>
             </button>
 
             <button
@@ -131,10 +130,10 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
               className="ss-top-control-bar__quick-chip"
               onClick={onOpenReport}
               disabled={!hasSimulation}
-              title={isZh ? "生成实验分析报告" : "Generate experiment analysis report"}
+              title={t("components.workspace.topControlBar.generateReportTitle")}
             >
               <FileText size={15} />
-              <span>{isZh ? "分析报告" : "Report"}</span>
+              <span>{t("components.workspace.topControlBar.report")}</span>
             </button>
           </div>
         </div>
@@ -142,7 +141,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
         <div className="ss-top-control-bar__workspace-tools">
           <div className="ss-top-control-bar__actions">
             <label className="ss-top-control-bar__provider-shell">
-              <span>{isZh ? "提供商" : "Provider"}</span>
+              <span>{t("components.workspace.topControlBar.provider")}</span>
               <select
                 className="ss-top-control-bar__provider-select"
                 value={providerSelection ?? ""}
@@ -168,7 +167,7 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
             </button>
 
             <details className="ss-top-control-bar__menu">
-              <summary className="ss-top-control-bar__menu-trigger" aria-label={isZh ? "更多操作" : "More actions"}>
+              <summary className="ss-top-control-bar__menu-trigger" aria-label={t("components.workspace.topControlBar.moreActions")}>
                 <MoreHorizontal size={16} />
               </summary>
               <div className="ss-top-control-bar__menu-panel">
@@ -182,43 +181,43 @@ export const TopControlBar: React.FC<TopControlBarProps> = ({
                 </button>
                 <button type="button" className="ss-button-secondary" onClick={onSaveSimulation} disabled={!hasSimulation}>
                   <Save size={15} />
-                  {isZh ? "保存模拟" : "Save simulation"}
+                  {t("components.workspace.topControlBar.saveSimulation")}
                 </button>
                 <button type="button" className="ss-button-secondary" onClick={onOpenSnapshots} disabled={!hasSimulation}>
                   <Save size={15} />
-                  {isZh ? "快照管理" : "Snapshots"}
+                  {t("components.workspace.topControlBar.snapshots")}
                 </button>
                 <button type="button" className="ss-button-secondary" onClick={onOpenReport} disabled={!hasSimulation}>
                   <FileText size={15} />
-                  {isZh ? "生成分析报告" : "Analysis report"}
+                  {t("components.workspace.topControlBar.analysisReport")}
                 </button>
                 <button type="button" className="ss-button-secondary" onClick={onOpenNetwork} disabled={!hasSimulation}>
                   <Network size={15} />
-                  {isZh ? "社交网络拓扑" : "Social topology"}
+                  {t("components.workspace.topControlBar.socialTopology")}
                 </button>
                 <button type="button" className="ss-button-secondary" onClick={onOpenKnowledge} disabled={!hasSimulation}>
                   <Database size={15} />
-                  {isZh ? "全局知识库" : "Global knowledge"}
+                  {t("components.workspace.topControlBar.globalKnowledge")}
                 </button>
                 <button type="button" className="ss-button-secondary" onClick={onOpenMultimodal} disabled={!hasSimulation}>
                   <Image size={15} />
-                  {isZh ? "多模态导入" : "Multimodal input"}
+                  {t("components.workspace.topControlBar.multimodalInput")}
                 </button>
                 <button type="button" className="ss-button-secondary" onClick={onOpenExport} disabled={!hasSimulation}>
                   <Download size={15} />
-                  {isZh ? "导出结果" : "Export"}
+                  {t("components.workspace.topControlBar.export")}
                 </button>
                 <button type="button" className="ss-button-secondary" onClick={onOpenTreeOps} disabled={!hasSimulation}>
                   <GitBranchPlus size={15} />
-                  {isZh ? "高级树推进" : "Tree ops"}
+                  {t("components.workspace.topControlBar.treeOps")}
                 </button>
                 <button type="button" className="ss-button-secondary" onClick={onResetSimulation} disabled={!hasSimulation}>
                   <RotateCcw size={15} />
-                  {isZh ? "重置仿真" : "Reset"}
+                  {t("components.workspace.topControlBar.reset")}
                 </button>
                 <button type="button" className="ss-button-secondary is-danger" onClick={onDeleteSimulation} disabled={!hasSimulation}>
                   <Trash2 size={15} />
-                  {isZh ? "删除模拟" : "Delete simulation"}
+                  {t("components.workspace.topControlBar.deleteSimulation")}
                 </button>
               </div>
             </details>

@@ -29,8 +29,7 @@ export const AnalysisContextPanel: React.FC<AnalysisContextPanelProps> = ({
   onToggleBranchDetails,
   onOpenRoleObservation,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.language.startsWith("zh");
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const currentSimulation = useSimulationStore((state) => state.currentSimulation);
   const nodes = useSimulationStore((state) => state.nodes);
