@@ -312,6 +312,31 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
       intervention_arm: 'A2',
     },
   },
+
+  // ── Custom ──────────────────────────────────────────────────────
+
+  custom: {
+    id: 'custom',
+    name: 'Custom Scenario',
+    category: 'custom',
+    agentNames: ['Citizen1', 'Citizen2', 'Citizen3', 'Citizen4'],
+    agentRolePrompts: [
+      'You are Citizen1, a long-time resident who values community traditions.',
+      'You are Citizen2, a business owner concerned about costs.',
+      'You are Citizen3, a young parent who wants better facilities for children.',
+      'You are Citizen4, a retired engineer who questions the budget.',
+    ],
+    zhAgentRolePrompts: [
+      '你是 Citizen1，一位重视社区传统的老居民。(Long-time resident who values community traditions.)',
+      '你是 Citizen2，一位关心成本的商户老板。(Business owner concerned about costs.)',
+      '你是 Citizen3，一位希望改善儿童设施的年轻家长。(Young parent who wants better facilities for children.)',
+      '你是 Citizen4，一位质疑预算的退休工程师。(Retired engineer who questions the budget.)',
+    ],
+    rounds: 2,
+    parameters: {
+      custom_prompt: 'You are citizens in a small town deciding whether to build a new community center. Discuss the pros and cons and try to reach a consensus.',
+    },
+  },
 };
 
 /** Get all scenario configs as an array */

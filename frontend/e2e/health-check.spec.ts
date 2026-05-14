@@ -16,7 +16,7 @@
  */
 
 import { test, expect } from './fixtures';
-import { getAllScenarios } from './fixtures/scenario-fixtures';
+import { getAllScenarios, SCENARIOS } from './fixtures/scenario-fixtures';
 import { runScenario, ScenarioResult } from './helpers/run-scenario';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -44,6 +44,40 @@ for (const scenario of allScenarios) {
     );
   });
 }
+
+/**
+ * Dedicated custom scenario test.
+ *
+ * Verifies the custom scenario flow end-to-end: navigating to the custom
+ * scenario, filling in the required prompt textarea, running rounds, and
+ * asserting UI behaviour (panels render, no error state).
+ *
+ * Does NOT assert on agent response content — only UI state.
+ */
+test('custom scenario — prompt-based simulation', async ({ page, authedPage, locale }) => {
+  const customConfig = SCENARIOS.custom;
+  const result = await runScenario(page, customConfig, locale);
+
+  if (!resultsByLocale[locale]) {
+    resultsByLocale[locale] = [];
+  }
+  resultsByLocale[locale].push(result);
+
+  // Assert: no crash
+  expect(result.status).not.toBe('crashed');
+
+  // Assert: no UI errors displayed
+  expect(result.uiErrors).toEqual([]);
+
+  // Assert: status is passed or at worst ui_errors (never crashed/timeout)
+  expect(['passed', 'ui_errors']).toContain(result.status);
+
+  console.log(
+    `[${locale}] [custom] status=${result.status} ` +
+    `ui_errors=${result.uiErrors.length} ` +
+    `duration=${result.durationMs}ms`
+  );
+});
 
 test.afterAll(async () => {
   const outputDir = path.resolve(__dirname, 'collected-results');

@@ -45,6 +45,35 @@ markers = [
     "real_llm: tests that call a real configured LLM provider; require SOCIALSIM_TEST_REAL_LLM=1",
 ]
 
+# Coverage exclusions — reviewed 2026-05-13
+# council_scene.py: DEPRECATED — replaced by CouncilExperimentScene
+#   (commit 52b6d12 adds explicit deprecation warning)
+# landlord_scene.py + landlord_actions.py: not in active use
+# werewolf_scene.py + werewolf_actions.py: not in current test scope
+# village_scene.py + village_actions.py: not in current test scope
+# prompt_builders/pgg.py + __init__.py: DEAD CODE — superseded by
+#   generic prompt_builder.py, no active imports in execution path
+[tool.coverage.run]
+omit = [
+    "src/socialsim4/core/scenes/council_scene.py",
+    "src/socialsim4/core/scenes/landlord_scene.py",
+    "src/socialsim4/core/scenes/werewolf_scene.py",
+    "src/socialsim4/core/scenes/village_scene.py",
+    "src/socialsim4/core/actions/landlord_actions.py",
+    "src/socialsim4/core/actions/werewolf_actions.py",
+    "src/socialsim4/core/actions/village_actions.py",
+    "src/socialsim4/core/experiment/prompt_builders/pgg.py",
+    "src/socialsim4/core/experiment/prompt_builders/__init__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "warnings.warn.*deprecated",
+]
+
 [build-system]
 requires = ["poetry-core>=1.6.0"]
 build-backend = "poetry.core.masonry.api"
